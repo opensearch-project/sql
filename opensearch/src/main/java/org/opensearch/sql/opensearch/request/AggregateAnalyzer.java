@@ -53,7 +53,7 @@ import org.opensearch.search.aggregations.metrics.ExtendedStats;
 import org.opensearch.search.aggregations.support.ValueType;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
 import org.opensearch.search.sort.SortOrder;
-import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParser;
@@ -107,14 +107,14 @@ public class AggregateAnalyzer {
   public static Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> analyze(
       Aggregate aggregate,
       List<String> schema,
-      Map<String, OpenSearchDataType> typeMapping,
+      Map<String, ExprType> fieldTypes,
       List<String> outputFields)
       throws ExpressionNotAnalyzableException {
     requireNonNull(aggregate, "aggregate");
     try {
       List<Integer> groupList = aggregate.getGroupSet().asList();
       FieldExpressionCreator fieldExpressionCreator =
-          fieldIndex -> new NamedFieldExpression(fieldIndex, schema, typeMapping);
+          fieldIndex -> new NamedFieldExpression(fieldIndex, schema, fieldTypes);
       // Process all aggregate calls
       Pair<Builder, List<MetricParser>> builderAndParser =
           processAggregateCalls(
@@ -261,8 +261,7 @@ public class AggregateAnalyzer {
             .field(groupExpr.getReferenceForTermQuery());
 
     // Time types values are converted to LONG in ExpressionAggregationScript::execute
-    if (List.of(TIMESTAMP, TIME, DATE)
-        .contains(groupExpr.getOpenSearchDataType().getExprCoreType())) {
+    if (List.of(TIMESTAMP, TIME, DATE).contains(groupExpr.getExprType())) {
       sourceBuilder.userValuetypeHint(ValueType.LONG);
     }
 

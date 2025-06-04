@@ -40,6 +40,8 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 
 public interface PlanUtils {
 
+  String ROW_NUMBER_COLUMN_NAME = "_row_number_";
+
   static SpanUnit intervalUnitToSpanUnit(IntervalUnit unit) {
     return switch (unit) {
       case MICROSECOND -> SpanUnit.MILLISECOND;
@@ -62,9 +64,10 @@ public interface PlanUtils {
       RexNode field,
       List<RexNode> argList,
       List<RexNode> partitions,
+      List<RexNode> orderKeys,
       @Nullable WindowFrame windowFrame) {
     if (windowFrame == null) {
-      windowFrame = WindowFrame.defaultFrame();
+      windowFrame = WindowFrame.rowsUnbounded();
     }
     boolean rows = windowFrame.getType() == WindowFrame.FrameType.ROWS;
     RexWindowBound lowerBound = convert(context, windowFrame.getLower());
@@ -100,10 +103,19 @@ public interface PlanUtils {
         return variance(context, field, partitions, rows, lowerBound, upperBound, true, false);
       case VARSAMP:
         return variance(context, field, partitions, rows, lowerBound, upperBound, false, false);
+      case ROW_NUMBER:
+        return withOver(
+            context.relBuilder.aggregateCall(SqlStdOperatorTable.ROW_NUMBER),
+            partitions,
+            orderKeys,
+            true,
+            lowerBound,
+            upperBound);
       default:
         return withOver(
             makeAggCall(context, functionName, false, field, argList),
             partitions,
+            orderKeys,
             rows,
             lowerBound,
             upperBound);
@@ -117,7 +129,8 @@ public interface PlanUtils {
       boolean rows,
       RexWindowBound lowerBound,
       RexWindowBound upperBound) {
-    return withOver(ctx.relBuilder.sum(operation), partitions, rows, lowerBound, upperBound);
+    return withOver(
+        ctx.relBuilder.sum(operation), partitions, List.of(), rows, lowerBound, upperBound);
   }
 
   private static RexNode countOver(
@@ -130,6 +143,7 @@ public interface PlanUtils {
     return withOver(
         ctx.relBuilder.count(ImmutableList.of(operation)),
         partitions,
+        List.of(),
         rows,
         lowerBound,
         upperBound);
@@ -138,12 +152,14 @@ public interface PlanUtils {
   private static RexNode withOver(
       RelBuilder.AggCall aggCall,
       List<RexNode> partitions,
+      List<RexNode> orderKeys,
       boolean rows,
       RexWindowBound lowerBound,
       RexWindowBound upperBound) {
     return aggCall
         .over()
         .partitionBy(partitions)
+        .orderBy(orderKeys)
         .let(
             c ->
                 rows

@@ -8,7 +8,7 @@ package org.opensearch.sql.expression.aggregation;
 import static org.opensearch.sql.data.model.ExprValueUtils.doubleValue;
 import static org.opensearch.sql.utils.ExpressionUtils.format;
 
-import com.tdunning.math.stats.AVLTreeDigest;
+import com.tdunning.math.stats.MergingDigest;
 import java.util.List;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.model.ExprNullValue;
@@ -56,11 +56,11 @@ public class PercentileApproximateAggregator
   }
 
   /**
-   * PercentileApproximateState is used to store the AVLTreeDigest state for percentile estimation.
+   * PercentileApproximateState is used to store the MergingDigest state for percentile estimation.
    */
-  protected static class PercentileApproximateState extends AVLTreeDigest
+  protected static class PercentileApproximateState extends MergingDigest
       implements AggregationState {
-    // The compression level for the AVLTreeDigest, keep the same default value as OpenSearch core.
+    // The compression level for the MergingDigest, keep the same default value as OpenSearch core.
     public static final double DEFAULT_COMPRESSION = 100.0;
     private final double percent;
 

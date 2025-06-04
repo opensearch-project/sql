@@ -66,7 +66,8 @@ def normalize_explain_response(data):
 
     if (request := data.get("description", {}).get("request", None)) and request.startswith("OpenSearchQueryRequest("):
         for filter_field in ["needClean", "pitId", "cursorKeepAlive", "searchAfter", "searchResponse"]:
-            request = re.sub(f", {filter_field}=\\w+", "", request)
+            # The value of PIT may contain `+=_-`.
+            request = re.sub(f", {filter_field}=[A-Za-z0-9+=_-]+", "", request)
         data["description"]["request"] = request
 
     for child in data.get("children", []):
