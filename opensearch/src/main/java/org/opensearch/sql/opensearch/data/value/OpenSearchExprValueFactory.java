@@ -132,6 +132,7 @@ public class OpenSearchExprValueFactory {
           .put(
               OpenSearchDateType.of(TIMESTAMP),
               OpenSearchExprValueFactory::createOpenSearchDateType)
+          .put(OpenSearchDateType.of(DATETIME), OpenSearchExprValueFactory::createOpenSearchDateType)
           .put(
               OpenSearchDateType.of(OpenSearchDataType.MappingType.Ip),
               (c, dt) -> new ExprIpValue(c.stringValue()))

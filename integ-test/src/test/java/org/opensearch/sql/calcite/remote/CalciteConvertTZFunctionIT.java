@@ -12,6 +12,7 @@ public class CalciteConvertTZFunctionIT extends ConvertTZFunctionIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
+    datatype = "timestamp";
     disallowCalciteFallback();
   }
 }
