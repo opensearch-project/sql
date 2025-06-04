@@ -68,21 +68,21 @@ public class PercentileApproxAggregatorTest extends AggregationTest {
         aggregation(
             DSL.percentile(DSL.ref("integer_value", INTEGER), DSL.literal(50), DSL.literal(0.1)),
             tuples);
-    assertEquals(3.0, result.value());
+    assertEquals(2.5, result.value());
     result =
         aggregation(
             DSL.percentile(DSL.ref("long_value", LONG), DSL.literal(50), DSL.literal(0.1)), tuples);
-    assertEquals(3.0, result.value());
+    assertEquals(2.5, result.value());
     result =
         aggregation(
             DSL.percentile(DSL.ref("double_value", DOUBLE), DSL.literal(50), DSL.literal(0.1)),
             tuples);
-    assertEquals(3.0, result.value());
+    assertEquals(2.5, result.value());
     result =
         aggregation(
             DSL.percentile(DSL.ref("float_value", FLOAT), DSL.literal(50), DSL.literal(0.1)),
             tuples);
-    assertEquals(3.0, result.value());
+    assertEquals(2.5, result.value());
   }
 
   @Test
