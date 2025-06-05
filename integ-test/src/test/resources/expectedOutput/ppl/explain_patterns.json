@@ -2,13 +2,13 @@
   "root": {
     "name": "ProjectOperator",
     "description": {
-      "fields": "[account_number, firstname, address, balance, gender, city, employer, state, age, email, lastname, patterns_field]"
+      "fields": "[account_number, address, age, balance, city, email, employer, firstname, gender, lastname, state, patterns_field]"
     },
     "children": [
       {
         "name": "OpenSearchIndexScan",
         "description": {
-          "request": "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account, sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"_source\":{\"includes\":[\"account_number\",\"firstname\",\"address\",\"balance\",\"gender\",\"city\",\"employer\",\"state\",\"age\",\"email\",\"lastname\",\"patterns_field\"],\"excludes\":[]}}, needClean=true, searchDone=false, pitId=*, cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
+          "request": "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account, sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"_source\":{\"includes\":[\"account_number\",\"address\",\"age\",\"balance\",\"city\",\"email\",\"employer\",\"firstname\",\"gender\",\"lastname\",\"state\",\"patterns_field\"],\"excludes\":[]}}, needClean=true, searchDone=false, pitId=*, cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
         },
         "children": []
       }

@@ -13,6 +13,9 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
 import org.json.JSONObject;
 import org.junit.Test;
 
@@ -55,7 +58,7 @@ public class CalcitePPLRenameIT extends CalcitePPLIntegTestCase {
                    source = %s | rename age as renamed_age | fields age
                    """,
                         TEST_INDEX_STATE_COUNTRY)));
-    assertEquals(
+    verifyErrorMessage(
         "field [age] not found; input fields are: [name, country, state, month, year, renamed_age,"
             + " _id, _index, _score, _maxscore, _sort, _routing]",
         e.getMessage());
@@ -73,7 +76,7 @@ public class CalcitePPLRenameIT extends CalcitePPLIntegTestCase {
                    source = %s | rename renamed_age as age
                    """,
                         TEST_INDEX_STATE_COUNTRY)));
-    assertEquals(
+    verifyErrorMessage(
         "field [renamed_age] not found; input fields are: [name, country, state, month, year, age,"
             + " _id, _index, _score, _maxscore, _sort, _routing]",
         e.getMessage());
@@ -181,5 +184,20 @@ public class CalcitePPLRenameIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_STATE_COUNTRY));
     verifySchemaInOrder(result, schema("avg(`user_age`)", "double"), schema("country", "string"));
     verifyDataRows(result, rows(22.5, "Canada"), rows(50.0, "USA"));
+  }
+
+  private void verifyErrorMessage(String actual, String expected) {
+    String[] actualList = actual.split("input fields are:");
+    String[] expectedList = expected.split("input fields are:");
+    assert actualList.length == expectedList.length;
+    assert actualList.length == 2;
+    assert actualList[0].equals(expectedList[0]);
+    assert transferStringToList(actualList[1]).equals(transferStringToList(expectedList[1]));
+  }
+
+  private HashSet<String> transferStringToList(String listString) {
+    List<String> list =
+        Arrays.stream(listString.strip().substring(1, listString.length() - 1).split(",")).toList();
+    return new HashSet<>(list.stream().map(s -> s.strip()).toList());
   }
 }

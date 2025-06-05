@@ -52,6 +52,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
                        | where country = 'USA'
                        | fields id
                      ]
+                   | fields name, country, occupation, id, salary
                    """,
                 TEST_INDEX_WORKER, TEST_INDEX_WORKER));
     verifySchema(
@@ -314,6 +315,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
                        | fields uid
                      ]
                    | sort  - salary
+                   | fields name, country, occupation, id, salary
                    """,
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION, TEST_INDEX_OCCUPATION));
     verifySchema(

@@ -64,7 +64,7 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testMultipleSourceQuery_DifferentTables() {
-    JSONObject actual = executeQuery("source=test, test1");
+    JSONObject actual = executeQuery("source=test, test1 | fields name, alias, age");
     verifySchema(
         actual, schema("name", "string"), schema("age", "long"), schema("alias", "string"));
     verifyDataRows(
@@ -73,7 +73,7 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testIndexPatterns() {
-    JSONObject actual = executeQuery("source=test*");
+    JSONObject actual = executeQuery("source=test* | fields name, alias, age");
     verifySchema(
         actual, schema("name", "string"), schema("age", "long"), schema("alias", "string"));
     verifyDataRows(
