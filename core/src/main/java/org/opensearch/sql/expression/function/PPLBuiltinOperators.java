@@ -35,6 +35,7 @@ import org.opensearch.sql.expression.function.jsonUDF.JsonFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonKeysFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonSetFunctionImpl;
 import org.opensearch.sql.expression.function.udf.CryptographicFunction;
+import org.opensearch.sql.expression.function.udf.GrokFunction;
 import org.opensearch.sql.expression.function.udf.datetime.AddSubDateFunction;
 import org.opensearch.sql.expression.function.udf.datetime.CurrentFunction;
 import org.opensearch.sql.expression.function.udf.datetime.DateAddSubFunction;
@@ -272,6 +273,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               NullPolicy.NONE)
           .toUDF("UTC_TIMESTAMP");
   public static final SqlOperator WEEK = new WeekFunction().toUDF("WEEK");
+  public static final SqlOperator GROK = new GrokFunction().toUDF("GROK");
 
   /**
    * Invoking an implementor registered in {@link RexImpTable}, need to use reflection since they're
