@@ -71,6 +71,7 @@ commands
    | fillnullCommand
    | trendlineCommand
    | appendcolCommand
+   | flattenCommand
    ;
 
 commandName
@@ -97,6 +98,7 @@ commandName
    | AD
    | ML
    | FILLNULL
+   | FLATTEN
    | TRENDLINE
    | EXPLAIN
    ;
@@ -240,6 +242,10 @@ trendlineType
 
 appendcolCommand
    : APPENDCOL (OVERRIDE EQUAL override = booleanLiteral)? LT_SQR_PRTHS commands (PIPE commands)* RT_SQR_PRTHS
+   ;
+
+flattenCommand
+   : FLATTEN fieldExpression
    ;
 
 kmeansCommand

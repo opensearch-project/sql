@@ -69,6 +69,7 @@ import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
+import org.opensearch.sql.ast.tree.Flatten;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -971,6 +972,26 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitTableFunction(TableFunction node, CalcitePlanContext context) {
     throw new CalciteUnsupportedException("Table function is unsupported in Calcite");
+  }
+
+  @Override
+  public RelNode visitFlatten(Flatten node, CalcitePlanContext context) {
+    visitChildren(node, context);
+    RexInputRef fieldRex = (RexInputRef) rexVisitor.analyze(node.getField(), context);
+    RelBuilder relBuilder = context.relBuilder;
+    String fieldName = node.getField().getField().toString();
+    // Match the field names
+    List<RexNode> aliasFields =
+        relBuilder.peek().getRowType().getFieldList().stream()
+            .filter(f -> f.getName().startsWith(fieldName + "."))
+            .map(
+                f ->
+                    relBuilder.alias(
+                        relBuilder.field(f.getName()),
+                        f.getName().substring(fieldName.length() + 1)))
+            .toList();
+    relBuilder.projectPlus(aliasFields);
+    return relBuilder.peek();
   }
 
   @Override

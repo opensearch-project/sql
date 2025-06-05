@@ -54,6 +54,7 @@ import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
+import org.opensearch.sql.ast.tree.Flatten;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -671,6 +672,12 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     return new LogicalTrendline(
         buildSort(child, context, Collections.singletonList(node.getSortByField().get())),
         computationsAndTypes.build());
+  }
+
+  @Override
+  public LogicalPlan visitFlatten(Flatten node, AnalysisContext context) {
+    throw new UnsupportedOperationException(
+        "FLATTEN is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
   }
 
   @Override

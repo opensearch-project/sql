@@ -63,6 +63,7 @@ import org.opensearch.sql.ast.tree.DescribeRelation;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
+import org.opensearch.sql.ast.tree.Flatten;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -651,6 +652,12 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     }
 
     return FillNull.ofVariousValue(replacementsBuilder.build());
+  }
+
+  @Override
+  public UnresolvedPlan visitFlattenCommand(OpenSearchPPLParser.FlattenCommandContext ctx) {
+    Field field = (Field) internalVisitExpression(ctx.fieldExpression());
+    return new Flatten(field);
   }
 
   /** trendline command. */
