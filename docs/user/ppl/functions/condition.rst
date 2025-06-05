@@ -358,7 +358,7 @@ Description
 
 Version: 3.1.0
 
-Usage: earliest(relative_string, field) returns true if the field is after transferring the relative_string.
+Usage: earliest(relative_string, field) returns true if the value of field is after the timestamp derived from relative_string relative to the current time. Otherwise, return false.
 
 relative_string: 
 The relative string can be one of the following formats:
@@ -413,7 +413,7 @@ Description
 
 Version: 3.1.0
 
-Usage: latest(relative_string, field) returns true if the field is before transferring the relative_string.
+Usage: latest(relative_string, field) returns true if the value of field is before the timestamp derived from relative_string relative to the current time. Otherwise, return false.
 
 Argument type: relative_string:STRING, field: TIMESTAMP
 
