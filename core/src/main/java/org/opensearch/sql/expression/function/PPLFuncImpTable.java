@@ -5,10 +5,14 @@
 
 package org.opensearch.sql.expression.function;
 
+import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.*;
+import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.STDDEV_POP_NULLABLE;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getLegacyTypeName;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedAggFunction;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.*;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -24,11 +28,23 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction.Flag;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.udf.udaf.PercentileApproxFunction;
+import org.opensearch.sql.calcite.udf.udaf.TakeAggFunction;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.executor.QueryType;
 
 public class PPLFuncImpTable {
+  /** A lambda function interface which could apply parameters to get AggCall. */
+  @FunctionalInterface
+  public interface AggHandler {
+    RelBuilder.AggCall apply(
+        boolean distinct, RexNode field, List<RexNode> argList, CalcitePlanContext context);
+  }
 
   public interface FunctionImp {
     RelDataType ANY_TYPE = TYPE_FACTORY.createSqlType(SqlTypeName.ANY);
@@ -88,7 +104,9 @@ public class PPLFuncImpTable {
   static {
     final Builder builder = new Builder();
     builder.populate();
-    INSTANCE = new PPLFuncImpTable(builder);
+    final AggBuilder aggBuilder = new AggBuilder();
+    aggBuilder.populate();
+    INSTANCE = new PPLFuncImpTable(builder, aggBuilder);
   }
 
   /**
@@ -107,12 +125,32 @@ public class PPLFuncImpTable {
   private final Map<BuiltinFunctionName, List<Pair<CalciteFuncSignature, FunctionImp>>>
       externalFunctionRegistry;
 
-  private PPLFuncImpTable(Builder builder) {
+  /**
+   * The registry for built-in agg functions. Agg Functions defined by the PPL specification, whose
+   * implementations are independent of any specific data storage, should be registered here
+   * internally.
+   */
+  private final ImmutableMap<BuiltinFunctionName, AggHandler> aggFunctionRegistry;
+
+  /**
+   * The external agg function registry. Agg Functions whose implementations depend on a specific
+   * data engine should be registered here. This reduces coupling between the core module and
+   * particular storage backends.
+   */
+  private final Map<BuiltinFunctionName, AggHandler> aggExternalFunctionRegistry;
+
+  private PPLFuncImpTable(Builder builder, AggBuilder aggBuilder) {
     final ImmutableMap.Builder<BuiltinFunctionName, List<Pair<CalciteFuncSignature, FunctionImp>>>
         mapBuilder = ImmutableMap.builder();
     builder.map.forEach((k, v) -> mapBuilder.put(k, List.copyOf(v)));
     this.functionRegistry = ImmutableMap.copyOf(mapBuilder.build());
     this.externalFunctionRegistry = new HashMap<>();
+
+    final ImmutableMap.Builder<BuiltinFunctionName, AggHandler> aggMapBuilder =
+        ImmutableMap.builder();
+    aggBuilder.map.forEach(aggMapBuilder::put);
+    this.aggFunctionRegistry = ImmutableMap.copyOf(aggMapBuilder.build());
+    this.aggExternalFunctionRegistry = new HashMap<>();
   }
 
   /**
@@ -130,6 +168,33 @@ public class PPLFuncImpTable {
       externalFunctionRegistry.put(
           functionName, new ArrayList<>(List.of(Pair.of(signature, functionImp))));
     }
+  }
+
+  /**
+   * Register a function implementation from external services dynamically.
+   *
+   * @param functionName the name of the function, has to be defined in BuiltinFunctionName
+   * @param functionImp the implementation of the agg function
+   */
+  public void registerExternalAggFunction(
+      BuiltinFunctionName functionName, AggHandler functionImp) {
+    aggExternalFunctionRegistry.put(functionName, functionImp);
+  }
+
+  public RelBuilder.AggCall resolveAgg(
+      BuiltinFunctionName functionName,
+      boolean distinct,
+      RexNode field,
+      List<RexNode> argList,
+      CalcitePlanContext context) {
+    AggHandler handler = aggExternalFunctionRegistry.get(functionName);
+    if (handler == null) {
+      handler = aggFunctionRegistry.get(functionName);
+    }
+    if (handler == null) {
+      throw new IllegalStateException(String.format("Cannot resolve function: %s", functionName));
+    }
+    return handler.apply(distinct, field, argList, context);
   }
 
   public RexNode resolve(final RexBuilder builder, final String functionName, RexNode... args) {
@@ -460,6 +525,72 @@ public class PPLFuncImpTable {
     public List<RelDataType> getParams() {
       RelDataType boolType = TYPE_FACTORY.createSqlType(SqlTypeName.BOOLEAN);
       return List.of(boolType, boolType);
+    }
+  }
+
+  private static class AggBuilder {
+    private final Map<BuiltinFunctionName, AggHandler> map = new HashMap<>();
+
+    void register(BuiltinFunctionName functionName, AggHandler aggHandler) {
+      map.put(functionName, aggHandler);
+    }
+
+    void populate() {
+      register(MAX, (distinct, field, argList, ctx) -> ctx.relBuilder.max(field));
+      register(MIN, (distinct, field, argList, ctx) -> ctx.relBuilder.min(field));
+
+      register(AVG, (distinct, field, argList, ctx) -> ctx.relBuilder.avg(distinct, null, field));
+
+      register(
+          COUNT,
+          (distinct, field, argList, ctx) ->
+              ctx.relBuilder.count(
+                  distinct, null, field == null ? ImmutableList.of() : ImmutableList.of(field)));
+      register(SUM, (distinct, field, argList, ctx) -> ctx.relBuilder.sum(distinct, null, field));
+
+      register(
+          VARSAMP,
+          (distinct, field, argList, ctx) ->
+              ctx.relBuilder.aggregateCall(VAR_SAMP_NULLABLE, field));
+
+      register(
+          VARPOP,
+          (distinct, field, argList, ctx) -> ctx.relBuilder.aggregateCall(VAR_POP_NULLABLE, field));
+
+      register(
+          STDDEV_SAMP,
+          (distinct, field, argList, ctx) ->
+              ctx.relBuilder.aggregateCall(STDDEV_SAMP_NULLABLE, field));
+
+      register(
+          STDDEV_POP,
+          (distinct, field, argList, ctx) ->
+              ctx.relBuilder.aggregateCall(STDDEV_POP_NULLABLE, field));
+
+      register(
+          TAKE,
+          (distinct, field, argList, ctx) ->
+              TransferUserDefinedAggFunction(
+                  TakeAggFunction.class,
+                  "TAKE",
+                  UserDefinedFunctionUtils.getReturnTypeInferenceForArray(),
+                  List.of(field),
+                  argList,
+                  ctx.relBuilder));
+
+      register(
+          PERCENTILE_APPROX,
+          (distinct, field, argList, ctx) -> {
+            List<RexNode> newArgList = new ArrayList<>(argList);
+            newArgList.add(ctx.rexBuilder.makeFlag(field.getType().getSqlTypeName()));
+            return TransferUserDefinedAggFunction(
+                PercentileApproxFunction.class,
+                "percentile_approx",
+                ReturnTypes.ARG0_FORCE_NULLABLE,
+                List.of(field),
+                newArgList,
+                ctx.relBuilder);
+          });
     }
   }
 }

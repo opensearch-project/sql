@@ -10,7 +10,6 @@ import static org.apache.calcite.rex.RexWindowBounds.UNBOUNDED_FOLLOWING;
 import static org.apache.calcite.rex.RexWindowBounds.UNBOUNDED_PRECEDING;
 import static org.apache.calcite.rex.RexWindowBounds.following;
 import static org.apache.calcite.rex.RexWindowBounds.preceding;
-import static org.opensearch.sql.calcite.udf.udaf.AggTransferFunctionMap.AGG_FUNCTION_MAP;
 
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -28,8 +27,8 @@ import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.WindowBound;
 import org.opensearch.sql.ast.expression.WindowFrame;
 import org.opensearch.sql.calcite.CalcitePlanContext;
-import org.opensearch.sql.calcite.udf.udaf.AggHandler;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
 public interface PlanUtils {
 
@@ -220,13 +219,7 @@ public interface PlanUtils {
       boolean distinct,
       RexNode field,
       List<RexNode> argList) {
-    AggHandler handler = AGG_FUNCTION_MAP.get(functionName);
-
-    if (handler == null) {
-      throw new UnsupportedOperationException("Unexpected aggregation: " + functionName);
-    }
-
-    return handler.apply(distinct, field, argList, context);
+    return PPLFuncImpTable.INSTANCE.resolveAgg(functionName, distinct, field, argList, context);
   }
 
   /** Get all uniq input references from a RexNode. */

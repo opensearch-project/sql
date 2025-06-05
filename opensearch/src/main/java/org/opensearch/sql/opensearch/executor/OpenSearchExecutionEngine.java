@@ -30,8 +30,6 @@ import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.opensearch.sql.ast.statement.Explain.ExplainFormat;
 import org.opensearch.sql.calcite.CalcitePlanContext;
-import org.opensearch.sql.calcite.udf.udaf.AggTransferFunctionMap;
-import org.opensearch.sql.calcite.udf.udaf.AggTransferFunctionMap.*;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.model.ExprTupleValue;
@@ -253,7 +251,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
             builder.makeCall(new GeoIpFunction(client.getNodeClient()).toUDF("GEOIP"), args);
     PPLFuncImpTable.INSTANCE.registerExternalFunction(BuiltinFunctionName.GEOIP, geoIpImpl);
 
-    AggTransferFunctionMap.AGG_FUNCTION_MAP.put(
+    PPLFuncImpTable.INSTANCE.registerExternalAggFunction(
         DISTINCT_COUNT_APPROX,
         (distinct, field, argList, ctx) ->
             TransferUserDefinedAggFunction(
