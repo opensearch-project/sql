@@ -18,13 +18,11 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testUncorrelatedScalarSubqueryInWhere() {
     String ppl =
-        """
-        source=EMP
-        | where SAL > [
-            source=EMP
-            | stats AVG(SAL)
-          ]
-        """;
+        "source=EMP\n"
+            + "| where SAL > [\n"
+            + "    source=EMP\n"
+            + "    | stats AVG(SAL)\n"
+            + "  ]\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalFilter(condition=[>($5, $SCALAR_QUERY({\n"
@@ -47,13 +45,11 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testUncorrelatedScalarSubqueryInSelect() {
     String ppl =
-        """
-        source=EMP
-        | eval min_empno = [
-            source=EMP | stats min(EMPNO)
-          ]
-        | fields min_empno, SAL
-        """;
+        "source=EMP\n"
+            + "| eval min_empno = [\n"
+            + "    source=EMP | stats min(EMPNO)\n"
+            + "  ]\n"
+            + "| fields min_empno, SAL\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(variablesSet=[[$cor0]], min_empno=[$SCALAR_QUERY({\n"
@@ -75,17 +71,15 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testUncorrelatedScalarSubqueryInWhereAndSelect() {
     String ppl =
-        """
-        source=EMP
-        | eval min_empno = [
-            source=EMP | stats min(EMPNO)
-          ]
-        | where SAL > [
-            source=EMP
-            | stats AVG(SAL)
-          ]
-        | fields min_empno, SAL
-        """;
+        "source=EMP\n"
+            + "| eval min_empno = [\n"
+            + "    source=EMP | stats min(EMPNO)\n"
+            + "  ]\n"
+            + "| where SAL > [\n"
+            + "    source=EMP\n"
+            + "    | stats AVG(SAL)\n"
+            + "  ]\n"
+            + "| fields min_empno, SAL\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(min_empno=[$8], SAL=[$5])\n"
@@ -118,12 +112,10 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testCorrelatedScalarSubqueryInWhere() {
     String ppl =
-        """
-        source=EMP
-        | where SAL > [
-            source=SALGRADE | where SAL = HISAL | stats AVG(SAL)
-          ]
-        """;
+        "source=EMP\n"
+            + "| where SAL > [\n"
+            + "    source=SALGRADE | where SAL = HISAL | stats AVG(SAL)\n"
+            + "  ]\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
@@ -149,13 +141,11 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testCorrelatedScalarSubqueryInSelect() {
     String ppl =
-        """
-        source=EMP
-        | eval min_empno = [
-            source=SALGRADE | where SAL = HISAL | stats min(EMPNO)
-          ]
-        | fields min_empno, SAL
-        """;
+        "source=EMP\n"
+            + "| eval min_empno = [\n"
+            + "    source=SALGRADE | where SAL = HISAL | stats min(EMPNO)\n"
+            + "  ]\n"
+            + "| fields min_empno, SAL\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
@@ -180,12 +170,10 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testDisjunctiveCorrelatedScalarSubqueryInWhere() {
     String ppl =
-        """
-        source=EMP
-        | where [
-            source=SALGRADE | where SAL = HISAL OR HISAL > 1000.0 | stats COUNT()
-          ] > 0
-        """;
+        "source=EMP\n"
+            + "| where [\n"
+            + "    source=SALGRADE | where SAL = HISAL OR HISAL > 1000.0 | stats COUNT()\n"
+            + "  ] > 0\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
@@ -210,12 +198,11 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testDisjunctiveCorrelatedScalarSubqueryInWhere2() {
     String ppl =
-        """
-        source=EMP
-        | where [
-            source=SALGRADE | where (SAL = HISAL AND HISAL > 1000.0) OR (SAL = HISAL AND LOSAL > 1000.0) | stats COUNT()
-          ] > 0
-        """;
+        "source=EMP\n"
+            + "| where [\n"
+            + "    source=SALGRADE | where (SAL = HISAL AND HISAL > 1000.0) OR (SAL = HISAL AND"
+            + " LOSAL > 1000.0) | stats COUNT()\n"
+            + "  ] > 0\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalFilter(condition=[>($SCALAR_QUERY({\n"
@@ -240,14 +227,12 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testTwoScalarSubqueriesInOr() {
     String ppl =
-        """
-        source=EMP
-        | where SAL = [
-            source=SALGRADE | sort LOSAL | stats max(HISAL)
-          ] OR SAL = [
-            source=SALGRADE | where LOSAL > 1000.0 | sort - HISAL | stats min(HISAL)
-          ]
-        """;
+        "source=EMP\n"
+            + "| where SAL = [\n"
+            + "    source=SALGRADE | sort LOSAL | stats max(HISAL)\n"
+            + "  ] OR SAL = [\n"
+            + "    source=SALGRADE | where LOSAL > 1000.0 | sort - HISAL | stats min(HISAL)\n"
+            + "  ]\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalFilter(condition=[OR(=($5, $SCALAR_QUERY({\n"
@@ -280,20 +265,18 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testNestedScalarSubquery() {
     String ppl =
-        """
-        source=EMP
-        | where SAL = [
-            source=SALGRADE
-            | where HISAL = [
-                source=EMP
-                | stats max(SAL) as max_sal by JOB
-                | fields max_sal
-              ]
-            | stats max(HISAL) as max_hisal by GRADE
-            | fields max_hisal
-            | head 1
-          ]
-        """;
+        "source=EMP\n"
+            + "| where SAL = [\n"
+            + "    source=SALGRADE\n"
+            + "    | where HISAL = [\n"
+            + "        source=EMP\n"
+            + "        | stats max(SAL) as max_sal by JOB\n"
+            + "        | fields max_sal\n"
+            + "      ]\n"
+            + "    | stats max(HISAL) as max_hisal by GRADE\n"
+            + "    | fields max_hisal\n"
+            + "    | head 1\n"
+            + "  ]\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalFilter(condition=[=($5, $SCALAR_QUERY({\n"

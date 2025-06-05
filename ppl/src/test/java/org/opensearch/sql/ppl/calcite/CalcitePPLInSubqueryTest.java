@@ -21,10 +21,8 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testInSubquery() {
     String ppl =
-        """
-        source=EMP | where DEPTNO in [ source=DEPT | fields DEPTNO ]
-        | sort - EMPNO | fields EMPNO, ENAME
-        """;
+        "source=EMP | where DEPTNO in [ source=DEPT | fields DEPTNO ]\n"
+            + "| sort - EMPNO | fields EMPNO, ENAME\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
@@ -50,14 +48,12 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testSelfInSubquery() {
     String ppl =
-        """
-        source=EMP | where MGR in [
-            source=EMP
-            | where DEPTNO = 10
-            | fields MGR
-          ]
-        | fields MGR
-        """;
+        "source=EMP | where MGR in [\n"
+            + "    source=EMP\n"
+            + "    | where DEPTNO = 10\n"
+            + "    | fields MGR\n"
+            + "  ]\n"
+            + "| fields MGR\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
@@ -83,10 +79,8 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testTwoExpressionsInSubquery() {
     String ppl =
-        """
-        source=EMP | where (DEPTNO, ENAME) in [ source=DEPT | fields DEPTNO, DNAME ]
-        | sort - EMPNO | fields EMPNO, ENAME
-        """;
+        "source=EMP | where (DEPTNO, ENAME) in [ source=DEPT | fields DEPTNO, DNAME ]\n"
+            + "| sort - EMPNO | fields EMPNO, ENAME\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
@@ -112,10 +106,8 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testFilterInSubquery() {
     String ppl =
-        """
-        source=EMP (DEPTNO, ENAME) in [ source=DEPT | fields DEPTNO, DNAME ]
-        | sort - EMPNO | fields EMPNO, ENAME
-        """;
+        "source=EMP (DEPTNO, ENAME) in [ source=DEPT | fields DEPTNO, DNAME ]\n"
+            + "| sort - EMPNO | fields EMPNO, ENAME\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
@@ -141,10 +133,8 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testNotInSubquery() {
     String ppl =
-        """
-        source=EMP | where (DEPTNO, ENAME) not in [ source=DEPT | fields DEPTNO, DNAME ]
-        | sort - EMPNO | fields EMPNO, ENAME
-        """;
+        "source=EMP | where (DEPTNO, ENAME) not in [ source=DEPT | fields DEPTNO, DNAME ]\n"
+            + "| sort - EMPNO | fields EMPNO, ENAME\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
@@ -170,10 +160,9 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testNestedSubquery() {
     String ppl =
-        """
-        source=DEPT | where DEPTNO in [ source=EMP | where ENAME in [ source=BONUS | fields ENAME ] | fields DEPTNO ]
-        | sort - DEPTNO | fields DNAME, LOC
-        """;
+        "source=DEPT | where DEPTNO in [ source=EMP | where ENAME in [ source=BONUS | fields ENAME"
+            + " ] | fields DEPTNO ]\n"
+            + "| sort - DEPTNO | fields DNAME, LOC\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
@@ -205,14 +194,12 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testInSubqueryAsJoinFilter() {
     String ppl =
-        """
-        source=EMP | inner join left=e, right=d
-          ON e.DEPTNO = d.DEPTNO AND e.ENAME in [
-            source=BONUS | WHERE SAL > 1000 | fields ENAME
-          ]
-          DEPT
-        | sort - e.EMPNO | fields e.EMPNO, e.ENAME
-        """;
+        "source=EMP | inner join left=e, right=d\n"
+            + "  ON e.DEPTNO = d.DEPTNO AND e.ENAME in [\n"
+            + "    source=BONUS | WHERE SAL > 1000 | fields ENAME\n"
+            + "  ]\n"
+            + "  DEPT\n"
+            + "| sort - e.EMPNO | fields e.EMPNO, e.ENAME\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
@@ -241,17 +228,13 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void failWhenNumOfColumnsNotMatchOutputOfSubquery() {
     String less =
-        """
-            source=EMP | where (DEPTNO) in [ source=DEPT | fields DEPTNO, DNAME ]
-            | sort - EMPNO | fields EMPNO, ENAME
-            """;
+        "source=EMP | where (DEPTNO) in [ source=DEPT | fields DEPTNO, DNAME ]\n"
+            + "| sort - EMPNO | fields EMPNO, ENAME\n";
     assertThrows(SemanticCheckException.class, () -> getRelNode(less));
 
     String more =
-        """
-            source=EMP | where (DEPTNO, ENAME) in [ source=DEPT | fields DEPTNO, DNAME, LOC ]
-            | sort - EMPNO | fields EMPNO, ENAME
-            """;
+        "source=EMP | where (DEPTNO, ENAME) in [ source=DEPT | fields DEPTNO, DNAME, LOC ]\n"
+            + "| sort - EMPNO | fields EMPNO, ENAME\n";
     assertThrows(SemanticCheckException.class, () -> getRelNode(more));
   }
 }

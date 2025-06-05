@@ -17,14 +17,12 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testCorrelatedExistsSubqueryWithoutAlias() {
     String ppl =
-        """
-        source=EMP
-        | where exists [
-            source=SALGRADE
-            | where SAL = HISAL
-          ]
-        | sort - EMPNO | fields EMPNO, ENAME
-        """;
+        "source=EMP\n"
+            + "| where exists [\n"
+            + "    source=SALGRADE\n"
+            + "    | where SAL = HISAL\n"
+            + "  ]\n"
+            + "| sort - EMPNO | fields EMPNO, ENAME\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
@@ -51,14 +49,12 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testCorrelatedExistsSubqueryWithAlias() {
     String ppl =
-        """
-        source=EMP
-        | where exists [
-            source=SALGRADE
-            | where EMP.SAL = HISAL
-          ]
-        | sort - EMPNO | fields EMPNO, ENAME
-        """;
+        "source=EMP\n"
+            + "| where exists [\n"
+            + "    source=SALGRADE\n"
+            + "    | where EMP.SAL = HISAL\n"
+            + "  ]\n"
+            + "| sort - EMPNO | fields EMPNO, ENAME\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
@@ -85,14 +81,12 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testUncorrelatedExistsSubquery() {
     String ppl =
-        """
-        source=EMP
-        | where exists [
-            source=DEPT
-            | where DNAME = 'Accounting'
-          ]
-        | sort - EMPNO | fields EMPNO, ENAME
-        """;
+        "source=EMP\n"
+            + "| where exists [\n"
+            + "    source=DEPT\n"
+            + "    | where DNAME = 'Accounting'\n"
+            + "  ]\n"
+            + "| sort - EMPNO | fields EMPNO, ENAME\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
@@ -119,14 +113,12 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testCorrelatedNotExistsSubqueryWithoutAlias() {
     String ppl =
-        """
-        source=EMP
-        | where not exists [
-            source=SALGRADE
-            | where SAL = HISAL
-          ]
-        | sort - EMPNO | fields EMPNO, ENAME
-        """;
+        "source=EMP\n"
+            + "| where not exists [\n"
+            + "    source=SALGRADE\n"
+            + "    | where SAL = HISAL\n"
+            + "  ]\n"
+            + "| sort - EMPNO | fields EMPNO, ENAME\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
@@ -153,14 +145,12 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testCorrelatedNotExistsSubqueryWithTableNames() {
     String ppl =
-        """
-        source=EMP
-        | where not exists [
-            source=SALGRADE
-            | where EMP.SAL = SALGRADE.HISAL
-          ]
-        | sort - EMPNO | fields EMPNO, ENAME
-        """;
+        "source=EMP\n"
+            + "| where not exists [\n"
+            + "    source=SALGRADE\n"
+            + "    | where EMP.SAL = SALGRADE.HISAL\n"
+            + "  ]\n"
+            + "| sort - EMPNO | fields EMPNO, ENAME\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
@@ -187,14 +177,12 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testUncorrelatedNotExistsSubquery() {
     String ppl =
-        """
-        source=EMP
-        | where not exists [
-            source=DEPT
-            | where DNAME = 'Accounting'
-          ]
-        | sort - EMPNO | fields EMPNO, ENAME
-        """;
+        "source=EMP\n"
+            + "| where not exists [\n"
+            + "    source=DEPT\n"
+            + "    | where DNAME = 'Accounting'\n"
+            + "  ]\n"
+            + "| sort - EMPNO | fields EMPNO, ENAME\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
@@ -221,13 +209,11 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testExistsSubqueryInFilter() {
     String ppl =
-        """
-        source=EMP exists [
-            source=SALGRADE
-            | where SAL = HISAL
-          ]
-        | sort - EMPNO | fields EMPNO, ENAME
-        """;
+        "source=EMP exists [\n"
+            + "    source=SALGRADE\n"
+            + "    | where SAL = HISAL\n"
+            + "  ]\n"
+            + "| sort - EMPNO | fields EMPNO, ENAME\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
@@ -254,13 +240,11 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testNotExistsSubqueryInFilter() {
     String ppl =
-        """
-        source=EMP not exists [
-            source=SALGRADE
-            | where SAL = HISAL
-          ]
-        | sort - EMPNO | fields EMPNO, ENAME
-        """;
+        "source=EMP not exists [\n"
+            + "    source=SALGRADE\n"
+            + "    | where SAL = HISAL\n"
+            + "  ]\n"
+            + "| sort - EMPNO | fields EMPNO, ENAME\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
@@ -287,18 +271,16 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testNestedCorrelatedExistsSubquery() {
     String ppl =
-        """
-        source=EMP as outer
-        | where exists [
-            source=SALGRADE as inner
-            | where exists [
-                source=EMP as nested
-                | where nested.SAL = inner.HISAL
-              ]
-            | where outer.SAL = inner.HISAL
-          ]
-        | sort - outer.EMPNO | fields outer.EMPNO, outer.ENAME
-        """;
+        "source=EMP as outer\n"
+            + "| where exists [\n"
+            + "    source=SALGRADE as inner\n"
+            + "    | where exists [\n"
+            + "        source=EMP as nested\n"
+            + "        | where nested.SAL = inner.HISAL\n"
+            + "      ]\n"
+            + "    | where outer.SAL = inner.HISAL\n"
+            + "  ]\n"
+            + "| sort - outer.EMPNO | fields outer.EMPNO, outer.ENAME\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
@@ -333,18 +315,16 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testNestedUncorrelatedExistsSubquery() {
     String ppl =
-        """
-        source=EMP as outer
-        | where exists [
-            source=SALGRADE as inner
-            | where exists [
-                source=EMP as nested
-                | where nested.SAL > 1000.0
-              ]
-            | where inner.HISAL > 1000.0
-          ]
-        | sort - outer.EMPNO | fields outer.EMPNO, outer.ENAME
-        """;
+        "source=EMP as outer\n"
+            + "| where exists [\n"
+            + "    source=SALGRADE as inner\n"
+            + "    | where exists [\n"
+            + "        source=EMP as nested\n"
+            + "        | where nested.SAL > 1000.0\n"
+            + "      ]\n"
+            + "    | where inner.HISAL > 1000.0\n"
+            + "  ]\n"
+            + "| sort - outer.EMPNO | fields outer.EMPNO, outer.ENAME\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
@@ -379,26 +359,24 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testNestedMixedExistsSubquery() {
     String ppl =
-        """
-        source=EMP as e1
-        | where exists [
-            source=SALGRADE as s2
-            | where exists [
-                source=EMP as e3
-                | where exists [
-                  source=SALGRADE as s4
-                  | where exists [
-                      source=EMP
-                      | where SAL = s4.HISAL
-                    ]
-                  | where s3.SAL > 1000.0
-                ]
-                | where SAL = s2.HISAL
-              ]
-            | where e1.SAL > 1000.0
-          ]
-        | sort - EMPNO | fields EMPNO, ENAME
-        """;
+        "source=EMP as e1\n"
+            + "| where exists [\n"
+            + "    source=SALGRADE as s2\n"
+            + "    | where exists [\n"
+            + "        source=EMP as e3\n"
+            + "        | where exists [\n"
+            + "          source=SALGRADE as s4\n"
+            + "          | where exists [\n"
+            + "              source=EMP\n"
+            + "              | where SAL = s4.HISAL\n"
+            + "            ]\n"
+            + "          | where s3.SAL > 1000.0\n"
+            + "        ]\n"
+            + "        | where SAL = s2.HISAL\n"
+            + "      ]\n"
+            + "    | where e1.SAL > 1000.0\n"
+            + "  ]\n"
+            + "| sort - EMPNO | fields EMPNO, ENAME\n";
     RelNode plan1 = getRelNode(ppl);
     String expectedLogical =
         ""
@@ -446,26 +424,24 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
     verifyPPLToSparkSQL(plan1, expectedSparkSql);
 
     String pplWithoutAlias =
-        """
-        source=EMP
-        | where exists [
-            source=SALGRADE
-            | where exists [
-                source=EMP
-                | where exists [
-                  source=SALGRADE
-                  | where exists [
-                      source=EMP
-                      | where SAL = HISAL
-                    ]
-                  | where SAL > 1000.0
-                ]
-                | where SAL = HISAL
-              ]
-            | where SAL > 1000.0
-          ]
-        | sort - EMPNO | fields EMPNO, ENAME
-        """;
+        "source=EMP\n"
+            + "| where exists [\n"
+            + "    source=SALGRADE\n"
+            + "    | where exists [\n"
+            + "        source=EMP\n"
+            + "        | where exists [\n"
+            + "          source=SALGRADE\n"
+            + "          | where exists [\n"
+            + "              source=EMP\n"
+            + "              | where SAL = HISAL\n"
+            + "            ]\n"
+            + "          | where SAL > 1000.0\n"
+            + "        ]\n"
+            + "        | where SAL = HISAL\n"
+            + "      ]\n"
+            + "    | where SAL > 1000.0\n"
+            + "  ]\n"
+            + "| sort - EMPNO | fields EMPNO, ENAME\n";
     RelNode plan2 = getRelNode(pplWithoutAlias);
     verifyLogical(plan2, expectedLogical);
   }
@@ -473,13 +449,11 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testCorrelatedExistsSubqueryWithOverridingFields() {
     String overriding =
-        """
-        source=EMP | eval DEPTNO = DEPTNO + 1
-        | where exists [
-            source=DEPT
-            | where emp.DEPTNO = DEPTNO
-          ]
-        """;
+        "source=EMP | eval DEPTNO = DEPTNO + 1\n"
+            + "| where exists [\n"
+            + "    source=DEPT\n"
+            + "    | where emp.DEPTNO = DEPTNO\n"
+            + "  ]\n";
     RelNode root = getRelNode(overriding);
     String expectedLogical =
         "LogicalFilter(condition=[EXISTS({\n"
