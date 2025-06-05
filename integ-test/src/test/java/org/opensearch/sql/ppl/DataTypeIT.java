@@ -50,7 +50,13 @@ public class DataTypeIT extends PPLIntegTestCase {
 
   @Test
   public void test_nonnumeric_data_types() throws IOException {
-    JSONObject result = executeQuery(String.format("source=%s", TEST_INDEX_DATATYPE_NONNUMERIC));
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | fields text_value, date_nanos_value, date_value, boolean_value,"
+                    + " ip_value, nested_value, object_value, keyword_value, geo_point_value,"
+                    + " binary_value",
+                TEST_INDEX_DATATYPE_NONNUMERIC));
     verifySchemaInOrder(
         result,
         schema("text_value", "string"),
