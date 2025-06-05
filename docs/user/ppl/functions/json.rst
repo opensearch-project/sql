@@ -17,10 +17,6 @@ JSON Path
 Description
 >>>>>>>>>>>
 
-Version: 3.1.0
-
-Limitation: Only works when plugins.calcite.enabled=true
-
 All JSON paths used in JSON functions follow the format ``<key1>{<index1>}.<key2>{<index2>}...``.
 
 Each ``<key>`` represents a field name. The ``{<index>}`` part is optional and is only applicable when the corresponding key refers to an array.
