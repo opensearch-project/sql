@@ -17,8 +17,10 @@ import java.util.List;
 import java.util.Map;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 
+@Ignore("https://github.com/opensearch-project/sql/issues/3565")
 public class JsonFunctionsIT extends PPLIntegTestCase {
   @Override
   public void init() throws Exception {
