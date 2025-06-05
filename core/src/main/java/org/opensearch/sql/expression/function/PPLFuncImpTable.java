@@ -251,6 +251,15 @@ public class PPLFuncImpTable {
       return (udfOperandMetadata == null) ? null : udfOperandMetadata.getInnerTypeChecker();
     }
 
+    /**
+     * Wrap a SqlOperator into a FunctionImp with a composite type checker.
+     *
+     * @param operator the SqlOperator to wrap
+     * @param typeChecker the CompositeOperandTypeChecker to use for type checking
+     * @param checkCompositionType if true, the type checker will check whether the composition type
+     *     of the type checker is OR.
+     * @return a FunctionImp that resolves to the operator and has the specified type checker
+     */
     private static FunctionImp wrapWithCompositeTypeChecker(
         SqlOperator operator,
         CompositeOperandTypeChecker typeChecker,
@@ -388,7 +397,6 @@ public class PPLFuncImpTable {
       registerOperator(IS_NULL, SqlStdOperatorTable.IS_NULL);
       registerOperator(IFNULL, SqlStdOperatorTable.COALESCE);
       registerOperator(COALESCE, SqlStdOperatorTable.COALESCE);
-      registerOperator(INTERNAL_ITEM, SqlStdOperatorTable.ITEM);
 
       // Register library operator
       registerOperator(REGEXP, SqlLibraryOperators.REGEXP);
@@ -543,6 +551,17 @@ public class PPLFuncImpTable {
               SqlStdOperatorTable.SUBSTRING,
               (CompositeOperandTypeChecker)
                   OperandTypes.STRING_INTEGER.or(OperandTypes.STRING_INTEGER_INTEGER),
+              false));
+      // SqlStdOperatorTable.ITEM.getOperandTypeChecker() checks only the first operand instead of
+      // all operands. Therefore, we wrap it with a custom CompositeOperandTypeChecker to check both
+      // operands.
+      register(
+          INTERNAL_ITEM,
+          wrapWithCompositeTypeChecker(
+              SqlStdOperatorTable.ITEM,
+              (CompositeOperandTypeChecker)
+                  OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.INTEGER)
+                      .or(OperandTypes.family(SqlTypeFamily.MAP, SqlTypeFamily.ANY)),
               false));
       register(
           LOG,
