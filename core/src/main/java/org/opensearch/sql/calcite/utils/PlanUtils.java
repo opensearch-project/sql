@@ -28,10 +28,14 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
+import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.IntervalUnit;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.WindowBound;
 import org.opensearch.sql.ast.expression.WindowFrame;
+import org.opensearch.sql.ast.tree.Relation;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.udf.udaf.PercentileApproxFunction;
 import org.opensearch.sql.calcite.udf.udaf.TakeAggFunction;
@@ -40,6 +44,8 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 public interface PlanUtils {
 
   String ROW_NUMBER_COLUMN_NAME = "_row_number_";
+  String ROW_NUMBER_COLUMN_NAME_MAIN = "_row_number_main_";
+  String ROW_NUMBER_COLUMN_NAME_SUBSEARCH = "_row_number_subsearch_";
 
   static SpanUnit intervalUnitToSpanUnit(IntervalUnit unit) {
     return switch (unit) {
@@ -314,5 +320,45 @@ public interface PlanUtils {
         .map(RelBuilder.OverCall::toRex)
         .flatMap(rex -> getInputRefs(rex).stream())
         .toList();
+  }
+
+  /**
+   * Visit the children of an unresolved plan to find it leaf relation
+   *
+   * @param node to visit its children
+   * @return the relation if found
+   */
+  static UnresolvedPlan getRelation(UnresolvedPlan node) {
+    AbstractNodeVisitor<Relation, Object> relationVisitor =
+        new AbstractNodeVisitor<Relation, Object>() {
+          @Override
+          public Relation visitRelation(Relation node, Object context) {
+            return node;
+          }
+        };
+    return node.getChild().getFirst().accept(relationVisitor, null);
+  }
+
+  /**
+   * Transform plan to attach specified child to the first leaf node.
+   *
+   * @param node to transform
+   * @param child to attach
+   */
+  static void transformPlanToAttachChild(UnresolvedPlan node, UnresolvedPlan child) {
+    AbstractNodeVisitor<Void, Object> leafVisitor =
+        new AbstractNodeVisitor<Void, Object>() {
+          @Override
+          public Void visitChildren(Node node, Object context) {
+            if (node.getChild() == null || node.getChild().isEmpty()) {
+              // find leaf node
+              ((UnresolvedPlan) node).attach(child);
+            } else {
+              node.getChild().forEach(child -> child.accept(this, context));
+            }
+            return null;
+          }
+        };
+    node.accept(leafVisitor, null);
   }
 }

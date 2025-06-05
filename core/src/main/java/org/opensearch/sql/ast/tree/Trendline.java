@@ -35,7 +35,7 @@ public class Trendline extends UnresolvedPlan {
 
   @Override
   public List<? extends Node> getChild() {
-    return ImmutableList.of(child);
+    return this.child == null ? ImmutableList.of() : ImmutableList.of(this.child);
   }
 
   @Override
