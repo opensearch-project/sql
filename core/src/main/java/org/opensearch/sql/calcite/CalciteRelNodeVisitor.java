@@ -55,6 +55,7 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFrame;
+import org.opensearch.sql.ast.expression.WindowFrame.FrameType;
 import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
@@ -81,11 +82,13 @@ import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.ast.tree.Trendline.TrendlineType;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
+import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
@@ -845,6 +848,126 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitTrendline(Trendline node, CalcitePlanContext context) {
-    throw new CalciteUnsupportedException("Trendline command is unsupported in Calcite");
+    visitChildren(node, context);
+
+    node.getSortByField()
+        .ifPresent(
+            sortField -> {
+              SortOption sortOption = analyzeSortOption(sortField.getFieldArgs());
+              RexNode field = rexVisitor.analyze(sortField, context);
+              if (sortOption == DEFAULT_DESC) {
+                context.relBuilder.sort(context.relBuilder.desc(field));
+              } else {
+                context.relBuilder.sort(field);
+              }
+            });
+
+    List<RexNode> trendlineNodes = new ArrayList<>();
+    List<String> aliases = new ArrayList<>();
+    node.getComputations()
+        .forEach(
+            trendlineComputation -> {
+              RexNode field = rexVisitor.analyze(trendlineComputation.getDataField(), context);
+              context.relBuilder.filter(context.relBuilder.isNotNull(field));
+
+              WindowFrame windowFrame =
+                  WindowFrame.of(
+                      FrameType.ROWS,
+                      StringUtils.format(
+                          "%d PRECEDING", trendlineComputation.getNumberOfDataPoints() - 1),
+                      "CURRENT ROW");
+              RexNode countExpr =
+                  PlanUtils.makeOver(
+                      context,
+                      BuiltinFunctionName.COUNT,
+                      null,
+                      List.of(),
+                      List.of(),
+                      List.of(),
+                      windowFrame);
+              // CASE WHEN count() over (ROWS (windowSize-1) PRECEDING) > windowSize - 1
+              RexNode whenConditionExpr =
+                  PPLFuncImpTable.INSTANCE.resolve(
+                      context.rexBuilder,
+                      ">",
+                      countExpr,
+                      context.relBuilder.literal(trendlineComputation.getNumberOfDataPoints() - 1));
+
+              RexNode thenExpr;
+              switch (trendlineComputation.getComputationType()) {
+                case TrendlineType.SMA:
+                  // THEN avg(field) over (ROWS (windowSize-1) PRECEDING)
+                  thenExpr =
+                      PlanUtils.makeOver(
+                          context,
+                          BuiltinFunctionName.AVG,
+                          field,
+                          List.of(),
+                          List.of(),
+                          List.of(),
+                          windowFrame);
+                  break;
+                case TrendlineType.WMA:
+                  // THEN wma expression
+                  thenExpr =
+                      buildWmaRexNode(
+                          field,
+                          trendlineComputation.getNumberOfDataPoints(),
+                          windowFrame,
+                          context);
+                  break;
+                default:
+                  throw new IllegalStateException("Unsupported trendline type");
+              }
+
+              // ELSE NULL
+              RexNode elseExpr = context.relBuilder.literal(null);
+
+              List<RexNode> caseOperands = new ArrayList<>();
+              caseOperands.add(whenConditionExpr);
+              caseOperands.add(thenExpr);
+              caseOperands.add(elseExpr);
+              RexNode trendlineNode =
+                  context.rexBuilder.makeCall(SqlStdOperatorTable.CASE, caseOperands);
+              trendlineNodes.add(trendlineNode);
+              aliases.add(trendlineComputation.getAlias());
+            });
+
+    projectPlusOverriding(trendlineNodes, aliases, context);
+    return context.relBuilder.peek();
+  }
+
+  private RexNode buildWmaRexNode(
+      RexNode field,
+      Integer numberOfDataPoints,
+      WindowFrame windowFrame,
+      CalcitePlanContext context) {
+
+    // Divisor: 1 + 2 + 3 + ... + windowSize, aka (windowSize * (windowSize + 1) / 2)
+    RexNode divisor = context.relBuilder.literal(numberOfDataPoints * (numberOfDataPoints + 1) / 2);
+
+    // Divider: 1 * NTH_VALUE(field, 1) + 2 * NTH_VALUE(field, 2) + ... + windowSize *
+    // NTH_VALUE(field, windowSize)
+    RexNode divider = context.relBuilder.literal(0);
+    for (int i = 1; i <= numberOfDataPoints; i++) {
+      RexNode nthValueExpr =
+          PlanUtils.makeOver(
+              context,
+              BuiltinFunctionName.NTH_VALUE,
+              field,
+              List.of(context.relBuilder.literal(i)),
+              List.of(),
+              List.of(),
+              windowFrame);
+      divider =
+          context.relBuilder.call(
+              SqlStdOperatorTable.PLUS,
+              divider,
+              context.relBuilder.call(
+                  SqlStdOperatorTable.MULTIPLY, nthValueExpr, context.relBuilder.literal(i)));
+    }
+    // Divider / CAST(Divisor, DOUBLE)
+    return context.relBuilder.call(
+        SqlStdOperatorTable.DIVIDE, divider, context.relBuilder.cast(divisor, SqlTypeName.DOUBLE));
   }
 }

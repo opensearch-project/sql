@@ -235,6 +235,7 @@ trendlineClause
 
 trendlineType
    : SMA
+   | WMA
    ;
 
 kmeansCommand

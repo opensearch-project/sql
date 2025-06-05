@@ -88,3 +88,6 @@ PPL query::
     | 15.5                     |
     +--------------------------+
 
+Limitation
+==========
+The ``trendline`` command will filter out all NULL values to make sure result correctness because it's meaningless to count NULL values. But this may reduce lines in result for further processing.

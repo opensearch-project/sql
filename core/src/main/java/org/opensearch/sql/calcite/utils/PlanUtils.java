@@ -110,6 +110,14 @@ public interface PlanUtils {
             true,
             lowerBound,
             upperBound);
+      case NTH_VALUE:
+        return withOver(
+            context.relBuilder.aggregateCall(SqlStdOperatorTable.NTH_VALUE, field, argList.get(0)),
+            partitions,
+            orderKeys,
+            true,
+            lowerBound,
+            upperBound);
       default:
         return withOver(
             makeAggCall(context, functionName, false, field, argList),
