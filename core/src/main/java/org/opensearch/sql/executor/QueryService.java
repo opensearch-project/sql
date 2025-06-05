@@ -41,6 +41,7 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
+import org.opensearch.sql.exception.NonFallbackCalciteException;
 import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.Planner;
 import org.opensearch.sql.planner.logical.LogicalPaginate;
@@ -107,7 +108,7 @@ public class QueryService {
                 return null;
               });
     } catch (Throwable t) {
-      if (isCalciteFallbackAllowed()) {
+      if (isCalciteFallbackAllowed() && !(t instanceof NonFallbackCalciteException)) {
         log.warn("Fallback to V2 query engine since got exception", t);
         executeWithLegacy(plan, queryType, listener, Optional.of(t));
       } else {
