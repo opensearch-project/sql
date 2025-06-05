@@ -103,6 +103,22 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
     verifyQuery(result);
   }
 
+  @Test
+  public void testAppendcol() throws IOException {
+    JSONObject result;
+    try {
+      result =
+          executeQuery(
+              String.format(
+                  "search source=%s | stats count() by span(age, 10) | appendcol [ stats"
+                      + " avg(balance) by span(age, 10) ]",
+                  TEST_INDEX_BANK));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+    verifyQuery(result);
+  }
+
   private void verifyQuery(JSONObject result) throws IOException {
     if (isCalciteEnabled()) {
       assertFalse(result.getJSONArray("datarows").isEmpty());

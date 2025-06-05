@@ -5,15 +5,19 @@
 
 package org.opensearch.sql.expression.function.udf.math;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.utils.MathUtils;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.expression.function.ImplementorUDF;
@@ -26,6 +30,12 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
  * PPL. Therefore, we implement our versions
  */
 public class DivideFunction extends ImplementorUDF {
+  /**
+   * The maximum scale of numeric which is aligned with {@link
+   * RelDataTypeSystem#getMaxScale(SqlTypeName)}. TODO The max scale in Spark is 38, but the default
+   * max scale in Calcite is 19.
+   */
+  public static final int MAX_NUMERIC_SCALE = 19;
 
   public DivideFunction() {
     super(new DivideImplementor(), NullPolicy.ANY);
@@ -61,6 +71,18 @@ public class DivideFunction extends ImplementorUDF {
       if (MathUtils.isIntegral(dividend) && MathUtils.isIntegral(divisor)) {
         long result = dividend.longValue() / divisor.longValue();
         return MathUtils.coerceToWidestIntegralType(dividend, divisor, result);
+      } else if (MathUtils.isDecimal(dividend) && MathUtils.isIntegral(divisor)) {
+        return ((BigDecimal) dividend)
+            .divide(
+                BigDecimal.valueOf(divisor.longValue()),
+                MAX_NUMERIC_SCALE + 1,
+                RoundingMode.HALF_UP);
+      } else if (MathUtils.isIntegral(dividend) && MathUtils.isDecimal(divisor)) {
+        return (BigDecimal.valueOf(dividend.longValue()))
+            .divide((BigDecimal) divisor, MAX_NUMERIC_SCALE + 1, RoundingMode.HALF_UP);
+      } else if (MathUtils.isDecimal(dividend) && MathUtils.isDecimal(divisor)) {
+        return ((BigDecimal) dividend)
+            .divide((BigDecimal) divisor, MAX_NUMERIC_SCALE + 1, RoundingMode.HALF_UP);
       }
       double result = dividend.doubleValue() / divisor.doubleValue();
       return MathUtils.coerceToWidestFloatingType(dividend, divisor, result);

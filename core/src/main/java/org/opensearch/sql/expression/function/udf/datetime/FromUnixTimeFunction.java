@@ -10,6 +10,7 @@ import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.NULLABLE
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprFromUnixTime;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprFromUnixTimeFormat;
 
+import java.math.BigDecimal;
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
@@ -69,6 +70,10 @@ public class FromUnixTimeFunction extends ImplementorUDF {
     }
 
     public static String fromUnixTime(double unixTime) {
+      return (String) exprFromUnixTime(new ExprDoubleValue(unixTime)).valueForCalcite();
+    }
+
+    public static String fromUnixTime(BigDecimal unixTime) {
       return (String) exprFromUnixTime(new ExprDoubleValue(unixTime)).valueForCalcite();
     }
 
