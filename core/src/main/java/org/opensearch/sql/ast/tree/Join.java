@@ -38,7 +38,7 @@ public class Join extends UnresolvedPlan {
 
   @Override
   public List<UnresolvedPlan> getChild() {
-    return ImmutableList.of(left);
+    return this.left == null ? ImmutableList.of() : ImmutableList.of(this.left);
   }
 
   public List<UnresolvedPlan> getChildren() {
