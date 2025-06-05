@@ -1727,15 +1727,14 @@ class FilterQueryBuilderTest {
   void cast_to_ip_in_filter(LiteralExpression expr) {
     String json =
         String.format(
-            """
-            {
-              "term" : {
-                "ip_value" : {
-                  "value" : "%s",
-                  "boost" : 1.0
-                }
-              }
-            }""",
+                "{\n" +
+                "  \"term\" : {\n" +
+                "    \"ip_value\" : {\n" +
+                "      \"value\" : \"%s\",\n" +
+                "      \"boost\" : 1.0\n" +
+                "    }\n" +
+                "  }\n" +
+                "}",
             expr.valueOf().stringValue());
 
     assertJsonEquals(json, buildQuery(DSL.equal(ref("ip_value", IP), DSL.castIp(expr))));

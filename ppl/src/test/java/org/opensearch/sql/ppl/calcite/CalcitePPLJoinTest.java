@@ -415,17 +415,15 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
   @Test
   public void testJoinWithRelationSubquery() {
     String ppl =
-        """
-        source=EMP | join left = t1 right = t2 ON t1.DEPTNO = t2.DEPTNO
-          [
-            source = DEPT
-            | where DEPTNO > 10 and LOC = 'CHICAGO'
-            | fields DEPTNO, DNAME
-            | sort - DEPTNO
-            | head 10
-          ]
-        | stats count(MGR) as cnt by JOB
-        """;
+        "source=EMP | join left = t1 right = t2 ON t1.DEPTNO = t2.DEPTNO\n"
+            + "  [\n"
+            + "    source = DEPT\n"
+            + "    | where DEPTNO > 10 and LOC = 'CHICAGO'\n"
+            + "    | fields DEPTNO, DNAME\n"
+            + "    | sort - DEPTNO\n"
+            + "    | head 10\n"
+            + "  ]\n"
+            + "| stats count(MGR) as cnt by JOB\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(cnt=[$1], JOB=[$0])\n"
@@ -457,26 +455,24 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
   @Test
   public void testMultipleJoinsWithRelationSubquery() {
     String ppl =
-        """
-        source=EMP
-        | head 10
-        | inner join left = l right = r ON l.DEPTNO = r.DEPTNO
-          [
-            source = DEPT
-            | where DEPTNO > 10 and LOC = 'CHICAGO'
-          ]
-        | left join left = l right = r ON l.JOB = r.JOB
-          [
-            source = BONUS
-            | where JOB = 'SALESMAN'
-          ]
-        | cross join left = l right = r
-          [
-            source = SALGRADE
-            | where LOSAL <= 1500
-            | sort - GRADE
-          ]
-        """;
+        "source=EMP\n"
+            + "| head 10\n"
+            + "| inner join left = l right = r ON l.DEPTNO = r.DEPTNO\n"
+            + "  [\n"
+            + "    source = DEPT\n"
+            + "    | where DEPTNO > 10 and LOC = 'CHICAGO'\n"
+            + "  ]\n"
+            + "| left join left = l right = r ON l.JOB = r.JOB\n"
+            + "  [\n"
+            + "    source = BONUS\n"
+            + "    | where JOB = 'SALESMAN'\n"
+            + "  ]\n"
+            + "| cross join left = l right = r\n"
+            + "  [\n"
+            + "    source = SALGRADE\n"
+            + "    | where LOSAL <= 1500\n"
+            + "    | sort - GRADE\n"
+            + "  ]\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
@@ -517,26 +513,24 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
   @Test
   public void testMultipleJoinsWithRelationSubqueryWithAlias() {
     String ppl =
-        """
-        source=EMP as t1
-        | head 10
-        | inner join ON t1.DEPTNO = t2.DEPTNO
-          [
-            source = DEPT as t2
-            | where DEPTNO > 10 and LOC = 'CHICAGO'
-          ]
-        | left join ON t1.JOB = t3.JOB
-          [
-            source = BONUS as t3
-            | where JOB = 'SALESMAN'
-          ]
-        | cross join
-          [
-            source = SALGRADE as t4
-            | where LOSAL <= 1500
-            | sort - GRADE
-          ]
-        """;
+        "source=EMP as t1\n"
+            + "| head 10\n"
+            + "| inner join ON t1.DEPTNO = t2.DEPTNO\n"
+            + "  [\n"
+            + "    source = DEPT as t2\n"
+            + "    | where DEPTNO > 10 and LOC = 'CHICAGO'\n"
+            + "  ]\n"
+            + "| left join ON t1.JOB = t3.JOB\n"
+            + "  [\n"
+            + "    source = BONUS as t3\n"
+            + "    | where JOB = 'SALESMAN'\n"
+            + "  ]\n"
+            + "| cross join\n"
+            + "  [\n"
+            + "    source = SALGRADE as t4\n"
+            + "    | where LOSAL <= 1500\n"
+            + "    | sort - GRADE\n"
+            + "  ]\n";
 
     RelNode root = getRelNode(ppl);
     String expectedLogical =
@@ -579,26 +573,24 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
   @Test
   public void testMultipleJoinsWithRelationSubqueryWithAlias2() {
     String ppl =
-        """
-        source=EMP as t1
-        | head 10
-        | inner join left = l right = r ON t1.DEPTNO = t2.DEPTNO
-          [
-            source = DEPT as t2
-            | where DEPTNO > 10 and LOC = 'CHICAGO'
-          ]
-        | left join left = l right = r ON t1.JOB = t3.JOB
-          [
-            source = BONUS as t3
-            | where JOB = 'SALESMAN'
-          ]
-        | cross join
-          [
-            source = SALGRADE as t4
-            | where LOSAL <= 1500
-            | sort - GRADE
-          ]
-        """;
+        "source=EMP as t1\n"
+            + "| head 10\n"
+            + "| inner join left = l right = r ON t1.DEPTNO = t2.DEPTNO\n"
+            + "  [\n"
+            + "    source = DEPT as t2\n"
+            + "    | where DEPTNO > 10 and LOC = 'CHICAGO'\n"
+            + "  ]\n"
+            + "| left join left = l right = r ON t1.JOB = t3.JOB\n"
+            + "  [\n"
+            + "    source = BONUS as t3\n"
+            + "    | where JOB = 'SALESMAN'\n"
+            + "  ]\n"
+            + "| cross join\n"
+            + "  [\n"
+            + "    source = SALGRADE as t4\n"
+            + "    | where LOSAL <= 1500\n"
+            + "    | sort - GRADE\n"
+            + "  ]\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""

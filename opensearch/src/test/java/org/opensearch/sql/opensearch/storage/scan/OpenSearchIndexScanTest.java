@@ -67,6 +67,7 @@ import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class OpenSearchIndexScanTest {
 
+  public static final int QUERY_SIZE = 200;
   public static final OpenSearchRequest.IndexName INDEX_NAME =
       new OpenSearchRequest.IndexName("employees");
   public static final int MAX_RESULT_WINDOW = 10000;
