@@ -145,9 +145,9 @@ public class CalcitePPLAppendcolTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     String expectedResult =
         ""
-            + "count()=5; DEPTNO=20; avg(SAL)=2175.00\n"
-            + "count()=3; DEPTNO=10; avg(SAL)=2916.66\n"
-            + "count()=6; DEPTNO=30; avg(SAL)=1566.66\n";
+            + "count()=5; DEPTNO=20; avg(SAL)=2175.\n"
+            + "count()=3; DEPTNO=10; avg(SAL)=2916.666666\n"
+            + "count()=6; DEPTNO=30; avg(SAL)=1566.666666\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
@@ -185,9 +185,9 @@ public class CalcitePPLAppendcolTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     String expectedResult =
         ""
-            + "count()=5; DEPTNO=20; avg(SAL)=2175.00\n"
-            + "count()=3; DEPTNO=10; avg(SAL)=2916.66\n"
-            + "count()=6; DEPTNO=30; avg(SAL)=1566.66\n";
+            + "count()=5; DEPTNO=20; avg(SAL)=2175.\n"
+            + "count()=3; DEPTNO=10; avg(SAL)=2916.666666\n"
+            + "count()=6; DEPTNO=30; avg(SAL)=1566.666666\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
