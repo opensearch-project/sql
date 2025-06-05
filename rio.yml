@@ -1,0 +1,85 @@
+schemaVersion: 2.0
+
+timeout: 180
+
+machine:
+  env:
+    RUNTIME_JDK_VERSION: 21
+  baseImage: docker.apple.com/base-images/ubi9/java21-builder
+
+pipelines:
+  - name: pr-to-main-apple
+    branchName: main-apple
+    build:
+      template: freestyle:v4:prb
+      steps:
+        # Install Java 17 and 11 for BWC tests
+        - ci install-runtime jdk-11 --skip-runtime-symlink=false
+        - export JAVA11_HOME="$(readlink -f /app/.runtimes/jdk)"
+        - ci install-runtime jdk-17 --skip-runtime-symlink=false
+        - export JAVA17_HOME="$(readlink -f /app/.runtimes/jdk)"
+        - export JAVA21_HOME="${JAVA_HOME}"
+        - chown -R nonroot ${WORKSPACE}
+        - find .cicd -type d -exec chmod 0755 {} \; -print
+        - find .cicd -type f -exec chmod 0644 {} \; -print
+        - chown -R root .cicd
+        - chmod 0755 .
+        - su nonroot -c "./gradlew --console=plain clean precommit test --no-daemon -Dtests.haltonfailure=false"
+        - chown -R root ${WORKSPACE}
+    reports:
+      junit:
+        paths:
+          - "**/test-results/**/*.xml"
+
+  - name: check-main-apple-on-commit
+    branchName: main-apple
+    build:
+      template: freestyle:v4:build
+      steps:
+        # Install Java 17 and 11 for BWC tests
+        - ci install-runtime jdk-11 --skip-runtime-symlink=false
+        - export JAVA11_HOME="$(readlink -f /app/.runtimes/jdk)"
+        - ci install-runtime jdk-17 --skip-runtime-symlink=false
+        - export JAVA17_HOME="$(readlink -f /app/.runtimes/jdk)"
+        - export JAVA21_HOME="${JAVA_HOME}"
+        - chown -R nonroot ${WORKSPACE}
+        - find .cicd -type d -exec chmod 0755 {} \; -print
+        - find .cicd -type f -exec chmod 0644 {} \; -print
+        - chown -R root .cicd
+        - chmod 0755 .
+        - su nonroot -c "./gradlew --console=plain clean precommit test --no-daemon -Dtests.haltonfailure=false"
+        - chown -R root ${WORKSPACE}
+    reports:
+      junit:
+        paths:
+          - "**/test-results/**/*.xml"
+    finally:
+      radar:
+        annotate: true
+      notify:
+        commitStatus:
+          enabled: true
+
+
+  - name: sync-mirror
+    branchName: main-apple
+    machine:
+      env:
+        SSH_AUTH_SOCK: ${SSH_AUTH_SOCK_DEPLOY_KEY}
+    trigger:
+      # Run once an hour, at a random but consistent offset.
+      timer: "@hourly"
+      gitPush: false
+    build:
+        template: freestyle:v4:build
+        steps:
+            - ls -al .
+            - echo $GIT_URL
+            - GIT_REPO_BASE_NAME=$(echo $GIT_URL|awk -F/ '{print $NF}')
+            - GIT_REPO_BASE_NAME_NO_EXT=$(echo $GIT_URL|awk -F/ '{print $NF}'|awk -F\. '{print $1}')
+            - git clone -q  --mirror https://github.com/opensearch-project/${GIT_REPO_BASE_NAME}
+            - cd ${GIT_REPO_BASE_NAME}
+            - git remote set-url --push origin ${GIT_URL}
+            - git fetch -p origin
+            - git  push  -q --all ${GIT_URL}
+
