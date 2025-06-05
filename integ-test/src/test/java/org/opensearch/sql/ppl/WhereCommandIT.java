@@ -197,8 +197,11 @@ public class WhereCommandIT extends PPLIntegTestCase {
   }
 
   protected String getIncompatibleTypeErrMsg() {
-    return "function expected"
-               + " {[BYTE,BYTE],[SHORT,SHORT],[INTEGER,INTEGER],[LONG,LONG],[FLOAT,FLOAT],[DOUBLE,DOUBLE],[STRING,STRING],[BOOLEAN,BOOLEAN],[DATE,DATE],[TIME,TIME],[TIMESTAMP,TIMESTAMP],[INTERVAL,INTERVAL],[IP,IP],[GEO_POINT,GEO_POINT],[STRUCT,STRUCT],[ARRAY,ARRAY]},"
-               + " but got [LONG,STRING]";
+    return String.format(
+            "function expected %s, but got %s",
+            ExprCoreType.coreTypes().stream()
+                    .map(type -> String.format("[%s,%s]", type.typeName(), type.typeName()))
+                    .collect(Collectors.joining(",", "{", "}")),
+            "[LONG,STRING]");
   }
 }
