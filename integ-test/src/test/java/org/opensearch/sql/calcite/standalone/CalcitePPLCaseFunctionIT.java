@@ -209,16 +209,17 @@ public class CalcitePPLCaseFunctionIT extends CalcitePPLIntegTestCase {
         executeQuery(
             String.format(
                     "source=%s\n" +
-                    "| where response in [\n" +
-                    "    source = %s\n" +
-                    "    | eval new_response = case(\n" +
-                    "        response in ('200'), \"201\",\n" +
-                    "        response in ('300', '301'), \"301\",\n" +
-                    "        response in ('400', '403'), \"403\",\n" +
-                    "        response in ('500', '505'), \"500\"\n" +
-                    "        else concat(\"Incorrect HTTP status code for\", url))\n" +
-                    "    | fields new_response | fields host, method, bytes, response, url\n" +
-                    "  ]\n",
+                    " | where response in [\n" +
+                    "      source = %s\n" +
+                    "      | eval new_response = case(\n" +
+                    "       response in ('200'), \"201\",\n" +
+                    "       response in ('300', '301'), \"301\",\n" +
+                    "       response in ('400', '403'), \"403\",\n" +
+                    "       response in ('500', '505'), \"500\"\n" +
+                    "       else concat(\"Incorrect HTTP status code for\", url))\n" +
+                    "       | fields new_response\n" +
+                    "     ]\n" +
+                    " | fields host, method, bytes, response, url\n",
                 TEST_INDEX_WEBLOGS, TEST_INDEX_WEBLOGS));
     verifySchema(
         actual,
