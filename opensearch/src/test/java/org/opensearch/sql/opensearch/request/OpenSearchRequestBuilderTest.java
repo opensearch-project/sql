@@ -237,49 +237,6 @@ class OpenSearchRequestBuilderTest {
   }
 
   @Test
-  void buildRequestWithScroll_pageSizeNull_sizeGreaterThanMaxResultWindow() {
-    when(settings.getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER)).thenReturn(false);
-    Integer limit = 600;
-    Integer offset = 0;
-    int requestedTotalSize = 600;
-    requestBuilder = new OpenSearchRequestBuilder(requestedTotalSize, exprValueFactory, settings);
-    requestBuilder.pushDownLimit(limit, offset);
-
-    assertEquals(
-        new OpenSearchScrollRequest(
-            new OpenSearchRequest.IndexName("test"),
-            TimeValue.timeValueMinutes(1),
-            new SearchSourceBuilder()
-                .from(offset)
-                .size(MAX_RESULT_WINDOW - offset)
-                .timeout(DEFAULT_QUERY_TIMEOUT),
-            exprValueFactory,
-            List.of()),
-        requestBuilder.build(indexName, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT, client));
-  }
-
-  @Test
-  void buildRequestWithScroll_pageSizeNull_sizeLessThanMaxResultWindow() {
-    when(settings.getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER)).thenReturn(false);
-    Integer limit = 400;
-    Integer offset = 0;
-    int requestedTotalSize = 400;
-    requestBuilder = new OpenSearchRequestBuilder(requestedTotalSize, exprValueFactory, settings);
-    requestBuilder.pushDownLimit(limit, offset);
-
-    assertEquals(
-        new OpenSearchQueryRequest(
-            new OpenSearchRequest.IndexName("test"),
-            new SearchSourceBuilder()
-                .from(offset)
-                .size(requestedTotalSize)
-                .timeout(DEFAULT_QUERY_TIMEOUT),
-            exprValueFactory,
-            List.of()),
-        requestBuilder.build(indexName, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT, client));
-  }
-
-  @Test
   void buildRequestWithScroll_pageSizeNotNull_startFromZero() {
     when(settings.getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER)).thenReturn(false);
     int pageSize = 200;

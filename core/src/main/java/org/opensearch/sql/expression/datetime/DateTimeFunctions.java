@@ -1238,8 +1238,7 @@ public class DateTimeFunctions {
   private DefaultFunctionResolver utc_timestamp() {
     return define(
         BuiltinFunctionName.UTC_TIMESTAMP.getName(),
-        implWithProperties(functionProperties -> exprUtcTimestamp(functionProperties), DATETIME),
-        implWithProperties(functionProperties -> exprUtcTimestamp(functionProperties), TIMESTAMP));
+        implWithProperties(functionProperties -> exprUtcTimestamp(functionProperties), DATETIME));
   }
 
   /** WEEK(DATE[,mode]). return the week number for date. */

@@ -437,12 +437,9 @@ public class PPLSyntaxParserTest {
     assertNotNull(
         new PPLSyntaxParser()
             .parse(
-                """
-                    // test is a new line comment \
-                    search source=t a=1 b=2 // test is a line comment at the end of ppl command \
-                    | fields a,b // this is line comment inner ppl command\
-                    ////this is a new line comment
-                    """));
+                "// test is a new line comment search source=t a=1 b=2 // test is a line comment at"
+                    + " the end of ppl command | fields a,b // this is line comment inner ppl"
+                    + " command////this is a new line comment\n"));
   }
 
   @Test
@@ -452,20 +449,11 @@ public class PPLSyntaxParserTest {
     assertNotNull(
         new PPLSyntaxParser()
             .parse(
-                """
-                    /*
-                    This is a\
-                        multiple\
-                    line\
-                    block\
-                        comment */\
-                    search /* block comment */ source=t /* block comment */ a=1 b=2
-                    |/*
-                        This is a\
-                            multiple\
-                        line\
-                        block\
-                            comment */ fields a,b /* block comment */ \
-                    """));
+                "/*\n"
+                    + "This is a    multiplelineblock    comment */search /* block comment */"
+                    + " source=t /* block comment */ a=1 b=2\n"
+                    + "|/*\n"
+                    + "    This is a        multiple    line    block        comment */ fields a,b"
+                    + " /* block comment */ "));
   }
 }
