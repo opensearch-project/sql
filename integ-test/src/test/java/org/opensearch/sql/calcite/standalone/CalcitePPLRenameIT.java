@@ -16,6 +16,8 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import org.json.JSONObject;
 import org.junit.Test;
 
@@ -23,7 +25,6 @@ public class CalcitePPLRenameIT extends CalcitePPLIntegTestCase {
 
   public void init() throws IOException {
     super.init();
-
     loadIndex(Index.STATE_COUNTRY);
   }
 
@@ -163,7 +164,7 @@ public class CalcitePPLRenameIT extends CalcitePPLIntegTestCase {
 
   private HashSet<String> transferStringToList(String listString) {
     List<String> list =
-        Arrays.stream(listString.strip().substring(1, listString.length() - 1).split(",")).toList();
-    return new HashSet<>(list.stream().map(s -> s.strip()).toList());
+        Arrays.stream(listString.strip().substring(1, listString.length() - 1).split(",")).collect(Collectors.toList());
+    return new HashSet<>(list.stream().map(s -> s.strip()).collect(Collectors.toList()));
   }
 }
