@@ -27,6 +27,7 @@ import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.function.udf.CryptographicFunction;
+import org.opensearch.sql.expression.function.udf.GrokFunction;
 import org.opensearch.sql.expression.function.udf.condition.EarliestFunction;
 import org.opensearch.sql.expression.function.udf.condition.LatestFunction;
 import org.opensearch.sql.expression.function.udf.datetime.AddSubDateFunction;
@@ -259,6 +260,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               NullPolicy.NONE)
           .toUDF("UTC_TIMESTAMP");
   public static final SqlOperator WEEK = new WeekFunction().toUDF("WEEK");
+  public static final SqlOperator GROK = new GrokFunction().toUDF("GROK");
 
   /**
    * Invoking an implementor registered in {@link RexImpTable}, need to use reflection since they're
