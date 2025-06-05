@@ -9,6 +9,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import static org.opensearch.sql.legacy.TestUtils.createIndexByRestClient;
 import static org.opensearch.sql.legacy.TestUtils.getAccountIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getAliasIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getArrayIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getBankIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getBankWithNullValuesIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getDataTypeNonnumericIndexMapping;
@@ -888,7 +889,12 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "customer",
         "tpch",
         getTpchMappingFile("customer_index_mapping.json"),
-        "src/test/resources/tpch/data/customer.json");
+        "src/test/resources/tpch/data/customer.json"),
+    ARRAY(
+        TestsConstants.TEST_INDEX_ARRAY,
+        "array",
+        getArrayIndexMapping(),
+        "src/test/resources/array.json");
 
     private final String name;
     private final String type;

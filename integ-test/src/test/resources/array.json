@@ -1,0 +1,4 @@
+{"index":{"_id":"1"}}
+{"numbers":[1, 2],"strings": ["a", "b"]}
+{"index":{"_id":"2"}}
+{"numbers":[3, 4],"strings": ["c", "d", "e"]}

@@ -842,34 +842,40 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     var relBuilder = context.relBuilder;
 
-    // 3. Get the field to expand
+    // 2. Get the field to expand
     Field arrayField = expand.getField();
 
-    // 5. Unnest the array field
+    // 3. Unnest the array field
     // Analyze the array field to get its RexNode
-    RexNode arrayFieldRex = rexVisitor.analyze(arrayField, context);
-
+    RexInputRef arrayFieldRex = (RexInputRef) rexVisitor.analyze(arrayField, context);
     // Push the original table to the RelBuilder stack
     RelNode originalTable = relBuilder.peek();
     // No alias is provided in the expand command, so we remove the original array field,
     // then replace it with the unnest result.
-    relBuilder.projectExcept(arrayFieldRex);
-    relBuilder.push(originalTable);
+    //    relBuilder.projectExcept(arrayFieldRex);
 
-    // Join on ROW_NUMBER_COLUMN_NAME
+    // Capture the outer row in a CorrelationId
     Holder<RexCorrelVariable> correlVariable = Holder.empty();
     relBuilder.variable(correlVariable::set);
 
-    relBuilder.project(List.of(arrayFieldRex), List.of(), false, List.of(correlVariable.get().id));
+    relBuilder.push(originalTable);
+
+    RexNode correlArrayField =
+        relBuilder.field(
+            context.rexBuilder.makeCorrel(originalTable.getRowType(), correlVariable.get().id),
+            arrayFieldRex.getIndex());
+
+    relBuilder.project(
+        List.of(correlArrayField),
+        List.of(arrayField.getField().toString()),
+        false,
+        List.of(correlVariable.get().id));
+
     // Alias is not supported in expand yet, we pass in an empty list
     relBuilder.uncollect(List.of(), false);
 
-    List<RexNode> allFields =
-        relBuilder.peek().getRowType().getFieldList().stream()
-            .map(f -> (RexNode) relBuilder.field(f.getName()))
-            .toList();
-
-    relBuilder.correlate(JoinRelType.INNER, correlVariable.get().id, relBuilder.fields());
+    //    ImmutableBitSet requiredFields = originalTable.getRowType().getFieldList()
+    relBuilder.correlate(JoinRelType.INNER, correlVariable.get().id, arrayFieldRex);
 
     return relBuilder.peek();
   }
