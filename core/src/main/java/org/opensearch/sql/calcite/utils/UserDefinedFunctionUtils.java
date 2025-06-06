@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.TimeZone;
+import javax.annotation.Nullable;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
@@ -35,12 +36,14 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Optionality;
+import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 public class UserDefinedFunctionUtils {
 
@@ -107,7 +110,20 @@ public class UserDefinedFunctionUtils {
     };
   }
 
-  // TODO: pass the function properties directly to the UDF instead of string
+  public static SqlTypeName convertRelDataTypeToSqlTypeName(RelDataType type) {
+    if (type instanceof AbstractExprRelDataType<?> exprType) {
+      return switch (exprType.getUdt()) {
+        case EXPR_DATE -> SqlTypeName.DATE;
+        case EXPR_TIME -> SqlTypeName.TIME;
+        case EXPR_TIMESTAMP -> SqlTypeName.TIMESTAMP;
+        case EXPR_IP -> SqlTypeName.VARCHAR;
+        case EXPR_BINARY -> SqlTypeName.VARBINARY;
+        default -> type.getSqlTypeName();
+      };
+    }
+    return type.getSqlTypeName();
+  }
+
   public static FunctionProperties restoreFunctionProperties(DataContext dataContext) {
     long currentTimeInNanos = DataContext.Variable.UTC_TIMESTAMP.get(dataContext);
     Instant instant =
@@ -167,13 +183,15 @@ public class UserDefinedFunctionUtils {
    * @param methodName the name of the method
    * @param returnTypeInference the return type inference of the UDF
    * @param nullPolicy the null policy of the UDF
+   * @param operandMetadata type checker
    * @return an adapted ImplementorUDF with the expr method, which is a UserDefinedFunctionBuilder
    */
   public static ImplementorUDF adaptExprMethodToUDF(
       java.lang.reflect.Type type,
       String methodName,
       SqlReturnTypeInference returnTypeInference,
-      NullPolicy nullPolicy) {
+      NullPolicy nullPolicy,
+      @Nullable UDFOperandMetadata operandMetadata) {
     NotNullImplementor implementor =
         (translator, call, translatedOperands) -> {
           List<Expression> operands =
@@ -186,6 +204,11 @@ public class UserDefinedFunctionUtils {
       @Override
       public SqlReturnTypeInference getReturnTypeInference() {
         return returnTypeInference;
+      }
+
+      @Override
+      public UDFOperandMetadata getOperandMetadata() {
+        return operandMetadata;
       }
     };
   }
@@ -204,7 +227,8 @@ public class UserDefinedFunctionUtils {
       java.lang.reflect.Type type,
       String methodName,
       SqlReturnTypeInference returnTypeInference,
-      NullPolicy nullPolicy) {
+      NullPolicy nullPolicy,
+      UDFOperandMetadata operandMetadata) {
     NotNullImplementor implementor =
         (translator, call, translatedOperands) -> {
           List<Expression> operands =
@@ -218,6 +242,11 @@ public class UserDefinedFunctionUtils {
       @Override
       public SqlReturnTypeInference getReturnTypeInference() {
         return returnTypeInference;
+      }
+
+      @Override
+      public UDFOperandMetadata getOperandMetadata() {
+        return operandMetadata;
       }
     };
   }
