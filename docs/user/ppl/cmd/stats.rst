@@ -259,46 +259,6 @@ Example::
     | [Amber,Hattie,Nanette,Dale] |
     +-----------------------------+
 
-EARLIEST
---------
-
-Description
->>>>>>>>>>>
-
-Usage: EARLIEST(field). Return the earliest time of the field.
-
-* field: mandatory. The field should be a time related field (date/timestamp/time)
-
-Example::
-
-    PPL> source=nyc_taxi | stats earliest(timestamp);
-    fetched rows / total rows = 1/1
-    +-----------------------------+
-    | earliest(timestamp)         |
-    |-----------------------------|
-    | 2014-07-01 00:00:00         |
-    +-----------------------------+
-
-LATEST
-------
-
-Description
->>>>>>>>>>>
-
-Usage: LATEST(field). Return the latest time of the field.
-
-* field: mandatory. The field should be a time related field (date/timestamp/time)
-
-Example::
-
-    PPL> source=nyc_taxi | stats latest(timestamp);
-    fetched rows / total rows = 1/1
-    +-----------------------------+
-    | latest(timestamp)           |
-    |-----------------------------|
-    | 2014-07-21 06:00:00         |
-    +-----------------------------+
-
 PERCENTILE or PERCENTILE_APPROX
 -------------------------------
 

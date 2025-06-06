@@ -276,41 +276,6 @@ Example::
     | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    | 2.8613807855648994 |
     +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+
 
-LATEST
-------
-
-Description
->>>>>>>>>>>
-
-Usage: LATEST(expr). Return the latest time of the field.
-
-Example::
-
-    PPL> source=nyc_taxi | evenstats latest(timestamp) | where value=10844;
-    fetched rows / total rows = 1/1
-    +---------------------+--------+--------------+----------+-----------------------+
-    | timestamp           | value  | anomaly_type | category | earliest(age)         |
-    |---------------------+--------+--------------+----------+-----------------------|
-    | 2014-07-01 00:00:00 | 10844  | EXPECTED     | night    | 2014-07-21 06:00:00   |
-    +---------------------+--------+--------------+----------+-----------------------+
-
-EARLIEST
---------
-
-Description
->>>>>>>>>>>
-
-Usage: EARLIEST(expr). Return the earliest time of the field.
-
-Example::
-
-    PPL> source=nyc_taxi | evenstats earliest(timestamp) | where value=10844;
-    fetched rows / total rows = 1/1
-    +---------------------+--------+--------------+----------+-----------------------+
-    | timestamp           | value  | anomaly_type | category | earliest(age)         |
-    |---------------------+--------+--------------+----------+-----------------------|
-    | 2014-07-01 00:00:00 | 10844  | EXPECTED     | night    | 2014-07-01 00:00:00   |
-    +---------------------+--------+--------------+----------+-----------------------+
 
 Configuration
 =============
