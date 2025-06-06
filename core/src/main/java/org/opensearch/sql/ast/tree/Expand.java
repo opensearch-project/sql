@@ -7,6 +7,7 @@ package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
@@ -21,6 +22,7 @@ public class Expand extends UnresolvedPlan {
 
   private UnresolvedPlan child;
   @Getter private final Field field;
+  @Getter @Nullable private final String alias;
 
   @Override
   public Expand attach(UnresolvedPlan child) {

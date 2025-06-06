@@ -53,8 +53,6 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
     verifyNumOfRows(response, 5);
   }
 
-  // TODO: confirm if expand with alias will be supported
-  @Ignore
   @Test
   public void testExpandWithAlias() throws Exception {
     JSONObject response =
@@ -62,9 +60,8 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
     verifySchema(
         response,
         schema("name", "string"),
-        schema("age", "integer"),
-        schema("id", "integer"),
-        schema("address", "array"),
+        schema("age", "bigint"),
+        schema("id", "bigint"),
         schema("addr", "struct"));
     verifyNumOfRows(response, 11);
   }

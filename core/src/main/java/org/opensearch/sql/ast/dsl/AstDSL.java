@@ -97,8 +97,8 @@ public class AstDSL {
     return new Eval(Arrays.asList(projectList)).attach(input);
   }
 
-  public Expand expand(UnresolvedPlan input, Field field) {
-    return new Expand(field).attach(input);
+  public Expand expand(UnresolvedPlan input, Field field, String alias) {
+    return new Expand(field, alias).attach(input);
   }
 
   public static UnresolvedPlan projectWithArg(

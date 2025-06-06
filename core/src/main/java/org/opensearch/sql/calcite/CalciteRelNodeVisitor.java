@@ -842,9 +842,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     RelBuilder relBuilder = context.relBuilder;
 
-    // 2. Get the field to expand
+    // 2. Get the field to expand and an optional alias.
     Field arrayField = expand.getField();
     RexInputRef arrayFieldRex = (RexInputRef) rexVisitor.analyze(arrayField, context);
+    String alias = expand.getAlias();
 
     // 3. Capture the outer row in a CorrelationId
     Holder<RexCorrelVariable> correlVariable = Holder.empty();
@@ -860,7 +861,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // 5. Filter rows where the array field is the same as the left side
     // TODO: This is not a standard way to use correlate and uncollect together.
-    // A filter should not be necessary. Correct it in the future.
+    //  A filter should not be necessary. Correct it in the future.
     RexNode filterCondition = relBuilder.equals(correlArrayField, arrayFieldRex);
     relBuilder.filter(filterCondition);
 
@@ -876,9 +877,17 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // be used by the right side to correlate with the left side.
     relBuilder.correlate(JoinRelType.INNER, correlVariable.get().id, List.of(arrayFieldRex));
 
-    // 8. Remove the original array field from the output. No alias is currently supported in the
-    // expand command, so it can be safely deleted. Its name is re-used for the expanded element.
+    // 8. Remove the original array field from the output.
+    // TODO: RFC: should we keep the original array field when alias is present?
     relBuilder.projectExcept(arrayFieldRex);
+    if (alias != null) {
+      // Sub-nested fields cannot be removed after renaming the nested field.
+      tryToRemoveNestedFields(context);
+      RexInputRef expandedField = relBuilder.field(arrayField.getField().toString());
+      List<String> names = new ArrayList<>(relBuilder.peek().getRowType().getFieldNames());
+      names.set(expandedField.getIndex(), alias);
+      relBuilder.rename(names);
+    }
     return relBuilder.peek();
   }
 }

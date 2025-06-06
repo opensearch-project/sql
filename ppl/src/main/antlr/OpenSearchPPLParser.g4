@@ -240,7 +240,7 @@ trendlineType
    ;
 
 expandCommand
-    : EXPAND fieldExpression
+    : EXPAND fieldExpression (AS alias = qualifiedName)?
     ;
 
 kmeansCommand

@@ -419,7 +419,8 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitExpandCommand(OpenSearchPPLParser.ExpandCommandContext ctx) {
     Field fieldExpression = (Field) internalVisitExpression(ctx.fieldExpression());
-    return new Expand(fieldExpression);
+    String alias = ctx.alias != null ? internalVisitExpression(ctx.alias).toString() : null;
+    return new Expand(fieldExpression, alias);
   }
 
   @Override
