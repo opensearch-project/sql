@@ -39,7 +39,7 @@ public class GeopointFormatsIT extends SQLIntegTestCase {
         rows(Map.of("lon", 74, "lat", 40.71)));
   }
 
-  private static final double TOLERANCE = 1E-5;
+  public static final double TOLERANCE = 1E-5;
 
   public void testReadingGeoHash() throws IOException {
     String query = String.format("SELECT point FROM %s WHERE _id='6'", Index.GEOPOINTS.getName());
@@ -50,7 +50,7 @@ public class GeopointFormatsIT extends SQLIntegTestCase {
     assertEquals(74, point.getRight(), TOLERANCE);
   }
 
-  private Pair<Double, Double> getGeoValue(JSONObject result) {
+  public static Pair<Double, Double> getGeoValue(JSONObject result) {
     JSONObject geoRaw =
         (JSONObject) ((JSONArray) ((JSONArray) result.get("datarows")).get(0)).get(0);
     double lat = geoRaw.getDouble("lat");

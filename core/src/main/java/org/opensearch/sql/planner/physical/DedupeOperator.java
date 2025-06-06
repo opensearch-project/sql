@@ -7,9 +7,9 @@ package org.opensearch.sql.planner.physical;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import lombok.EqualsAndHashCode;
@@ -131,7 +131,7 @@ public class DedupeOperator extends PhysicalPlan {
   @RequiredArgsConstructor
   static class Deduper<K> {
     private final BiFunction<Map<K, Integer>, K, Integer> seenFirstTime;
-    private final Map<K, Integer> seenMap = new ConcurrentHashMap<>();
+    private final Map<K, Integer> seenMap = new LinkedHashMap<>();
 
     /** The Historical Deduper monitor the duplicated element with all the seen value. */
     public static <K> Deduper<K> historicalDeduper() {

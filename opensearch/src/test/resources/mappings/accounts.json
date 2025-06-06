@@ -36,6 +36,10 @@
               }
             }
           },
+          "employer_alias": {
+            "type": "alias",
+            "path": "employer"
+          },
           "projects": {
             "type": "nested",
             "properties": {

@@ -105,6 +105,29 @@ Example::
     +-------------------------------+
 
 
+LOCATE
+-------
+
+Description
+>>>>>>>>>>>
+
+Usage: locate(substr, str[, start]) returns the position of the first occurrence of substring substr in string str, starting searching from position start. If start is not specified, it defaults to 1 (the beginning of the string). Returns 0 if substr is not found. If any argument is NULL, the function returns NULL.
+
+Argument type: STRING, STRING[, INTEGER]
+
+Return type: INTEGER
+
+Example::
+
+    os> source=people | eval `LOCATE('world', 'helloworld')` = LOCATE('world', 'helloworld'), `LOCATE('invalid', 'helloworld')` = LOCATE('invalid', 'helloworld'), `LOCATE('world', 'helloworld', 6)` = LOCATE('world', 'helloworld', 6) | fields `LOCATE('world', 'helloworld')`, `LOCATE('invalid', 'helloworld')`, `LOCATE('world', 'helloworld', 6)`
+    fetched rows / total rows = 1/1
+    +-------------------------------+---------------------------------+----------------------------------+
+    | LOCATE('world', 'helloworld') | LOCATE('invalid', 'helloworld') | LOCATE('world', 'helloworld', 6) |
+    |-------------------------------+---------------------------------+----------------------------------|
+    | 6                             | 0                               | 6                                |
+    +-------------------------------+---------------------------------+----------------------------------+
+
+
 LOWER
 -----
 
@@ -174,6 +197,25 @@ Example::
     |-----------------------------------+-------------------------------------|
     | 6                                 | 0                                   |
     +-----------------------------------+-------------------------------------+
+
+
+REPLACE
+--------
+
+Description
+>>>>>>>>>>>
+
+Usage: replace(str, substr, newstr) returns a string with all occurrences of substr replaced by newstr in str. If any argument is NULL, the function returns NULL.
+
+Example::
+
+    os> source=people | eval `REPLACE('helloworld', 'world', 'universe')` = REPLACE('helloworld', 'world', 'universe'), `REPLACE('helloworld', 'invalid', 'universe')` = REPLACE('helloworld', 'invalid', 'universe') | fields `REPLACE('helloworld', 'world', 'universe')`, `REPLACE('helloworld', 'invalid', 'universe')`
+    fetched rows / total rows = 1/1
+    +--------------------------------------------+----------------------------------------------+
+    | REPLACE('helloworld', 'world', 'universe') | REPLACE('helloworld', 'invalid', 'universe') |
+    |--------------------------------------------+----------------------------------------------|
+    | hellouniverse                              | helloworld                                   |
+    +--------------------------------------------+----------------------------------------------+
 
 
 REVERSE

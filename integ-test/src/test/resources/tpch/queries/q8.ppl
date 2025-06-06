@@ -1,0 +1,60 @@
+/*
+select
+    o_year,
+    sum(case
+        when nation = 'BRAZIL' then volume
+        else 0
+    end) / sum(volume) as mkt_share
+from
+    (
+        select
+            year(o_orderdate) as o_year,
+            l_extendedprice * (1 - l_discount) as volume,
+            n2.n_name as nation
+        from
+            part,
+            supplier,
+            lineitem,
+            orders,
+            customer,
+            nation n1,
+            nation n2,
+            region
+        where
+            p_partkey = l_partkey
+            and s_suppkey = l_suppkey
+            and l_orderkey = o_orderkey
+            and o_custkey = c_custkey
+            and c_nationkey = n1.n_nationkey
+            and n1.n_regionkey = r_regionkey
+            and r_name = 'AMERICA'
+            and s_nationkey = n2.n_nationkey
+            and o_orderdate between date '1995-01-01' and date '1996-12-31'
+            and p_type = 'ECONOMY ANODIZED STEEL'
+    ) as all_nations
+group by
+    o_year
+order by
+    o_year
+*/
+
+source = [
+    source = part
+    | join ON p_partkey = l_partkey lineitem
+    | join ON s_suppkey = l_suppkey supplier
+    | join ON l_orderkey = o_orderkey orders
+    | join ON o_custkey = c_custkey customer
+    | join ON c_nationkey = n1.n_nationkey nation as n1
+    | join ON s_nationkey = n2.n_nationkey nation as n2
+    | join ON n1.n_regionkey = r_regionkey region
+    | where r_name = 'AMERICA' AND p_type = 'ECONOMY ANODIZED STEEL'
+      and o_orderdate between date('1995-01-01') and date('1996-12-31')
+    | eval o_year = year(o_orderdate)
+    | eval volume = l_extendedprice * (1 - l_discount)
+    | eval nation = n2.n_name
+    | fields o_year, volume, nation
+  ] as all_nations
+| stats sum(case(nation = 'BRAZIL', volume else 0)) as sum_case, sum(volume) as sum_volume by o_year
+| eval mkt_share = sum_case / sum_volume
+| fields o_year, mkt_share
+| sort o_year

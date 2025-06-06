@@ -61,7 +61,7 @@ public class DefaultFunctionResolver implements FunctionResolver {
         && !FunctionSignature.isVarArgFunction(bestMatchEntry.getValue().getParamTypeList())) {
       throw new ExpressionEvaluationException(
           String.format(
-              "%s function expected %s, but get %s",
+              "%s function expected %s, but got %s",
               functionName,
               formatFunctions(functionBundle.keySet()),
               unresolvedSignature.formatTypes()));

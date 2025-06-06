@@ -17,6 +17,7 @@ import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryService;
+import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.executor.streaming.DefaultMetadataLog;
 import org.opensearch.sql.executor.streaming.MicroBatchStreamingExecution;
 import org.opensearch.sql.executor.streaming.StreamingSource;
@@ -36,11 +37,12 @@ public class StreamingQueryPlan extends QueryPlan {
   /** constructor. */
   public StreamingQueryPlan(
       QueryId queryId,
+      QueryType queryType,
       UnresolvedPlan plan,
       QueryService queryService,
       ResponseListener<ExecutionEngine.QueryResponse> listener,
       ExecutionStrategy executionStrategy) {
-    super(queryId, plan, queryService, listener);
+    super(queryId, queryType, plan, queryService, listener);
 
     this.executionStrategy = executionStrategy;
   }
@@ -48,7 +50,7 @@ public class StreamingQueryPlan extends QueryPlan {
   @Override
   public void execute() {
     try {
-      LogicalPlan logicalPlan = queryService.analyze(plan);
+      LogicalPlan logicalPlan = queryService.analyze(plan, queryType);
       StreamingSource streamingSource = buildStreamingSource(logicalPlan);
       streamingExecution =
           new MicroBatchStreamingExecution(

@@ -17,22 +17,43 @@ public enum Format {
   JDBC("jdbc"),
   CSV("csv"),
   RAW("raw"),
-  VIZ("viz");
+  VIZ("viz"),
+  // format of explain response
+  SIMPLE("simple"),
+  STANDARD("standard"),
+  EXTENDED("extended"),
+  COST("cost");
 
   @Getter private final String formatName;
 
-  private static final Map<String, Format> ALL_FORMATS;
+  public static final Map<String, Format> RESPONSE_FORMATS;
+
+  public static final Map<String, Format> EXPLAIN_FORMATS;
 
   static {
-    ImmutableMap.Builder<String, Format> builder = new ImmutableMap.Builder<>();
-    for (Format format : Format.values()) {
-      builder.put(format.formatName, format);
-    }
-    ALL_FORMATS = builder.build();
+    ImmutableMap.Builder<String, Format> builder;
+    builder = new ImmutableMap.Builder<>();
+    builder.put(JDBC.formatName, JDBC);
+    builder.put(CSV.formatName, CSV);
+    builder.put(RAW.formatName, RAW);
+    builder.put(VIZ.formatName, VIZ);
+    RESPONSE_FORMATS = builder.build();
+
+    builder = new ImmutableMap.Builder<>();
+    builder.put(SIMPLE.formatName, SIMPLE);
+    builder.put(STANDARD.formatName, STANDARD);
+    builder.put(EXTENDED.formatName, EXTENDED);
+    builder.put(COST.formatName, COST);
+    EXPLAIN_FORMATS = builder.build();
   }
 
   public static Optional<Format> of(String formatName) {
     String format = Strings.isNullOrEmpty(formatName) ? "jdbc" : formatName.toLowerCase();
-    return Optional.ofNullable(ALL_FORMATS.getOrDefault(format, null));
+    return Optional.ofNullable(RESPONSE_FORMATS.getOrDefault(format, null));
+  }
+
+  public static Optional<Format> ofExplain(String formatName) {
+    String format = Strings.isNullOrEmpty(formatName) ? "standard" : formatName.toLowerCase();
+    return Optional.ofNullable(EXPLAIN_FORMATS.getOrDefault(format, null));
   }
 }

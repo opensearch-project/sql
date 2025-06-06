@@ -25,6 +25,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.data.type.ExprCoreType.UNDEFINED;
 import static org.opensearch.sql.data.type.ExprCoreType.UNKNOWN;
 
+import java.util.Optional;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
@@ -86,5 +87,17 @@ class ExprTypeTest {
   void defaultLegacyTypeName() {
     final ExprType exprType = () -> "dummy";
     assertEquals("dummy", exprType.legacyTypeName());
+  }
+
+  @Test
+  void getOriginalPath() {
+    final ExprType exprType = () -> "dummy";
+    assertEquals(Optional.empty(), exprType.getOriginalPath());
+  }
+
+  @Test
+  void getOriginalExprType() {
+    final ExprType exprType = () -> "dummy";
+    assertEquals(exprType, exprType.getOriginalExprType());
   }
 }

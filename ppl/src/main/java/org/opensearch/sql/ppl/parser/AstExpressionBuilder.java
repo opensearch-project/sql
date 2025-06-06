@@ -45,13 +45,21 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.*;
+import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
+import org.opensearch.sql.ast.expression.subquery.InSubquery;
+import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
+import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
@@ -69,10 +77,38 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
           .put("isnotnull", IS_NOT_NULL.getName().getFunctionName())
           .build();
 
+  private final AstBuilder astBuilder;
+
+  public AstExpressionBuilder(AstBuilder astBuilder) {
+    this.astBuilder = astBuilder;
+  }
+
   /** Eval clause. */
   @Override
   public UnresolvedExpression visitEvalClause(EvalClauseContext ctx) {
     return new Let((Field) visit(ctx.fieldExpression()), visit(ctx.expression()));
+  }
+
+  /** Trendline clause. */
+  @Override
+  public Trendline.TrendlineComputation visitTrendlineClause(
+      OpenSearchPPLParser.TrendlineClauseContext ctx) {
+    final int numberOfDataPoints = Integer.parseInt(ctx.numberOfDataPoints.getText());
+    if (numberOfDataPoints < 1) {
+      throw new SyntaxCheckException(
+          "Number of trendline data-points must be greater than or equal to 1");
+    }
+
+    final Field dataField = (Field) this.visitFieldExpression(ctx.field);
+    final String alias =
+        ctx.alias != null
+            ? ctx.alias.getText()
+            : dataField.getChild().get(0).toString() + "_trendline";
+
+    final Trendline.TrendlineType computationType =
+        Trendline.TrendlineType.valueOf(ctx.trendlineType().getText().toUpperCase(Locale.ROOT));
+    return new Trendline.TrendlineComputation(
+        numberOfDataPoints, dataField, alias, computationType);
   }
 
   /** Logical expression excluding boolean, comparison. */
@@ -104,11 +140,13 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitInExpr(InExprContext ctx) {
-    return new In(
-        visit(ctx.valueExpression()),
-        ctx.valueList().literalValue().stream()
-            .map(this::visitLiteralValue)
-            .collect(Collectors.toList()));
+    UnresolvedExpression expr =
+        new In(
+            visit(ctx.valueExpression()),
+            ctx.valueList().literalValue().stream()
+                .map(this::visitLiteralValue)
+                .collect(Collectors.toList()));
+    return ctx.NOT() != null ? new Not(expr) : expr;
   }
 
   /** Value Expression. */
@@ -121,6 +159,12 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitParentheticValueExpr(ParentheticValueExprContext ctx) {
     return visit(ctx.valueExpression()); // Discard parenthesis around
+  }
+
+  @Override
+  public UnresolvedExpression visitParentheticLogicalExpr(
+      OpenSearchPPLParser.ParentheticLogicalExprContext ctx) {
+    return visit(ctx.logicalExpression()); // Discard parenthesis around
   }
 
   /** Field expression. */
@@ -136,6 +180,8 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitSortField(SortFieldContext ctx) {
+
+    // TODO #3180: Fix broken sort functionality
     return new Field(
         visit(ctx.sortFieldExpression().fieldExpression().qualifiedName()),
         ArgumentFactory.getArgumentList(ctx));
@@ -191,6 +237,27 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return buildFunction(
         FUNCTION_NAME_MAPPING.getOrDefault(functionName, functionName),
         ctx.functionArgs().functionArg());
+  }
+
+  @Override
+  public UnresolvedExpression visitCaseExpr(OpenSearchPPLParser.CaseExprContext ctx) {
+    List<When> whens =
+        IntStream.range(0, ctx.caseFunction().logicalExpression().size())
+            .mapToObj(
+                index -> {
+                  UnresolvedExpression condition =
+                      visit(ctx.caseFunction().logicalExpression(index));
+                  UnresolvedExpression result = visit(ctx.caseFunction().valueExpression(index));
+                  return new When(condition, result);
+                })
+            .collect(Collectors.toList());
+    UnresolvedExpression elseValue = null;
+    if (ctx.caseFunction().ELSE() != null) {
+      elseValue =
+          visit(
+              ctx.caseFunction().valueExpression(ctx.caseFunction().valueExpression().size() - 1));
+    }
+    return new Case(null, whens, Optional.ofNullable(elseValue));
   }
 
   /** Eval function. */
@@ -352,8 +419,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   public UnresolvedExpression visitBySpanClause(BySpanClauseContext ctx) {
     String name = ctx.spanClause().getText();
     return ctx.alias != null
-        ? new Alias(
-            name, visit(ctx.spanClause()), StringUtils.unquoteIdentifier(ctx.alias.getText()))
+        ? new Alias(StringUtils.unquoteIdentifier(ctx.alias.getText()), visit(ctx.spanClause()))
         : new Alias(name, visit(ctx.spanClause()));
   }
 
@@ -361,6 +427,59 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   public UnresolvedExpression visitSpanClause(SpanClauseContext ctx) {
     String unit = ctx.unit != null ? ctx.unit.getText() : "";
     return new Span(visit(ctx.fieldExpression()), visit(ctx.value), SpanUnit.of(unit));
+  }
+
+  @Override
+  public UnresolvedExpression visitLeftHint(OpenSearchPPLParser.LeftHintContext ctx) {
+    return new EqualTo(
+        new Literal(ctx.leftHintKey.getText(), DataType.STRING), visit(ctx.leftHintValue));
+  }
+
+  @Override
+  public UnresolvedExpression visitRightHint(OpenSearchPPLParser.RightHintContext ctx) {
+    return new EqualTo(
+        new Literal(ctx.rightHintKey.getText(), DataType.STRING), visit(ctx.rightHintValue));
+  }
+
+  @Override
+  public UnresolvedExpression visitInSubqueryExpr(OpenSearchPPLParser.InSubqueryExprContext ctx) {
+    UnresolvedExpression expr =
+        new InSubquery(
+            ctx.valueExpressionList().valueExpression().stream()
+                .map(this::visit)
+                .collect(Collectors.toList()),
+            astBuilder.visitSubSearch(ctx.subSearch()));
+    return ctx.NOT() != null ? new Not(expr) : expr;
+  }
+
+  @Override
+  public UnresolvedExpression visitScalarSubqueryExpr(
+      OpenSearchPPLParser.ScalarSubqueryExprContext ctx) {
+    return new ScalarSubquery(astBuilder.visitSubSearch(ctx.subSearch()));
+  }
+
+  @Override
+  public UnresolvedExpression visitExistsSubqueryExpr(
+      OpenSearchPPLParser.ExistsSubqueryExprContext ctx) {
+    return new ExistsSubquery(astBuilder.visitSubSearch(ctx.subSearch()));
+  }
+
+  @Override
+  public UnresolvedExpression visitBetween(OpenSearchPPLParser.BetweenContext ctx) {
+    UnresolvedExpression betweenExpr =
+        new Between(
+            visit(ctx.valueExpression(0)),
+            visit(ctx.valueExpression(1)),
+            visit(ctx.valueExpression(2)));
+    return ctx.NOT() != null ? new Not(betweenExpr) : betweenExpr;
+  }
+
+  @Override
+  public UnresolvedExpression visitWindowFunction(OpenSearchPPLParser.WindowFunctionContext ctx) {
+    Function f =
+        buildFunction(ctx.windowFunctionName().getText(), ctx.functionArgs().functionArg());
+    // In PPL eventstats command, all window functions have the same partition and order spec.
+    return new WindowFunction(f);
   }
 
   private QualifiedName visitIdentifiers(List<? extends ParserRuleContext> ctx) {

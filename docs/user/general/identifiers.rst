@@ -121,11 +121,11 @@ The first example is to show a column name qualified by full table name original
 
     os> SELECT city, accounts.age, ABS(accounts.balance) FROM accounts WHERE accounts.age < 30;
     fetched rows / total rows = 1/1
-    +-------+-----+-----------------------+
-    | city  | age | ABS(accounts.balance) |
-    |-------+-----+-----------------------|
-    | Nogal | 28  | 32838                 |
-    +-------+-----+-----------------------+
+    +-------+-----+--------------+
+    | city  | age | ABS(balance) |
+    |-------+-----+--------------|
+    | Nogal | 28  | 32838        |
+    +-------+-----+--------------+
 
 The second example is to show a field name qualified by index alias specified. Similarly, the alias qualifier is optional in this case::
 

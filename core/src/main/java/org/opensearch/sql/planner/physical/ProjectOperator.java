@@ -94,8 +94,8 @@ public class ProjectOperator extends PhysicalPlan implements SerializablePlan {
     return new ExecutionEngine.Schema(
         getProjectList().stream()
             .map(
-                expr ->
-                    new ExecutionEngine.Schema.Column(expr.getName(), expr.getAlias(), expr.type()))
+                expr -> // the column name is the delegated expression string from NamedExpression
+                new ExecutionEngine.Schema.Column(expr.getName(), expr.getAlias(), expr.type()))
             .collect(Collectors.toList()));
   }
 

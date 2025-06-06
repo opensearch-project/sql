@@ -71,6 +71,7 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.opensearch.data.type.OpenSearchAliasType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
@@ -160,9 +161,9 @@ class OpenSearchNodeClientTest {
     var parsedTypes = OpenSearchDataType.traverseAndFlatten(mapping);
     assertAll(
         () -> assertEquals(1, indexMappings.size()),
-        // 10 types extended to 17 after flattening
-        () -> assertEquals(10, mapping.size()),
-        () -> assertEquals(17, parsedTypes.size()),
+        // 11 types extended to 18 after flattening
+        () -> assertEquals(11, mapping.size()),
+        () -> assertEquals(18, parsedTypes.size()),
         () -> assertEquals("TEXT", mapping.get("address").legacyTypeName()),
         () -> assertEquals(OpenSearchTextType.of(MappingType.Text), parsedTypes.get("address")),
         () -> assertEquals("INTEGER", mapping.get("age").legacyTypeName()),
@@ -187,6 +188,11 @@ class OpenSearchNodeClientTest {
         () -> assertEquals(OpenSearchTextType.of(MappingType.Text), parsedTypes.get("employer")),
         // `employer` is a `text` with `fields`
         () -> assertTrue(((OpenSearchTextType) parsedTypes.get("employer")).getFields().size() > 0),
+        () -> assertEquals("TEXT", mapping.get("employer_alias").legacyTypeName()),
+        () ->
+            assertEquals(
+                new OpenSearchAliasType("employer", OpenSearchTextType.of(MappingType.Text)),
+                parsedTypes.get("employer_alias")),
         () -> assertEquals("NESTED", mapping.get("projects").legacyTypeName()),
         () -> assertEquals(OpenSearchTextType.of(MappingType.Nested), parsedTypes.get("projects")),
         () ->

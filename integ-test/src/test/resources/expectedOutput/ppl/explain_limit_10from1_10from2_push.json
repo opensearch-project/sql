@@ -1,0 +1,17 @@
+{
+  "root": {
+    "name": "ProjectOperator",
+    "description": {
+      "fields": "[age]"
+    },
+    "children": [
+      {
+        "name": "OpenSearchIndexScan",
+        "description": {
+          "request": "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account, sourceBuilder={\"from\":3,\"size\":8,\"timeout\":\"1m\",\"_source\":{\"includes\":[\"age\"],\"excludes\":[]}}, needClean=true, searchDone=false, pitId=null, cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
+        },
+        "children": []
+      }
+    ]
+  }
+}

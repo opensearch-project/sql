@@ -1,0 +1,16 @@
+{"index":{"_id":"1"}}
+{"name":"Jake","country":"USA","hobby":"Fishing","language":"English","year":2023,"month":4}
+{"index":{"_id":"2"}}
+{"name":"Hello","country":"USA","hobby":"Painting","language":"English","year":2023,"month":4}
+{"index":{"_id":"3"}}
+{"name":"John","country":"Canada","hobby":"Reading","language":"French","year":2023,"month":4}
+{"index":{"_id":"4"}}
+{"name":"Jim","country":"Canada","hobby":"Hiking","language":"English","year":2023,"month":4}
+{"index":{"_id":"5"}}
+{"name":"Peter","country":"Canada","hobby":"Gaming","language":"English","year":2023,"month":4}
+{"index":{"_id":"6"}}
+{"name":"Rick","country":"USA","hobby":"Swimming","language":"English","year":2023,"month":4}
+{"index":{"_id":"7"}}
+{"name":"David","country":"USA","hobby":"Gardening","language":"English","year":2023,"month":4}
+{"index":{"_id":"8"}}
+{"name":"Jane","country":"Canada","hobby":"Singing","language":"French","year":2023,"month":4}

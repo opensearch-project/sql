@@ -62,7 +62,6 @@ import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
 @ExtendWith(MockitoExtension.class)
 class OpenSearchIndexTest {
 
-  public static final int QUERY_SIZE_LIMIT = 200;
   public static final TimeValue SCROLL_TIMEOUT = new TimeValue(1);
   public static final OpenSearchRequest.IndexName INDEX_NAME =
       new OpenSearchRequest.IndexName("test");
@@ -84,6 +83,9 @@ class OpenSearchIndexTest {
         .when(settings.getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER))
         .thenReturn(true);
     lenient().when(settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE)).thenReturn(true);
+    lenient()
+        .when(settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE))
+        .thenReturn(TimeValue.timeValueMinutes(1));
   }
 
   @Test
@@ -200,35 +202,32 @@ class OpenSearchIndexTest {
   @Test
   void implementRelationOperatorOnly() {
     when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
-    when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
     LogicalPlan plan = index.createScanBuilder();
     Integer maxResultWindow = index.getMaxResultWindow();
-    final var requestBuilder =
-        new OpenSearchRequestBuilder(QUERY_SIZE_LIMIT, exprValueFactory, settings);
+    final var requestBuilder = new OpenSearchRequestBuilder(exprValueFactory, settings);
     assertEquals(
         new OpenSearchIndexScan(
-            client, 200, requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client)),
+            client,
+            requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client, true)),
         index.implement(index.optimize(plan)));
   }
 
   @Test
   void implementRelationOperatorWithOptimization() {
     when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
-    when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
     LogicalPlan plan = index.createScanBuilder();
     Integer maxResultWindow = index.getMaxResultWindow();
-    final var requestBuilder =
-        new OpenSearchRequestBuilder(QUERY_SIZE_LIMIT, exprValueFactory, settings);
+    final var requestBuilder = new OpenSearchRequestBuilder(exprValueFactory, settings);
     assertEquals(
         new OpenSearchIndexScan(
-            client, 200, requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client)),
+            client,
+            requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client, true)),
         index.implement(plan));
   }
 
   @Test
   void implementOtherLogicalOperators() {
     when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
-    when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
     NamedExpression include = named("age", ref("age", INTEGER));
     ReferenceExpression exclude = ref("name", STRING);
     ReferenceExpression dedupeField = ref("name", STRING);
@@ -250,8 +249,7 @@ class OpenSearchIndexTest {
             include);
 
     Integer maxResultWindow = index.getMaxResultWindow();
-    final var requestBuilder =
-        new OpenSearchRequestBuilder(QUERY_SIZE_LIMIT, exprValueFactory, settings);
+    final var requestBuilder = new OpenSearchRequestBuilder(exprValueFactory, settings);
     assertEquals(
         PhysicalPlanDSL.project(
             PhysicalPlanDSL.dedupe(
@@ -261,9 +259,8 @@ class OpenSearchIndexTest {
                             PhysicalPlanDSL.rename(
                                 new OpenSearchIndexScan(
                                     client,
-                                    QUERY_SIZE_LIMIT,
                                     requestBuilder.build(
-                                        INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client)),
+                                        INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client, true)),
                                 mappings),
                             exclude),
                         newEvalField),

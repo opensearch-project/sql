@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import lombok.Getter;
+import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.function.FunctionProperties;
 
@@ -21,8 +22,12 @@ public class AnalysisContext {
 
   @Getter private final FunctionProperties functionProperties;
 
+  public AnalysisContext(QueryType queryType) {
+    this(new TypeEnvironment(null), queryType);
+  }
+
   public AnalysisContext() {
-    this(new TypeEnvironment(null));
+    this(new TypeEnvironment(null), QueryType.SQL);
   }
 
   /**
@@ -31,9 +36,13 @@ public class AnalysisContext {
    * @param environment Env to set to a new instance.
    */
   public AnalysisContext(TypeEnvironment environment) {
+    this(environment, QueryType.SQL);
+  }
+
+  public AnalysisContext(TypeEnvironment environment, QueryType queryType) {
     this.environment = environment;
     this.namedParseExpressions = new ArrayList<>();
-    this.functionProperties = new FunctionProperties();
+    this.functionProperties = new FunctionProperties(queryType);
   }
 
   /** Push a new environment. */

@@ -13,13 +13,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.Expression;
-import org.opensearch.sql.expression.operator.predicate.BinaryPredicateOperator;
+import org.opensearch.sql.expression.operator.predicate.BinaryPredicateOperators;
 import org.opensearch.sql.storage.bindingtuple.BindingTuple;
 
 /**
  * The Filter operator represents WHERE clause and uses the conditions to evaluate the input {@link
  * BindingTuple}. The Filter operator only returns the results that evaluated to true. The NULL and
- * MISSING are handled by the logic defined in {@link BinaryPredicateOperator}.
+ * MISSING are handled by the logic defined in {@link BinaryPredicateOperators}.
  */
 @EqualsAndHashCode(callSuper = false)
 @ToString

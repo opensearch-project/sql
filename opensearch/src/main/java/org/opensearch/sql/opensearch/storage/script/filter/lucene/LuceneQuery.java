@@ -19,6 +19,7 @@ import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprFloatValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
+import org.opensearch.sql.data.model.ExprIpValue;
 import org.opensearch.sql.data.model.ExprLongValue;
 import org.opensearch.sql.data.model.ExprShortValue;
 import org.opensearch.sql.data.model.ExprStringValue;
@@ -104,7 +105,7 @@ public abstract class LuceneQuery {
     Expression expr = func.getArguments().get(1);
     ExprValue literalValue =
         expr instanceof LiteralExpression ? expr.valueOf() : cast((FunctionExpression) expr, ref);
-    return doBuild(ref.getAttr(), ref.type(), literalValue);
+    return doBuild(ref.getRawPath(), ref.type(), literalValue);
   }
 
   private ExprValue cast(FunctionExpression castFunction, ReferenceExpression ref) {
@@ -206,6 +207,11 @@ public abstract class LuceneQuery {
                     } else {
                       return expr.valueOf();
                     }
+                  })
+              .put(
+                  BuiltinFunctionName.CAST_TO_IP.getName(),
+                  (expr, ref) -> {
+                    return new ExprIpValue(expr.valueOf().stringValue());
                   })
               .put(
                   BuiltinFunctionName.CAST_TO_DATE.getName(),

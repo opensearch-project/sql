@@ -44,6 +44,20 @@ public class FormatTest {
   }
 
   @Test
+  void extended() {
+    Optional<Format> format = Format.ofExplain("extended");
+    assertTrue(format.isPresent());
+    assertEquals(Format.EXTENDED, format.get());
+  }
+
+  @Test
+  void defaultExplainFormat() {
+    Optional<Format> format = Format.ofExplain("");
+    assertTrue(format.isPresent());
+    assertEquals(Format.STANDARD, format.get());
+  }
+
+  @Test
   void caseSensitive() {
     Optional<Format> format = Format.of("JDBC");
     assertTrue(format.isPresent());

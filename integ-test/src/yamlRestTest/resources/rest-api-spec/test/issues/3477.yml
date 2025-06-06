@@ -1,0 +1,56 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+            plugins.calcite.fallback.allowed : false
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+            plugins.calcite.fallback.allowed : true
+
+---
+"Handle flattened document value":
+  - skip:
+      features:
+        - headers
+  - do:
+      bulk:
+        index: test
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"log": { "json" : { "status": "SUCCESS", "time": 100} } }'
+          - '{"index": {}}'
+          - '{"log.json": { "status": "SUCCESS", "time": 100} }'
+          - '{"index": {}}'
+          - '{"log.json.status":  "SUCCESS", "log.json.time": 100 }'
+          - '{"index": {}}'
+          - '{"log.json": { "status": "SUCCESS" }, "log.json.time": 100 }'
+          - '{"index": {}}'
+          - '{"log": { "json" : {} }, "log.json": { "status": "SUCCESS" }, "log.json.time": 100 }'
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=test'
+  - match: {"total": 5}
+  - match: {"schema": [{"name": "log", "type": "struct"}]}
+  - match: {"datarows": [[{ "json" : { "status": "SUCCESS", "time": 100} }], [{ "json" : { "status": "SUCCESS", "time": 100} }], [{ "json" : { "status": "SUCCESS", "time": 100} }], [{ "json" : { "status": "SUCCESS", "time": 100} }], [{ "json" : { "status": "SUCCESS", "time": 100} }]]}
+
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=test | fields log, log.json, log.json.status, log.json.time'
+  - match: {"total": 5}
+  - match: {"schema": [{"name": "log", "type": "struct"}, {"name": "log.json", "type": "struct"}, {"name": "log.json.status", "type": "string"}, {"name": "log.json.time", "type": "bigint"}]}
+  - match: {"datarows": [[{ "json" : { "status": "SUCCESS", "time": 100} }, { "status": "SUCCESS", "time": 100}, "SUCCESS", 100], [{ "json" : { "status": "SUCCESS", "time": 100} }, { "status": "SUCCESS", "time": 100}, "SUCCESS", 100], [{ "json" : { "status": "SUCCESS", "time": 100} }, { "status": "SUCCESS", "time": 100}, "SUCCESS", 100], [{ "json" : { "status": "SUCCESS", "time": 100} }, { "status": "SUCCESS", "time": 100}, "SUCCESS", 100], [{ "json" : { "status": "SUCCESS", "time": 100} }, { "status": "SUCCESS", "time": 100}, "SUCCESS", 100]]}

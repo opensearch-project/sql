@@ -19,7 +19,8 @@ import org.opensearch.sql.common.setting.Settings;
 public class ResourceMonitorIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
+    super.init();
     loadIndex(Index.DOG);
   }
 

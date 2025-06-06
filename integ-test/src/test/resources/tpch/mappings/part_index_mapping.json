@@ -1,0 +1,33 @@
+{
+  "mappings": {
+    "properties": {
+      "p_partkey": {
+        "type": "long"
+      },
+      "p_name": {
+        "type": "keyword"
+      },
+      "p_mfgr": {
+        "type": "keyword"
+      },
+      "p_brand": {
+        "type": "keyword"
+      },
+      "p_type": {
+        "type": "keyword"
+      },
+      "p_size": {
+        "type": "integer"
+      },
+      "p_container": {
+        "type": "keyword"
+      },
+      "p_retailprice": {
+        "type": "double"
+      },
+      "p_comment": {
+        "type": "text"
+      }
+    }
+  }
+}

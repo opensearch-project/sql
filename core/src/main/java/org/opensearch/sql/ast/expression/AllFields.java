@@ -18,7 +18,7 @@ import org.opensearch.sql.ast.Node;
 public class AllFields extends UnresolvedExpression {
   public static final AllFields INSTANCE = new AllFields();
 
-  private AllFields() {}
+  public AllFields() {}
 
   public static AllFields of() {
     return INSTANCE;

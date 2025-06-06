@@ -102,8 +102,7 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
     ImmutableMap.Builder<String, OpenSearchDataType> builder = new ImmutableMap.Builder<>();
     namedAggregatorList.forEach(
         agg -> builder.put(agg.getName(), OpenSearchDataType.of(agg.type())));
-    groupByList.forEach(
-        group -> builder.put(group.getNameOrAlias(), OpenSearchDataType.of(group.type())));
+    groupByList.forEach(group -> builder.put(group.getName(), OpenSearchDataType.of(group.type())));
     return builder.build();
   }
 

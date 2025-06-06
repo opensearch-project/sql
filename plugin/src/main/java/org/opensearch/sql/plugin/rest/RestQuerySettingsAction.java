@@ -35,6 +35,7 @@ public class RestQuerySettingsAction extends BaseRestHandler {
   private static final String TRANSIENT = "transient";
   private static final String SQL_SETTINGS_PREFIX = "plugins.sql.";
   private static final String PPL_SETTINGS_PREFIX = "plugins.ppl.";
+  private static final String CALCITE_SETTINGS_PREFIX = "plugins.calcite.";
   private static final String COMMON_SETTINGS_PREFIX = "plugins.query.";
   private static final String LEGACY_SQL_SETTINGS_PREFIX = "opendistro.sql.";
   private static final String LEGACY_PPL_SETTINGS_PREFIX = "opendistro.ppl.";
@@ -48,7 +49,8 @@ public class RestQuerySettingsAction extends BaseRestHandler {
           COMMON_SETTINGS_PREFIX,
           LEGACY_SQL_SETTINGS_PREFIX,
           LEGACY_PPL_SETTINGS_PREFIX,
-          LEGACY_COMMON_SETTINGS_PREFIX);
+          LEGACY_COMMON_SETTINGS_PREFIX,
+          CALCITE_SETTINGS_PREFIX);
 
   private static final List<String> DENY_LIST_SETTINGS_PREFIX =
       ImmutableList.of(EXECUTION_ENGINE_SETTINGS_PREFIX, DATASOURCES_SETTINGS_PREFIX);

@@ -1,0 +1,107 @@
+setup:
+  - skip:
+      features:
+        - headers
+  - do:
+      indices.create:
+        index: test
+        body:
+          settings:
+            number_of_replicas: 0
+            number_of_shards: 1
+          mappings:
+            properties:
+              id:
+                type: integer
+              body:
+                type: match_only_text
+
+  - do:
+      bulk:
+        index: test
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"id": 1, "body": "This is a match_only_text field 1"}'
+          - '{"index": {}}'
+          - '{"id": 2, "body": "This is a match_only_text field 2"}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+            plugins.calcite.fallback.allowed : true
+
+---
+"Support match_only_text field type with Calcite enabled":
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+            plugins.calcite.fallback.allowed : false
+
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=test | sort id | fields body | head 1'
+  - match: {"total": 1}
+  - match: {"schema": [{"name": "body", "type": "string"}]}
+  - match: {"datarows": [["This is a match_only_text field 1"]]}
+
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=test | where like(body, '%field 2%') | fields body"
+  - match: {"total": 1}
+  - match: {"schema": [{"name": "body", "type": "string"}]}
+  - match: {"datarows": [["This is a match_only_text field 2"]]}
+
+---
+"Support match_only_text field type with Calcite disabled":
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=test | sort id | fields body | head 1'
+  - match: {"total": 1}
+  - match: {"schema": [{"name": "body", "type": "string"}]}
+  - match: {"datarows": [["This is a match_only_text field 1"]]}
+
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=test | where match_phrase(body, 'field 2') | fields body"
+  - match: {"total": 1}
+  - match: {"schema": [{"name": "body", "type": "string"}]}
+  - match: {"datarows": [["This is a match_only_text field 2"]]}
+
+# ---
+# TODO: pitId is dynamic, try to match the request body more precisely by using regex match
+#"Support match_only_text field type function push down with Calcite disabled":
+#  - do:
+#      headers:
+#        Content-Type: 'application/json'
+#      ppl.explain:
+#        body:
+#          query: "source=test | where match_phrase(body, 'field 2') | fields body"
+#  - match: { root.children.0.description.request: "OpenSearchQueryRequest(indexName=test, sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"query\":{\"match_phrase\":{\"body\":{\"query\":\"field 2\",\"slop\":0,\"zero_terms_query\":\"NONE\",\"boost\":1.0}}},\"_source\":{\"includes\":[\"body\"],\"excludes\":[]},\"sort\":[{\"_doc\":{\"order\":\"asc\"}}]}, needClean=true, searchDone=false, pitId=.*, cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"}
+#
+#
+#  - do:
+#      headers:
+#        Content-Type: 'application/json'
+#      ppl.explain:
+#        body:
+#          query: "source=test | where like(body, '%field 2%') | fields body"
+#  - match: { root.children.0.description.request: "OpenSearchQueryRequest(indexName=test, sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"query\":{\"wildcard\":{\"body\":{\"wildcard\":\"*field 2*\",\"case_insensitive\":true,\"boost\":1.0}}},\"_source\":{\"includes\":[\"body\"],\"excludes\":[]},\"sort\":[{\"_doc\":{\"order\":\"asc\"}}]}, needClean=true, searchDone=false, pitId=.*, cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"}

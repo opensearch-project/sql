@@ -7,6 +7,7 @@ package org.opensearch.sql.ast.expression;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import java.util.Optional;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -31,7 +32,7 @@ public class Case extends UnresolvedExpression {
   private final List<When> whenClauses;
 
   /** Expression that represents ELSE statement result. */
-  private final UnresolvedExpression elseClause;
+  private final Optional<UnresolvedExpression> elseClause;
 
   @Override
   public List<? extends Node> getChild() {
@@ -40,10 +41,7 @@ public class Case extends UnresolvedExpression {
       children.add(caseValue);
     }
     children.addAll(whenClauses);
-
-    if (elseClause != null) {
-      children.add(elseClause);
-    }
+    elseClause.ifPresent(children::add);
     return children.build();
   }
 

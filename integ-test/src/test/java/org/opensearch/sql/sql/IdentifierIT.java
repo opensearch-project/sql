@@ -81,9 +81,7 @@ public class IdentifierIT extends SQLIntegTestCase {
 
     // Execute using field metadata values
     final JSONObject result =
-        new JSONObject(
-            executeQuery(
-                "SELECT *, _id, _index, _score, _maxscore, _sort " + "FROM " + index, "jdbc"));
+        new JSONObject(executeQuery("SELECT *, _id, _index, _sort " + "FROM " + index, "jdbc"));
 
     // Verify that the metadata values are returned when requested
     verifySchema(
@@ -91,10 +89,8 @@ public class IdentifierIT extends SQLIntegTestCase {
         schema("age", null, "long"),
         schema("_id", null, "keyword"),
         schema("_index", null, "keyword"),
-        schema("_score", null, "float"),
-        schema("_maxscore", null, "float"),
         schema("_sort", null, "long"));
-    verifyDataRows(result, rows(30, id, index, 1.0, 1.0, -2));
+    verifyDataRows(result, rows(30, id, index, -2));
   }
 
   @Test

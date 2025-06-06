@@ -11,6 +11,7 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
+import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
@@ -38,6 +39,23 @@ class OpenSearchDescribeIndexRequestTest {
     when(client.getIndexMappings("index")).thenReturn(ImmutableMap.of("test", mapping));
 
     final List<ExprValue> results = new OpenSearchDescribeIndexRequest(client, "index").search();
+    assertEquals(1, results.size());
+    assertThat(
+        results.get(0).tupleValue(),
+        anyOf(
+            hasEntry("TABLE_NAME", stringValue("index")),
+            hasEntry("COLUMN_NAME", stringValue("name")),
+            hasEntry("TYPE_NAME", stringValue("STRING"))));
+  }
+
+  @Test
+  void testSearchWithLangSpec() {
+    when(mapping.getFieldMappings())
+        .thenReturn(Map.of("name", OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword)));
+    when(client.getIndexMappings("index")).thenReturn(ImmutableMap.of("test", mapping));
+
+    final List<ExprValue> results =
+        new OpenSearchDescribeIndexRequest(client, "index", PPL_SPEC).search();
     assertEquals(1, results.size());
     assertThat(
         results.get(0).tupleValue(),

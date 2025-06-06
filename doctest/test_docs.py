@@ -29,7 +29,12 @@ APACHE = "apache"
 WILDCARD = "wildcard"
 NESTED = "nested"
 DATASOURCES = ".ql-datasources"
-
+WEBLOGS = "weblogs"
+JSON_TEST = "json_test"
+STATE_COUNTRY = "state_country"
+OCCUPATION = "occupation"
+WORKER = "worker"
+WORK_INFORMATION = "work_information"
 
 class DocTestConnection(OpenSearchConnection):
 
@@ -61,7 +66,8 @@ def normalize_explain_response(data):
 
     if (request := data.get("description", {}).get("request", None)) and request.startswith("OpenSearchQueryRequest("):
         for filter_field in ["needClean", "pitId", "cursorKeepAlive", "searchAfter", "searchResponse"]:
-            request = re.sub(f", {filter_field}=\\w+", "", request)
+            # The value of PIT may contain `+=_-`.
+            request = re.sub(f", {filter_field}=[A-Za-z0-9+=_-]+", "", request)
         data["description"]["request"] = request
 
     for child in data.get("children", []):
@@ -122,6 +128,12 @@ def set_up_test_indices(test):
     load_file("wildcard.json", index_name=WILDCARD)
     load_file("nested_objects.json", index_name=NESTED)
     load_file("datasources.json", index_name=DATASOURCES)
+    load_file("weblogs.json", index_name=WEBLOGS)
+    load_file("json_test.json", index_name=JSON_TEST)
+    load_file("state_country.json", index_name=STATE_COUNTRY)
+    load_file("occupation.json", index_name=OCCUPATION)
+    load_file("worker.json", index_name=WORKER)
+    load_file("work_information.json", index_name=WORK_INFORMATION)
 
 
 def load_file(filename, index_name):
@@ -150,7 +162,7 @@ def set_up(test):
 
 def tear_down(test):
     # drop leftover tables after each test
-    test_data_client.indices.delete(index=[ACCOUNTS, EMPLOYEES, PEOPLE, ACCOUNT2, NYC_TAXI, BOOKS, APACHE, WILDCARD, NESTED], ignore_unavailable=True)
+    test_data_client.indices.delete(index=[ACCOUNTS, EMPLOYEES, PEOPLE, ACCOUNT2, NYC_TAXI, BOOKS, APACHE, WILDCARD, NESTED, WEBLOGS, JSON_TEST, STATE_COUNTRY, OCCUPATION, WORKER, WORK_INFORMATION], ignore_unavailable=True)
 
 
 docsuite = partial(doctest.DocFileSuite,

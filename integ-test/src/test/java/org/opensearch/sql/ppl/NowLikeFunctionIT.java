@@ -223,7 +223,7 @@ public class NowLikeFunctionIT extends PPLIntegTestCase {
         executeQuery(
             "source="
                 + TEST_INDEX_PEOPLE2
-                + " | eval "
+                + "| eval "
                 + calls.stream()
                     .map(c -> String.format("`%s`=%s", c, c))
                     .collect(Collectors.joining(","))
