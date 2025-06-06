@@ -27,10 +27,10 @@ public class ParseUtils {
           ParseMethod.REGEX, RegexExpression::new,
           ParseMethod.GROK, GrokExpression::new,
           ParseMethod.PATTERNS, PatternsExpression::new);
-  // TODO: Support Grok parse method with correct function
   public static final Map<ParseMethod, BuiltinFunctionName> BUILTIN_FUNCTION_MAP =
       ImmutableMap.of(
           ParseMethod.REGEX, BuiltinFunctionName.INTERNAL_REGEXP_EXTRACT,
+          ParseMethod.GROK, BuiltinFunctionName.INTERNAL_GROK,
           ParseMethod.PATTERNS, BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_3);
 
   /**

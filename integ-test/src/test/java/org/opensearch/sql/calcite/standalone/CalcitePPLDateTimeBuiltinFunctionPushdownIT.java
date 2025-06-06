@@ -7,7 +7,8 @@ package org.opensearch.sql.calcite.standalone;
 
 import org.opensearch.sql.common.setting.Settings;
 
-public class CalcitePPLDateTimeBuiltinFunctionPushdownIT extends CalcitePPLBuiltinFunctionIT {
+public class CalcitePPLDateTimeBuiltinFunctionPushdownIT
+    extends CalcitePPLDateTimeBuiltinFunctionIT {
   @Override
   protected Settings getSettings() {
     return enablePushdown();

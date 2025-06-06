@@ -793,14 +793,14 @@ public class AstBuilderTest {
         new AD(
             relation("t"),
             ImmutableMap.<String, Literal>builder()
-                .put("anomaly_rate", new Literal(0.1, DataType.DOUBLE))
-                .put("anomaly_score_threshold", new Literal(0.1, DataType.DOUBLE))
+                .put("anomaly_rate", new Literal(0.1, DataType.DECIMAL))
+                .put("anomaly_score_threshold", new Literal(0.1, DataType.DECIMAL))
                 .put("sample_size", new Literal(256, DataType.INTEGER))
                 .put("number_of_trees", new Literal(256, DataType.INTEGER))
                 .put("time_zone", new Literal("PST", DataType.STRING))
                 .put("output_after", new Literal(256, DataType.INTEGER))
                 .put("shingle_size", new Literal(10, DataType.INTEGER))
-                .put("time_decay", new Literal(0.0001, DataType.DOUBLE))
+                .put("time_decay", new Literal(0.0001, DataType.DECIMAL))
                 .put("time_field", new Literal("timestamp", DataType.STRING))
                 .put("training_data_size", new Literal(256, DataType.INTEGER))
                 .build()));
@@ -816,15 +816,15 @@ public class AstBuilderTest {
         new AD(
             relation("t"),
             ImmutableMap.<String, Literal>builder()
-                .put("anomaly_rate", new Literal(0.1, DataType.DOUBLE))
-                .put("anomaly_score_threshold", new Literal(0.1, DataType.DOUBLE))
+                .put("anomaly_rate", new Literal(0.1, DataType.DECIMAL))
+                .put("anomaly_score_threshold", new Literal(0.1, DataType.DECIMAL))
                 .put("sample_size", new Literal(256, DataType.INTEGER))
                 .put("number_of_trees", new Literal(256, DataType.INTEGER))
                 .put("date_format", new Literal("HH:mm:ss yyyy-MM-dd", DataType.STRING))
                 .put("time_zone", new Literal("PST", DataType.STRING))
                 .put("output_after", new Literal(256, DataType.INTEGER))
                 .put("shingle_size", new Literal(10, DataType.INTEGER))
-                .put("time_decay", new Literal(0.0001, DataType.DOUBLE))
+                .put("time_decay", new Literal(0.0001, DataType.DECIMAL))
                 .put("time_field", new Literal("timestamp", DataType.STRING))
                 .put("training_data_size", new Literal(256, DataType.INTEGER))
                 .build()));
@@ -881,7 +881,7 @@ public class AstBuilderTest {
             AstDSL.intLiteral(10),
             AstDSL.intLiteral(100000),
             ImmutableMap.of(
-                "frequency_threshold_percentage", new Literal(0.1, DataType.DOUBLE),
+                "frequency_threshold_percentage", new Literal(0.1, DataType.DECIMAL),
                 "variable_count_threshold", new Literal(2, DataType.INTEGER))));
   }
 
