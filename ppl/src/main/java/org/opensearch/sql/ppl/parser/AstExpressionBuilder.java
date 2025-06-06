@@ -18,9 +18,11 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CountAllFu
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DataTypeFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DecimalLiteralContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DistinctCountFunctionCallContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DoubleLiteralContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldExpressionContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FloatLiteralContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsQualifiedNameContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsTableQualifiedNameContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsWildcardQualifiedNameContext;
@@ -43,6 +45,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WcFieldExp
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -419,7 +422,26 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitDecimalLiteral(DecimalLiteralContext ctx) {
+    // For backward compatibility, we accept decimal literal by `Literal(double, DataType.DECIMAL)`
+    // The double value will be converted to decimal by BigDecimal.valueOf((Double) value),
+    // some double values such as 0.0001 will be converted to string "1.0E-4" and finally
+    // generate decimal 0.00010. So here we parse a decimal text to Double then convert it
+    // to BigDecimal as well.
+    // In v2, a decimal literal will be converted back to double in resolving expression
+    // via ExprDoubleValue.
+    // In v3, a decimal literal will be kept in Calcite RexNode and converted back to double
+    // in runtime.
+    return new Literal(BigDecimal.valueOf(Double.parseDouble(ctx.getText())), DataType.DECIMAL);
+  }
+
+  @Override
+  public UnresolvedExpression visitDoubleLiteral(DoubleLiteralContext ctx) {
     return new Literal(Double.valueOf(ctx.getText()), DataType.DOUBLE);
+  }
+
+  @Override
+  public UnresolvedExpression visitFloatLiteral(FloatLiteralContext ctx) {
+    return new Literal(Float.valueOf(ctx.getText()), DataType.FLOAT);
   }
 
   @Override

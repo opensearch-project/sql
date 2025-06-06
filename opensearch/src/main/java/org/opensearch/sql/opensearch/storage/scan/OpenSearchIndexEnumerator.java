@@ -13,6 +13,8 @@ import lombok.ToString;
 import org.apache.calcite.linq4j.Enumerator;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.exception.NonFallbackCalciteException;
+import org.opensearch.sql.monitor.ResourceMonitor;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
@@ -37,6 +39,12 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
   /** Largest number of rows allowed in the response. */
   @EqualsAndHashCode.Include @ToString.Include private final int maxResponseSize;
 
+  /** How many moveNext() calls to perform resource check once. */
+  private static final long NUMBER_OF_NEXT_CALL_TO_CHECK = 1000;
+
+  /** ResourceMonitor. */
+  private final ResourceMonitor monitor;
+
   /** Number of rows returned. */
   private Integer queryCount;
 
@@ -49,13 +57,18 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
       OpenSearchClient client,
       List<String> fields,
       int maxResponseSize,
-      OpenSearchRequest request) {
+      OpenSearchRequest request,
+      ResourceMonitor monitor) {
     this.client = client;
     this.fields = fields;
     this.request = request;
     this.maxResponseSize = maxResponseSize;
+    this.monitor = monitor;
     this.queryCount = 0;
     this.current = null;
+    if (!this.monitor.isHealthy()) {
+      throw new NonFallbackCalciteException("insufficient resources to run the query, quit.");
+    }
   }
 
   private void fetchNextBatch() {
@@ -86,6 +99,11 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
   public boolean moveNext() {
     if (queryCount >= maxResponseSize) {
       return false;
+    }
+
+    boolean shouldCheck = (queryCount % NUMBER_OF_NEXT_CALL_TO_CHECK == 0);
+    if (shouldCheck && !this.monitor.isHealthy()) {
+      throw new NonFallbackCalciteException("insufficient resources to load next row, quit.");
     }
 
     if (iterator == null || !iterator.hasNext()) {
