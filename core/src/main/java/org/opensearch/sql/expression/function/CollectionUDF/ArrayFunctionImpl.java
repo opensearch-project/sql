@@ -7,6 +7,7 @@ package org.opensearch.sql.expression.function.CollectionUDF;
 
 import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -82,7 +83,20 @@ public class ArrayFunctionImpl extends ImplementorUDF {
     SqlTypeName targetType = (SqlTypeName) args[args.length - 1];
     List<Object> result;
     switch (targetType) {
-      case DOUBLE, DECIMAL:
+      case DECIMAL:
+        result =
+            originalList.stream()
+                .map(
+                    num -> {
+                      if (num instanceof BigDecimal) {
+                        return (BigDecimal) num;
+                      } else {
+                        return BigDecimal.valueOf(((Number) num).doubleValue());
+                      }
+                    })
+                .collect(Collectors.toList());
+        break;
+      case DOUBLE:
         result =
             originalList.stream()
                 .map(i -> (Object) ((Number) i).doubleValue())

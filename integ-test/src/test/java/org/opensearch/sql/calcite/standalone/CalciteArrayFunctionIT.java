@@ -212,6 +212,21 @@ public class CalciteArrayFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testReduce3() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where age=28 | eval array = array(1.0, 2.0, 3.0), result3 ="
+                    + " reduce(array, age, (acc, x) -> acc * 1.0 + x, acc -> acc * 10.0) | fields"
+                    + " result3 | head 1",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result3", "double"));
+
+    verifyDataRows(actual, rows(340));
+  }
+
+  @Test
   public void testReduceWithUDF() {
     JSONObject actual =
         executeQuery(

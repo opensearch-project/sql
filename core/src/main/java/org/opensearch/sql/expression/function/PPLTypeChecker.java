@@ -398,7 +398,9 @@ public interface PPLTypeChecker {
             // Integer is mapped to BIGINT in family.getDefaultConcreteType
           case INTEGER -> List.of(
               OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER));
-          case ANY, IGNORE -> List.of(
+            // case DATETIME_INTERVAL ->
+            // SqlTypeName.INTERVAL_TYPES.stream().map(OpenSearchTypeFactory.TYPE_FACTORY::createSqlIntervalType).toList();
+          case ANY, IGNORE, DATETIME_INTERVAL -> List.of(
               OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.ANY));
           default -> {
             RelDataType type = family.getDefaultConcreteType(OpenSearchTypeFactory.TYPE_FACTORY);

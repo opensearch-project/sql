@@ -153,6 +153,39 @@ public class CalciteRexNodeVisitorTest {
   }
 
   @Test
+  public void testPrepareLambdaForReduceWithDefaultType() {
+    when(componentType.getSqlTypeName()).thenReturn(SqlTypeName.DOUBLE);
+    when(arrayArg.getType()).thenReturn(arraySqlType);
+    when(arraySqlType.getComponentType()).thenReturn(componentType);
+    when(extraArg.getType()).thenReturn(extraType);
+
+    List<RexNode> previousArguments = List.of(arrayArg, extraArg);
+    when(functionArg1.toString()).thenReturn("acc");
+    when(functionArg2.toString()).thenReturn("arg1");
+    when(lambdaFunction.getFuncArgs()).thenReturn(List.of(functionArg1, functionArg2));
+
+    CalcitePlanContext lambdaContext =
+        visitor.prepareLambdaContext(
+            context,
+            lambdaFunction,
+            previousArguments,
+            "reduce",
+            TYPE_FACTORY.createSqlType(SqlTypeName.BIGINT));
+
+    assertNotNull(lambdaContext);
+    assertNotNull(lambdaContext.getRexLambdaRefMap());
+    assertEquals(2, lambdaContext.getRexLambdaRefMap().size());
+    assertTrue(lambdaContext.getRexLambdaRefMap().containsKey("arg1"));
+    assertTrue(lambdaContext.getRexLambdaRefMap().containsKey("acc"));
+    assertEquals(
+        lambdaContext.getRexLambdaRefMap().get("arg1").getType().getSqlTypeName(),
+        SqlTypeName.DOUBLE);
+    assertEquals(
+        lambdaContext.getRexLambdaRefMap().get("acc").getType().getSqlTypeName(),
+        SqlTypeName.BIGINT);
+  }
+
+  @Test
   public void testPrepareLambdaForReduceFinalizerFunction() {
     when(arrayArg.getType()).thenReturn(arraySqlType);
     when(arraySqlType.getComponentType()).thenReturn(componentType);
