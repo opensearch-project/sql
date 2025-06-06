@@ -82,7 +82,7 @@ public class ArrayFunctionImpl extends ImplementorUDF {
     SqlTypeName targetType = (SqlTypeName) args[args.length - 1];
     List<Object> result;
     switch (targetType) {
-      case DOUBLE:
+      case DOUBLE, DECIMAL:
         result =
             originalList.stream()
                 .map(i -> (Object) ((Number) i).doubleValue())

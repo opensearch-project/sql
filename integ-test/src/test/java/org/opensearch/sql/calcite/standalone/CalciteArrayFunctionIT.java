@@ -59,7 +59,7 @@ public class CalciteArrayFunctionIT extends CalcitePPLIntegTestCase {
 
     assertEquals(
         e.getMessage(),
-        "Cannot resolve function: ARRAY, arguments: [INTEGER, BOOLEAN], caused by: fail to create"
+        "Cannot resolve function: ARRAY, arguments: [INTEGER,BOOLEAN], caused by: fail to create"
             + " array with fixed type: inferred array element type");
   }
 
