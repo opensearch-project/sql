@@ -7,7 +7,12 @@ package org.opensearch.sql.exception;
 
 /** Exception for Expression Evaluation. */
 public class ExpressionEvaluationException extends QueryEngineException {
+
   public ExpressionEvaluationException(String message) {
     super(message);
+  }
+
+  public ExpressionEvaluationException(String message, Throwable cause) {
+    super(message, cause);
   }
 }

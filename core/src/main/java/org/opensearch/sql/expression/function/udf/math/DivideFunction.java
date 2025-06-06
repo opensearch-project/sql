@@ -19,7 +19,9 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.utils.MathUtils;
+import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 /**
  * Implementation for division function.
@@ -42,6 +44,11 @@ public class DivideFunction extends ImplementorUDF {
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
     return ReturnTypes.QUOTIENT_FORCE_NULLABLE;
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+    return PPLOperandTypes.NUMERIC_NUMERIC;
   }
 
   public static class DivideImplementor implements NotNullImplementor {

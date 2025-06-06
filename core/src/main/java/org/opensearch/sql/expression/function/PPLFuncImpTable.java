@@ -5,12 +5,180 @@
 
 package org.opensearch.sql.expression.function;
 
-import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.*;
+import static org.apache.calcite.sql.type.SqlTypeFamily.IGNORE;
 import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.STDDEV_POP_NULLABLE;
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
+import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.STDDEV_SAMP_NULLABLE;
+import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.VAR_POP_NULLABLE;
+import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.VAR_SAMP_NULLABLE;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getLegacyTypeName;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedAggFunction;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.*;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ABS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ACOS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ADD;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ADDDATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ADDTIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.AND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ASCII;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ASIN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ATAN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ATAN2;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.AVG;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CBRT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CEIL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CEILING;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CIDRMATCH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.COALESCE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CONCAT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CONCAT_WS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CONV;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CONVERT_TZ;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.COS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.COT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.COUNT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CRC32;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURDATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURRENT_DATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURRENT_TIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURRENT_TIMESTAMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURTIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DATEDIFF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DATETIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DATE_ADD;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DATE_FORMAT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DATE_SUB;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAYNAME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAYOFMONTH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAYOFWEEK;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAYOFYEAR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY_OF_MONTH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY_OF_WEEK;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY_OF_YEAR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DEGREES;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.E;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.EQUAL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXTRACT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.FLOOR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.FROM_DAYS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.FROM_UNIXTIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.GET_FORMAT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.GREATER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.GTE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.HOUR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.HOUR_OF_DAY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.IF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.IFNULL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_GROK;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_ITEM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_EXTRACT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_2;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_BLANK;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_EMPTY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NOT_NULL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NULL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_PRESENT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LAST_DAY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LEFT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LENGTH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LESS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LIKE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOCALTIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOCALTIMESTAMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOCATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOG;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOG10;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOG2;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOWER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LTE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LTRIM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAKEDATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAKETIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAX;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MD5;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MICROSECOND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MIN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE_OF_DAY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE_OF_HOUR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MOD;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MODULUS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MODULUSFUNCTION;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTHNAME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTH_OF_YEAR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOTEQUAL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOW;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.NULLIF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.OR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.PERCENTILE_APPROX;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.PERIOD_ADD;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.PERIOD_DIFF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.PI;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.POSITION;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.POW;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.POWER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.QUARTER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.RADIANS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.RAND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.REGEXP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.REPLACE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.REVERSE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.RIGHT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ROUND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.RTRIM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SECOND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SECOND_OF_MINUTE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SEC_TO_TIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SHA1;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SHA2;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SIGN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SIN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SPAN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SQRT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.STDDEV_POP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.STDDEV_SAMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.STRCMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.STR_TO_DATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBDATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBSTR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBSTRING;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBTIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBTRACT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SYSDATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TAKE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMEDIFF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTAMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTAMPADD;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTAMPDIFF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME_FORMAT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME_TO_SEC;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TO_DAYS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TO_SECONDS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TRIM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TRUNCATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TYPEOF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.UNIX_TIMESTAMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.UPPER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.UTC_DATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.UTC_TIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.UTC_TIMESTAMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.VARPOP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.VARSAMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEK;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEKDAY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEKOFYEAR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEK_OF_YEAR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.XOR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.YEAR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.YEARWEEK;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -20,7 +188,11 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.StringJoiner;
+import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
@@ -28,17 +200,31 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction.Flag;
+import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
+import org.apache.calcite.sql.type.ImplicitCastOperandTypeChecker;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SameOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.commons.lang3.function.TriFunction;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.udf.udaf.PercentileApproxFunction;
 import org.opensearch.sql.calcite.udf.udaf.TakeAggFunction;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.executor.QueryType;
 
 public class PPLFuncImpTable {
+  private static final Logger logger = LogManager.getLogger(PPLFuncImpTable.class);
+
   /** A lambda function interface which could apply parameters to get AggCall. */
   @FunctionalInterface
   public interface AggHandler {
@@ -47,23 +233,21 @@ public class PPLFuncImpTable {
   }
 
   public interface FunctionImp {
-    RelDataType ANY_TYPE = TYPE_FACTORY.createSqlType(SqlTypeName.ANY);
-
     RexNode resolve(RexBuilder builder, RexNode... args);
 
     /**
-     * @return the list of parameters. Default return null implies unknown parameters {@link
+     * @return the PPLTypeChecker. Default return null implies unknown parameters {@link
      *     CalciteFuncSignature} won't check parameters if it's null
      */
-    default List<RelDataType> getParams() {
+    default PPLTypeChecker getTypeChecker() {
       return null;
     }
   }
 
   public interface FunctionImp1 extends FunctionImp {
-    List<RelDataType> ANY_TYPE_1 = List.of(ANY_TYPE);
-
     RexNode resolve(RexBuilder builder, RexNode arg1);
+
+    PPLTypeChecker IGNORE_1 = PPLTypeChecker.family(IGNORE);
 
     @Override
     default RexNode resolve(RexBuilder builder, RexNode... args) {
@@ -74,13 +258,13 @@ public class PPLFuncImpTable {
     }
 
     @Override
-    default List<RelDataType> getParams() {
-      return ANY_TYPE_1;
+    default PPLTypeChecker getTypeChecker() {
+      return IGNORE_1;
     }
   }
 
   public interface FunctionImp2 extends FunctionImp {
-    List<RelDataType> ANY_TYPE_2 = List.of(ANY_TYPE, ANY_TYPE);
+    PPLTypeChecker IGNORE_2 = PPLTypeChecker.family(IGNORE, IGNORE);
 
     RexNode resolve(RexBuilder builder, RexNode arg1, RexNode arg2);
 
@@ -93,8 +277,8 @@ public class PPLFuncImpTable {
     }
 
     @Override
-    default List<RelDataType> getParams() {
-      return ANY_TYPE_2;
+    default PPLTypeChecker getTypeChecker() {
+      return IGNORE_2;
     }
   }
 
@@ -161,7 +345,7 @@ public class PPLFuncImpTable {
    */
   public void registerExternalFunction(BuiltinFunctionName functionName, FunctionImp functionImp) {
     CalciteFuncSignature signature =
-        new CalciteFuncSignature(functionName.getName(), functionImp.getParams());
+        new CalciteFuncSignature(functionName.getName(), functionImp.getTypeChecker());
     if (externalFunctionRegistry.containsKey(functionName)) {
       externalFunctionRegistry.get(functionName).add(Pair.of(signature, functionImp));
     } else {
@@ -226,14 +410,29 @@ public class PPLFuncImpTable {
         }
       }
     } catch (Exception e) {
-      throw new IllegalArgumentException(
+      throw new ExpressionEvaluationException(
           String.format(
               "Cannot resolve function: %s, arguments: %s, caused by: %s",
-              functionName, argTypes, e.getMessage()),
+              functionName, getActualSignature(argTypes), e.getMessage()),
           e);
     }
-    throw new IllegalArgumentException(
-        String.format("Cannot resolve function: %s, arguments: %s", functionName, argTypes));
+    StringJoiner allowedSignatures = new StringJoiner(",");
+    for (var implement : implementList) {
+      allowedSignatures.add(implement.getKey().typeChecker().getAllowedSignatures());
+    }
+    throw new ExpressionEvaluationException(
+        String.format(
+            "%s function expects {%s}, but got %s",
+            functionName, allowedSignatures, getActualSignature(argTypes)));
+  }
+
+  private static String getActualSignature(List<RelDataType> argTypes) {
+    return "["
+        + argTypes.stream()
+            .map(OpenSearchTypeFactory::convertRelDataTypeToExprType)
+            .map(Objects::toString)
+            .collect(Collectors.joining(","))
+        + "]";
   }
 
   @SuppressWarnings({"UnusedReturnValue", "SameParameterValue"})
@@ -243,8 +442,143 @@ public class PPLFuncImpTable {
     abstract void register(BuiltinFunctionName functionName, FunctionImp functionImp);
 
     void registerOperator(BuiltinFunctionName functionName, SqlOperator operator) {
-      register(
-          functionName, (RexBuilder builder, RexNode... node) -> builder.makeCall(operator, node));
+      SqlOperandTypeChecker typeChecker;
+      if (operator instanceof SqlUserDefinedFunction udfOperator) {
+        typeChecker = extractTypeCheckerFromUDF(udfOperator);
+      } else {
+        typeChecker = operator.getOperandTypeChecker();
+      }
+
+      // Only the composite operand type checker for UDFs are concerned here.
+      if (operator instanceof SqlUserDefinedFunction
+          && typeChecker instanceof CompositeOperandTypeChecker compositeTypeChecker) {
+        // UDFs implement their own composite type checkers, which always use OR logic for argument
+        // types. Verifying the composition type would require accessing a protected field in
+        // CompositeOperandTypeChecker. If access to this field is not allowed, type checking will
+        // be skipped, so we avoid checking the composition type here.
+        register(functionName, wrapWithCompositeTypeChecker(operator, compositeTypeChecker, false));
+      } else if (typeChecker instanceof ImplicitCastOperandTypeChecker implicitCastTypeChecker) {
+        register(functionName, wrapWithImplicitCastTypeChecker(operator, implicitCastTypeChecker));
+      } else if (typeChecker instanceof CompositeOperandTypeChecker compositeTypeChecker) {
+        // If compositeTypeChecker contains operand checkers other than family type checkers or
+        // other than OR compositions, the function with be registered with a null type checker,
+        // which means the function will not be type checked.
+        register(functionName, wrapWithCompositeTypeChecker(operator, compositeTypeChecker, true));
+      } else if (typeChecker instanceof SameOperandTypeChecker comparableTypeChecker) {
+        // Comparison operators like EQUAL, GREATER_THAN, LESS_THAN, etc.
+        // SameOperandTypeCheckers like COALESCE, IFNULL, etc.
+        register(functionName, wrapWithComparableTypeChecker(operator, comparableTypeChecker));
+      } else {
+        logger.info(
+            "Cannot create type checker for function: {}. Will skip its type checking",
+            functionName);
+        register(
+            functionName,
+            (RexBuilder builder, RexNode... node) -> builder.makeCall(operator, node));
+      }
+    }
+
+    private static SqlOperandTypeChecker extractTypeCheckerFromUDF(
+        SqlUserDefinedFunction udfOperator) {
+      UDFOperandMetadata udfOperandMetadata =
+          (UDFOperandMetadata) udfOperator.getOperandTypeChecker();
+      return (udfOperandMetadata == null) ? null : udfOperandMetadata.getInnerTypeChecker();
+    }
+
+    /**
+     * Wrap a SqlOperator into a FunctionImp with a composite type checker.
+     *
+     * @param operator the SqlOperator to wrap
+     * @param typeChecker the CompositeOperandTypeChecker to use for type checking
+     * @param checkCompositionType if true, the type checker will check whether the composition type
+     *     of the type checker is OR.
+     * @return a FunctionImp that resolves to the operator and has the specified type checker
+     */
+    private static FunctionImp wrapWithCompositeTypeChecker(
+        SqlOperator operator,
+        CompositeOperandTypeChecker typeChecker,
+        boolean checkCompositionType) {
+      return new FunctionImp() {
+        @Override
+        public RexNode resolve(RexBuilder builder, RexNode... args) {
+          return builder.makeCall(operator, args);
+        }
+
+        @Override
+        public PPLTypeChecker getTypeChecker() {
+          try {
+            return PPLTypeChecker.wrapComposite(typeChecker, checkCompositionType);
+          } catch (IllegalArgumentException | UnsupportedOperationException e) {
+            logger.debug(
+                String.format(
+                    "Failed to create composite type checker for operator: %s. Will skip its type"
+                        + " checking",
+                    operator.getName()),
+                e);
+            return null;
+          }
+        }
+      };
+    }
+
+    private static FunctionImp wrapWithImplicitCastTypeChecker(
+        SqlOperator operator, ImplicitCastOperandTypeChecker typeChecker) {
+      return new FunctionImp() {
+        @Override
+        public RexNode resolve(RexBuilder builder, RexNode... args) {
+          return builder.makeCall(operator, args);
+        }
+
+        @Override
+        public PPLTypeChecker getTypeChecker() {
+          return PPLTypeChecker.wrapFamily(typeChecker);
+        }
+      };
+    }
+
+    private static FunctionImp wrapWithComparableTypeChecker(
+        SqlOperator operator, SameOperandTypeChecker typeChecker) {
+      return new FunctionImp() {
+        @Override
+        public RexNode resolve(RexBuilder builder, RexNode... args) {
+          return builder.makeCall(operator, args);
+        }
+
+        @Override
+        public PPLTypeChecker getTypeChecker() {
+          return PPLTypeChecker.wrapComparable(typeChecker);
+        }
+      };
+    }
+
+    private static FunctionImp createFunctionImpWithTypeChecker(
+        BiFunction<RexBuilder, RexNode, RexNode> resolver, PPLTypeChecker typeChecker) {
+      return new FunctionImp1() {
+        @Override
+        public RexNode resolve(RexBuilder builder, RexNode arg1) {
+          return resolver.apply(builder, arg1);
+        }
+
+        @Override
+        public PPLTypeChecker getTypeChecker() {
+          return typeChecker;
+        }
+      };
+    }
+
+    private static FunctionImp createFunctionImpWithTypeChecker(
+        TriFunction<RexBuilder, RexNode, RexNode, RexNode> resolver, PPLTypeChecker typeChecker) {
+      return new FunctionImp2() {
+        @Override
+        public RexNode resolve(RexBuilder builder, RexNode arg1, RexNode arg2) {
+          return resolver.apply(builder, arg1, arg2);
+        }
+
+        @Override
+        public PPLTypeChecker getTypeChecker() {
+          return typeChecker;
+        }
+      };
     }
 
     void populate() {
@@ -268,8 +602,6 @@ public class PPLFuncImpTable {
       registerOperator(POSITION, SqlStdOperatorTable.POSITION);
       registerOperator(LOCATE, SqlStdOperatorTable.POSITION);
       registerOperator(REPLACE, SqlStdOperatorTable.REPLACE);
-      registerOperator(SUBSTRING, SqlStdOperatorTable.SUBSTRING);
-      registerOperator(SUBSTR, SqlStdOperatorTable.SUBSTRING);
       registerOperator(UPPER, SqlStdOperatorTable.UPPER);
       registerOperator(ABS, SqlStdOperatorTable.ABS);
       registerOperator(ACOS, SqlStdOperatorTable.ACOS);
@@ -297,10 +629,8 @@ public class PPLFuncImpTable {
       registerOperator(IS_NOT_NULL, SqlStdOperatorTable.IS_NOT_NULL);
       registerOperator(IS_PRESENT, SqlStdOperatorTable.IS_NOT_NULL);
       registerOperator(IS_NULL, SqlStdOperatorTable.IS_NULL);
-      registerOperator(IF, SqlStdOperatorTable.CASE);
       registerOperator(IFNULL, SqlStdOperatorTable.COALESCE);
       registerOperator(COALESCE, SqlStdOperatorTable.COALESCE);
-      registerOperator(INTERNAL_ITEM, SqlStdOperatorTable.ITEM);
 
       // Register library operator
       registerOperator(REGEXP, SqlLibraryOperators.REGEXP);
@@ -406,83 +736,128 @@ public class PPLFuncImpTable {
       // Note, make the implementation an individual class if too complex.
       register(
           TRIM,
-          ((FunctionImp1)
+          createFunctionImpWithTypeChecker(
               (builder, arg) ->
                   builder.makeCall(
                       SqlStdOperatorTable.TRIM,
                       builder.makeFlag(Flag.BOTH),
                       builder.makeLiteral(" "),
-                      arg)));
+                      arg),
+              PPLTypeChecker.family(SqlTypeFamily.STRING)));
+
       register(
           LTRIM,
-          ((FunctionImp1)
+          createFunctionImpWithTypeChecker(
               (builder, arg) ->
                   builder.makeCall(
                       SqlStdOperatorTable.TRIM,
                       builder.makeFlag(Flag.LEADING),
                       builder.makeLiteral(" "),
-                      arg)));
+                      arg),
+              PPLTypeChecker.family(SqlTypeFamily.STRING)));
       register(
           RTRIM,
-          ((FunctionImp1)
+          createFunctionImpWithTypeChecker(
               (builder, arg) ->
                   builder.makeCall(
                       SqlStdOperatorTable.TRIM,
                       builder.makeFlag(Flag.TRAILING),
                       builder.makeLiteral(" "),
-                      arg)));
+                      arg),
+              PPLTypeChecker.family(SqlTypeFamily.STRING)));
       register(
           STRCMP,
-          ((FunctionImp2)
-              (builder, arg1, arg2) -> builder.makeCall(SqlLibraryOperators.STRCMP, arg2, arg1)));
+          createFunctionImpWithTypeChecker(
+              (builder, arg1, arg2) -> builder.makeCall(SqlLibraryOperators.STRCMP, arg2, arg1),
+              PPLTypeChecker.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING)));
+      // SqlStdOperatorTable.SUBSTRING.getOperandTypeChecker is null. We manually create a type
+      // checker for it.
+      register(
+          SUBSTRING,
+          wrapWithCompositeTypeChecker(
+              SqlStdOperatorTable.SUBSTRING,
+              (CompositeOperandTypeChecker)
+                  OperandTypes.STRING_INTEGER.or(OperandTypes.STRING_INTEGER_INTEGER),
+              false));
+      register(
+          SUBSTR,
+          wrapWithCompositeTypeChecker(
+              SqlStdOperatorTable.SUBSTRING,
+              (CompositeOperandTypeChecker)
+                  OperandTypes.STRING_INTEGER.or(OperandTypes.STRING_INTEGER_INTEGER),
+              false));
+      // SqlStdOperatorTable.ITEM.getOperandTypeChecker() checks only the first operand instead of
+      // all operands. Therefore, we wrap it with a custom CompositeOperandTypeChecker to check both
+      // operands.
+      register(
+          INTERNAL_ITEM,
+          wrapWithCompositeTypeChecker(
+              SqlStdOperatorTable.ITEM,
+              (CompositeOperandTypeChecker)
+                  OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.INTEGER)
+                      .or(OperandTypes.family(SqlTypeFamily.MAP, SqlTypeFamily.ANY)),
+              false));
       register(
           LOG,
-          ((FunctionImp2)
-              (builder, arg1, arg2) -> builder.makeCall(SqlLibraryOperators.LOG, arg2, arg1)));
+          createFunctionImpWithTypeChecker(
+              (builder, arg1, arg2) -> builder.makeCall(SqlLibraryOperators.LOG, arg2, arg1),
+              PPLTypeChecker.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC)));
       register(
           LOG,
-          ((FunctionImp1)
+          createFunctionImpWithTypeChecker(
               (builder, arg) ->
                   builder.makeCall(
                       SqlLibraryOperators.LOG,
                       arg,
-                      builder.makeApproxLiteral(BigDecimal.valueOf(Math.E)))));
+                      builder.makeApproxLiteral(BigDecimal.valueOf(Math.E))),
+              PPLTypeChecker.family(SqlTypeFamily.NUMERIC)));
       // SqlStdOperatorTable.SQRT is declared but not implemented. The call to SQRT in Calcite is
       // converted to POWER(x, 0.5).
       register(
           SQRT,
-          ((FunctionImp1)
+          createFunctionImpWithTypeChecker(
               (builder, arg) ->
                   builder.makeCall(
                       SqlStdOperatorTable.POWER,
                       arg,
-                      builder.makeApproxLiteral(BigDecimal.valueOf(0.5)))));
+                      builder.makeApproxLiteral(BigDecimal.valueOf(0.5))),
+              PPLTypeChecker.family(SqlTypeFamily.NUMERIC)));
       register(
           TYPEOF,
           (FunctionImp1)
               (builder, arg) ->
                   builder.makeLiteral(getLegacyTypeName(arg.getType(), QueryType.PPL)));
       register(XOR, new XOR_FUNC());
+      // SqlStdOperatorTable.CASE.getOperandTypeChecker is null. We manually create a type checker
+      // for it. The second and third operands are required to be of the same type. If not,
+      // it will throw an IllegalArgumentException with information Can't find leastRestrictive type
+      register(
+          IF,
+          wrapWithImplicitCastTypeChecker(
+              SqlStdOperatorTable.CASE,
+              OperandTypes.family(SqlTypeFamily.BOOLEAN, SqlTypeFamily.ANY, SqlTypeFamily.ANY)));
       register(
           NULLIF,
-          (FunctionImp2)
+          createFunctionImpWithTypeChecker(
               (builder, arg1, arg2) ->
                   builder.makeCall(
                       SqlStdOperatorTable.CASE,
                       builder.makeCall(SqlStdOperatorTable.EQUALS, arg1, arg2),
                       builder.makeNullLiteral(arg1.getType()),
-                      arg1));
+                      arg1),
+              PPLTypeChecker.wrapComparable((SameOperandTypeChecker) OperandTypes.SAME_SAME)));
       register(
           IS_EMPTY,
-          ((FunctionImp1)
+          createFunctionImpWithTypeChecker(
               (builder, arg) ->
                   builder.makeCall(
                       SqlStdOperatorTable.OR,
                       builder.makeCall(SqlStdOperatorTable.IS_NULL, arg),
-                      builder.makeCall(SqlStdOperatorTable.IS_EMPTY, arg))));
+                      builder.makeCall(SqlStdOperatorTable.IS_EMPTY, arg)),
+              PPLTypeChecker.family(SqlTypeFamily.ANY)));
       register(
           IS_BLANK,
-          ((FunctionImp1)
+          createFunctionImpWithTypeChecker(
               (builder, arg) ->
                   builder.makeCall(
                       SqlStdOperatorTable.OR,
@@ -493,7 +868,8 @@ public class PPLFuncImpTable {
                               SqlStdOperatorTable.TRIM,
                               builder.makeFlag(Flag.BOTH),
                               builder.makeLiteral(" "),
-                              arg)))));
+                              arg))),
+              PPLTypeChecker.family(SqlTypeFamily.ANY)));
     }
   }
 
@@ -504,7 +880,7 @@ public class PPLFuncImpTable {
     @Override
     void register(BuiltinFunctionName functionName, FunctionImp implement) {
       CalciteFuncSignature signature =
-          new CalciteFuncSignature(functionName.getName(), implement.getParams());
+          new CalciteFuncSignature(functionName.getName(), implement.getTypeChecker());
       if (map.containsKey(functionName)) {
         map.get(functionName).add(Pair.of(signature, implement));
       } else {
@@ -524,9 +900,9 @@ public class PPLFuncImpTable {
     }
 
     @Override
-    public List<RelDataType> getParams() {
-      RelDataType boolType = TYPE_FACTORY.createSqlType(SqlTypeName.BOOLEAN);
-      return List.of(boolType, boolType);
+    public PPLTypeChecker getTypeChecker() {
+      SqlTypeFamily booleanFamily = SqlTypeName.BOOLEAN.getFamily();
+      return PPLTypeChecker.family(booleanFamily, booleanFamily);
     }
   }
 
