@@ -16,6 +16,8 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.geospatial.action.IpEnrichmentActionClient;
@@ -24,6 +26,7 @@ import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
 import org.opensearch.transport.client.node.NodeClient;
 
 /**
@@ -51,6 +54,13 @@ public class GeoIpFunction extends ImplementorUDF {
       RelDataType anyType = typeFactory.createSqlType(SqlTypeName.ANY);
       return typeFactory.createMapType(varcharType, anyType);
     };
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+    return UDFOperandMetadata.wrap(
+        (CompositeOperandTypeChecker)
+            OperandTypes.STRING_STRING.or(OperandTypes.STRING_STRING_STRING));
   }
 
   public static class GeoIPImplementor implements NotNullImplementor {
