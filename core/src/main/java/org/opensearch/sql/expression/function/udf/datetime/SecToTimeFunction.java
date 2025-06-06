@@ -17,10 +17,12 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.calcite.utils.MathUtils;
+import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 /**
  * <code>sec_to_time(number)</code> converts the number of seconds to time in HH:mm:ssss[.nnnnnn]
@@ -40,6 +42,11 @@ public class SecToTimeFunction extends ImplementorUDF {
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
     return PPLReturnTypes.TIME_FORCE_NULLABLE;
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+    return PPLOperandTypes.NUMERIC;
   }
 
   public static class SecToTimeImplementor implements NotNullImplementor {

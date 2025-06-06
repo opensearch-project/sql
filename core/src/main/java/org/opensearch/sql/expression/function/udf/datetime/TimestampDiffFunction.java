@@ -15,8 +15,11 @@ import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.model.ExprStringValue;
@@ -25,6 +28,7 @@ import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 /**
  * Implementation for TIMESTAMPDIFF functions.
@@ -47,6 +51,23 @@ public class TimestampDiffFunction extends ImplementorUDF {
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
     return ReturnTypes.BIGINT_FORCE_NULLABLE;
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+    return UDFOperandMetadata.wrap(
+        (CompositeOperandTypeChecker)
+            OperandTypes.family(
+                    SqlTypeFamily.STRING, SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME)
+                .or(
+                    OperandTypes.family(
+                        SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.DATETIME))
+                .or(
+                    OperandTypes.family(
+                        SqlTypeFamily.STRING, SqlTypeFamily.DATETIME, SqlTypeFamily.STRING))
+                .or(
+                    OperandTypes.family(
+                        SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.STRING)));
   }
 
   public static class DiffImplementor implements NotNullImplementor {
