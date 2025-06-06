@@ -295,6 +295,11 @@ public class TestUtils {
     return getMappingFile(mappingFile);
   }
 
+  public static String getArrayIndexMapping() {
+    String mappingFile = "array_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
   public static void loadBulk(Client client, String jsonPath, String defaultIndex)
       throws Exception {
     System.out.println(String.format("Loading file %s into opensearch cluster", jsonPath));

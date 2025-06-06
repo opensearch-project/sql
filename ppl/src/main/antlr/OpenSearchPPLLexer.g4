@@ -39,6 +39,7 @@ ML:                                 'ML';
 FILLNULL:                           'FILLNULL';
 TRENDLINE:                          'TRENDLINE';
 APPENDCOL:                          'APPENDCOL';
+EXPAND:                             'EXPAND';
 SIMPLE_PATTERN:                     'SIMPLE_PATTERN';
 BRAIN:                              'BRAIN';
 VARIABLE_COUNT_THRESHOLD:           'VARIABLE_COUNT_THRESHOLD';

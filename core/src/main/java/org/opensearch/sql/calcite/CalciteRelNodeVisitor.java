@@ -32,6 +32,7 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
@@ -66,6 +67,7 @@ import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
+import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
@@ -193,7 +195,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   /** See logic in {@link org.opensearch.sql.analysis.symbol.SymbolTable#lookupAllFields} */
-  private void tryToRemoveNestedFields(CalcitePlanContext context) {
+  private static void tryToRemoveNestedFields(CalcitePlanContext context) {
     Set<String> allFields = new HashSet<>(context.relBuilder.peek().getRowType().getFieldNames());
     List<RexNode> duplicatedNestedFields =
         allFields.stream()
@@ -976,5 +978,71 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitTrendline(Trendline node, CalcitePlanContext context) {
     throw new CalciteUnsupportedException("Trendline command is unsupported in Calcite");
+  }
+
+  /**
+   * Expand command visitor to handle array field expansion. 1. Unnest 2. Join with the original
+   * table to get all fields
+   *
+   * <p>S = π_{field, other_fields}(R ⨝ UNNEST_field(R))
+   *
+   * @param expand Expand command to be visited
+   * @param context CalcitePlanContext containing the RelBuilder and other context
+   * @return RelNode representing records with the expanded array field
+   */
+  @Override
+  public RelNode visitExpand(Expand expand, CalcitePlanContext context) {
+    // 1. Visit Children
+    visitChildren(expand, context);
+
+    RelBuilder relBuilder = context.relBuilder;
+
+    // 2. Get the field to expand and an optional alias.
+    Field arrayField = expand.getField();
+    RexInputRef arrayFieldRex = (RexInputRef) rexVisitor.analyze(arrayField, context);
+    String alias = expand.getAlias();
+
+    // 3. Capture the outer row in a CorrelationId
+    Holder<RexCorrelVariable> correlVariable = Holder.empty();
+    relBuilder.variable(correlVariable::set);
+
+    // 4. Push a copy of the original table to the RelBuilder stack as right
+    // side of the correlate (join).
+    relBuilder.push(relBuilder.peek());
+    RexNode correlArrayField =
+        relBuilder.field(
+            context.rexBuilder.makeCorrel(relBuilder.peek().getRowType(), correlVariable.get().id),
+            arrayFieldRex.getIndex());
+
+    // 5. Filter rows where the array field is the same as the left side
+    // TODO: This is not a standard way to use correlate and uncollect together.
+    //  A filter should not be necessary. Correct it in the future.
+    RexNode filterCondition = relBuilder.equals(correlArrayField, arrayFieldRex);
+    relBuilder.filter(filterCondition);
+
+    // 6. Project only the array field for the uncollect operation
+    relBuilder.project(List.of(correlArrayField), List.of(arrayField.getField().toString()));
+
+    // 7. Expand the array field using uncollect
+    relBuilder.uncollect(List.of(), false);
+
+    // 8. Perform a nested-loop join (correlate) between the original table and the expanded
+    // array field.
+    // The last parameter has to refer to the array to be expanded on the left side. It will
+    // be used by the right side to correlate with the left side.
+    relBuilder.correlate(JoinRelType.INNER, correlVariable.get().id, List.of(arrayFieldRex));
+
+    // 8. Remove the original array field from the output.
+    // TODO: RFC: should we keep the original array field when alias is present?
+    relBuilder.projectExcept(arrayFieldRex);
+    if (alias != null) {
+      // Sub-nested fields cannot be removed after renaming the nested field.
+      tryToRemoveNestedFields(context);
+      RexInputRef expandedField = relBuilder.field(arrayField.getField().toString());
+      List<String> names = new ArrayList<>(relBuilder.peek().getRowType().getFieldNames());
+      names.set(expandedField.getIndex(), alias);
+      relBuilder.rename(names);
+    }
+    return relBuilder.peek();
   }
 }
