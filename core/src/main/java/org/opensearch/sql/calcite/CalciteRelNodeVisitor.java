@@ -12,6 +12,10 @@ import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_DESC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME;
+import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME_MAIN;
+import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME_SUBSEARCH;
+import static org.opensearch.sql.calcite.utils.PlanUtils.getRelation;
+import static org.opensearch.sql.calcite.utils.PlanUtils.transformPlanToAttachChild;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -57,9 +61,35 @@ import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFrame;
 import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
-import org.opensearch.sql.ast.tree.*;
+import org.opensearch.sql.ast.tree.AD;
+import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.AppendCol;
+import org.opensearch.sql.ast.tree.CloseCursor;
+import org.opensearch.sql.ast.tree.Dedupe;
+import org.opensearch.sql.ast.tree.Eval;
+import org.opensearch.sql.ast.tree.Expand;
+import org.opensearch.sql.ast.tree.FetchCursor;
+import org.opensearch.sql.ast.tree.FillNull;
+import org.opensearch.sql.ast.tree.Filter;
+import org.opensearch.sql.ast.tree.Head;
+import org.opensearch.sql.ast.tree.Join;
+import org.opensearch.sql.ast.tree.Kmeans;
+import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.Lookup.OutputStrategy;
+import org.opensearch.sql.ast.tree.ML;
+import org.opensearch.sql.ast.tree.Paginate;
+import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Project;
+import org.opensearch.sql.ast.tree.RareTopN;
+import org.opensearch.sql.ast.tree.Relation;
+import org.opensearch.sql.ast.tree.Rename;
+import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.ast.tree.SubqueryAlias;
+import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
@@ -285,15 +315,29 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<RexNode> newFields =
         groupCandidates.stream()
             .map(
-                group ->
-                    PPLFuncImpTable.INSTANCE.resolve(
+                group -> {
+                  RexNode innerRex =
+                      PPLFuncImpTable.INSTANCE.resolve(
+                          context.rexBuilder,
+                          ParseUtils.BUILTIN_FUNCTION_MAP.get(parseMethod),
+                          sourceField,
+                          context.rexBuilder.makeLiteral(
+                              pattern,
+                              context
+                                  .rexBuilder
+                                  .getTypeFactory()
+                                  .createSqlType(SqlTypeName.VARCHAR),
+                              true));
+                  if (ParseMethod.GROK.equals(parseMethod)) {
+                    return PPLFuncImpTable.INSTANCE.resolve(
                         context.rexBuilder,
-                        ParseUtils.BUILTIN_FUNCTION_MAP.get(parseMethod),
-                        sourceField,
-                        context.rexBuilder.makeLiteral(
-                            pattern,
-                            context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
-                            true)))
+                        BuiltinFunctionName.INTERNAL_ITEM,
+                        innerRex,
+                        context.rexBuilder.makeLiteral(group));
+                  } else {
+                    return innerRex;
+                  }
+                })
             .toList();
     projectPlusOverriding(newFields, groupCandidates, context);
     return context.relBuilder.peek();
@@ -720,6 +764,117 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
     context.relBuilder.project(projects);
     return context.relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitAppendCol(AppendCol node, CalcitePlanContext context) {
+    // 1. resolve main plan
+    visitChildren(node, context);
+    // 2. add row_number() column to main
+    RexNode mainRowNumber =
+        PlanUtils.makeOver(
+            context,
+            BuiltinFunctionName.ROW_NUMBER,
+            null,
+            List.of(),
+            List.of(),
+            List.of(),
+            WindowFrame.toCurrentRow());
+    context.relBuilder.projectPlus(
+        context.relBuilder.alias(mainRowNumber, ROW_NUMBER_COLUMN_NAME_MAIN));
+
+    // 3. build subsearch tree (attach relation to subsearch)
+    UnresolvedPlan relation = getRelation(node);
+    transformPlanToAttachChild(node.getSubSearch(), relation);
+    // 4. resolve subsearch plan
+    node.getSubSearch().accept(this, context);
+    // 5. add row_number() column to subsearch
+    RexNode subsearchRowNumber =
+        PlanUtils.makeOver(
+            context,
+            BuiltinFunctionName.ROW_NUMBER,
+            null,
+            List.of(),
+            List.of(),
+            List.of(),
+            WindowFrame.toCurrentRow());
+    context.relBuilder.projectPlus(
+        context.relBuilder.alias(subsearchRowNumber, ROW_NUMBER_COLUMN_NAME_SUBSEARCH));
+
+    List<String> subsearchFields = context.relBuilder.peek().getRowType().getFieldNames();
+    List<String> mainFields = context.relBuilder.peek(1).getRowType().getFieldNames();
+    if (!node.isOverride()) {
+      // 6. if override = false, drop all the duplicated columns in subsearch before join
+      List<String> subsearchProjectList =
+          subsearchFields.stream().filter(r -> !mainFields.contains(r)).toList();
+      context.relBuilder.project(context.relBuilder.fields(subsearchProjectList));
+    }
+
+    // 7. join with condition `_row_number_main_ = _row_number_subsearch_`
+    RexNode joinCondition =
+        context.relBuilder.equals(
+            context.relBuilder.field(2, 0, ROW_NUMBER_COLUMN_NAME_MAIN),
+            context.relBuilder.field(2, 1, ROW_NUMBER_COLUMN_NAME_SUBSEARCH));
+    context.relBuilder.join(
+        JoinAndLookupUtils.translateJoinType(Join.JoinType.FULL), joinCondition);
+
+    if (!node.isOverride()) {
+      // 8. if override = false, drop both _row_number_ columns
+      context.relBuilder.projectExcept(
+          List.of(
+              context.relBuilder.field(ROW_NUMBER_COLUMN_NAME_MAIN),
+              context.relBuilder.field(ROW_NUMBER_COLUMN_NAME_SUBSEARCH)));
+      return context.relBuilder.peek();
+    } else {
+      // 9. if override = true, override the duplicated columns in main by subsearch values
+      // when join condition matched.
+      List<RexNode> finalProjections = new ArrayList<>();
+      List<String> finalFieldNames = new ArrayList<>();
+      int mainFieldCount = mainFields.size();
+      Set<String> duplicatedFields =
+          mainFields.stream().filter(subsearchFields::contains).collect(Collectors.toSet());
+      RexNode caseCondition =
+          context.relBuilder.equals(
+              context.relBuilder.field(ROW_NUMBER_COLUMN_NAME_MAIN),
+              context.relBuilder.field(ROW_NUMBER_COLUMN_NAME_SUBSEARCH));
+      for (int mainFieldIndex = 0; mainFieldIndex < mainFields.size(); mainFieldIndex++) {
+        String mainFieldName = mainFields.get(mainFieldIndex);
+        if (mainFieldName.equals(ROW_NUMBER_COLUMN_NAME_MAIN)) {
+          continue;
+        }
+        finalFieldNames.add(mainFieldName);
+        if (duplicatedFields.contains(mainFieldName)) {
+          int subsearchFieldIndex = mainFieldCount + subsearchFields.indexOf(mainFieldName);
+          // build case("_row_number_main_" = "_row_number_subsearch_", subsearchField, mainField)
+          // using subsearch value when join condition matched, otherwise main value
+          RexNode caseExpr =
+              context.relBuilder.call(
+                  SqlStdOperatorTable.CASE,
+                  caseCondition,
+                  context.relBuilder.field(subsearchFieldIndex),
+                  context.relBuilder.field(mainFieldIndex));
+          finalProjections.add(caseExpr);
+        } else {
+          // keep main fields for non duplicated fields
+          finalProjections.add(context.relBuilder.field(mainFieldIndex));
+        }
+      }
+      // add non duplicated fields of subsearch
+      for (int subsearchFieldIndex = 0;
+          subsearchFieldIndex < subsearchFields.size();
+          subsearchFieldIndex++) {
+        String subsearchFieldName = subsearchFields.get(subsearchFieldIndex);
+        if (subsearchFieldName.equals(ROW_NUMBER_COLUMN_NAME_SUBSEARCH)) {
+          continue;
+        }
+        if (!duplicatedFields.contains(subsearchFieldName)) {
+          finalProjections.add(context.relBuilder.field(mainFieldCount + subsearchFieldIndex));
+          finalFieldNames.add(subsearchFieldName);
+        }
+      }
+      context.relBuilder.project(finalProjections, finalFieldNames);
+      return context.relBuilder.peek();
+    }
   }
 
   /*

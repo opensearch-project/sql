@@ -70,6 +70,7 @@ commands
    | mlCommand
    | fillnullCommand
    | trendlineCommand
+   | appendcolCommand
    | expandCommand
    ;
 
@@ -242,6 +243,10 @@ trendlineType
 expandCommand
     : EXPAND fieldExpression (AS alias = qualifiedName)?
     ;
+
+appendcolCommand
+   : APPENDCOL (OVERRIDE EQUAL override = booleanLiteral)? LT_SQR_PRTHS commands (PIPE commands)* RT_SQR_PRTHS
+   ;
 
 kmeansCommand
    : KMEANS (kmeansParameter)*
@@ -425,6 +430,8 @@ percentileApproxFunction
 numericLiteral
     : integerLiteral
     | decimalLiteral
+    | doubleLiteral
+    | floatLiteral
     ;
 
 // expressions
@@ -645,6 +652,8 @@ relevanceFieldAndWeight
 relevanceFieldWeight
    : integerLiteral
    | decimalLiteral
+   | doubleLiteral
+   | floatLiteral
    ;
 
 relevanceField
@@ -915,6 +924,8 @@ literalValue
    | stringLiteral
    | integerLiteral
    | decimalLiteral
+   | doubleLiteral
+   | floatLiteral
    | booleanLiteral
    | datetimeLiteral //#datetime
    ;
@@ -934,6 +945,14 @@ integerLiteral
 
 decimalLiteral
    : (PLUS | MINUS)? DECIMAL_LITERAL
+   ;
+
+doubleLiteral
+   : (PLUS | MINUS)? DOUBLE_LITERAL
+   ;
+
+floatLiteral
+   : (PLUS | MINUS)? FLOAT_LITERAL
    ;
 
 booleanLiteral
@@ -1076,6 +1095,7 @@ keywordsCanBeId
    | INTERVAL
    | PLUS
    | MINUS
+   | OVERRIDE
    // SORT FIELD KEYWORDS
    | AUTO
    | STR

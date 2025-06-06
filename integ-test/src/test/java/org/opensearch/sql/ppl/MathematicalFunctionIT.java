@@ -40,7 +40,11 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   public void testCeil() throws IOException {
     JSONObject result =
         executeQuery(String.format("source=%s | eval f = ceil(age) | fields f", TEST_INDEX_BANK));
-    verifySchema(result, schema("f", null, "bigint"));
+    if (isCalciteEnabled()) {
+      verifySchema(result, schema("f", null, "int"));
+    } else {
+      verifySchema(result, schema("f", null, "bigint"));
+    }
     verifyDataRows(result, rows(32), rows(36), rows(28), rows(33), rows(36), rows(39), rows(34));
   }
 
@@ -325,13 +329,21 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format("source=%s | eval f = truncate(age, 1) | fields f", TEST_INDEX_BANK));
-    verifySchema(result, schema("f", null, "bigint"));
+    if (isCalciteEnabled()) {
+      verifySchema(result, schema("f", null, "int"));
+    } else {
+      verifySchema(result, schema("f", null, "bigint"));
+    }
     verifyDataRows(result, rows(32), rows(36), rows(28), rows(33), rows(36), rows(39), rows(34));
 
     result =
         executeQuery(
             String.format("source=%s | eval f = truncate(age, -1) | fields f", TEST_INDEX_BANK));
-    verifySchema(result, schema("f", null, "bigint"));
+    if (isCalciteEnabled()) {
+      verifySchema(result, schema("f", null, "int"));
+    } else {
+      verifySchema(result, schema("f", null, "bigint"));
+    }
     verifyDataRows(result, rows(30), rows(30), rows(20), rows(30), rows(30), rows(30), rows(30));
   }
 
