@@ -242,7 +242,7 @@ public class CalcitePPLDedupIT extends CalcitePPLIntegTestCase {
         executeQuery(
             String.format(
                 """
-                source=%s | dedup 2 name, category
+                source=%s | dedup 2 name, category | fields name, category, id
                 """,
                 TEST_INDEX_DUPLICATION_NULLABLE));
     verifySchemaInOrder(
@@ -254,7 +254,7 @@ public class CalcitePPLDedupIT extends CalcitePPLIntegTestCase {
         executeQuery(
             String.format(
                 """
-                source=%s | dedup 2 category, name
+                source=%s | dedup 2 category, name | fields name, category, id
                 """,
                 TEST_INDEX_DUPLICATION_NULLABLE));
     verifySchemaInOrder(
@@ -266,7 +266,7 @@ public class CalcitePPLDedupIT extends CalcitePPLIntegTestCase {
         executeQuery(
             String.format(
                 """
-                source=%s | dedup 2 name, category KEEPEMPTY=true
+                source=%s | dedup 2 name, category KEEPEMPTY=true | fields name, category, id
                 """,
                 TEST_INDEX_DUPLICATION_NULLABLE));
     verifySchemaInOrder(
@@ -278,7 +278,7 @@ public class CalcitePPLDedupIT extends CalcitePPLIntegTestCase {
         executeQuery(
             String.format(
                 """
-                source=%s | dedup 2 category, name KEEPEMPTY=true
+                source=%s | dedup 2 category, name KEEPEMPTY=true | fields name, category, id
                 """,
                 TEST_INDEX_DUPLICATION_NULLABLE));
     verifySchemaInOrder(
