@@ -50,6 +50,7 @@ import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
+import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
@@ -621,6 +622,12 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
             v -> currentEnv.define(new Symbol(Namespace.FIELD_NAME, v.getKey()), v.getValue()));
 
     return new LogicalML(child, node.getArguments());
+  }
+
+  @Override
+  public LogicalPlan visitExpand(Expand expand, AnalysisContext context) {
+    throw new UnsupportedOperationException(
+        "Expand is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
   }
 
   /** Build {@link LogicalTrendline} for Trendline command. */

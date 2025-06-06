@@ -840,44 +840,45 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // 1. Visit Children
     visitChildren(expand, context);
 
-    var relBuilder = context.relBuilder;
+    RelBuilder relBuilder = context.relBuilder;
 
     // 2. Get the field to expand
     Field arrayField = expand.getField();
-    // 3. Unnest the array field
-    // Analyze the array field to get its RexNode
     RexInputRef arrayFieldRex = (RexInputRef) rexVisitor.analyze(arrayField, context);
-    // Push the original table to the RelBuilder stack
-    // No alias is provided in the expand command, so we remove the original array field,
-    // then replace it with the unnest result.
-    //    relBuilder.projectExcept(arrayFieldRex);
 
-    // Capture the outer row in a CorrelationId
+    // 3. Capture the outer row in a CorrelationId
     Holder<RexCorrelVariable> correlVariable = Holder.empty();
     relBuilder.variable(correlVariable::set);
 
-    // Push a copy of the original table to the RelBuilder stack as right
-    // side of the join.
+    // 4. Push a copy of the original table to the RelBuilder stack as right
+    // side of the correlate (join).
     relBuilder.push(relBuilder.peek());
     RexNode correlArrayField =
         relBuilder.field(
             context.rexBuilder.makeCorrel(relBuilder.peek().getRowType(), correlVariable.get().id),
             arrayFieldRex.getIndex());
 
-    // Filter rows where the array field is the same as the left side
+    // 5. Filter rows where the array field is the same as the left side
     // TODO: This is not a standard way to use correlate and uncollect together.
-    // Correct it in the future.
+    // A filter should not be necessary. Correct it in the future.
     RexNode filterCondition = relBuilder.equals(correlArrayField, arrayFieldRex);
     relBuilder.filter(filterCondition);
+
+    // 6. Project only the array field for the uncollect operation
     relBuilder.project(List.of(correlArrayField), List.of(arrayField.getField().toString()));
 
-    // Alias is not supported in expand yet, we pass in an empty list
+    // 7. Expand the array field using uncollect
     relBuilder.uncollect(List.of(), false);
 
+    // 8. Perform a nested-loop join (correlate) between the original table and the expanded
+    // array field.
     // The last parameter has to refer to the array to be expanded on the left side. It will
     // be used by the right side to correlate with the left side.
     relBuilder.correlate(JoinRelType.INNER, correlVariable.get().id, List.of(arrayFieldRex));
 
+    // 8. Remove the original array field from the output. No alias is currently supported in the
+    // expand command, so it can be safely deleted. Its name is re-used for the expanded element.
+    relBuilder.projectExcept(arrayFieldRex);
     return relBuilder.peek();
   }
 }

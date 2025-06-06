@@ -30,7 +30,7 @@ public class Expand extends UnresolvedPlan {
 
   @Override
   public List<UnresolvedPlan> getChild() {
-    return ImmutableList.of(child);
+    return this.child == null ? ImmutableList.of() : ImmutableList.of(this.child);
   }
 
   @Override
