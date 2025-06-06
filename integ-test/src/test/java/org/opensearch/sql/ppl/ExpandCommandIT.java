@@ -7,6 +7,7 @@
 
 package org.opensearch.sql.ppl;
 
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ARRAY;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
@@ -21,10 +22,11 @@ public class ExpandCommandIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     loadIndex(Index.NESTED_SIMPLE);
+    loadIndex(Index.ARRAY);
   }
 
   @Test
-  public void testExpand() throws Exception {
+  public void testExpandOnNested() throws Exception {
     JSONObject response =
         executeQuery(String.format("source=%s | expand address", TEST_INDEX_NESTED_SIMPLE));
     verifySchema(
@@ -32,8 +34,17 @@ public class ExpandCommandIT extends PPLIntegTestCase {
         schema("name", "string"),
         schema("age", "integer"),
         schema("id", "integer"),
-        schema("address", "object"));
+        schema("address", "struct"));
     verifyNumOfRows(response, 11);
+  }
+
+  @Ignore
+  @Test
+  public void testExpandOnArray() throws Exception {
+    JSONObject response =
+        executeQuery(String.format("source=%s | expand strings", TEST_INDEX_ARRAY));
+    verifySchema(response, schema("numbers", "array"), schema("strings", "string"));
+    verifyNumOfRows(response, 5);
   }
 
   // TODO: double check if expand with alias is supported
@@ -48,7 +59,7 @@ public class ExpandCommandIT extends PPLIntegTestCase {
         schema("age", "integer"),
         schema("id", "integer"),
         schema("address", "array"),
-        schema("addr", "object"));
+        schema("addr", "struct"));
     verifyNumOfRows(response, 11);
   }
 }

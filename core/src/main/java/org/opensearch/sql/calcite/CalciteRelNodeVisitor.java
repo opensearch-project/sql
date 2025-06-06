@@ -844,12 +844,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // 2. Get the field to expand
     Field arrayField = expand.getField();
-
     // 3. Unnest the array field
     // Analyze the array field to get its RexNode
     RexInputRef arrayFieldRex = (RexInputRef) rexVisitor.analyze(arrayField, context);
     // Push the original table to the RelBuilder stack
-    RelNode originalTable = relBuilder.peek();
     // No alias is provided in the expand command, so we remove the original array field,
     // then replace it with the unnest result.
     //    relBuilder.projectExcept(arrayFieldRex);
@@ -858,24 +856,27 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     Holder<RexCorrelVariable> correlVariable = Holder.empty();
     relBuilder.variable(correlVariable::set);
 
-    relBuilder.push(originalTable);
-
+    // Push a copy of the original table to the RelBuilder stack as right
+    // side of the join.
+    relBuilder.push(relBuilder.peek());
     RexNode correlArrayField =
         relBuilder.field(
-            context.rexBuilder.makeCorrel(originalTable.getRowType(), correlVariable.get().id),
+            context.rexBuilder.makeCorrel(relBuilder.peek().getRowType(), correlVariable.get().id),
             arrayFieldRex.getIndex());
 
-    relBuilder.project(
-        List.of(correlArrayField),
-        List.of(arrayField.getField().toString()),
-        false,
-        List.of(correlVariable.get().id));
+    // Filter rows where the array field is the same as the left side
+    // TODO: This is not a standard way to use correlate and uncollect together.
+    // Correct it in the future.
+    RexNode filterCondition = relBuilder.equals(correlArrayField, arrayFieldRex);
+    relBuilder.filter(filterCondition);
+    relBuilder.project(List.of(correlArrayField), List.of(arrayField.getField().toString()));
 
     // Alias is not supported in expand yet, we pass in an empty list
     relBuilder.uncollect(List.of(), false);
 
-    //    ImmutableBitSet requiredFields = originalTable.getRowType().getFieldList()
-    relBuilder.correlate(JoinRelType.INNER, correlVariable.get().id, arrayFieldRex);
+    // The last parameter has to refer to the array to be expanded on the left side. It will
+    // be used by the right side to correlate with the left side.
+    relBuilder.correlate(JoinRelType.INNER, correlVariable.get().id, List.of(arrayFieldRex));
 
     return relBuilder.peek();
   }

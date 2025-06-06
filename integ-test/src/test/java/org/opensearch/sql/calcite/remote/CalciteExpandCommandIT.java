@@ -9,7 +9,7 @@ package org.opensearch.sql.calcite.remote;
 
 import org.opensearch.sql.ppl.ExpandCommandIT;
 
-public class CalciteExpandIT extends ExpandCommandIT {
+public class CalciteExpandCommandIT extends ExpandCommandIT {
   @Override
   public void init() throws Exception {
     super.init();
