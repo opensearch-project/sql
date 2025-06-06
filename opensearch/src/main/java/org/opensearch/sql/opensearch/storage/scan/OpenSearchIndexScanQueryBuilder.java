@@ -13,6 +13,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -24,6 +26,7 @@ import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.function.OpenSearchFunctions;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder;
+import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder.ScriptQueryUnSupportedException;
 import org.opensearch.sql.opensearch.storage.script.sort.SortQueryBuilder;
 import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
 import org.opensearch.sql.planner.logical.LogicalFilter;
@@ -41,6 +44,7 @@ import org.opensearch.sql.planner.logical.LogicalSort;
 @VisibleForTesting
 @EqualsAndHashCode
 class OpenSearchIndexScanQueryBuilder implements PushDownQueryBuilder {
+  private static final Logger LOG = LogManager.getLogger(OpenSearchIndexScanQueryBuilder.class);
 
   final OpenSearchRequestBuilder requestBuilder;
 
@@ -52,10 +56,23 @@ class OpenSearchIndexScanQueryBuilder implements PushDownQueryBuilder {
   public boolean pushDownFilter(LogicalFilter filter) {
     FilterQueryBuilder queryBuilder = new FilterQueryBuilder(new DefaultExpressionSerializer());
     Expression queryCondition = filter.getCondition();
-    QueryBuilder query = queryBuilder.build(queryCondition);
-    requestBuilder.pushDownFilter(query);
-    requestBuilder.pushDownTrackedScore(trackScoresFromOpenSearchFunction(queryCondition));
-    return true;
+    try {
+      QueryBuilder query = queryBuilder.build(queryCondition);
+      requestBuilder.pushDownFilter(query);
+      requestBuilder.pushDownTrackedScore(trackScoresFromOpenSearchFunction(queryCondition));
+      return true;
+    } catch (ScriptQueryUnSupportedException e) {
+      // Don't catch SyntaxCheckException, which should fall back to the old SQL engine.
+      // See test {@link NestedIT::test_nested_where_with_and_conditional}, only the old SQL engine
+      // can cover this case.
+      // It will fail if catching SyntaxCheckException here and keep using v2 engine.
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Cannot pushdown the filter condition: {}", queryCondition, e);
+      } else {
+        LOG.info("Cannot pushdown the filter condition: {}, ", queryCondition);
+      }
+      return false;
+    }
   }
 
   @Override

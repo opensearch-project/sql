@@ -1,0 +1,20 @@
+"Push down filter with struct field":
+  - skip:
+      features:
+        - headers
+  - do:
+      bulk:
+        index: test
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"log": {"url": {"message": "/e2e/h/zap"} } }'
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=test | where isNotNull(log)'
+  - match: {"total": 1}
+  - match: {"schema": [{"name": "log", "type": "struct"}]}
+  - match: {"datarows": [[{"url": {"message": "/e2e/h/zap"}}]]}
