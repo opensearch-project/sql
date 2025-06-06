@@ -223,7 +223,10 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testTrendlinePushDownExplain() throws Exception {
-    String expected = loadFromFile("expectedOutput/ppl/explain_trendline_push.json");
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_trendline_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_trendline_push.json");
 
     assertJsonEqualsIgnoreId(
         expected,
@@ -236,7 +239,10 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testTrendlineWithSortPushDownExplain() throws Exception {
-    String expected = loadFromFile("expectedOutput/ppl/explain_trendline_sort_push.json");
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_trendline_sort_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_trendline_sort_push.json");
 
     assertJsonEqualsIgnoreId(
         expected,
