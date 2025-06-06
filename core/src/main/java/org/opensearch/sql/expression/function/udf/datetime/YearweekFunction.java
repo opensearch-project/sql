@@ -16,13 +16,17 @@ import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 /**
  * <code>yearweek(date[, mode])</code> returns the year and week for the given date as an integer
@@ -44,6 +48,16 @@ public class YearweekFunction extends ImplementorUDF {
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
     return PPLReturnTypes.INTEGER_FORCE_NULLABLE;
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+    return UDFOperandMetadata.wrap(
+        (CompositeOperandTypeChecker)
+            OperandTypes.DATETIME
+                .or(OperandTypes.STRING)
+                .or(OperandTypes.STRING_INTEGER)
+                .or(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER)));
   }
 
   public static class YearweekImplementor implements NotNullImplementor {
