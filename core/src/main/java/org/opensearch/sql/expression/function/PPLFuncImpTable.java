@@ -5,9 +5,176 @@
 
 package org.opensearch.sql.expression.function;
 
+import static org.apache.calcite.sql.SqlJsonConstructorNullClause.NULL_ON_NULL;
 import static org.apache.calcite.sql.type.SqlTypeFamily.IGNORE;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getLegacyTypeName;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.*;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ABS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ACOS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ADD;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ADDDATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ADDTIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.AND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ASCII;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ASIN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ATAN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ATAN2;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CBRT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CEIL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CEILING;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CIDRMATCH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.COALESCE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CONCAT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CONCAT_WS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CONV;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CONVERT_TZ;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.COS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.COT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CRC32;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURDATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURRENT_DATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURRENT_TIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURRENT_TIMESTAMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURTIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DATEDIFF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DATETIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DATE_ADD;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DATE_FORMAT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DATE_SUB;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAYNAME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAYOFMONTH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAYOFWEEK;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAYOFYEAR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY_OF_MONTH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY_OF_WEEK;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY_OF_YEAR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DEGREES;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.E;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.EQUAL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXTRACT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.FLOOR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.FROM_DAYS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.FROM_UNIXTIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.GET_FORMAT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.GREATER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.GTE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.HOUR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.HOUR_OF_DAY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.IF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.IFNULL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_GROK;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_ITEM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_EXTRACT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_2;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_BLANK;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_EMPTY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NOT_NULL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NULL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_PRESENT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_APPEND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_ARRAY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_ARRAY_LENGTH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_DELETE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_EXTEND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_EXTRACT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_KEYS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_OBJECT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_SET;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_VALID;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LAST_DAY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LEFT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LENGTH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LESS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LIKE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOCALTIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOCALTIMESTAMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOCATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOG;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOG10;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOG2;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOWER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LTE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LTRIM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAKEDATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAKETIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MD5;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MICROSECOND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE_OF_DAY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE_OF_HOUR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MOD;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MODULUS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MODULUSFUNCTION;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTHNAME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTH_OF_YEAR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOTEQUAL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOW;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.NULLIF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.OR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.PERIOD_ADD;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.PERIOD_DIFF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.PI;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.POSITION;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.POW;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.POWER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.QUARTER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.RADIANS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.RAND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.REGEXP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.REPLACE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.REVERSE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.RIGHT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ROUND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.RTRIM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SECOND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SECOND_OF_MINUTE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SEC_TO_TIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SHA1;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SHA2;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SIGN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SIN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SPAN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SQRT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.STRCMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.STR_TO_DATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBDATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBSTR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBSTRING;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBTIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBTRACT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SYSDATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMEDIFF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTAMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTAMPADD;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTAMPDIFF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME_FORMAT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME_TO_SEC;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TO_DAYS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TO_SECONDS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TRIM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TRUNCATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TYPEOF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.UNIX_TIMESTAMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.UPPER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.UTC_DATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.UTC_TIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.UTC_TIMESTAMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEK;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEKDAY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEKOFYEAR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEK_OF_YEAR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.XOR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.YEAR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.YEARWEEK;
 
 import com.google.common.collect.ImmutableMap;
 import java.math.BigDecimal;
@@ -21,6 +188,7 @@ import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
@@ -497,6 +665,31 @@ public class PPLFuncImpTable {
       registerOperator(WEEK, PPLBuiltinOperators.WEEK);
       registerOperator(WEEK_OF_YEAR, PPLBuiltinOperators.WEEK);
       registerOperator(WEEKOFYEAR, PPLBuiltinOperators.WEEK);
+
+      // Register Json function
+      register(
+          JSON_ARRAY,
+          ((builder, args) ->
+              builder.makeCall(
+                  SqlStdOperatorTable.JSON_ARRAY,
+                  Stream.concat(Stream.of(builder.makeFlag(NULL_ON_NULL)), Arrays.stream(args))
+                      .toArray(RexNode[]::new))));
+      register(
+          JSON_OBJECT,
+          ((builder, args) ->
+              builder.makeCall(
+                  SqlStdOperatorTable.JSON_OBJECT,
+                  Stream.concat(Stream.of(builder.makeFlag(NULL_ON_NULL)), Arrays.stream(args))
+                      .toArray(RexNode[]::new))));
+      registerOperator(JSON, PPLBuiltinOperators.JSON);
+      registerOperator(JSON_ARRAY_LENGTH, PPLBuiltinOperators.JSON_ARRAY_LENGTH);
+      registerOperator(JSON_EXTRACT, PPLBuiltinOperators.JSON_EXTRACT);
+      registerOperator(JSON_KEYS, PPLBuiltinOperators.JSON_KEYS);
+      registerOperator(JSON_VALID, SqlStdOperatorTable.IS_JSON_VALUE);
+      registerOperator(JSON_SET, PPLBuiltinOperators.JSON_SET);
+      registerOperator(JSON_DELETE, PPLBuiltinOperators.JSON_DELETE);
+      registerOperator(JSON_APPEND, PPLBuiltinOperators.JSON_APPEND);
+      registerOperator(JSON_EXTEND, PPLBuiltinOperators.JSON_EXTEND);
 
       // Register implementation.
       // Note, make the implementation an individual class if too complex.
