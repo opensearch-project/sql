@@ -125,7 +125,7 @@ Version: 3.1.0
 
 Limitation: Only works when plugins.calcite.enabled=true
 
-Usage: `json_array_length(value)` parse the string to json array and return size, if can't be parsed, return null
+Usage: `json_array_length(value)` parse the string to json array and return size,, null is returned in case of any other valid JSON string, null or an invalid JSON.
 
 Argument type: value: A JSON STRING
 
