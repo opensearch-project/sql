@@ -192,7 +192,7 @@ public class CalcitePPLDedupIT extends CalcitePPLIntegTestCase {
   public void testReorderDedupFieldsShouldNotAffectResult() {
     JSONObject actual1 =
         executeQuery(
-                "source=" + TEST_INDEX_DUPLICATION_NULLABLE + " | dedup 2 name, category\n");
+                "source=" + TEST_INDEX_DUPLICATION_NULLABLE + " | dedup 2 name, category | fields name, category, id\n");
     verifySchemaInOrder(
         actual1,
         schema("name", null, "string"),
@@ -200,7 +200,7 @@ public class CalcitePPLDedupIT extends CalcitePPLIntegTestCase {
         schema("id", null, "integer"));
     JSONObject actual2 =
         executeQuery(
-                "source=" + TEST_INDEX_DUPLICATION_NULLABLE + " | dedup 2 category, name\n");
+                "source=" + TEST_INDEX_DUPLICATION_NULLABLE + " | dedup 2 category, name | fields name, category, id\n");
     verifySchemaInOrder(
         actual2,
         schema("name", null, "string"),
@@ -208,7 +208,7 @@ public class CalcitePPLDedupIT extends CalcitePPLIntegTestCase {
         schema("id", null, "integer"));
     JSONObject actual3 =
         executeQuery(
-                "source=" + TEST_INDEX_DUPLICATION_NULLABLE + " | dedup 2 name, category KEEPEMPTY=true\n");
+                "source=" + TEST_INDEX_DUPLICATION_NULLABLE + " | dedup 2 name, category KEEPEMPTY=true | fields name, category, id\n");
     verifySchemaInOrder(
         actual3,
         schema("name", null, "string"),
@@ -216,7 +216,7 @@ public class CalcitePPLDedupIT extends CalcitePPLIntegTestCase {
         schema("id", null, "integer"));
     JSONObject actual4 =
         executeQuery(
-                "source=" + TEST_INDEX_DUPLICATION_NULLABLE + " | dedup 2 category, name KEEPEMPTY=true\n");
+                "source=" + TEST_INDEX_DUPLICATION_NULLABLE + " | dedup 2 category, name KEEPEMPTY=true | fields name, category, id\n");
     verifySchemaInOrder(
         actual4,
         schema("name", null, "string"),
