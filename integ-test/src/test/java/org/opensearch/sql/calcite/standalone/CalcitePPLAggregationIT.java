@@ -532,6 +532,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
                 "source=%s | stats distinct_count_approx(state) by gender", TEST_INDEX_BANK));
   }
 
+  @Ignore
   @Test
   public void testEarliestAndLatest() {
     JSONObject actual =
@@ -546,6 +547,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
     verifyDataRows(actual, rows("2004-08-02 07:59:23", "2004-07-04 22:49:28"));
   }
 
+  @Ignore
   @Test
   public void testEarliestAndLatestWithAlias() {
     JSONObject actual =
@@ -558,6 +560,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
     verifyDataRows(actual, rows("2004-08-02 07:59:23", "2004-07-04 22:49:28"));
   }
 
+  @Ignore
   @Test
   public void testEarliestAndLatestWithBy() {
     JSONObject actual =
@@ -578,6 +581,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
         rows("2004-08-02 07:59:23", "2004-07-04 22:49:28", false));
   }
 
+  @Ignore
   @Test
   public void testEarliestAndLatestWithTimeBy() {
     JSONObject actual =

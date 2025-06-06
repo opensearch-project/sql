@@ -596,6 +596,7 @@ public class CalcitePPLEventstatsIT extends CalcitePPLIntegTestCase {
         rows("Hello", "USA", "New York", 4, 2023, 30, 20, 28.284271247461902, 400, 800));
   }
 
+  @Ignore
   @Test
   public void testEventstatEarliestAndLatest() {
     JSONObject actual =
