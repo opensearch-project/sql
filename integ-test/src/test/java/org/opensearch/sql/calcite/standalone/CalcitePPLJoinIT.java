@@ -250,7 +250,8 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
         executeQuery(
             String.format(
                 "source = %s | where country = 'Canada' OR country = 'England' | left semi join"
-                    + " left=a, right=b ON a.name = b.name %s | sort a.age",
+                + " left=a, right=b ON a.name = b.name %s | sort a.age | fields name, country,"
+                + " state, month, year, age",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
     verifySchema(
         actual,

@@ -45,7 +45,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                " source = %s | where id in [ source = %s| where country = 'USA'| fields id]",
+                " source = %s | where id in [ source = %s| where country = 'USA'| fields id] | fields name, country, occupation, id, salary",
                 TEST_INDEX_WORKER, TEST_INDEX_WORKER));
     verifySchema(
         result,
@@ -233,7 +233,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
                     "      ]\n" +
                     "    | fields uid\n" +
                     "  ]\n" +
-                    "| sort  - salary\n",
+                    "| sort  - salary | fields name, country, occupation, id, salary\n",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION, TEST_INDEX_OCCUPATION));
     verifySchema(
         result,
