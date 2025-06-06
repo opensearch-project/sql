@@ -201,11 +201,11 @@ class OpenSearchIndexTest {
     when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
     LogicalPlan plan = index.createScanBuilder();
     Integer maxResultWindow = index.getMaxResultWindow();
-    final var requestBuilder = new OpenSearchRequestBuilder(exprValueFactory, settings);
+    final var requestBuilder =
+        new OpenSearchRequestBuilder(exprValueFactory, maxResultWindow, settings);
     assertEquals(
         new OpenSearchIndexScan(
-            client,
-            requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client, true)),
+            client, requestBuilder.build(INDEX_NAME, SCROLL_TIMEOUT, client, true)),
         index.implement(index.optimize(plan)));
   }
 
@@ -214,11 +214,11 @@ class OpenSearchIndexTest {
     when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
     LogicalPlan plan = index.createScanBuilder();
     Integer maxResultWindow = index.getMaxResultWindow();
-    final var requestBuilder = new OpenSearchRequestBuilder(exprValueFactory, settings);
+    final var requestBuilder =
+        new OpenSearchRequestBuilder(exprValueFactory, maxResultWindow, settings);
     assertEquals(
         new OpenSearchIndexScan(
-            client,
-            requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client, true)),
+            client, requestBuilder.build(INDEX_NAME, SCROLL_TIMEOUT, client, true)),
         index.implement(plan));
   }
 
@@ -246,7 +246,8 @@ class OpenSearchIndexTest {
             include);
 
     Integer maxResultWindow = index.getMaxResultWindow();
-    final var requestBuilder = new OpenSearchRequestBuilder(exprValueFactory, settings);
+    final var requestBuilder =
+        new OpenSearchRequestBuilder(exprValueFactory, maxResultWindow, settings);
     assertEquals(
         PhysicalPlanDSL.project(
             PhysicalPlanDSL.dedupe(
@@ -256,8 +257,7 @@ class OpenSearchIndexTest {
                             PhysicalPlanDSL.rename(
                                 new OpenSearchIndexScan(
                                     client,
-                                    requestBuilder.build(
-                                        INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client, true)),
+                                    requestBuilder.build(INDEX_NAME, SCROLL_TIMEOUT, client, true)),
                                 mappings),
                             exclude),
                         newEvalField),

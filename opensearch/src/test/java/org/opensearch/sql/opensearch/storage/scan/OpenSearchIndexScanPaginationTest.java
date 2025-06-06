@@ -8,7 +8,6 @@ package org.opensearch.sql.opensearch.storage.scan;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
@@ -70,10 +69,9 @@ public class OpenSearchIndexScanPaginationTest {
   @Test
   void query_empty_result() {
     mockResponse(client);
-    var builder = new OpenSearchRequestBuilder(exprValueFactory, settings);
+    var builder = new OpenSearchRequestBuilder(exprValueFactory, MAX_RESULT_WINDOW, settings);
     try (var indexScan =
-        new OpenSearchIndexScan(
-            client, builder.build(INDEX_NAME, MAX_RESULT_WINDOW, SCROLL_TIMEOUT, client))) {
+        new OpenSearchIndexScan(client, builder.build(INDEX_NAME, SCROLL_TIMEOUT, client))) {
       indexScan.open();
       assertFalse(indexScan.hasNext());
     }
@@ -95,11 +93,10 @@ public class OpenSearchIndexScanPaginationTest {
     OpenSearchRequestBuilder builder = mock();
     OpenSearchRequest request = mock();
     OpenSearchResponse response = mock();
-    when(builder.build(any(), anyInt(), any(), any())).thenReturn(request);
+    when(builder.build(any(), any(), any())).thenReturn(request);
     when(client.search(any())).thenReturn(response);
     try (var indexScan =
-        new OpenSearchIndexScan(
-            client, builder.build(INDEX_NAME, MAX_RESULT_WINDOW, SCROLL_TIMEOUT, client))) {
+        new OpenSearchIndexScan(client, builder.build(INDEX_NAME, SCROLL_TIMEOUT, client))) {
       indexScan.open();
 
       when(request.hasAnotherBatch()).thenReturn(false);
