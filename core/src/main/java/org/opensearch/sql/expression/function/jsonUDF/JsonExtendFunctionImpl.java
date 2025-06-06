@@ -24,6 +24,7 @@ import org.apache.calcite.runtime.JsonFunctions;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 public class JsonExtendFunctionImpl extends ImplementorUDF {
   public JsonExtendFunctionImpl() {
@@ -33,6 +34,11 @@ public class JsonExtendFunctionImpl extends ImplementorUDF {
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
     return STRING_FORCE_NULLABLE;
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+    return null;
   }
 
   public static class JsonExtendImplementor implements NotNullImplementor {

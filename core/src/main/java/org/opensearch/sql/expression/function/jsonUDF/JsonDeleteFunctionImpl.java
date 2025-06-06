@@ -22,6 +22,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 public class JsonDeleteFunctionImpl extends ImplementorUDF {
   public JsonDeleteFunctionImpl() {
@@ -31,6 +32,11 @@ public class JsonDeleteFunctionImpl extends ImplementorUDF {
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
     return STRING_FORCE_NULLABLE;
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+    return null;
   }
 
   public static class JsonDeleteImplementor implements NotNullImplementor {
