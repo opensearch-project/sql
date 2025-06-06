@@ -28,7 +28,7 @@ Arithmetic expression is an expression formed by numeric literals and binary ari
 1. ``+``: Add.
 2. ``-``: Subtract.
 3. ``*``: Multiply.
-4. ``/``: Divide. For integers, the result is an integer with fractional part discarded.
+4. ``/``: Divide. For integers, the result is an integer with fractional part discarded. Returns NULL when dividing by zero.
 5. ``%``: Modulo. This can be used with integers only with remainder of the division as result.
 
 Precedence

@@ -24,16 +24,18 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.Expression;
-import org.opensearch.sql.expression.aggregation.AggregatorFunction;
-import org.opensearch.sql.expression.datetime.DateTimeFunction;
+import org.opensearch.sql.expression.aggregation.AggregatorFunctions;
+import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.datetime.IntervalClause;
-import org.opensearch.sql.expression.operator.arthmetic.ArithmeticFunction;
-import org.opensearch.sql.expression.operator.arthmetic.MathematicalFunction;
-import org.opensearch.sql.expression.operator.convert.TypeCastOperator;
-import org.opensearch.sql.expression.operator.predicate.BinaryPredicateOperator;
-import org.opensearch.sql.expression.operator.predicate.UnaryPredicateOperator;
+import org.opensearch.sql.expression.ip.IPFunctions;
+import org.opensearch.sql.expression.json.JsonFunctions;
+import org.opensearch.sql.expression.operator.arthmetic.ArithmeticFunctions;
+import org.opensearch.sql.expression.operator.arthmetic.MathematicalFunctions;
+import org.opensearch.sql.expression.operator.convert.TypeCastOperators;
+import org.opensearch.sql.expression.operator.predicate.BinaryPredicateOperators;
+import org.opensearch.sql.expression.operator.predicate.UnaryPredicateOperators;
 import org.opensearch.sql.expression.system.SystemFunctions;
-import org.opensearch.sql.expression.text.TextFunction;
+import org.opensearch.sql.expression.text.TextFunctions;
 import org.opensearch.sql.expression.window.WindowFunctions;
 import org.opensearch.sql.storage.StorageEngine;
 
@@ -69,18 +71,20 @@ public class BuiltinFunctionRepository {
       instance = new BuiltinFunctionRepository(new HashMap<>());
 
       // Register all built-in functions
-      ArithmeticFunction.register(instance);
-      BinaryPredicateOperator.register(instance);
-      MathematicalFunction.register(instance);
-      UnaryPredicateOperator.register(instance);
-      AggregatorFunction.register(instance);
-      DateTimeFunction.register(instance);
+      ArithmeticFunctions.register(instance);
+      BinaryPredicateOperators.register(instance);
+      MathematicalFunctions.register(instance);
+      UnaryPredicateOperators.register(instance);
+      AggregatorFunctions.register(instance);
+      DateTimeFunctions.register(instance);
       IntervalClause.register(instance);
       WindowFunctions.register(instance);
-      TextFunction.register(instance);
-      TypeCastOperator.register(instance);
+      TextFunctions.register(instance);
+      TypeCastOperators.register(instance);
       SystemFunctions.register(instance);
       OpenSearchFunctions.register(instance);
+      IPFunctions.register(instance);
+      JsonFunctions.register(instance);
     }
     return instance;
   }

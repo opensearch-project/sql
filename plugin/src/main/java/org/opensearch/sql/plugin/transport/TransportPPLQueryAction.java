@@ -6,6 +6,7 @@
 package org.opensearch.sql.plugin.transport;
 
 import static org.opensearch.rest.BaseRestHandler.MULTI_ALLOW_EXPLICIT_INDEX;
+import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
 import java.util.Locale;
@@ -110,7 +111,10 @@ public class TransportPPLQueryAction
     if (transformedRequest.isExplainRequest()) {
       pplService.explain(transformedRequest, createExplainResponseListener(listener));
     } else {
-      pplService.execute(transformedRequest, createListener(transformedRequest, listener));
+      pplService.execute(
+          transformedRequest,
+          createListener(transformedRequest, listener),
+          createExplainResponseListener(listener));
     }
   }
 
@@ -160,7 +164,8 @@ public class TransportPPLQueryAction
       public void onResponse(ExecutionEngine.QueryResponse response) {
         String responseContent =
             formatter.format(
-                new QueryResult(response.getSchema(), response.getResults(), response.getCursor()));
+                new QueryResult(
+                    response.getSchema(), response.getResults(), response.getCursor(), PPL_SPEC));
         listener.onResponse(new TransportPPLQueryResponse(responseContent));
       }
 

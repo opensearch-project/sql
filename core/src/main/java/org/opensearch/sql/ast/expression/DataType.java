@@ -26,7 +26,9 @@ public enum DataType {
   DATE(ExprCoreType.DATE),
   TIME(ExprCoreType.TIME),
   TIMESTAMP(ExprCoreType.TIMESTAMP),
-  INTERVAL(ExprCoreType.INTERVAL);
+  INTERVAL(ExprCoreType.INTERVAL),
+
+  IP(ExprCoreType.IP);
 
   @Getter private final ExprCoreType coreType;
 }

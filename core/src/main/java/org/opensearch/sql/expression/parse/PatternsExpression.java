@@ -50,8 +50,8 @@ public class PatternsExpression extends ParseExpression {
   }
 
   @Override
-  ExprValue parseValue(ExprValue value) throws ExpressionEvaluationException {
-    String rawString = value.stringValue();
+  public ExprValue parseValue(ExprValue value) throws ExpressionEvaluationException {
+    String rawString = value.isNull() || value.isMissing() ? "" : value.stringValue();
     if (useCustomPattern) {
       return new ExprStringValue(pattern.matcher(rawString).replaceAll(""));
     }

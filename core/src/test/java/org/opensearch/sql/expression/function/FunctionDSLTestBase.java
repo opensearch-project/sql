@@ -43,6 +43,11 @@ public class FunctionDSLTestBase {
         public int compareTo(ExprValue o) {
           throw new RuntimeException();
         }
+
+        @Override
+        public Object valueForCalcite() {
+          throw new UnsupportedOperationException("valueForCalcite not supported");
+        }
       };
   static final FunctionName SAMPLE_NAME = FunctionName.of("sample");
   static final FunctionSignature SAMPLE_SIGNATURE_A =

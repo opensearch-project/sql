@@ -11,18 +11,17 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.Schema.Column;
 import org.opensearch.sql.executor.pagination.Cursor;
+import org.opensearch.sql.lang.LangSpec;
 
 /**
  * Query response that encapsulates query results and isolate {@link ExprValue} related from
  * formatter implementation.
  */
-@RequiredArgsConstructor
 public class QueryResult implements Iterable<Object[]> {
 
   @Getter private final ExecutionEngine.Schema schema;
@@ -32,8 +31,26 @@ public class QueryResult implements Iterable<Object[]> {
 
   @Getter private final Cursor cursor;
 
+  private final LangSpec langSpec;
+
   public QueryResult(ExecutionEngine.Schema schema, Collection<ExprValue> exprValues) {
-    this(schema, exprValues, Cursor.None);
+    this(schema, exprValues, Cursor.None, LangSpec.SQL_SPEC);
+  }
+
+  public QueryResult(
+      ExecutionEngine.Schema schema, Collection<ExprValue> exprValues, Cursor cursor) {
+    this(schema, exprValues, cursor, LangSpec.SQL_SPEC);
+  }
+
+  public QueryResult(
+      ExecutionEngine.Schema schema,
+      Collection<ExprValue> exprValues,
+      Cursor cursor,
+      LangSpec langSpec) {
+    this.schema = schema;
+    this.exprValues = exprValues;
+    this.cursor = cursor;
+    this.langSpec = langSpec;
   }
 
   /**
@@ -59,7 +76,7 @@ public class QueryResult implements Iterable<Object[]> {
             column ->
                 colNameTypes.put(
                     getColumnName(column),
-                    column.getExprType().typeName().toLowerCase(Locale.ROOT)));
+                    langSpec.typeName(column.getExprType()).toLowerCase(Locale.ROOT)));
     return colNameTypes;
   }
 

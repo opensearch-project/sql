@@ -74,6 +74,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.antlr.v4.runtime.RuleContext;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -379,7 +380,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
             .collect(Collectors.toList());
     UnresolvedExpression elseStatement = (ctx.elseArg == null) ? null : visit(ctx.elseArg);
 
-    return new Case(caseValue, whenStatements, elseStatement);
+    return new Case(caseValue, whenStatements, Optional.ofNullable(elseStatement));
   }
 
   @Override

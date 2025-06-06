@@ -23,7 +23,8 @@ import org.opensearch.sql.legacy.metrics.MetricName;
 public class MetricsIT extends PPLIntegTestCase {
 
   @Override
-  protected void init() throws Exception {
+  public void init() throws Exception {
+    super.init();
     loadIndex(Index.BANK);
   }
 

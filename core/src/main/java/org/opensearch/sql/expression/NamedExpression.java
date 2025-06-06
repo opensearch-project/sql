@@ -25,7 +25,7 @@ import org.opensearch.sql.expression.env.Environment;
 @RequiredArgsConstructor
 public class NamedExpression implements Expression {
 
-  /** Expression name. */
+  /** Expression name. Also, could be treated as the alias of delegated expression */
   private final String name;
 
   /** Expression that being named. */
@@ -33,16 +33,6 @@ public class NamedExpression implements Expression {
 
   /** Optional alias. */
   private String alias;
-
-  @Override
-  public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-    return delegated.valueOf(valueEnv);
-  }
-
-  @Override
-  public ExprType type() {
-    return delegated.type();
-  }
 
   /**
    * Get expression name using name or its alias (if it's present).
@@ -54,12 +44,22 @@ public class NamedExpression implements Expression {
   }
 
   @Override
+  public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+    return delegated.valueOf(valueEnv);
+  }
+
+  @Override
+  public ExprType type() {
+    return delegated.type();
+  }
+
+  @Override
   public <T, C> T accept(ExpressionNodeVisitor<T, C> visitor, C context) {
     return visitor.visitNamed(this, context);
   }
 
   @Override
   public String toString() {
-    return getNameOrAlias();
+    return getName();
   }
 }

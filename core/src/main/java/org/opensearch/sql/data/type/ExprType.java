@@ -9,6 +9,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.UNKNOWN;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.Expression;
 
@@ -53,5 +54,18 @@ public interface ExprType {
   /** Get the legacy type name for old engine. */
   default String legacyTypeName() {
     return typeName();
+  }
+
+  /** Get the original path. Types like alias type will set the actual path in field property. */
+  default Optional<String> getOriginalPath() {
+    return Optional.empty();
+  }
+
+  /**
+   * Get the original path. Types like alias type should be derived from the type of the original
+   * field.
+   */
+  default ExprType getOriginalExprType() {
+    return this;
   }
 }

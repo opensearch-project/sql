@@ -144,6 +144,16 @@ public class DateTimeUtils {
   }
 
   /**
+   * Extracts LocalDateTime from a datetime ExprValue. Uses `FunctionProperties` for
+   * `ExprTimeValue`.
+   */
+  public static Instant extractTimestamp(ExprValue value, FunctionProperties functionProperties) {
+    return value instanceof ExprTimeValue
+            ? ((ExprTimeValue) value).timestampValue(functionProperties)
+            : value.timestampValue();
+  }
+
+  /**
    * Extracts LocalDate from a datetime ExprValue. Uses `FunctionProperties` for `ExprTimeValue`.
    */
   public static LocalDate extractDate(ExprValue value, FunctionProperties functionProperties) {

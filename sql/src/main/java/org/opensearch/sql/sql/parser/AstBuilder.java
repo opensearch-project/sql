@@ -27,11 +27,13 @@ import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.tree.DescribeRelation;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.RelationSubquery;
+import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
@@ -61,14 +63,14 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
   public UnresolvedPlan visitShowStatement(OpenSearchSQLParser.ShowStatementContext ctx) {
     final UnresolvedExpression tableFilter = visitAstExpression(ctx.tableFilter());
     return new Project(Collections.singletonList(AllFields.of()))
-        .attach(new Filter(tableFilter).attach(new Relation(qualifiedName(TABLE_INFO))));
+        .attach(new Filter(tableFilter).attach(new DescribeRelation(qualifiedName(TABLE_INFO))));
   }
 
   @Override
   public UnresolvedPlan visitDescribeStatement(OpenSearchSQLParser.DescribeStatementContext ctx) {
     final Function tableFilter = (Function) visitAstExpression(ctx.tableFilter());
     final String tableName = tableFilter.getFuncArgs().get(1).toString();
-    final Relation table = new Relation(qualifiedName(mappingTable(tableName.toString())));
+    final Relation table = new DescribeRelation(qualifiedName(mappingTable(tableName.toString())));
     if (ctx.columnFilter() == null) {
       return new Project(Collections.singletonList(AllFields.of())).attach(table);
     } else {
@@ -175,9 +177,10 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
 
   @Override
   public UnresolvedPlan visitTableAsRelation(TableAsRelationContext ctx) {
-    String tableAlias =
-        (ctx.alias() == null) ? null : StringUtils.unquoteIdentifier(ctx.alias().getText());
-    return new Relation(visitAstExpression(ctx.tableName()), tableAlias);
+    Relation relation = new Relation(visitAstExpression(ctx.tableName()));
+    return ctx.alias() != null
+        ? new SubqueryAlias(StringUtils.unquoteIdentifier(ctx.alias().getText()), relation)
+        : relation;
   }
 
   @Override
@@ -211,10 +214,10 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
     UnresolvedExpression expr = visitAstExpression(ctx.expression());
 
     if (ctx.alias() == null) {
-      return new Alias(name, expr);
+      return Alias.newAliasAllowMetaMetaField(name, expr, null);
     } else {
       String alias = StringUtils.unquoteIdentifier(ctx.alias().getText());
-      return new Alias(name, expr, alias);
+      return Alias.newAliasAllowMetaMetaField(name, expr, alias);
     }
   }
 }

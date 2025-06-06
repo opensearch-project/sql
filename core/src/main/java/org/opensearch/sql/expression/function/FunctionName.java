@@ -6,6 +6,7 @@
 package org.opensearch.sql.expression.function;
 
 import java.io.Serializable;
+import java.util.Locale;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +18,7 @@ public class FunctionName implements Serializable {
   @Getter private final String functionName;
 
   public static FunctionName of(String functionName) {
-    return new FunctionName(functionName.toLowerCase());
+    return new FunctionName(functionName.toLowerCase(Locale.ROOT));
   }
 
   @Override
