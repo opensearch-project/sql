@@ -114,7 +114,7 @@ public class QueryService {
       } else {
         if (t instanceof Error) {
           // Calcite may throw AssertError during query execution.
-          listener.onFailure(new CalciteUnsupportedException(t.getMessage()));
+          listener.onFailure(new CalciteUnsupportedException(t.getMessage(), t));
         } else {
           listener.onFailure((Exception) t);
         }

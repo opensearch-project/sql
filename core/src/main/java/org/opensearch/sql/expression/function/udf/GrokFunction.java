@@ -22,10 +22,12 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
 import org.opensearch.sql.expression.parse.GrokExpression;
 
 public final class GrokFunction extends ImplementorUDF {
@@ -42,6 +44,11 @@ public final class GrokFunction extends ImplementorUDF {
             TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),
             TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),
             false));
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+    return PPLOperandTypes.STRING_STRING;
   }
 
   public static class GrokImplementor implements NotNullImplementor {

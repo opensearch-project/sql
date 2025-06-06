@@ -15,7 +15,9 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 /**
  * <code>CRC32(value)</code> returns a 32-bit cyclic redundancy check (CRC) checksum
@@ -34,6 +36,11 @@ public class CRC32Function extends ImplementorUDF {
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
     return ReturnTypes.BIGINT_FORCE_NULLABLE;
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+    return PPLOperandTypes.STRING;
   }
 
   public static class Crc32Implementor implements NotNullImplementor {

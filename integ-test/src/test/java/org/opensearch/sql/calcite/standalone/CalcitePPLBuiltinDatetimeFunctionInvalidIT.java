@@ -1230,7 +1230,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   }
 
   @Test
-  public void testADDTATEInvalid() {
+  public void testADDDATEInvalid() {
 
     SemanticCheckException e1 =
         assertThrows(
