@@ -47,6 +47,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -133,6 +134,17 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitLogicalXor(LogicalXorContext ctx) {
     return new Xor(visit(ctx.left), visit(ctx.right));
+  }
+
+  /** lambda expression */
+  @Override
+  public UnresolvedExpression visitLambda(OpenSearchPPLParser.LambdaContext ctx) {
+    List<QualifiedName> arguments =
+        ctx.ident().stream()
+            .map(x -> this.visitIdentifiers(Collections.singletonList(x)))
+            .collect(Collectors.toList());
+    UnresolvedExpression function = visitExpression(ctx.expression());
+    return new LambdaFunction(function, arguments);
   }
 
   /** Comparison expression. */
