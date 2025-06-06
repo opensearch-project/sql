@@ -140,7 +140,8 @@ public class ExprValueUtils {
         return LITERAL_NULL;
       }
       return doubleValue(d);
-    } else if (o instanceof BigDecimal d) {
+    } else if (o instanceof BigDecimal) {
+      BigDecimal d = (BigDecimal) o;
       // TODO fallback decimal to double in v2
       // until https://github.com/opensearch-project/sql/issues/3619 fixed.
       return new ExprDoubleValue(d);

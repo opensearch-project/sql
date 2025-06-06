@@ -293,6 +293,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
         result = GEO_POINT;
         break;
       case NULL:
+      case ANY:
         result = UNDEFINED;
         break;
       default:

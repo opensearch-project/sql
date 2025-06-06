@@ -14,10 +14,13 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 /**
  * Convert number x from base a to base b<br>
@@ -33,6 +36,15 @@ public class ConvFunction extends ImplementorUDF {
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
     return PPLReturnTypes.STRING_FORCE_NULLABLE;
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+    return UDFOperandMetadata.wrap(
+        (CompositeOperandTypeChecker)
+            OperandTypes.STRING_INTEGER_INTEGER.or(
+                OperandTypes.family(
+                    SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER)));
   }
 
   public static class ConvImplementor implements NotNullImplementor {

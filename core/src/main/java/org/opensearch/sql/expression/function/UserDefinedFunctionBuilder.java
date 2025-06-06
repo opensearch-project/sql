@@ -11,7 +11,6 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.InferTypes;
-import org.apache.calcite.sql.type.SqlOperandMetadata;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 
@@ -31,9 +30,7 @@ public interface UserDefinedFunctionBuilder {
 
   SqlReturnTypeInference getReturnTypeInference();
 
-  default SqlOperandMetadata getOperandMetadata() {
-    return null;
-  }
+  UDFOperandMetadata getOperandMetadata();
 
   default SqlUserDefinedFunction toUDF(String functionName) {
     SqlIdentifier udfLtrimIdentifier =
