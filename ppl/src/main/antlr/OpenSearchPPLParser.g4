@@ -410,6 +410,8 @@ statsFunctionName
    | STDDEV_POP
    | PERCENTILE
    | PERCENTILE_APPROX
+   | EARLIEST
+   | LATEST
    ;
 
 takeAggFunction
@@ -846,6 +848,8 @@ conditionFunctionName
    | ISPRESENT
    | ISEMPTY
    | ISBLANK
+   | EARLIEST
+   | LATEST
    ;
 
 // flow control function return non-boolean value

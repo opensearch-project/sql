@@ -61,4 +61,9 @@ public class PPLOperandTypes {
   public static final UDFOperandMetadata DATE_OR_TIMESTAMP_OR_STRING =
       UDFOperandMetadata.wrap(
           (CompositeOperandTypeChecker) OperandTypes.DATE_OR_TIMESTAMP.or(OperandTypes.STRING));
+  public static final UDFOperandMetadata STRING_DATE_OR_TIMESTAMP =
+      UDFOperandMetadata.wrap(
+          (CompositeOperandTypeChecker)
+              OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.DATE)
+                  .or(OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.TIMESTAMP)));
 }
