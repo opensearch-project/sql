@@ -319,8 +319,8 @@ public enum BuiltinFunctionName {
           .put("take", BuiltinFunctionName.TAKE)
           .put("percentile", BuiltinFunctionName.PERCENTILE_APPROX)
           .put("percentile_approx", BuiltinFunctionName.PERCENTILE_APPROX)
-          .put("earliest", BuiltinFunctionName.EARLIEST)
-          .put("latest", BuiltinFunctionName.LATEST)
+          // .put("earliest", BuiltinFunctionName.EARLIEST)
+          // .put("latest", BuiltinFunctionName.LATEST)
           .build();
 
   private static final Map<String, BuiltinFunctionName> WINDOW_FUNC_MAPPING =
@@ -337,8 +337,8 @@ public enum BuiltinFunctionName {
           .put("stddev", BuiltinFunctionName.STDDEV_POP)
           .put("stddev_pop", BuiltinFunctionName.STDDEV_POP)
           .put("stddev_samp", BuiltinFunctionName.STDDEV_SAMP)
-          .put("earliest", BuiltinFunctionName.EARLIEST)
-          .put("latest", BuiltinFunctionName.LATEST)
+          // .put("earliest", BuiltinFunctionName.EARLIEST)
+          // .put("latest", BuiltinFunctionName.LATEST)
           .build();
 
   public static Optional<BuiltinFunctionName> of(String str) {

@@ -233,9 +233,11 @@ public interface PlanUtils {
       RexNode field,
       List<RexNode> argList) {
     switch (functionName) {
-      case MAX, LATEST:
+        // case LATEST:
+      case MAX:
         return context.relBuilder.max(field);
-      case MIN, EARLIEST:
+        // case EARLIEST:
+      case MIN:
         return context.relBuilder.min(field);
       case AVG:
         return context.relBuilder.avg(distinct, null, field);
