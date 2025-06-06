@@ -26,6 +26,7 @@ import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 public class TransformFunctionImpl extends ImplementorUDF {
   public TransformFunctionImpl() {
@@ -42,6 +43,11 @@ public class TransformFunctionImpl extends ImplementorUDF {
       return createArrayType(
           typeFactory, typeFactory.createTypeWithNullability(lambdaReturnType, true), true);
     };
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+    return null;
   }
 
   public static class TransformImplementor implements NotNullImplementor {

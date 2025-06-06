@@ -24,6 +24,7 @@ import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 // TODO: Support array of mixture types.
 public class ArrayFunctionImpl extends ImplementorUDF {
@@ -49,6 +50,11 @@ public class ArrayFunctionImpl extends ImplementorUDF {
         throw new RuntimeException("fail to create array with fixed type: " + e.getMessage());
       }
     };
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+    return null;
   }
 
   public static class ArrayImplementor implements NotNullImplementor {

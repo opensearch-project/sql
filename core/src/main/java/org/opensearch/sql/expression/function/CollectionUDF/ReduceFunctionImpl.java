@@ -28,6 +28,7 @@ import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 public class ReduceFunctionImpl extends ImplementorUDF {
   public ReduceFunctionImpl() {
@@ -61,6 +62,11 @@ public class ReduceFunctionImpl extends ImplementorUDF {
       }
       return finalReturnType;
     };
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+    return null;
   }
 
   public static class ReduceImplementor implements NotNullImplementor {

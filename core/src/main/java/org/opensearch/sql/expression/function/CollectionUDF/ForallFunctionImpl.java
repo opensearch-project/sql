@@ -17,6 +17,7 @@ import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 public class ForallFunctionImpl extends ImplementorUDF {
   public ForallFunctionImpl() {
@@ -26,6 +27,11 @@ public class ForallFunctionImpl extends ImplementorUDF {
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
     return ReturnTypes.BOOLEAN;
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+    return null;
   }
 
   public static class ForallImplementor implements NotNullImplementor {
