@@ -8,6 +8,7 @@ package org.opensearch.sql.ast.tree;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import javax.annotation.Nullable;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
@@ -15,9 +16,9 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Field;
 
 /** AST node representing an {@code expand <field>} operation. */
-@Getter
 @ToString
 @RequiredArgsConstructor
+@EqualsAndHashCode(callSuper = false)
 public class Expand extends UnresolvedPlan {
 
   private UnresolvedPlan child;

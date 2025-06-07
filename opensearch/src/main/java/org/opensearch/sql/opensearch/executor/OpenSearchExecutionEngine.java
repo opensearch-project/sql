@@ -241,6 +241,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
         if (!values.isEmpty()) {
           exprType = values.getFirst().tupleValue().get(columnName).type();
         } else {
+          // Using UNDEFINED instead of UNKNOWN to avoid throwing exception
           exprType = ExprCoreType.UNDEFINED;
         }
       } else {

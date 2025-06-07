@@ -1032,7 +1032,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // be used by the right side to correlate with the left side.
     relBuilder.correlate(JoinRelType.INNER, correlVariable.get().id, List.of(arrayFieldRex));
 
-    // 8. Remove the original array field from the output.
+    // 9. Remove the original array field from the output.
     // TODO: RFC: should we keep the original array field when alias is present?
     relBuilder.projectExcept(arrayFieldRex);
     if (alias != null) {
