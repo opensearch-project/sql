@@ -21,6 +21,7 @@ import java.util.TimeZone;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.common.utils.StringUtils;
 
@@ -1352,6 +1353,30 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
         schema("f2", null, "double"),
         schema("f3", null, "double"));
     verifySome(result.getJSONArray("datarows"), rows(613094400d, 1072872000d, 3404817525d));
+  }
+
+  @Test
+  public void testUnixTimestampWithTimestampString() throws IOException {
+    var result =
+        executeQuery(
+            String.format(
+                "source=%s | eval f = UNIX_TIMESTAMP('1984-06-06 12:00:00.123456') | fields f",
+                TEST_INDEX_DATE));
+    verifySchema(result, schema("f", null, "double"));
+    verifySome(result.getJSONArray("datarows"), rows(4.55371200123456E8));
+  }
+
+  // TODO: Enable after fixing #3728
+  @Ignore
+  @Test
+  public void testUnixTimestampWithDateString() throws IOException {
+    var result =
+        executeQuery(
+            String.format(
+                "source=%s | eval f = UNIX_TIMESTAMP('1984-06-06 12:00:00.123456') | fields f",
+                TEST_INDEX_DATE));
+    verifySchema(result, schema("f", null, "double"));
+    verifySome(result.getJSONArray("datarows"), rows(4.55371200123456E8));
   }
 
   @Test

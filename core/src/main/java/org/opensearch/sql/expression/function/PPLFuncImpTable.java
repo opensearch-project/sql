@@ -6,6 +6,7 @@
 package org.opensearch.sql.expression.function;
 
 import static org.apache.calcite.sql.type.SqlTypeFamily.IGNORE;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getLegacyTypeName;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.*;
 
@@ -48,6 +49,9 @@ public class PPLFuncImpTable {
   private static final Logger logger = LogManager.getLogger(PPLFuncImpTable.class);
 
   public interface FunctionImp {
+    RelDataType ANY_TYPE = TYPE_FACTORY.createSqlType(SqlTypeName.ANY);
+
+    // TODO: Support argument coercion and casting
     RexNode resolve(RexBuilder builder, RexNode... args);
 
     /**
