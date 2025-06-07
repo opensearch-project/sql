@@ -11,6 +11,11 @@ import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_DESC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
+import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME;
+import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME_MAIN;
+import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME_SUBSEARCH;
+import static org.opensearch.sql.calcite.utils.PlanUtils.getRelation;
+import static org.opensearch.sql.calcite.utils.PlanUtils.transformPlanToAttachChild;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -26,6 +31,7 @@ import java.util.stream.Collectors;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
@@ -42,17 +48,21 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
+import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.Argument.ArgumentMap;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.expression.WindowFrame;
 import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
@@ -83,6 +93,7 @@ import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.utils.ParseUtils;
 
@@ -302,15 +313,29 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<RexNode> newFields =
         groupCandidates.stream()
             .map(
-                group ->
-                    PPLFuncImpTable.INSTANCE.resolve(
+                group -> {
+                  RexNode innerRex =
+                      PPLFuncImpTable.INSTANCE.resolve(
+                          context.rexBuilder,
+                          ParseUtils.BUILTIN_FUNCTION_MAP.get(parseMethod),
+                          sourceField,
+                          context.rexBuilder.makeLiteral(
+                              pattern,
+                              context
+                                  .rexBuilder
+                                  .getTypeFactory()
+                                  .createSqlType(SqlTypeName.VARCHAR),
+                              true));
+                  if (ParseMethod.GROK.equals(parseMethod)) {
+                    return PPLFuncImpTable.INSTANCE.resolve(
                         context.rexBuilder,
-                        ParseUtils.BUILTIN_FUNCTION_MAP.get(parseMethod),
-                        sourceField,
-                        context.rexBuilder.makeLiteral(
-                            pattern,
-                            context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
-                            true)))
+                        BuiltinFunctionName.INTERNAL_ITEM,
+                        innerRex,
+                        context.rexBuilder.makeLiteral(group));
+                  } else {
+                    return innerRex;
+                  }
+                })
             .toList();
     projectPlusOverriding(newFields, groupCandidates, context);
     return context.relBuilder.peek();
@@ -374,62 +399,94 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     context.relBuilder.rename(expectedRenameFields);
   }
 
-  private Pair<List<AggCall>, List<RexNode>> resolveAggCallAndGroupBy(
-      Aggregation node, CalcitePlanContext context) {
+  /**
+   * Resolve the aggregation with trimming unused fields to avoid bugs in {@link
+   * org.apache.calcite.sql2rel.RelDecorrelator#decorrelateRel(Aggregate, boolean)}
+   *
+   * @param groupExprList group by expression list
+   * @param aggExprList aggregate expression list
+   * @param context CalcitePlanContext
+   * @return Pair of (group-by list, field list, aggregate list)
+   */
+  private Pair<List<RexNode>, List<AggCall>> aggregateWithTrimming(
+      List<UnresolvedExpression> groupExprList,
+      List<UnresolvedExpression> aggExprList,
+      CalcitePlanContext context) {
+    // Example 1: source=t | where a > 1 | stats avg(b + 1) by c
+    // Before: Aggregate(avg(b + 1))
+    //         \- Filter(a > 1)
+    //            \- Scan t
+    // After: Aggregate(avg(b + 1))
+    //        \- Project([c, b])
+    //           \- Filter(a > 1)
+    //              \- Scan t
+    //
+    // Example 2: source=t | where a > 1 | top b by c
+    // Before: Aggregate(count)
+    //         \-Filter(a > 1)
+    //           \- Scan t
+    // After: Aggregate(count)
+    //        \- Project([c, b])
+    //           \- Filter(a > 1)
+    //              \- Scan t
+    Pair<List<RexNode>, List<AggCall>> resolved =
+        resolveAttributesForAggregation(groupExprList, aggExprList, context);
+    List<RexInputRef> trimmedRefs = new ArrayList<>();
+    trimmedRefs.addAll(PlanUtils.getInputRefs(resolved.getLeft())); // group-by keys first
+    trimmedRefs.addAll(PlanUtils.getInputRefsFromAggCall(resolved.getRight()));
+    context.relBuilder.project(trimmedRefs);
+
+    // Re-resolve all attributes based on adding trimmed Project.
+    // Using re-resolving rather than Calcite Mapping (ref Calcite ProjectTableScanRule)
+    // because that Mapping only works for RexNode, but we need both AggCall and RexNode list.
+    Pair<List<RexNode>, List<AggCall>> reResolved =
+        resolveAttributesForAggregation(groupExprList, aggExprList, context);
+    context.relBuilder.aggregate(
+        context.relBuilder.groupKey(reResolved.getLeft()), reResolved.getRight());
+    return Pair.of(reResolved.getLeft(), reResolved.getRight());
+  }
+
+  /**
+   * Resolve attributes for aggregation.
+   *
+   * @param groupExprList group by expression list
+   * @param aggExprList aggregate expression list
+   * @param context CalcitePlanContext
+   * @return Pair of (group-by list, aggregate list)
+   */
+  private Pair<List<RexNode>, List<AggCall>> resolveAttributesForAggregation(
+      List<UnresolvedExpression> groupExprList,
+      List<UnresolvedExpression> aggExprList,
+      CalcitePlanContext context) {
     List<AggCall> aggCallList =
-        node.getAggExprList().stream()
-            .map(expr -> aggVisitor.analyze(expr, context))
-            .collect(Collectors.toList());
-    // The span column is always the first column in result whatever
-    // the order of span in query is first or last one
-    List<RexNode> groupByList = new ArrayList<>();
-    UnresolvedExpression span = node.getSpan();
-    if (!Objects.isNull(span)) {
-      RexNode spanRex = rexVisitor.analyze(span, context);
-      groupByList.add(spanRex);
-      // add span's group alias field (most recent added expression)
-    }
-    groupByList.addAll(
-        node.getGroupExprList().stream().map(expr -> rexVisitor.analyze(expr, context)).toList());
-    return Pair.of(aggCallList, groupByList);
+        aggExprList.stream().map(expr -> aggVisitor.analyze(expr, context)).toList();
+    List<RexNode> groupByList =
+        groupExprList.stream().map(expr -> rexVisitor.analyze(expr, context)).toList();
+    return Pair.of(groupByList, aggCallList);
   }
 
   @Override
   public RelNode visitAggregation(Aggregation node, CalcitePlanContext context) {
     visitChildren(node, context);
-    // Add a trimmed Project before Aggregate.
-    // to avoid bugs in RelDecorrelator.decorrelateRel(Aggregate rel)
-    // For example:
-    // source=t | where a > 1 | stats avg(b+1) by c
-    // Before:
-    // Aggregate
-    //     \- Filter(a>1)
-    //            \- Scan t
-    // After:
-    // Aggregate
-    //     \- Project([c,b])
-    //            \- Filter(a>1)
-    //                   \- Scan t
-    Pair<List<AggCall>, List<RexNode>> resolved = resolveAggCallAndGroupBy(node, context);
-    List<RexInputRef> trimmedRefs = new ArrayList<>();
-    trimmedRefs.addAll(PlanUtils.getInputRefs(resolved.getRight())); // group-by keys first
-    trimmedRefs.addAll(PlanUtils.getInputRefsFromAggCall(resolved.getLeft()));
-    context.relBuilder.project(trimmedRefs);
 
-    // Re-resolve aggCalls and group-by list based on adding trimmed Project.
-    // Using re-resolving rather than Calcite Mapping (ref Calcite ProjectTableScanRule)
-    // because that Mapping only works for RexNode, but we need both AggCall and RexNode list.
-    Pair<List<AggCall>, List<RexNode>> reResolved = resolveAggCallAndGroupBy(node, context);
-    List<AggCall> aggList = reResolved.getLeft();
-    List<RexNode> groupByList = reResolved.getRight();
-    context.relBuilder.aggregate(context.relBuilder.groupKey(groupByList), aggList);
+    List<UnresolvedExpression> aggExprList = node.getAggExprList();
+    List<UnresolvedExpression> groupExprList = new ArrayList<>();
+    // The span column is always the first column in result whatever
+    // the order of span in query is first or last one
+    UnresolvedExpression span = node.getSpan();
+    if (!Objects.isNull(span)) {
+      groupExprList.add(span);
+    }
+    groupExprList.addAll(node.getGroupExprList());
+    Pair<List<RexNode>, List<AggCall>> aggregationAttributes =
+        aggregateWithTrimming(groupExprList, aggExprList, context);
 
     // schema reordering
     // As an example, in command `stats count() by colA, colB`,
     // the sequence of output schema is "count, colA, colB".
     List<RexNode> outputFields = context.relBuilder.fields();
     int numOfOutputFields = outputFields.size();
-    int numOfAggList = aggList.size();
+    int numOfAggList = aggExprList.size();
     List<RexNode> reordered = new ArrayList<>(numOfOutputFields);
     // Add aggregation results first
     List<RexNode> aggRexList =
@@ -437,7 +494,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     reordered.addAll(aggRexList);
     // Add group by columns
     List<RexNode> aliasedGroupByList =
-        groupByList.stream()
+        aggregationAttributes.getLeft().stream()
             .map(this::extractAliasLiteral)
             .flatMap(Optional::stream)
             .map(ref -> ((RexLiteral) ref).getValueAs(String.class))
@@ -707,6 +764,117 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
+  @Override
+  public RelNode visitAppendCol(AppendCol node, CalcitePlanContext context) {
+    // 1. resolve main plan
+    visitChildren(node, context);
+    // 2. add row_number() column to main
+    RexNode mainRowNumber =
+        PlanUtils.makeOver(
+            context,
+            BuiltinFunctionName.ROW_NUMBER,
+            null,
+            List.of(),
+            List.of(),
+            List.of(),
+            WindowFrame.toCurrentRow());
+    context.relBuilder.projectPlus(
+        context.relBuilder.alias(mainRowNumber, ROW_NUMBER_COLUMN_NAME_MAIN));
+
+    // 3. build subsearch tree (attach relation to subsearch)
+    UnresolvedPlan relation = getRelation(node);
+    transformPlanToAttachChild(node.getSubSearch(), relation);
+    // 4. resolve subsearch plan
+    node.getSubSearch().accept(this, context);
+    // 5. add row_number() column to subsearch
+    RexNode subsearchRowNumber =
+        PlanUtils.makeOver(
+            context,
+            BuiltinFunctionName.ROW_NUMBER,
+            null,
+            List.of(),
+            List.of(),
+            List.of(),
+            WindowFrame.toCurrentRow());
+    context.relBuilder.projectPlus(
+        context.relBuilder.alias(subsearchRowNumber, ROW_NUMBER_COLUMN_NAME_SUBSEARCH));
+
+    List<String> subsearchFields = context.relBuilder.peek().getRowType().getFieldNames();
+    List<String> mainFields = context.relBuilder.peek(1).getRowType().getFieldNames();
+    if (!node.isOverride()) {
+      // 6. if override = false, drop all the duplicated columns in subsearch before join
+      List<String> subsearchProjectList =
+          subsearchFields.stream().filter(r -> !mainFields.contains(r)).toList();
+      context.relBuilder.project(context.relBuilder.fields(subsearchProjectList));
+    }
+
+    // 7. join with condition `_row_number_main_ = _row_number_subsearch_`
+    RexNode joinCondition =
+        context.relBuilder.equals(
+            context.relBuilder.field(2, 0, ROW_NUMBER_COLUMN_NAME_MAIN),
+            context.relBuilder.field(2, 1, ROW_NUMBER_COLUMN_NAME_SUBSEARCH));
+    context.relBuilder.join(
+        JoinAndLookupUtils.translateJoinType(Join.JoinType.FULL), joinCondition);
+
+    if (!node.isOverride()) {
+      // 8. if override = false, drop both _row_number_ columns
+      context.relBuilder.projectExcept(
+          List.of(
+              context.relBuilder.field(ROW_NUMBER_COLUMN_NAME_MAIN),
+              context.relBuilder.field(ROW_NUMBER_COLUMN_NAME_SUBSEARCH)));
+      return context.relBuilder.peek();
+    } else {
+      // 9. if override = true, override the duplicated columns in main by subsearch values
+      // when join condition matched.
+      List<RexNode> finalProjections = new ArrayList<>();
+      List<String> finalFieldNames = new ArrayList<>();
+      int mainFieldCount = mainFields.size();
+      Set<String> duplicatedFields =
+          mainFields.stream().filter(subsearchFields::contains).collect(Collectors.toSet());
+      RexNode caseCondition =
+          context.relBuilder.equals(
+              context.relBuilder.field(ROW_NUMBER_COLUMN_NAME_MAIN),
+              context.relBuilder.field(ROW_NUMBER_COLUMN_NAME_SUBSEARCH));
+      for (int mainFieldIndex = 0; mainFieldIndex < mainFields.size(); mainFieldIndex++) {
+        String mainFieldName = mainFields.get(mainFieldIndex);
+        if (mainFieldName.equals(ROW_NUMBER_COLUMN_NAME_MAIN)) {
+          continue;
+        }
+        finalFieldNames.add(mainFieldName);
+        if (duplicatedFields.contains(mainFieldName)) {
+          int subsearchFieldIndex = mainFieldCount + subsearchFields.indexOf(mainFieldName);
+          // build case("_row_number_main_" = "_row_number_subsearch_", subsearchField, mainField)
+          // using subsearch value when join condition matched, otherwise main value
+          RexNode caseExpr =
+              context.relBuilder.call(
+                  SqlStdOperatorTable.CASE,
+                  caseCondition,
+                  context.relBuilder.field(subsearchFieldIndex),
+                  context.relBuilder.field(mainFieldIndex));
+          finalProjections.add(caseExpr);
+        } else {
+          // keep main fields for non duplicated fields
+          finalProjections.add(context.relBuilder.field(mainFieldIndex));
+        }
+      }
+      // add non duplicated fields of subsearch
+      for (int subsearchFieldIndex = 0;
+          subsearchFieldIndex < subsearchFields.size();
+          subsearchFieldIndex++) {
+        String subsearchFieldName = subsearchFields.get(subsearchFieldIndex);
+        if (subsearchFieldName.equals(ROW_NUMBER_COLUMN_NAME_SUBSEARCH)) {
+          continue;
+        }
+        if (!duplicatedFields.contains(subsearchFieldName)) {
+          finalProjections.add(context.relBuilder.field(mainFieldCount + subsearchFieldIndex));
+          finalFieldNames.add(subsearchFieldName);
+        }
+      }
+      context.relBuilder.project(finalProjections, finalFieldNames);
+      return context.relBuilder.peek();
+    }
+  }
+
   /*
    * Unsupported Commands of PPL with Calcite for OpenSearch 3.0.0-beta
    */
@@ -742,7 +910,62 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitRareTopN(RareTopN node, CalcitePlanContext context) {
-    throw new CalciteUnsupportedException("Rare and Top commands are unsupported in Calcite");
+    visitChildren(node, context);
+
+    ArgumentMap arguments = ArgumentMap.of(node.getArguments());
+    String countFieldName = (String) arguments.get("countField").getValue();
+    if (context.relBuilder.peek().getRowType().getFieldNames().contains(countFieldName)) {
+      throw new IllegalArgumentException(
+          "Field `"
+              + countFieldName
+              + "` is existed, change the count field by setting countfield='xyz'");
+    }
+
+    // 1. group the group-by list + field list and add a count() aggregation
+    List<UnresolvedExpression> groupExprList = new ArrayList<>(node.getGroupExprList());
+    List<UnresolvedExpression> fieldList =
+        node.getFields().stream().map(f -> (UnresolvedExpression) f).toList();
+    groupExprList.addAll(fieldList);
+    List<UnresolvedExpression> aggExprList =
+        List.of(AstDSL.alias(countFieldName, AstDSL.aggregate("count", null)));
+    aggregateWithTrimming(groupExprList, aggExprList, context);
+
+    // 2. add a window column
+    List<RexNode> partitionKeys = rexVisitor.analyze(node.getGroupExprList(), context);
+    RexNode countField;
+    if (node.getCommandType() == RareTopN.CommandType.TOP) {
+      countField = context.relBuilder.desc(context.relBuilder.field(countFieldName));
+    } else {
+      countField = context.relBuilder.field(countFieldName);
+    }
+    RexNode rowNumberWindowOver =
+        PlanUtils.makeOver(
+            context,
+            BuiltinFunctionName.ROW_NUMBER,
+            null,
+            List.of(),
+            partitionKeys,
+            List.of(countField),
+            WindowFrame.toCurrentRow());
+    context.relBuilder.projectPlus(
+        context.relBuilder.alias(rowNumberWindowOver, ROW_NUMBER_COLUMN_NAME));
+
+    // 3. filter row_number() <= k in each partition
+    Integer N = (Integer) arguments.get("noOfResults").getValue();
+    context.relBuilder.filter(
+        context.relBuilder.lessThanOrEqual(
+            context.relBuilder.field(ROW_NUMBER_COLUMN_NAME), context.relBuilder.literal(N)));
+
+    // 4. project final output. the default output is group by list + field list
+    Boolean showCount = (Boolean) arguments.get("showCount").getValue();
+    if (showCount) {
+      context.relBuilder.projectExcept(context.relBuilder.field(ROW_NUMBER_COLUMN_NAME));
+    } else {
+      context.relBuilder.projectExcept(
+          context.relBuilder.field(ROW_NUMBER_COLUMN_NAME),
+          context.relBuilder.field(countFieldName));
+    }
+    return context.relBuilder.peek();
   }
 
   @Override

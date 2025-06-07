@@ -5,6 +5,9 @@
 
 package org.opensearch.sql.ppl.utils;
 
+import static org.opensearch.sql.calcite.utils.PlanUtils.getRelation;
+import static org.opensearch.sql.calcite.utils.PlanUtils.transformPlanToAttachChild;
+
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -23,6 +26,7 @@ import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.Argument.ArgumentMap;
 import org.opensearch.sql.ast.expression.Between;
 import org.opensearch.sql.ast.expression.Case;
 import org.opensearch.sql.ast.expression.Cast;
@@ -49,6 +53,7 @@ import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.DescribeRelation;
 import org.opensearch.sql.ast.tree.Eval;
@@ -68,6 +73,7 @@ import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalDedupe;
@@ -84,9 +90,11 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   private static final String MASK_LITERAL = "***";
 
   private final AnonymizerExpressionAnalyzer expressionAnalyzer;
+  private final Settings settings;
 
-  public PPLQueryDataAnonymizer() {
+  public PPLQueryDataAnonymizer(Settings settings) {
     this.expressionAnalyzer = new AnonymizerExpressionAnalyzer(this);
+    this.settings = settings;
   }
 
   /**
@@ -244,15 +252,22 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   @Override
   public String visitRareTopN(RareTopN node, String context) {
     final String child = node.getChild().get(0).accept(this, context);
-    List<Argument> options = node.getNoOfResults();
-    Integer noOfResults = (Integer) options.get(0).getValue().getValue();
+    ArgumentMap arguments = ArgumentMap.of(node.getArguments());
+    Integer noOfResults = (Integer) arguments.get("noOfResults").getValue();
+    String countField = (String) arguments.get("countField").getValue();
+    Boolean showCount = (Boolean) arguments.get("showCount").getValue();
     String fields = visitFieldList(node.getFields());
     String group = visitExpressionList(node.getGroupExprList());
+    String options =
+        isCalciteEnabled(settings)
+            ? StringUtils.format("countield='%s' showcount=%s ", countField, showCount)
+            : "";
     return StringUtils.format(
-        "%s | %s %d %s",
+        "%s | %s %d %s%s",
         child,
         node.getCommandType().name().toLowerCase(),
         noOfResults,
+        options,
         String.join(" ", fields, groupBy(group)).trim());
   }
 
@@ -354,6 +369,17 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     return StringUtils.format("%s | trendline %s", child, computations);
   }
 
+  @Override
+  public String visitAppendCol(AppendCol node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    UnresolvedPlan relation = getRelation(node);
+    transformPlanToAttachChild(node.getSubSearch(), relation);
+    String subsearch = anonymizeData(node.getSubSearch());
+    String subsearchWithoutRelation = subsearch.substring(subsearch.indexOf("|") + 1);
+    return StringUtils.format(
+        "%s | appendcol override=%s [%s ]", child, node.isOverride(), subsearchWithoutRelation);
+  }
+
   private String visitFieldList(List<Field> fieldList) {
     return fieldList.stream().map(this::visitExpression).collect(Collectors.joining(","));
   }
@@ -401,6 +427,14 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   private String groupBy(String groupBy) {
     return Strings.isNullOrEmpty(groupBy) ? "" : StringUtils.format("by %s", groupBy);
+  }
+
+  private boolean isCalciteEnabled(Settings settings) {
+    if (settings != null) {
+      return settings.getSettingValue(Settings.Key.CALCITE_ENGINE_ENABLED);
+    } else {
+      return false;
+    }
   }
 
   /** Expression Anonymizer. */

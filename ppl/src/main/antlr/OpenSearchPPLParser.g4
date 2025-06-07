@@ -70,6 +70,7 @@ commands
    | mlCommand
    | fillnullCommand
    | trendlineCommand
+   | appendcolCommand
    ;
 
 commandName
@@ -151,11 +152,11 @@ headCommand
    ;
 
 topCommand
-   : TOP (number = integerLiteral)? fieldList (byClause)?
+   : TOP (number = integerLiteral)? (COUNTFIELD EQUAL countfield = stringLiteral)? (SHOWCOUNT EQUAL showcount = booleanLiteral)? fieldList (byClause)?
    ;
 
 rareCommand
-   : RARE (number = integerLiteral)? fieldList (byClause)?
+   : RARE (number = integerLiteral)? (COUNTFIELD EQUAL countfield = stringLiteral)? (SHOWCOUNT EQUAL showcount = booleanLiteral)? fieldList (byClause)?
    ;
 
 grokCommand
@@ -235,6 +236,10 @@ trendlineClause
 
 trendlineType
    : SMA
+   ;
+
+appendcolCommand
+   : APPENDCOL (OVERRIDE EQUAL override = booleanLiteral)? LT_SQR_PRTHS commands (PIPE commands)* RT_SQR_PRTHS
    ;
 
 kmeansCommand
@@ -419,6 +424,8 @@ percentileApproxFunction
 numericLiteral
     : integerLiteral
     | decimalLiteral
+    | doubleLiteral
+    | floatLiteral
     ;
 
 // expressions
@@ -639,6 +646,8 @@ relevanceFieldAndWeight
 relevanceFieldWeight
    : integerLiteral
    | decimalLiteral
+   | doubleLiteral
+   | floatLiteral
    ;
 
 relevanceField
@@ -909,6 +918,8 @@ literalValue
    | stringLiteral
    | integerLiteral
    | decimalLiteral
+   | doubleLiteral
+   | floatLiteral
    | booleanLiteral
    | datetimeLiteral //#datetime
    ;
@@ -928,6 +939,14 @@ integerLiteral
 
 decimalLiteral
    : (PLUS | MINUS)? DECIMAL_LITERAL
+   ;
+
+doubleLiteral
+   : (PLUS | MINUS)? DOUBLE_LITERAL
+   ;
+
+floatLiteral
+   : (PLUS | MINUS)? FLOAT_LITERAL
    ;
 
 booleanLiteral
@@ -1070,6 +1089,7 @@ keywordsCanBeId
    | INTERVAL
    | PLUS
    | MINUS
+   | OVERRIDE
    // SORT FIELD KEYWORDS
    | AUTO
    | STR
@@ -1096,6 +1116,8 @@ keywordsCanBeId
    | TIME_ZONE
    | TRAINING_DATA_SIZE
    | ANOMALY_SCORE_THRESHOLD
+   | COUNTFIELD
+   | SHOWCOUNT
    // AGGREGATIONS AND WINDOW
    | statsFunctionName
    | windowFunctionName

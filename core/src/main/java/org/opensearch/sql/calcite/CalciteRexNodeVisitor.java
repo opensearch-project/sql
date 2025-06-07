@@ -74,6 +74,10 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     return unresolved.accept(this, context);
   }
 
+  public List<RexNode> analyze(List<UnresolvedExpression> list, CalcitePlanContext context) {
+    return list.stream().map(u -> u.accept(this, context)).toList();
+  }
+
   public RexNode analyzeJoinCondition(UnresolvedExpression unresolved, CalcitePlanContext context) {
     return context.resolveJoinCondition(unresolved, this::analyze);
   }
@@ -118,6 +122,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
         return rexBuilder.makeApproxLiteral(
             new BigDecimal(Double.toString((Double) value)),
             typeFactory.createSqlType(SqlTypeName.DOUBLE));
+      case DECIMAL:
+        return rexBuilder.makeExactLiteral((BigDecimal) value);
       case BOOLEAN:
         return rexBuilder.makeLiteral((Boolean) value);
       case DATE:
@@ -128,9 +134,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       case TIMESTAMP:
         return rexBuilder.makeTimestampLiteral(
             new TimestampString(value.toString()), RelDataType.PRECISION_NOT_SPECIFIED);
-      case INTERVAL:
-        //                return rexBuilder.makeIntervalLiteral(BigDecimal.valueOf((long)
-        // node.getValue()));
       default:
         throw new UnsupportedOperationException("Unsupported literal type: " + node.getType());
     }
@@ -338,7 +341,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     List<RexNode> arguments =
         node.getFuncArgs().stream().map(arg -> analyze(arg, context)).toList();
     RexNode resolvedNode =
-        PPLFuncImpTable.INSTANCE.resolveSafe(
+        PPLFuncImpTable.INSTANCE.resolve(
             context.rexBuilder, node.getFuncName(), arguments.toArray(new RexNode[0]));
     if (resolvedNode != null) {
       return resolvedNode;
@@ -365,7 +368,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
                       ? Collections.emptyList()
                       : arguments.subList(1, arguments.size());
               return PlanUtils.makeOver(
-                  context, functionName, field, args, partitions, node.getWindowFrame());
+                  context, functionName, field, args, partitions, List.of(), node.getWindowFrame());
             })
         .orElseThrow(
             () ->

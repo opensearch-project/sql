@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.ast.tree;
 
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -28,7 +29,7 @@ public class Paginate extends UnresolvedPlan {
 
   @Override
   public List<? extends Node> getChild() {
-    return List.of(child);
+    return this.child == null ? ImmutableList.of() : ImmutableList.of(this.child);
   }
 
   @Override

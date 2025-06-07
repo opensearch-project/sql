@@ -25,6 +25,8 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
+import org.opensearch.sql.opensearch.monitor.OpenSearchMemoryHealthy;
+import org.opensearch.sql.opensearch.monitor.OpenSearchResourceMonitor;
 import org.opensearch.sql.opensearch.planner.physical.ADOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLOperator;
@@ -197,16 +199,19 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
 
   @Override
   public TableScanBuilder createScanBuilder() {
-    final int querySizeLimit = settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT);
-
     final TimeValue cursorKeepAlive = settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
-    var builder = new OpenSearchRequestBuilder(querySizeLimit, createExprValueFactory(), settings);
+    var builder = createRequestBuilder();
     Function<OpenSearchRequestBuilder, OpenSearchIndexScan> createScanOperator =
         requestBuilder ->
             new OpenSearchIndexScan(
                 client,
                 requestBuilder.getMaxResponseSize(),
-                requestBuilder.build(indexName, getMaxResultWindow(), cursorKeepAlive, client));
+                requestBuilder.build(
+                    indexName,
+                    getMaxResultWindow(),
+                    cursorKeepAlive,
+                    client,
+                    cachedFieldOpenSearchTypes.isEmpty()));
     return new OpenSearchIndexScanBuilder(builder, createScanOperator);
   }
 
@@ -255,14 +260,20 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
   }
 
   public OpenSearchRequestBuilder createRequestBuilder() {
-    return new OpenSearchRequestBuilder(
-        settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT),
-        this.createExprValueFactory(),
-        settings);
+    return new OpenSearchRequestBuilder(createExprValueFactory(), settings);
+  }
+
+  public OpenSearchResourceMonitor createOpenSearchResourceMonitor() {
+    return new OpenSearchResourceMonitor(getSettings(), new OpenSearchMemoryHealthy());
   }
 
   public OpenSearchRequest buildRequest(OpenSearchRequestBuilder requestBuilder) {
     final TimeValue cursorKeepAlive = settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
-    return requestBuilder.build(indexName, getMaxResultWindow(), cursorKeepAlive, client);
+    return requestBuilder.build(
+        indexName,
+        getMaxResultWindow(),
+        cursorKeepAlive,
+        client,
+        cachedFieldOpenSearchTypes.isEmpty());
   }
 }

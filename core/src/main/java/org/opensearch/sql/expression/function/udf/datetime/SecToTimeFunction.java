@@ -16,10 +16,13 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.opensearch.sql.calcite.utils.MathUtils;
+import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 /**
  * <code>sec_to_time(number)</code> converts the number of seconds to time in HH:mm:ssss[.nnnnnn]
@@ -41,6 +44,11 @@ public class SecToTimeFunction extends ImplementorUDF {
     return PPLReturnTypes.TIME_FORCE_NULLABLE;
   }
 
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+    return PPLOperandTypes.NUMERIC;
+  }
+
   public static class SecToTimeImplementor implements NotNullImplementor {
 
     @Override
@@ -55,7 +63,7 @@ public class SecToTimeFunction extends ImplementorUDF {
     public static String secToTime(Number seconds) {
       ExprValue returnTimeValue;
       ExprValue transferredValue = ExprValueUtils.fromObjectValue(seconds);
-      if (seconds instanceof Long || seconds instanceof Integer) {
+      if (MathUtils.isIntegral(seconds)) {
         returnTimeValue = exprSecToTime(transferredValue);
       } else {
         returnTimeValue = exprSecToTimeWithNanos(transferredValue);

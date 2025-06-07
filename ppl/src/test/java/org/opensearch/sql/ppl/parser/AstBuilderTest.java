@@ -512,7 +512,10 @@ public class AstBuilderTest {
         rareTopN(
             relation("t"),
             CommandType.RARE,
-            exprList(argument("noOfResults", intLiteral(10))),
+            exprList(
+                argument("noOfResults", intLiteral(10)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true))),
             emptyList(),
             field("a")));
   }
@@ -524,7 +527,10 @@ public class AstBuilderTest {
         rareTopN(
             relation("t"),
             CommandType.RARE,
-            exprList(argument("noOfResults", intLiteral(10))),
+            exprList(
+                argument("noOfResults", intLiteral(10)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true))),
             exprList(field("b")),
             field("a")));
   }
@@ -536,7 +542,10 @@ public class AstBuilderTest {
         rareTopN(
             relation("t"),
             CommandType.RARE,
-            exprList(argument("noOfResults", intLiteral(10))),
+            exprList(
+                argument("noOfResults", intLiteral(10)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true))),
             exprList(field("c")),
             field("a"),
             field("b")));
@@ -549,7 +558,10 @@ public class AstBuilderTest {
         rareTopN(
             relation("t"),
             CommandType.TOP,
-            exprList(argument("noOfResults", intLiteral(1))),
+            exprList(
+                argument("noOfResults", intLiteral(1)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true))),
             emptyList(),
             field("a")));
   }
@@ -561,7 +573,10 @@ public class AstBuilderTest {
         rareTopN(
             relation("t"),
             CommandType.TOP,
-            exprList(argument("noOfResults", intLiteral(10))),
+            exprList(
+                argument("noOfResults", intLiteral(10)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true))),
             emptyList(),
             field("a")));
   }
@@ -573,7 +588,10 @@ public class AstBuilderTest {
         rareTopN(
             relation("t"),
             CommandType.TOP,
-            exprList(argument("noOfResults", intLiteral(1))),
+            exprList(
+                argument("noOfResults", intLiteral(1)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true))),
             exprList(field("b")),
             field("a")));
   }
@@ -585,7 +603,10 @@ public class AstBuilderTest {
         rareTopN(
             relation("t"),
             CommandType.TOP,
-            exprList(argument("noOfResults", intLiteral(1))),
+            exprList(
+                argument("noOfResults", intLiteral(1)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true))),
             exprList(field("c")),
             field("a"),
             field("b")));
@@ -771,14 +792,14 @@ public class AstBuilderTest {
         new AD(
             relation("t"),
             ImmutableMap.<String, Literal>builder()
-                .put("anomaly_rate", new Literal(0.1, DataType.DOUBLE))
-                .put("anomaly_score_threshold", new Literal(0.1, DataType.DOUBLE))
+                .put("anomaly_rate", new Literal(0.1, DataType.DECIMAL))
+                .put("anomaly_score_threshold", new Literal(0.1, DataType.DECIMAL))
                 .put("sample_size", new Literal(256, DataType.INTEGER))
                 .put("number_of_trees", new Literal(256, DataType.INTEGER))
                 .put("time_zone", new Literal("PST", DataType.STRING))
                 .put("output_after", new Literal(256, DataType.INTEGER))
                 .put("shingle_size", new Literal(10, DataType.INTEGER))
-                .put("time_decay", new Literal(0.0001, DataType.DOUBLE))
+                .put("time_decay", new Literal(0.0001, DataType.DECIMAL))
                 .put("time_field", new Literal("timestamp", DataType.STRING))
                 .put("training_data_size", new Literal(256, DataType.INTEGER))
                 .build()));
@@ -794,15 +815,15 @@ public class AstBuilderTest {
         new AD(
             relation("t"),
             ImmutableMap.<String, Literal>builder()
-                .put("anomaly_rate", new Literal(0.1, DataType.DOUBLE))
-                .put("anomaly_score_threshold", new Literal(0.1, DataType.DOUBLE))
+                .put("anomaly_rate", new Literal(0.1, DataType.DECIMAL))
+                .put("anomaly_score_threshold", new Literal(0.1, DataType.DECIMAL))
                 .put("sample_size", new Literal(256, DataType.INTEGER))
                 .put("number_of_trees", new Literal(256, DataType.INTEGER))
                 .put("date_format", new Literal("HH:mm:ss yyyy-MM-dd", DataType.STRING))
                 .put("time_zone", new Literal("PST", DataType.STRING))
                 .put("output_after", new Literal(256, DataType.INTEGER))
                 .put("shingle_size", new Literal(10, DataType.INTEGER))
-                .put("time_decay", new Literal(0.0001, DataType.DOUBLE))
+                .put("time_decay", new Literal(0.0001, DataType.DECIMAL))
                 .put("time_field", new Literal("timestamp", DataType.STRING))
                 .put("training_data_size", new Literal(256, DataType.INTEGER))
                 .build()));
@@ -848,7 +869,7 @@ public class AstBuilderTest {
             Arrays.asList(
                 new Argument("variable_count_threshold", new Literal(2, DataType.INTEGER)),
                 new Argument(
-                    "frequency_threshold_percentage", new Literal(0.1, DataType.DOUBLE)))));
+                    "frequency_threshold_percentage", new Literal(0.1, DataType.DECIMAL)))));
   }
 
   @Test

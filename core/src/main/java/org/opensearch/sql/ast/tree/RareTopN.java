@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.ast.tree;
 
-import java.util.Collections;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
@@ -29,7 +29,8 @@ public class RareTopN extends UnresolvedPlan {
 
   private UnresolvedPlan child;
   private final CommandType commandType;
-  private final List<Argument> noOfResults;
+  // arguments: noOfResults: Integer, countField: String, showCount: Boolean
+  private final List<Argument> arguments;
   private final List<Field> fields;
   private final List<UnresolvedExpression> groupExprList;
 
@@ -41,7 +42,7 @@ public class RareTopN extends UnresolvedPlan {
 
   @Override
   public List<UnresolvedPlan> getChild() {
-    return Collections.singletonList(this.child);
+    return this.child == null ? ImmutableList.of() : ImmutableList.of(this.child);
   }
 
   @Override

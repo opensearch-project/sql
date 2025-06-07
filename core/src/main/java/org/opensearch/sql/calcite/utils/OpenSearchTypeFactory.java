@@ -223,7 +223,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
       case INTEGER -> INTEGER;
       case BIGINT -> LONG;
       case FLOAT, REAL -> FLOAT;
-      case DOUBLE -> DOUBLE;
+      case DOUBLE, DECIMAL -> DOUBLE; // TODO the decimal is only used for literal
       case CHAR, VARCHAR -> STRING;
       case BOOLEAN -> BOOLEAN;
       case DATE -> DATE;
@@ -245,7 +245,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
       case ARRAY -> ARRAY;
       case MAP -> STRUCT;
       case GEOMETRY -> GEO_POINT;
-      case NULL -> UNDEFINED;
+      case NULL, ANY -> UNDEFINED;
       default -> UNKNOWN;
     };
   }
