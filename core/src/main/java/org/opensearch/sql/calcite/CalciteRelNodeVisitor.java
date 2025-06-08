@@ -20,6 +20,7 @@ import static org.opensearch.sql.calcite.utils.PlanUtils.transformPlanToAttachCh
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Streams;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -974,23 +975,60 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     throw new CalciteUnsupportedException("Table function is unsupported in Calcite");
   }
 
+  /**
+   * Visit flatten command.
+   *
+   * <p>The flatten command is used to flatten a struct field into multiple fields. This
+   * implementation simply projects the flattened fields and renames them according to the provided
+   * aliases or the field names in the struct. This is possible because the struct / object field
+   * are always read in a flattened manner in OpenSearch.
+   *
+   * @param node Flatten command node
+   * @param context CalcitePlanContext
+   * @return RelNode representing the visited logical plan
+   */
   @Override
   public RelNode visitFlatten(Flatten node, CalcitePlanContext context) {
     visitChildren(node, context);
-    RexInputRef fieldRex = (RexInputRef) rexVisitor.analyze(node.getField(), context);
     RelBuilder relBuilder = context.relBuilder;
     String fieldName = node.getField().getField().toString();
-    // Match the field names
-    List<RexNode> aliasFields =
+    // Match the sub-field names with "field.*"
+    List<RelDataTypeField> fieldsToExpand =
         relBuilder.peek().getRowType().getFieldList().stream()
             .filter(f -> f.getName().startsWith(fieldName + "."))
-            .map(
-                f ->
-                    relBuilder.alias(
-                        relBuilder.field(f.getName()),
-                        f.getName().substring(fieldName.length() + 1)))
             .toList();
-    relBuilder.projectPlus(aliasFields);
+
+    List<String> expandedFieldNames;
+    if (node.getAliases() != null) {
+      if (node.getAliases().size() != fieldsToExpand.size()) {
+        throw new IllegalArgumentException(
+            String.format(
+                "The number of aliases has to match the number of flattened fields. Expected %d"
+                    + " (%s), got %d (%s)",
+                fieldsToExpand.size(),
+                fieldsToExpand.stream()
+                    .map(RelDataTypeField::getName)
+                    .collect(Collectors.joining(", ")),
+                node.getAliases().size(),
+                String.join(", ", node.getAliases())));
+      }
+      expandedFieldNames = node.getAliases();
+    } else {
+      // If no aliases provided, name the flattened fields to the key name in the struct.
+      // E.g. message.author --renamed-to--> author
+      expandedFieldNames =
+          fieldsToExpand.stream()
+              .map(RelDataTypeField::getName)
+              .map(name -> name.substring(fieldName.length() + 1))
+              .collect(Collectors.toList());
+    }
+    List<RexNode> expandedFields =
+        Streams.zip(
+                fieldsToExpand.stream(),
+                expandedFieldNames.stream(),
+                (f, n) -> relBuilder.alias(relBuilder.field(f.getName()), n))
+            .collect(Collectors.toList());
+    relBuilder.projectPlus(expandedFields);
     return relBuilder.peek();
   }
 

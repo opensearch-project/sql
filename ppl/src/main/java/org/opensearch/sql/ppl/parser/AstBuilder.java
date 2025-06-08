@@ -90,6 +90,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.AdCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ByClauseContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldListContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsQualifiedNameSeqContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.KmeansCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LookupPairContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
@@ -657,7 +658,16 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitFlattenCommand(OpenSearchPPLParser.FlattenCommandContext ctx) {
     Field field = (Field) internalVisitExpression(ctx.fieldExpression());
-    return new Flatten(field);
+    List<String> aliases =
+        ctx.aliases == null ? null : getAliasList((IdentsAsQualifiedNameSeqContext) ctx.aliases);
+    return new Flatten(field, aliases);
+  }
+
+  private List<String> getAliasList(IdentsAsQualifiedNameSeqContext ctx) {
+    return ctx.qualifiedName().stream()
+        .map(this::internalVisitExpression)
+        .map(Object::toString)
+        .collect(Collectors.toList());
   }
 
   /** trendline command. */

@@ -245,7 +245,7 @@ appendcolCommand
    ;
 
 flattenCommand
-   : FLATTEN fieldExpression
+   : FLATTEN fieldExpression (AS aliases = identifierSeq)?
    ;
 
 kmeansCommand
@@ -1036,6 +1036,11 @@ tableQualifiedName
 
 wcQualifiedName
    : wildcard (DOT wildcard)* # identsAsWildcardQualifiedName
+   ;
+
+identifierSeq
+   : qualifiedName (COMMA qualifiedName)* # identsAsQualifiedNameSeq
+   | LT_PRTHS qualifiedName (COMMA qualifiedName)* RT_PRTHS # identsAsQualifiedNameSeq
    ;
 
 ident
