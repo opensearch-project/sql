@@ -395,7 +395,8 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
 
     verifyNumOfRows(response, 12);
     Request deleteRequest =
-        new Request("DELETE", String.format("/%s/_doc/%d", TEST_INDEX_NESTED_SIMPLE, docId));
+        new Request(
+            "DELETE", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_NESTED_SIMPLE, docId));
     client().performRequest(deleteRequest);
   }
 }
