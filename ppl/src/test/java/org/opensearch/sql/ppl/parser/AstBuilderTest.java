@@ -896,7 +896,7 @@ public class AstBuilderTest {
   }
 
   private Node plan(String query) {
-    AstBuilder astBuilder = new AstBuilder(query);
+    AstBuilder astBuilder = new AstBuilder(query, settings);
     return astBuilder.visit(parser.parse(query));
   }
 

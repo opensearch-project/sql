@@ -40,7 +40,7 @@ PPL query::
     |-----------------------+------------|
     | amberduke@pyrami.com  | pyrami.com |
     | hattiebond@netagy.com | netagy.com |
-    | null                  |            |
+    | null                  | null       |
     | daleadams@boink.com   | boink.com  |
     +-----------------------+------------+
 
