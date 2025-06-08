@@ -13,20 +13,23 @@ Description
 ============
      (From 3.1.0)
 
-Using ``expand`` command to flatten an array of nested type.
+Use the ``expand`` command on a nested array field to transform a single
+document into multiple documents—each containing one element from the array.
+All other fields in the original document are duplicated across the resulting
+documents.
 
-The expand command produces a row for each element in the specified array or map field, where:
+The expand command generates one row per element in the specified array field:
 
-* Array elements become individual rows.
-* When an alias is provided, the exploded values are represented under the alias instead of the original field name.
-* In case where the expanded field is an empty array, the row will be kept the leaving the expanded field as null.
-
-
+* The specified array field is converted into individual rows.
+* If an alias is provided, the expanded values appear under the alias instead
+  of the original field name.
+* If the specified field is an empty array, the row is retained with the
+  expanded field set to null.
 
 Syntax
 ======
 
-expand <field> [As alias]
+expand <field> [AS alias]
 
 * field: The field to be expanded (exploded). Currently only nested arrays are supported.
 * alias: (Optional) The name to use instead of the original field name.
