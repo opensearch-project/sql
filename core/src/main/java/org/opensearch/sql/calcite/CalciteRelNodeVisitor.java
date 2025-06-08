@@ -1030,7 +1030,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // array field.
     // The last parameter has to refer to the array to be expanded on the left side. It will
     // be used by the right side to correlate with the left side.
-    relBuilder.correlate(JoinRelType.INNER, correlVariable.get().id, List.of(arrayFieldRex));
+    // Using left join to keep the records where the array field is empty. The corresponding
+    // field in the result will be null.
+    relBuilder.correlate(JoinRelType.LEFT, correlVariable.get().id, List.of(arrayFieldRex));
 
     // 9. Remove the original array field from the output.
     // TODO: RFC: should we keep the original array field when alias is present?
