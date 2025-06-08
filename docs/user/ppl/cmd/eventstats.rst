@@ -11,9 +11,10 @@ evenstats
 
 Description
 ============
-| (Experimental)
-| (From 3.1.0)
-| Using ``evenstats`` command to enriches your event data with calculated summary statistics. It operates by analyzing specified fields within your events, computing various statistical measures, and then appending these results as new fields to each original event.
+    (Experimental)
+    (From 3.1.0)
+
+Use ``evenstats`` command to enriches your event data with calculated summary statistics. It operates by analyzing specified fields within your events, computing various statistical measures, and then appending these results as new fields to each original event.
 
 | Key aspects of `eventstats`:
 

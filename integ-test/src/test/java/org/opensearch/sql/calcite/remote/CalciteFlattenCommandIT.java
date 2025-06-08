@@ -71,7 +71,7 @@ public class CalciteFlattenCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testFlattenWithMismatchedNumberOfAliasesShouldThrow() throws Exception {
+  public void testFlattenWithMismatchedNumberOfAliasesShouldThrow() {
     Throwable t =
         expectThrows(
             Exception.class,
