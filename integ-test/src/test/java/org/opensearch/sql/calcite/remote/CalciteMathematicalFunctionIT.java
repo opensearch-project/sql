@@ -16,16 +16,4 @@ public class CalciteMathematicalFunctionIT extends MathematicalFunctionIT {
     enableCalcite();
     disallowCalciteFallback();
   }
-
-  @Override
-  @Ignore("https://github.com/opensearch-project/sql/issues/3672")
-  public void testAtan() throws IOException {
-    super.testAtan();
-  }
-
-  @Override
-  @Ignore("https://github.com/opensearch-project/sql/issues/3672")
-  public void testConv() throws IOException {
-    super.testConv();
-  }
 }
