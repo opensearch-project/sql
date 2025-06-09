@@ -10,7 +10,6 @@ flatten
 
 Description
 ===========
-    From 3.1.0
 
 Use ``flatten`` command to flatten a nested struct / object field into separate
 fields in a document.
@@ -22,6 +21,10 @@ the flattened fields will be ordered as ``Z``, ``b``, ``c``.
 Note that ``flatten`` does not work on arrays. Please use ``expand`` command
 to expand an array field into multiple rows instead. If the field is an nested
 array of structs, only the first element of the array will be flattened.
+
+Version
+=======
+Since 3.1.0
 
 Syntax
 ======
