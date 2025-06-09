@@ -11,12 +11,13 @@ appendcol
 
 Description
 ============
-
-Use ``appendcol`` command to append the result of a sub-search and attach it alongside with the input search results (The main search).
+| (Experimental)
+| (From 3.1.0)
+| Using ``appendcol`` command to append the result of a sub-search and attach it alongside with the input search results (The main search).
 
 Version
 =======
-Since 3.1.0
+3.1.0
 
 Syntax
 ============

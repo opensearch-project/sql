@@ -11,8 +11,7 @@ top
 
 Description
 ============
-
-Use ``top`` command to find the most common tuple of values of all fields in the field list.
+| Using ``top`` command to find the most common tuple of values of all fields in the field list.
 
 
 Syntax

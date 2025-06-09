@@ -11,8 +11,7 @@ where
 
 Description
 ============
-
-Use ``where`` command to filter the search result. The ``where`` command only return the result when bool-expression evaluated to true.
+| The ``where`` command bool-expression to filter the search result. The ``where`` command only return the result when bool-expression evaluated to true.
 
 
 Syntax
@@ -24,7 +23,7 @@ where <boolean-expression>
 Example 1: Filter result set with condition
 ===========================================
 
-The example shows fetching documents from accounts index with ``where``.
+The example show fetch all the document from accounts index with .
 
 PPL query::
 

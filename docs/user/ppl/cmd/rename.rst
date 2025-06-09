@@ -11,13 +11,12 @@ rename
 
 Description
 ============
-
-Use ``rename`` command to rename one or more fields in the search result.
+| Using ``rename`` command to rename one or more fields in the search result.
 
 
 Syntax
 ============
-rename <source-field> as <target-field>["," <source-field> as <target-field>]...
+rename <source-field> AS <target-field>["," <source-field> AS <target-field>]...
 
 * source-field: mandatory. The name of the field you want to rename.
 * field list: mandatory. The name you want to rename to.

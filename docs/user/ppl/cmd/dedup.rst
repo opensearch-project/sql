@@ -11,8 +11,7 @@ dedup
 
 Description
 ============
-
-Use ``dedup`` command to remove identical document defined by field from the search result.
+| Using ``dedup`` command to remove identical document defined by field from the search result.
 
 
 Syntax

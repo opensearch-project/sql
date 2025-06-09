@@ -11,8 +11,7 @@ head
 
 Description
 ============
-
-The ``head`` command returns the first N number of specified results after an optional offset in search order.
+| The ``head`` command returns the first N number of specified results after an optional offset in search order.
 
 
 Syntax

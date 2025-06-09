@@ -11,8 +11,7 @@ describe
 
 Description
 ============
-
-Use ``describe`` command to query metadata of the index. ``describe`` command could be only used as the first command in the PPL query.
+| Using ``describe`` command to query metadata of the index. ``describe`` command could be only used as the first command in the PPL query.
 
 
 Syntax

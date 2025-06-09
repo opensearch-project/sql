@@ -11,12 +11,13 @@ subquery (aka subsearch)
 
 Description
 ============
-
-The subquery (aka subsearch) commands contain 4 types: ``InSubquery``, ``ExistsSubquery``, ``ScalarSubquery`` and ``RelationSubquery``. The first three are expressions, they are used in WHERE clause (``where <boolean expression>``) and search filter(``search source=* <boolean expression>``). ``RelationSubquery`` is not an expression, it is a statement.
+| (Experimental)
+| (From 3.0.0)
+| The subquery (aka subsearch) commands contain 4 types: ``InSubquery``, ``ExistsSubquery``, ``ScalarSubquery`` and ``RelationSubquery``. The first three are expressions, they are used in WHERE clause (``where <boolean expression>``) and search filter(``search source=* <boolean expression>``). ``RelationSubquery`` is not an expression, it is a statement.
 
 Version
 =======
-Since 3.0.0
+3.0.0
 
 Syntax
 ======

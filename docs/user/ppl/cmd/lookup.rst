@@ -11,18 +11,19 @@ lookup
 
 Description
 ============
-
-Lookup command enriches your search data by adding or replacing data from a lookup index (dimension table).
+| (Experimental)
+| (From 3.0.0)
+| Lookup command enriches your search data by adding or replacing data from a lookup index (dimension table).
 You can extend fields of an index with values from a dimension table, append or replace values when lookup condition is matched.
 As an alternative of join command, lookup command is more suitable for enriching the source data with a static dataset.
 
 Version
 =======
-Since 3.0.0
+3.0.0
 
 Syntax
 ======
-lookup <lookupIndex> (<lookupMappingField> [as <sourceMappingField>])... [(REPLACE | APPEND) (<inputField> [as <outputField>])...]
+LOOKUP <lookupIndex> (<lookupMappingField> [AS <sourceMappingField>])... [(REPLACE | APPEND) (<inputField> [AS <outputField>])...]
 
 * lookupIndex: mandatory. The name of lookup index (dimension table).
 * lookupMappingField: mandatory. A mapping key in \<lookupIndex\>, analogy to a join key from right table. You can specify multiple \<lookupMappingField\> with comma-delimited.

@@ -11,8 +11,7 @@ eval
 
 Description
 ============
-
-The ``eval`` command evaluates the expression and append the result to the search result.
+| The ``eval`` command evaluate the expression and append the result to the search result.
 
 
 Syntax

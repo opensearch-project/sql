@@ -11,8 +11,7 @@ show datasources
 
 Description
 ============
-
-Use ``show datasources`` command to query datasources configured in the PPL engine. ``show datasources`` command could be only used as the first command in the PPL query.
+| Using ``show datasources`` command to query datasources configured in the PPL engine. ``show datasources`` command could be only used as the first command in the PPL query.
 
 
 Syntax

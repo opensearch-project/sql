@@ -11,8 +11,7 @@ fillnull
 
 Description
 ============
-
-Use ``fillnull`` command to fill null with provided value in one or more fields in the search result.
+Using ``fillnull`` command to fill null with provided value in one or more fields in the search result.
 
 
 Syntax

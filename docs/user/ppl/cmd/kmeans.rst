@@ -11,8 +11,7 @@ kmeans (deprecated by ml command)
 
 Description
 ============
-
-The ``kmeans`` command applies the kmeans algorithm in the ml-commons plugin on the search result returned by a PPL command.
+| The ``kmeans`` command applies the kmeans algorithm in the ml-commons plugin on the search result returned by a PPL command.
 
 
 Syntax
