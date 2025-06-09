@@ -143,7 +143,7 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
 
   // To consider in future releases: will expand on array (instead of nested) be supported.
   //  In Opensearch, a string field can store either a single string or an array of strings.
-  //  This makes it difficult to implement expand on arries.
+  //  This makes it difficult to implement expand on arrays.
   @Ignore
   @Test
   public void testExpandOnArray() throws Exception {

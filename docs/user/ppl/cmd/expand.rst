@@ -29,7 +29,7 @@ The expand command generates one row per element in the specified array field:
 Syntax
 ======
 
-expand <field> [AS alias]
+expand <field> [as alias]
 
 * field: The field to be expanded (exploded). Currently only nested arrays are supported.
 * alias: (Optional) The name to use instead of the original field name.
@@ -38,7 +38,7 @@ expand <field> [AS alias]
 Example: expand address field with an alias
 ===========================================
 
-Given a dataset ``mirgration`` with the following data:
+Given a dataset ``migration`` with the following data:
 
 .. code-block::
 
@@ -49,7 +49,7 @@ The following query expand the address field and rename it to addr:
 
 PPL query::
 
-    PPL> source=mirgration | expand address as addr;
+    PPL> source=migration | expand address as addr;
     fetched rows / total rows = 3/3
     +-------+-----+-------------------------------------------------------------------------------------------+
     | name  | age | addr                                                                                      |
