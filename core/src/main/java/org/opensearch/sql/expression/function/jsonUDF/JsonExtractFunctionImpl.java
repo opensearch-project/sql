@@ -79,7 +79,7 @@ public class JsonExtractFunctionImpl extends ImplementorUDF {
       results.add(queryResult != null ? queryResult : valueResult);
     }
     if (jsonPaths.size() == 1) {
-      return doJsonize(results.getFirst());
+      return doJsonize(results.get(0));
     }
     return doJsonize(results);
   }
