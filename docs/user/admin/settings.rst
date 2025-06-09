@@ -166,7 +166,7 @@ plugins.query.size_limit
 Description
 -----------
 
-The new engine fetches a default size of index from OpenSearch set by this setting, the default value equals to max result window in index level (10000 by default). You can change the value to any value not greater than the max result window value in index level (`index.max_result_window`), here is an example::
+The size configures the maximum amount of rows to be fetched from query execution results. The default value is: 10000. You can change the value::
 
 	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
 	  "transient" : {
@@ -186,6 +186,51 @@ Result set::
           }
         }
       }
+    }
+
+plugins.query.system_limit
+==========================
+
+Description
+-----------
+
+The size configures the maximum amount of documents to be pull from OpenSearch for data-intensive operations (e.g. join, lookup). The default value is: 50000.
+
+From v3.0.0, PPL introduces commands that may increase data volume. To prevent out-of-memory problem, the system automatically enforces this ``system limit`` in the pushdown context of the physical index scan operator for such commands.
+
+Version
+-------
+3.1.0
+
+Example
+-------
+
+Change the system_limit to 10000::
+
+    sh$ curl -sS -H 'Content-Type: application/json' \
+    ... -X PUT localhost:9200/_plugins/_query/settings \
+    ... -d '{"persistent" : {"plugins.query.system_limit" : "10000"}}'
+    {
+      "acknowledged": true,
+      "persistent": {
+        "plugins": {
+          "query": {
+            "system_limit": "10000"
+          }
+        }
+      },
+      "transient": {}
+    }
+
+Rollback to default value::
+
+    sh$ curl -sS -H 'Content-Type: application/json' \
+    ... -X PUT localhost:9200/_plugins/_query/settings \
+    ... -d '{"persistent" : {"plugins.query.system_limit" : null}}'
+    {
+      "acknowledged": true,
+      "persistent": {},
+      "transient": {}
     }
 
 plugins.query.memory_limit

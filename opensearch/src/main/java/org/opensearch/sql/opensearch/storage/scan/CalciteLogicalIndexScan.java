@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -15,6 +16,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
@@ -33,6 +35,7 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.planner.physical.EnumerableIndexScanRule;
 import org.opensearch.sql.opensearch.planner.physical.OpenSearchIndexRules;
+import org.opensearch.sql.opensearch.planner.physical.SystemLimitRuleConfig;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
@@ -81,7 +84,34 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       for (RelOptRule rule : OpenSearchIndexRules.OPEN_SEARCH_INDEX_SCAN_RULES) {
         planner.addRule(rule);
       }
+      Integer systemLimit = osIndex.getSettings().getSettingValue(Settings.Key.QUERY_SYSTEM_LIMIT);
+      if (systemLimit >= 0) {
+        registerSystemLimitRuleForJoin(planner, systemLimit);
+      }
     }
+  }
+
+  private void registerSystemLimitRuleForJoin(RelOptPlanner planner, Integer defaultSystemLimit) {
+    Integer specifiedLimit =
+        osIndex.getSettings().getSettingValue(Settings.Key.QUERY_SYSTEM_LIMIT_JOIN);
+    int systemLimit = specifiedLimit == null ? defaultSystemLimit : specifiedLimit;
+    List<RelOptRule> rules =
+        createRules(
+            systemLimit,
+            SystemLimitRuleConfig.SYSTEM_LIMIT_JOIN_TRANSFORM,
+            SystemLimitRuleConfig.SYSTEM_LIMIT_CORRELATE_TRANSFORM);
+    rules.forEach(planner::addRule);
+  }
+
+  private List<RelOptRule> createRules(int systemLimit, RelRule.OperandTransform... transforms) {
+    List<RelOptRule> rules = new ArrayList<>();
+    for (RelRule.OperandTransform transform : transforms) {
+      SystemLimitRuleConfig ruleConfig = new SystemLimitRuleConfig(systemLimit);
+      ruleConfig.withOperandSupplier(transform);
+      ruleConfig.withDescription("RuleConfig_" + Integer.toHexString(transform.hashCode()));
+      rules.add(ruleConfig.toRule());
+    }
+    return rules;
   }
 
   public CalciteLogicalIndexScan pushDownFilter(Filter filter) {

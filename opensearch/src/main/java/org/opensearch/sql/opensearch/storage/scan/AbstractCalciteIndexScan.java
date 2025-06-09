@@ -11,6 +11,7 @@ import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_PUSHDOWN_RO
 import java.util.ArrayDeque;
 import java.util.List;
 import lombok.Getter;
+import lombok.Setter;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
@@ -88,7 +89,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                       case PROJECT -> rowCount;
                       case FILTER -> NumberUtil.multiply(
                           rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest));
-                      case LIMIT -> (Integer) action.digest;
+                      case LIMIT, SYSTEM_LIMIT -> (Integer) action.digest;
                     }
                     * estimateRowCountFactor,
             (a, b) -> null);
@@ -99,6 +100,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
 
     private boolean isAggregatePushed = false;
     private boolean isLimitPushed = false;
+    @Getter @Setter private boolean isSystemLimitPushed = false;
 
     @Override
     public PushDownContext clone() {
@@ -135,6 +137,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     AGGREGATION,
     // SORT,
     LIMIT,
+    SYSTEM_LIMIT, // not user specified limit, it's the limit pushed for high-cost operators
     // HIGHLIGHT,
     // NESTED
   }

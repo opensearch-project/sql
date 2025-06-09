@@ -33,6 +33,7 @@ public class SettingsIT extends PPLIntegTestCase {
     result =
         executeQuery(String.format("search source=%s age>35 | fields firstname", TEST_INDEX_BANK));
     verifyDataRows(result, rows("Hattie"));
+    resetQuerySizeLimit();
   }
 
   @Test
@@ -62,5 +63,6 @@ public class SettingsIT extends PPLIntegTestCase {
                 "search source=%s | eval a = 1 | where age>35 | fields firstname",
                 TEST_INDEX_BANK));
     verifyDataRows(result, rows("Hattie"));
+    resetQuerySizeLimit();
   }
 }

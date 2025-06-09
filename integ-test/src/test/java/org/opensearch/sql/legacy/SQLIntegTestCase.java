@@ -92,6 +92,8 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
       Integer.parseInt(System.getProperty("defaultQuerySizeLimit", "200"));
   public static final Integer DEFAULT_MAX_RESULT_WINDOW =
       Integer.parseInt(System.getProperty("defaultMaxResultWindow", "10000"));
+  public static final Integer DEFAULT_QUERY_SYSTEM_LIMIT =
+      Integer.parseInt(System.getProperty("defaultMaxResultWindow", "50000"));
 
   public boolean shouldResetQuerySizeLimit() {
     return true;
@@ -185,6 +187,20 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
             "transient",
             Settings.Key.QUERY_SIZE_LIMIT.getKeyValue(),
             DEFAULT_QUERY_SIZE_LIMIT.toString()));
+  }
+
+  protected void setQuerySystemLimit(Integer limit) throws IOException {
+    updateClusterSettings(
+        new ClusterSetting(
+            "transient", Settings.Key.QUERY_SYSTEM_LIMIT.getKeyValue(), limit.toString()));
+  }
+
+  protected void resetQuerySystemLimit() throws IOException {
+    updateClusterSettings(
+        new ClusterSetting(
+            "transient",
+            Settings.Key.QUERY_SYSTEM_LIMIT.getKeyValue(),
+            DEFAULT_QUERY_SYSTEM_LIMIT.toString()));
   }
 
   @SneakyThrows
