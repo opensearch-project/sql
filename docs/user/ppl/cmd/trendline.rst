@@ -23,7 +23,7 @@ Syntax
 * field: mandatory. The name of the field the moving average should be calculated for.
 * alias: optional. The name of the resulting column containing the moving average (defaults to the field name with "_trendline").
 
-Starting with version 3.1.0, two trendline algorithms are supported, aka Simple Moving Average (SMA) amd Weighted Moving Average (WMA).
+Starting with version 3.1.0, two trendline algorithms are supported, aka Simple Moving Average (SMA) and Weighted Moving Average (WMA).
 
 Suppose:
 
@@ -37,7 +37,8 @@ SMA is calculated like
 
 WMA places more weights on recent values compared to equal-weighted SMA algorithm
 
-    WMA(t) = (1/(1 + 2 + ... + n)) * (1 * f(i-n+1) + 2 * f(i-n+2) + ... + n * f(i))
+    WMA(t) = (1/(1 + 2 + ... + n)) * Σ(1 * f[i-n+1] + 2 * f[t-n+2] + ... + n * f[t])
+           = (2/(n * (n + 1))) * Σ((i - t + n) * f[i]), where i = t-n+1 to t
 
 
 Example 1: Calculate the simple moving average on one field.
@@ -131,4 +132,4 @@ PPL query::
 
 Limitation
 ==========
-Starting with version 3.1.0, the ``trendline`` command requires all values in the specified ``field`` to be non-null. Any null values present in the calculation field will be automatically excluded from the command's output.
+Starting with version 3.1.0, the ``trendline`` command requires all values in the specified ``field`` to be non-null. Any rows with null values present in the calculation field will be automatically excluded from the command's output.
