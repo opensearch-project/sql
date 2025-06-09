@@ -397,7 +397,7 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   private String anonymize(String query) {
-    AstBuilder astBuilder = new AstBuilder(query);
+    AstBuilder astBuilder = new AstBuilder(query, settings);
     return anonymize(astBuilder.visit(parser.parse(query)));
   }
 
