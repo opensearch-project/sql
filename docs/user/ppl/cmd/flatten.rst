@@ -35,7 +35,7 @@ flatten <field> [as (<alias-list>)]
   ``country, state, city`` and ``(country, state, city)`` are supported,
   but the latter is advised. Its length must match the number of keys in the
   struct field.  Please note that the provided alias names **must** follow
-  the alphabetical order of the corresponding original keys in the struct.
+  the lexicographical order of the corresponding original keys in the struct.
 
 Example: flatten a struct field with aliases
 ============================================
@@ -98,3 +98,16 @@ PPL query::
     | {"info":"b","author":"f","dayOfWeek":2} | 2      | f       | 2   | b    |
     +-----------------------------------------+--------+---------+-----+------+
 
+Limitations
+===========
+* The command works only with Calcite enabled. This can be set with the
+  following command:
+
+  .. code-block::
+
+    PUT /_cluster/settings
+    {
+      "persistent":{
+          "plugins.calcite.enabled": true
+      }
+    }

@@ -32,6 +32,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Assert;
 import org.junit.Test;
 
+/**
+ * Unit tests for {@code flatten} command in PPL.
+ */
 public class CalcitePPLFlattenTest extends CalcitePPLAbstractTest {
   public CalcitePPLFlattenTest() {
     super(CalciteAssert.SchemaSpec.SCOTT_WITH_TEMPORAL);
