@@ -10,22 +10,17 @@ import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getLegacyTy
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.*;
 
 import com.google.common.collect.ImmutableMap;
-import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.function.BiFunction;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import org.apache.calcite.adapter.enumerable.RexImpTable;
-import org.apache.calcite.adapter.enumerable.TableFunctionCallImplementor;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
@@ -48,8 +43,6 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.executor.QueryType;
-import org.opensearch.sql.expression.function.SqlUncollectPatternsTableFunction.UncollectPatternsImplementor;
-import org.opensearch.sql.utils.ReflectionUtils;
 
 public class PPLFuncImpTable {
   private static final Logger logger = LogManager.getLogger(PPLFuncImpTable.class);
@@ -354,31 +347,6 @@ public class PPLFuncImpTable {
       };
     }
 
-    /*
-     * Caveat!: Hacky way to modify Calcite RexImpTable tvfMap via reflection.
-     * We do this because Calcite exposed UserDefinedTableFunction's implementor only accepts RexCall
-     * without inputEnumerable. It's more useful to defined UDTF with predefined values instead of child
-     * plan's input. So we extend SqlWindowTableFunction to implement our own table function.
-     */
-    void registerTvfIntoRexImpTable() {
-      RexImpTable rexImpTable = RexImpTable.INSTANCE;
-
-      Field tvfMapField = ReflectionUtils.getDeclaredField(rexImpTable, "tvfImplementorMap");
-      assert tvfMapField != null
-          : String.format(
-              Locale.ROOT, "Could not get field: tvfImplementorMap on object: %s", rexImpTable);
-      ReflectionUtils.makeAccessible(tvfMapField);
-      Map<SqlOperator, Supplier<? extends TableFunctionCallImplementor>> tvfMap =
-          (Map<SqlOperator, Supplier<? extends TableFunctionCallImplementor>>)
-              ReflectionUtils.getFieldValue(rexImpTable, tvfMapField);
-      ImmutableMap<SqlOperator, Supplier<? extends TableFunctionCallImplementor>> newTvfMap =
-          ImmutableMap.<SqlOperator, Supplier<? extends TableFunctionCallImplementor>>builder()
-              .putAll(tvfMap)
-              .put(PPLBuiltinOperators.UNCOLLECT_PATTERNS, UncollectPatternsImplementor::new)
-              .build();
-      ReflectionUtils.setFieldValue(rexImpTable, tvfMapField, newTvfMap);
-    }
-
     void populate() {
       // Register std operator
       registerOperator(AND, SqlStdOperatorTable.AND);
@@ -669,10 +637,6 @@ public class PPLFuncImpTable {
                               builder.makeLiteral(" "),
                               arg))),
               PPLTypeChecker.family(SqlTypeFamily.ANY)));
-
-      // Register table function operator
-      registerOperator(INTERNAL_UNCOLLECT_PATTERNS, PPLBuiltinOperators.UNCOLLECT_PATTERNS);
-      registerTvfIntoRexImpTable();
     }
   }
 

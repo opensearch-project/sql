@@ -203,25 +203,25 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
-        "LogicalProject(patterns_field=[$1], pattern_count=[$2], tokens=[$3])\n"
-            + "  LogicalTableFunctionScan(invocation=[UNCOLLECT_PATTERNS($0, 0:TINYINT)],"
-            + " rowType=[RecordType((VARCHAR, ANY) MAP ARRAY patterns_field, VARCHAR pattern,"
-            + " BIGINT pattern_count, (VARCHAR, VARCHAR ARRAY) MAP tokens)])\n"
+        "LogicalProject(patterns_field=[SAFE_CAST(ITEM($1, 'pattern'))],"
+            + " pattern_count=[SAFE_CAST(ITEM($1, 'pattern_count'))], tokens=[SAFE_CAST(ITEM($1,"
+            + " 'tokens'))])\n"
+            + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
             + "    LogicalAggregate(group=[{}], patterns_field=[pattern($0, $1, $2)])\n"
             + "      LogicalProject(ENAME=[$1], $f8=[10], $f9=[100000])\n"
-            + "        LogicalTableScan(table=[[scott, EMP]])\n";
+            + "        LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    Uncollect\n"
+            + "      LogicalProject(patterns_field=[$cor0.patterns_field])\n"
+            + "        LogicalFilter(condition=[=($cor0.patterns_field, $0)])\n"
+            + "          LogicalAggregate(group=[{}], patterns_field=[pattern($0, $1, $2)])\n"
+            + "            LogicalProject(ENAME=[$1], $f8=[10], $f9=[100000])\n"
+            + "              LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     /*
      * TODO: Fix Spark SQL conformance
-     * Spark SQL seems to not support `select * from table(udtf(subquery))` syntax. The syntax is `select * from udtf(table(subquery))`
+     * Calcite Correlate having aggregation in subquery is not supported to get AliasContext
      */
-    String expectedSparkSql =
-        "SELECT `pattern` `patterns_field`, `pattern_count`, `tokens`\n"
-            + "FROM TABLE(UNCOLLECT_PATTERNS((SELECT `pattern`(`ENAME`, 10, 100000)"
-            + " `patterns_field`\n"
-            + "FROM `scott`.`EMP`), 0))";
-    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
@@ -230,25 +230,24 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
-        "LogicalProject(DEPTNO=[$0], patterns_field=[$2], pattern_count=[$3], tokens=[$4])\n"
-            + "  LogicalTableFunctionScan(invocation=[UNCOLLECT_PATTERNS($0, 1:TINYINT)],"
-            + " rowType=[RecordType(TINYINT DEPTNO, (VARCHAR, ANY) MAP ARRAY patterns_field,"
-            + " VARCHAR pattern, BIGINT pattern_count, (VARCHAR, VARCHAR ARRAY) MAP tokens)])\n"
+        "LogicalProject(DEPTNO=[$0], patterns_field=[SAFE_CAST(ITEM($2, 'pattern'))],"
+            + " pattern_count=[SAFE_CAST(ITEM($2, 'pattern_count'))], tokens=[SAFE_CAST(ITEM($2,"
+            + " 'tokens'))])\n"
+            + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])\n"
             + "    LogicalAggregate(group=[{1}], patterns_field=[pattern($0, $2, $3)])\n"
             + "      LogicalProject(ENAME=[$1], DEPTNO=[$7], $f8=[10], $f9=[100000])\n"
-            + "        LogicalTableScan(table=[[scott, EMP]])\n";
+            + "        LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    Uncollect\n"
+            + "      LogicalProject(patterns_field=[$cor0.patterns_field])\n"
+            + "        LogicalFilter(condition=[=($cor0.patterns_field, $1)])\n"
+            + "          LogicalAggregate(group=[{1}], patterns_field=[pattern($0, $2, $3)])\n"
+            + "            LogicalProject(ENAME=[$1], DEPTNO=[$7], $f8=[10], $f9=[100000])\n"
+            + "              LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     /*
      * TODO: Fix Spark SQL conformance
-     * Spark SQL seems to not support `select * from table(udtf(subquery))` syntax. The syntax is `select * from udtf(table(subquery))`
+     * Calcite Correlate having aggregation in subquery is not supported to get AliasContext
      */
-    String expectedSparkSql =
-        "SELECT `DEPTNO`, `pattern` `patterns_field`, `pattern_count`, `tokens`\n"
-            + "FROM TABLE(UNCOLLECT_PATTERNS((SELECT `DEPTNO`, `pattern`(`ENAME`, 10, 100000)"
-            + " `patterns_field`\n"
-            + "FROM `scott`.`EMP`\n"
-            + "GROUP BY `DEPTNO`), 1))";
-    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }
