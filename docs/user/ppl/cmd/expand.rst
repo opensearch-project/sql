@@ -26,12 +26,17 @@ The expand command generates one row per element in the specified array field:
 * If the specified field is an empty array, the row is retained with the
   expanded field set to null.
 
+Version
+=======
+Since 3.1.0
+
 Syntax
 ======
 
 expand <field> [as alias]
 
-* field: The field to be expanded (exploded). Currently only nested arrays are supported.
+* field: The field to be expanded (exploded). Currently only nested arrays are
+   supported.
 * alias: (Optional) The name to use instead of the original field name.
 
 
