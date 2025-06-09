@@ -18,19 +18,6 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Override
-  public void testFillNullPushDownExplain() throws Exception {
-    withFallbackEnabled(
-        () -> {
-          try {
-            super.testFillNullPushDownExplain();
-          } catch (Exception e) {
-            throw new RuntimeException(e);
-          }
-        },
-        "https://github.com/opensearch-project/sql/issues/3461");
-  }
-
-  @Override
   public void testTrendlinePushDownExplain() throws Exception {
     withFallbackEnabled(
         () -> {

@@ -5,9 +5,15 @@
 
 package org.opensearch.sql.calcite.utils;
 
+import java.math.BigDecimal;
+
 public class MathUtils {
   public static boolean isIntegral(Number n) {
     return n instanceof Byte || n instanceof Short || n instanceof Integer || n instanceof Long;
+  }
+
+  public static boolean isDecimal(Number n) {
+    return n instanceof BigDecimal;
   }
 
   /**

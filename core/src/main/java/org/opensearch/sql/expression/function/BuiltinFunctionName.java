@@ -226,6 +226,7 @@ public enum BuiltinFunctionName {
   IF(FunctionName.of("if")),
   NULLIF(FunctionName.of("nullif")),
   ISNULL(FunctionName.of("isnull")),
+  COALESCE(FunctionName.of("coalesce")),
 
   IS_PRESENT(FunctionName.of("ispresent")),
   IS_EMPTY(FunctionName.of("isempty")),
@@ -281,7 +282,9 @@ public enum BuiltinFunctionName {
   WILDCARD_QUERY(FunctionName.of("wildcard_query")),
 
   /** Internal functions that are not exposed to customers. */
+  INTERNAL_ITEM(FunctionName.of("item"), true),
   INTERNAL_REGEXP_EXTRACT(FunctionName.of("regexp_extract"), true),
+  INTERNAL_GROK(FunctionName.of("grok"), true),
   INTERNAL_REGEXP_REPLACE_2(FunctionName.of("regexp_replace_2"), true);
 
   private final FunctionName name;

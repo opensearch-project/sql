@@ -59,7 +59,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
             + "  LogicalProject(SAL=[$5])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "avg(SAL)=2073.21\n";
+    String expectedResult = "avg(SAL)=2073.214285\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql = "" + "SELECT AVG(`SAL`) `avg(SAL)`\n" + "FROM `scott`.`EMP`";
@@ -78,7 +78,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
             + "  LogicalProject(SAL=[$5])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "avg_sal=2073.21; max_sal=5000.00; min_sal=800.00; cnt=14\n";
+    String expectedResult = "avg_sal=2073.214285; max_sal=5000.00; min_sal=800.00; cnt=14\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
@@ -103,9 +103,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     String expectedResult =
         ""
-            + "avg_sal=2175.00; max_sal=3000.00; min_sal=800.00; cnt=5; DEPTNO=20\n"
-            + "avg_sal=2916.66; max_sal=5000.00; min_sal=1300.00; cnt=3; DEPTNO=10\n"
-            + "avg_sal=1566.66; max_sal=2850.00; min_sal=950.00; cnt=6; DEPTNO=30\n";
+            + "avg_sal=2175.; max_sal=3000.00; min_sal=800.00; cnt=5; DEPTNO=20\n"
+            + "avg_sal=2916.666666; max_sal=5000.00; min_sal=1300.00; cnt=3; DEPTNO=10\n"
+            + "avg_sal=1566.666666; max_sal=2850.00; min_sal=950.00; cnt=6; DEPTNO=30\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
@@ -129,9 +129,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     String expectedResult =
         ""
-            + "avg(SAL)=2175.00; DEPTNO=20\n"
-            + "avg(SAL)=2916.66; DEPTNO=10\n"
-            + "avg(SAL)=1566.66; DEPTNO=30\n";
+            + "avg(SAL)=2175.; DEPTNO=20\n"
+            + "avg(SAL)=2916.666666; DEPTNO=10\n"
+            + "avg(SAL)=1566.666666; DEPTNO=30\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
@@ -192,13 +192,13 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     String expectedResult =
         ""
-            + "avg(SAL)=2050.00; empno_span=7600\n"
-            + "avg(SAL)=800.00; empno_span=7300\n"
-            + "avg(SAL)=2725.00; empno_span=7700\n"
-            + "avg(SAL)=1600.00; empno_span=7400\n"
-            + "avg(SAL)=2533.33; empno_span=7800\n"
-            + "avg(SAL)=2112.50; empno_span=7500\n"
-            + "avg(SAL)=1750.00; empno_span=7900\n";
+            + "avg(SAL)=2050.; empno_span=7600\n"
+            + "avg(SAL)=800.; empno_span=7300\n"
+            + "avg(SAL)=2725.; empno_span=7700\n"
+            + "avg(SAL)=1600.; empno_span=7400\n"
+            + "avg(SAL)=2533.333333; empno_span=7800\n"
+            + "avg(SAL)=2112.5; empno_span=7500\n"
+            + "avg(SAL)=1750.; empno_span=7900\n";
     verifyResult(root, expectedResult);
   }
 
@@ -218,11 +218,11 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     String expectedResult =
         ""
-            + "avg(SAL)=2916.66; empno_span=7500; DEPTNO=10\n"
-            + "avg(SAL)=800.00; empno_span=7000; DEPTNO=20\n"
-            + "avg(SAL)=2518.75; empno_span=7500; DEPTNO=20\n"
-            + "avg(SAL)=1600.00; empno_span=7000; DEPTNO=30\n"
-            + "avg(SAL)=1560.00; empno_span=7500; DEPTNO=30\n";
+            + "avg(SAL)=2916.666666; empno_span=7500; DEPTNO=10\n"
+            + "avg(SAL)=800.; empno_span=7000; DEPTNO=20\n"
+            + "avg(SAL)=2518.750000; empno_span=7500; DEPTNO=20\n"
+            + "avg(SAL)=1600.; empno_span=7000; DEPTNO=30\n"
+            + "avg(SAL)=1560.; empno_span=7500; DEPTNO=30\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
@@ -234,7 +234,6 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
-  @Ignore("Span doesn't support type of calcite date")
   @Test
   public void testAvgByTimeSpanAndFields() {
     String ppl =
@@ -244,27 +243,15 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         "LogicalSort(sort0=[$2], sort1=[$1], dir0=[ASC], dir1=[ASC])\n"
             + "  LogicalProject(avg(SAL)=[$2], hiredate_span=[$1], DEPTNO=[$0])\n"
-            + "    LogicalAggregate(group=[{1, 2}], avg(SAL)=[AVG($0)])\n"
-            + "      LogicalProject(SAL=[$5], DEPTNO=[$7], hiredate_span=[SPAN($4, 'DATE', 1,"
-            + " 'y')])\n"
+            + "    LogicalAggregate(group=[{0, 2}], avg(SAL)=[AVG($1)])\n"
+            + "      LogicalProject(DEPTNO=[$7], SAL=[$5], hiredate_span=[SPAN($4, 1, 'y')])\n"
             + "        LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
-    String expectedResult =
-        ""
-            + "avg(SAL)=3725.00; hiredate_span=1981-01-01; DEPTNO=10\n"
-            + "avg(SAL)=1300.00; hiredate_span=1982-01-01; DEPTNO=10\n"
-            + "avg(SAL)=800.00; hiredate_span=1980-01-01; DEPTNO=20\n"
-            + "avg(SAL)=2987.50; hiredate_span=1981-01-01; DEPTNO=20\n"
-            + "avg(SAL)=2050.00; hiredate_span=1987-01-01; DEPTNO=20\n"
-            + "avg(SAL)=1566.66; hiredate_span=1981-01-01; DEPTNO=30\n";
-    verifyResult(root, expectedResult);
-
     String expectedSparkSql =
-        "SELECT AVG(`SAL`) `avg(SAL)`, `SPAN`(`HIREDATE`, 'DATE', 1, 'y') `hiredate_span`,"
-            + " `DEPTNO`\n"
+        "SELECT AVG(`SAL`) `avg(SAL)`, `SPAN`(`HIREDATE`, 1, 'y') `hiredate_span`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`\n"
-            + "GROUP BY `DEPTNO`, `SPAN`(`HIREDATE`, 'DATE', 1, 'y')\n"
+            + "GROUP BY `DEPTNO`, `SPAN`(`HIREDATE`, 1, 'y')\n"
             + "ORDER BY `DEPTNO` NULLS LAST, 2 NULLS LAST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -354,9 +341,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     String expectedResult =
         ""
-            + "stddev_samp(SAL)=1123.33; DEPTNO=20\n"
-            + "stddev_samp(SAL)=1893.62; DEPTNO=10\n"
-            + "stddev_samp(SAL)=668.33; DEPTNO=30\n";
+            + "stddev_samp(SAL)=1123.332096; DEPTNO=20\n"
+            + "stddev_samp(SAL)=1893.629671; DEPTNO=10\n"
+            + "stddev_samp(SAL)=668.331255; DEPTNO=30\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
@@ -380,13 +367,13 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     String expectedResult =
         ""
-            + "samp=1131.37; empno_span=7600\n"
+            + "samp=1131.370849; empno_span=7600\n"
             + "samp=null; empno_span=7300\n"
-            + "samp=388.90; empno_span=7700\n"
+            + "samp=388.908729; empno_span=7700\n"
             + "samp=null; empno_span=7400\n"
-            + "samp=2145.53; empno_span=7800\n"
-            + "samp=1219.75; empno_span=7500\n"
-            + "samp=1096.58; empno_span=7900\n";
+            + "samp=2145.538005; empno_span=7800\n"
+            + "samp=1219.759197; empno_span=7500\n"
+            + "samp=1096.585609; empno_span=7900\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
@@ -410,9 +397,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     String expectedResult =
         ""
-            + "stddev_pop(SAL)=1004.73; DEPTNO=20\n"
-            + "stddev_pop(SAL)=1546.14; DEPTNO=10\n"
-            + "stddev_pop(SAL)=610.10; DEPTNO=30\n";
+            + "stddev_pop(SAL)=1004.738772; DEPTNO=20\n"
+            + "stddev_pop(SAL)=1546.142152; DEPTNO=10\n"
+            + "stddev_pop(SAL)=610.100173; DEPTNO=30\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
@@ -435,7 +422,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
-        "pop=1004.73; DEPTNO=20\npop=1546.14; DEPTNO=10\npop=610.10; DEPTNO=30\n";
+        "pop=1004.738772; DEPTNO=20\npop=1546.142152; DEPTNO=10\npop=610.100173; DEPTNO=30\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
@@ -492,7 +479,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
             + "  LogicalProject(SAL=[$5])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "avg_sal=2073.21\n";
+    String expectedResult = "avg_sal=2073.214285\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql = "" + "SELECT AVG(`SAL`) `avg_sal`\n" + "FROM `scott`.`EMP`";
@@ -511,7 +498,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
-    String expectedResult = "avg_avg_sal=2073.21\n";
+    String expectedResult = "avg_avg_sal=2073.2142850000\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
@@ -540,13 +527,13 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
 
     String expectedResult =
         ""
-            + "avg_avg_sal=5000.00; MGR=null\n"
-            + "avg_avg_sal=1310.00; MGR=7698\n"
-            + "avg_avg_sal=1300.00; MGR=7782\n"
-            + "avg_avg_sal=1100.00; MGR=7788\n"
-            + "avg_avg_sal=800.00; MGR=7902\n"
-            + "avg_avg_sal=3000.00; MGR=7566\n"
-            + "avg_avg_sal=2758.33; MGR=7839\n";
+            + "avg_avg_sal=5000.; MGR=null\n"
+            + "avg_avg_sal=1310.; MGR=7698\n"
+            + "avg_avg_sal=1300.; MGR=7782\n"
+            + "avg_avg_sal=1100.; MGR=7788\n"
+            + "avg_avg_sal=800.; MGR=7902\n"
+            + "avg_avg_sal=3000.; MGR=7566\n"
+            + "avg_avg_sal=2758.3333333333; MGR=7839\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =

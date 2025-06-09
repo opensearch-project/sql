@@ -1,0 +1,67 @@
+setup:
+  - do:
+      indices.create:
+        index: test
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              log:
+                properties:
+                  url:
+                    properties:
+                      message:
+                        type: text
+                        fields:
+                          keyword:
+                            type: keyword
+                            ignore_above: 256
+                      time:
+                        type: long
+              message_alias:
+                type: alias
+                path: log.url.message
+              time_alias:
+                type: alias
+                path: log.url.time
+
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+            plugins.calcite.fallback.allowed : false
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+            plugins.calcite.fallback.allowed : true
+
+---
+"Path of alias type points to nested field":
+  - skip:
+      features:
+        - headers
+  - do:
+      bulk:
+        index: test
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"log": {"url": {"message": "/e2e/h/zap", "time": 1} } }'
+
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=test | where message_alias = "/e2e/h/zap" | fields message_alias, time_alias'
+  - match: {"total": 1}
+  - match: {"schema": [{"name": "message_alias", "type": "string"}, {"name": "time_alias", "type": "bigint"}]}
+  - match: {"datarows": [["/e2e/h/zap", 1]]}

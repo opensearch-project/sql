@@ -45,6 +45,7 @@ import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
@@ -369,6 +370,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitExistsSubquery(ExistsSubquery node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitAppendCol(AppendCol node, C context) {
     return visitChildren(node, context);
   }
 }

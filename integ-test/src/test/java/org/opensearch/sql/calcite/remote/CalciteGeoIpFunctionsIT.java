@@ -12,7 +12,6 @@ public class CalciteGeoIpFunctionsIT extends GeoIpFunctionsIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    // TODO: "https://github.com/opensearch-project/sql/issues/3506"
-    // disallowCalciteFallback();
+    disallowCalciteFallback();
   }
 }

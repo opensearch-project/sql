@@ -29,6 +29,7 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.planner.physical.EnumerableIndexScanRule;
 import org.opensearch.sql.opensearch.planner.physical.OpenSearchIndexRules;
@@ -37,8 +38,9 @@ import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 
+/** The logical relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
-public class CalciteLogicalIndexScan extends CalciteIndexScan {
+public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
   private static final Logger LOG = LogManager.getLogger(CalciteLogicalIndexScan.class);
 
   public CalciteLogicalIndexScan(
@@ -86,9 +88,9 @@ public class CalciteLogicalIndexScan extends CalciteIndexScan {
     try {
       CalciteLogicalIndexScan newScan = this.copyWithNewSchema(filter.getRowType());
       List<String> schema = this.getRowType().getFieldNames();
-      Map<String, OpenSearchDataType> typeMapping = this.osIndex.getFieldOpenSearchTypes();
+      Map<String, ExprType> filedTypes = this.osIndex.getFieldTypes();
       QueryBuilder filterBuilder =
-          PredicateAnalyzer.analyze(filter.getCondition(), schema, typeMapping);
+          PredicateAnalyzer.analyze(filter.getCondition(), schema, filedTypes);
       newScan.pushDownContext.add(
           PushDownAction.of(
               PushDownType.FILTER,
@@ -101,7 +103,7 @@ public class CalciteLogicalIndexScan extends CalciteIndexScan {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Cannot pushdown the filter condition {}", filter.getCondition(), e);
       } else {
-        LOG.warn("Cannot pushdown the filter condition {}, ", filter.getCondition());
+        LOG.info("Cannot pushdown the filter condition {}, ", filter.getCondition());
       }
     }
     return null;
@@ -119,12 +121,17 @@ public class CalciteLogicalIndexScan extends CalciteIndexScan {
     }
     RelDataType newSchema = builder.build();
     CalciteLogicalIndexScan newScan = this.copyWithNewSchema(newSchema);
+    Map<String, String> aliasMapping = this.osIndex.getAliasMapping();
+    // For alias types, we need to push down its original path instead of the alias name.
+    List<String> projectedFields =
+        newSchema.getFieldNames().stream()
+            .map(fieldName -> aliasMapping.getOrDefault(fieldName, fieldName))
+            .toList();
     newScan.pushDownContext.add(
         PushDownAction.of(
             PushDownType.PROJECT,
             newSchema.getFieldNames(),
-            requestBuilder ->
-                requestBuilder.pushDownProjectStream(newSchema.getFieldNames().stream())));
+            requestBuilder -> requestBuilder.pushDownProjectStream(projectedFields.stream())));
     return newScan;
   }
 
@@ -132,10 +139,10 @@ public class CalciteLogicalIndexScan extends CalciteIndexScan {
     try {
       CalciteLogicalIndexScan newScan = this.copyWithNewSchema(aggregate.getRowType());
       List<String> schema = this.getRowType().getFieldNames();
-      Map<String, OpenSearchDataType> typeMapping = this.osIndex.getFieldOpenSearchTypes();
+      Map<String, ExprType> fieldTypes = this.osIndex.getFieldTypes();
       List<String> outputFields = aggregate.getRowType().getFieldNames();
       final Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder =
-          AggregateAnalyzer.analyze(aggregate, schema, typeMapping, outputFields);
+          AggregateAnalyzer.analyze(aggregate, schema, fieldTypes, outputFields);
       Map<String, OpenSearchDataType> extendedTypeMapping =
           aggregate.getRowType().getFieldList().stream()
               .collect(
@@ -158,7 +165,26 @@ public class CalciteLogicalIndexScan extends CalciteIndexScan {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Cannot pushdown the aggregate {}", aggregate, e);
       } else {
-        LOG.warn("Cannot pushdown the aggregate {}, ", aggregate);
+        LOG.info("Cannot pushdown the aggregate {}, ", aggregate);
+      }
+    }
+    return null;
+  }
+
+  public CalciteLogicalIndexScan pushDownLimit(Integer limit, Integer offset) {
+    try {
+      CalciteLogicalIndexScan newScan = this.copyWithNewSchema(getRowType());
+      newScan.pushDownContext.add(
+          PushDownAction.of(
+              PushDownType.LIMIT,
+              limit,
+              requestBuilder -> requestBuilder.pushDownLimit(limit, offset)));
+      return newScan;
+    } catch (Exception e) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Cannot pushdown limit {} with offset {}", limit, offset, e);
+      } else {
+        LOG.info("Cannot pushdown limit {} with offset {}", limit, offset);
       }
     }
     return null;

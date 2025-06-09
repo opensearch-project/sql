@@ -38,6 +38,7 @@ import java.util.stream.Collectors;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
@@ -56,6 +57,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.DescribeRelation;
 import org.opensearch.sql.ast.tree.Eval;
@@ -82,6 +84,7 @@ import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.AdCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ByClauseContext;
@@ -623,30 +626,31 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   /** fillnull command. */
   @Override
-  public UnresolvedPlan visitFillNullWithTheSameValue(
-      OpenSearchPPLParser.FillNullWithTheSameValueContext ctx) {
-    return new FillNull(
-        FillNull.ContainNullableFieldFill.ofSameValue(
-            internalVisitExpression(ctx.nullReplacement),
-            ctx.nullableFieldList.fieldExpression().stream()
-                .map(f -> (Field) internalVisitExpression(f))
-                .toList()));
+  public UnresolvedPlan visitFillNullWith(OpenSearchPPLParser.FillNullWithContext ctx) {
+    if (ctx.IN() != null) {
+      return FillNull.ofSameValue(
+          internalVisitExpression(ctx.replacement),
+          ctx.fieldList().fieldExpression().stream()
+              .map(f -> (Field) internalVisitExpression(f))
+              .toList());
+    } else {
+      return FillNull.ofSameValue(internalVisitExpression(ctx.replacement), List.of());
+    }
   }
 
   /** fillnull command. */
   @Override
-  public UnresolvedPlan visitFillNullWithFieldVariousValues(
-      OpenSearchPPLParser.FillNullWithFieldVariousValuesContext ctx) {
-    ImmutableList.Builder<FillNull.NullableFieldFill> replacementsBuilder = ImmutableList.builder();
-    for (int i = 0; i < ctx.nullReplacementExpression().size(); i++) {
+  public UnresolvedPlan visitFillNullUsing(OpenSearchPPLParser.FillNullUsingContext ctx) {
+    ImmutableList.Builder<Pair<Field, UnresolvedExpression>> replacementsBuilder =
+        ImmutableList.builder();
+    for (int i = 0; i < ctx.replacementPair().size(); i++) {
       replacementsBuilder.add(
-          new FillNull.NullableFieldFill(
-              (Field) internalVisitExpression(ctx.nullReplacementExpression(i).nullableField),
-              internalVisitExpression(ctx.nullReplacementExpression(i).nullReplacement)));
+          Pair.of(
+              (Field) internalVisitExpression(ctx.replacementPair(i).fieldExpression()),
+              internalVisitExpression(ctx.replacementPair(i).replacement)));
     }
 
-    return new FillNull(
-        FillNull.ContainNullableFieldFill.ofVariousValue(replacementsBuilder.build()));
+    return FillNull.ofVariousValue(replacementsBuilder.build());
   }
 
   /** trendline command. */
@@ -662,6 +666,17 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         .map(Field.class::cast)
         .map(sort -> new Trendline(Optional.of(sort), trendlineComputations))
         .orElse(new Trendline(Optional.empty(), trendlineComputations));
+  }
+
+  @Override
+  public UnresolvedPlan visitAppendcolCommand(OpenSearchPPLParser.AppendcolCommandContext ctx) {
+    final Optional<UnresolvedPlan> subsearch =
+        ctx.commands().stream().map(this::visit).reduce((r, e) -> e.attach(r));
+    final boolean override = (ctx.override != null && Boolean.parseBoolean(ctx.override.getText()));
+    if (subsearch.isEmpty()) {
+      throw new SemanticCheckException("subsearch should not be empty");
+    }
+    return new AppendCol(override, subsearch.get());
   }
 
   /** Get original text in query. */

@@ -191,7 +191,7 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
         ""
             + "LogicalFilter(condition=[>($SCALAR_QUERY({\n"
             + "LogicalAggregate(group=[{}], COUNT()=[COUNT()])\n"
-            + "  LogicalFilter(condition=[OR(=($cor0.SAL, $2), >($2, 1000.0E0:DOUBLE))])\n"
+            + "  LogicalFilter(condition=[OR(=($cor0.SAL, $2), >($2, 1000.0:DECIMAL(5, 1)))])\n"
             + "    LogicalTableScan(table=[[scott, SALGRADE]])\n"
             + "}), 0)], variablesSet=[[$cor0]])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
@@ -203,7 +203,7 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`\n"
             + "WHERE (((SELECT COUNT(*) `COUNT()`\n"
             + "FROM `scott`.`SALGRADE`\n"
-            + "WHERE `EMP`.`SAL` = `HISAL` OR `HISAL` > 1.0000E3))) > 0";
+            + "WHERE `EMP`.`SAL` = `HISAL` OR `HISAL` > 1000.0))) > 0";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -220,8 +220,8 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         "LogicalFilter(condition=[>($SCALAR_QUERY({\n"
             + "LogicalAggregate(group=[{}], COUNT()=[COUNT()])\n"
-            + "  LogicalFilter(condition=[OR(AND(=($cor0.SAL, $2), >($2, 1000.0E0:DOUBLE)),"
-            + " AND(=($cor0.SAL, $2), >($1, 1000.0E0:DOUBLE)))])\n"
+            + "  LogicalFilter(condition=[OR(AND(=($cor0.SAL, $2), >($2, 1000.0:DECIMAL(5, 1))),"
+            + " AND(=($cor0.SAL, $2), >($1, 1000.0:DECIMAL(5, 1))))])\n"
             + "    LogicalTableScan(table=[[scott, SALGRADE]])\n"
             + "}), 0)], variablesSet=[[$cor0]])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
@@ -232,8 +232,8 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`\n"
             + "WHERE (((SELECT COUNT(*) `COUNT()`\n"
             + "FROM `scott`.`SALGRADE`\n"
-            + "WHERE `EMP`.`SAL` = `HISAL` AND `HISAL` > 1.0000E3 OR `EMP`.`SAL` = `HISAL` AND"
-            + " `LOSAL` > 1.0000E3))) > 0";
+            + "WHERE `EMP`.`SAL` = `HISAL` AND `HISAL` > 1000.0 OR `EMP`.`SAL` = `HISAL` AND"
+            + " `LOSAL` > 1000.0))) > 0";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -259,7 +259,7 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
             + "LogicalAggregate(group=[{}], min(HISAL)=[MIN($0)])\n"
             + "  LogicalProject(HISAL=[$2])\n"
             + "    LogicalSort(sort0=[$2], dir0=[DESC])\n"
-            + "      LogicalFilter(condition=[>($1, 1000.0E0:DOUBLE)])\n"
+            + "      LogicalFilter(condition=[>($1, 1000.0:DECIMAL(5, 1))])\n"
             + "        LogicalTableScan(table=[[scott, SALGRADE]])\n"
             + "})))], variablesSet=[[$cor0]])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
@@ -272,7 +272,7 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`SALGRADE`\n"
             + "ORDER BY `LOSAL` NULLS LAST))) OR `SAL` = (((SELECT MIN(`HISAL`) `min(HISAL)`\n"
             + "FROM `scott`.`SALGRADE`\n"
-            + "WHERE `LOSAL` > 1.0000E3\n"
+            + "WHERE `LOSAL` > 1000.0\n"
             + "ORDER BY `HISAL` DESC NULLS FIRST)))";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }

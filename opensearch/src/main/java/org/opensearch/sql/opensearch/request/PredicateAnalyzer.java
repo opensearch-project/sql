@@ -65,7 +65,7 @@ import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.RangeQueryBuilder;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
-import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 
@@ -117,18 +117,18 @@ public class PredicateAnalyzer {
    *
    * @param expression expression to analyze
    * @param schema current schema of scan operator
-   * @param typeMapping mapping of OpenSearch field name to OpenSearchDataType
+   * @param filedTypes mapping of OpenSearch field name to ExprType, nested fields are flattened
    * @return search query which can be used to query OS cluster
    * @throws ExpressionNotAnalyzableException when expression can't processed by this analyzer
    */
   public static QueryBuilder analyze(
-      RexNode expression, List<String> schema, Map<String, OpenSearchDataType> typeMapping)
+      RexNode expression, List<String> schema, Map<String, ExprType> filedTypes)
       throws ExpressionNotAnalyzableException {
     requireNonNull(expression, "expression");
     try {
       // visits expression tree
       QueryExpression queryExpression =
-          (QueryExpression) expression.accept(new Visitor(schema, typeMapping));
+          (QueryExpression) expression.accept(new Visitor(schema, filedTypes));
 
       if (queryExpression != null && queryExpression.isPartial()) {
         throw new UnsupportedOperationException(
@@ -145,17 +145,17 @@ public class PredicateAnalyzer {
   private static class Visitor extends RexVisitorImpl<Expression> {
 
     List<String> schema;
-    Map<String, OpenSearchDataType> typeMapping;
+    Map<String, ExprType> filedTypes;
 
-    private Visitor(List<String> schema, Map<String, OpenSearchDataType> typeMapping) {
+    private Visitor(List<String> schema, Map<String, ExprType> filedTypes) {
       super(true);
       this.schema = schema;
-      this.typeMapping = typeMapping;
+      this.filedTypes = filedTypes;
     }
 
     @Override
     public Expression visitInputRef(RexInputRef inputRef) {
-      return new NamedFieldExpression(inputRef, schema, typeMapping);
+      return new NamedFieldExpression(inputRef, schema, filedTypes);
     }
 
     @Override
@@ -973,12 +973,11 @@ public class PredicateAnalyzer {
   static final class NamedFieldExpression implements TerminalExpression {
 
     private final String name;
-    private final OpenSearchDataType type;
+    private final ExprType type;
 
-    NamedFieldExpression(
-        int refIndex, List<String> schema, Map<String, OpenSearchDataType> typeMapping) {
+    NamedFieldExpression(int refIndex, List<String> schema, Map<String, ExprType> filedTypes) {
       this.name = refIndex >= schema.size() ? null : schema.get(refIndex);
-      this.type = typeMapping.get(name);
+      this.type = filedTypes.get(name);
     }
 
     private NamedFieldExpression() {
@@ -987,10 +986,10 @@ public class PredicateAnalyzer {
     }
 
     private NamedFieldExpression(
-        RexInputRef ref, List<String> schema, Map<String, OpenSearchDataType> typeMapping) {
+        RexInputRef ref, List<String> schema, Map<String, ExprType> filedTypes) {
       this.name =
           (ref == null || ref.getIndex() >= schema.size()) ? null : schema.get(ref.getIndex());
-      this.type = typeMapping.get(name);
+      this.type = filedTypes.get(name);
     }
 
     private NamedFieldExpression(RexLiteral literal) {
@@ -1002,22 +1001,26 @@ public class PredicateAnalyzer {
       return name;
     }
 
-    OpenSearchDataType getOpenSearchDataType() {
+    ExprType getExprType() {
       return type;
     }
 
     boolean isTextType() {
-      return type != null && type.getMappingType() == OpenSearchDataType.MappingType.Text;
+      return type != null && type.getOriginalExprType() instanceof OpenSearchTextType;
     }
 
     String toKeywordSubField() {
+      ExprType type = this.type.getOriginalExprType();
       if (type instanceof OpenSearchTextType) {
         OpenSearchTextType textType = (OpenSearchTextType) type;
+        // For OpenSearch Alias type which maps to the field of text type,
+        // we have to use its original path
+        String path = this.type.getOriginalPath().orElse(this.name);
         // Find the first subfield with type keyword, return null if non-exist.
         return textType.getFields().entrySet().stream()
             .filter(e -> e.getValue().getMappingType() == MappingType.Keyword)
             .findFirst()
-            .map(e -> name + "." + e.getKey())
+            .map(e -> path + "." + e.getKey())
             .orElse(null);
       }
       return null;
