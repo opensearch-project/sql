@@ -61,10 +61,36 @@ public class DateTimeUtilsTest {
 
     LocalDateTime localDateTime = LocalDateTime.parse(dateTimeString, formatter);
     ZonedDateTime zonedDateTime = localDateTime.atZone(ZoneId.systemDefault());
-    ZonedDateTime snap1 = getRelativeZonedDateTime("-1d+1y@M", zonedDateTime);
+    ZonedDateTime snap1 = getRelativeZonedDateTime("-1d+1y@mon", zonedDateTime);
     ZonedDateTime snap2 = getRelativeZonedDateTime("-3d@d-2h+10m@h", zonedDateTime);
     assertEquals(snap1.toLocalDateTime().toString(), "2026-10-01T00:00");
     assertEquals(snap2.toLocalDateTime().toString(), "2025-10-18T22:00");
+  }
+
+  @Test
+  void testRelativeZonedDateTimeWithAlias() {
+    String dateTimeString = "2025-10-22 10:32:12";
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    LocalDateTime localDateTime = LocalDateTime.parse(dateTimeString, formatter);
+    ZonedDateTime zonedDateTime = localDateTime.atZone(ZoneId.systemDefault());
+    ZonedDateTime snap1 = getRelativeZonedDateTime("-1d+1y@Month", zonedDateTime);
+    ZonedDateTime snap2 = getRelativeZonedDateTime("-3d@d-2h+10m@hours", zonedDateTime);
+    assertEquals(snap1.toLocalDateTime().toString(), "2026-10-01T00:00");
+    assertEquals(snap2.toLocalDateTime().toString(), "2025-10-18T22:00");
+  }
+
+  @Test
+  void testRelativeZonedDateTimeWithWeekDayAndQuarter() {
+    String dateTimeString = "2025-10-22 10:32:12";
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    LocalDateTime localDateTime = LocalDateTime.parse(dateTimeString, formatter);
+    ZonedDateTime zonedDateTime = localDateTime.atZone(ZoneId.systemDefault());
+    ZonedDateTime snap1 = getRelativeZonedDateTime("-1d+1y@W5", zonedDateTime);
+    ZonedDateTime snap2 = getRelativeZonedDateTime("-3d@d-2q+10m@quarter", zonedDateTime);
+    assertEquals(snap1.toLocalDateTime().toString(), "2026-10-16T00:00");
+    assertEquals(snap2.toLocalDateTime().toString(), "2025-04-01T00:00");
   }
 
   @Test
@@ -77,6 +103,6 @@ public class DateTimeUtilsTest {
     IllegalArgumentException e =
         assertThrows(
             IllegalArgumentException.class, () -> getRelativeZonedDateTime("1d+1y", zonedDateTime));
-    assertEquals(e.getMessage(), "Wrong relative time expression: 1d+1y");
+    assertEquals(e.getMessage(), "Unexpected character '1' at position 0 in input: 1d+1y");
   }
 }

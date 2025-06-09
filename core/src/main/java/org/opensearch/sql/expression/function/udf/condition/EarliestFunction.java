@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.expression.function.udf.condition;
 
-import static org.opensearch.sql.calcite.utils.PPLOperandTypes.STRING_DATE_OR_TIMESTAMP;
+import static org.opensearch.sql.calcite.utils.PPLOperandTypes.STRING_TIMESTAMP;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.prependFunctionProperties;
 import static org.opensearch.sql.utils.DateTimeUtils.getRelativeZonedDateTime;
 
@@ -41,7 +41,7 @@ public class EarliestFunction extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    return STRING_DATE_OR_TIMESTAMP;
+    return STRING_TIMESTAMP;
   }
 
   public static class EarliestImplementor implements NotNullImplementor {
