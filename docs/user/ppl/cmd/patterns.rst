@@ -150,7 +150,7 @@ Starting 3.1.0, patterns command support aggregation mode. With Calcite engine e
 
 PPL query::
 
-    os> source=apache | patterns message method=simple_pattern mode=aggregation | fields patterns_field, pattern_count, sample_logs | head 1 ;
+    PPL> source=apache | patterns message method=simple_pattern mode=aggregation | fields patterns_field, pattern_count, sample_logs | head 1 ;
     fetched rows / total rows = 1/1
     |-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
     | patterns_field                                                                                                                                                                                                        | pattern_count | tokens                                                                                                                                                                                                                                                                                                                                                                                                                                     |
