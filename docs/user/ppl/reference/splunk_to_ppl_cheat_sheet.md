@@ -117,12 +117,13 @@ This table provides a mapping between Splunk SPL commands and their OpenSearch P
 | Field specification | `... \| rex field=address ...` | `... \| parse address ...` | PPL uses direct field reference without "field=" prefix |
 | Default field (_raw) | `... \| rex "(?<streetNumber>\d+) (?<street>.+)"` | Not supported | PPL does not support implicit _raw field and requires explicit field specification |
 | Search and replace mode | `... \| rex mode=sed "s/\d+//g"` | Not supported | PPL does not support the search-and-replace mode like SPL's rex with mode=sed |
+| Field override | `... \| rex field=address "(?<address>.+)"` | `... \| parse address "(?<address>.+)"` | Both support extracting to field with same name as source |
 
 ## Time Functions
 
 | Operation | Splunk SPL | OpenSearch PPL | Notes |
 |-----------|------------|---------------|-------|
-| Relative time | `earliest=-1d latest=now()` | `timestamp >= date_sub(now(), INTERVAL 1 DAY) and timestamp <= now()` | PPL uses date functions |
+| Relative time | `earliest=-1d latest=now()` | `earliest("-1d", timestamp) and latest("now", timestamp)` | PPL supports earliest() and latest() functions |
 | Time extraction | `... \| eval hour=strftime(_time, "%H")` | `... \| eval hour = date_format(timestamp, 'HH')` | PPL uses `date_format()` |
 | Time bucket | `... \| bin _time span=5m \| stats count by _time` | `... \| stats count() by span(@timestamp, 5m)` | PPL uses `span()` |
 
