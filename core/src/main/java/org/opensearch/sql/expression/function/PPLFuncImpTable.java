@@ -372,6 +372,7 @@ public class PPLFuncImpTable {
       registerOperator(ABS, SqlStdOperatorTable.ABS);
       registerOperator(ACOS, SqlStdOperatorTable.ACOS);
       registerOperator(ASIN, SqlStdOperatorTable.ASIN);
+      registerOperator(ATAN, SqlStdOperatorTable.ATAN);
       registerOperator(ATAN2, SqlStdOperatorTable.ATAN2);
       registerOperator(CEIL, SqlStdOperatorTable.CEIL);
       registerOperator(CEILING, SqlStdOperatorTable.CEIL);
@@ -535,11 +536,6 @@ public class PPLFuncImpTable {
           createFunctionImpWithTypeChecker(
               (builder, arg1, arg2) -> builder.makeCall(SqlStdOperatorTable.ATAN2, arg1, arg2),
               PPLTypeChecker.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC)));
-      register(
-          ATAN,
-          createFunctionImpWithTypeChecker(
-              (builder, arg) -> builder.makeCall(SqlStdOperatorTable.ATAN, arg),
-              PPLTypeChecker.family(SqlTypeFamily.NUMERIC)));
       register(
           STRCMP,
           createFunctionImpWithTypeChecker(
