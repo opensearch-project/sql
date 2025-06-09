@@ -191,6 +191,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.StringJoiner;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import org.apache.calcite.rel.type.RelDataType;
@@ -328,13 +329,13 @@ public class PPLFuncImpTable {
         mapBuilder = ImmutableMap.builder();
     builder.map.forEach((k, v) -> mapBuilder.put(k, List.copyOf(v)));
     this.functionRegistry = ImmutableMap.copyOf(mapBuilder.build());
-    this.externalFunctionRegistry = new HashMap<>();
+    this.externalFunctionRegistry = new ConcurrentHashMap<>();
 
     final ImmutableMap.Builder<BuiltinFunctionName, AggHandler> aggMapBuilder =
         ImmutableMap.builder();
     aggBuilder.map.forEach(aggMapBuilder::put);
     this.aggFunctionRegistry = ImmutableMap.copyOf(aggMapBuilder.build());
-    this.aggExternalFunctionRegistry = new HashMap<>();
+    this.aggExternalFunctionRegistry = new ConcurrentHashMap<>();
   }
 
   /**
@@ -346,12 +347,14 @@ public class PPLFuncImpTable {
   public void registerExternalFunction(BuiltinFunctionName functionName, FunctionImp functionImp) {
     CalciteFuncSignature signature =
         new CalciteFuncSignature(functionName.getName(), functionImp.getTypeChecker());
-    if (externalFunctionRegistry.containsKey(functionName)) {
-      externalFunctionRegistry.get(functionName).add(Pair.of(signature, functionImp));
-    } else {
-      externalFunctionRegistry.put(
-          functionName, new ArrayList<>(List.of(Pair.of(signature, functionImp))));
-    }
+    externalFunctionRegistry.compute(
+        functionName,
+        (name, existingList) -> {
+          List<Pair<CalciteFuncSignature, FunctionImp>> list =
+              existingList == null ? new ArrayList<>() : new ArrayList<>(existingList);
+          list.add(Pair.of(signature, functionImp));
+          return list;
+        });
   }
 
   /**

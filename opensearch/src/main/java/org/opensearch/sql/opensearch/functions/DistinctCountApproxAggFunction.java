@@ -13,6 +13,10 @@ import org.opensearch.common.util.BigArrays;
 import org.opensearch.search.aggregations.metrics.HyperLogLogPlusPlus;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 
+/**
+ * The Function depends on Opensearch Core's HLL++ algorithm to implement an approximate distinct
+ * count
+ */
 public class DistinctCountApproxAggFunction
     implements UserDefinedAggFunction<DistinctCountApproxAggFunction.HLLAccumulator> {
 
