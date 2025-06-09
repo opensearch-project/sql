@@ -11,7 +11,8 @@ parse
 
 Description
 ============
-| The ``parse`` command parses a text field with a regular expression and appends the result to the search result.
+
+The ``parse`` command parses a text field with a regular expression and appends the result to the search result.
 
 
 Syntax

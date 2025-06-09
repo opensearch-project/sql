@@ -11,7 +11,8 @@ sort
 
 Description
 ============
-| Using ``sort`` command to sorts all the search result by the specified fields.
+
+Use ``sort`` command to sorts all the search result by the specified fields.
 
 
 Syntax

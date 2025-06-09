@@ -11,7 +11,8 @@ Metadata queries using information_schema
 
 Description
 ============
-| Use ``information_schema`` in source command to query tables information under a datasource.
+
+Use ``information_schema`` in source command to query tables information under a datasource.
 In the current state, ``information_schema`` only support metadata of tables.
 This schema will be extended for views, columns and other metadata info in future.
 

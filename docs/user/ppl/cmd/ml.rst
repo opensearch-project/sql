@@ -11,11 +11,12 @@ ml
 
 Description
 ============
-| The ``ml`` command is to train/predict/trainandpredict on any algorithm in the ml-commons plugin on the search result returned by a PPL command.
+
+The ``ml`` command is to train/predict/trainandpredict on any algorithm in the ml-commons plugin on the search result returned by a PPL command.
 
 
 List of algorithms supported
-============
+============================
 AD(RCF)
 KMEANS
 

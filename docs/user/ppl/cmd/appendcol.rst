@@ -16,7 +16,7 @@ Use ``appendcol`` command to append the result of a sub-search and attach it alo
 
 Version
 =======
-3.1.0
+Since 3.1.0
 
 Syntax
 ============

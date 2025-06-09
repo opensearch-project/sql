@@ -11,7 +11,8 @@ grok
 
 Description
 ============
-| The ``grok`` command parses a text field with a grok pattern and appends the results to the search result.
+
+The ``grok`` command parses a text field with a grok pattern and appends the results to the search result.
 
 
 Syntax

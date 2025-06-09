@@ -11,7 +11,8 @@ explain
 
 Description
 ============
-| Using ``explain`` command to explain the plan of query which is used very often for query translation and troubleshooting. ``explain`` command could be only used as the first command in the PPL query.
+
+Use ``explain`` command to explain the plan of query which is used very often for query translation and troubleshooting. ``explain`` command could be only used as the first command in the PPL query.
 
 
 Syntax

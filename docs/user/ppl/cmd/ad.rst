@@ -11,7 +11,8 @@ ad (deprecated by ml command)
 
 Description
 ============
-| The ``ad`` command applies Random Cut Forest (RCF) algorithm in the ml-commons plugin on the search result returned by a PPL command. Based on the input, the command uses two types of RCF algorithms: fixed in time RCF for processing time-series data, batch RCF for processing non-time-series data.
+
+The ``ad`` command applies Random Cut Forest (RCF) algorithm in the ml-commons plugin on the search result returned by a PPL command. Based on the input, the command uses two types of RCF algorithms: fixed in time RCF for processing time-series data, batch RCF for processing non-time-series data.
 
 
 Fixed In Time RCF For Time-series Data Command Syntax

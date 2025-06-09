@@ -11,7 +11,8 @@ stats
 
 Description
 ============
-| Using ``stats`` command to calculate the aggregation from search result.
+
+Use ``stats`` command to calculate the aggregation from search result.
 
 The following table dataSources the aggregation functions and also indicates how the NULL/MISSING values is handled:
 
