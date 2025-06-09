@@ -8,6 +8,7 @@ This cheat sheet helps Splunk users transition to OpenSearch's PPL. It maps comm
 |--------|------------|---------------|-------|
 | Query structure | `search terms \| command` | `source = index \| command` | PPL requires explicit source at the beginning |
 | Index reference | `index=name*` | `source=name*` | Different command to specify data source, [PPL support refering to multiple indices](https://github.com/opensearch-project/sql/blob/main/docs/user/ppl/general/identifiers.rst#multiple-indices)|
+| Raw field | Special `_raw` field |  Identify a field in your OpenSearch data that contains the text content you want to work with (often `message` or `content` fields in log data) | No default raw field |
 | Time field | Special `_time` field | User-specified timestamp field | No default time field in PPL, must reference it explicitly |
 
 
@@ -155,8 +156,15 @@ This table provides a mapping between Splunk SPL commands and their OpenSearch P
 | Include fields | `... \| fields field1, field2` | `... \| fields field1, field2` | Same syntax |
 | Exclude fields | `... \| fields - field3` | `... \| fields - field3` | Same syntax |
 | Rename fields | `... \| rename field1 AS new_name` | `... \| rename field1 as new_name` | PPL uses lowercase "as" |
-| Replace null values | `... \| fillnull value=0 field1, field2` | `... \| fillnull value=0 field1, field2` | Same syntax |
+| Replace null values | `... \| fillnull value=0 field1, field2` | `... \| fillnull with 0 in field1, field2` | Similar syntax but different format |
 | Expand multi-value | `... \| mvexpand field1` | `... \| expand field1` | Different command name |
+
+## Handling Null Values
+
+| Operation | Splunk SPL | OpenSearch PPL | Notes |
+|-----------|------------|---------------|-------|
+| Basic null replacement | `... \| fillnull value=0 field1` | `... \| fillnull with 0 in field1` | Similar syntax but uses `with...in` format |
+| Multiple fields | `... \| fillnull value="N/A" field1, field2, field3` | `... \| fillnull with 'N/A' in field1, field2, field3` | Similar syntax but uses `with...in` format |
 
 ## Results Limiting
 
