@@ -171,7 +171,7 @@ public interface PPLTypeChecker {
         List<SqlTypeFamily> families =
             IntStream.range(0, types.size())
                 .mapToObj(implicitCastOperandTypeChecker::getOperandSqlTypeFamily)
-                .toList();
+                    .collect(Collectors.toList());
         return validateOperands(families, types);
       }
       throw new IllegalArgumentException(
