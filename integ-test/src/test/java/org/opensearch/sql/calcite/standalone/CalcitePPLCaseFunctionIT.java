@@ -65,7 +65,7 @@ public class CalcitePPLCaseFunctionIT extends CalcitePPLIntegTestCase {
                     "        cast(response as int) >= 400 AND cast(response as int) < 500, \"Client Error\",\n" +
                     "        cast(response as int) >= 500 AND cast(response as int) < 600, \"Server Error\"\n" +
                     "        else concat(\"Incorrect HTTP status code for\", url))\n" +
-                    "| where status != \"Success\"\n | fields host, method, bytes, response, url, status",
+                    "| where status != \"Success\"\n | fields host, method, message, bytes, response, url, status",
                 TEST_INDEX_WEBLOGS));
     verifySchema(
         actual,
@@ -111,7 +111,7 @@ public class CalcitePPLCaseFunctionIT extends CalcitePPLIntegTestCase {
                     "        cast(response as int) >= 300 AND cast(response as int) < 400, \"Redirection\",\n" +
                     "        cast(response as int) >= 400 AND cast(response as int) < 500, \"Client Error\",\n" +
                     "        cast(response as int) >= 500 AND cast(response as int) < 600, \"Server Error\")\n" +
-                    "| where isnull(status) OR status != \"Success\" | fields host, method, bytes, response, url, status\n",
+                    "| where isnull(status) OR status != \"Success\" | fields host, method, message, bytes, response, url, status\n",
                 TEST_INDEX_WEBLOGS));
     verifySchema(
         actual,
@@ -151,7 +151,7 @@ public class CalcitePPLCaseFunctionIT extends CalcitePPLIntegTestCase {
                     "        response in ('400', '403'), \"Client Error\",\n" +
                     "        response in ('500', '505'), \"Server Error\"\n" +
                     "        else concat(\"Incorrect HTTP status code for\", url))\n" +
-                    "| where status != \"Success\" | fields host, method, bytes, response, url, status\n",
+                    "| where status != \"Success\" | fields host, method, message, bytes, response, url, status\n",
                 TEST_INDEX_WEBLOGS));
     verifySchema(
         actual,
@@ -197,7 +197,7 @@ public class CalcitePPLCaseFunctionIT extends CalcitePPLIntegTestCase {
                     "        response in ('300', '301'), false,\n" +
                     "        response in ('400', '403'), false,\n" +
                     "        response in ('500', '505'), false\n" +
-                    "        else false) | fields host, method, bytes, response, url\n",
+                    "        else false) | fields host, method, message, bytes, response, url\n",
                 TEST_INDEX_WEBLOGS));
     verifySchema(
         actual,
@@ -230,7 +230,7 @@ public class CalcitePPLCaseFunctionIT extends CalcitePPLIntegTestCase {
                     "        response in ('500', '505'), \"500\"\n" +
                     "        else concat(\"Incorrect HTTP status code for\", url))\n" +
                     "    | fields new_response\n" +
-                    "  ] | fields host, method, bytes, response, url\n",
+                    "  ] | fields host, method, message, bytes, response, url\n",
                 TEST_INDEX_WEBLOGS, TEST_INDEX_WEBLOGS));
     verifySchema(
         actual,
