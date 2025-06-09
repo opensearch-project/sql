@@ -808,7 +808,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (!node.isOverride()) {
       // 6. if override = false, drop all the duplicated columns in subsearch before join
       List<String> subsearchProjectList =
-          subsearchFields.stream().filter(r -> !mainFields.contains(r)).toList();
+          subsearchFields.stream().filter(r -> !mainFields.contains(r)).collect(Collectors.toList());
       context.relBuilder.project(context.relBuilder.fields(subsearchProjectList));
     }
 

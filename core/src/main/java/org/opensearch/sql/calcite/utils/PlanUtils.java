@@ -356,7 +356,7 @@ public interface PlanUtils {
             return node;
           }
         };
-    return node.getChild().getFirst().accept(relationVisitor, null);
+    return node.getChild().get(0).accept(relationVisitor, null);
   }
 
   /**

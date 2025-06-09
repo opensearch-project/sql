@@ -84,7 +84,7 @@ public class CaseWhenParser {
   public String explain(Where where) throws SqlParseException {
     List<String> codes = new ArrayList<>();
     while (where.getWheres().size() == 1) {
-      where = where.getWheres().getFirst();
+      where = where.getWheres().get(0);
     }
     explainWhere(codes, where);
     String relation = where.getConn().name().equals("AND") ? " && " : " || ";
