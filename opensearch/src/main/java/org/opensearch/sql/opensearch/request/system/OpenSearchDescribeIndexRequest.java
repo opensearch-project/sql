@@ -5,8 +5,7 @@
 
 package org.opensearch.sql.opensearch.request.system;
 
-import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
-import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.*;
 import static org.opensearch.sql.opensearch.client.OpenSearchClient.META_CLUSTER_NAME;
 
 import java.util.ArrayList;
@@ -15,13 +14,16 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.extern.log4j.Log4j2;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
+import org.opensearch.sql.opensearch.util.MergeRules.MergeRuleHelper;
 
+@Log4j2
 /** Describe index meta data request. */
 public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
 
@@ -81,8 +83,14 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
     Map<String, OpenSearchDataType> fieldTypes = new HashMap<>();
     Map<String, IndexMapping> indexMappings =
         client.getIndexMappings(getLocalIndexNames(indexName.getIndexNames()));
-    for (IndexMapping indexMapping : indexMappings.values()) {
-      fieldTypes.putAll(indexMapping.getFieldMappings());
+    if (indexMappings.size() <= 1) {
+      for (IndexMapping indexMapping : indexMappings.values()) {
+        fieldTypes.putAll(indexMapping.getFieldMappings());
+      }
+    } else {
+      for (IndexMapping indexMapping : indexMappings.values()) {
+        MergeRuleHelper.merge(fieldTypes, indexMapping.getFieldMappings());
+      }
     }
     return fieldTypes;
   }
