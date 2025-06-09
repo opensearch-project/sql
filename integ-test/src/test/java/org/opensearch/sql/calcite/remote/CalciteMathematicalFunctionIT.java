@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.calcite.remote;
 
-import java.io.IOException;
-import org.junit.Ignore;
 import org.opensearch.sql.ppl.MathematicalFunctionIT;
 
 public class CalciteMathematicalFunctionIT extends MathematicalFunctionIT {
