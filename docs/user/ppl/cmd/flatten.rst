@@ -24,7 +24,7 @@ array of structs, only the first element of the array will be flattened.
 
 Version
 =======
-Since 3.1.0
+3.1.0
 
 Syntax
 ======
