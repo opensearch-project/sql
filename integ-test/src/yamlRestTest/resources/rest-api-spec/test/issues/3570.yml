@@ -70,7 +70,7 @@ teardown:
         Content-Type: 'application/json'
       ppl:
         body:
-          query: 'source=hdfs_logs | patterns content pattern_mode=aggregation | fields patterns_field, pattern_count'
+          query: 'source=hdfs_logs | patterns content mode=aggregation | fields patterns_field, pattern_count'
   - match: {"total": 5}
   - match: {"schema": [{"name": "patterns_field", "type": "string"}, {"name": "pattern_count", "type": "bigint"}]}
   - match: {"datarows": [
@@ -106,7 +106,7 @@ teardown:
         Content-Type: 'application/json'
       ppl:
         body:
-          query: 'source=hdfs_logs | patterns content pattern_method=brain pattern_mode=label | head 1 | fields content, patterns_field, tokens'
+          query: 'source=hdfs_logs | patterns content method=brain mode=label | head 1 | fields content, patterns_field, tokens'
   - match: {"total": 1}
   - match: {"schema": [{"name": "content", "type": "string"}, {"name": "patterns_field", "type": "string"}, {"name": "tokens", "type": "struct"}]}
   - match: {"datarows": [
@@ -137,7 +137,7 @@ teardown:
         Content-Type: 'application/json'
       ppl:
         body:
-          query: 'source=hdfs_logs | patterns content pattern_method=brain pattern_mode=aggregation | fields patterns_field, pattern_count'
+          query: 'source=hdfs_logs | patterns content method=brain mode=aggregation | fields patterns_field, pattern_count'
   - match: {"total": 4}
   - match: {"schema": [{"name": "patterns_field", "type": "string"}, {"name": "pattern_count", "type": "bigint"}]}
   - match: {"datarows": [

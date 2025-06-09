@@ -40,6 +40,7 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
+import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.When;
@@ -345,7 +346,22 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String child = node.getChild().get(0).accept(this, context);
     String source = visitExpression(node.getSourceField());
     String regex = node.getPattern().toString();
-    return StringUtils.format("%s | parse %s '%s'", child, source, regex);
+    String commandName;
+
+    switch (node.getParseMethod()) {
+      case ParseMethod.PATTERNS:
+        commandName = "patterns";
+        break;
+      case ParseMethod.GROK:
+        commandName = "grok";
+        break;
+      default:
+        commandName = "parse";
+        break;
+    }
+    return ParseMethod.PATTERNS.equals(node.getParseMethod()) && regex.isEmpty()
+        ? StringUtils.format("%s | %s %s", child, commandName, source)
+        : StringUtils.format("%s | %s %s '%s'", child, commandName, source, regex);
   }
 
   @Override
@@ -421,12 +437,10 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
       String partitionByList = visitExpressionList(node.getPartitionByList());
       builder.append(" by ").append(partitionByList);
     }
-    builder.append(" pattern_method=").append(node.getPatternMethod().toString());
-    builder.append(" pattern_mode=").append(node.getPatternMode().toString());
-    builder
-        .append(" pattern_max_sample_count=")
-        .append(visitExpression(node.getPatternMaxSampleCount()));
-    builder.append(" pattern_buffer_limit=").append(visitExpression(node.getPatternBufferLimit()));
+    builder.append(" method=").append(node.getPatternMethod().toString());
+    builder.append(" mode=").append(node.getPatternMode().toString());
+    builder.append(" max_sample_count=").append(visitExpression(node.getPatternMaxSampleCount()));
+    builder.append(" buffer_limit=").append(visitExpression(node.getPatternBufferLimit()));
     builder.append(" new_field=").append(node.getAlias());
     if (!node.getArguments().isEmpty()) {
       for (java.util.Map.Entry<String, Literal> entry : node.getArguments().entrySet()) {

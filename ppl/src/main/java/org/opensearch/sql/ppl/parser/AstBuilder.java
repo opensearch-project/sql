@@ -455,27 +455,21 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
             });
     java.util.Map<String, Literal> arguments = builder.build();
     String patternMethod =
-        ctx.pattern_method != null
-            ? StringUtils.unquoteIdentifier(ctx.pattern_method.getText()).toLowerCase(Locale.ROOT)
-            : settings
-                .getSettingValue(Key.DEFAULT_PATTERN_METHOD)
-                .toString()
-                .toLowerCase(Locale.ROOT);
+        ctx.method != null
+            ? StringUtils.unquoteIdentifier(ctx.method.getText()).toLowerCase(Locale.ROOT)
+            : settings.getSettingValue(Key.PATTERN_METHOD).toString().toLowerCase(Locale.ROOT);
     String patternMode =
         ctx.pattern_mode != null
             ? StringUtils.unquoteIdentifier(ctx.pattern_mode.getText()).toLowerCase(Locale.ROOT)
-            : settings
-                .getSettingValue(Key.DEFAULT_PATTERN_MODE)
-                .toString()
-                .toLowerCase(Locale.ROOT);
+            : settings.getSettingValue(Key.PATTERN_MODE).toString().toLowerCase(Locale.ROOT);
     Literal patternMaxSampleCount =
-        ctx.pattern_max_sample_count != null
-            ? (Literal) internalVisitExpression(ctx.pattern_max_sample_count)
-            : AstDSL.intLiteral(settings.getSettingValue(Key.DEFAULT_PATTERN_MAX_SAMPLE_COUNT));
+        ctx.max_sample_count != null
+            ? (Literal) internalVisitExpression(ctx.max_sample_count)
+            : AstDSL.intLiteral(settings.getSettingValue(Key.PATTERN_MAX_SAMPLE_COUNT));
     Literal patternBufferLimit =
-        ctx.pattern_buffer_limit != null
-            ? (Literal) internalVisitExpression(ctx.pattern_buffer_limit)
-            : AstDSL.intLiteral(settings.getSettingValue(Key.DEFAULT_PATTERN_BUFFER_LIMIT));
+        ctx.buffer_limit != null
+            ? (Literal) internalVisitExpression(ctx.buffer_limit)
+            : AstDSL.intLiteral(settings.getSettingValue(Key.PATTERN_BUFFER_LIMIT));
     List<UnresolvedExpression> partitionByList = getPartitionExprList(ctx.statsByClause());
 
     return new Patterns(

@@ -20,10 +20,10 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
 
   @Before
   public void setUp() {
-    doReturn("simple_pattern").when(settings).getSettingValue(Key.DEFAULT_PATTERN_METHOD);
-    doReturn("label").when(settings).getSettingValue(Key.DEFAULT_PATTERN_MODE);
-    doReturn(10).when(settings).getSettingValue(Key.DEFAULT_PATTERN_MAX_SAMPLE_COUNT);
-    doReturn(100000).when(settings).getSettingValue(Key.DEFAULT_PATTERN_BUFFER_LIMIT);
+    doReturn("simple_pattern").when(settings).getSettingValue(Key.PATTERN_METHOD);
+    doReturn("label").when(settings).getSettingValue(Key.PATTERN_MODE);
+    doReturn(10).when(settings).getSettingValue(Key.PATTERN_MAX_SAMPLE_COUNT);
+    doReturn(100000).when(settings).getSettingValue(Key.PATTERN_BUFFER_LIMIT);
   }
 
   @Test
@@ -98,8 +98,7 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testPatternsLabelModeForBrainMethod() {
-    String ppl =
-        "source=EMP | patterns ENAME pattern_method=BRAIN | fields ENAME, patterns_field, tokens";
+    String ppl = "source=EMP | patterns ENAME method=BRAIN | fields ENAME, patterns_field, tokens";
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
@@ -122,7 +121,7 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
   @Test
   public void testPatternsLabelModeWithPartitionByForBrainMethod() {
     String ppl =
-        "source=EMP | patterns ENAME by DEPTNO pattern_method=BRAIN | fields ENAME, DEPTNO,"
+        "source=EMP | patterns ENAME by DEPTNO method=BRAIN | fields ENAME, DEPTNO,"
             + " patterns_field, tokens";
     RelNode root = getRelNode(ppl);
 
@@ -147,7 +146,7 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testPatternsAggregationModeForSimplePatternMethod() {
-    String ppl = "source=EMP | patterns ENAME pattern_mode=aggregation";
+    String ppl = "source=EMP | patterns ENAME mode=aggregation";
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
@@ -173,7 +172,7 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testPatternsAggregationModeWithGroupByForSimplePatternMethod() {
-    String ppl = "source=EMP | patterns ENAME by DEPTNO pattern_mode=aggregation";
+    String ppl = "source=EMP | patterns ENAME by DEPTNO mode=aggregation";
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
@@ -200,7 +199,7 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testPatternsAggregationModeForBrainMethod() {
-    String ppl = "source=EMP | patterns ENAME pattern_method=BRAIN pattern_mode=aggregation";
+    String ppl = "source=EMP | patterns ENAME method=BRAIN mode=aggregation";
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
@@ -227,8 +226,7 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testPatternsAggregationModeWithGroupByForBrainMethod() {
-    String ppl =
-        "source=EMP | patterns ENAME by DEPTNO pattern_method=BRAIN pattern_mode=aggregation";
+    String ppl = "source=EMP | patterns ENAME by DEPTNO method=BRAIN mode=aggregation";
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =

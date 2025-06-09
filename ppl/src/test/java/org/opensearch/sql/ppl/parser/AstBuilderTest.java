@@ -842,10 +842,10 @@ public class AstBuilderTest {
 
   @Test
   public void testPatternsCommand() {
-    when(settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
-    when(settings.getSettingValue(Key.DEFAULT_PATTERN_MODE)).thenReturn("LABEL");
-    when(settings.getSettingValue(Key.DEFAULT_PATTERN_MAX_SAMPLE_COUNT)).thenReturn(10);
-    when(settings.getSettingValue(Key.DEFAULT_PATTERN_BUFFER_LIMIT)).thenReturn(100000);
+    when(settings.getSettingValue(Key.PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
+    when(settings.getSettingValue(Key.PATTERN_MODE)).thenReturn("LABEL");
+    when(settings.getSettingValue(Key.PATTERN_MAX_SAMPLE_COUNT)).thenReturn(10);
+    when(settings.getSettingValue(Key.PATTERN_BUFFER_LIMIT)).thenReturn(100000);
     assertEqual(
         "source=t | patterns raw new_field=\"custom_field\" " + "pattern=\"custom_pattern\"",
         patterns(
@@ -864,12 +864,12 @@ public class AstBuilderTest {
 
   @Test
   public void testPatternsCommandWithBrainMethod() {
-    when(settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
-    when(settings.getSettingValue(Key.DEFAULT_PATTERN_MODE)).thenReturn("LABEL");
-    when(settings.getSettingValue(Key.DEFAULT_PATTERN_MAX_SAMPLE_COUNT)).thenReturn(10);
-    when(settings.getSettingValue(Key.DEFAULT_PATTERN_BUFFER_LIMIT)).thenReturn(100000);
+    when(settings.getSettingValue(Key.PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
+    when(settings.getSettingValue(Key.PATTERN_MODE)).thenReturn("LABEL");
+    when(settings.getSettingValue(Key.PATTERN_MAX_SAMPLE_COUNT)).thenReturn(10);
+    when(settings.getSettingValue(Key.PATTERN_BUFFER_LIMIT)).thenReturn(100000);
     assertEqual(
-        "source=t | patterns raw pattern_method=BRAIN variable_count_threshold=2"
+        "source=t | patterns raw method=BRAIN variable_count_threshold=2"
             + " frequency_threshold_percentage=0.1",
         patterns(
             relation("t"),
@@ -887,10 +887,10 @@ public class AstBuilderTest {
 
   @Test
   public void testPatternsWithoutArguments() {
-    when(settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
-    when(settings.getSettingValue(Key.DEFAULT_PATTERN_MODE)).thenReturn("LABEL");
-    when(settings.getSettingValue(Key.DEFAULT_PATTERN_MAX_SAMPLE_COUNT)).thenReturn(10);
-    when(settings.getSettingValue(Key.DEFAULT_PATTERN_BUFFER_LIMIT)).thenReturn(100000);
+    when(settings.getSettingValue(Key.PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
+    when(settings.getSettingValue(Key.PATTERN_MODE)).thenReturn("LABEL");
+    when(settings.getSettingValue(Key.PATTERN_MAX_SAMPLE_COUNT)).thenReturn(10);
+    when(settings.getSettingValue(Key.PATTERN_BUFFER_LIMIT)).thenReturn(100000);
     assertEqual(
         "source=t | patterns raw",
         patterns(

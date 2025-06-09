@@ -24,6 +24,7 @@ public class CalcitePPLPatternsIT extends CalcitePPLIntegTestCase {
     super.init();
 
     loadIndex(Index.BANK);
+    loadIndex(Index.WEBLOG);
     loadIndex(Index.HDFS_LOGS);
   }
 
@@ -33,7 +34,7 @@ public class CalcitePPLPatternsIT extends CalcitePPLIntegTestCase {
         executeQuery(
             String.format(
                 """
-                   source = %s | patterns email pattern_mode=label | head 1 | fields email, patterns_field, tokens
+                   source = %s | patterns email mode=label | head 1 | fields email, patterns_field, tokens
                    """,
                 TEST_INDEX_BANK));
     verifySchema(
@@ -61,7 +62,7 @@ public class CalcitePPLPatternsIT extends CalcitePPLIntegTestCase {
         executeQuery(
             String.format(
                 """
-                   source = %s | patterns email pattern_mode=label pattern='@.*' | head 1 | fields email, patterns_field, tokens
+                   source = %s | patterns email mode=label pattern='@.*' | head 1 | fields email, patterns_field, tokens
                    """,
                 TEST_INDEX_BANK));
     verifySchema(
@@ -82,8 +83,7 @@ public class CalcitePPLPatternsIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | patterns email pattern_mode=aggregation pattern_max_sample_count=3",
-                TEST_INDEX_BANK));
+                "source=%s | patterns email mode=aggregation max_sample_count=3", TEST_INDEX_BANK));
     verifySchema(
         result,
         schema("pattern_count", "long"),
@@ -108,8 +108,8 @@ public class CalcitePPLPatternsIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | patterns content pattern_method=BRAIN pattern_mode=label"
-                    + " pattern_max_sample_count=5 variable_count_threshold=5"
+                "source=%s | patterns content method=BRAIN mode=label"
+                    + " max_sample_count=5 variable_count_threshold=5"
                     + " frequency_threshold_percentage=0.2 | head 2 | fields content,"
                     + " patterns_field, tokens",
                 TEST_INDEX_HDFS_LOGS));
@@ -161,7 +161,7 @@ public class CalcitePPLPatternsIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | patterns content pattern_method=BRAIN pattern_mode=aggregation"
+                "source=%s | patterns content method=brain mode=aggregation"
                     + " variable_count_threshold=5",
                 TEST_INDEX_HDFS_LOGS));
     verifySchema(
@@ -225,8 +225,8 @@ public class CalcitePPLPatternsIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | patterns content by level pattern_method=BRAIN"
-                    + " pattern_mode=aggregation pattern_max_sample_count=5"
+                "source=%s | patterns content by level method=BRAIN"
+                    + " mode=aggregation max_sample_count=5"
                     + " variable_count_threshold=2 frequency_threshold_percentage=0.2",
                 TEST_INDEX_HDFS_LOGS));
     verifySchema(

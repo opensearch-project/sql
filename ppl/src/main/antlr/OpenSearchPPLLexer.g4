@@ -43,10 +43,9 @@ SIMPLE_PATTERN:                     'SIMPLE_PATTERN';
 BRAIN:                              'BRAIN';
 VARIABLE_COUNT_THRESHOLD:           'VARIABLE_COUNT_THRESHOLD';
 FREQUENCY_THRESHOLD_PERCENTAGE:     'FREQUENCY_THRESHOLD_PERCENTAGE';
-PATTERN_MODE:                       'PATTERN_MODE';
-PATTERN_METHOD:                     'PATTERN_METHOD';
-PATTERN_MAX_SAMPLE_COUNT:           'PATTERN_MAX_SAMPLE_COUNT';
-PATTERN_BUFFER_LIMIT:               'PATTERN_BUFFER_LIMIT';
+METHOD:                             'METHOD';
+MAX_SAMPLE_COUNT:                   'MAX_SAMPLE_COUNT';
+BUFFER_LIMIT:                       'BUFFER_LIMIT';
 LABEL:                              'LABEL';
 AGGREGATION:                        'AGGREGATION';
 

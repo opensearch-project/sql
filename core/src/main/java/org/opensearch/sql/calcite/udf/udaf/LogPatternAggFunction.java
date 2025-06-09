@@ -9,6 +9,7 @@
 package org.opensearch.sql.calcite.udf.udaf;
 
 import com.google.common.collect.ImmutableMap;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -47,9 +48,25 @@ public class LogPatternAggFunction implements UserDefinedAggFunction<LogParserAc
   public LogParserAccumulator add(LogParserAccumulator acc, Object... values) {
     throw new SyntaxCheckException(
         "Unsupported function signature for pattern aggregate. Valid parameters include (field:"
-            + " required string), (pattern_max_sample_count: required integer),"
-            + " (pattern_buffer_limit: required integer), [variable_count_threshold: optional"
+            + " required string), (max_sample_count: required integer),"
+            + " (buffer_limit: required integer), [variable_count_threshold: optional"
             + " integer], [frequency_threshold_percentage: optional double]");
+  }
+
+  public LogParserAccumulator add(
+      LogParserAccumulator acc,
+      String field,
+      int maxSampleCount,
+      int bufferLimit,
+      BigDecimal thresholdPercentage,
+      int variableCountThreshold) {
+    return add(
+        acc,
+        field,
+        maxSampleCount,
+        bufferLimit,
+        thresholdPercentage.doubleValue(),
+        variableCountThreshold);
   }
 
   public LogParserAccumulator add(
@@ -89,9 +106,14 @@ public class LogPatternAggFunction implements UserDefinedAggFunction<LogParserAc
       String field,
       int maxSampleCount,
       int bufferLimit,
-      double thresholdPercentage) {
+      BigDecimal thresholdPercentage) {
     return add(
-        acc, field, maxSampleCount, bufferLimit, thresholdPercentage, this.variableCountThreshold);
+        acc,
+        field,
+        maxSampleCount,
+        bufferLimit,
+        thresholdPercentage.doubleValue(),
+        this.variableCountThreshold);
   }
 
   public LogParserAccumulator add(

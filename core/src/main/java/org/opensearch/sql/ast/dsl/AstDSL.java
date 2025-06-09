@@ -7,7 +7,6 @@ package org.opensearch.sql.ast.dsl;
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;

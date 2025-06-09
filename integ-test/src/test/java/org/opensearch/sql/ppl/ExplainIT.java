@@ -288,8 +288,7 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            "source=opensearch-sql_test_index_account"
-                + "| patterns email pattern_mode=aggregation"));
+            "source=opensearch-sql_test_index_account" + "| patterns email mode=aggregation"));
   }
 
   @Test
@@ -304,6 +303,6 @@ public class ExplainIT extends PPLIntegTestCase {
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
-                + "| patterns email pattern_method=brain pattern_mode=aggregation"));
+                + "| patterns email method=brain mode=aggregation"));
   }
 }

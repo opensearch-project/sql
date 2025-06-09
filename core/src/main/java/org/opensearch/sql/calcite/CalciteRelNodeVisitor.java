@@ -1087,37 +1087,35 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     String patternValue = (String) node.getPattern().getValue();
     String pattern =
         ParseMethod.PATTERNS.equals(parseMethod) && Strings.isNullOrEmpty(patternValue)
-            ? "[a-zA-Z0-9]"
+            ? "[a-zA-Z0-9]+"
             : patternValue;
     List<String> groupCandidates =
         ParseUtils.getNamedGroupCandidates(parseMethod, pattern, arguments);
-    List<RexNode> newFields =
-        groupCandidates.stream()
-            .map(
-                group -> {
-                  RexNode innerRex =
-                      PPLFuncImpTable.INSTANCE.resolve(
-                          context.rexBuilder,
-                          ParseUtils.BUILTIN_FUNCTION_MAP.get(parseMethod),
-                          sourceField,
-                          context.rexBuilder.makeLiteral(
-                              pattern,
-                              context
-                                  .rexBuilder
-                                  .getTypeFactory()
-                                  .createSqlType(SqlTypeName.VARCHAR),
-                              true));
-                  if (ParseMethod.GROK.equals(parseMethod)) {
-                    return PPLFuncImpTable.INSTANCE.resolve(
-                        context.rexBuilder,
-                        BuiltinFunctionName.INTERNAL_ITEM,
-                        innerRex,
-                        context.rexBuilder.makeLiteral(group));
-                  } else {
-                    return innerRex;
-                  }
-                })
-            .toList();
+    RexNode[] rexNodeList =
+        new RexNode[] {
+          sourceField,
+          context.rexBuilder.makeLiteral(
+              pattern, context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), true)
+        };
+    if (ParseMethod.PATTERNS.equals(parseMethod)) {
+      rexNodeList = ArrayUtils.add(rexNodeList, context.relBuilder.literal("<*>"));
+    }
+    List<RexNode> newFields = new ArrayList<>();
+    for (String groupCandidate : groupCandidates) {
+      RexNode innerRex =
+          PPLFuncImpTable.INSTANCE.resolve(
+              context.rexBuilder, ParseUtils.BUILTIN_FUNCTION_MAP.get(parseMethod), rexNodeList);
+      if (ParseMethod.GROK.equals(parseMethod)) {
+        newFields.add(
+            PPLFuncImpTable.INSTANCE.resolve(
+                context.rexBuilder,
+                BuiltinFunctionName.INTERNAL_ITEM,
+                innerRex,
+                context.relBuilder.literal(groupCandidate)));
+      } else {
+        newFields.add(innerRex);
+      }
+    }
     projectPlusOverriding(newFields, groupCandidates, context);
   }
 

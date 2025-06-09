@@ -24,8 +24,11 @@ import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
+import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.logging.log4j.util.Strings;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -41,6 +44,15 @@ public class PatternParserFunctionImpl extends ImplementorUDF {
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
     return ReturnTypes.explicit(UserDefinedFunctionUtils.patternStruct);
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+    return UDFOperandMetadata.wrap(
+        (CompositeOperandTypeChecker)
+            OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.ANY)
+                .or(OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING))
+                .or(OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.ARRAY)));
   }
 
   public static class PatternParserImplementor implements NotNullImplementor {

@@ -173,7 +173,7 @@ patternsMethod
    ;
 
 patternsCommand
-   : PATTERNS (source_field = expression) (statsByClause)? (PATTERN_METHOD EQUAL pattern_method = patternMethod)? (PATTERN_MODE EQUAL pattern_mode = patternMode)? (PATTERN_MAX_SAMPLE_COUNT EQUAL pattern_max_sample_count = integerLiteral)? (PATTERN_BUFFER_LIMIT EQUAL pattern_buffer_limit = integerLiteral)? (NEW_FIELD EQUAL new_field = stringLiteral)? (patternsParameter)*
+   : PATTERNS (source_field = expression) (statsByClause)? (METHOD EQUAL method = patternMethod)? (MODE EQUAL pattern_mode = patternMode)? (MAX_SAMPLE_COUNT EQUAL max_sample_count = integerLiteral)? (BUFFER_LIMIT EQUAL buffer_limit = integerLiteral)? (NEW_FIELD EQUAL new_field = stringLiteral)? (patternsParameter)*
    ;
 
 patternsParameter
@@ -1080,12 +1080,11 @@ keywordsCanBeId
    | FROM
    | PATTERN
    | NEW_FIELD
-   | PATTERN_MODE
-   | PATTERN_METHOD
+   | METHOD
    | VARIABLE_COUNT_THRESHOLD
    | FREQUENCY_THRESHOLD_PERCENTAGE
-   | PATTERN_MAX_SAMPLE_COUNT
-   | PATTERN_BUFFER_LIMIT
+   | MAX_SAMPLE_COUNT
+   | BUFFER_LIMIT
    | WITH
    | REGEX
    | PUNCT
