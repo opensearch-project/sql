@@ -19,6 +19,8 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.ADD;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ADDDATE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ADDTIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.AND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ARRAY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ARRAY_LENGTH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ASCII;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ASIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ATAN;
@@ -61,9 +63,12 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.E;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EARLIEST;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EQUAL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXISTS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXTRACT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.FILTER;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FLOOR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.FORALL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FROM_DAYS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FROM_UNIXTIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.GET_FORMAT;
@@ -140,6 +145,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.POWER;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.QUARTER;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RADIANS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RAND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.REDUCE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REGEXP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REPLACE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REVERSE;
@@ -176,6 +182,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME_FO
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME_TO_SEC;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TO_DAYS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TO_SECONDS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TRANSFORM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TRIM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TRUNCATE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TYPEOF;
@@ -752,6 +759,13 @@ public class PPLFuncImpTable {
       registerOperator(WEEK_OF_YEAR, PPLBuiltinOperators.WEEK);
       registerOperator(WEEKOFYEAR, PPLBuiltinOperators.WEEK);
 
+      registerOperator(ARRAY, PPLBuiltinOperators.ARRAY);
+      registerOperator(ARRAY_LENGTH, SqlLibraryOperators.ARRAY_LENGTH);
+      registerOperator(FORALL, PPLBuiltinOperators.FORALL);
+      registerOperator(EXISTS, PPLBuiltinOperators.EXISTS);
+      registerOperator(FILTER, PPLBuiltinOperators.FILTER);
+      registerOperator(TRANSFORM, PPLBuiltinOperators.TRANSFORM);
+      registerOperator(REDUCE, PPLBuiltinOperators.REDUCE);
       // Register Json function
       register(
           JSON_ARRAY,

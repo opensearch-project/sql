@@ -58,6 +58,15 @@ public enum BuiltinFunctionName {
   TAN(FunctionName.of("tan")),
   SPAN(FunctionName.of("span")),
 
+  /** Collection functions */
+  ARRAY(FunctionName.of("array")),
+  ARRAY_LENGTH(FunctionName.of("array_length")),
+  FORALL(FunctionName.of("forall")),
+  EXISTS(FunctionName.of("exists")),
+  FILTER(FunctionName.of("filter")),
+  TRANSFORM(FunctionName.of("transform")),
+  REDUCE(FunctionName.of("reduce")),
+
   /** Date and Time Functions. */
   ADDDATE(FunctionName.of("adddate")),
   ADDTIME(FunctionName.of("addtime")),
@@ -170,13 +179,6 @@ public enum BuiltinFunctionName {
   LIKE(FunctionName.of("like")),
   NOT_LIKE(FunctionName.of("not like")),
 
-  /** LAMBDA Functions * */
-  ARRAY_FORALL(FunctionName.of("forall")),
-  ARRAY_EXISTS(FunctionName.of("exists")),
-  ARRAY_FILTER(FunctionName.of("filter")),
-  ARRAY_TRANSFORM(FunctionName.of("transform")),
-  ARRAY_AGGREGATE(FunctionName.of("reduce")),
-
   /** Aggregation Function. */
   AVG(FunctionName.of("avg")),
   SUM(FunctionName.of("sum")),
@@ -221,9 +223,6 @@ public enum BuiltinFunctionName {
   SUBSTRING(FunctionName.of("substring")),
   TRIM(FunctionName.of("trim")),
   UPPER(FunctionName.of("upper")),
-
-  /** Array Functions. */
-  ARRAY(FunctionName.of("array")),
 
   /** Json Functions. */
   JSON_VALID(FunctionName.of("json_valid")),

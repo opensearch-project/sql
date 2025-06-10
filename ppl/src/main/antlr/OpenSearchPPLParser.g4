@@ -478,6 +478,7 @@ valueExpression
    | timestampFunction                                                                          # timestampFunctionCall
    | LT_PRTHS valueExpression RT_PRTHS                                                          # parentheticValueExpr
    | LT_SQR_PRTHS subSearch RT_SQR_PRTHS                                                        # scalarSubqueryExpr
+   | lambda                                                                                     # lambdaExpr
    ;
 
 primaryExpression
@@ -596,6 +597,7 @@ evalFunctionName
    | cryptographicFunctionName
    | jsonFunctionName
    | geoipFunctionName
+   | collectionFunctionName
    ;
 
 functionArgs
@@ -603,7 +605,18 @@ functionArgs
    ;
 
 functionArg
-   : (ident EQUAL)? expression
+   : (ident EQUAL)? functionArgExpression
+   ;
+
+
+functionArgExpression
+   : lambda
+   | expression
+   ;
+
+lambda
+   : ident ARROW expression
+   | LT_PRTHS ident (COMMA ident)+ RT_PRTHS ARROW expression
    ;
 
 relevanceArg
@@ -702,6 +715,17 @@ mathematicalFunctionName
 geoipFunctionName
    : GEOIP
    ;
+
+collectionFunctionName
+    : ARRAY
+    | ARRAY_LENGTH
+    | FORALL
+    | EXISTS
+    | FILTER
+    | TRANSFORM
+    | REDUCE
+    ;
+
 
 trigonometricFunctionName
    : ACOS
@@ -1082,6 +1106,7 @@ keywordsCanBeId
    | singleFieldRelevanceFunctionName
    | multiFieldRelevanceFunctionName
    | commandName
+   | collectionFunctionName
    | comparisonOperator
    | patternMethod
    | explainMode

@@ -198,6 +198,7 @@ RT_SQR_PRTHS:                       ']';
 SINGLE_QUOTE:                       '\'';
 DOUBLE_QUOTE:                       '"';
 BACKTICK:                           '`';
+ARROW:                              '->';
 
 // Operators. Bit
 
@@ -378,6 +379,14 @@ BETWEEN:                            'BETWEEN';
 ISPRESENT:                          'ISPRESENT';
 ISEMPTY:                            'ISEMPTY';
 ISBLANK:                            'ISBLANK';
+
+// COLLECTION FUNCTIONS
+ARRAY:                              'ARRAY';
+ARRAY_LENGTH:                       'ARRAY_LENGTH';
+FORALL:                             'FORALL';
+FILTER:                             'FILTER';
+TRANSFORM:                          'TRANSFORM';
+REDUCE:                             'REDUCE';
 
 // JSON FUNCTIONS
 JSON_VALID:                         'JSON_VALID';
