@@ -234,8 +234,9 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     for (int i = 1; i <= columnCount; ++i) {
       String columnName = metaData.getColumnName(i);
       RelDataType fieldType = fieldTypes.get(i - 1);
-      // The element type of struct and array is currently set to ANY.
-      // We set them using the runtime type as a workaround.
+      // TODO: Correct this after fixing issue github.com/opensearch-project/sql/issues/3751
+      //  The element type of struct and array is currently set to ANY.
+      //  We set them using the runtime type as a workaround.
       ExprType exprType;
       if (fieldType.getSqlTypeName() == SqlTypeName.ANY) {
         if (!values.isEmpty()) {

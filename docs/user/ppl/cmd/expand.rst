@@ -63,3 +63,12 @@ PPL query::
     | chen  | 32  | {"city":"Miami","state":"Florida","moveInDate":{"dateAndTime":"19010811T040333.000Z"}}    |
     | chen  | 32  | {"city":"los angeles","state":"CA","moveInDate":{"dateAndTime":"20230503T080742.000Z"}}   |
     +-------+-----+-------------------------------------------------------------------------------------------+
+
+Limitations
+============
+
+* The ``expand`` command currently only supports nested arrays. Primitive
+  fields storing arrays are not currently supported. E.g. a string field
+  storing an array of strings cannot be expanded with the current
+  implementation.
+* The ``expand`` command is only available since 3.1.0.
