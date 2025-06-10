@@ -245,7 +245,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
       case ARRAY -> ARRAY;
       case MAP -> STRUCT;
       case GEOMETRY -> GEO_POINT;
-      case NULL, ANY -> UNDEFINED;
+      case NULL, ANY, OTHER -> UNDEFINED;
       default -> UNKNOWN;
     };
   }

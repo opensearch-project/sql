@@ -349,3 +349,91 @@ Example::
     | False         | Quility | False             | Quility  |
     | False         |         | True              | null     |
     +---------------+---------+-------------------+----------+
+
+EARLIEST
+--------
+
+Description
+>>>>>>>>>>>
+
+Version: 3.1.0
+
+Usage: earliest(relative_string, field) returns true if the value of field is after the timestamp derived from relative_string relative to the current time. Otherwise, return false.
+
+relative_string: 
+The relative string can be one of the following formats:
+
+1. `"now"` or `"now()"`:  
+   Uses the current system time.
+
+2. Absolute format (`MM/dd/yyyy:HH:mm:ss`):  
+   Converts the string to a timestamp and compares it with the data.
+
+3. Relative format: `(+|-)<time_integer><time_unit>[+<...>]@<snap_unit>`  
+   Steps to specify a relative time:
+
+   - **a. Time offset:** Indicate the offset from the current time using `+` or `-`.  
+   - **b. Time amount:** Provide a numeric value followed by a time unit (`s`, `m`, `h`, `d`, `w`, `M`, `y`).  
+   - **c. Snap to unit:** Optionally specify a snap unit with `@<unit>` to round the result down to the nearest unit (e.g., hour, day, month).
+
+   **Examples** (assuming current time is `2025-05-28 14:28:34`):
+
+   - `-3d+2y` → `2027-05-25 14:28:34`  
+   - `+1d@m` → `2025-05-29 14:28:00`  
+   - `-3M+1y@M` → `2026-02-01 00:00:00`
+
+Read more details `here <https://github.com/opensearch-project/opensearch-spark/blob/main/docs/ppl-lang/functions/ppl-datetime.md#relative_timestamp>`_
+
+Argument type: relative_string:STRING, field: TIMESTAMP
+
+Return type: BOOLEAN
+
+Example::
+
+    PPL> source=accounts | eval now = utc_timestamp() | eval a = earliest("now", now), b = earliest("-2d@d", now) | fields a, b | head 1
+    fetched rows / total rows = 1/1
+    +-------+-------+
+    | a     | b     |
+    |-------+-------|
+    | False | True  |
+    +-------+-------+
+
+    PPL> source=nyc_taxi | where earliest('07/01/2014:00:30:00', timestamp) | stats COUNT() as cnt
+    fetched rows / total rows = 1/1
+    +-----+
+    | cnt |
+    |-----|
+    | 971 |
+    +-----+
+
+LATEST
+------
+
+Description
+>>>>>>>>>>>
+
+Version: 3.1.0
+
+Usage: latest(relative_string, field) returns true if the value of field is before the timestamp derived from relative_string relative to the current time. Otherwise, return false.
+
+Argument type: relative_string:STRING, field: TIMESTAMP
+
+Return type: BOOLEAN
+
+Example::
+
+    PPL> source=accounts | eval now = utc_timestamp() | eval a = latest("now", now), b = latest("+2d@d", now) | fields a, b | head 1
+    fetched rows / total rows = 1/1
+    +-------+-------+
+    | a     | b     |
+    |-------+-------|
+    | False | True  |
+    +-------+-------+
+
+    PPL> source=nyc_taxi | where latest('07/21/2014:04:00:00', timestamp) | stats COUNT() as cnt
+    fetched rows / total rows = 1/1
+    +-----+
+    | cnt |
+    |-----|
+    | 968 |
+    +-----+

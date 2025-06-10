@@ -31,6 +31,12 @@ import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
+import org.opensearch.sql.expression.function.CollectionUDF.ArrayFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.ExistsFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.FilterFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.ForallFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.ReduceFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.TransformFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonAppendFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonArrayLengthFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonDeleteFunctionImpl;
@@ -42,6 +48,8 @@ import org.opensearch.sql.expression.function.jsonUDF.JsonSetFunctionImpl;
 import org.opensearch.sql.expression.function.udf.CryptographicFunction;
 import org.opensearch.sql.expression.function.udf.GrokFunction;
 import org.opensearch.sql.expression.function.udf.SpanFunction;
+import org.opensearch.sql.expression.function.udf.condition.EarliestFunction;
+import org.opensearch.sql.expression.function.udf.condition.LatestFunction;
 import org.opensearch.sql.expression.function.udf.datetime.AddSubDateFunction;
 import org.opensearch.sql.expression.function.udf.datetime.CurrentFunction;
 import org.opensearch.sql.expression.function.udf.datetime.DateAddSubFunction;
@@ -93,6 +101,10 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator DIVIDE = new DivideFunction().toUDF("DIVIDE");
   public static final SqlOperator SHA2 = CryptographicFunction.sha2().toUDF("SHA2");
   public static final SqlOperator CIDRMATCH = new CidrMatchFunction().toUDF("CIDRMATCH");
+
+  // Condition function
+  public static final SqlOperator EARLIEST = new EarliestFunction().toUDF("EARLIEST");
+  public static final SqlOperator LATEST = new LatestFunction().toUDF("LATEST");
 
   // Datetime function
   public static final SqlOperator TIMESTAMP = new TimestampFunction().toUDF("TIMESTAMP");
@@ -307,6 +319,13 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator GROK = new GrokFunction().toUDF("GROK");
   public static final SqlOperator PATTERN_PARSER =
       new PatternParserFunctionImpl().toUDF("PATTERN_PARSER");
+
+  public static final SqlOperator FORALL = new ForallFunctionImpl().toUDF("forall");
+  public static final SqlOperator EXISTS = new ExistsFunctionImpl().toUDF("exists");
+  public static final SqlOperator ARRAY = new ArrayFunctionImpl().toUDF("array");
+  public static final SqlOperator FILTER = new FilterFunctionImpl().toUDF("filter");
+  public static final SqlOperator TRANSFORM = new TransformFunctionImpl().toUDF("transform");
+  public static final SqlOperator REDUCE = new ReduceFunctionImpl().toUDF("reduce");
 
   /**
    * Invoking an implementor registered in {@link RexImpTable}, need to use reflection since they're
