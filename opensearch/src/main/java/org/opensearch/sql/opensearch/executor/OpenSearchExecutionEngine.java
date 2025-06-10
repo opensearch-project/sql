@@ -6,6 +6,8 @@
 package org.opensearch.sql.opensearch.executor;
 
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.convertRelDataTypeToExprType;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedAggFunction;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DISTINCT_COUNT_APPROX;
 
 import java.security.AccessController;
 import java.security.PrivilegedAction;
@@ -28,6 +30,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.opensearch.sql.ast.statement.Explain.ExplainFormat;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
@@ -40,20 +43,31 @@ import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.Schema.Column;
 import org.opensearch.sql.executor.Explain;
 import org.opensearch.sql.executor.pagination.PlanSerializer;
+import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
+import org.opensearch.sql.opensearch.functions.DistinctCountApproxAggFunction;
 import org.opensearch.sql.opensearch.util.JdbcOpenSearchDataTypeConvertor;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.TableScanOperator;
 
 /** OpenSearch execution engine implementation. */
-@RequiredArgsConstructor
 public class OpenSearchExecutionEngine implements ExecutionEngine {
 
   private final OpenSearchClient client;
 
   private final ExecutionProtector executionProtector;
   private final PlanSerializer planSerializer;
+
+public OpenSearchExecutionEngine(
+        OpenSearchClient client,
+        ExecutionProtector executionProtector,
+        PlanSerializer planSerializer) {
+    this.client = client;
+    this.executionProtector = executionProtector;
+    this.planSerializer = planSerializer;
+    registerOpenSearchFunctions();
+}
 
   @Override
   public void execute(PhysicalPlan physicalPlan, ResponseListener<QueryResponse> listener) {
@@ -229,5 +243,19 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     Schema schema = new Schema(columns);
     QueryResponse response = new QueryResponse(schema, values, null);
     listener.onResponse(response);
+  }
+
+  /** Registers opensearch-dependent functions */
+  private void registerOpenSearchFunctions() {
+    PPLFuncImpTable.INSTANCE.registerExternalAggFunction(
+        DISTINCT_COUNT_APPROX,
+        (distinct, field, argList, ctx) ->
+            TransferUserDefinedAggFunction(
+                DistinctCountApproxAggFunction.class,
+                "APPROX_DISTINCT_COUNT",
+                ReturnTypes.BIGINT_FORCE_NULLABLE,
+                List.of(field),
+                argList,
+                ctx.relBuilder));
   }
 }
