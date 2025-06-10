@@ -117,15 +117,6 @@ public class PPLFuncImpTable {
     this.map = ImmutableMap.copyOf(mapBuilder.build());
   }
 
-  public @Nullable RexNode resolveSafe(
-      final RexBuilder builder, final String functionName, RexNode... args) {
-    try {
-      return resolve(builder, functionName, args);
-    } catch (Exception e) {
-      return null;
-    }
-  }
-
   public RexNode resolve(final RexBuilder builder, final String functionName, RexNode... args) {
     Optional<BuiltinFunctionName> funcNameOpt = BuiltinFunctionName.of(functionName);
     if (funcNameOpt.isEmpty()) {
