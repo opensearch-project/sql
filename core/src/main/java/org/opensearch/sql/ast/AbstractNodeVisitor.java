@@ -49,6 +49,7 @@ import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
+import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
@@ -112,6 +113,10 @@ public abstract class AbstractNodeVisitor<T, C> {
 
   public T visitRelationSubquery(RelationSubquery node, C context) {
     return visitChildren(node, context);
+  }
+
+  public T visitExpand(Expand expand, C context) {
+    return visitChildren(expand, context);
   }
 
   public T visitTableFunction(TableFunction node, C context) {

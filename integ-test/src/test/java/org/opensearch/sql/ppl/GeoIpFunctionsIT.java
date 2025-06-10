@@ -83,7 +83,8 @@ public class GeoIpFunctionsIT extends PPLIntegTestCase {
     JSONObject resultGeoIp =
         executeQuery(
             String.format(
-                "search source=%s | eval enrichmentResult = geoip(\\\"%s\\\",%s)",
+                "search source=%s | eval enrichmentResult = geoip(\\\"%s\\\",%s) | fields name, ip,"
+                    + " enrichmentResult",
                 TEST_INDEX_GEOIP, "dummycityindex", "ip"));
 
     verifyColumn(resultGeoIp, columnName("name"), columnName("ip"), columnName("enrichmentResult"));
@@ -100,7 +101,8 @@ public class GeoIpFunctionsIT extends PPLIntegTestCase {
     JSONObject resultGeoIp =
         executeQuery(
             String.format(
-                "search source=%s | eval enrichmentResult = geoip(\\\"%s\\\",%s,\\\"%s\\\")",
+                "search source=%s | eval enrichmentResult = geoip(\\\"%s\\\",%s,\\\"%s\\\") |"
+                    + " fields name, ip, enrichmentResult",
                 TEST_INDEX_GEOIP, "dummycityindex", "ip", "city"));
 
     verifyColumn(resultGeoIp, columnName("name"), columnName("ip"), columnName("enrichmentResult"));
@@ -117,7 +119,8 @@ public class GeoIpFunctionsIT extends PPLIntegTestCase {
     JSONObject resultGeoIp =
         executeQuery(
             String.format(
-                "search source=%s | eval enrichmentResult = geoip(\\\"%s\\\",%s,\\\"%s\\\")",
+                "search source=%s | eval enrichmentResult = geoip(\\\"%s\\\",%s,\\\"%s\\\") |"
+                    + " fields name, ip, enrichmentResult",
                 TEST_INDEX_GEOIP, "dummycityindex", "ip", "city , country"));
 
     verifyColumn(resultGeoIp, columnName("name"), columnName("ip"), columnName("enrichmentResult"));

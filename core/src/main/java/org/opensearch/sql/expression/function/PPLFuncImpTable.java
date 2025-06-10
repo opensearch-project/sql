@@ -5,10 +5,194 @@
 
 package org.opensearch.sql.expression.function;
 
+import static org.apache.calcite.sql.SqlJsonConstructorNullClause.NULL_ON_NULL;
 import static org.apache.calcite.sql.type.SqlTypeFamily.IGNORE;
+import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.STDDEV_POP_NULLABLE;
+import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.STDDEV_SAMP_NULLABLE;
+import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.VAR_POP_NULLABLE;
+import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.VAR_SAMP_NULLABLE;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getLegacyTypeName;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.*;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedAggFunction;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ABS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ACOS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ADD;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ADDDATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ADDTIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.AND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ASCII;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ASIN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ATAN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ATAN2;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.AVG;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CBRT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CEIL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CEILING;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CIDRMATCH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.COALESCE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CONCAT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CONCAT_WS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CONV;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CONVERT_TZ;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.COS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.COT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.COUNT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CRC32;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURDATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURRENT_DATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURRENT_TIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURRENT_TIMESTAMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURTIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DATEDIFF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DATETIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DATE_ADD;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DATE_FORMAT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DATE_SUB;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAYNAME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAYOFMONTH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAYOFWEEK;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAYOFYEAR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY_OF_MONTH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY_OF_WEEK;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY_OF_YEAR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DEGREES;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.E;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.EQUAL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXTRACT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.FLOOR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.FROM_DAYS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.FROM_UNIXTIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.GET_FORMAT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.GREATER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.GTE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.HOUR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.HOUR_OF_DAY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.IF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.IFNULL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_GROK;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_ITEM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_EXTRACT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_2;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_BLANK;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_EMPTY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NOT_NULL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NULL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_PRESENT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_APPEND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_ARRAY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_ARRAY_LENGTH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_DELETE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_EXTEND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_EXTRACT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_KEYS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_OBJECT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_SET;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_VALID;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LAST_DAY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LEFT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LENGTH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LESS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LIKE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOCALTIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOCALTIMESTAMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOCATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOG;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOG10;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOG2;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOWER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LTE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LTRIM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAKEDATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAKETIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAX;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MD5;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MICROSECOND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MIN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE_OF_DAY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE_OF_HOUR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MOD;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MODULUS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MODULUSFUNCTION;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTHNAME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTH_OF_YEAR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOTEQUAL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOW;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.NULLIF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.OR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.PERCENTILE_APPROX;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.PERIOD_ADD;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.PERIOD_DIFF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.PI;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.POSITION;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.POW;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.POWER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.QUARTER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.RADIANS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.RAND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.REGEXP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.REPLACE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.REVERSE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.RIGHT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ROUND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.RTRIM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SECOND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SECOND_OF_MINUTE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SEC_TO_TIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SHA1;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SHA2;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SIGN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SIN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SPAN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SQRT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.STDDEV_POP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.STDDEV_SAMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.STRCMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.STR_TO_DATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBDATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBSTR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBSTRING;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBTIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBTRACT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SYSDATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TAKE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMEDIFF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTAMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTAMPADD;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTAMPDIFF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME_FORMAT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME_TO_SEC;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TO_DAYS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TO_SECONDS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TRIM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TRUNCATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TYPEOF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.UNIX_TIMESTAMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.UPPER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.UTC_DATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.UTC_TIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.UTC_TIMESTAMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.VARPOP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.VARSAMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEK;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEKDAY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEKOFYEAR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEK_OF_YEAR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.XOR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.YEAR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.YEARWEEK;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -19,8 +203,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.StringJoiner;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
@@ -31,21 +217,34 @@ import org.apache.calcite.sql.fun.SqlTrimFunction.Flag;
 import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
 import org.apache.calcite.sql.type.ImplicitCastOperandTypeChecker;
 import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SameOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.commons.lang3.function.TriFunction;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.udf.udaf.PercentileApproxFunction;
+import org.opensearch.sql.calcite.udf.udaf.TakeAggFunction;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.executor.QueryType;
 
 public class PPLFuncImpTable {
   private static final Logger logger = LogManager.getLogger(PPLFuncImpTable.class);
+
+  /** A lambda function interface which could apply parameters to get AggCall. */
+  @FunctionalInterface
+  public interface AggHandler {
+    RelBuilder.AggCall apply(
+        boolean distinct, RexNode field, List<RexNode> argList, CalcitePlanContext context);
+  }
 
   public interface FunctionImp {
     RexNode resolve(RexBuilder builder, RexNode... args);
@@ -103,7 +302,9 @@ public class PPLFuncImpTable {
   static {
     final Builder builder = new Builder();
     builder.populate();
-    INSTANCE = new PPLFuncImpTable(builder);
+    final AggBuilder aggBuilder = new AggBuilder();
+    aggBuilder.populate();
+    INSTANCE = new PPLFuncImpTable(builder, aggBuilder);
   }
 
   /**
@@ -122,12 +323,32 @@ public class PPLFuncImpTable {
   private final Map<BuiltinFunctionName, List<Pair<CalciteFuncSignature, FunctionImp>>>
       externalFunctionRegistry;
 
-  private PPLFuncImpTable(Builder builder) {
+  /**
+   * The registry for built-in agg functions. Agg Functions defined by the PPL specification, whose
+   * implementations are independent of any specific data storage, should be registered here
+   * internally.
+   */
+  private final ImmutableMap<BuiltinFunctionName, AggHandler> aggFunctionRegistry;
+
+  /**
+   * The external agg function registry. Agg Functions whose implementations depend on a specific
+   * data engine should be registered here. This reduces coupling between the core module and
+   * particular storage backends.
+   */
+  private final Map<BuiltinFunctionName, AggHandler> aggExternalFunctionRegistry;
+
+  private PPLFuncImpTable(Builder builder, AggBuilder aggBuilder) {
     final ImmutableMap.Builder<BuiltinFunctionName, List<Pair<CalciteFuncSignature, FunctionImp>>>
         mapBuilder = ImmutableMap.builder();
     builder.map.forEach((k, v) -> mapBuilder.put(k, List.copyOf(v)));
     this.functionRegistry = ImmutableMap.copyOf(mapBuilder.build());
-    this.externalFunctionRegistry = new HashMap<>();
+    this.externalFunctionRegistry = new ConcurrentHashMap<>();
+
+    final ImmutableMap.Builder<BuiltinFunctionName, AggHandler> aggMapBuilder =
+        ImmutableMap.builder();
+    aggBuilder.map.forEach(aggMapBuilder::put);
+    this.aggFunctionRegistry = ImmutableMap.copyOf(aggMapBuilder.build());
+    this.aggExternalFunctionRegistry = new ConcurrentHashMap<>();
   }
 
   /**
@@ -139,12 +360,41 @@ public class PPLFuncImpTable {
   public void registerExternalFunction(BuiltinFunctionName functionName, FunctionImp functionImp) {
     CalciteFuncSignature signature =
         new CalciteFuncSignature(functionName.getName(), functionImp.getTypeChecker());
-    if (externalFunctionRegistry.containsKey(functionName)) {
-      externalFunctionRegistry.get(functionName).add(Pair.of(signature, functionImp));
-    } else {
-      externalFunctionRegistry.put(
-          functionName, new ArrayList<>(List.of(Pair.of(signature, functionImp))));
+    externalFunctionRegistry.compute(
+        functionName,
+        (name, existingList) -> {
+          List<Pair<CalciteFuncSignature, FunctionImp>> list =
+              existingList == null ? new ArrayList<>() : new ArrayList<>(existingList);
+          list.add(Pair.of(signature, functionImp));
+          return list;
+        });
+  }
+
+  /**
+   * Register a function implementation from external services dynamically.
+   *
+   * @param functionName the name of the function, has to be defined in BuiltinFunctionName
+   * @param functionImp the implementation of the agg function
+   */
+  public void registerExternalAggFunction(
+      BuiltinFunctionName functionName, AggHandler functionImp) {
+    aggExternalFunctionRegistry.put(functionName, functionImp);
+  }
+
+  public RelBuilder.AggCall resolveAgg(
+      BuiltinFunctionName functionName,
+      boolean distinct,
+      RexNode field,
+      List<RexNode> argList,
+      CalcitePlanContext context) {
+    AggHandler handler = aggExternalFunctionRegistry.get(functionName);
+    if (handler == null) {
+      handler = aggFunctionRegistry.get(functionName);
     }
+    if (handler == null) {
+      throw new IllegalStateException(String.format("Cannot resolve function: %s", functionName));
+    }
+    return handler.apply(distinct, field, argList, context);
   }
 
   public RexNode resolve(final RexBuilder builder, final String functionName, RexNode... args) {
@@ -498,6 +748,31 @@ public class PPLFuncImpTable {
       registerOperator(WEEK_OF_YEAR, PPLBuiltinOperators.WEEK);
       registerOperator(WEEKOFYEAR, PPLBuiltinOperators.WEEK);
 
+      // Register Json function
+      register(
+          JSON_ARRAY,
+          ((builder, args) ->
+              builder.makeCall(
+                  SqlStdOperatorTable.JSON_ARRAY,
+                  Stream.concat(Stream.of(builder.makeFlag(NULL_ON_NULL)), Arrays.stream(args))
+                      .toArray(RexNode[]::new))));
+      register(
+          JSON_OBJECT,
+          ((builder, args) ->
+              builder.makeCall(
+                  SqlStdOperatorTable.JSON_OBJECT,
+                  Stream.concat(Stream.of(builder.makeFlag(NULL_ON_NULL)), Arrays.stream(args))
+                      .toArray(RexNode[]::new))));
+      registerOperator(JSON, PPLBuiltinOperators.JSON);
+      registerOperator(JSON_ARRAY_LENGTH, PPLBuiltinOperators.JSON_ARRAY_LENGTH);
+      registerOperator(JSON_EXTRACT, PPLBuiltinOperators.JSON_EXTRACT);
+      registerOperator(JSON_KEYS, PPLBuiltinOperators.JSON_KEYS);
+      registerOperator(JSON_VALID, SqlStdOperatorTable.IS_JSON_VALUE);
+      registerOperator(JSON_SET, PPLBuiltinOperators.JSON_SET);
+      registerOperator(JSON_DELETE, PPLBuiltinOperators.JSON_DELETE);
+      registerOperator(JSON_APPEND, PPLBuiltinOperators.JSON_APPEND);
+      registerOperator(JSON_EXTEND, PPLBuiltinOperators.JSON_EXTEND);
+
       // Register implementation.
       // Note, make the implementation an individual class if too complex.
       register(
@@ -669,6 +944,72 @@ public class PPLFuncImpTable {
     public PPLTypeChecker getTypeChecker() {
       SqlTypeFamily booleanFamily = SqlTypeName.BOOLEAN.getFamily();
       return PPLTypeChecker.family(booleanFamily, booleanFamily);
+    }
+  }
+
+  private static class AggBuilder {
+    private final Map<BuiltinFunctionName, AggHandler> map = new HashMap<>();
+
+    void register(BuiltinFunctionName functionName, AggHandler aggHandler) {
+      map.put(functionName, aggHandler);
+    }
+
+    void populate() {
+      register(MAX, (distinct, field, argList, ctx) -> ctx.relBuilder.max(field));
+      register(MIN, (distinct, field, argList, ctx) -> ctx.relBuilder.min(field));
+
+      register(AVG, (distinct, field, argList, ctx) -> ctx.relBuilder.avg(distinct, null, field));
+
+      register(
+          COUNT,
+          (distinct, field, argList, ctx) ->
+              ctx.relBuilder.count(
+                  distinct, null, field == null ? ImmutableList.of() : ImmutableList.of(field)));
+      register(SUM, (distinct, field, argList, ctx) -> ctx.relBuilder.sum(distinct, null, field));
+
+      register(
+          VARSAMP,
+          (distinct, field, argList, ctx) ->
+              ctx.relBuilder.aggregateCall(VAR_SAMP_NULLABLE, field));
+
+      register(
+          VARPOP,
+          (distinct, field, argList, ctx) -> ctx.relBuilder.aggregateCall(VAR_POP_NULLABLE, field));
+
+      register(
+          STDDEV_SAMP,
+          (distinct, field, argList, ctx) ->
+              ctx.relBuilder.aggregateCall(STDDEV_SAMP_NULLABLE, field));
+
+      register(
+          STDDEV_POP,
+          (distinct, field, argList, ctx) ->
+              ctx.relBuilder.aggregateCall(STDDEV_POP_NULLABLE, field));
+
+      register(
+          TAKE,
+          (distinct, field, argList, ctx) ->
+              TransferUserDefinedAggFunction(
+                  TakeAggFunction.class,
+                  "TAKE",
+                  UserDefinedFunctionUtils.getReturnTypeInferenceForArray(),
+                  List.of(field),
+                  argList,
+                  ctx.relBuilder));
+
+      register(
+          PERCENTILE_APPROX,
+          (distinct, field, argList, ctx) -> {
+            List<RexNode> newArgList = new ArrayList<>(argList);
+            newArgList.add(ctx.rexBuilder.makeFlag(field.getType().getSqlTypeName()));
+            return TransferUserDefinedAggFunction(
+                PercentileApproxFunction.class,
+                "percentile_approx",
+                ReturnTypes.ARG0_FORCE_NULLABLE,
+                List.of(field),
+                newArgList,
+                ctx.relBuilder);
+          });
     }
   }
 }
