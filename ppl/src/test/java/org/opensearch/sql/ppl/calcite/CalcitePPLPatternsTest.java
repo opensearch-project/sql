@@ -206,22 +206,29 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
         "LogicalProject(patterns_field=[SAFE_CAST(ITEM($1, 'pattern'))],"
             + " pattern_count=[SAFE_CAST(ITEM($1, 'pattern_count'))], tokens=[SAFE_CAST(ITEM($1,"
             + " 'tokens'))])\n"
-            + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
+            + "  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])\n"
             + "    LogicalAggregate(group=[{}], patterns_field=[pattern($0, $1, $2)])\n"
             + "      LogicalProject(ENAME=[$1], $f8=[10], $f9=[100000])\n"
             + "        LogicalTableScan(table=[[scott, EMP]])\n"
             + "    Uncollect\n"
             + "      LogicalProject(patterns_field=[$cor0.patterns_field])\n"
-            + "        LogicalFilter(condition=[=($cor0.patterns_field, $0)])\n"
-            + "          LogicalAggregate(group=[{}], patterns_field=[pattern($0, $1, $2)])\n"
-            + "            LogicalProject(ENAME=[$1], $f8=[10], $f9=[100000])\n"
-            + "              LogicalTableScan(table=[[scott, EMP]])\n";
+            + "        LogicalValues(tuples=[[{ 0 }]])\n";
     verifyLogical(root, expectedLogical);
 
     /*
      * TODO: Fix Spark SQL conformance
-     * Calcite Correlate having aggregation in subquery is not supported to get AliasContext
+     * Spark doesn't have SAFE_CAST and UNNEST
      */
+    String expectedSparkSql =
+        "SELECT SAFE_CAST(`t20`.`patterns_field`['pattern'] AS STRING) `patterns_field`,"
+            + " SAFE_CAST(`t20`.`patterns_field`['pattern_count'] AS BIGINT) `pattern_count`,"
+            + " SAFE_CAST(`t20`.`patterns_field`['tokens'] AS MAP< VARCHAR, VARCHAR ARRAY >)"
+            + " `tokens`\n"
+            + "FROM (SELECT `pattern`(`ENAME`, 10, 100000) `patterns_field`\n"
+            + "FROM `scott`.`EMP`) `$cor0`,\n"
+            + "LATERAL UNNEST (SELECT `$cor0`.`patterns_field`\n"
+            + "FROM (VALUES (0)) `t` (`ZERO`)) `t2` (`patterns_field`) `t20`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
@@ -233,21 +240,29 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
         "LogicalProject(DEPTNO=[$0], patterns_field=[SAFE_CAST(ITEM($2, 'pattern'))],"
             + " pattern_count=[SAFE_CAST(ITEM($2, 'pattern_count'))], tokens=[SAFE_CAST(ITEM($2,"
             + " 'tokens'))])\n"
-            + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])\n"
+            + "  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{1}])\n"
             + "    LogicalAggregate(group=[{1}], patterns_field=[pattern($0, $2, $3)])\n"
             + "      LogicalProject(ENAME=[$1], DEPTNO=[$7], $f8=[10], $f9=[100000])\n"
             + "        LogicalTableScan(table=[[scott, EMP]])\n"
             + "    Uncollect\n"
             + "      LogicalProject(patterns_field=[$cor0.patterns_field])\n"
-            + "        LogicalFilter(condition=[=($cor0.patterns_field, $1)])\n"
-            + "          LogicalAggregate(group=[{1}], patterns_field=[pattern($0, $2, $3)])\n"
-            + "            LogicalProject(ENAME=[$1], DEPTNO=[$7], $f8=[10], $f9=[100000])\n"
-            + "              LogicalTableScan(table=[[scott, EMP]])\n";
+            + "        LogicalValues(tuples=[[{ 0 }]])\n";
     verifyLogical(root, expectedLogical);
 
     /*
      * TODO: Fix Spark SQL conformance
-     * Calcite Correlate having aggregation in subquery is not supported to get AliasContext
+     * Spark doesn't have SAFE_CAST and UNNEST
      */
+    String expectedSparkSql =
+        "SELECT `$cor0`.`DEPTNO`, SAFE_CAST(`t20`.`patterns_field`['pattern'] AS STRING)"
+            + " `patterns_field`, SAFE_CAST(`t20`.`patterns_field`['pattern_count'] AS BIGINT)"
+            + " `pattern_count`, SAFE_CAST(`t20`.`patterns_field`['tokens'] AS MAP< VARCHAR,"
+            + " VARCHAR ARRAY >) `tokens`\n"
+            + "FROM (SELECT `DEPTNO`, `pattern`(`ENAME`, 10, 100000) `patterns_field`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "GROUP BY `DEPTNO`) `$cor0`,\n"
+            + "LATERAL UNNEST (SELECT `$cor0`.`patterns_field`\n"
+            + "FROM (VALUES (0)) `t` (`ZERO`)) `t2` (`patterns_field`) `t20`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }

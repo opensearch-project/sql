@@ -98,19 +98,17 @@ public class CalcitePPLExpandTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(DEPTNO=[$0], EMPNOS=[$2])\n"
-            + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])\n"
+            + "  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{1}])\n"
             + "    LogicalTableScan(table=[[scott, DEPT]])\n"
             + "    Uncollect\n"
             + "      LogicalProject(EMPNOS=[$cor0.EMPNOS])\n"
-            + "        LogicalFilter(condition=[=($cor0.EMPNOS, $1)])\n"
-            + "          LogicalTableScan(table=[[scott, DEPT]])\n";
+            + "        LogicalValues(tuples=[[{ 0 }]])\n";
     verifyLogical(root, expectedLogical);
     String expectedSparkSql =
         "SELECT `$cor0`.`DEPTNO`, `t00`.`EMPNOS`\n"
             + "FROM `scott`.`DEPT` `$cor0`,\n"
             + "LATERAL UNNEST (SELECT `$cor0`.`EMPNOS`\n"
-            + "FROM `scott`.`DEPT`\n"
-            + "WHERE `$cor0`.`EMPNOS` = `EMPNOS`) `t0` (`EMPNOS`) `t00`";
+            + "FROM (VALUES (0)) `t` (`ZERO`)) `t0` (`EMPNOS`) `t00`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -120,23 +118,19 @@ public class CalcitePPLExpandTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(DEPTNO=[$0], EMPNOS=[$1], employee_no=[$3])\n"
-            + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{2}])\n"
+            + "  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{2}])\n"
             + "    LogicalProject(DEPTNO=[$0], EMPNOS=[$1], employee_no=[$1])\n"
             + "      LogicalTableScan(table=[[scott, DEPT]])\n"
             + "    Uncollect\n"
             + "      LogicalProject(employee_no=[$cor0.employee_no])\n"
-            + "        LogicalFilter(condition=[=($cor0.employee_no, $2)])\n"
-            + "          LogicalProject(DEPTNO=[$0], EMPNOS=[$1], employee_no=[$1])\n"
-            + "            LogicalTableScan(table=[[scott, DEPT]])\n";
+            + "        LogicalValues(tuples=[[{ 0 }]])\n";
     verifyLogical(root, expectedLogical);
     String expectedSparkSql =
-        "SELECT `$cor0`.`DEPTNO`, `$cor0`.`EMPNOS`, `t20`.`employee_no`\n"
+        "SELECT `$cor0`.`DEPTNO`, `$cor0`.`EMPNOS`, `t10`.`employee_no`\n"
             + "FROM (SELECT `DEPTNO`, `EMPNOS`, `EMPNOS` `employee_no`\n"
             + "FROM `scott`.`DEPT`) `$cor0`,\n"
             + "LATERAL UNNEST (SELECT `$cor0`.`employee_no`\n"
-            + "FROM (SELECT `DEPTNO`, `EMPNOS`, `EMPNOS` `employee_no`\n"
-            + "FROM `scott`.`DEPT`) `t0`\n"
-            + "WHERE `$cor0`.`employee_no` = `employee_no`) `t2` (`employee_no`) `t20`";
+            + "FROM (VALUES (0)) `t` (`ZERO`)) `t1` (`employee_no`) `t10`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }

@@ -35,6 +35,7 @@ import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
@@ -1299,50 +1300,49 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   private void buildExpandRelNode(
       RexInputRef arrayFieldRex, String arrayFieldName, String alias, CalcitePlanContext context) {
-    RelBuilder relBuilder = context.relBuilder;
-
     // 3. Capture the outer row in a CorrelationId
     Holder<RexCorrelVariable> correlVariable = Holder.empty();
-    relBuilder.variable(correlVariable::set);
+    context.relBuilder.variable(correlVariable::set);
 
-    // 4. Push a copy of the original table to the RelBuilder stack as right
-    // side of the correlate (join).
-    relBuilder.push(relBuilder.peek());
-    RexNode correlArrayField =
-        relBuilder.field(
-            context.rexBuilder.makeCorrel(relBuilder.peek().getRowType(), correlVariable.get().id),
+    // 4. Create RexFieldAccess to access left node's array field with correlationId and build join
+    // left node
+    RexNode correlArrayFieldAccess =
+        context.relBuilder.field(
+            context.rexBuilder.makeCorrel(
+                context.relBuilder.peek().getRowType(), correlVariable.get().id),
             arrayFieldRex.getIndex());
+    RelNode leftNode = context.relBuilder.build();
 
-    // 5. Filter rows where the array field is the same as the left side
-    // TODO: This is not a standard way to use correlate and uncollect together.
-    //  A filter should not be necessary. Correct it in the future.
-    RexNode filterCondition = relBuilder.equals(correlArrayField, arrayFieldRex);
-    relBuilder.filter(filterCondition);
+    // 5. Build join right node and expand the array field using uncollect
+    RelNode rightNode =
+        context
+            .relBuilder
+            // fake input, see convertUnnest and convertExpression in Calcite SqlToRelConverter
+            .push(LogicalValues.createOneRow(context.relBuilder.getCluster()))
+            .project(List.of(correlArrayFieldAccess), List.of(arrayFieldName))
+            .uncollect(List.of(), false)
+            .build();
 
-    // 6. Project only the array field for the uncollect operation
-    relBuilder.project(List.of(correlArrayField), List.of(arrayFieldName));
-
-    // 7. Expand the array field using uncollect
-    relBuilder.uncollect(List.of(), false);
-
-    // 8. Perform a nested-loop join (correlate) between the original table and the expanded
+    // 6. Perform a nested-loop join (correlate) between the original table and the expanded
     // array field.
     // The last parameter has to refer to the array to be expanded on the left side. It will
     // be used by the right side to correlate with the left side.
-    // Using left join to keep the records where the array field is empty. The corresponding
-    // field in the result will be null.
-    relBuilder.correlate(JoinRelType.LEFT, correlVariable.get().id, List.of(arrayFieldRex));
+    context
+        .relBuilder
+        .push(leftNode)
+        .push(rightNode)
+        .correlate(JoinRelType.INNER, correlVariable.get().id, List.of(arrayFieldRex))
+        // 7. Remove the original array field from the output.
+        // TODO: RFC: should we keep the original array field when alias is present?
+        .projectExcept(arrayFieldRex);
 
-    // 9. Remove the original array field from the output.
-    // TODO: RFC: should we keep the original array field when alias is present?
-    relBuilder.projectExcept(arrayFieldRex);
     if (alias != null) {
       // Sub-nested fields cannot be removed after renaming the nested field.
       tryToRemoveNestedFields(context);
-      RexInputRef expandedField = relBuilder.field(arrayFieldName);
-      List<String> names = new ArrayList<>(relBuilder.peek().getRowType().getFieldNames());
+      RexInputRef expandedField = context.relBuilder.field(arrayFieldName);
+      List<String> names = new ArrayList<>(context.relBuilder.peek().getRowType().getFieldNames());
       names.set(expandedField.getIndex(), alias);
-      relBuilder.rename(names);
+      context.relBuilder.rename(names);
     }
   }
 }
