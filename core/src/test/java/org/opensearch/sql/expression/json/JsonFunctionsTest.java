@@ -11,6 +11,8 @@ import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.*;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -61,7 +63,7 @@ public class JsonFunctionsTest {
     List<String> originalJsonPath = List.of("{}", "a.b.c", "a{2}.c", "{3}.bc{}.d{1}");
     List<String> targetJsonPath = List.of("$.[*]", "$.a.b.c", "$.a[2].c", "$.[3].bc[*].d[1]");
     List<String> convertedJsonPath =
-        originalJsonPath.stream().map(JsonUtils::convertToJsonPath).toList();
+        originalJsonPath.stream().map(JsonUtils::convertToJsonPath).collect(Collectors.toList());
     assertEquals(targetJsonPath, convertedJsonPath);
   }
 
