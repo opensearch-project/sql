@@ -106,6 +106,12 @@ PPL query::
 
 Limitations
 ===========
+* ``flatten`` after ``fields`` is not supported under the current
+  implementation.
+  E.g. ``source=my-index | fields message | flatten message`` will not work.
+  This is because the current implementation relies on the flattened fields
+  like ``message.info``, ``message.author``, etc. to be present in the read
+  result.
 * The command works only with Calcite enabled. This can be set with the
   following command:
 

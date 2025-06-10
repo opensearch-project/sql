@@ -19,6 +19,7 @@ import java.io.IOException;
 import org.hamcrest.Matcher;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
@@ -122,6 +123,33 @@ public class CalciteFlattenCommandIT extends PPLIntegTestCase {
             String.format(
                 "/%s/_doc/%d?refresh=true", TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS, docId));
     client().performRequest(deleteRequest);
+  }
+
+  // TODO: Enable after fixing issue #3459 and #3751
+  //  https://github.com/opensearch-project/sql/issues/3459
+  //  https://github.com/opensearch-project/sql/issues/3751
+  @Ignore
+  @Test
+  public void testFlattenAfterFields() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where myNum=1 | fields message | flatten message",
+                TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS));
+    verifySchema(
+        result,
+        schema("message", "array"),
+        schema("author", "string"),
+        schema("dayOfWeek", "bigint"),
+        schema("info", "string"));
+    verifyDataRows(
+        result,
+        rows(
+            new JSONArray()
+                .put(new JSONObject().put("info", "a").put("author", "e").put("dayOfWeek", 1)),
+            "e",
+            1,
+            "a"));
   }
 
   @SuppressWarnings("unchecked")

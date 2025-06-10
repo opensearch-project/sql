@@ -49,7 +49,7 @@ public class CalcitePPLFlattenTest extends CalcitePPLAbstractTest {
     // Add an empty table with name DEPT for test purpose
     ImmutableList<Object[]> rows =
         ImmutableList.of(
-            new Object[] {10, ImmutableList.of(7369, "ALLEN"), "SMITH", 7369},
+            new Object[] {10, ImmutableList.of(7369, "SMITH"), "SMITH", 7369},
             new Object[] {20, ImmutableList.of(7499, "ALLEN"), "ALLEN", 7499},
             new Object[] {30, ImmutableList.of(7521, "WARD"), "WARD", 7521});
     schema.add("DEPT", new TableWithStruct(rows));
@@ -73,7 +73,7 @@ public class CalcitePPLFlattenTest extends CalcitePPLAbstractTest {
         "SELECT `DEPTNO`, `EMP`, `EMP.EMPNAME` `EMPNAME`, `EMP.EMPNO` `EMPNO`\nFROM `scott`.`DEPT`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
     String expectedResult =
-        "DEPTNO=10; EMP={7369, ALLEN}; EMPNAME=SMITH; EMPNO=7369\n"
+        "DEPTNO=10; EMP={7369, SMITH}; EMPNAME=SMITH; EMPNO=7369\n"
             + "DEPTNO=20; EMP={7499, ALLEN}; EMPNAME=ALLEN; EMPNO=7499\n"
             + "DEPTNO=30; EMP={7521, WARD}; EMPNAME=WARD; EMPNO=7521\n";
     verifyResult(root, expectedResult);
@@ -91,7 +91,7 @@ public class CalcitePPLFlattenTest extends CalcitePPLAbstractTest {
         "SELECT `DEPTNO`, `EMP`, `EMP.EMPNAME` `name`, `EMP.EMPNO` `number`\nFROM `scott`.`DEPT`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
     String expectedResult =
-        "DEPTNO=10; EMP={7369, ALLEN}; name=SMITH; number=7369\n"
+        "DEPTNO=10; EMP={7369, SMITH}; name=SMITH; number=7369\n"
             + "DEPTNO=20; EMP={7499, ALLEN}; name=ALLEN; number=7499\n"
             + "DEPTNO=30; EMP={7521, WARD}; name=WARD; number=7521\n";
     verifyResult(root, expectedResult);
@@ -109,7 +109,7 @@ public class CalcitePPLFlattenTest extends CalcitePPLAbstractTest {
         "LogicalProject(DEPTNO=[$0], EMP=[$1])\n  LogicalTableScan(table=[[scott, DEPT]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
-        "DEPTNO=10; EMP={7369, ALLEN}\n"
+        "DEPTNO=10; EMP={7369, SMITH}\n"
             + "DEPTNO=20; EMP={7499, ALLEN}\n"
             + "DEPTNO=30; EMP={7521, WARD}\n";
     verifyResult(root, expectedResult);
