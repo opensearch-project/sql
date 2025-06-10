@@ -295,6 +295,11 @@ public class TestUtils {
     return getMappingFile(mappingFile);
   }
 
+  public static String getArrayIndexMapping() {
+    String mappingFile = "array_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
   public static String getHdfsLogsIndexMapping() {
     String mappingFile = "hdfs_logs_index_mapping.json";
     return getMappingFile(mappingFile);

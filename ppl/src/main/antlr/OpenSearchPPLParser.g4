@@ -71,6 +71,7 @@ commands
    | fillnullCommand
    | trendlineCommand
    | appendcolCommand
+   | expandCommand
    ;
 
 commandName
@@ -97,6 +98,7 @@ commandName
    | AD
    | ML
    | FILLNULL
+   | EXPAND
    | TRENDLINE
    | EXPLAIN
    ;
@@ -242,6 +244,10 @@ trendlineType
    : SMA
    | WMA
    ;
+
+expandCommand
+    : EXPAND fieldExpression (AS alias = qualifiedName)?
+    ;
 
 appendcolCommand
    : APPENDCOL (OVERRIDE EQUAL override = booleanLiteral)? LT_SQR_PRTHS commands (PIPE commands)* RT_SQR_PRTHS
