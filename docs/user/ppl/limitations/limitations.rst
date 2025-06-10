@@ -94,5 +94,5 @@ automatically enforces this system limit in the pushdown context of the physical
 data-intensive operations (e.g. join, lookup). The default value is: 50000.
 Note, only apply system limit automatically to data-intensive (data-bloat) operations. For non-data-intensive operations,
 the maximum amount of documents to be pull from OpenSearch equals to value of plugins.query.size_limit.
-For example, even SORT is a high cost physical operator, the amount of documents is sorted cannotggreater than value of
+For example, even SORT is a high cost physical operator, the amount of documents to sorted cannot greater than value of
 ``plugins.query.size_limit``.
