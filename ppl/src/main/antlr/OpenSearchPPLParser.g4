@@ -394,7 +394,7 @@ statsAggTerm
 statsFunction
    : statsFunctionName LT_PRTHS valueExpression RT_PRTHS        # statsFunctionCall
    | COUNT LT_PRTHS RT_PRTHS                                    # countAllFunctionCall
-   | (DISTINCT_COUNT | DC) LT_PRTHS valueExpression RT_PRTHS    # distinctCountFunctionCall
+   | (DISTINCT_COUNT | DC | DISTINCT_COUNT_APPROX) LT_PRTHS valueExpression RT_PRTHS    # distinctCountFunctionCall
    | takeAggFunction                                            # takeAggFunctionCall
    | percentileApproxFunction                                   # percentileApproxFunctionCall
    ;
@@ -1134,6 +1134,7 @@ keywordsCanBeId
    | statsFunctionName
    | windowFunctionName
    | DISTINCT_COUNT
+   | DISTINCT_COUNT_APPROX
    | ESTDC
    | ESTDC_ERROR
    | MEAN
