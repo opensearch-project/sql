@@ -84,17 +84,12 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       for (RelOptRule rule : OpenSearchIndexRules.OPEN_SEARCH_INDEX_SCAN_RULES) {
         planner.addRule(rule);
       }
-      Integer systemLimit = osIndex.getSettings().getSettingValue(Settings.Key.QUERY_SYSTEM_LIMIT);
-      if (systemLimit >= 0) {
-        registerSystemLimitRuleForJoin(planner, systemLimit);
-      }
+      registerSystemLimitRuleForJoin(planner);
     }
   }
 
-  private void registerSystemLimitRuleForJoin(RelOptPlanner planner, Integer defaultSystemLimit) {
-    Integer specifiedLimit =
-        osIndex.getSettings().getSettingValue(Settings.Key.QUERY_SYSTEM_LIMIT_JOIN);
-    int systemLimit = specifiedLimit == null ? defaultSystemLimit : specifiedLimit;
+  private void registerSystemLimitRuleForJoin(RelOptPlanner planner) {
+    Integer systemLimit = osIndex.getSettings().getSettingValue(Settings.Key.QUERY_SYSTEM_LIMIT);
     List<RelOptRule> rules =
         createRules(
             systemLimit,
@@ -108,7 +103,8 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     for (RelRule.OperandTransform transform : transforms) {
       SystemLimitRuleConfig ruleConfig = new SystemLimitRuleConfig(systemLimit);
       ruleConfig.withOperandSupplier(transform);
-      ruleConfig.withDescription("RuleConfig_" + Integer.toHexString(transform.hashCode()));
+      ruleConfig.withDescription(
+          "SystemLimitRuleConfig_" + Integer.toHexString(transform.hashCode()));
       rules.add(ruleConfig.toRule());
     }
     return rules;

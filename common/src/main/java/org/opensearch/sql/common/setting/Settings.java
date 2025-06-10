@@ -41,9 +41,6 @@ public abstract class Settings {
     QUERY_MEMORY_LIMIT("plugins.query.memory_limit"),
     QUERY_SIZE_LIMIT("plugins.query.size_limit"),
     QUERY_SYSTEM_LIMIT("plugins.query.system_limit"),
-    // currently, only join could bloat data, so SYSTEM_LIMIT_JOIN equals to SYSTEM_LIMIT
-    // TODO add more specific configs in future when we have other data-bloat operations.
-    QUERY_SYSTEM_LIMIT_JOIN("plugins.query.system_limit.join"),
     ENCYRPTION_MASTER_KEY("plugins.query.datasources.encryption.masterkey"),
     DATASOURCES_URI_HOSTS_DENY_LIST("plugins.query.datasources.uri.hosts.denylist"),
     DATASOURCES_LIMIT("plugins.query.datasources.limit"),

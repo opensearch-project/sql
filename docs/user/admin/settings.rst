@@ -196,7 +196,7 @@ Description
 
 The size configures the maximum amount of documents to be pull from OpenSearch for data-intensive operations (e.g. join, lookup). The default value is: 50000.
 
-From v3.0.0, PPL introduces commands that may increase data volume. To prevent out-of-memory problem, the system automatically enforces this ``system limit`` in the pushdown context of the physical index scan operator for such commands.
+Since v3.0.0, PPL introduces commands that may increase data volume. To prevent out-of-memory problem, the system automatically enforces this ``system limit`` in the pushdown context of the physical index scan operator for data-intensive operations.
 
 Version
 -------

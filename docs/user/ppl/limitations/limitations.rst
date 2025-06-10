@@ -84,3 +84,15 @@ plugins.query.field_type_tolerance setting is enabled, the SQL/PPL plugin will h
 scalar data types, allowing basic queries (e.g., source = tbl | where condition). However, using multi-value
 fields in expressions or functions will result in exceptions. If this setting is disabled or absent, only the
 first element of an array is returned, preserving the default behavior.
+
+System Limitation for data-intensive operations
+===============================================
+
+Since v3.0.0, PPL introduces commands that may increase data volume. To prevent out-of-memory problem, the system
+automatically enforces this system limit in the pushdown context of the physical index scan operator for such commands.
+``plugins.query.system_limit``: The size configures the maximum amount of documents to be pull from OpenSearch for
+data-intensive operations (e.g. join, lookup). The default value is: 50000.
+Note, only apply system limit automatically to data-intensive (data-bloat) operations. For non-data-intensive operations,
+the maximum amount of documents to be pull from OpenSearch equals to value of plugins.query.size_limit.
+For example, even SORT is a high cost physical operator, the amount of documents is sorted cannotggreater than value of
+``plugins.query.size_limit``.

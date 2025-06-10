@@ -127,14 +127,6 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
-  public static final Setting<?> QUERY_SYSTEM_LIMIT_JOIN_SETTING =
-      Setting.intSetting(
-          Key.QUERY_SYSTEM_LIMIT_JOIN.getKeyValue(),
-          QUERY_SYSTEM_LIMIT_SETTING,
-          0,
-          Setting.Property.NodeScope,
-          Setting.Property.Dynamic);
-
   public static final Setting<?> METRICS_ROLLING_WINDOW_SETTING =
       Setting.longSetting(
           Key.METRICS_ROLLING_WINDOW.getKeyValue(),
@@ -335,12 +327,6 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
-        Key.QUERY_SYSTEM_LIMIT_JOIN,
-        QUERY_SYSTEM_LIMIT_JOIN_SETTING,
-        new Updater(Key.QUERY_SYSTEM_LIMIT_JOIN));
-    register(
-        settingBuilder,
-        clusterSettings,
         Key.QUERY_MEMORY_LIMIT,
         QUERY_MEMORY_LIMIT_SETTING,
         new Updater(Key.QUERY_MEMORY_LIMIT));
@@ -518,7 +504,6 @@ public class OpenSearchSettings extends Settings {
         .add(QUERY_MEMORY_LIMIT_SETTING)
         .add(QUERY_SIZE_LIMIT_SETTING)
         .add(QUERY_SYSTEM_LIMIT_SETTING)
-        .add(QUERY_SYSTEM_LIMIT_JOIN_SETTING)
         .add(METRICS_ROLLING_WINDOW_SETTING)
         .add(METRICS_ROLLING_INTERVAL_SETTING)
         .add(DATASOURCE_URI_HOSTS_DENY_LIST)
