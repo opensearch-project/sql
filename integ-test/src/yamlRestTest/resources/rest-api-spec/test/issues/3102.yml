@@ -20,18 +20,8 @@ setup:
           - '{"index": {}}'
           - '{"id": 3}'
 
-
 ---
-teardown:
-  - do:
-      query.settings:
-        body:
-          transient:
-            plugins.calcite.enabled : false
-            plugins.calcite.fallback.allowed : true
-
----
-"Prevent push down limit if the offset exceeds max_result_window":
+"Prevent push down limit if the offset reach max_result_window":
   - do:
       headers:
         Content-Type: 'application/json'
