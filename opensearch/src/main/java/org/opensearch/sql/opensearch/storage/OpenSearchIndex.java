@@ -205,11 +205,7 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
                 client,
                 requestBuilder.getMaxResponseSize(),
                 requestBuilder.build(
-                    indexName,
-                    getMaxResultWindow(),
-                    cursorKeepAlive,
-                    client,
-                    cachedFieldOpenSearchTypes.isEmpty()));
+                    indexName, cursorKeepAlive, client, cachedFieldOpenSearchTypes.isEmpty()));
     return new OpenSearchIndexScanBuilder(builder, createScanOperator);
   }
 
@@ -252,7 +248,7 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
   }
 
   public OpenSearchRequestBuilder createRequestBuilder() {
-    return new OpenSearchRequestBuilder(createExprValueFactory(), settings);
+    return new OpenSearchRequestBuilder(createExprValueFactory(), getMaxResultWindow(), settings);
   }
 
   public OpenSearchResourceMonitor createOpenSearchResourceMonitor() {
@@ -262,10 +258,6 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
   public OpenSearchRequest buildRequest(OpenSearchRequestBuilder requestBuilder) {
     final TimeValue cursorKeepAlive = settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
     return requestBuilder.build(
-        indexName,
-        getMaxResultWindow(),
-        cursorKeepAlive,
-        client,
-        cachedFieldOpenSearchTypes.isEmpty());
+        indexName, cursorKeepAlive, client, cachedFieldOpenSearchTypes.isEmpty());
   }
 }
