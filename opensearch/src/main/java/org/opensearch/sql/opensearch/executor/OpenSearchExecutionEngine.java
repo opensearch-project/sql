@@ -31,12 +31,14 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.ast.statement.Explain.ExplainFormat;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.executor.ExecutionContext;
 import org.opensearch.sql.executor.ExecutionEngine;
@@ -242,7 +244,20 @@ public OpenSearchExecutionEngine(
     for (int i = 1; i <= columnCount; ++i) {
       String columnName = metaData.getColumnName(i);
       RelDataType fieldType = fieldTypes.get(i - 1);
-      ExprType exprType = convertRelDataTypeToExprType(fieldType);
+      // TODO: Correct this after fixing issue github.com/opensearch-project/sql/issues/3751
+      //  The element type of struct and array is currently set to ANY.
+      //  We set them using the runtime type as a workaround.
+      ExprType exprType;
+      if (fieldType.getSqlTypeName() == SqlTypeName.ANY) {
+        if (!values.isEmpty()) {
+          exprType = values.getFirst().tupleValue().get(columnName).type();
+        } else {
+          // Using UNDEFINED instead of UNKNOWN to avoid throwing exception
+          exprType = ExprCoreType.UNDEFINED;
+        }
+      } else {
+        exprType = convertRelDataTypeToExprType(fieldType);
+      }
       columns.add(new Column(columnName, null, exprType));
     }
     Schema schema = new Schema(columns);
