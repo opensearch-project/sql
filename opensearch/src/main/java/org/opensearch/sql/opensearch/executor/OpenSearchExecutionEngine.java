@@ -250,7 +250,7 @@ public OpenSearchExecutionEngine(
       ExprType exprType;
       if (fieldType.getSqlTypeName() == SqlTypeName.ANY) {
         if (!values.isEmpty()) {
-          exprType = values.getFirst().tupleValue().get(columnName).type();
+          exprType = values.get(0).tupleValue().get(columnName).type();
         } else {
           // Using UNDEFINED instead of UNKNOWN to avoid throwing exception
           exprType = ExprCoreType.UNDEFINED;
