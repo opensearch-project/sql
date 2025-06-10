@@ -1,0 +1,6 @@
+{
+  "calcite": {
+    "logical": "LogicalProject(ageTrend=[CASE(>(COUNT() OVER (ROWS 1 PRECEDING), 1), /(SUM($8) OVER (ROWS 1 PRECEDING), CAST(COUNT($8) OVER (ROWS 1 PRECEDING)):DOUBLE NOT NULL), null:NULL)])\n  LogicalFilter(condition=[IS NOT NULL($8)])\n    LogicalSort(sort0=[$8], dir0=[ASC])\n      LogicalSort(fetch=[5])\n        CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
+    "physical": "EnumerableCalc(expr#0..3=[{inputs}], expr#4=[1], expr#5=[>($t1, $t4)], expr#6=[CAST($t3):DOUBLE NOT NULL], expr#7=[/($t2, $t6)], expr#8=[null:NULL], expr#9=[CASE($t5, $t7, $t8)], ageTrend=[$t9])\n  EnumerableWindow(window#0=[window(rows between $1 PRECEDING and CURRENT ROW aggs [COUNT(), $SUM0($0), COUNT($0)])])\n    EnumerableCalc(expr#0=[{inputs}], expr#1=[IS NOT NULL($t0)], age=[$t0], $condition=[$t1])\n      EnumerableSort(sort0=[$0], dir0=[ASC])\n        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[LIMIT->5, PROJECT->[age]], OpenSearchRequestBuilder(sourceBuilder={\"from\":0,\"size\":5,\"timeout\":\"1m\",\"_source\":{\"includes\":[\"age\"],\"excludes\":[]}}, requestedTotalSize=5, pageSize=null, startFrom=0)])\n"
+  }
+}

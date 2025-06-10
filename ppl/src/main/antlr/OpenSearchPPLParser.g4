@@ -236,6 +236,7 @@ trendlineClause
 
 trendlineType
    : SMA
+   | WMA
    ;
 
 appendcolCommand
