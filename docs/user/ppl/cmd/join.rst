@@ -13,7 +13,7 @@ Description
 ============
 | (Experimental)
 | (From 3.0.0)
-| Using ``join`` command to combines two datasets together. The left side could be an index or results from a piped commands, the right side could be either an index or a subquery.
+| Using ``join`` command to combines two datasets together. The left side could be an index or results from a piped commands, the right side could be either an index or a subsearch.
 
 Version
 =======
@@ -21,13 +21,13 @@ Version
 
 Syntax
 ======
-[joinType] JOIN [leftAlias] [rightAlias] ON <joinCriteria> <right-dataset>
+[joinType] join [leftAlias] [rightAlias] on <joinCriteria> <right-dataset>
 
 * joinType: optional. The type of join to perform. The default is ``INNER`` if not specified. Other option is ``LEFT [OUTER]``, ``RIGHT [OUTER]``, ``FULL [OUTER]``, ``CROSS``, ``[LEFT] SEMI``, ``[LEFT] ANTI``.
-* leftAlias: optional. The subquery alias to use with the left join side, to avoid ambiguous naming. Fixed pattern: ``left = <leftAlias>``
-* rightAlias: optional. The subquery alias to use with the right join side, to avoid ambiguous naming. Fixed pattern: ``right = <rightAlias>``
+* leftAlias: optional. The subsearch alias to use with the left join side, to avoid ambiguous naming. Fixed pattern: ``left = <leftAlias>``
+* rightAlias: optional. The subsearch alias to use with the right join side, to avoid ambiguous naming. Fixed pattern: ``right = <rightAlias>``
 * joinCriteria: mandatory. It could be any comparison expression.
-* right-dataset: mandatory. Right dataset could be either an index or a subquery with/without alias.
+* right-dataset: mandatory. Right dataset could be either an index or a subsearch with/without alias.
 
 Configuration
 =============

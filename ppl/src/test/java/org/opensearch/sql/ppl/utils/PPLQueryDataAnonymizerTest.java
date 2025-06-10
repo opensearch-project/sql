@@ -302,14 +302,15 @@ public class PPLQueryDataAnonymizerTest {
         "source=t | left join right = r on id = uid s as r | fields + id",
         anonymize("source=t | left join right = r on id = uid s | fields id"));
     assertEquals(
-        "source=t as t1 | inner join on id = uid s as t2 | fields + t1.id",
+        "source=t as t1 | inner join left = t1 right = t2 on id = uid s as t2 | fields + t1.id",
         anonymize("source=t as t1 | inner join on id = uid s as t2 | fields t1.id"));
     assertEquals(
-        "source=t as t1 | right join on t1.id = t2.id s as t2 | fields + t1.id",
+        "source=t as t1 | right join left = t1 right = t2 on t1.id = t2.id s as t2 | fields +"
+            + " t1.id",
         anonymize("source=t as t1 | right join on t1.id = t2.id s as t2 | fields t1.id"));
     assertEquals(
-        "source=t as t1 | right join right = t2 on t1.id = t2.id [ source=s | fields + id ] as t2 |"
-            + " fields + t1.id",
+        "source=t as t1 | right join left = t1 right = t2 on t1.id = t2.id [ source=s | fields + id"
+            + " ] as t2 | fields + t1.id",
         anonymize(
             "source=t as t1 | right join on t1.id = t2.id [ source=s | fields id] as t2 | fields"
                 + " t1.id"));

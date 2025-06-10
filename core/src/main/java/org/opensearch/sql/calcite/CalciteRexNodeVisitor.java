@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.calcite.sql.SqlKind.AS;
+import static org.apache.commons.lang3.StringUtils.substringAfterLast;
 import static org.opensearch.sql.ast.expression.SpanUnit.NONE;
 import static org.opensearch.sql.ast.expression.SpanUnit.UNKNOWN;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
@@ -279,7 +280,24 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
         }
       } else if (parts.size() == 2) {
         // 1.2 Handle the case of `t1.id = t2.id` or `alias1.id = alias2.id`
-        return context.relBuilder.field(2, parts.get(0), parts.get(1));
+        try {
+          return context.relBuilder.field(2, parts.get(0), parts.get(1));
+        } catch (IllegalArgumentException e) {
+          // Similar to the step 2.3.
+          List<String> candidates =
+              context.relBuilder.peek(1).getRowType().getFieldNames().stream()
+                  .filter(col -> substringAfterLast(col, ".").equals(parts.getLast()))
+                  .toList();
+          for (String candidate : candidates) {
+            try {
+              // field("nation2", "n2.n_name"); // pass
+              return context.relBuilder.field(2, parts.get(0), candidate);
+            } catch (IllegalArgumentException e1) {
+              // field("nation2", "n_name"); // do nothing when fail (n_name is field of nation1)
+            }
+          }
+          throw new UnsupportedOperationException("Unsupported qualified name: " + node);
+        }
       } else if (parts.size() == 3) {
         throw new UnsupportedOperationException("Unsupported qualified name: " + node);
       }
@@ -294,6 +312,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
     if (currentFields.contains(qualifiedName)) {
       // 2.1 resolve QualifiedName from stack top
+      // Note: QualifiedName with multiple parts also could be applied in step 2.1,
+      // for example `n2.n_name` or `nation2.n_name` in the output of join can be resolved here.
       return context.relBuilder.field(qualifiedName);
     } else if (node.getParts().size() == 2) {
       // 2.2 resolve QualifiedName with an alias or table name
@@ -301,14 +321,34 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       try {
         return context.relBuilder.field(1, parts.get(0), parts.get(1));
       } catch (IllegalArgumentException e) {
-        // 2.3 resolve QualifiedName with outer alias
+        // 2.3 For field which renamed with <alias.field>, to resolve the field with table
+        // identifier
+        // `nation2.n_name`,
+        // we convert it to resolve <table.alias.field>, e.g. `nation2.n2.n_name`
+        // `n2.n_name` was the renamed field name from the duplicated field `(nation2.)n_name0` of
+        // join output.
+        // Build the candidates which contains `n_name`: e.g. `(nation1.)n_name`, `n2.n_name`
+        List<String> candidates =
+            context.relBuilder.peek().getRowType().getFieldNames().stream()
+                .filter(col -> substringAfterLast(col, ".").equals(parts.getLast()))
+                .toList();
+        for (String candidate : candidates) {
+          try {
+            // field("nation2", "n2.n_name"); // pass
+            return context.relBuilder.field(parts.get(0), candidate);
+          } catch (IllegalArgumentException e1) {
+            // field("nation2", "n_name"); // do nothing when fail (n_name is field of nation1)
+          }
+        }
+        // 2.4 resolve QualifiedName with outer alias
+        // check existing of parts.get(0)
         return context
             .peekCorrelVar()
             .map(correlVar -> context.relBuilder.field(correlVar, parts.get(1)))
             .orElseThrow(() -> e); // Re-throw the exception if no correlated variable exists
       }
     } else if (currentFields.stream().noneMatch(f -> f.startsWith(qualifiedName))) {
-      // 2.4 try resolving combination of 2.1 and 2.3 to resolve rest cases
+      // 2.5 try resolving combination of 2.1 and 2.4 to resolve rest cases
       return context
           .peekCorrelVar()
           .map(correlVar -> context.relBuilder.field(correlVar, qualifiedName))
