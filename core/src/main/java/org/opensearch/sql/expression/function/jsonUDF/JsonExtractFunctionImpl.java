@@ -15,6 +15,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexImpTable;
@@ -64,7 +66,7 @@ public class JsonExtractFunctionImpl extends ImplementorUDF {
     String jsonStr = (String) args[0];
     List<Object> jsonPaths = Arrays.asList(args).subList(1, args.length);
     List<String> pathSpecs =
-        jsonPaths.stream().map(Object::toString).map(JsonUtils::convertToJsonPath).toList();
+        jsonPaths.stream().map(Object::toString).map(JsonUtils::convertToJsonPath).collect(Collectors.toList());
     List<Object> results = new ArrayList<>();
     for (String pathSpec : pathSpecs) {
       Object queryResult = a.jsonQuery(jsonStr, pathSpec, WITHOUT_ARRAY, NULL, NULL, false);
