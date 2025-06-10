@@ -16,16 +16,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-<<<<<<< HEAD
 import java.util.stream.Collectors;
 
-=======
 import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.annotation.Nullable;
->>>>>>> 122ae79ad (Add lambda function and array related functions (#3584))
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
@@ -395,7 +392,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       candidateType.add(
           ((ArraySqlType) previousArgument.get(0).getType())
               .getComponentType()); // The first argument should be array type
-      candidateType.addAll(previousArgument.stream().skip(1).map(RexNode::getType).toList());
+      candidateType.addAll(previousArgument.stream().skip(1).map(RexNode::getType).collect(Collectors.toList()));
       candidateType =
           modifyLambdaTypeByFunction(functionName, candidateType, defaultTypeForReduceAcc);
       List<QualifiedName> argNames = node.getFuncArgs();

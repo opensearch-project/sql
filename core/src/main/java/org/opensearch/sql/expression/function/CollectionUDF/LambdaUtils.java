@@ -45,7 +45,8 @@ public class LambdaUtils {
     List<RexNode> lambdaOperands = rexCall.getOperands();
     List<RexNode> filledOperands = new ArrayList<>();
     for (RexNode rexNode : lambdaOperands) {
-      if (rexNode instanceof RexLambdaRef rexLambdaRef) {
+      if (rexNode instanceof RexLambdaRef) {
+        RexLambdaRef rexLambdaRef = (RexLambdaRef) rexNode;
         if (rexLambdaRef.getType().getSqlTypeName() == SqlTypeName.ANY) {
           filledOperands.add(
               new RexLambdaRef(
@@ -71,7 +72,8 @@ public class LambdaUtils {
     List<RexNode> filledOperands = new ArrayList<>();
     List<RexNode> rexCallOperands = rexCall.getOperands();
     for (RexNode rexNode : rexCallOperands) {
-      if (rexNode instanceof RexLambdaRef rexLambdaRef) {
+      if (rexNode instanceof RexLambdaRef) {
+        RexLambdaRef rexLambdaRef = (RexLambdaRef) rexNode;
         filledOperands.add(
             new RexLambdaRef(
                 rexLambdaRef.getIndex(),

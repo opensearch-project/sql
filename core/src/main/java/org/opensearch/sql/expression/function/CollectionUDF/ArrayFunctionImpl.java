@@ -113,7 +113,8 @@ public class ArrayFunctionImpl extends ImplementorUDF {
                 .map(i -> (Object) ((Number) i).floatValue())
                 .collect(Collectors.toList());
         break;
-      case VARCHAR, CHAR:
+      case VARCHAR:
+      case CHAR:
         result = originalList.stream().map(i -> (Object) i.toString()).collect(Collectors.toList());
         break;
       default:
