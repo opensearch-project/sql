@@ -170,6 +170,13 @@ public enum BuiltinFunctionName {
   LIKE(FunctionName.of("like")),
   NOT_LIKE(FunctionName.of("not like")),
 
+  /** LAMBDA Functions * */
+  ARRAY_FORALL(FunctionName.of("forall")),
+  ARRAY_EXISTS(FunctionName.of("exists")),
+  ARRAY_FILTER(FunctionName.of("filter")),
+  ARRAY_TRANSFORM(FunctionName.of("transform")),
+  ARRAY_AGGREGATE(FunctionName.of("reduce")),
+
   /** Aggregation Function. */
   AVG(FunctionName.of("avg")),
   SUM(FunctionName.of("sum")),
@@ -213,9 +220,21 @@ public enum BuiltinFunctionName {
   TRIM(FunctionName.of("trim")),
   UPPER(FunctionName.of("upper")),
 
+  /** Array Functions. */
+  ARRAY(FunctionName.of("array")),
+
   /** Json Functions. */
   JSON_VALID(FunctionName.of("json_valid")),
   JSON(FunctionName.of("json")),
+  JSON_OBJECT(FunctionName.of("json_object")),
+  JSON_ARRAY(FunctionName.of("json_array")),
+  JSON_ARRAY_LENGTH(FunctionName.of("json_array_length")),
+  JSON_EXTRACT(FunctionName.of("json_extract")),
+  JSON_KEYS(FunctionName.of("json_keys")),
+  JSON_SET(FunctionName.of("json_set")),
+  JSON_DELETE(FunctionName.of("json_delete")),
+  JSON_APPEND(FunctionName.of("json_append")),
+  JSON_EXTEND(FunctionName.of("json_extend")),
 
   /** GEOSPATIAL Functions. */
   GEOIP(FunctionName.of("geoip")),
