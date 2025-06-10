@@ -195,6 +195,8 @@ public enum BuiltinFunctionName {
   TAKE(FunctionName.of("take")),
   // t-digest percentile which is used in OpenSearch core by default.
   PERCENTILE_APPROX(FunctionName.of("percentile_approx")),
+  EARLIEST(FunctionName.of("earliest")),
+  LATEST(FunctionName.of("latest")),
   DISTINCT_COUNT_APPROX(FunctionName.of("distinct_count_approx")),
   // Not always an aggregation query
   NESTED(FunctionName.of("nested")),
@@ -338,6 +340,8 @@ public enum BuiltinFunctionName {
           .put("take", BuiltinFunctionName.TAKE)
           .put("percentile", BuiltinFunctionName.PERCENTILE_APPROX)
           .put("percentile_approx", BuiltinFunctionName.PERCENTILE_APPROX)
+          // .put("earliest", BuiltinFunctionName.EARLIEST)
+          // .put("latest", BuiltinFunctionName.LATEST)
           .put("distinct_count_approx", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
           .build();
 
@@ -355,6 +359,8 @@ public enum BuiltinFunctionName {
           .put("stddev", BuiltinFunctionName.STDDEV_POP)
           .put("stddev_pop", BuiltinFunctionName.STDDEV_POP)
           .put("stddev_samp", BuiltinFunctionName.STDDEV_SAMP)
+          // .put("earliest", BuiltinFunctionName.EARLIEST)
+          // .put("latest", BuiltinFunctionName.LATEST)
           .build();
 
   public static Optional<BuiltinFunctionName> of(String str) {

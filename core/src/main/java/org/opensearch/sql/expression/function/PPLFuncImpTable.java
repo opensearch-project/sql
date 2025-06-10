@@ -59,6 +59,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY_OF_
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DEGREES;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.E;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.EARLIEST;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EQUAL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXTRACT;
@@ -93,6 +94,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_OB
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_SET;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_VALID;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LAST_DAY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LATEST;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LEFT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LENGTH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LESS;
@@ -646,6 +648,8 @@ public class PPLFuncImpTable {
       registerOperator(IS_PRESENT, SqlStdOperatorTable.IS_NOT_NULL);
       registerOperator(IS_NULL, SqlStdOperatorTable.IS_NULL);
       registerOperator(IFNULL, SqlStdOperatorTable.COALESCE);
+      registerOperator(EARLIEST, PPLBuiltinOperators.EARLIEST);
+      registerOperator(LATEST, PPLBuiltinOperators.LATEST);
       registerOperator(COALESCE, SqlStdOperatorTable.COALESCE);
 
       // Register library operator
