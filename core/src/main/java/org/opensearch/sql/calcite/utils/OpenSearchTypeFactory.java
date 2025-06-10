@@ -294,6 +294,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
         break;
       case NULL:
       case ANY:
+      case OTHER:
         result = UNDEFINED;
         break;
       default:
