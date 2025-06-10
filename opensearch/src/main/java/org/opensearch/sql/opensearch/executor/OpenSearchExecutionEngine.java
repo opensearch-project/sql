@@ -66,7 +66,12 @@ public OpenSearchExecutionEngine(
     this.client = client;
     this.executionProtector = executionProtector;
     this.planSerializer = planSerializer;
-    registerOpenSearchFunctions();
+    AccessController.doPrivileged(
+            (PrivilegedAction<Void>)
+                    () -> {
+                        registerOpenSearchFunctions();
+                        return null;
+                    });
 }
 
   @Override
