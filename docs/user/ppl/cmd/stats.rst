@@ -238,6 +238,26 @@ Example::
     | 2.8613807855648994 |
     +--------------------+
 
+DISTINCT_COUNT_APPROX
+----------
+
+Description
+>>>>>>>>>>>
+
+Version: 3.1.0
+
+Usage: DISTINCT_COUNT_APPROX(expr). Return the approximate distinct count value of the expr, using the hyperloglog++ algorithm.
+
+Example::
+
+    PPL> source=accounts | stats distinct_count_approx(gender);
+    fetched rows / total rows = 1/1
+    +-------------------------------+
+    | distinct_count_approx(gender) |
+    |-------------------------------|
+    | 2                             |
+    +-------------------------------+
+
 TAKE
 ----
 

@@ -31,6 +31,14 @@ import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
+import org.opensearch.sql.expression.function.jsonUDF.JsonAppendFunctionImpl;
+import org.opensearch.sql.expression.function.jsonUDF.JsonArrayLengthFunctionImpl;
+import org.opensearch.sql.expression.function.jsonUDF.JsonDeleteFunctionImpl;
+import org.opensearch.sql.expression.function.jsonUDF.JsonExtendFunctionImpl;
+import org.opensearch.sql.expression.function.jsonUDF.JsonExtractFunctionImpl;
+import org.opensearch.sql.expression.function.jsonUDF.JsonFunctionImpl;
+import org.opensearch.sql.expression.function.jsonUDF.JsonKeysFunctionImpl;
+import org.opensearch.sql.expression.function.jsonUDF.JsonSetFunctionImpl;
 import org.opensearch.sql.expression.function.udf.CryptographicFunction;
 import org.opensearch.sql.expression.function.udf.GrokFunction;
 import org.opensearch.sql.expression.function.udf.SpanFunction;
@@ -65,6 +73,18 @@ import org.opensearch.sql.expression.function.udf.math.ModFunction;
 
 /** Defines functions and operators that are implemented only by PPL */
 public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
+
+  // Json Functions
+  public static final SqlOperator JSON = new JsonFunctionImpl().toUDF("JSON");
+  public static final SqlOperator JSON_ARRAY_LENGTH =
+      new JsonArrayLengthFunctionImpl().toUDF("JSON_ARRAY_LENGTH");
+  public static final SqlOperator JSON_EXTRACT =
+      new JsonExtractFunctionImpl().toUDF("JSON_EXTRACT");
+  public static final SqlOperator JSON_KEYS = new JsonKeysFunctionImpl().toUDF("JSON_KEYS");
+  public static final SqlOperator JSON_SET = new JsonSetFunctionImpl().toUDF("JSON_SET");
+  public static final SqlOperator JSON_DELETE = new JsonDeleteFunctionImpl().toUDF("JSON_DELETE");
+  public static final SqlOperator JSON_APPEND = new JsonAppendFunctionImpl().toUDF("JSON_APPEND");
+  public static final SqlOperator JSON_EXTEND = new JsonExtendFunctionImpl().toUDF("JSON_EXTEND");
 
   // Math functions
   public static final SqlOperator SPAN = new SpanFunction().toUDF("SPAN");
