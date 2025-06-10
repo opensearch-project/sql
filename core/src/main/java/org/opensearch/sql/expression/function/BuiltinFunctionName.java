@@ -229,9 +229,6 @@ public enum BuiltinFunctionName {
   TRIM(FunctionName.of("trim")),
   UPPER(FunctionName.of("upper")),
 
-  /** Array Functions. */
-  ARRAY(FunctionName.of("array")),
-
   /** Json Functions. */
   JSON_VALID(FunctionName.of("json_valid")),
   JSON(FunctionName.of("json")),
