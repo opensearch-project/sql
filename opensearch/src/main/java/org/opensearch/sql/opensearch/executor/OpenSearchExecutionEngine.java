@@ -6,6 +6,8 @@
 package org.opensearch.sql.opensearch.executor;
 
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.convertRelDataTypeToExprType;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedAggFunction;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DISTINCT_COUNT_APPROX;
 
 import java.security.AccessController;
 import java.security.PrivilegedAction;
@@ -25,6 +27,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.ast.statement.Explain.ExplainFormat;
 import org.opensearch.sql.calcite.CalcitePlanContext;
@@ -43,6 +46,7 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
+import org.opensearch.sql.opensearch.functions.DistinctCountApproxAggFunction;
 import org.opensearch.sql.opensearch.functions.GeoIpFunction;
 import org.opensearch.sql.opensearch.util.JdbcOpenSearchDataTypeConvertor;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
@@ -261,5 +265,16 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
         (builder, args) ->
             builder.makeCall(new GeoIpFunction(client.getNodeClient()).toUDF("GEOIP"), args);
     PPLFuncImpTable.INSTANCE.registerExternalFunction(BuiltinFunctionName.GEOIP, geoIpImpl);
+
+    PPLFuncImpTable.INSTANCE.registerExternalAggFunction(
+        DISTINCT_COUNT_APPROX,
+        (distinct, field, argList, ctx) ->
+            TransferUserDefinedAggFunction(
+                DistinctCountApproxAggFunction.class,
+                "APPROX_DISTINCT_COUNT",
+                ReturnTypes.BIGINT_FORCE_NULLABLE,
+                List.of(field),
+                argList,
+                ctx.relBuilder));
   }
 }

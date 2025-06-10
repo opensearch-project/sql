@@ -81,6 +81,7 @@ NUM:                                'NUM';
 
 // TRENDLINE KEYWORDS
 SMA:                                'SMA';
+WMA:                                'WMA';
 
 // ARGUMENT KEYWORDS
 KEEPEMPTY:                          'KEEPEMPTY';
@@ -208,6 +209,7 @@ BIT_XOR_OP:                         '^';
 AVG:                                'AVG';
 COUNT:                              'COUNT';
 DISTINCT_COUNT:                     'DISTINCT_COUNT';
+DISTINCT_COUNT_APPROX:              'DISTINCT_COUNT_APPROX';
 ESTDC:                              'ESTDC';
 ESTDC_ERROR:                        'ESTDC_ERROR';
 MAX:                                'MAX';
