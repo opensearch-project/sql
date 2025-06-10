@@ -299,8 +299,37 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
         // first element of the column, it is set to "undefined".
         schema("address", "undefined"));
     verifyDataRows(response, rows("ben", 437821, 47, null));
-
     verifyNumOfRows(response, 1);
+
+    Request deleteRequest =
+        new Request(
+            "DELETE", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_NESTED_SIMPLE, docId));
+    client().performRequest(deleteRequest);
+  }
+
+  @Test
+  public void testExpandOnNullField() throws Exception {
+    final int docId = 6;
+    Request insertRequest =
+        new Request(
+            "PUT", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_NESTED_SIMPLE, docId));
+    insertRequest.setJsonEntity(
+        "{\"name\":\"ben\",\"age\":47, \"id\": 437821, \"address\":null}\n");
+    client().performRequest(insertRequest);
+
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | where name='ben' | expand address", TEST_INDEX_NESTED_SIMPLE));
+    verifySchema(
+        response,
+        schema("name", "string"),
+        schema("age", "bigint"),
+        schema("id", "bigint"),
+        schema("address", "undefined"));
+    verifyDataRows(response, rows("ben", 437821, 47, null));
+    verifyNumOfRows(response, 1);
+
     Request deleteRequest =
         new Request(
             "DELETE", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_NESTED_SIMPLE, docId));
