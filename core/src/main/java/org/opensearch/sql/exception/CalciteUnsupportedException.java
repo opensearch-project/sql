@@ -10,4 +10,8 @@ public class CalciteUnsupportedException extends QueryEngineException {
   public CalciteUnsupportedException(String message) {
     super(message);
   }
+
+  public CalciteUnsupportedException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }

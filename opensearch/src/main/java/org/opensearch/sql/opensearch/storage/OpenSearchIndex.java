@@ -25,6 +25,8 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
+import org.opensearch.sql.opensearch.monitor.OpenSearchMemoryHealthy;
+import org.opensearch.sql.opensearch.monitor.OpenSearchResourceMonitor;
 import org.opensearch.sql.opensearch.planner.physical.ADOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLOperator;
@@ -259,6 +261,10 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
 
   public OpenSearchRequestBuilder createRequestBuilder() {
     return new OpenSearchRequestBuilder(createExprValueFactory(), settings);
+  }
+
+  public OpenSearchResourceMonitor createOpenSearchResourceMonitor() {
+    return new OpenSearchResourceMonitor(getSettings(), new OpenSearchMemoryHealthy());
   }
 
   public OpenSearchRequest buildRequest(OpenSearchRequestBuilder requestBuilder) {

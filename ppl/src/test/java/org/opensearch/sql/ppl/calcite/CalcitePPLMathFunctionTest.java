@@ -80,9 +80,10 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
   public void testCeiling() {
     RelNode root = getRelNode("source=EMP | eval CEILING = ceiling(4.5) | fields CEILING");
     String expectedLogical =
-        "LogicalProject(CEILING=[CEIL(4.5E0:DOUBLE)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(CEILING=[CEIL(4.5:DECIMAL(2, 1))])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedSparkSql = "SELECT CEIL(4.5E0) `CEILING`\nFROM `scott`.`EMP`";
+    String expectedSparkSql = "SELECT CEIL(4.5) `CEILING`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -131,10 +132,10 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
   public void testDegrees() {
     RelNode root = getRelNode("source=EMP | eval DEGREES = degrees(1.57) | fields DEGREES");
     String expectedLogical =
-        "LogicalProject(DEGREES=[DEGREES(1.57E0:DOUBLE)])\n"
+        "LogicalProject(DEGREES=[DEGREES(1.57:DECIMAL(3, 2))])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedSparkSql = "SELECT DEGREES(1.57E0) `DEGREES`\nFROM `scott`.`EMP`";
+    String expectedSparkSql = "SELECT DEGREES(1.57) `DEGREES`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -162,10 +163,10 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
   public void testFloor() {
     RelNode root = getRelNode("source=EMP | eval FLOOR1 = floor(50.00005) | fields FLOOR1");
     String expectedLogical =
-        "LogicalProject(FLOOR1=[FLOOR(50.00005E0:DOUBLE)])\n"
+        "LogicalProject(FLOOR1=[FLOOR(50.00005:DECIMAL(7, 5))])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedSparkSql = "SELECT FLOOR(5.000005E1) `FLOOR1`\nFROM `scott`.`EMP`";
+    String expectedSparkSql = "SELECT FLOOR(50.00005) `FLOOR1`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -268,9 +269,10 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | eval ROUND = round(1.5) | fields ROUND";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(ROUND=[ROUND(1.5E0:DOUBLE)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(ROUND=[ROUND(1.5:DECIMAL(2, 1))])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedSparkSql = "SELECT ROUND(1.5E0) `ROUND`\nFROM `scott`.`EMP`";
+    String expectedSparkSql = "SELECT ROUND(1.5) `ROUND`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 

@@ -58,6 +58,15 @@ public enum BuiltinFunctionName {
   TAN(FunctionName.of("tan")),
   SPAN(FunctionName.of("span")),
 
+  /** Collection functions */
+  ARRAY(FunctionName.of("array")),
+  ARRAY_LENGTH(FunctionName.of("array_length")),
+  FORALL(FunctionName.of("forall")),
+  EXISTS(FunctionName.of("exists")),
+  FILTER(FunctionName.of("filter")),
+  TRANSFORM(FunctionName.of("transform")),
+  REDUCE(FunctionName.of("reduce")),
+
   /** Date and Time Functions. */
   ADDDATE(FunctionName.of("adddate")),
   ADDTIME(FunctionName.of("addtime")),
@@ -188,6 +197,9 @@ public enum BuiltinFunctionName {
   TAKE(FunctionName.of("take")),
   // t-digest percentile which is used in OpenSearch core by default.
   PERCENTILE_APPROX(FunctionName.of("percentile_approx")),
+  EARLIEST(FunctionName.of("earliest")),
+  LATEST(FunctionName.of("latest")),
+  DISTINCT_COUNT_APPROX(FunctionName.of("distinct_count_approx")),
   // Not always an aggregation query
   NESTED(FunctionName.of("nested")),
 
@@ -215,6 +227,15 @@ public enum BuiltinFunctionName {
   /** Json Functions. */
   JSON_VALID(FunctionName.of("json_valid")),
   JSON(FunctionName.of("json")),
+  JSON_OBJECT(FunctionName.of("json_object")),
+  JSON_ARRAY(FunctionName.of("json_array")),
+  JSON_ARRAY_LENGTH(FunctionName.of("json_array_length")),
+  JSON_EXTRACT(FunctionName.of("json_extract")),
+  JSON_KEYS(FunctionName.of("json_keys")),
+  JSON_SET(FunctionName.of("json_set")),
+  JSON_DELETE(FunctionName.of("json_delete")),
+  JSON_APPEND(FunctionName.of("json_append")),
+  JSON_EXTEND(FunctionName.of("json_extend")),
 
   /** GEOSPATIAL Functions. */
   GEOIP(FunctionName.of("geoip")),
@@ -233,6 +254,7 @@ public enum BuiltinFunctionName {
   IS_BLANK(FunctionName.of("isblank")),
 
   ROW_NUMBER(FunctionName.of("row_number")),
+  NTH_VALUE(FunctionName.of("nth_value")),
   RANK(FunctionName.of("rank")),
   DENSE_RANK(FunctionName.of("dense_rank")),
 
@@ -282,7 +304,9 @@ public enum BuiltinFunctionName {
   WILDCARD_QUERY(FunctionName.of("wildcard_query")),
 
   /** Internal functions that are not exposed to customers. */
+  INTERNAL_ITEM(FunctionName.of("item"), true),
   INTERNAL_REGEXP_EXTRACT(FunctionName.of("regexp_extract"), true),
+  INTERNAL_GROK(FunctionName.of("grok"), true),
   INTERNAL_REGEXP_REPLACE_2(FunctionName.of("regexp_replace_2"), true);
 
   private final FunctionName name;
@@ -315,6 +339,9 @@ public enum BuiltinFunctionName {
           .put("take", BuiltinFunctionName.TAKE)
           .put("percentile", BuiltinFunctionName.PERCENTILE_APPROX)
           .put("percentile_approx", BuiltinFunctionName.PERCENTILE_APPROX)
+          // .put("earliest", BuiltinFunctionName.EARLIEST)
+          // .put("latest", BuiltinFunctionName.LATEST)
+          .put("distinct_count_approx", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
           .build();
 
   private static final Map<String, BuiltinFunctionName> WINDOW_FUNC_MAPPING =
@@ -331,6 +358,8 @@ public enum BuiltinFunctionName {
           .put("stddev", BuiltinFunctionName.STDDEV_POP)
           .put("stddev_pop", BuiltinFunctionName.STDDEV_POP)
           .put("stddev_samp", BuiltinFunctionName.STDDEV_SAMP)
+          // .put("earliest", BuiltinFunctionName.EARLIEST)
+          // .put("latest", BuiltinFunctionName.LATEST)
           .build();
 
   public static Optional<BuiltinFunctionName> of(String str) {

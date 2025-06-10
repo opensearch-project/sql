@@ -19,7 +19,6 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
 import org.json.JSONObject;
-import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 
 public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
@@ -54,21 +53,6 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
                 "source=%s | head 1 | eval neg = sqrt(-1 * age) | fields neg",
                 TEST_INDEX_STATE_COUNTRY));
     verifyDataRows(actual, rows((Object) null));
-  }
-
-  // TODO: Enable it once parameter validation for UDF is ready
-  @Ignore
-  @Test
-  public void testSqrtNanArgShouldThrowError() {
-    Exception nanException =
-        assertThrows(
-            IllegalArgumentException.class,
-            () ->
-                executeQuery(
-                    String.format(
-                        "source=%s | head 1 | eval sqrt_name = sqrt(name) | fields sqrt_name",
-                        TEST_INDEX_STATE_COUNTRY)));
-    verifyErrorMessageContains(nanException, "Invalid argument type: Expected a numeric value");
   }
 
   @Test
@@ -317,22 +301,6 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
                 "source=%s | head 1 | eval z = mod(5, 0) | fields z", TEST_INDEX_STATE_COUNTRY));
     verifySchema(actual, schema("z", "integer"));
     verifyDataRows(actual, rows((Object) null));
-  }
-
-  // TODO: Enable it once parameter validation for UDF is ready
-  @Ignore
-  @Test
-  public void testMod3ArgsShouldThrowIllegalArgError() {
-    Exception wrongArgException =
-        assertThrows(
-            IllegalArgumentException.class,
-            () ->
-                executeQuery(
-                    String.format(
-                        "source=%s | eval z = mod(float_number, integer_number, byte_number) |"
-                            + " fields z",
-                        TEST_INDEX_DATATYPE_NUMERIC)));
-    verifyErrorMessageContains(wrongArgException, "MOD function requires exactly two arguments");
   }
 
   @Test

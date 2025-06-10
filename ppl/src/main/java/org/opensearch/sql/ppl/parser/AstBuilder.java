@@ -57,9 +57,11 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.DescribeRelation;
 import org.opensearch.sql.ast.tree.Eval;
+import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
@@ -83,6 +85,7 @@ import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.AdCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ByClauseContext;
@@ -438,6 +441,14 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         groupList);
   }
 
+  /** expand command. */
+  @Override
+  public UnresolvedPlan visitExpandCommand(OpenSearchPPLParser.ExpandCommandContext ctx) {
+    Field fieldExpression = (Field) internalVisitExpression(ctx.fieldExpression());
+    String alias = ctx.alias != null ? internalVisitExpression(ctx.alias).toString() : null;
+    return new Expand(fieldExpression, alias);
+  }
+
   @Override
   public UnresolvedPlan visitGrokCommand(OpenSearchPPLParser.GrokCommandContext ctx) {
     UnresolvedExpression sourceField = internalVisitExpression(ctx.source_field);
@@ -562,7 +573,8 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
             arg -> {
               String argName = (arg.ident() != null) ? arg.ident().getText() : null;
               builder.add(
-                  new UnresolvedArgument(argName, this.internalVisitExpression(arg.expression())));
+                  new UnresolvedArgument(
+                      argName, this.internalVisitExpression(arg.functionArgExpression())));
             });
     return new TableFunction(this.internalVisitExpression(ctx.qualifiedName()), builder.build());
   }
@@ -664,6 +676,17 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         .map(Field.class::cast)
         .map(sort -> new Trendline(Optional.of(sort), trendlineComputations))
         .orElse(new Trendline(Optional.empty(), trendlineComputations));
+  }
+
+  @Override
+  public UnresolvedPlan visitAppendcolCommand(OpenSearchPPLParser.AppendcolCommandContext ctx) {
+    final Optional<UnresolvedPlan> subsearch =
+        ctx.commands().stream().map(this::visit).reduce((r, e) -> e.attach(r));
+    final boolean override = (ctx.override != null && Boolean.parseBoolean(ctx.override.getText()));
+    if (subsearch.isEmpty()) {
+      throw new SemanticCheckException("subsearch should not be empty");
+    }
+    return new AppendCol(override, subsearch.get());
   }
 
   /** Get original text in query. */

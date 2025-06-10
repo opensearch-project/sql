@@ -70,6 +70,8 @@ commands
    | mlCommand
    | fillnullCommand
    | trendlineCommand
+   | appendcolCommand
+   | expandCommand
    ;
 
 commandName
@@ -96,6 +98,7 @@ commandName
    | AD
    | ML
    | FILLNULL
+   | EXPAND
    | TRENDLINE
    | EXPLAIN
    ;
@@ -235,6 +238,15 @@ trendlineClause
 
 trendlineType
    : SMA
+   | WMA
+   ;
+
+expandCommand
+    : EXPAND fieldExpression (AS alias = qualifiedName)?
+    ;
+
+appendcolCommand
+   : APPENDCOL (OVERRIDE EQUAL override = booleanLiteral)? LT_SQR_PRTHS commands (PIPE commands)* RT_SQR_PRTHS
    ;
 
 kmeansCommand
@@ -388,7 +400,7 @@ statsAggTerm
 statsFunction
    : statsFunctionName LT_PRTHS valueExpression RT_PRTHS        # statsFunctionCall
    | COUNT LT_PRTHS RT_PRTHS                                    # countAllFunctionCall
-   | (DISTINCT_COUNT | DC) LT_PRTHS valueExpression RT_PRTHS    # distinctCountFunctionCall
+   | (DISTINCT_COUNT | DC | DISTINCT_COUNT_APPROX) LT_PRTHS valueExpression RT_PRTHS    # distinctCountFunctionCall
    | takeAggFunction                                            # takeAggFunctionCall
    | percentileApproxFunction                                   # percentileApproxFunctionCall
    ;
@@ -405,6 +417,8 @@ statsFunctionName
    | STDDEV_POP
    | PERCENTILE
    | PERCENTILE_APPROX
+   | EARLIEST
+   | LATEST
    ;
 
 takeAggFunction
@@ -419,6 +433,8 @@ percentileApproxFunction
 numericLiteral
     : integerLiteral
     | decimalLiteral
+    | doubleLiteral
+    | floatLiteral
     ;
 
 // expressions
@@ -462,6 +478,7 @@ valueExpression
    | timestampFunction                                                                          # timestampFunctionCall
    | LT_PRTHS valueExpression RT_PRTHS                                                          # parentheticValueExpr
    | LT_SQR_PRTHS subSearch RT_SQR_PRTHS                                                        # scalarSubqueryExpr
+   | lambda                                                                                     # lambdaExpr
    ;
 
 primaryExpression
@@ -580,6 +597,7 @@ evalFunctionName
    | cryptographicFunctionName
    | jsonFunctionName
    | geoipFunctionName
+   | collectionFunctionName
    ;
 
 functionArgs
@@ -587,7 +605,18 @@ functionArgs
    ;
 
 functionArg
-   : (ident EQUAL)? expression
+   : (ident EQUAL)? functionArgExpression
+   ;
+
+
+functionArgExpression
+   : lambda
+   | expression
+   ;
+
+lambda
+   : ident ARROW expression
+   | LT_PRTHS ident (COMMA ident)+ RT_PRTHS ARROW expression
    ;
 
 relevanceArg
@@ -639,6 +668,8 @@ relevanceFieldAndWeight
 relevanceFieldWeight
    : integerLiteral
    | decimalLiteral
+   | doubleLiteral
+   | floatLiteral
    ;
 
 relevanceField
@@ -685,6 +716,17 @@ geoipFunctionName
    : GEOIP
    ;
 
+collectionFunctionName
+    : ARRAY
+    | ARRAY_LENGTH
+    | FORALL
+    | EXISTS
+    | FILTER
+    | TRANSFORM
+    | REDUCE
+    ;
+
+
 trigonometricFunctionName
    : ACOS
    | ASIN
@@ -696,6 +738,19 @@ trigonometricFunctionName
    | RADIANS
    | SIN
    | TAN
+   ;
+
+jsonFunctionName
+   : JSON
+   | JSON_OBJECT
+   | JSON_ARRAY
+   | JSON_ARRAY_LENGTH
+   | JSON_EXTRACT
+   | JSON_KEYS
+   | JSON_SET
+   | JSON_DELETE
+   | JSON_APPEND
+   | JSON_EXTEND
    ;
 
 cryptographicFunctionName
@@ -837,6 +892,8 @@ conditionFunctionName
    | ISPRESENT
    | ISEMPTY
    | ISBLANK
+   | EARLIEST
+   | LATEST
    ;
 
 // flow control function return non-boolean value
@@ -875,10 +932,6 @@ positionFunctionName
    : POSITION
    ;
 
-jsonFunctionName
-   : JSON
-   ;
-
 // operators
  comparisonOperator
    : EQUAL
@@ -909,6 +962,8 @@ literalValue
    | stringLiteral
    | integerLiteral
    | decimalLiteral
+   | doubleLiteral
+   | floatLiteral
    | booleanLiteral
    | datetimeLiteral //#datetime
    ;
@@ -928,6 +983,14 @@ integerLiteral
 
 decimalLiteral
    : (PLUS | MINUS)? DECIMAL_LITERAL
+   ;
+
+doubleLiteral
+   : (PLUS | MINUS)? DOUBLE_LITERAL
+   ;
+
+floatLiteral
+   : (PLUS | MINUS)? FLOAT_LITERAL
    ;
 
 booleanLiteral
@@ -1036,12 +1099,14 @@ keywordsCanBeId
    | timespanUnit
    | SPAN
    | evalFunctionName
+   | jsonFunctionName
    | relevanceArgName
    | intervalUnit
    | trendlineType
    | singleFieldRelevanceFunctionName
    | multiFieldRelevanceFunctionName
    | commandName
+   | collectionFunctionName
    | comparisonOperator
    | patternMethod
    | explainMode
@@ -1049,6 +1114,7 @@ keywordsCanBeId
    | CASE
    | ELSE
    | IN
+   | ARROW
    | BETWEEN
    | EXISTS
    | SOURCE
@@ -1070,6 +1136,7 @@ keywordsCanBeId
    | INTERVAL
    | PLUS
    | MINUS
+   | OVERRIDE
    // SORT FIELD KEYWORDS
    | AUTO
    | STR
@@ -1102,6 +1169,7 @@ keywordsCanBeId
    | statsFunctionName
    | windowFunctionName
    | DISTINCT_COUNT
+   | DISTINCT_COUNT_APPROX
    | ESTDC
    | ESTDC_ERROR
    | MEAN

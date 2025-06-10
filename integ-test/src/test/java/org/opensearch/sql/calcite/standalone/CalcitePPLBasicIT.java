@@ -5,9 +5,7 @@
 
 package org.opensearch.sql.calcite.standalone;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ALIAS;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -38,6 +36,8 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
 
     loadIndex(Index.BANK);
     loadIndex(Index.DATA_TYPE_ALIAS);
+    loadIndex(Index.MERGE_TEST_1);
+    loadIndex(Index.MERGE_TEST_2);
   }
 
   @Test
@@ -563,5 +563,99 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
                 executeQuery(
                     String.format("source=%s | stats count() as _score", TEST_INDEX_ACCOUNT)));
     verifyErrorMessageContains(e, "Cannot use metadata field [_score] as the alias.");
+  }
+
+  @Test
+  public void testFieldsMergedObject() {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | fields machine.os1,  machine.os2, machine_array.os1, "
+                    + " machine_array.os2, machine_deep.attr1, machine_deep.attr2,"
+                    + " machine_deep.layer.os1, machine_deep.layer.os2",
+                TEST_INDEX_MERGE_TEST_WILDCARD));
+    verifySchema(
+        result,
+        schema("machine.os1", "string"),
+        schema("machine.os2", "string"),
+        schema("machine_array.os1", "string"),
+        schema("machine_array.os2", "string"),
+        schema("machine_deep.attr1", "long"),
+        schema("machine_deep.attr2", "long"),
+        schema("machine_deep.layer.os1", "string"),
+        schema("machine_deep.layer.os2", "string"));
+    verifyDataRows(
+        result,
+        rows("linux", null, "linux", null, 1, null, "os1", null),
+        rows(null, "linux", null, "linux", null, 2, null, "os2"));
+  }
+
+  public void testNumericLiteral() {
+    JSONObject result =
+        executeQuery(
+            "source=test | eval decimalLiteral = 0.06 - 0.01, doubleLiteral = 0.06d - 0.01d,"
+                + " floatLiteral = 0.06f - 0.01f");
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("age", "long"),
+        schema("decimalLiteral", "double"),
+        schema("doubleLiteral", "double"),
+        schema("floatLiteral", "float"));
+    verifyDataRows(
+        result,
+        rows("hello", 20, 0.05, 0.049999999999999996, 0.05),
+        rows("world", 30, 0.05, 0.049999999999999996, 0.05));
+  }
+
+  @Test
+  public void testDecimalLiteral() {
+    JSONObject result =
+        executeQuery(
+            "source=test | eval r1 = 22 / 7.0, r2 = 22 / 7.0d, r3 = 22.0 / 7, r4 = 22.0d / 7,"
+                + " r5 = 0.1 * 0.2, r6 = 0.1d * 0.2d, r7 = 0.1 + 0.2, r8 = 0.1d + 0.2d,"
+                + " r9 = 0.06 - 0.01, r10 = 0.06d - 0.01d, r11 = 0.1 / 0.3 * 0.3,"
+                + " r12 = 0.1d / 0.3d * 0.3d, r13 = pow(sqrt(2.0), 2), r14 = pow(sqrt(2.0d), 2),"
+                + " r15 = 7.0 / 0, r16 = 7 / 0.0");
+    verifyDataRows(
+        result,
+        rows(
+            "hello",
+            20,
+            3.142857142857143,
+            3.142857142857143,
+            3.142857142857143,
+            3.142857142857143,
+            0.02,
+            0.020000000000000004,
+            0.3,
+            0.30000000000000004,
+            0.05,
+            0.049999999999999996,
+            0.1,
+            0.1,
+            2.0000000000000004,
+            2.0000000000000004,
+            null,
+            null),
+        rows(
+            "world",
+            30,
+            3.142857142857143,
+            3.142857142857143,
+            3.142857142857143,
+            3.142857142857143,
+            0.02,
+            0.020000000000000004,
+            0.3,
+            0.30000000000000004,
+            0.05,
+            0.049999999999999996,
+            0.1,
+            0.1,
+            2.0000000000000004,
+            2.0000000000000004,
+            null,
+            null));
   }
 }

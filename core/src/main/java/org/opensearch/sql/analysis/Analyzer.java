@@ -47,9 +47,11 @@ import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
+import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
@@ -623,6 +625,12 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     return new LogicalML(child, node.getArguments());
   }
 
+  @Override
+  public LogicalPlan visitExpand(Expand expand, AnalysisContext context) {
+    throw new UnsupportedOperationException(
+        "Expand is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+  }
+
   /** Build {@link LogicalTrendline} for Trendline command. */
   @Override
   public LogicalPlan visitTrendline(Trendline node, AnalysisContext context) {
@@ -700,6 +708,12 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   public LogicalPlan visitLookup(Lookup node, AnalysisContext context) {
     throw new UnsupportedOperationException(
         "Lookup is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+  }
+
+  @Override
+  public LogicalPlan visitAppendCol(AppendCol node, AnalysisContext context) {
+    throw new UnsupportedOperationException(
+        "AppendCol is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
   }
 
   private LogicalSort buildSort(

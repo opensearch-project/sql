@@ -291,7 +291,8 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
             + "    LogicalProject(b=[$7], a=[$5])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "avg(a)=2175.00; b=20\navg(a)=2916.66; b=10\navg(a)=1566.66; b=30\n";
+    String expectedResult =
+        "avg(a)=2175.; b=20\navg(a)=2916.666666; b=10\navg(a)=1566.666666; b=30\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
@@ -315,9 +316,9 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     String expectedResult =
         ""
-            + "avg(b)=12175.00; DEPTNO=20\n"
-            + "avg(b)=12916.66; DEPTNO=10\n"
-            + "avg(b)=11566.66; DEPTNO=30\n";
+            + "avg(b)=12175.; DEPTNO=20\n"
+            + "avg(b)=12916.666666; DEPTNO=10\n"
+            + "avg(b)=11566.666666; DEPTNO=30\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
@@ -341,9 +342,9 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     String expectedResult =
         ""
-            + "avg(b)=12175.00; DEPTNO=20\n"
-            + "avg(b)=12916.66; DEPTNO=10\n"
-            + "avg(b)=11566.66; DEPTNO=30\n";
+            + "avg(b)=12175.; DEPTNO=20\n"
+            + "avg(b)=12916.666666; DEPTNO=10\n"
+            + "avg(b)=11566.666666; DEPTNO=30\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =

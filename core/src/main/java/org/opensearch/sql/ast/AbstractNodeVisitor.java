@@ -22,6 +22,7 @@ import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.In;
 import org.opensearch.sql.ast.expression.Interval;
+import org.opensearch.sql.ast.expression.LambdaFunction;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
@@ -45,9 +46,11 @@ import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
+import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
@@ -110,6 +113,10 @@ public abstract class AbstractNodeVisitor<T, C> {
 
   public T visitRelationSubquery(RelationSubquery node, C context) {
     return visitChildren(node, context);
+  }
+
+  public T visitExpand(Expand expand, C context) {
+    return visitChildren(expand, context);
   }
 
   public T visitTableFunction(TableFunction node, C context) {
@@ -229,6 +236,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitSort(Sort node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitLambdaFunction(LambdaFunction node, C context) {
     return visitChildren(node, context);
   }
 
@@ -369,6 +380,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitExistsSubquery(ExistsSubquery node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitAppendCol(AppendCol node, C context) {
     return visitChildren(node, context);
   }
 }

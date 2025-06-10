@@ -89,8 +89,8 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
-            + "  LogicalFilter(condition=[SEARCH($7,"
-            + " Sarg[[20.0E0:DOUBLE..30.0E0:DOUBLE]]:DOUBLE)])\n"
+            + "  LogicalFilter(condition=[SEARCH($7, Sarg[[20.0:DECIMAL(11, 1)..30.0:DECIMAL(11,"
+            + " 1)]]:DECIMAL(11, 1))])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
@@ -98,7 +98,7 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
         ""
             + "SELECT `EMPNO`, `ENAME`\n"
             + "FROM `scott`.`EMP`\n"
-            + "WHERE `DEPTNO` >= 2.00E1 AND `DEPTNO` <= 3.00E1";
+            + "WHERE `DEPTNO` >= 20.0 AND `DEPTNO` <= 30.0";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -161,11 +161,12 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP |  where DEPTNO in (20, 30.0)";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalFilter(condition=[SEARCH($7, Sarg[20.0E0:DOUBLE, 30.0E0:DOUBLE]:DOUBLE)])\n"
+        "LogicalFilter(condition=[SEARCH($7, Sarg[20.0:DECIMAL(11, 1), 30.0:DECIMAL(11,"
+            + " 1)]:DECIMAL(11, 1))])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
-    String expectedSparkSql = "SELECT *\nFROM `scott`.`EMP`\nWHERE `DEPTNO` IN (2.00E1, 3.00E1)";
+    String expectedSparkSql = "SELECT *\nFROM `scott`.`EMP`\nWHERE `DEPTNO` IN (20.0, 30.0)";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -442,6 +443,44 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO` `DEPTNO_E`\n"
             + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testDecimalLiteral() {
+    String ppl =
+        "source=EMP | eval r1 = 22 / 7.0, r2 = 22 / 7.0d, r3 = 22.0 / 7, r4 = 22.0d / 7,"
+            + " r5 = 0.1 * 0.2, r6 = 0.1d * 0.2d, r7 = 0.1 + 0.2, r8 = 0.1d + 0.2d,"
+            + " r9 = 0.06 - 0.01, r10 = 0.06d - 0.01d, r11 = 0.1 / 0.3 * 0.3,"
+            + " r12 = 0.1d / 0.3d * 0.3d, r13 = pow(sqrt(2.0), 2), r14 = pow(sqrt(2.0d), 2),"
+            + " r15 = 7.0 / 0, r16 = 7 / 0.0"
+            + " | fields r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, r16"
+            + " | head 1";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(fetch=[1])\n"
+            + "  LogicalProject(r1=[DIVIDE(22, 7.0:DECIMAL(2, 1))], r2=[DIVIDE(22, 7.0E0:DOUBLE)],"
+            + " r3=[DIVIDE(22.0:DECIMAL(3, 1), 7)], r4=[DIVIDE(22.0E0:DOUBLE, 7)],"
+            + " r5=[*(0.1:DECIMAL(2, 1), 0.2:DECIMAL(2, 1))], r6=[*(0.1E0:DOUBLE, 0.2E0:DOUBLE)],"
+            + " r7=[+(0.1:DECIMAL(2, 1), 0.2:DECIMAL(2, 1))], r8=[+(0.1E0:DOUBLE, 0.2E0:DOUBLE)],"
+            + " r9=[-(0.06:DECIMAL(3, 2), 0.01:DECIMAL(3, 2))], r10=[-(0.06E0:DOUBLE,"
+            + " 0.01E0:DOUBLE)], r11=[*(DIVIDE(0.1:DECIMAL(2, 1), 0.3:DECIMAL(2, 1)),"
+            + " 0.3:DECIMAL(2, 1))], r12=[*(DIVIDE(0.1E0:DOUBLE, 0.3E0:DOUBLE), 0.3E0)],"
+            + " r13=[POWER(POWER(2.0:DECIMAL(2, 1), 0.5E0:DOUBLE), 2)],"
+            + " r14=[POWER(POWER(2.0E0:DOUBLE, 0.5E0:DOUBLE), 2)],"
+            + " r15=[DIVIDE(7.0:DECIMAL(2, 1), 0)], r16=[DIVIDE(7, 0.0:DECIMAL(2, 1))])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `DIVIDE`(22, 7.0) `r1`, `DIVIDE`(22, 7.0E0) `r2`, `DIVIDE`(22.0, 7) `r3`,"
+            + " `DIVIDE`(2.20E1, 7) `r4`, 0.1 * 0.2 `r5`, 1E-1 * 2E-1 `r6`, 0.1 + 0.2 `r7`, 1E-1 +"
+            + " 2E-1 `r8`, 0.06 - 0.01 `r9`, 6E-2 - 1E-2 `r10`, `DIVIDE`(0.1, 0.3) * 0.3 `r11`,"
+            + " `DIVIDE`(1E-1, 3E-1) * 3E-1 `r12`, POWER(POWER(2.0, 5E-1), 2) `r13`,"
+            + " POWER(POWER(2.0E0, 5E-1), 2) `r14`, `DIVIDE`(7.0, 0) `r15`, `DIVIDE`(7, 0.0)"
+            + " `r16`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }

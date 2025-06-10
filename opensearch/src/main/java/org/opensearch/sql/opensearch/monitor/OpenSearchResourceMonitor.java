@@ -48,6 +48,11 @@ public class OpenSearchResourceMonitor extends ResourceMonitor {
   public boolean isHealthy() {
     try {
       ByteSizeValue limit = settings.getSettingValue(Settings.Key.QUERY_MEMORY_LIMIT);
+      if (limit == null) {
+        // undefined, be always healthy, this is useful in Calcite standalone ITs
+        // since AlwaysHealthyMonitor is not work within Calcite tests.
+        return true;
+      }
       Supplier<Boolean> booleanSupplier =
           Retry.decorateSupplier(retry, () -> memoryMonitor.isMemoryHealthy(limit.getBytes()));
       return booleanSupplier.get();

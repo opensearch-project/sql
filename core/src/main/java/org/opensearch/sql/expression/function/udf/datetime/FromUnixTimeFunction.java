@@ -10,6 +10,7 @@ import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.NULLABLE
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprFromUnixTime;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprFromUnixTimeFormat;
 
+import java.math.BigDecimal;
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
@@ -17,10 +18,14 @@ import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 /**
  * Returns the timestamp representation of the given unix time. If second argument is provided, it
@@ -49,6 +54,14 @@ public class FromUnixTimeFunction extends ImplementorUDF {
     };
   }
 
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+    return UDFOperandMetadata.wrap(
+        (CompositeOperandTypeChecker)
+            OperandTypes.NUMERIC.or(
+                OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.STRING)));
+  }
+
   public static class FromUnixTimeImplementor implements NotNullImplementor {
     @Override
     public Expression implement(
@@ -57,6 +70,10 @@ public class FromUnixTimeFunction extends ImplementorUDF {
     }
 
     public static String fromUnixTime(double unixTime) {
+      return (String) exprFromUnixTime(new ExprDoubleValue(unixTime)).valueForCalcite();
+    }
+
+    public static String fromUnixTime(BigDecimal unixTime) {
       return (String) exprFromUnixTime(new ExprDoubleValue(unixTime)).valueForCalcite();
     }
 

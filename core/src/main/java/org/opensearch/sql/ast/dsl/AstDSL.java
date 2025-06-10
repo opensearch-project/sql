@@ -6,6 +6,7 @@
 package org.opensearch.sql.ast.dsl;
 
 import com.google.common.collect.ImmutableList;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -52,6 +53,7 @@ import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.DescribeRelation;
 import org.opensearch.sql.ast.tree.Eval;
+import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
@@ -115,6 +117,10 @@ public class AstDSL {
 
   public static Eval eval(UnresolvedPlan input, Let... projectList) {
     return new Eval(Arrays.asList(projectList)).attach(input);
+  }
+
+  public Expand expand(UnresolvedPlan input, Field field, String alias) {
+    return new Expand(field, alias).attach(input);
   }
 
   public static UnresolvedPlan projectWithArg(
@@ -211,6 +217,14 @@ public class AstDSL {
 
   public static Literal doubleLiteral(Double value) {
     return literal(value, DataType.DOUBLE);
+  }
+
+  public static Literal decimalLiteral(Double value) {
+    return literal(BigDecimal.valueOf(value), DataType.DECIMAL);
+  }
+
+  public static Literal decimalLiteral(BigDecimal value) {
+    return literal(value, DataType.DECIMAL);
   }
 
   public static Literal stringLiteral(String value) {

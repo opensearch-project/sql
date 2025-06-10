@@ -38,6 +38,8 @@ AD:                                 'AD';
 ML:                                 'ML';
 FILLNULL:                           'FILLNULL';
 TRENDLINE:                          'TRENDLINE';
+APPENDCOL:                          'APPENDCOL';
+EXPAND:                             'EXPAND';
 SIMPLE_PATTERN:                     'SIMPLE_PATTERN';
 BRAIN:                              'BRAIN';
 VARIABLE_COUNT_THRESHOLD:           'VARIABLE_COUNT_THRESHOLD';
@@ -69,6 +71,7 @@ SIMPLE:                             'SIMPLE';
 STANDARD:                           'STANDARD';
 COST:                               'COST';
 EXTENDED:                           'EXTENDED';
+OVERRIDE:                           'OVERRIDE';
 
 // SORT FIELD KEYWORDS
 // TODO #3180: Fix broken sort functionality
@@ -78,6 +81,7 @@ NUM:                                'NUM';
 
 // TRENDLINE KEYWORDS
 SMA:                                'SMA';
+WMA:                                'WMA';
 
 // ARGUMENT KEYWORDS
 KEEPEMPTY:                          'KEEPEMPTY';
@@ -194,6 +198,7 @@ RT_SQR_PRTHS:                       ']';
 SINGLE_QUOTE:                       '\'';
 DOUBLE_QUOTE:                       '"';
 BACKTICK:                           '`';
+ARROW:                              '->';
 
 // Operators. Bit
 
@@ -205,6 +210,7 @@ BIT_XOR_OP:                         '^';
 AVG:                                'AVG';
 COUNT:                              'COUNT';
 DISTINCT_COUNT:                     'DISTINCT_COUNT';
+DISTINCT_COUNT_APPROX:              'DISTINCT_COUNT_APPROX';
 ESTDC:                              'ESTDC';
 ESTDC_ERROR:                        'ESTDC_ERROR';
 MAX:                                'MAX';
@@ -223,6 +229,8 @@ STDDEV_SAMP:                        'STDDEV_SAMP';
 STDDEV_POP:                         'STDDEV_POP';
 PERCENTILE:                         'PERCENTILE';
 PERCENTILE_APPROX:                  'PERCENTILE_APPROX';
+EARLIEST:                           'EARLIEST';
+LATEST:                             'LATEST';
 TAKE:                               'TAKE';
 LIST:                               'LIST';
 VALUES:                             'VALUES';
@@ -372,9 +380,26 @@ ISPRESENT:                          'ISPRESENT';
 ISEMPTY:                            'ISEMPTY';
 ISBLANK:                            'ISBLANK';
 
+// COLLECTION FUNCTIONS
+ARRAY:                              'ARRAY';
+ARRAY_LENGTH:                       'ARRAY_LENGTH';
+FORALL:                             'FORALL';
+FILTER:                             'FILTER';
+TRANSFORM:                          'TRANSFORM';
+REDUCE:                             'REDUCE';
+
 // JSON FUNCTIONS
 JSON_VALID:                         'JSON_VALID';
 JSON:                               'JSON';
+JSON_OBJECT:                        'JSON_OBJECT';
+JSON_ARRAY:                         'JSON_ARRAY';
+JSON_ARRAY_LENGTH:                  'JSON_ARRAY_LENGTH';
+JSON_EXTRACT:                       'JSON_EXTRACT';
+JSON_KEYS:                          'JSON_KEYS';
+JSON_SET:                           'JSON_SET';
+JSON_DELETE:                        'JSON_DELETE';
+JSON_APPEND:                        'JSON_APPEND';
+JSON_EXTEND:                        'JSON_EXTEND';
 
 // FLOWCONTROL FUNCTIONS
 IFNULL:                             'IFNULL';
@@ -441,6 +466,8 @@ ID:                                 ID_LITERAL;
 CLUSTER:                            CLUSTER_PREFIX_LITERAL;
 INTEGER_LITERAL:                    DEC_DIGIT+;
 DECIMAL_LITERAL:                    (DEC_DIGIT+)? '.' DEC_DIGIT+;
+FLOAT_LITERAL:                      (DEC_DIGIT+)? '.' DEC_DIGIT+ 'F';
+DOUBLE_LITERAL:                     (DEC_DIGIT+)? '.' DEC_DIGIT+ 'D';
 
 fragment DATE_SUFFIX:               ([\-.][*0-9]+)+;
 fragment CLUSTER_PREFIX_LITERAL:    [*A-Z]+?[*A-Z_\-0-9]* COLON;

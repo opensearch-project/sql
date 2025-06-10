@@ -238,8 +238,28 @@ Example::
     | 2.8613807855648994 |
     +--------------------+
 
-TAKE
+DISTINCT_COUNT_APPROX
 ----------
+
+Description
+>>>>>>>>>>>
+
+Version: 3.1.0
+
+Usage: DISTINCT_COUNT_APPROX(expr). Return the approximate distinct count value of the expr, using the hyperloglog++ algorithm.
+
+Example::
+
+    PPL> source=accounts | stats distinct_count_approx(gender);
+    fetched rows / total rows = 1/1
+    +-------------------------------+
+    | distinct_count_approx(gender) |
+    |-------------------------------|
+    | 2                             |
+    +-------------------------------+
+
+TAKE
+----
 
 Description
 >>>>>>>>>>>
@@ -268,6 +288,8 @@ Description
 Usage: PERCENTILE(expr, percent) or PERCENTILE_APPROX(expr, percent). Return the approximate percentile value of expr at the specified percentage.
 
 * percent: The number must be a constant between 0 and 100.
+
+Note: From 3.1.0, the percentile implementation is switched to MergingDigest from AVLTreeDigest. Ref `issue link <https://github.com/opensearch-project/OpenSearch/issues/18122>`_.
 
 Example::
 

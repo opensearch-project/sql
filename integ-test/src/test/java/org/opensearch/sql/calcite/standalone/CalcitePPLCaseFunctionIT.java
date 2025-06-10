@@ -66,31 +66,35 @@ public class CalcitePPLCaseFunctionIT extends CalcitePPLIntegTestCase {
                             cast(response as int) >= 400 AND cast(response as int) < 500, "Client Error",
                             cast(response as int) >= 500 AND cast(response as int) < 600, "Server Error"
                             else concat("Incorrect HTTP status code for", url))
-                    | where status != "Success"
+                    | where status != "Success" | fields host, method, message, bytes, response, url, status
                     """,
                 TEST_INDEX_WEBLOGS));
     verifySchema(
         actual,
         schema("host", "ip"),
         schema("method", "string"),
+        schema("message", "string"),
         schema("url", "string"),
         schema("response", "string"),
         schema("bytes", "string"),
         schema("status", "string"));
     verifyDataRows(
         actual,
-        rows("::1", "GET", "6245", "301", "/history/apollo/", "Redirection"),
+        rows("::1", "GET", null, "6245", "301", "/history/apollo/", "Redirection"),
         rows(
             "0.0.0.2",
             "GET",
+            null,
             "4085",
             "500",
             "/shuttle/missions/sts-73/mission-sts-73.html",
             "Server Error"),
-        rows("::3", "GET", "3985", "403", "/shuttle/countdown/countdown.html", "Client Error"),
+        rows(
+            "::3", "GET", null, "3985", "403", "/shuttle/countdown/countdown.html", "Client Error"),
         rows(
             "1.2.3.5",
             "GET",
+            null,
             "4321",
             null,
             "/history/voyager2/",
@@ -110,29 +114,32 @@ public class CalcitePPLCaseFunctionIT extends CalcitePPLIntegTestCase {
                             cast(response as int) >= 300 AND cast(response as int) < 400, "Redirection",
                             cast(response as int) >= 400 AND cast(response as int) < 500, "Client Error",
                             cast(response as int) >= 500 AND cast(response as int) < 600, "Server Error")
-                    | where isnull(status) OR status != "Success"
+                    | where isnull(status) OR status != "Success" | fields host, method, message, bytes, response, url, status
                     """,
                 TEST_INDEX_WEBLOGS));
     verifySchema(
         actual,
         schema("host", "ip"),
         schema("method", "string"),
+        schema("message", "string"),
         schema("url", "string"),
         schema("response", "string"),
         schema("bytes", "string"),
         schema("status", "string"));
     verifyDataRows(
         actual,
-        rows("::1", "GET", "6245", "301", "/history/apollo/", "Redirection"),
+        rows("::1", "GET", null, "6245", "301", "/history/apollo/", "Redirection"),
         rows(
             "0.0.0.2",
             "GET",
+            null,
             "4085",
             "500",
             "/shuttle/missions/sts-73/mission-sts-73.html",
             "Server Error"),
-        rows("::3", "GET", "3985", "403", "/shuttle/countdown/countdown.html", "Client Error"),
-        rows("1.2.3.5", "GET", "4321", null, "/history/voyager2/", null));
+        rows(
+            "::3", "GET", null, "3985", "403", "/shuttle/countdown/countdown.html", "Client Error"),
+        rows("1.2.3.5", "GET", null, "4321", null, "/history/voyager2/", null));
   }
 
   @Test
@@ -149,31 +156,35 @@ public class CalcitePPLCaseFunctionIT extends CalcitePPLIntegTestCase {
                             response in ('400', '403'), "Client Error",
                             response in ('500', '505'), "Server Error"
                             else concat("Incorrect HTTP status code for", url))
-                    | where status != "Success"
+                    | where status != "Success" | fields host, method, message, bytes, response, url, status
                     """,
                 TEST_INDEX_WEBLOGS));
     verifySchema(
         actual,
         schema("host", "ip"),
         schema("method", "string"),
+        schema("message", "string"),
         schema("url", "string"),
         schema("response", "string"),
         schema("bytes", "string"),
         schema("status", "string"));
     verifyDataRows(
         actual,
-        rows("::1", "GET", "6245", "301", "/history/apollo/", "Redirection"),
+        rows("::1", "GET", null, "6245", "301", "/history/apollo/", "Redirection"),
         rows(
             "0.0.0.2",
             "GET",
+            null,
             "4085",
             "500",
             "/shuttle/missions/sts-73/mission-sts-73.html",
             "Server Error"),
-        rows("::3", "GET", "3985", "403", "/shuttle/countdown/countdown.html", "Client Error"),
+        rows(
+            "::3", "GET", null, "3985", "403", "/shuttle/countdown/countdown.html", "Client Error"),
         rows(
             "1.2.3.5",
             "GET",
+            null,
             "4321",
             null,
             "/history/voyager2/",
@@ -194,21 +205,23 @@ public class CalcitePPLCaseFunctionIT extends CalcitePPLIntegTestCase {
                             response in ('400', '403'), false,
                             response in ('500', '505'), false
                             else false)
+                    | fields host, method, message, bytes, response, url
                     """,
                 TEST_INDEX_WEBLOGS));
     verifySchema(
         actual,
         schema("host", "ip"),
         schema("method", "string"),
+        schema("message", "string"),
         schema("url", "string"),
         schema("response", "string"),
         schema("bytes", "string"));
     verifyDataRows(
         actual,
-        rows("::1", "GET", "6245", "301", "/history/apollo/"),
-        rows("0.0.0.2", "GET", "4085", "500", "/shuttle/missions/sts-73/mission-sts-73.html"),
-        rows("::3", "GET", "3985", "403", "/shuttle/countdown/countdown.html"),
-        rows("1.2.3.5", "GET", "4321", null, "/history/voyager2/"));
+        rows("::1", "GET", null, "6245", "301", "/history/apollo/"),
+        rows("0.0.0.2", "GET", null, "4085", "500", "/shuttle/missions/sts-73/mission-sts-73.html"),
+        rows("::3", "GET", null, "3985", "403", "/shuttle/countdown/countdown.html"),
+        rows("1.2.3.5", "GET", null, "4321", null, "/history/voyager2/"));
   }
 
   @Test
@@ -228,19 +241,21 @@ public class CalcitePPLCaseFunctionIT extends CalcitePPLIntegTestCase {
                             else concat("Incorrect HTTP status code for", url))
                         | fields new_response
                       ]
+                    | fields host, method, message, bytes, response, url
                     """,
                 TEST_INDEX_WEBLOGS, TEST_INDEX_WEBLOGS));
     verifySchema(
         actual,
         schema("host", "ip"),
         schema("method", "string"),
+        schema("message", "string"),
         schema("url", "string"),
         schema("response", "string"),
         schema("bytes", "string"));
     verifyDataRows(
         actual,
-        rows("::1", "GET", "6245", "301", "/history/apollo/"),
-        rows("0.0.0.2", "GET", "4085", "500", "/shuttle/missions/sts-73/mission-sts-73.html"),
-        rows("::3", "GET", "3985", "403", "/shuttle/countdown/countdown.html"));
+        rows("::1", "GET", null, "6245", "301", "/history/apollo/"),
+        rows("0.0.0.2", "GET", null, "4085", "500", "/shuttle/missions/sts-73/mission-sts-73.html"),
+        rows("::3", "GET", null, "3985", "403", "/shuttle/countdown/countdown.html"));
   }
 }
