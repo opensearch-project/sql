@@ -68,7 +68,16 @@ Limitations
 ============
 
 * The ``expand`` command currently only supports nested arrays. Primitive
-  fields storing arrays are not currently supported. E.g. a string field
-  storing an array of strings cannot be expanded with the current
-  implementation.
-* The ``expand`` command is only available since 3.1.0.
+  fields storing arrays are not supported. E.g. a string field storing an array
+  of strings cannot be expanded with the current implementation.
+* The command works only with Calcite enabled. This can be set with the
+  following command:
+
+  .. code-block::
+
+    PUT /_cluster/settings
+    {
+      "persistent":{
+          "plugins.calcite.enabled": true
+      }
+    }
