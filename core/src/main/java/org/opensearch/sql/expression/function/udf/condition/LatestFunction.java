@@ -13,6 +13,8 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -48,7 +50,7 @@ public class LatestFunction extends ImplementorUDF {
     @Override
     public Expression implement(
         RexToLixTranslator rexToLixTranslator, RexCall rexCall, List<Expression> list) {
-      List<RelDataType> types = rexCall.getOperands().stream().map(RexNode::getType).toList();
+      List<RelDataType> types = rexCall.getOperands().stream().map(RexNode::getType).collect(Collectors.toList());
       return Expressions.call(
           LatestFunction.class,
           "latest",

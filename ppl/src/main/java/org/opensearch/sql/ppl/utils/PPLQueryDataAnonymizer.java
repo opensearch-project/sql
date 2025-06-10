@@ -314,7 +314,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   @Override
   public String visitExpand(Expand node, String context) {
-    String child = node.getChild().getFirst().accept(this, context);
+    String child = node.getChild().get(0).accept(this, context);
     String field = visitExpression(node.getField());
 
     return StringUtils.format("%s | expand %s", child, field);

@@ -229,17 +229,33 @@ public class DateTimeUtils {
       return sign.equals("-") ? base.minusMonths(months) : base.plusMonths(months);
     }
 
-    ChronoUnit chronoUnit =
-        switch (unit) {
-          case "s" -> ChronoUnit.SECONDS;
-          case "m" -> ChronoUnit.MINUTES;
-          case "h" -> ChronoUnit.HOURS;
-          case "d" -> ChronoUnit.DAYS;
-          case "w" -> ChronoUnit.WEEKS;
-          case "M" -> ChronoUnit.MONTHS;
-          case "y" -> ChronoUnit.YEARS;
-          default -> throw new IllegalArgumentException("Unsupported offset unit: " + rawUnit);
-        };
+    ChronoUnit chronoUnit;
+    switch (unit) {
+      case "s":
+        chronoUnit = ChronoUnit.SECONDS;
+        break;
+      case "m":
+        chronoUnit = ChronoUnit.MINUTES;
+        break;
+      case "h":
+        chronoUnit = ChronoUnit.HOURS;
+        break;
+      case "d":
+        chronoUnit = ChronoUnit.DAYS;
+        break;
+      case "w":
+        chronoUnit = ChronoUnit.WEEKS;
+        break;
+      case "M":
+        chronoUnit = ChronoUnit.MONTHS;
+        break;
+      case "y":
+        chronoUnit = ChronoUnit.YEARS;
+        break;
+      default:
+        throw new IllegalArgumentException("Unsupported offset unit: " + rawUnit);
+    }
+
 
     return sign.equals("-") ? base.minus(value, chronoUnit) : base.plus(value, chronoUnit);
   }
@@ -247,64 +263,98 @@ public class DateTimeUtils {
   private static ZonedDateTime applySnap(ZonedDateTime base, String rawUnit) {
     String unit = normalizeUnit(rawUnit);
 
-    return switch (unit) {
-      case "s" -> base.truncatedTo(ChronoUnit.SECONDS);
-      case "m" -> base.truncatedTo(ChronoUnit.MINUTES);
-      case "h" -> base.truncatedTo(ChronoUnit.HOURS);
-      case "d" -> base.truncatedTo(ChronoUnit.DAYS);
-      case "w" -> base.minusDays((base.getDayOfWeek().getValue() % 7)).truncatedTo(ChronoUnit.DAYS);
-      case "M" -> base.withDayOfMonth(1).truncatedTo(ChronoUnit.DAYS);
-      case "y" -> base.withDayOfYear(1).truncatedTo(ChronoUnit.DAYS);
-      case "q" -> {
+    ZonedDateTime result;
+    switch (unit) {
+      case "s":
+        result = base.truncatedTo(ChronoUnit.SECONDS);
+        break;
+      case "m":
+        result = base.truncatedTo(ChronoUnit.MINUTES);
+        break;
+      case "h":
+        result = base.truncatedTo(ChronoUnit.HOURS);
+        break;
+      case "d":
+        result = base.truncatedTo(ChronoUnit.DAYS);
+        break;
+      case "w":
+        result = base.minusDays((base.getDayOfWeek().getValue() % 7)).truncatedTo(ChronoUnit.DAYS);
+        break;
+      case "M":
+        result = base.withDayOfMonth(1).truncatedTo(ChronoUnit.DAYS);
+        break;
+      case "y":
+        result = base.withDayOfYear(1).truncatedTo(ChronoUnit.DAYS);
+        break;
+      case "q":
         int month = base.getMonthValue();
         int quarterStart = ((month - 1) / 3) * 3 + 1;
-        yield base.withMonth(quarterStart).withDayOfMonth(1).truncatedTo(ChronoUnit.DAYS);
-      }
-      default -> {
+        result = base.withMonth(quarterStart).withDayOfMonth(1).truncatedTo(ChronoUnit.DAYS);
+        break;
+      default:
         if (unit.matches("w[0-7]")) {
-          int targetDay =
-              unit.equals("w0") || unit.equals("w7") ? 7 : Integer.parseInt(unit.substring(1));
+          int targetDay = unit.equals("w0") || unit.equals("w7") ? 7 : Integer.parseInt(unit.substring(1));
           int diff = (base.getDayOfWeek().getValue() - targetDay + 7) % 7;
-          yield base.minusDays(diff).truncatedTo(ChronoUnit.DAYS);
+          result = base.minusDays(diff).truncatedTo(ChronoUnit.DAYS);
         } else {
           throw new IllegalArgumentException("Unsupported snap unit: " + rawUnit);
         }
-      }
-    };
+        break;
+    }
+    return result;
   }
 
   private static String normalizeUnit(String rawUnit) {
     // strict minute (m or M)
-    switch (rawUnit.toLowerCase(Locale.ROOT)) {
-      case "m", "min", "mins", "minute", "minutes" -> {
+    String lower = rawUnit.toLowerCase(Locale.ROOT);
+    switch (lower) {
+      case "m":
+      case "min":
+      case "mins":
+      case "minute":
+      case "minutes":
         return "m";
-      }
-      case "s", "sec", "secs", "second", "seconds" -> {
+      case "s":
+      case "sec":
+      case "secs":
+      case "second":
+      case "seconds":
         return "s";
-      }
-      case "h", "hr", "hrs", "hour", "hours" -> {
+      case "h":
+      case "hr":
+      case "hrs":
+      case "hour":
+      case "hours":
         return "h";
-      }
-      case "d", "day", "days" -> {
+      case "d":
+      case "day":
+      case "days":
         return "d";
-      }
-      case "w", "wk", "wks", "week", "weeks" -> {
+      case "w":
+      case "wk":
+      case "wks":
+      case "week":
+      case "weeks":
         return "w";
-      }
-      case "mon", "month", "months" -> {
-        return "M"; // month
-      }
-      case "y", "yr", "yrs", "year", "years" -> {
+      case "mon":
+      case "month":
+      case "months":
+        return "M";
+      case "y":
+      case "yr":
+      case "yrs":
+      case "year":
+      case "years":
         return "y";
-      }
-      case "q", "qtr", "qtrs", "quarter", "quarters" -> {
+      case "q":
+      case "qtr":
+      case "qtrs":
+      case "quarter":
+      case "quarters":
         return "q";
-      }
-      default -> {
-        String lower = rawUnit.toLowerCase();
+      default:
         if (lower.matches("w[0-7]")) return lower;
         throw new IllegalArgumentException("Unsupported unit alias: " + rawUnit);
-      }
     }
   }
 }
