@@ -15,10 +15,12 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
+import java.io.IOException;
 import org.hamcrest.Matcher;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.client.Request;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalciteFlattenCommandIT extends PPLIntegTestCase {
@@ -84,6 +86,42 @@ public class CalciteFlattenCommandIT extends PPLIntegTestCase {
         t,
         "The number of aliases has to match the number of flattened fields. Expected 3"
             + " (message.author, message.dayOfWeek, message.info), got 4 (a, b, c, d)");
+  }
+
+  @Test
+  public void testFlattenNullField() throws IOException {
+    final int docId = 6;
+    Request insertRequest =
+        new Request(
+            "PUT",
+            String.format(
+                "/%s/_doc/%d?refresh=true", TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS, docId));
+    insertRequest.setJsonEntity(
+        "{\"message\": null,\"comment\":null,\"myNum\":0,\"someField\":\"\"}\n");
+    client().performRequest(insertRequest);
+
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where someField='' | flatten message as (creator, dow, information)",
+                TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS));
+    verifySchema(
+        result,
+        schema("comment", "array"),
+        schema("myNum", "bigint"),
+        schema("someField", "string"),
+        schema("message", "array"),
+        schema("creator", "string"),
+        schema("dow", "bigint"),
+        schema("information", "string"));
+    verifyDataRows(result, rows(null, 0, "", null, null, null, null));
+
+    Request deleteRequest =
+        new Request(
+            "DELETE",
+            String.format(
+                "/%s/_doc/%d?refresh=true", TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS, docId));
+    client().performRequest(deleteRequest);
   }
 
   @SuppressWarnings("unchecked")
