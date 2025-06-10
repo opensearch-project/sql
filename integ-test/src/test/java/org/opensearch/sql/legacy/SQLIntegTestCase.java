@@ -9,6 +9,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import static org.opensearch.sql.legacy.TestUtils.createIndexByRestClient;
 import static org.opensearch.sql.legacy.TestUtils.getAccountIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getAliasIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getArrayIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getBankIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getBankWithNullValuesIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getDataTypeNonnumericIndexMapping;
@@ -834,6 +835,16 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "hobbies",
         getHobbiesIndexMapping(),
         "src/test/resources/hobbies.json"),
+    MERGE_TEST_1(
+        TestsConstants.TEST_INDEX_MERGE_TEST_1,
+        "merge_test1",
+        getMappingFile("merge_test_1_mapping.json"),
+        "src/test/resources/merge_test_1.json"),
+    MERGE_TEST_2(
+        TestsConstants.TEST_INDEX_MERGE_TEST_2,
+        "merge_test2",
+        getMappingFile("merge_test_2_mapping.json"),
+        "src/test/resources/merge_test_2.json"),
     // It's "people" table in Spark PPL ITs, to avoid conflicts, rename to "worker" here
     WORKER(
         TestsConstants.TEST_INDEX_WORKER,
@@ -904,7 +915,12 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "customer",
         "tpch",
         getTpchMappingFile("customer_index_mapping.json"),
-        "src/test/resources/tpch/data/customer.json");
+        "src/test/resources/tpch/data/customer.json"),
+    ARRAY(
+        TestsConstants.TEST_INDEX_ARRAY,
+        "array",
+        getArrayIndexMapping(),
+        "src/test/resources/array.json");
 
     private final String name;
     private final String type;

@@ -14,10 +14,12 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 /**
  * Returns the timestamp at which it <b>executes</b>. It differs from the behavior for NOW(), which
@@ -36,6 +38,11 @@ public class SysdateFunction extends ImplementorUDF {
 
   public SysdateFunction() {
     super(new SysdateImplementor(), NullPolicy.ANY);
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+    return PPLOperandTypes.OPTIONAL_INTEGER;
   }
 
   @Override

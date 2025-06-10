@@ -26,32 +26,6 @@ public class CalciteExplainIT extends ExplainIT {
     loadIndex(Index.HOBBIES);
   }
 
-  @Override
-  public void testTrendlinePushDownExplain() throws Exception {
-    withFallbackEnabled(
-        () -> {
-          try {
-            super.testTrendlinePushDownExplain();
-          } catch (Exception e) {
-            throw new RuntimeException(e);
-          }
-        },
-        "https://github.com/opensearch-project/sql/issues/3466");
-  }
-
-  @Override
-  public void testTrendlineWithSortPushDownExplain() throws Exception {
-    withFallbackEnabled(
-        () -> {
-          try {
-            super.testTrendlineWithSortPushDownExplain();
-          } catch (Exception e) {
-            throw new RuntimeException(e);
-          }
-        },
-        "https://github.com/opensearch-project/sql/issues/3466");
-  }
-
   @Test
   public void testPushDownSystemLimitForJoinExplain() throws Exception {
     // the SYSTEM LIMIT should apply to each table of join
