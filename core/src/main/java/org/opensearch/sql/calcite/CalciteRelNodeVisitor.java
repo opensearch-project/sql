@@ -1029,7 +1029,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
               RexNode thenExpr;
               switch (trendlineComputation.getComputationType()) {
-                case TrendlineType.SMA:
+                case SMA:
                   // THEN avg(field) over (ROWS (windowSize-1) PRECEDING)
                   thenExpr =
                       PlanUtils.makeOver(
@@ -1041,7 +1041,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                           List.of(),
                           windowFrame);
                   break;
-                case TrendlineType.WMA:
+                case WMA:
                   // THEN wma expression
                   thenExpr =
                       buildWmaRexNode(

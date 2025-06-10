@@ -66,12 +66,14 @@ public class JsonExtendFunctionImpl extends ImplementorUDF {
       List<String> expandedPaths = expandJsonPath(root, convertToJsonPath(keys.get(i).toString()));
       for (String expandedPath : expandedPaths) {
         Object value = keys.get(i + 1);
-        if (value instanceof List<?> targetValues) {
+        if (value instanceof List<?>) {
+          List<?> targetValues = (List<?>) value;
           for (Object targetValue : targetValues) {
             expands.add(expandedPath + ".meaninglessKey");
             expands.add(targetValue);
           }
-        } else if (value instanceof String stringValue) {
+        } else if (value instanceof String) {
+          String stringValue = (String) value;
           try {
             List<Object> targetValues =
                 gson.fromJson(stringValue, List.class); // We first try to extend it as an array
