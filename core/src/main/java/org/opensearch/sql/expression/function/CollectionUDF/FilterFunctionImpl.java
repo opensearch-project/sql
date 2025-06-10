@@ -20,6 +20,10 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
+/**
+ * The function filter the element in the array by the lambda function. The function should return
+ * boolean. For example, array=array(1, 2, -1) filter(array, x -> x > 0) = [1, 2]
+ */
 public class FilterFunctionImpl extends ImplementorUDF {
   public FilterFunctionImpl() {
     super(new FilterImplementor(), NullPolicy.ANY);

@@ -19,6 +19,10 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
+/**
+ * The function check whether all element inside array can meet the lambda function. The function
+ * should also return boolean. For example, array=array(1, 2, -1), forall(array, x -> x > 0) = false
+ */
 public class ForallFunctionImpl extends ImplementorUDF {
   public ForallFunctionImpl() {
     super(new ForallImplementor(), NullPolicy.ALL);

@@ -28,6 +28,12 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
+/**
+ * The function transform the element of array one by one using lambda. For example, array=array(1,
+ * 2, 3), transform(array, x -> x + 2) = [3, 4, 5] Transform can accept one more argument like (x,
+ * i) -> x + i, where i is the index of element in array. For example, array=array(1, 2, 3),
+ * transform(array, (x, i) -> x + i) = [1, 3, 5]
+ */
 public class TransformFunctionImpl extends ImplementorUDF {
   public TransformFunctionImpl() {
     super(new TransformImplementor(), NullPolicy.ANY);

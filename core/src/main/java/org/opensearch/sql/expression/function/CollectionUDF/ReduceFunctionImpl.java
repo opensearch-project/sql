@@ -30,6 +30,11 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
+/**
+ * The function will first use acc_function to go through all element and return value to the acc.
+ * Then apply reduce function to the acc if exists. For example, array=array(1, 2, 3), reduce(array,
+ * 0, (acc, x) -> acc + x) = 6, reduce(array, 0, (acc, x) -> acc + x, acc -> acc * 10) = 60
+ */
 public class ReduceFunctionImpl extends ImplementorUDF {
   public ReduceFunctionImpl() {
     super(new ReduceImplementor(), NullPolicy.ANY);

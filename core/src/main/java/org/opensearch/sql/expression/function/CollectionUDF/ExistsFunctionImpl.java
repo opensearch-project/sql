@@ -19,6 +19,11 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
+/**
+ * The function check whether existing one of element inside array can meet the lambda function. The
+ * function should also return boolean. For example, array=array(1, -2, -1), forall(array, x -> x >
+ * 0) = true
+ */
 public class ExistsFunctionImpl extends ImplementorUDF {
   public ExistsFunctionImpl() {
     super(new ExistsImplementor(), NullPolicy.ALL);

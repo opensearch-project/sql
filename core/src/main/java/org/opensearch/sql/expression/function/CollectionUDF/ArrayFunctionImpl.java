@@ -28,6 +28,11 @@ import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 // TODO: Support array of mixture types.
+
+/**
+ * create an array with input values. We will infer a least restricted type, for example array(1,
+ * "demo") -> ["1", "demo"]
+ */
 public class ArrayFunctionImpl extends ImplementorUDF {
   public ArrayFunctionImpl() {
     super(new ArrayImplementor(), NullPolicy.ANY);
