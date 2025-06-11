@@ -37,6 +37,7 @@ KMEANS:                             'KMEANS';
 AD:                                 'AD';
 ML:                                 'ML';
 FILLNULL:                           'FILLNULL';
+FLATTEN:                            'FLATTEN';
 TRENDLINE:                          'TRENDLINE';
 APPENDCOL:                          'APPENDCOL';
 EXPAND:                             'EXPAND';

@@ -20,6 +20,7 @@ import static org.opensearch.sql.calcite.utils.PlanUtils.transformPlanToAttachCh
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Streams;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -82,6 +83,7 @@ import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
+import org.opensearch.sql.ast.tree.Flatten;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -223,8 +225,39 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .map(field -> (RexNode) context.relBuilder.field(field))
             .toList();
     if (!duplicatedNestedFields.isEmpty()) {
-      context.relBuilder.projectExcept(duplicatedNestedFields);
+      // This is a workaround to avoid the bug in Calcite:
+      // In {@link RelBuilder#project_(Iterable, Iterable, Iterable, boolean, Iterable)},
+      // the check `RexUtil.isIdentity(nodeList, inputRowType)` will pass when the input
+      // and the output nodeList refer to the same fields, even if the field name list
+      // is different. As a result, renaming operation will not be applied. This makes
+      // the logical plan for the flatten command incorrect, where the operation is
+      // equivalent to renaming the flattened sub-fields. E.g. emp.name -> name.
+      forceProjectExcept(context.relBuilder, duplicatedNestedFields);
     }
+  }
+
+  /**
+   * Project except with force.
+   *
+   * <p>This method is copied from {@link RelBuilder#projectExcept(Iterable)} and modified with the
+   * force flag in project set to true. It is subject to future changes in Calcite.
+   *
+   * @param relBuilder RelBuilder
+   * @param expressions Expressions to exclude from the project
+   */
+  private static void forceProjectExcept(RelBuilder relBuilder, Iterable<RexNode> expressions) {
+    List<RexNode> allExpressions = new ArrayList<>(relBuilder.fields());
+    Set<RexNode> excludeExpressions = new HashSet<>();
+    for (RexNode excludeExp : expressions) {
+      if (!excludeExpressions.add(excludeExp)) {
+        throw new IllegalArgumentException(
+            "Input list contains duplicates. Expression " + excludeExp + " exists multiple times.");
+      }
+      if (!allExpressions.remove(excludeExp)) {
+        throw new IllegalArgumentException("Expression " + excludeExp.toString() + " not found.");
+      }
+    }
+    relBuilder.project(allExpressions, ImmutableList.of(), true);
   }
 
   /**
@@ -1058,6 +1091,63 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitTableFunction(TableFunction node, CalcitePlanContext context) {
     throw new CalciteUnsupportedException("Table function is unsupported in Calcite");
+  }
+
+  /**
+   * Visit flatten command.
+   *
+   * <p>The flatten command is used to flatten a struct field into multiple fields. This
+   * implementation simply projects the flattened fields and renames them according to the provided
+   * aliases or the field names in the struct. This is possible because the struct / object field
+   * are always read in a flattened manner in OpenSearch.
+   *
+   * @param node Flatten command node
+   * @param context CalcitePlanContext
+   * @return RelNode representing the visited logical plan
+   */
+  @Override
+  public RelNode visitFlatten(Flatten node, CalcitePlanContext context) {
+    visitChildren(node, context);
+    RelBuilder relBuilder = context.relBuilder;
+    String fieldName = node.getField().getField().toString();
+    // Match the sub-field names with "field.*"
+    List<RelDataTypeField> fieldsToExpand =
+        relBuilder.peek().getRowType().getFieldList().stream()
+            .filter(f -> f.getName().startsWith(fieldName + "."))
+            .toList();
+
+    List<String> expandedFieldNames;
+    if (node.getAliases() != null) {
+      if (node.getAliases().size() != fieldsToExpand.size()) {
+        throw new IllegalArgumentException(
+            String.format(
+                "The number of aliases has to match the number of flattened fields. Expected %d"
+                    + " (%s), got %d (%s)",
+                fieldsToExpand.size(),
+                fieldsToExpand.stream()
+                    .map(RelDataTypeField::getName)
+                    .collect(Collectors.joining(", ")),
+                node.getAliases().size(),
+                String.join(", ", node.getAliases())));
+      }
+      expandedFieldNames = node.getAliases();
+    } else {
+      // If no aliases provided, name the flattened fields to the key name in the struct.
+      // E.g. message.author --renamed-to--> author
+      expandedFieldNames =
+          fieldsToExpand.stream()
+              .map(RelDataTypeField::getName)
+              .map(name -> name.substring(fieldName.length() + 1))
+              .collect(Collectors.toList());
+    }
+    List<RexNode> expandedFields =
+        Streams.zip(
+                fieldsToExpand.stream(),
+                expandedFieldNames.stream(),
+                (f, n) -> relBuilder.alias(relBuilder.field(f.getName()), n))
+            .collect(Collectors.toList());
+    relBuilder.projectPlus(expandedFields);
+    return relBuilder.peek();
   }
 
   @Override

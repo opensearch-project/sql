@@ -72,6 +72,7 @@ commands
    | trendlineCommand
    | appendcolCommand
    | expandCommand
+   | flattenCommand
    ;
 
 commandName
@@ -99,6 +100,7 @@ commandName
    | ML
    | FILLNULL
    | EXPAND
+   | FLATTEN
    | TRENDLINE
    | EXPLAIN
    ;
@@ -248,6 +250,10 @@ trendlineType
 expandCommand
     : EXPAND fieldExpression (AS alias = qualifiedName)?
     ;
+
+flattenCommand
+   : FLATTEN fieldExpression (AS aliases = identifierSeq)?
+   ;
 
 appendcolCommand
    : APPENDCOL (OVERRIDE EQUAL override = booleanLiteral)? LT_SQR_PRTHS commands (PIPE commands)* RT_SQR_PRTHS
@@ -1078,6 +1084,11 @@ tableQualifiedName
 
 wcQualifiedName
    : wildcard (DOT wildcard)* # identsAsWildcardQualifiedName
+   ;
+
+identifierSeq
+   : qualifiedName (COMMA qualifiedName)* # identsAsQualifiedNameSeq
+   | LT_PRTHS qualifiedName (COMMA qualifiedName)* RT_PRTHS # identsAsQualifiedNameSeq
    ;
 
 ident

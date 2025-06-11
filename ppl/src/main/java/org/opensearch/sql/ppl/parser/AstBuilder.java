@@ -63,6 +63,7 @@ import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
+import org.opensearch.sql.ast.tree.Flatten;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -89,6 +90,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.AdCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ByClauseContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldListContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsQualifiedNameSeqContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.KmeansCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LookupPairContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsByClauseContext;
@@ -641,6 +643,21 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     }
 
     return FillNull.ofVariousValue(replacementsBuilder.build());
+  }
+
+  @Override
+  public UnresolvedPlan visitFlattenCommand(OpenSearchPPLParser.FlattenCommandContext ctx) {
+    Field field = (Field) internalVisitExpression(ctx.fieldExpression());
+    List<String> aliases =
+        ctx.aliases == null ? null : getAliasList((IdentsAsQualifiedNameSeqContext) ctx.aliases);
+    return new Flatten(field, aliases);
+  }
+
+  private List<String> getAliasList(IdentsAsQualifiedNameSeqContext ctx) {
+    return ctx.qualifiedName().stream()
+        .map(this::internalVisitExpression)
+        .map(Object::toString)
+        .collect(Collectors.toList());
   }
 
   /** trendline command. */
