@@ -15,6 +15,11 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nullable;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.RelHomogeneousShuttle;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttle;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexVisitorImpl;
@@ -22,6 +27,7 @@ import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.Util;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.IntervalUnit;
@@ -281,6 +287,25 @@ public interface PlanUtils {
           }
         };
     return node.getChild().getFirst().accept(relationVisitor, null);
+  }
+
+  /** Similar to {@link org.apache.calcite.plan.RelOptUtil#findTable(RelNode, String) } */
+  static RelOptTable findTable(RelNode root) {
+    try {
+      RelShuttle visitor =
+          new RelHomogeneousShuttle() {
+            @Override
+            public RelNode visit(TableScan scan) {
+              final RelOptTable scanTable = scan.getTable();
+              throw new Util.FoundOne(scanTable);
+            }
+          };
+      root.accept(visitor);
+      return null;
+    } catch (Util.FoundOne e) {
+      Util.swallow(e, null);
+      return (RelOptTable) e.getNode();
+    }
   }
 
   /**

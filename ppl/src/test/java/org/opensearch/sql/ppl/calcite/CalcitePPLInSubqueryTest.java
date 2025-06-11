@@ -215,16 +215,17 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
         """;
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        ""
-            + "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
+        "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
             + "  LogicalSort(sort0=[$0], dir0=[DESC])\n"
-            + "    LogicalJoin(condition=[AND(=($7, $8), IN($1, {\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], d.DEPTNO=[$8], DNAME=[$9], LOC=[$10])\n"
+            + "      LogicalJoin(condition=[AND(=($7, $8), IN($1, {\n"
             + "LogicalProject(ENAME=[$0])\n"
             + "  LogicalFilter(condition=[>($2, 1000)])\n"
             + "    LogicalTableScan(table=[[scott, BONUS]])\n"
             + "}))], joinType=[inner])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n"
-            + "      LogicalTableScan(table=[[scott, DEPT]])\n";
+            + "        LogicalTableScan(table=[[scott, EMP]])\n"
+            + "        LogicalTableScan(table=[[scott, DEPT]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
