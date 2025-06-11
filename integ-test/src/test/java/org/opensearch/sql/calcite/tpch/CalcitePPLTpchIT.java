@@ -21,7 +21,6 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import org.json.JSONObject;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.calcite.standalone.CalcitePPLIntegTestCase;
@@ -212,7 +211,6 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
     verifyDataRows(actual, rows(77949.9186));
   }
 
-  @Ignore("https://github.com/opensearch-project/sql/issues/3617")
   public void testQ7() {
     String ppl = loadFromFile("tpch/queries/q7.ppl");
     JSONObject actual = executeQuery(ppl);
@@ -225,7 +223,6 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
     verifyNumOfRows(actual, 0);
   }
 
-  @Ignore("https://github.com/opensearch-project/sql/issues/3617")
   public void testQ8() {
     String ppl = loadFromFile("tpch/queries/q8.ppl");
     JSONObject actual = executeQuery(ppl);

@@ -127,9 +127,9 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       return newScan;
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
-        LOG.debug("Cannot pushdown the filter condition {}", filter.getCondition(), e);
+        LOG.debug("Cannot pushdown the filter condition.", e);
       } else {
-        LOG.info("Cannot pushdown the filter condition {}, ", filter.getCondition());
+        LOG.info("Cannot pushdown the filter condition.");
       }
     }
     return null;
