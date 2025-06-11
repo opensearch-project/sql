@@ -479,7 +479,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
           node.getArguments().entrySet().stream()
               .map(entry -> new Argument(entry.getKey(), entry.getValue()))
               .sorted(Comparator.comparing(Argument::getArgName))
-              .toList());
+                  .collect(Collectors.toList()));
       UnresolvedExpression windowFunction =
           new Alias(
               node.getAlias(),
@@ -824,7 +824,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
                         node.getSourceField(),
                         ImmutableList.of(node.getPatternMaxSampleCount()))))
             .map(alias -> (UnresolvedExpression) alias)
-            .toList();
+                .collect(Collectors.toList());
     List<UnresolvedExpression> groupByList = new ArrayList<>();
     groupByList.add(patternsField);
     groupByList.addAll(node.getPartitionByList());

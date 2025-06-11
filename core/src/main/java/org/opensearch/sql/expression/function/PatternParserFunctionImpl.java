@@ -13,6 +13,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
+
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexImpTable;
@@ -108,7 +110,7 @@ public class PatternParserFunctionImpl extends ImplementorUDF {
             .map(pattern -> pattern.split(" "))
             .filter(splitPattern -> splitPattern.length == preprocessedTokens.size())
             .map(Arrays::asList)
-            .toList();
+                .collect(Collectors.toList());
     List<String> bestCandidate = findBestCandidate(candidates, preprocessedTokens);
 
     if (bestCandidate != null) {

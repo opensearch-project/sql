@@ -25,9 +25,22 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     loadIndex(Index.BANK_WITH_NULL_VALUES);
     loadIndex(Index.DATE);
     loadIndex(Index.PEOPLE2);
+    loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK);
     loadIndex(Index.JSON_TEST);
     loadIndex(Index.GAME_OF_THRONES);
+  }
+
+  @Test
+  public void testJson2() {
+    JSONObject actual =
+            executeQuery(
+                    String.format(
+                            "source=opensearch-sql_test_index_account" + "| patterns email mode=aggregation"));
+
+    verifySchema(actual, schema("a", "string"), schema("b", "string"));
+
+    verifyDataRows(actual, rows("[1,2,3,{\"f1\":1,\"f2\":[5,6]},4]", null));
   }
 
   @Test
