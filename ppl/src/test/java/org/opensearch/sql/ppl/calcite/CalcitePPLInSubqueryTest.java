@@ -225,14 +225,17 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
             + "    LogicalTableScan(table=[[scott, BONUS]])\n"
             + "}))], joinType=[inner])\n"
             + "        LogicalTableScan(table=[[scott, EMP]])\n"
-            + "        LogicalTableScan(table=[[scott, DEPT]])\n";
+            + "        LogicalSystemLimit(fetch=[50000])\n"
+            + "          LogicalTableScan(table=[[scott, DEPT]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
         "SELECT `EMP`.`EMPNO`, `EMP`.`ENAME`\n"
             + "FROM `scott`.`EMP`\n"
-            + "INNER JOIN `scott`.`DEPT` ON `EMP`.`DEPTNO` = `DEPT`.`DEPTNO` AND `EMP`.`ENAME` IN"
-            + " (SELECT `ENAME`\n"
+            + "INNER JOIN (SELECT `DEPTNO`, `DNAME`, `LOC`\n"
+            + "FROM `scott`.`DEPT`\n"
+            + "LIMIT 50000) `t` ON `EMP`.`DEPTNO` = `t`.`DEPTNO` AND `EMP`.`ENAME` IN (SELECT"
+            + " `ENAME`\n"
             + "FROM `scott`.`BONUS`\n"
             + "WHERE `SAL` > 1000)\n"
             + "ORDER BY `EMP`.`EMPNO` DESC NULLS FIRST";

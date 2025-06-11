@@ -210,9 +210,10 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
             + "    LogicalAggregate(group=[{}], patterns_field=[pattern($0, $1, $2)])\n"
             + "      LogicalProject(ENAME=[$1], $f8=[10], $f9=[100000])\n"
             + "        LogicalTableScan(table=[[scott, EMP]])\n"
-            + "    Uncollect\n"
-            + "      LogicalProject(patterns_field=[$cor0.patterns_field])\n"
-            + "        LogicalValues(tuples=[[{ 0 }]])\n";
+            + "    LogicalSystemLimit(fetch=[50000])\n"
+            + "      Uncollect\n"
+            + "        LogicalProject(patterns_field=[$cor0.patterns_field])\n"
+            + "          LogicalValues(tuples=[[{ 0 }]])\n";
     verifyLogical(root, expectedLogical);
 
     /*
@@ -220,14 +221,16 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
      * Spark doesn't have SAFE_CAST and UNNEST
      */
     String expectedSparkSql =
-        "SELECT SAFE_CAST(`t20`.`patterns_field`['pattern'] AS STRING) `patterns_field`,"
-            + " SAFE_CAST(`t20`.`patterns_field`['pattern_count'] AS BIGINT) `pattern_count`,"
-            + " SAFE_CAST(`t20`.`patterns_field`['tokens'] AS MAP< VARCHAR, VARCHAR ARRAY >)"
+        "SELECT SAFE_CAST(`t3`.`patterns_field`['pattern'] AS STRING) `patterns_field`,"
+            + " SAFE_CAST(`t3`.`patterns_field`['pattern_count'] AS BIGINT) `pattern_count`,"
+            + " SAFE_CAST(`t3`.`patterns_field`['tokens'] AS MAP< VARCHAR, VARCHAR ARRAY >)"
             + " `tokens`\n"
             + "FROM (SELECT `pattern`(`ENAME`, 10, 100000) `patterns_field`\n"
             + "FROM `scott`.`EMP`) `$cor0`,\n"
-            + "LATERAL UNNEST (SELECT `$cor0`.`patterns_field`\n"
-            + "FROM (VALUES (0)) `t` (`ZERO`)) `t2` (`patterns_field`) `t20`";
+            + "LATERAL (SELECT `patterns_field`\n"
+            + "FROM UNNEST (SELECT `$cor0`.`patterns_field`\n"
+            + "FROM (VALUES (0)) `t` (`ZERO`)) `t2` (`patterns_field`)\n"
+            + "LIMIT 50000) `t3`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -244,9 +247,10 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
             + "    LogicalAggregate(group=[{1}], patterns_field=[pattern($0, $2, $3)])\n"
             + "      LogicalProject(ENAME=[$1], DEPTNO=[$7], $f8=[10], $f9=[100000])\n"
             + "        LogicalTableScan(table=[[scott, EMP]])\n"
-            + "    Uncollect\n"
-            + "      LogicalProject(patterns_field=[$cor0.patterns_field])\n"
-            + "        LogicalValues(tuples=[[{ 0 }]])\n";
+            + "    LogicalSystemLimit(fetch=[50000])\n"
+            + "      Uncollect\n"
+            + "        LogicalProject(patterns_field=[$cor0.patterns_field])\n"
+            + "          LogicalValues(tuples=[[{ 0 }]])\n";
     verifyLogical(root, expectedLogical);
 
     /*
@@ -254,15 +258,17 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
      * Spark doesn't have SAFE_CAST and UNNEST
      */
     String expectedSparkSql =
-        "SELECT `$cor0`.`DEPTNO`, SAFE_CAST(`t20`.`patterns_field`['pattern'] AS STRING)"
-            + " `patterns_field`, SAFE_CAST(`t20`.`patterns_field`['pattern_count'] AS BIGINT)"
-            + " `pattern_count`, SAFE_CAST(`t20`.`patterns_field`['tokens'] AS MAP< VARCHAR,"
-            + " VARCHAR ARRAY >) `tokens`\n"
+        "SELECT `$cor0`.`DEPTNO`, SAFE_CAST(`t3`.`patterns_field`['pattern'] AS STRING)"
+            + " `patterns_field`, SAFE_CAST(`t3`.`patterns_field`['pattern_count'] AS BIGINT)"
+            + " `pattern_count`, SAFE_CAST(`t3`.`patterns_field`['tokens'] AS MAP< VARCHAR, VARCHAR"
+            + " ARRAY >) `tokens`\n"
             + "FROM (SELECT `DEPTNO`, `pattern`(`ENAME`, 10, 100000) `patterns_field`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `DEPTNO`) `$cor0`,\n"
-            + "LATERAL UNNEST (SELECT `$cor0`.`patterns_field`\n"
-            + "FROM (VALUES (0)) `t` (`ZERO`)) `t2` (`patterns_field`) `t20`";
+            + "LATERAL (SELECT `patterns_field`\n"
+            + "FROM UNNEST (SELECT `$cor0`.`patterns_field`\n"
+            + "FROM (VALUES (0)) `t` (`ZERO`)) `t2` (`patterns_field`)\n"
+            + "LIMIT 50000) `t3`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }

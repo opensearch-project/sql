@@ -23,6 +23,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -35,6 +36,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.ViewExpanders;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -107,6 +109,7 @@ import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.Trendline.TrendlineType;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.calcite.plan.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
@@ -131,6 +134,21 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   public RelNode analyze(UnresolvedPlan unresolved, CalcitePlanContext context) {
     return unresolved.accept(this, context);
+  }
+
+  /** Adds a rel node to the top of the stack while preserving the field names and aliases. */
+  private void replaceTop(RelBuilder relBuilder, RelNode relNode) {
+    try {
+      Method method = RelBuilder.class.getDeclaredMethod("replaceTop", RelNode.class);
+      method.setAccessible(true);
+      method.invoke(relBuilder, relNode);
+    } catch (Exception e) {
+      throw new IllegalStateException("Unable to invoke RelBuilder.replaceTop", e);
+    }
+  }
+
+  private RelNode sysLimit(RelNode child, RexNode fetch) {
+    return LogicalSystemLimit.create(child, RelCollations.EMPTY, null, fetch);
   }
 
   @Override
@@ -642,8 +660,24 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitJoin(Join node, CalcitePlanContext context) {
-    List<UnresolvedPlan> children = node.getChildren();
-    children.forEach(c -> analyze(c, context));
+    // 1. visit left child
+    analyze(node.getLeft(), context);
+    // 2. add system limit to left side (main-search) if join type is right outer
+    if (node.getJoinType() == Join.JoinType.RIGHT) {
+      replaceTop(
+          context.relBuilder,
+          sysLimit(context.relBuilder.peek(), context.relBuilder.literal(context.querySysLimit)));
+    }
+    // 3. visit right child
+    analyze(node.getRight(), context);
+    // 4. add system limit to right side (subsearch) if join type is not semi and anti
+    if (node.getJoinType() != Join.JoinType.RIGHT
+        && node.getJoinType() != Join.JoinType.SEMI
+        && node.getJoinType() != Join.JoinType.ANTI) {
+      replaceTop(
+          context.relBuilder,
+          sysLimit(context.relBuilder.peek(), context.relBuilder.literal(context.querySysLimit)));
+    }
     RexNode joinCondition =
         node.getJoinCondition()
             .map(c -> rexVisitor.analyzeJoinCondition(c, context))
@@ -768,22 +802,27 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       expectedProvidedFieldNames = newExpectedFieldNames;
     }
 
-    // 5. Resolve join condition. Note, this operation should be done after finishing all analyze.
+    // 5. Add system limit to right side (subsearch)
+    replaceTop(
+        context.relBuilder,
+        sysLimit(context.relBuilder.peek(), context.relBuilder.literal(context.querySysLimit)));
+
+    // 6. Resolve join condition. Note, this operation should be done after finishing all analyze.
     JoinAndLookupUtils.addJoinForLookUp(node, context);
 
-    // 6. Add projection for coalesce fields if there is.
+    // 7. Add projection for coalesce fields if there is.
     if (!newCoalesceList.isEmpty()) {
       context.relBuilder.projectPlus(newCoalesceList);
     }
 
-    // 7. Add projection to remove unnecessary fields
+    // 8. Add projection to remove unnecessary fields
     // NOTE: Need to lazy invoke projectExcept until finishing all analyzing,
     // otherwise the field names may have changed because of field name duplication.
     if (!toBeRemovedFields.isEmpty()) {
       context.relBuilder.projectExcept(toBeRemovedFields);
     }
 
-    // 7. Rename the fields to the expected names.
+    // 9. Rename the fields to the expected names.
     JoinAndLookupUtils.renameToExpectedFields(
         expectedProvidedFieldNames,
         sourceFieldsNames.size() - duplicatedSourceFields.size(),
@@ -1449,14 +1488,18 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .uncollect(List.of(), false)
             .build();
 
-    // 6. Perform a nested-loop join (correlate) between the original table and the expanded
+    // 6. add system limit to right side
+    RelNode rightNodeWithLimit =
+        sysLimit(rightNode, context.relBuilder.literal(context.querySysLimit));
+
+    // 7. Perform a nested-loop join (correlate) between the original table and the expanded
     // array field.
     // The last parameter has to refer to the array to be expanded on the left side. It will
     // be used by the right side to correlate with the left side.
     context
         .relBuilder
         .push(leftNode)
-        .push(rightNode)
+        .push(rightNodeWithLimit)
         .correlate(JoinRelType.INNER, correlVariable.get().id, List.of(arrayFieldRex))
         // 7. Remove the original array field from the output.
         // TODO: RFC: should we keep the original array field when alias is present?

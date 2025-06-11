@@ -66,7 +66,7 @@ public class CalciteRexNodeVisitorTest {
 
     mockedStatic.when(() -> CalciteToolsHelper.create(any(), any(), any())).thenReturn(relBuilder);
 
-    context = CalcitePlanContext.create(frameworkConfig, 100, QueryType.PPL);
+    context = CalcitePlanContext.create(frameworkConfig, 100, 50000, QueryType.PPL);
   }
 
   @AfterEach

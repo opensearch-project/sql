@@ -28,7 +28,7 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testPushDownSystemLimitForJoinExplain() throws Exception {
-    // the SYSTEM LIMIT should apply to each table of join
+    // the SYSTEM LIMIT should apply to right table of join
     String expected = loadFromFile("expectedOutput/calcite/explain_join_push_system_limit.json");
 
     assertJsonEqualsIgnoreId(
@@ -42,7 +42,7 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testPushDownSystemLimitForMultipleJoinExplain() throws Exception {
-    // the SYSTEM LIMIT should apply to each table of multi-join
+    // the SYSTEM LIMIT should apply to each right table of multi-join
     String expected =
         loadFromFile("expectedOutput/calcite/explain_multi_join_push_system_limit.json");
 
@@ -56,11 +56,9 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testPushDownSystemLimitForExistsSubqueryExplain() throws Exception {
-    // the SYSTEM LIMIT should apply to each table of exists subquery
-    // since exists subquery translates to hash join
+  public void testExistsSubqueryExplain() throws Exception {
     String expected =
-        loadFromFile("expectedOutput/calcite/explain_exists_subquery_push_system_limit.json");
+        loadFromFile("expectedOutput/calcite/explain_exists_subsearch.json");
 
     assertJsonEqualsIgnoreId(
         expected,
@@ -71,11 +69,9 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testPushDownSystemLimitForInSubqueryExplain() throws Exception {
-    // the SYSTEM LIMIT should apply to each table of in subquery
-    // since in subquery translates to hash join
+  public void testInSubqueryExplain() throws Exception {
     String expected =
-        loadFromFile("expectedOutput/calcite/explain_in_subquery_push_system_limit.json");
+        loadFromFile("expectedOutput/calcite/explain_in_subsearch.json");
 
     assertJsonEqualsIgnoreId(
         expected,

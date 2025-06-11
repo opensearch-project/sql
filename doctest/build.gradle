@@ -30,7 +30,7 @@ task cloneSqlCli(type: Exec) {
         commandLine 'git', '-C', repoDir.absolutePath, 'checkout', 'origin/main'
     } else {
         // Repository doesn't exist, clone it
-        commandLine 'git', 'clone', 'https://github.com/opensearch-project/sql-cli.git', repoDir.absolutePath
+        commandLine 'git', 'clone', 'git@github.com:opensearch-project/sql-cli.git', repoDir.absolutePath
     }
 }
 
@@ -98,10 +98,10 @@ task stopPrometheus(type: KillProcessTask) {
 
 // Stop Prom AFTER Start Prom...
 if(getOSFamilyType() != "windows") {
-    stopPrometheus.mustRunAfter startPrometheus
-    startOpenSearch.dependsOn startPrometheus
-    stopOpenSearch.finalizedBy stopPrometheus
-    startOpenSearch.finalizedBy stopPrometheus
+//    stopPrometheus.mustRunAfter startPrometheus
+//    startOpenSearch.dependsOn startPrometheus
+//    stopOpenSearch.finalizedBy stopPrometheus
+//    startOpenSearch.finalizedBy stopPrometheus
 }
 doctest.dependsOn startOpenSearch
 doctest.finalizedBy stopOpenSearch

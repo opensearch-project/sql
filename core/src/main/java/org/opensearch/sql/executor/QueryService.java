@@ -99,7 +99,8 @@ public class QueryService {
                 CalcitePlanContext context =
                     CalcitePlanContext.create(
                         buildFrameworkConfig(),
-                        settings.getSettingValue(Key.QUERY_SIZE_LIMIT),
+                        getQuerySizeLimit(),
+                        getQuerySystemLimit(),
                         queryType);
                 RelNode relNode = analyze(plan, context);
                 RelNode optimized = optimize(relNode);
@@ -133,7 +134,10 @@ public class QueryService {
               () -> {
                 CalcitePlanContext context =
                     CalcitePlanContext.create(
-                        buildFrameworkConfig(), getQuerySizeLimit(), queryType);
+                        buildFrameworkConfig(),
+                        getQuerySizeLimit(),
+                        getQuerySystemLimit(),
+                        queryType);
                 RelNode relNode = analyze(plan, context);
                 RelNode optimized = optimize(relNode);
                 RelNode calcitePlan = convertToCalcitePlan(optimized);
@@ -274,6 +278,10 @@ public class QueryService {
 
   private Integer getQuerySizeLimit() {
     return settings == null ? null : settings.getSettingValue(Key.QUERY_SIZE_LIMIT);
+  }
+
+  private Integer getQuerySystemLimit() {
+    return settings == null ? null : settings.getSettingValue(Key.QUERY_SYSTEM_LIMIT);
   }
 
   // TODO https://github.com/opensearch-project/sql/issues/3457

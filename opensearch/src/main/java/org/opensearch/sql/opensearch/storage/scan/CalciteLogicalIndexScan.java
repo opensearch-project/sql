@@ -84,7 +84,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       for (RelOptRule rule : OpenSearchIndexRules.OPEN_SEARCH_INDEX_SCAN_RULES) {
         planner.addRule(rule);
       }
-      registerSystemLimitRuleForJoin(planner);
+      //      registerSystemLimitRuleForJoin(planner);
     }
   }
 
@@ -93,8 +93,8 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     List<RelOptRule> rules =
         createRules(
             systemLimit,
-            SystemLimitRuleConfig.SYSTEM_LIMIT_JOIN_TRANSFORM,
-            SystemLimitRuleConfig.SYSTEM_LIMIT_CORRELATE_TRANSFORM);
+            SystemLimitRuleConfig.PUSHDOWN_SYSTEM_LIMIT_TO_RIGHT_TRANSFORM,
+            SystemLimitRuleConfig.PUSHDOWN_SYSTEM_LIMIT_TO_LEFT_TRANSFORM);
     rules.forEach(planner::addRule);
   }
 

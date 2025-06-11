@@ -100,15 +100,18 @@ public class CalcitePPLExpandTest extends CalcitePPLAbstractTest {
         "LogicalProject(DEPTNO=[$0], EMPNOS=[$2])\n"
             + "  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{1}])\n"
             + "    LogicalTableScan(table=[[scott, DEPT]])\n"
-            + "    Uncollect\n"
-            + "      LogicalProject(EMPNOS=[$cor0.EMPNOS])\n"
-            + "        LogicalValues(tuples=[[{ 0 }]])\n";
+            + "    LogicalSystemLimit(fetch=[50000])\n"
+            + "      Uncollect\n"
+            + "        LogicalProject(EMPNOS=[$cor0.EMPNOS])\n"
+            + "          LogicalValues(tuples=[[{ 0 }]])\n";
     verifyLogical(root, expectedLogical);
     String expectedSparkSql =
-        "SELECT `$cor0`.`DEPTNO`, `t00`.`EMPNOS`\n"
+        "SELECT `$cor0`.`DEPTNO`, `t1`.`EMPNOS`\n"
             + "FROM `scott`.`DEPT` `$cor0`,\n"
-            + "LATERAL UNNEST (SELECT `$cor0`.`EMPNOS`\n"
-            + "FROM (VALUES (0)) `t` (`ZERO`)) `t0` (`EMPNOS`) `t00`";
+            + "LATERAL (SELECT `EMPNOS`\n"
+            + "FROM UNNEST (SELECT `$cor0`.`EMPNOS`\n"
+            + "FROM (VALUES (0)) `t` (`ZERO`)) `t0` (`EMPNOS`)\n"
+            + "LIMIT 50000) `t1`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -121,16 +124,19 @@ public class CalcitePPLExpandTest extends CalcitePPLAbstractTest {
             + "  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{2}])\n"
             + "    LogicalProject(DEPTNO=[$0], EMPNOS=[$1], employee_no=[$1])\n"
             + "      LogicalTableScan(table=[[scott, DEPT]])\n"
-            + "    Uncollect\n"
-            + "      LogicalProject(employee_no=[$cor0.employee_no])\n"
-            + "        LogicalValues(tuples=[[{ 0 }]])\n";
+            + "    LogicalSystemLimit(fetch=[50000])\n"
+            + "      Uncollect\n"
+            + "        LogicalProject(employee_no=[$cor0.employee_no])\n"
+            + "          LogicalValues(tuples=[[{ 0 }]])\n";
     verifyLogical(root, expectedLogical);
     String expectedSparkSql =
-        "SELECT `$cor0`.`DEPTNO`, `$cor0`.`EMPNOS`, `t10`.`employee_no`\n"
+        "SELECT `$cor0`.`DEPTNO`, `$cor0`.`EMPNOS`, `t2`.`employee_no`\n"
             + "FROM (SELECT `DEPTNO`, `EMPNOS`, `EMPNOS` `employee_no`\n"
             + "FROM `scott`.`DEPT`) `$cor0`,\n"
-            + "LATERAL UNNEST (SELECT `$cor0`.`employee_no`\n"
-            + "FROM (VALUES (0)) `t` (`ZERO`)) `t1` (`employee_no`) `t10`";
+            + "LATERAL (SELECT `employee_no`\n"
+            + "FROM UNNEST (SELECT `$cor0`.`employee_no`\n"
+            + "FROM (VALUES (0)) `t` (`ZERO`)) `t1` (`employee_no`)\n"
+            + "LIMIT 50000) `t2`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }

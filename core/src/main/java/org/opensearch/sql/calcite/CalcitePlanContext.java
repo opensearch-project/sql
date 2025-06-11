@@ -35,6 +35,7 @@ public class CalcitePlanContext {
   public final FunctionProperties functionProperties;
   public final QueryType queryType;
   public final Integer querySizeLimit;
+  public final Integer querySysLimit;
 
   @Getter @Setter private boolean isResolvingJoinCondition = false;
   @Getter @Setter private boolean isResolvingSubquery = false;
@@ -52,9 +53,11 @@ public class CalcitePlanContext {
 
   @Getter public Map<String, RexLambdaRef> rexLambdaRefMap;
 
-  private CalcitePlanContext(FrameworkConfig config, Integer querySizeLimit, QueryType queryType) {
+  private CalcitePlanContext(
+      FrameworkConfig config, Integer querySizeLimit, Integer querySysLimit, QueryType queryType) {
     this.config = config;
     this.querySizeLimit = querySizeLimit;
+    this.querySysLimit = querySysLimit;
     this.queryType = queryType;
     this.connection = CalciteToolsHelper.connect(config, TYPE_FACTORY);
     this.relBuilder = CalciteToolsHelper.create(config, TYPE_FACTORY, connection);
@@ -93,12 +96,12 @@ public class CalcitePlanContext {
   }
 
   public CalcitePlanContext clone() {
-    return new CalcitePlanContext(config, querySizeLimit, queryType);
+    return new CalcitePlanContext(config, querySizeLimit, querySysLimit, queryType);
   }
 
   public static CalcitePlanContext create(
-      FrameworkConfig config, Integer querySizeLimit, QueryType queryType) {
-    return new CalcitePlanContext(config, querySizeLimit, queryType);
+      FrameworkConfig config, Integer querySizeLimit, Integer querySysLimit, QueryType queryType) {
+    return new CalcitePlanContext(config, querySizeLimit, querySysLimit, queryType);
   }
 
   public void putRexLambdaRefMap(Map<String, RexLambdaRef> candidateMap) {

@@ -10,8 +10,13 @@ import org.apache.calcite.adapter.enumerable.EnumerableLimit;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.volcano.RelSubset;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttleImpl;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.tools.RelBuilder;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.opensearch.storage.scan.CalciteEnumerableIndexScan;
 
@@ -24,9 +29,50 @@ public class OpenSearchSystemLimitRule extends RelRule<SystemLimitRuleConfig> {
     this.limit = limit;
   }
 
+  private boolean isLogicalLimit(RelNode relNode) {
+    return relNode instanceof LogicalSort sort && sort.getCollation() == RelCollations.EMPTY;
+  }
+
   @Override
   public void onMatch(RelOptRuleCall call) {
-    pushdownSystemLimit(call.rel(0));
+    final Join join = call.rel(0);
+    final RelNode leftJoinChild = call.rel(1);
+    final RelNode rightJoinChild = call.rel(2);
+    final JoinRelType joinType = join.getJoinType();
+    final RelBuilder builder = call.builder();
+    RelNode newLeft = leftJoinChild;
+    RelNode newRight = rightJoinChild;
+    switch (joinType) {
+      case INNER:
+      case LEFT:
+        if (isLogicalLimit(rightJoinChild)) {
+          return;
+        }
+        newRight = builder.push(rightJoinChild).limit(0, limit).build();
+        break;
+      case RIGHT:
+        if (isLogicalLimit(leftJoinChild)) {
+          return;
+        }
+        newLeft = builder.push(leftJoinChild).limit(0, limit).build();
+        break;
+      case FULL:
+        if (isLogicalLimit(leftJoinChild) && isLogicalLimit(rightJoinChild)) {
+          return;
+        }
+        newLeft = builder.push(leftJoinChild).limit(0, limit).build();
+        newRight = builder.push(rightJoinChild).limit(0, limit).build();
+        break;
+      default:
+        return;
+    }
+    RelNode newJoin =
+        builder
+            .push(newLeft)
+            .push(newRight)
+            .join(joinType, join.getCondition(), join.getVariablesSet())
+            .build();
+    call.transformTo(newJoin);
   }
 
   /** pushdown system limit to {@link CalciteEnumerableIndexScan} */

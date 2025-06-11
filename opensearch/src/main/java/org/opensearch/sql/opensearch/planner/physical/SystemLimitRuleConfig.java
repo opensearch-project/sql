@@ -5,14 +5,16 @@
 
 package org.opensearch.sql.opensearch.planner.physical;
 
+import java.util.function.Predicate;
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
-import org.apache.calcite.adapter.enumerable.EnumerableCorrelate;
-import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 @EqualsAndHashCode
@@ -56,22 +58,40 @@ public class SystemLimitRuleConfig implements RelRule.Config {
     return this.description;
   }
 
-  /** Operand supplier to specify physical join operator */
-  public static RelRule.OperandTransform SYSTEM_LIMIT_JOIN_TRANSFORM =
-      b0 ->
-          b0.operand(Join.class)
-              .predicate(j -> j instanceof EnumerableRel)
-              .predicate(j -> j.getJoinType().projectsRight()) // semi anti won't cause table bloat
-              .inputs(
-                  b2 -> b2.operand(RelNode.class).anyInputs(),
-                  b2 -> b2.operand(RelNode.class).anyInputs());
+  public static boolean isLogicalLimit(RelNode relNode) {
+    return relNode instanceof LogicalSort sort && sort.getCollation() == RelCollations.EMPTY;
+  }
 
-  /** Operand supplier to specify physical correlate operator */
-  public static RelRule.OperandTransform SYSTEM_LIMIT_CORRELATE_TRANSFORM =
+  public static boolean canPushSystemLimitToRight(LogicalJoin join) {
+    JoinRelType joinRelType = join.getJoinType();
+    return joinRelType == JoinRelType.INNER
+        || joinRelType == JoinRelType.LEFT
+        || joinRelType == JoinRelType.FULL;
+  }
+
+  public static boolean canPushSystemLimitToLeft(LogicalJoin join) {
+    JoinRelType joinRelType = join.getJoinType();
+    return joinRelType == JoinRelType.RIGHT || joinRelType == JoinRelType.FULL;
+  }
+
+  public static RelRule.OperandTransform PUSHDOWN_SYSTEM_LIMIT_TO_RIGHT_TRANSFORM =
       b0 ->
-          b0.operand(EnumerableCorrelate.class)
-              .predicate(j -> j.getJoinType().projectsRight()) // semi anti won't cause table bloat
+          b0.operand(LogicalJoin.class)
+              .predicate(SystemLimitRuleConfig::canPushSystemLimitToRight)
               .inputs(
                   b2 -> b2.operand(RelNode.class).anyInputs(),
-                  b2 -> b2.operand(RelNode.class).anyInputs());
+                  b2 ->
+                      b2.operand(RelNode.class)
+                          .predicate(Predicate.not(SystemLimitRuleConfig::isLogicalLimit))
+                          .anyInputs());
+
+  public static RelRule.OperandTransform PUSHDOWN_SYSTEM_LIMIT_TO_LEFT_TRANSFORM =
+      b0 ->
+          b0.operand(LogicalJoin.class)
+              .predicate(SystemLimitRuleConfig::canPushSystemLimitToLeft)
+              .inputs(
+                  b2 ->
+                      b2.operand(RelNode.class)
+                          .predicate(Predicate.not(SystemLimitRuleConfig::isLogicalLimit))
+                          .anyInputs());
 }
