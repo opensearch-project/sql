@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.utils;
 
 import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
+import static org.apache.calcite.sql.type.SqlTypeUtil.createMapType;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.*;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.*;
 
@@ -51,6 +52,24 @@ public class UserDefinedFunctionUtils {
       TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, true);
   public static final RelDataType NULLABLE_STRING =
       TYPE_FACTORY.createTypeWithNullability(TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR), true);
+
+  public static RelDataType nullablePatternAggList =
+      createArrayType(
+          TYPE_FACTORY,
+          TYPE_FACTORY.createMapType(
+              TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),
+              TYPE_FACTORY.createSqlType(SqlTypeName.ANY)),
+          true);
+  public static RelDataType patternStruct =
+      createMapType(
+          TYPE_FACTORY,
+          TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),
+          TYPE_FACTORY.createSqlType(SqlTypeName.ANY),
+          false);
+  public static RelDataType tokensMap =
+      TYPE_FACTORY.createMapType(
+          TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),
+          createArrayType(TYPE_FACTORY, TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR), false));
 
   public static RelBuilder.AggCall TransferUserDefinedAggFunction(
       Class<? extends UserDefinedAggFunction> UDAF,

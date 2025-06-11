@@ -81,8 +81,10 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.IF;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IFNULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_GROK;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_ITEM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PATTERN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PATTERN_PARSER;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_EXTRACT;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_2;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_3;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_BLANK;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_EMPTY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NOT_NULL;
@@ -239,6 +241,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.udf.udaf.LogPatternAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.PercentileApproxFunction;
 import org.opensearch.sql.calcite.udf.udaf.TakeAggFunction;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
@@ -676,7 +679,7 @@ public class PPLFuncImpTable {
       registerOperator(MD5, SqlLibraryOperators.MD5);
       registerOperator(SHA1, SqlLibraryOperators.SHA1);
       registerOperator(INTERNAL_REGEXP_EXTRACT, SqlLibraryOperators.REGEXP_EXTRACT);
-      registerOperator(INTERNAL_REGEXP_REPLACE_2, SqlLibraryOperators.REGEXP_REPLACE_2);
+      registerOperator(INTERNAL_REGEXP_REPLACE_3, SqlLibraryOperators.REGEXP_REPLACE_3);
 
       // Register PPL UDF operator
       registerOperator(SPAN, PPLBuiltinOperators.SPAN);
@@ -762,6 +765,7 @@ public class PPLFuncImpTable {
       registerOperator(WEEK, PPLBuiltinOperators.WEEK);
       registerOperator(WEEK_OF_YEAR, PPLBuiltinOperators.WEEK);
       registerOperator(WEEKOFYEAR, PPLBuiltinOperators.WEEK);
+      registerOperator(INTERNAL_PATTERN_PARSER, PPLBuiltinOperators.PATTERN_PARSER);
 
       registerOperator(ARRAY, PPLBuiltinOperators.ARRAY);
       registerOperator(ARRAY_LENGTH, SqlLibraryOperators.ARRAY_LENGTH);
@@ -1032,6 +1036,17 @@ public class PPLFuncImpTable {
                 newArgList,
                 ctx.relBuilder);
           });
+
+      register(
+          INTERNAL_PATTERN,
+          (distinct, field, argList, ctx) ->
+              TransferUserDefinedAggFunction(
+                  LogPatternAggFunction.class,
+                  "pattern",
+                  ReturnTypes.explicit(UserDefinedFunctionUtils.nullablePatternAggList),
+                  List.of(field),
+                  argList,
+                  ctx.relBuilder));
     }
   }
 }

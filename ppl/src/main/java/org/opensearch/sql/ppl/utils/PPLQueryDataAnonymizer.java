@@ -64,6 +64,7 @@ import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
@@ -355,6 +356,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String source = visitExpression(node.getSourceField());
     String regex = node.getPattern().toString();
     String commandName;
+
     switch (node.getParseMethod()) {
       case ParseMethod.PATTERNS:
         commandName = "patterns";
@@ -432,6 +434,32 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
               .map(n -> StringUtils.format("%s = %s", visitExpression(n.getLeft()), MASK_LITERAL))
               .collect(Collectors.joining(", ")));
     }
+  }
+
+  @Override
+  public String visitPatterns(Patterns node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    String sourceField = visitExpression(node.getSourceField());
+    StringBuilder builder = new StringBuilder();
+    builder.append(child).append(" | patterns ").append(sourceField);
+    if (!node.getPartitionByList().isEmpty()) {
+      String partitionByList = visitExpressionList(node.getPartitionByList());
+      builder.append(" by ").append(partitionByList);
+    }
+    builder.append(" method=").append(node.getPatternMethod().toString());
+    builder.append(" mode=").append(node.getPatternMode().toString());
+    builder.append(" max_sample_count=").append(visitExpression(node.getPatternMaxSampleCount()));
+    builder.append(" buffer_limit=").append(visitExpression(node.getPatternBufferLimit()));
+    builder.append(" new_field=").append(node.getAlias());
+    if (!node.getArguments().isEmpty()) {
+      for (java.util.Map.Entry<String, Literal> entry : node.getArguments().entrySet()) {
+        builder.append(
+            String.format(
+                Locale.ROOT, " %s=%s", entry.getKey(), visitExpression(entry.getValue())));
+      }
+    }
+
+    return builder.toString();
   }
 
   private String groupBy(String groupBy) {

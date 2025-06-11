@@ -29,8 +29,10 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.expression.parse.PatternsExpression;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.expression.window.frame.BufferPatternRowsWindowFrame;
+import org.opensearch.sql.expression.window.frame.CurrentRowWindowFrame;
 import org.opensearch.sql.expression.window.frame.WindowFrame;
 
 @Warmup(iterations = 1)
@@ -60,6 +62,16 @@ public class PatternsWindowFunctionBenchmark {
           new WindowDefinition(ImmutableList.of(), ImmutableList.of()),
           new BrainLogParser(),
           new NamedArgumentExpression("message", new ReferenceExpression("message", STRING)));
+
+  @Benchmark
+  public void testSimplePattern() {
+    CurrentRowWindowFrame windowFrame =
+        new CurrentRowWindowFrame(new WindowDefinition(ImmutableList.of(), ImmutableList.of()));
+
+    run(
+        windowFrame,
+        new PatternsExpression(DSL.ref("message", STRING), DSL.literal(""), DSL.literal("")));
+  }
 
   @Benchmark
   public void testBrain() {

@@ -305,9 +305,12 @@ public enum BuiltinFunctionName {
 
   /** Internal functions that are not exposed to customers. */
   INTERNAL_ITEM(FunctionName.of("item"), true),
+  INTERNAL_PATTERN_PARSER(FunctionName.of("pattern_parser")),
+  INTERNAL_PATTERN(FunctionName.of("pattern")),
+  INTERNAL_UNCOLLECT_PATTERNS(FunctionName.of("uncollect_patterns")),
   INTERNAL_REGEXP_EXTRACT(FunctionName.of("regexp_extract"), true),
   INTERNAL_GROK(FunctionName.of("grok"), true),
-  INTERNAL_REGEXP_REPLACE_2(FunctionName.of("regexp_replace_2"), true);
+  INTERNAL_REGEXP_REPLACE_3(FunctionName.of("regexp_replace_3"), true);
 
   private final FunctionName name;
   private boolean isInternal;
@@ -342,6 +345,7 @@ public enum BuiltinFunctionName {
           // .put("earliest", BuiltinFunctionName.EARLIEST)
           // .put("latest", BuiltinFunctionName.LATEST)
           .put("distinct_count_approx", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
+          .put("pattern", BuiltinFunctionName.INTERNAL_PATTERN)
           .build();
 
   private static final Map<String, BuiltinFunctionName> WINDOW_FUNC_MAPPING =
@@ -360,6 +364,7 @@ public enum BuiltinFunctionName {
           .put("stddev_samp", BuiltinFunctionName.STDDEV_SAMP)
           // .put("earliest", BuiltinFunctionName.EARLIEST)
           // .put("latest", BuiltinFunctionName.LATEST)
+          .put("pattern", BuiltinFunctionName.INTERNAL_PATTERN)
           .build();
 
   public static Optional<BuiltinFunctionName> of(String str) {
