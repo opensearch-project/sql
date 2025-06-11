@@ -78,7 +78,7 @@ public class ExpressionScript {
             });
   }
 
-  private Set<ReferenceExpression> extractFields(Expression expr) {
+  public static Set<ReferenceExpression> extractFields(Expression expr) {
     Set<ReferenceExpression> fields = new HashSet<>();
     expr.accept(
         new ExpressionNodeVisitor<Object, Set<ReferenceExpression>>() {
