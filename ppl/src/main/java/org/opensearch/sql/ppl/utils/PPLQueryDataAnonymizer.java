@@ -60,6 +60,7 @@ import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
+import org.opensearch.sql.ast.tree.Flatten;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Lookup;
@@ -373,6 +374,13 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     return ParseMethod.PATTERNS.equals(node.getParseMethod()) && regex.isEmpty()
         ? StringUtils.format("%s | %s %s", child, commandName, source)
         : StringUtils.format("%s | %s %s '%s'", child, commandName, source, regex);
+  }
+
+  @Override
+  public String visitFlatten(Flatten node, String context) {
+    String child = node.getChild().getFirst().accept(this, context);
+    String field = visitExpression(node.getField());
+    return StringUtils.format("%s | flatten %s", child, field);
   }
 
   @Override
