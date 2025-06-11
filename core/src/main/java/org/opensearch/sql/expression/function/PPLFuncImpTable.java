@@ -808,6 +808,11 @@ public class PPLFuncImpTable {
                       arg),
               PPLTypeChecker.family(SqlTypeFamily.STRING)));
       register(
+          ATAN,
+          createFunctionImpWithTypeChecker(
+              (builder, arg1, arg2) -> builder.makeCall(SqlStdOperatorTable.ATAN2, arg1, arg2),
+              PPLTypeChecker.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC)));
+      register(
           STRCMP,
           createFunctionImpWithTypeChecker(
               (builder, arg1, arg2) -> builder.makeCall(SqlLibraryOperators.STRCMP, arg2, arg1),
