@@ -701,12 +701,13 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   private UnresolvedPlan projectExceptMeta(UnresolvedPlan plan) {
     if ((plan instanceof Project) && !((Project) plan).isExcluded()) {
       return plan;
-    } else if (plan instanceof SubqueryAlias subqueryAlias) {
+    } else if (plan instanceof SubqueryAlias) {
+      SubqueryAlias subqueryAlias = (SubqueryAlias) plan;
       // don't wrap subquery alias with project, wrap its child
       return new SubqueryAlias(
           subqueryAlias.getAlias(),
           new Project(ImmutableList.of(AllFieldsExcludeMeta.of()))
-              .attach(subqueryAlias.getChild().getFirst()));
+              .attach(subqueryAlias.getChild().get(0)));
     } else {
       return new Project(ImmutableList.of(AllFieldsExcludeMeta.of())).attach(plan);
     }

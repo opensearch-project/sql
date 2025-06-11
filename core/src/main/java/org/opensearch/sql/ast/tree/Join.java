@@ -48,18 +48,21 @@ public class Join extends UnresolvedPlan {
   public UnresolvedPlan attach(UnresolvedPlan child) {
     // attach child to left, meanwhile fill back side aliases if possible.
     if (leftAlias.isPresent()) {
-      if (child instanceof SubqueryAlias alias) {
-        this.left = new SubqueryAlias(leftAlias.get(), alias.getChild().getFirst());
+      if (child instanceof SubqueryAlias) {
+        SubqueryAlias alias = (SubqueryAlias) child;
+        this.left = new SubqueryAlias(leftAlias.get(), alias.getChild().get(0));
       } else {
         this.left = new SubqueryAlias(leftAlias.get(), child);
       }
     } else {
-      if (child instanceof SubqueryAlias alias) {
+      if (child instanceof SubqueryAlias) {
+        SubqueryAlias alias = (SubqueryAlias) child;
         leftAlias = Optional.of(alias.getAlias());
       }
       this.left = child;
     }
-    if (rightAlias.isEmpty() && this.right instanceof SubqueryAlias alias) {
+    if (rightAlias.isEmpty() && this.right instanceof SubqueryAlias) {
+      SubqueryAlias alias = (SubqueryAlias) this.right;
       rightAlias = Optional.of(alias.getAlias());
     }
     return this;
