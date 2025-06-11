@@ -110,27 +110,4 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan impleme
         .map(f -> osIndex.getAliasMapping().getOrDefault(f, f))
         .toList();
   }
-
-  /** push down the system limit when system limit hasn't been pushed and no aggregation pushed */
-  public void pushDownSystemLimit(Integer limit, Integer offset) {
-    if (this.pushDownContext.isSystemLimitPushed() || this.pushDownContext.isAggregatePushed()) {
-      // do not duplicate pushdown system limit
-      // do not pushdown system limit if aggregation pushed
-      return;
-    }
-    try {
-      this.pushDownContext.setSystemLimitPushed(true);
-      this.pushDownContext.add(
-          PushDownAction.of(
-              PushDownType.SYSTEM_LIMIT,
-              limit,
-              requestBuilder -> requestBuilder.pushDownLimit(limit, offset)));
-    } catch (Exception e) {
-      if (log.isDebugEnabled()) {
-        log.debug("Cannot pushdown system limit {} with offset {}", limit, offset, e);
-      } else {
-        log.info("Cannot pushdown system limit {} with offset {}", limit, offset);
-      }
-    }
-  }
 }

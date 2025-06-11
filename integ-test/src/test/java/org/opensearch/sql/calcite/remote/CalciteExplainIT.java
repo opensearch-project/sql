@@ -57,8 +57,7 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testExistsSubqueryExplain() throws Exception {
-    String expected =
-        loadFromFile("expectedOutput/calcite/explain_exists_subsearch.json");
+    String expected = loadFromFile("expectedOutput/calcite/explain_exists_subsearch.json");
 
     assertJsonEqualsIgnoreId(
         expected,
@@ -70,8 +69,7 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testInSubqueryExplain() throws Exception {
-    String expected =
-        loadFromFile("expectedOutput/calcite/explain_in_subsearch.json");
+    String expected = loadFromFile("expectedOutput/calcite/explain_in_subsearch.json");
 
     assertJsonEqualsIgnoreId(
         expected,
