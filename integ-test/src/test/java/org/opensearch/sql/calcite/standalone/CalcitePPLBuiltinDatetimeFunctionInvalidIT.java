@@ -8,15 +8,18 @@ package org.opensearch.sql.calcite.standalone;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS_WITH_NULL;
 import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 
-import java.io.IOException;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase {
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
     super.init();
+    enableCalcite();
+    disallowCalciteFallback();
+
     loadIndex(SQLIntegTestCase.Index.STATE_COUNTRY);
     loadIndex(SQLIntegTestCase.Index.STATE_COUNTRY_WITH_NULL);
     loadIndex(SQLIntegTestCase.Index.DATE_FORMATS);
@@ -25,8 +28,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
 
   @Test
   public void testYearWeekInvalid() {
-    SemanticCheckException e =
-        assertThrows(
+    Throwable e =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -38,8 +41,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
 
   @Test
   public void testYearInvalid() {
-    SemanticCheckException e =
-        assertThrows(
+    Throwable e =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -47,8 +50,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         "source=%s  | eval a = YEAR('2020-15-26')",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e, "unsupported format");
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -60,8 +63,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
 
   @Test
   public void testWeekInvalid() {
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -70,8 +73,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -83,8 +86,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
 
   @Test
   public void testTO_SECONDSInvalid() {
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -93,8 +96,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -102,8 +105,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         "source=%s  |  eval a=TO_SECONDS('16:00:61') | fields a",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -116,8 +119,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testDATEInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -125,8 +128,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         "source=%s  |  eval a=DATE('2025-13-02') | fields a",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -134,8 +137,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         "source=%s  |  eval a=DATE('16:00:61') | fields a",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -148,8 +151,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testTIMEInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -158,8 +161,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -168,8 +171,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -182,8 +185,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testDAYInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -192,8 +195,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -202,8 +205,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -216,8 +219,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testDAYNAMEInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -227,8 +230,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
     verifyErrorMessageContains(
         e1, "date:2025-13-02 in unsupported format, please use 'yyyy-MM-dd'");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -237,8 +240,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "date:16:00:61 in unsupported format, please use 'yyyy-MM-dd'");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -252,8 +255,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testDAYOFMONTHInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -262,8 +265,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -272,8 +275,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "date:16:00:61 in unsupported format, please use 'yyyy-MM-dd'");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -287,8 +290,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testDAY_OF_MONTHInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -298,8 +301,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
     verifyErrorMessageContains(
         e1, "date:2025-13-02 in unsupported format, please use 'yyyy-MM-dd'");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -308,8 +311,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -322,8 +325,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testDAYOFWEEKInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -332,8 +335,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -342,8 +345,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -352,8 +355,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e3, "unsupported format");
 
-    SemanticCheckException e4 =
-        assertThrows(
+    Throwable e4 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -362,8 +365,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e4, "unsupported format");
 
-    SemanticCheckException e5 =
-        assertThrows(
+    Throwable e5 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -372,8 +375,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e5, "unsupported format");
 
-    SemanticCheckException e6 =
-        assertThrows(
+    Throwable e6 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -386,8 +389,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testDAY_OF_WEEKInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -396,8 +399,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -406,8 +409,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -420,8 +423,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testDAYOFYEARInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -430,8 +433,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -440,8 +443,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -454,8 +457,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testDAY_OF_YEARInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -464,8 +467,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -474,8 +477,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -488,8 +491,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testHOURInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -498,8 +501,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -508,8 +511,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -522,8 +525,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testHOUR_OF_DAYInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -532,8 +535,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -542,8 +545,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -556,8 +559,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testLAST_DAYInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -566,8 +569,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -576,8 +579,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -590,8 +593,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testMINUTEInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -600,8 +603,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -610,8 +613,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -624,8 +627,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testMINUTE_OF_DAYInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -634,8 +637,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -644,8 +647,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -658,8 +661,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testMINUTE_OF_HOURInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -668,8 +671,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -678,8 +681,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -692,8 +695,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testMONTHInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -702,8 +705,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -712,8 +715,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -726,8 +729,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testMONTH_OF_YEARInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -736,8 +739,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -746,8 +749,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -760,8 +763,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testMONTHNAMEInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -771,8 +774,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
     verifyErrorMessageContains(
         e1, "date:2025-13-02 in unsupported format, please use 'yyyy-MM-dd'");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -781,8 +784,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "date:16:00:61 in unsupported format, please use 'yyyy-MM-dd'");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -796,8 +799,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testQUARTERInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -806,8 +809,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -816,8 +819,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -830,8 +833,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testSECONDInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -840,8 +843,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -850,8 +853,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -864,8 +867,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testSECOND_OF_MINUTEInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -874,8 +877,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -884,8 +887,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -898,8 +901,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testTIME_TO_SECInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -908,8 +911,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -918,8 +921,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -932,8 +935,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testTIMESTAMPInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -942,8 +945,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -952,8 +955,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -962,8 +965,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e3, "unsupported format");
 
-    SemanticCheckException e4 =
-        assertThrows(
+    Throwable e4 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -972,8 +975,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e4, "unsupported format");
 
-    SemanticCheckException e5 =
-        assertThrows(
+    Throwable e5 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -982,8 +985,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e5, "unsupported format");
 
-    SemanticCheckException e6 =
-        assertThrows(
+    Throwable e6 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -992,8 +995,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e6, "unsupported format");
 
-    SemanticCheckException e7 =
-        assertThrows(
+    Throwable e7 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1002,8 +1005,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e7, "unsupported format");
 
-    SemanticCheckException e8 =
-        assertThrows(
+    Throwable e8 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1012,8 +1015,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e8, "unsupported format");
 
-    SemanticCheckException e9 =
-        assertThrows(
+    Throwable e9 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1027,8 +1030,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testTO_DAYSInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1037,8 +1040,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1047,8 +1050,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1061,8 +1064,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testYEARInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1071,8 +1074,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1081,8 +1084,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1095,8 +1098,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testWEEKInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1105,8 +1108,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1115,8 +1118,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1129,8 +1132,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testWEEK_OF_YEARInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1139,8 +1142,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1149,8 +1152,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1163,8 +1166,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testWEEKDAYInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1173,8 +1176,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1183,8 +1186,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1197,8 +1200,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testYEARWEEKInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1207,8 +1210,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1217,8 +1220,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1231,8 +1234,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testADDDATEInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1241,8 +1244,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1251,8 +1254,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1262,8 +1265,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e3, "unsupported format");
 
-    SemanticCheckException e4 =
-        assertThrows(
+    Throwable e4 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1272,8 +1275,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e4, "unsupported format");
 
-    SemanticCheckException e5 =
-        assertThrows(
+    Throwable e5 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1282,8 +1285,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e5, "unsupported format");
 
-    SemanticCheckException e6 =
-        assertThrows(
+    Throwable e6 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1297,7 +1300,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   public void testADDTIMEInvalid() {
 
     Throwable e1 =
-        assertThrows(
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1307,7 +1310,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
     verifyErrorMessageContains(e1, "unsupported format");
 
     Throwable e2 =
-        assertThrows(
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1317,7 +1320,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
     verifyErrorMessageContains(e2, "unsupported format");
 
     Throwable e3 =
-        assertThrows(
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1331,8 +1334,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testDATE_ADDInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1341,8 +1344,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1351,8 +1354,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1366,8 +1369,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testDATE_SUBInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1376,8 +1379,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1386,8 +1389,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1401,8 +1404,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testDATEDIFFInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1411,8 +1414,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1421,8 +1424,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1436,8 +1439,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testSUBDATEInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1446,8 +1449,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1456,8 +1459,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1467,8 +1470,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e3, "unsupported format");
 
-    SemanticCheckException e4 =
-        assertThrows(
+    Throwable e4 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1477,8 +1480,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e4, "unsupported format");
 
-    SemanticCheckException e5 =
-        assertThrows(
+    Throwable e5 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1487,8 +1490,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e5, "unsupported format");
 
-    SemanticCheckException e6 =
-        assertThrows(
+    Throwable e6 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1501,7 +1504,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testSUBTIMEInvalid() {
     Throwable e1 =
-        assertThrows(
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1511,7 +1514,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
     verifyErrorMessageContains(e1, "unsupported format");
 
     Throwable e2 =
-        assertThrows(
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1521,7 +1524,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
     verifyErrorMessageContains(e2, "unsupported format");
 
     Throwable e3 =
-        assertThrows(
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1535,8 +1538,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testTIMESTAMPADDInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1545,8 +1548,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1555,8 +1558,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1570,8 +1573,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testTIMESTAMPDIFFInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1581,8 +1584,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1592,8 +1595,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1607,8 +1610,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testDATE_FORMATInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1617,8 +1620,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1627,8 +1630,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1642,8 +1645,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testTIME_FORMATInvalid() {
 
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1652,8 +1655,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -1662,8 +1665,8 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 
-    SemanticCheckException e3 =
-        assertThrows(
+    Throwable e3 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(

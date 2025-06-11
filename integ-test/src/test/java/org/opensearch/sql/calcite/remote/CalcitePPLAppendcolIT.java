@@ -1,9 +1,11 @@
 /*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
+ *
+ *  * Copyright OpenSearch Contributors
+ *  * SPDX-License-Identifier: Apache-2.0
+ *
  */
 
-package org.opensearch.sql.calcite.standalone;
+package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -14,17 +16,19 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CalcitePPLAppendcolIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLAppendcolIT extends PPLIntegTestCase {
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
     super.init();
-
+    enableCalcite();
+    disallowCalciteFallback();
     loadIndex(Index.ACCOUNT);
   }
 
   @Test
-  public void testAppendCol() {
+  public void testAppendCol() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -53,7 +57,7 @@ public class CalcitePPLAppendcolIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testAppendColOverride() {
+  public void testAppendColOverride() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(

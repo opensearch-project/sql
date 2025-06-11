@@ -19,6 +19,7 @@ import org.junit.Assert;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
+import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
@@ -193,5 +194,32 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
 
   protected boolean isStandaloneTest() {
     return false; // Override this method in subclasses if needed
+  }
+
+  public boolean isPushdownEnabled() throws IOException {
+    return Boolean.parseBoolean(
+        getClusterSetting(Settings.Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(), "persistent"));
+  }
+
+  /**
+   * assertThrows by replacing the expected throwable with {@link ResponseException} if the test is
+   * not a standalone test.
+   *
+   * <p>In remote tests, the expected exception is always {@link ResponseException}, while in
+   * standalone tests, the underlying exception can be retrieved.
+   *
+   * @param expectedThrowable the expected throwable type if the test is standalone
+   * @param runnable the runnable that is expected to throw the exception
+   * @return the thrown exception
+   */
+  public Throwable assertThrowsWithReplace(
+      Class<? extends Throwable> expectedThrowable, org.junit.function.ThrowingRunnable runnable) {
+    Class<? extends Throwable> expectedWithReplace;
+    if (isStandaloneTest()) {
+      expectedWithReplace = expectedThrowable;
+    } else {
+      expectedWithReplace = ResponseException.class;
+    }
+    return assertThrows(expectedWithReplace, runnable);
   }
 }

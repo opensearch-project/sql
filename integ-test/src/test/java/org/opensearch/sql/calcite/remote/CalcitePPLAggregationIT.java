@@ -1,14 +1,17 @@
 /*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
+ *
+ *  * Copyright OpenSearch Contributors
+ *  * SPDX-License-Identifier: Apache-2.0
+ *
  */
 
-package org.opensearch.sql.calcite.standalone;
+package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS;
+import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -22,12 +25,15 @@ import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLAggregationIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
     super.init();
+    enableCalcite();
+    disallowCalciteFallback();
 
     loadIndex(Index.BANK);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
@@ -50,7 +56,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSimpleCount() {
+  public void testSimpleCount() throws IOException {
     JSONObject actual =
         executeQuery(String.format("source=%s | stats count() as c", TEST_INDEX_BANK));
     verifySchema(actual, schema("c", "bigint"));
@@ -58,7 +64,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSimpleAvg() {
+  public void testSimpleAvg() throws IOException {
     JSONObject actual =
         executeQuery(String.format("source=%s | stats avg(balance)", TEST_INDEX_BANK));
     verifySchema(actual, schema("avg(balance)", "double"));
@@ -66,7 +72,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSumAvg() {
+  public void testSumAvg() throws IOException {
     JSONObject actual =
         executeQuery(String.format("source=%s | stats sum(balance)", TEST_INDEX_BANK));
     verifySchema(actual, schema("sum(balance)", "bigint"));
@@ -75,7 +81,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testAsExistedField() {
+  public void testAsExistedField() throws IOException {
     JSONObject actual =
         executeQuery(String.format("source=%s | stats count() as balance", TEST_INDEX_BANK));
     verifySchema(actual, schema("balance", "bigint"));
@@ -84,7 +90,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testMultipleAggregatesWithAliases() {
+  public void testMultipleAggregatesWithAliases() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -101,7 +107,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testMultipleAggregatesWithAliasesByClause() {
+  public void testMultipleAggregatesWithAliasesByClause() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -120,7 +126,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testAvgByField() {
+  public void testAvgByField() throws IOException {
     JSONObject actual =
         executeQuery(String.format("source=%s | stats avg(balance) by gender", TEST_INDEX_BANK));
     verifySchema(actual, schema("gender", "string"), schema("avg(balance)", "double"));
@@ -128,7 +134,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testAvgByMultipleFields() {
+  public void testAvgByMultipleFields() throws IOException {
     JSONObject actual1 =
         executeQuery(
             String.format("source=%s | stats avg(balance) by gender, city", TEST_INDEX_BANK));
@@ -215,7 +221,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @org.junit.Test
-  public void testAvgBySpan() {
+  public void testAvgBySpan() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format("source=%s | stats avg(balance) by span(age, 10)", TEST_INDEX_BANK));
@@ -224,7 +230,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testAvgBySpanAndFields() {
+  public void testAvgBySpanAndFields() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -239,7 +245,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testAvgByTimeSpanAndFields() {
+  public void testAvgByTimeSpanAndFields() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -256,7 +262,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCountByCustomTimeSpanWithDifferentUnits() {
+  public void testCountByCustomTimeSpanWithDifferentUnits() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -301,7 +307,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCountByNullableTimeSpan() {
+  public void testCountByNullableTimeSpan() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -317,7 +323,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCountByDateTypeSpanWithDifferentUnits() {
+  public void testCountByDateTypeSpanWithDifferentUnits() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -346,7 +352,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCountByTimeTypeSpanWithDifferentUnits() {
+  public void testCountByTimeTypeSpanWithDifferentUnits() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -376,7 +382,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCountByTimestampTypeSpanForDifferentFormats() {
+  public void testCountByTimestampTypeSpanForDifferentFormats() throws IOException {
     List<String> timestampFields =
         Arrays.asList(
             "epoch_millis",
@@ -411,7 +417,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCountByDateTypeSpanForDifferentFormats() {
+  public void testCountByDateTypeSpanForDifferentFormats() throws IOException {
     List<String> dateFields =
         Arrays.asList(
             "basic_date",
@@ -435,7 +441,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCountByTimeTypeSpanForDifferentFormats() {
+  public void testCountByTimeTypeSpanForDifferentFormats() throws IOException {
     List<String> timeFields =
         Arrays.asList(
             "basic_time",
@@ -464,7 +470,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCountBySpanForCustomFormats() {
+  public void testCountBySpanForCustomFormats() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -511,7 +517,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCountDistinct() {
+  public void testCountDistinct() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format("source=%s | stats distinct_count(state) by gender", TEST_INDEX_BANK));
@@ -520,7 +526,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCountDistinctApprox() {
+  public void testCountDistinctApprox() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -531,7 +537,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCountDistinctApproxWithAlias() {
+  public void testCountDistinctApproxWithAlias() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -542,7 +548,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCountDistinctWithAlias() {
+  public void testCountDistinctWithAlias() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -553,7 +559,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
 
   @Ignore
   @Test
-  public void testEarliestAndLatest() {
+  public void testEarliestAndLatest() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -568,7 +574,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
 
   @Ignore
   @Test
-  public void testEarliestAndLatestWithAlias() {
+  public void testEarliestAndLatestWithAlias() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -581,7 +587,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
 
   @Ignore
   @Test
-  public void testEarliestAndLatestWithBy() {
+  public void testEarliestAndLatestWithBy() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -602,7 +608,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
 
   @Ignore
   @Test
-  public void testEarliestAndLatestWithTimeBy() {
+  public void testEarliestAndLatestWithTimeBy() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -615,7 +621,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testVarSampVarPop() {
+  public void testVarSampVarPop() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -630,7 +636,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testStddevSampStddevPop() {
+  public void testStddevSampStddevPop() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -645,7 +651,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testAggWithEval() {
+  public void testAggWithEval() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -655,7 +661,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testAggWithBackticksAlias() {
+  public void testAggWithBackticksAlias() throws IOException {
     JSONObject actual =
         executeQuery(String.format("source=%s | stats sum(`balance`) as `sum_b`", TEST_INDEX_BANK));
     verifySchema(actual, schema("sum_b", "bigint"));
@@ -663,7 +669,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSimpleTwoLevelStats() {
+  public void testSimpleTwoLevelStats() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -675,7 +681,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testTake() {
+  public void testTake() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format("source=%s | stats take(firstname, 2) as take", TEST_INDEX_BANK));
@@ -684,7 +690,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testPercentile() {
+  public void testPercentile() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -729,18 +735,17 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSumEmpty() {
-    String response =
-        execute(
+  public void testSumEmpty() throws IOException {
+    JSONObject response =
+        executeQuery(
             String.format(
                 "source=%s | where 1=2 | stats sum(balance)", TEST_INDEX_BANK_WITH_NULL_VALUES));
-    assertEquals(
-        ""
-            + "{\n"
+    assertJsonEquals(
+        "{\n"
             + "  \"schema\": [\n"
             + "    {\n"
             + "      \"name\": \"sum(balance)\",\n"
-            + "      \"type\": \"long\"\n"
+            + "      \"type\": \"bigint\"\n"
             + "    }\n"
             + "  ],\n"
             + "  \"datarows\": [\n"
@@ -751,25 +756,24 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
             + "  \"total\": 1,\n"
             + "  \"size\": 1\n"
             + "}",
-        response);
+        response.toString());
   }
 
   // TODO https://github.com/opensearch-project/sql/issues/3408
   // In most databases, below test returns null instead of 0.
   @Test
-  public void testSumNull() {
-    String response =
-        execute(
+  public void testSumNull() throws IOException {
+    JSONObject response =
+        executeQuery(
             String.format(
                 "source=%s | where age = 36 | stats sum(balance)",
                 TEST_INDEX_BANK_WITH_NULL_VALUES));
-    assertEquals(
-        ""
-            + "{\n"
+    assertJsonEquals(
+        "{\n"
             + "  \"schema\": [\n"
             + "    {\n"
             + "      \"name\": \"sum(balance)\",\n"
-            + "      \"type\": \"long\"\n"
+            + "      \"type\": \"bigint\"\n"
             + "    }\n"
             + "  ],\n"
             + "  \"datarows\": [\n"
@@ -780,6 +784,6 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
             + "  \"total\": 1,\n"
             + "  \"size\": 1\n"
             + "}",
-        response);
+        response.toString());
   }
 }

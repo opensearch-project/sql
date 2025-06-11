@@ -47,9 +47,8 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
 
   @Test
   public void testInvalidTable() {
-    Class<? extends Exception> expectedException =
-        isStandaloneTest() ? IllegalStateException.class : ResponseException.class;
-    Exception e = assertThrows(expectedException, () -> executeQuery("source=unknown"));
+    Throwable e =
+        assertThrowsWithReplace(IllegalStateException.class, () -> executeQuery("source=unknown"));
     verifyErrorMessageContains(e, "no such index [unknown]");
   }
 
@@ -93,10 +92,10 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testFieldsShouldBeCaseSensitive() throws IOException {
-    Class<? extends Exception> expectedException =
-        isStandaloneTest() ? IllegalStateException.class : ResponseException.class;
-    Exception e = assertThrows(expectedException, () -> executeQuery("source=test | fields NAME"));
+  public void testFieldsShouldBeCaseSensitive() {
+    Throwable e =
+        assertThrowsWithReplace(
+            IllegalStateException.class, () -> executeQuery("source=test | fields NAME"));
     verifyErrorMessageContains(
         e,
         "field [NAME] not found; input fields are: [name, age, _id, _index, _score, _maxscore,"
@@ -461,11 +460,9 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
 
   @Test
   public void testBetweenWithIncompatibleTypes() {
-    Class<? extends Exception> expectedException =
-        isStandaloneTest() ? SemanticCheckException.class : ResponseException.class;
-    Exception e =
-        assertThrows(
-            expectedException,
+    Throwable e =
+        assertThrowsWithReplace(
+            SemanticCheckException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -535,9 +532,9 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
         isStandaloneTest() ? IllegalArgumentException.class : ResponseException.class;
     withFallbackEnabled(
         () -> {
-          Exception e =
-              assertThrows(
-                  expectedException,
+          Throwable e =
+              assertThrowsWithReplace(
+                  IllegalArgumentException.class,
                   () ->
                       executeQuery(
                           String.format("source=%s | fields firstname1, age", TEST_INDEX_BANK)));
@@ -563,8 +560,8 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
 
   @Test
   public void testMetaFieldAlias() throws IOException {
-    Exception e =
-        assertThrows(
+    Throwable e =
+        assertThrowsWithReplace(
             Exception.class,
             () ->
                 executeQuery(

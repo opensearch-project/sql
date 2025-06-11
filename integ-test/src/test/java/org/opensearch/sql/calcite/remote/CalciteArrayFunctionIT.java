@@ -1,9 +1,11 @@
 /*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
+ *
+ *  * Copyright OpenSearch Contributors
+ *  * SPDX-License-Identifier: Apache-2.0
+ *
  */
 
-package org.opensearch.sql.calcite.standalone;
+package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.MatcherUtils.*;
@@ -12,16 +14,20 @@ import java.io.IOException;
 import java.util.List;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.client.ResponseException;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CalciteArrayFunctionIT extends CalcitePPLIntegTestCase {
+public class CalciteArrayFunctionIT extends PPLIntegTestCase {
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
     super.init();
+    enableCalcite();
+    disallowCalciteFallback();
     loadIndex(Index.BANK);
   }
 
   @Test
-  public void testArray() {
+  public void testArray() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -34,7 +40,7 @@ public class CalciteArrayFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testArrayWithString() {
+  public void testArrayWithString() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -48,23 +54,25 @@ public class CalciteArrayFunctionIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testArrayWithMix() {
-    RuntimeException e =
+    Class<? extends Exception> expectedException =
+        isStandaloneTest() ? RuntimeException.class : ResponseException.class;
+    Exception e =
         assertThrows(
-            RuntimeException.class,
+            expectedException,
             () ->
                 executeQuery(
                     String.format(
                         "source=%s | eval array = array(1, true) | head 1 | fields array",
                         TEST_INDEX_BANK)));
 
-    assertEquals(
-        e.getMessage(),
+    verifyErrorMessageContains(
+        e,
         "Cannot resolve function: ARRAY, arguments: [INTEGER,BOOLEAN], caused by: fail to create"
             + " array with fixed type: inferred array element type");
   }
 
   @Test
-  public void testArrayLength() {
+  public void testArrayLength() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -78,7 +86,7 @@ public class CalciteArrayFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testForAll() {
+  public void testForAll() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -92,7 +100,7 @@ public class CalciteArrayFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testExists() {
+  public void testExists() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -106,7 +114,7 @@ public class CalciteArrayFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testFilter() {
+  public void testFilter() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -120,7 +128,7 @@ public class CalciteArrayFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testTransform() {
+  public void testTransform() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -134,7 +142,7 @@ public class CalciteArrayFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testTransformForTwoInput() {
+  public void testTransformForTwoInput() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -148,7 +156,7 @@ public class CalciteArrayFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testTransformForWithDouble() {
+  public void testTransformForWithDouble() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -162,7 +170,7 @@ public class CalciteArrayFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testTransformForWithUDF() {
+  public void testTransformForWithUDF() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -178,7 +186,7 @@ public class CalciteArrayFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testReduce() {
+  public void testReduce() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -195,7 +203,7 @@ public class CalciteArrayFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testReduce2() {
+  public void testReduce2() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -209,7 +217,7 @@ public class CalciteArrayFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testReduce3() {
+  public void testReduce3() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -224,7 +232,7 @@ public class CalciteArrayFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testReduceWithUDF() {
+  public void testReduceWithUDF() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
