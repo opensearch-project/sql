@@ -1,0 +1,44 @@
+name: Publish unified query modules to maven
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - 1.*
+      - 2.*
+      - feature/unified-ppl # Temporarily added for testing
+
+env:
+  SNAPSHOT_REPO_URL: https://aws.oss.sonatype.org/content/repositories/snapshots/
+
+jobs:
+  publish-unified-query-modules:
+    strategy:
+      fail-fast: false
+    if: github.repository == 'opensearch-project/sql'
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: write
+
+    steps:
+      - uses: actions/setup-java@v3
+        with:
+          distribution: temurin # Temurin is a distribution of adoptium
+          java-version: 21
+      - uses: actions/checkout@v3
+      - uses: aws-actions/configure-aws-credentials@v1.7.0
+        with:
+          role-to-assume: ${{ secrets.PUBLISH_SNAPSHOTS_ROLE }}
+          aws-region: us-east-1
+
+      - name: get credentials
+        run: |
+          # Get credentials for publishing
+          .github/get-sonatype-credentials.sh
+
+      - name: publish unified query modules to maven
+        run: |
+          ./gradlew publishUnifiedQueryPublicationToSnapshotsRepository

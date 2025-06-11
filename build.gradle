@@ -170,7 +170,7 @@ subprojects {
         def fullArtifactId = "unified-query-${project.name}"
         publishing {
             publications {
-                mavenJava(MavenPublication) {
+                unifiedQuery(MavenPublication) {
                     from components.java
                     groupId = "org.opensearch.sql"
                     artifactId = fullArtifactId
