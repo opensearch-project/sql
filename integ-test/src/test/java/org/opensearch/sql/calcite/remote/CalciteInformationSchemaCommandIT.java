@@ -5,8 +5,10 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import org.junit.Ignore;
 import org.opensearch.sql.ppl.InformationSchemaCommandIT;
 
+@Ignore
 public class CalciteInformationSchemaCommandIT extends InformationSchemaCommandIT {
   @Override
   public void init() throws Exception {

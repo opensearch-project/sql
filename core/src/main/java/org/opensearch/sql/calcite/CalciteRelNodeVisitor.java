@@ -1118,7 +1118,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<RelDataTypeField> fieldsToExpand =
         relBuilder.peek().getRowType().getFieldList().stream()
             .filter(f -> f.getName().startsWith(fieldName + "."))
-            .toList();
+                .collect(Collectors.toList());
 
     List<String> expandedFieldNames;
     if (node.getAliases() != null) {

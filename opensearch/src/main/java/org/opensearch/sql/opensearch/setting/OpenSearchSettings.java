@@ -136,13 +136,6 @@ public class OpenSearchSettings extends Settings {
               Setting.Property.NodeScope,
               Setting.Property.Dynamic);
 
-  public static final Setting<?> DEFAULT_PATTERN_METHOD_SETTING =
-      Setting.simpleString(
-          Key.DEFAULT_PATTERN_METHOD.getKeyValue(),
-          "SIMPLE_PATTERN",
-          Setting.Property.NodeScope,
-          Setting.Property.Dynamic);
-
   public static final Setting<Double> CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR_SETTING =
       Setting.doubleSetting(
           Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR.getKeyValue(),
@@ -332,7 +325,6 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
-<<<<<<< HEAD
         Key.SQL_PAGINATION_API_SEARCH_AFTER,
         SQL_PAGINATION_API_SEARCH_AFTER_SETTING,
         new Updater(Key.SQL_PAGINATION_API_SEARCH_AFTER));
@@ -342,10 +334,12 @@ public class OpenSearchSettings extends Settings {
         Key.PPL_ENABLED,
         PPL_ENABLED_SETTING,
         new Updater(Key.PPL_ENABLED));
-=======
-        Key.PATTERN_METHOD,
-        DEFAULT_PATTERN_METHOD_SETTING,
-        new Updater(Key.PATTERN_METHOD));
+    register(
+            settingBuilder,
+            clusterSettings,
+            Key.PATTERN_METHOD,
+            DEFAULT_PATTERN_METHOD_SETTING,
+            new Updater(Key.PATTERN_METHOD));
     register(
         settingBuilder,
         clusterSettings,
@@ -364,7 +358,6 @@ public class OpenSearchSettings extends Settings {
         Key.PATTERN_BUFFER_LIMIT,
         DEFAULT_PATTERN_BUFFER_LIMIT_SETTING,
         new Updater(Key.PATTERN_BUFFER_LIMIT));
->>>>>>> e6ab4fbcf (Calcite patterns command brain pattern method (#3570))
     register(
         settingBuilder,
         clusterSettings,
@@ -383,12 +376,6 @@ public class OpenSearchSettings extends Settings {
         Key.CALCITE_PUSHDOWN_ENABLED,
         CALCITE_PUSHDOWN_ENABLED_SETTING,
         new Updater(Key.CALCITE_PUSHDOWN_ENABLED));
-      register(
-              settingBuilder,
-              clusterSettings,
-        Key.DEFAULT_PATTERN_METHOD,
-        DEFAULT_PATTERN_METHOD_SETTING,
-        new Updater(Key.DEFAULT_PATTERN_METHOD));
     register(
         settingBuilder,
         clusterSettings,
