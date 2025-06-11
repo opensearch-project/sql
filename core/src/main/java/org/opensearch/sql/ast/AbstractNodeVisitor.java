@@ -22,6 +22,7 @@ import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.In;
 import org.opensearch.sql.ast.expression.Interval;
+import org.opensearch.sql.ast.expression.LambdaFunction;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
@@ -53,6 +54,7 @@ import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
+import org.opensearch.sql.ast.tree.Flatten;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -123,6 +125,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitFilter(Filter node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitFlatten(Flatten node, C context) {
     return visitChildren(node, context);
   }
 
@@ -235,6 +241,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitSort(Sort node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitLambdaFunction(LambdaFunction node, C context) {
     return visitChildren(node, context);
   }
 

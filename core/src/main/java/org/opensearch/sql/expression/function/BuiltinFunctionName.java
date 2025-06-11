@@ -58,6 +58,15 @@ public enum BuiltinFunctionName {
   TAN(FunctionName.of("tan")),
   SPAN(FunctionName.of("span")),
 
+  /** Collection functions */
+  ARRAY(FunctionName.of("array")),
+  ARRAY_LENGTH(FunctionName.of("array_length")),
+  FORALL(FunctionName.of("forall")),
+  EXISTS(FunctionName.of("exists")),
+  FILTER(FunctionName.of("filter")),
+  TRANSFORM(FunctionName.of("transform")),
+  REDUCE(FunctionName.of("reduce")),
+
   /** Date and Time Functions. */
   ADDDATE(FunctionName.of("adddate")),
   ADDTIME(FunctionName.of("addtime")),
@@ -170,13 +179,6 @@ public enum BuiltinFunctionName {
   LIKE(FunctionName.of("like")),
   NOT_LIKE(FunctionName.of("not like")),
 
-  /** LAMBDA Functions * */
-  ARRAY_FORALL(FunctionName.of("forall")),
-  ARRAY_EXISTS(FunctionName.of("exists")),
-  ARRAY_FILTER(FunctionName.of("filter")),
-  ARRAY_TRANSFORM(FunctionName.of("transform")),
-  ARRAY_AGGREGATE(FunctionName.of("reduce")),
-
   /** Aggregation Function. */
   AVG(FunctionName.of("avg")),
   SUM(FunctionName.of("sum")),
@@ -195,6 +197,8 @@ public enum BuiltinFunctionName {
   TAKE(FunctionName.of("take")),
   // t-digest percentile which is used in OpenSearch core by default.
   PERCENTILE_APPROX(FunctionName.of("percentile_approx")),
+  EARLIEST(FunctionName.of("earliest")),
+  LATEST(FunctionName.of("latest")),
   DISTINCT_COUNT_APPROX(FunctionName.of("distinct_count_approx")),
   // Not always an aggregation query
   NESTED(FunctionName.of("nested")),
@@ -219,9 +223,6 @@ public enum BuiltinFunctionName {
   SUBSTRING(FunctionName.of("substring")),
   TRIM(FunctionName.of("trim")),
   UPPER(FunctionName.of("upper")),
-
-  /** Array Functions. */
-  ARRAY(FunctionName.of("array")),
 
   /** Json Functions. */
   JSON_VALID(FunctionName.of("json_valid")),
@@ -304,9 +305,12 @@ public enum BuiltinFunctionName {
 
   /** Internal functions that are not exposed to customers. */
   INTERNAL_ITEM(FunctionName.of("item"), true),
+  INTERNAL_PATTERN_PARSER(FunctionName.of("pattern_parser")),
+  INTERNAL_PATTERN(FunctionName.of("pattern")),
+  INTERNAL_UNCOLLECT_PATTERNS(FunctionName.of("uncollect_patterns")),
   INTERNAL_REGEXP_EXTRACT(FunctionName.of("regexp_extract"), true),
   INTERNAL_GROK(FunctionName.of("grok"), true),
-  INTERNAL_REGEXP_REPLACE_2(FunctionName.of("regexp_replace_2"), true);
+  INTERNAL_REGEXP_REPLACE_3(FunctionName.of("regexp_replace_3"), true);
 
   private final FunctionName name;
   private boolean isInternal;
@@ -338,7 +342,10 @@ public enum BuiltinFunctionName {
           .put("take", BuiltinFunctionName.TAKE)
           .put("percentile", BuiltinFunctionName.PERCENTILE_APPROX)
           .put("percentile_approx", BuiltinFunctionName.PERCENTILE_APPROX)
+          // .put("earliest", BuiltinFunctionName.EARLIEST)
+          // .put("latest", BuiltinFunctionName.LATEST)
           .put("distinct_count_approx", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
+          .put("pattern", BuiltinFunctionName.INTERNAL_PATTERN)
           .build();
 
   private static final Map<String, BuiltinFunctionName> WINDOW_FUNC_MAPPING =
@@ -355,6 +362,9 @@ public enum BuiltinFunctionName {
           .put("stddev", BuiltinFunctionName.STDDEV_POP)
           .put("stddev_pop", BuiltinFunctionName.STDDEV_POP)
           .put("stddev_samp", BuiltinFunctionName.STDDEV_SAMP)
+          // .put("earliest", BuiltinFunctionName.EARLIEST)
+          // .put("latest", BuiltinFunctionName.LATEST)
+          .put("pattern", BuiltinFunctionName.INTERNAL_PATTERN)
           .build();
 
   public static Optional<BuiltinFunctionName> of(String str) {

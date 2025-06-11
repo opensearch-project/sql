@@ -72,6 +72,7 @@ commands
    | trendlineCommand
    | appendcolCommand
    | expandCommand
+   | flattenCommand
    ;
 
 commandName
@@ -99,6 +100,7 @@ commandName
    | ML
    | FILLNULL
    | EXPAND
+   | FLATTEN
    | TRENDLINE
    | EXPLAIN
    ;
@@ -175,12 +177,11 @@ patternsMethod
    ;
 
 patternsCommand
-   : PATTERNS (patternsParameter)* (source_field = expression) (pattern_method = patternMethod)*
+   : PATTERNS (source_field = expression) (statsByClause)? (METHOD EQUAL method = patternMethod)? (MODE EQUAL pattern_mode = patternMode)? (MAX_SAMPLE_COUNT EQUAL max_sample_count = integerLiteral)? (BUFFER_LIMIT EQUAL buffer_limit = integerLiteral)? (NEW_FIELD EQUAL new_field = stringLiteral)? (patternsParameter)*
    ;
 
 patternsParameter
-   : (NEW_FIELD EQUAL new_field = stringLiteral)
-   | (PATTERN EQUAL pattern = stringLiteral)
+   : (PATTERN EQUAL pattern = stringLiteral)
    | (VARIABLE_COUNT_THRESHOLD EQUAL variable_count_threshold = integerLiteral)
    | (FREQUENCY_THRESHOLD_PERCENTAGE EQUAL frequency_threshold_percentage = decimalLiteral)
    ;
@@ -188,6 +189,11 @@ patternsParameter
 patternMethod
    : SIMPLE_PATTERN
    | BRAIN
+   ;
+
+patternMode
+   : LABEL
+   | AGGREGATION
    ;
 
 // lookup
@@ -244,6 +250,10 @@ trendlineType
 expandCommand
     : EXPAND fieldExpression (AS alias = qualifiedName)?
     ;
+
+flattenCommand
+   : FLATTEN fieldExpression (AS aliases = identifierSeq)?
+   ;
 
 appendcolCommand
    : APPENDCOL (OVERRIDE EQUAL override = booleanLiteral)? LT_SQR_PRTHS commands (PIPE commands)* RT_SQR_PRTHS
@@ -417,6 +427,8 @@ statsFunctionName
    | STDDEV_POP
    | PERCENTILE
    | PERCENTILE_APPROX
+   | EARLIEST
+   | LATEST
    ;
 
 takeAggFunction
@@ -476,6 +488,7 @@ valueExpression
    | timestampFunction                                                                          # timestampFunctionCall
    | LT_PRTHS valueExpression RT_PRTHS                                                          # parentheticValueExpr
    | LT_SQR_PRTHS subSearch RT_SQR_PRTHS                                                        # scalarSubqueryExpr
+   | lambda                                                                                     # lambdaExpr
    ;
 
 primaryExpression
@@ -594,6 +607,7 @@ evalFunctionName
    | cryptographicFunctionName
    | jsonFunctionName
    | geoipFunctionName
+   | collectionFunctionName
    ;
 
 functionArgs
@@ -601,7 +615,18 @@ functionArgs
    ;
 
 functionArg
-   : (ident EQUAL)? expression
+   : (ident EQUAL)? functionArgExpression
+   ;
+
+
+functionArgExpression
+   : lambda
+   | expression
+   ;
+
+lambda
+   : ident ARROW expression
+   | LT_PRTHS ident (COMMA ident)+ RT_PRTHS ARROW expression
    ;
 
 relevanceArg
@@ -700,6 +725,17 @@ mathematicalFunctionName
 geoipFunctionName
    : GEOIP
    ;
+
+collectionFunctionName
+    : ARRAY
+    | ARRAY_LENGTH
+    | FORALL
+    | EXISTS
+    | FILTER
+    | TRANSFORM
+    | REDUCE
+    ;
+
 
 trigonometricFunctionName
    : ACOS
@@ -866,6 +902,8 @@ conditionFunctionName
    | ISPRESENT
    | ISEMPTY
    | ISBLANK
+   | EARLIEST
+   | LATEST
    ;
 
 // flow control function return non-boolean value
@@ -1048,6 +1086,11 @@ wcQualifiedName
    : wildcard (DOT wildcard)* # identsAsWildcardQualifiedName
    ;
 
+identifierSeq
+   : qualifiedName (COMMA qualifiedName)* # identsAsQualifiedNameSeq
+   | LT_PRTHS qualifiedName (COMMA qualifiedName)* RT_PRTHS # identsAsQualifiedNameSeq
+   ;
+
 ident
    : (DOT)? ID
    | BACKTICK ident BACKTICK
@@ -1078,8 +1121,8 @@ keywordsCanBeId
    | singleFieldRelevanceFunctionName
    | multiFieldRelevanceFunctionName
    | commandName
+   | collectionFunctionName
    | comparisonOperator
-   | patternMethod
    | explainMode
    // commands assist keywords
    | CASE
@@ -1095,8 +1138,11 @@ keywordsCanBeId
    | FROM
    | PATTERN
    | NEW_FIELD
+   | METHOD
    | VARIABLE_COUNT_THRESHOLD
    | FREQUENCY_THRESHOLD_PERCENTAGE
+   | MAX_SAMPLE_COUNT
+   | BUFFER_LIMIT
    | WITH
    | REGEX
    | PUNCT

@@ -37,6 +37,7 @@ KMEANS:                             'KMEANS';
 AD:                                 'AD';
 ML:                                 'ML';
 FILLNULL:                           'FILLNULL';
+FLATTEN:                            'FLATTEN';
 TRENDLINE:                          'TRENDLINE';
 APPENDCOL:                          'APPENDCOL';
 EXPAND:                             'EXPAND';
@@ -44,6 +45,11 @@ SIMPLE_PATTERN:                     'SIMPLE_PATTERN';
 BRAIN:                              'BRAIN';
 VARIABLE_COUNT_THRESHOLD:           'VARIABLE_COUNT_THRESHOLD';
 FREQUENCY_THRESHOLD_PERCENTAGE:     'FREQUENCY_THRESHOLD_PERCENTAGE';
+METHOD:                             'METHOD';
+MAX_SAMPLE_COUNT:                   'MAX_SAMPLE_COUNT';
+BUFFER_LIMIT:                       'BUFFER_LIMIT';
+LABEL:                              'LABEL';
+AGGREGATION:                        'AGGREGATION';
 
 //Native JOIN KEYWORDS
 JOIN:                               'JOIN';
@@ -198,6 +204,7 @@ RT_SQR_PRTHS:                       ']';
 SINGLE_QUOTE:                       '\'';
 DOUBLE_QUOTE:                       '"';
 BACKTICK:                           '`';
+ARROW:                              '->';
 
 // Operators. Bit
 
@@ -228,6 +235,8 @@ STDDEV_SAMP:                        'STDDEV_SAMP';
 STDDEV_POP:                         'STDDEV_POP';
 PERCENTILE:                         'PERCENTILE';
 PERCENTILE_APPROX:                  'PERCENTILE_APPROX';
+EARLIEST:                           'EARLIEST';
+LATEST:                             'LATEST';
 TAKE:                               'TAKE';
 LIST:                               'LIST';
 VALUES:                             'VALUES';
@@ -376,6 +385,14 @@ BETWEEN:                            'BETWEEN';
 ISPRESENT:                          'ISPRESENT';
 ISEMPTY:                            'ISEMPTY';
 ISBLANK:                            'ISBLANK';
+
+// COLLECTION FUNCTIONS
+ARRAY:                              'ARRAY';
+ARRAY_LENGTH:                       'ARRAY_LENGTH';
+FORALL:                             'FORALL';
+FILTER:                             'FILTER';
+TRANSFORM:                          'TRANSFORM';
+REDUCE:                             'REDUCE';
 
 // JSON FUNCTIONS
 JSON_VALID:                         'JSON_VALID';

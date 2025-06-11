@@ -298,8 +298,7 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
         // The type is inferred at runtime. When the array is empty and is the
         // first element of the column, it is set to "undefined".
         schema("address", "undefined"));
-    verifyDataRows(response, rows("ben", 437821, 47, null));
-    verifyNumOfRows(response, 1);
+    verifyNumOfRows(response, 0);
 
     Request deleteRequest =
         new Request(
@@ -327,8 +326,7 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
         schema("age", "bigint"),
         schema("id", "bigint"),
         schema("address", "undefined"));
-    verifyDataRows(response, rows("ben", 437821, 47, null));
-    verifyNumOfRows(response, 1);
+    verifyNumOfRows(response, 0);
 
     Request deleteRequest =
         new Request(

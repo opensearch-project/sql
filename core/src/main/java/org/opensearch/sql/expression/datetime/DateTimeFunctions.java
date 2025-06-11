@@ -981,8 +981,8 @@ public class DateTimeFunctions {
             functionProperties ->
                 DateTimeFunctions.unixTimeStamp(functionProperties.getQueryStartClock()),
             LONG),
-        impl(nullMissingHandling(DateTimeFunctions::unixTimeStampOf), DOUBLE, DATE),
         impl(nullMissingHandling(DateTimeFunctions::unixTimeStampOf), DOUBLE, TIMESTAMP),
+        impl(nullMissingHandling(DateTimeFunctions::unixTimeStampOf), DOUBLE, DATE),
         impl(nullMissingHandling(DateTimeFunctions::unixTimeStampOf), DOUBLE, DOUBLE));
   }
 

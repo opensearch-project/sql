@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import org.json.JSONObject;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 
@@ -543,6 +544,69 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
                 "source=%s | stats distinct_count(state) as dc by gender", TEST_INDEX_BANK));
     verifySchema(actual, schema("gender", "string"), schema("dc", "long"));
     verifyDataRows(actual, rows(3, "F"), rows(4, "M"));
+  }
+
+  @Ignore
+  @Test
+  public void testEarliestAndLatest() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats latest(datetime0), earliest(datetime0)", TEST_INDEX_CALCS));
+
+    verifySchema(
+        actual,
+        schema("latest(datetime0)", "timestamp"),
+        schema("earliest(datetime0)", "timestamp"));
+    verifyDataRows(actual, rows("2004-08-02 07:59:23", "2004-07-04 22:49:28"));
+  }
+
+  @Ignore
+  @Test
+  public void testEarliestAndLatestWithAlias() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats latest(datetime0) as late, earliest(datetime0) as early",
+                TEST_INDEX_CALCS));
+
+    verifySchema(actual, schema("late", "timestamp"), schema("early", "timestamp"));
+    verifyDataRows(actual, rows("2004-08-02 07:59:23", "2004-07-04 22:49:28"));
+  }
+
+  @Ignore
+  @Test
+  public void testEarliestAndLatestWithBy() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats latest(datetime0) as late, earliest(datetime0) as early by"
+                    + " bool2",
+                TEST_INDEX_CALCS));
+
+    verifySchema(
+        actual,
+        schema("late", "timestamp"),
+        schema("early", "timestamp"),
+        schema("bool2", "boolean"));
+    verifyDataRows(
+        actual,
+        rows("2004-07-31 11:57:52", "2004-07-12 17:30:16", true),
+        rows("2004-08-02 07:59:23", "2004-07-04 22:49:28", false));
+  }
+
+  @Ignore
+  @Test
+  public void testEarliestAndLatestWithTimeBy() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats latest(time1) as late, earliest(time1) as early by" + " bool2",
+                TEST_INDEX_CALCS));
+
+    verifySchema(
+        actual, schema("late", "time"), schema("early", "time"), schema("bool2", "boolean"));
+    verifyDataRows(actual, rows("19:57:33", "04:40:49", true), rows("22:50:16", "00:05:57", false));
   }
 
   @Test

@@ -271,12 +271,12 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testPatternsWithoutAggExplain() throws Exception {
+  public void testPatternsSimplePatternMethodWithoutAggExplain() throws Exception {
     // TODO: Correct calcite expected result once pushdown is supported
     String expected =
         isCalciteEnabled()
-            ? loadFromFile("expectedOutput/calcite/explain_patterns.json")
-            : loadFromFile("expectedOutput/ppl/explain_patterns.json");
+            ? loadFromFile("expectedOutput/calcite/explain_patterns_simple_pattern.json")
+            : loadFromFile("expectedOutput/ppl/explain_patterns_simple_pattern.json");
 
     assertJsonEqualsIgnoreId(
         expected,
@@ -284,18 +284,31 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testPatternsWithAggPushDownExplain() throws Exception {
+  public void testPatternsSimplePatternMethodWithAggPushDownExplain() throws Exception {
     // TODO: Correct calcite expected result once pushdown is supported
     String expected =
         isCalciteEnabled()
-            ? loadFromFile("expectedOutput/calcite/explain_patterns_agg_push.json")
-            : loadFromFile("expectedOutput/ppl/explain_patterns_agg_push.json");
+            ? loadFromFile("expectedOutput/calcite/explain_patterns_simple_pattern_agg_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_patterns_simple_pattern_agg_push.json");
+
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account" + "| patterns email mode=aggregation"));
+  }
+
+  @Test
+  public void testPatternsBrainMethodWithAggPushDownExplain() throws Exception {
+    // TODO: Correct calcite expected result once pushdown is supported
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_patterns_brain_agg_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_patterns_brain_agg_push.json");
 
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
-                + "| patterns email "
-                + "| stats count() by patterns_field"));
+                + "| patterns email method=brain mode=aggregation"));
   }
 }
