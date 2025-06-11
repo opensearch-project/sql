@@ -41,11 +41,11 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result,
-        schema("id", "integer"),
+        schema("id", "int"),
         schema("name", "string"),
         schema("occupation", "string"),
         schema("country", "string"),
-        schema("salary", "integer"),
+        schema("salary", "int"),
         schema("department", "string"));
     verifyDataRows(
         result,
@@ -70,11 +70,11 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result,
-        schema("id", "integer"),
+        schema("id", "int"),
         schema("name", "string"),
         schema("occupation", "string"),
         schema("country", "string"),
-        schema("salary", "integer"),
+        schema("salary", "int"),
         schema("department", "string"));
     verifyDataRows(
         result,
@@ -99,10 +99,10 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result,
-        schema("id", "integer"),
+        schema("id", "int"),
         schema("name", "string"),
         schema("occupation", "string"),
-        schema("salary", "integer"),
+        schema("salary", "int"),
         schema("country", "string"));
     verifyDataRows(
         result,
@@ -127,10 +127,10 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result,
-        schema("id", "integer"),
+        schema("id", "int"),
         schema("name", "string"),
         schema("occupation", "string"),
-        schema("salary", "integer"),
+        schema("salary", "int"),
         schema("country", "string"));
     verifyDataRows(
         result,
@@ -155,11 +155,11 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result,
-        schema("id", "integer"),
+        schema("id", "int"),
         schema("name", "string"),
         schema("occupation", "string"),
         schema("country", "string"),
-        schema("salary", "integer"),
+        schema("salary", "int"),
         schema("department", "string"));
     verifyDataRows(
         result,
@@ -184,11 +184,11 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result,
-        schema("id", "integer"),
+        schema("id", "int"),
         schema("name", "string"),
         schema("occupation", "string"),
         schema("country", "string"),
-        schema("salary", "integer"),
+        schema("salary", "int"),
         schema("department", "string"));
     verifyDataRows(
         result,
@@ -213,10 +213,10 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result,
-        schema("id", "integer"),
+        schema("id", "int"),
         schema("name", "string"),
         schema("country", "string"),
-        schema("salary", "integer"),
+        schema("salary", "int"),
         schema("department", "string"),
         schema("occupation", "string"));
     verifyDataRows(
@@ -243,10 +243,10 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result,
-        schema("id", "integer"),
+        schema("id", "int"),
         schema("name", "string"),
         schema("country", "string"),
-        schema("salary", "integer"),
+        schema("salary", "int"),
         schema("major", "string"));
     verifyDataRows(
         result,
@@ -272,10 +272,10 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result,
-        schema("id", "integer"),
+        schema("id", "int"),
         schema("name", "string"),
         schema("country", "string"),
-        schema("salary", "integer"),
+        schema("salary", "int"),
         schema("major", "string"));
     verifyDataRows(
         result,
@@ -300,11 +300,11 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result,
-        schema("id", "integer"),
+        schema("id", "int"),
         schema("name", "string"),
         schema("country", "string"),
-        schema("salary", "integer"),
-        schema("uid", "integer"),
+        schema("salary", "int"),
+        schema("uid", "int"),
         schema("department", "string"),
         schema("occupation", "string"));
     verifyDataRows(
@@ -333,8 +333,8 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result,
-        schema("salary", "integer"),
-        schema("uid", "integer"),
+        schema("salary", "int"),
+        schema("uid", "int"),
         schema("name", "string"),
         schema("department", "string"),
         schema("occupation", "string"));
@@ -409,10 +409,10 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result,
-        schema("id", "integer"),
+        schema("id", "int"),
         schema("name", "string"),
         schema("country", "string"),
-        schema("salary", "integer"),
+        schema("salary", "int"),
         schema("occupation", "string"));
     verifyDataRows(
         result,
@@ -437,11 +437,11 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result,
-        schema("id", "integer"),
+        schema("id", "int"),
         schema("name", "string"),
         schema("occupation", "string"),
         schema("country", "string"),
-        schema("salary", "integer"),
+        schema("salary", "int"),
         schema("new_col", "string"));
     verifyDataRows(
         result,

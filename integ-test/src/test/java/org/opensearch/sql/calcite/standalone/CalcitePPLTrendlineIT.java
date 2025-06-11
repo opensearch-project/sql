@@ -60,7 +60,7 @@ public class CalcitePPLTrendlineIT extends CalcitePPLIntegTestCase {
                     + " balance) as wma | fields balance, sma, wma",
                 TEST_INDEX_BANK));
     verifySchema(
-        result, schema("balance", "long"), schema("sma", "double"), schema("wma", "double"));
+        result, schema("balance", "bigint"), schema("sma", "double"), schema("wma", "double"));
     verifyDataRows(
         result,
         rows(39225, null, null),
@@ -77,7 +77,7 @@ public class CalcitePPLTrendlineIT extends CalcitePPLIntegTestCase {
                 "source=%s | where balance > 30000 | trendline sma(2, balance) | fields"
                     + " balance, balance_trendline",
                 TEST_INDEX_BANK));
-    verifySchema(result, schema("balance", "long"), schema("balance_trendline", "double"));
+    verifySchema(result, schema("balance", "bigint"), schema("balance_trendline", "double"));
     verifyDataRows(
         result, rows(39225, null), rows(32838, 36031.5), rows(40540, 36689), rows(48086, 44313));
   }
@@ -102,7 +102,7 @@ public class CalcitePPLTrendlineIT extends CalcitePPLIntegTestCase {
                 "source=%s | where balance > 30000 | trendline sort - balance sma(2, balance) |"
                     + " fields balance, balance_trendline",
                 TEST_INDEX_BANK));
-    verifySchema(result, schema("balance", "long"), schema("balance_trendline", "double"));
+    verifySchema(result, schema("balance", "bigint"), schema("balance_trendline", "double"));
     verifyDataRows(
         result, rows(48086, null), rows(40540, 44313), rows(39225, 39882.5), rows(32838, 36031.5));
   }
@@ -114,7 +114,7 @@ public class CalcitePPLTrendlineIT extends CalcitePPLIntegTestCase {
             String.format(
                 "source=%s | trendline sma(2, balance) | fields" + " balance, balance_trendline",
                 TEST_INDEX_BANK_WITH_NULL_VALUES));
-    verifySchema(result, schema("balance", "long"), schema("balance_trendline", "double"));
+    verifySchema(result, schema("balance", "bigint"), schema("balance_trendline", "double"));
     verifyDataRows(
         result, rows(39225, null), rows(32838, 36031.5), rows(4180, 18509), rows(48086, 26133));
   }

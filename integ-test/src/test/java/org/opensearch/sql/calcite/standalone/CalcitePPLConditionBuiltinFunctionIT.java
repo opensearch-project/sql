@@ -41,7 +41,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
             String.format(
                 "source=%s | where isnull(name) | fields age", TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
-    verifySchema(actual, schema("age", "integer"));
+    verifySchema(actual, schema("age", "int"));
 
     verifyDataRows(actual, rows(10));
   }
@@ -75,7 +75,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
                 "source=%s | eval new_age = nullif(age, 20) | fields name, new_age",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
-    verifySchema(actual, schema("name", "string"), schema("new_age", "integer"));
+    verifySchema(actual, schema("name", "string"), schema("new_age", "int"));
 
     verifyDataRows(
         actual,
@@ -120,7 +120,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
                 "source=%s | eval new_name = ifnull(name, 'Unknown') | fields new_name, age",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
-    verifySchema(actual, schema("new_name", "string"), schema("age", "integer"));
+    verifySchema(actual, schema("new_name", "string"), schema("age", "int"));
 
     verifyDataRows(
         actual,
@@ -164,7 +164,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
                     + " fields judge, age",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
-    verifySchema(actual, schema("judge", "string"), schema("age", "integer"));
+    verifySchema(actual, schema("judge", "string"), schema("age", "int"));
 
     verifyDataRows(
         actual,
@@ -199,7 +199,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
                 "source=%s | where ispresent(name) | fields name, age",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
-    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
+    verifySchema(actual, schema("name", "string"), schema("age", "int"));
 
     verifyDataRows(
         actual,
@@ -220,7 +220,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
                 "source=%s | where isempty(name) | fields name, age",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
-    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
+    verifySchema(actual, schema("name", "string"), schema("age", "int"));
 
     verifyDataRows(actual, rows(null, 10), rows("", 57));
   }
@@ -233,7 +233,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
                 "source=%s | where isblank(name) | fields name, age",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
-    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
+    verifySchema(actual, schema("name", "string"), schema("age", "int"));
 
     verifyDataRows(actual, rows(null, 10), rows("    ", 27), rows("", 57));
   }
@@ -247,7 +247,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
                     + " cnt",
                 TEST_INDEX_CALCS));
 
-    verifySchema(actual, schema("cnt", "long"));
+    verifySchema(actual, schema("cnt", "bigint"));
 
     verifyDataRows(actual, rows(4));
   }
@@ -260,7 +260,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
                 "source=%s | where latest('07/28/2004:12:34:27', datetime0) | stats COUNT() as cnt",
                 TEST_INDEX_CALCS));
 
-    verifySchema(actual, schema("cnt", "long"));
+    verifySchema(actual, schema("cnt", "bigint"));
 
     verifyDataRows(actual, rows(13));
   }

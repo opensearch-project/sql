@@ -218,7 +218,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 "source=%s | where strict_date_optional_time > DATE_SUB(TIMESTAMP('1984-04-12"
                     + " 20:07:00'), INTERVAL 12 HOUR) | stats COUNT() AS CNT ",
                 TEST_INDEX_DATE_FORMATS));
-    verifySchema(actual, schema("CNT", "long"));
+    verifySchema(actual, schema("CNT", "bigint"));
 
     // relative ones
     verifyDataRows(actual, rows(7));
@@ -276,10 +276,10 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual,
-        schema("timestamp", "long"),
-        schema("time", "long"),
-        schema("date", "long"),
-        schema("long_value", "long"));
+        schema("timestamp", "bigint"),
+        schema("time", "bigint"),
+        schema("date", "bigint"),
+        schema("long_value", "bigint"));
     verifyDataRows(actual, rows(32862, 32862, 0, 80580));
   }
 
@@ -314,10 +314,10 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual,
-        schema("timestamp", "long"),
-        schema("date", "long"),
-        schema("string_value", "long"),
-        schema("long_value", "long"));
+        schema("timestamp", "bigint"),
+        schema("date", "bigint"),
+        schema("string_value", "bigint"),
+        schema("long_value", "bigint"));
     verifyDataRows(actual, rows(62617828062L, 62617795200L, 63390556800L, 62961148800L));
   }
 
@@ -344,9 +344,9 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual,
-        schema("timestamp", "long"),
-        schema("date", "long"),
-        schema("string_value", "long"));
+        schema("timestamp", "bigint"),
+        schema("date", "bigint"),
+        schema("string_value", "bigint"));
     verifyDataRows(actual, rows(724743, 724743, 733687));
   }
 
@@ -408,12 +408,12 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
 
     verifySchema(
         actual,
-        schema("WEEK(DATE(strict_date_optional_time))", "integer"),
-        schema("WEEK_OF_YEAR(DATE(strict_date_optional_time))", "integer"),
-        schema("WEEK(DATE(strict_date_optional_time), 1)", "integer"),
-        schema("WEEK_OF_YEAR(DATE(strict_date_optional_time), 1)", "integer"),
-        schema("WEEK(DATE('2008-02-20'))", "integer"),
-        schema("WEEK(DATE('2008-02-20'), 1)", "integer"));
+        schema("WEEK(DATE(strict_date_optional_time))", "int"),
+        schema("WEEK_OF_YEAR(DATE(strict_date_optional_time))", "int"),
+        schema("WEEK(DATE(strict_date_optional_time), 1)", "int"),
+        schema("WEEK_OF_YEAR(DATE(strict_date_optional_time), 1)", "int"),
+        schema("WEEK(DATE('2008-02-20'))", "int"),
+        schema("WEEK(DATE('2008-02-20'), 1)", "int"));
 
     verifyDataRows(actual, rows(15, 15, 15, 15, 7, 8));
   }
@@ -430,7 +430,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                     + "| head 1 ",
                 TEST_INDEX_DATE_FORMATS));
 
-    verifySchema(actual, schema("CNT", "long"));
+    verifySchema(actual, schema("CNT", "bigint"));
 
     verifyDataRows(actual, rows(2));
   }
@@ -452,10 +452,10 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
 
     verifySchema(
         actual,
-        schema("timestamp", "integer"),
-        schema("time", "integer"),
-        schema("date", "integer"),
-        schema("weekday('2020-08-26')", "integer"));
+        schema("timestamp", "int"),
+        schema("time", "int"),
+        schema("date", "int"),
+        schema("weekday('2020-08-26')", "int"));
 
     verifyDataRows(actual, rows(3, currentWeekDay, 3, 2));
   }
@@ -482,11 +482,11 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
 
     verifySchema(
         actual,
-        schema("timestamp", "integer"),
-        schema("time", "integer"),
-        schema("date", "integer"),
-        schema("YEARWEEK('2020-08-26')", "integer"),
-        schema("YEARWEEK('2019-01-05', 1)", "integer"));
+        schema("timestamp", "int"),
+        schema("time", "int"),
+        schema("date", "int"),
+        schema("YEARWEEK('2020-08-26')", "int"),
+        schema("YEARWEEK('2019-01-05', 1)", "int"));
 
     verifyDataRows(actual, rows(198415, currentYearWeek, 198415, 202034, 201901));
   }
@@ -502,7 +502,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                     + "| head 1 ",
                 TEST_INDEX_DATE_FORMATS));
 
-    verifySchema(actual, schema("CNT", "long"));
+    verifySchema(actual, schema("CNT", "bigint"));
 
     verifyDataRows(actual, rows(2));
   }
@@ -520,9 +520,9 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
 
     verifySchema(
         actual,
-        schema("timestamp", "integer"),
-        schema("date", "integer"),
-        schema("YEAR('2020-08-26')", "integer"));
+        schema("timestamp", "int"),
+        schema("date", "int"),
+        schema("YEAR('2020-08-26')", "int"));
 
     verifyDataRows(actual, rows(1984, 1984, 2020));
   }
@@ -679,7 +679,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
             String.format(
                 "source=%s | where date > TIMESTAMP('1984-04-11 00:00:00') | stats COUNT() AS cnt",
                 TEST_INDEX_DATE_FORMATS));
-    verifySchema(actual, schema("cnt", "long"));
+    verifySchema(actual, schema("cnt", "bigint"));
     verifyDataRows(actual, rows(2));
   }
 
@@ -726,11 +726,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                     + " 16:03:00') | head 1 | fields t1, t2, t3, t4",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
-        actual,
-        schema("t1", "integer"),
-        schema("t2", "integer"),
-        schema("t3", "integer"),
-        schema("t4", "integer"));
+        actual, schema("t1", "int"), schema("t2", "int"), schema("t3", "int"), schema("t4", "int"));
     verifyDataRows(actual, rows(9, 9, 23, 16));
   }
 
@@ -744,7 +740,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                     + " MONTH(date), m2 = MONTH_OF_YEAR(date_time), m3 = MONTH('2023-01-12"
                     + " 10:11:12') | fields m1, m2, m3",
                 TEST_INDEX_DATE_FORMATS));
-    verifySchema(actual, schema("m1", "integer"), schema("m2", "integer"), schema("m3", "integer"));
+    verifySchema(actual, schema("m1", "int"), schema("m2", "int"), schema("m3", "int"));
     verifyDataRows(actual, rows(4, 4, 1));
   }
 
@@ -842,11 +838,11 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
 
     verifySchema(
         actual,
-        schema("d1", "integer"),
-        schema("d2", "integer"),
-        schema("d3", "integer"),
-        schema("d4", "integer"),
-        schema("d5", "integer"));
+        schema("d1", "int"),
+        schema("d2", "int"),
+        schema("d3", "int"),
+        schema("d4", "int"),
+        schema("d5", "int"));
     verifyDataRows(actual, rows(13, 9, 5, 6, 103));
   }
 
@@ -1039,15 +1035,15 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual,
-        schema("d1", "long"),
-        schema("d2", "long"),
-        schema("d3", "long"),
-        schema("d4", "long"),
-        schema("d5", "long"),
-        schema("d6", "long"),
-        schema("d7", "long"),
-        schema("d8", "long"),
-        schema("d9", "long"),
+        schema("d1", "bigint"),
+        schema("d2", "bigint"),
+        schema("d3", "bigint"),
+        schema("d4", "bigint"),
+        schema("d5", "bigint"),
+        schema("d6", "bigint"),
+        schema("d7", "bigint"),
+        schema("d8", "bigint"),
+        schema("d9", "bigint"),
         schema("t", "time"));
 
     LocalDate today = LocalDate.now(ZoneId.systemDefault());
@@ -1088,17 +1084,17 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
 
     verifySchema(
         actual,
-        schema("d1", "long"),
-        schema("d2", "long"),
-        schema("d3", "long"),
-        schema("d4", "long"),
-        schema("d5", "long"),
-        schema("d6", "long"),
-        schema("d7", "long"),
-        schema("d8", "long"),
-        schema("d9", "long"),
+        schema("d1", "bigint"),
+        schema("d2", "bigint"),
+        schema("d3", "bigint"),
+        schema("d4", "bigint"),
+        schema("d5", "bigint"),
+        schema("d6", "bigint"),
+        schema("d7", "bigint"),
+        schema("d8", "bigint"),
+        schema("d9", "bigint"),
         schema("t", "timestamp"),
-        schema("d10", "long"));
+        schema("d10", "bigint"));
 
     verifyDataRows(
         actual, rows(0, 24, 547, 3600, 202, -820, -187, -96, 29, "1984-04-12 09:07:42.000001", -1));
@@ -1116,11 +1112,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                     + "| fields  p1, p2, p3, p4",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
-        actual,
-        schema("p1", "integer"),
-        schema("p2", "integer"),
-        schema("p3", "integer"),
-        schema("p4", "integer"));
+        actual, schema("p1", "int"), schema("p2", "int"), schema("p3", "int"), schema("p4", "int"));
 
     verifyDataRows(actual, rows(200804, 199206, 11, -25));
   }
@@ -1141,12 +1133,12 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
 
     verifySchema(
         actual,
-        schema("m1", "integer"),
-        schema("m2", "integer"),
-        schema("m3", "integer"),
-        schema("m4", "integer"),
-        schema("m5", "integer"),
-        schema("m6", "integer"));
+        schema("m1", "int"),
+        schema("m2", "int"),
+        schema("m3", "int"),
+        schema("m4", "int"),
+        schema("m5", "int"),
+        schema("m6", "int"));
 
     verifyDataRows(actual, rows(7, 7, 547, 547, 40, 20));
   }
@@ -1181,9 +1173,9 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual,
-        schema("QUARTER(DATE('2020-08-26'))", "integer"),
-        schema("quarter2", "integer"),
-        schema("timestampQuarter2", "integer"));
+        schema("QUARTER(DATE('2020-08-26'))", "int"),
+        schema("quarter2", "int"),
+        schema("timestampQuarter2", "int"));
     verifyDataRows(actual, rows(3, 2, 2));
   }
 
@@ -1202,10 +1194,10 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual,
-        schema("s", "integer"),
-        schema("secondForTime", "integer"),
-        schema("secondForDate", "integer"),
-        schema("secondForTimestamp", "integer"));
+        schema("s", "int"),
+        schema("secondForTime", "int"),
+        schema("secondForDate", "int"),
+        schema("secondForTimestamp", "int"));
     verifyDataRows(actual, rows(3, 42, 0, 42));
   }
 
@@ -1222,10 +1214,10 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual,
-        schema("s", "integer"),
-        schema("secondForTime", "integer"),
-        schema("secondForDate", "integer"),
-        schema("secondForTimestamp", "integer"));
+        schema("s", "int"),
+        schema("secondForTime", "int"),
+        schema("secondForDate", "int"),
+        schema("secondForTimestamp", "int"));
     verifyDataRows(actual, rows(3, 42, 0, 42));
   }
 
@@ -1335,25 +1327,25 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual,
-        schema("r1", "long"),
-        schema("r2", "long"),
-        schema("r3", "long"),
-        schema("r4", "long"),
-        schema("r5", "long"),
-        schema("r6", "long"),
-        schema("r7", "long"),
-        schema("r8", "long"),
-        schema("r9", "long"),
-        schema("r10", "long"),
-        schema("r11", "long"),
-        schema("r12", "long"),
-        schema("r13", "long"),
-        schema("r14", "long"),
-        schema("r15", "long"),
-        schema("r16", "long"),
-        schema("r17", "long"),
-        schema("r19", "long"),
-        schema("r20", "long"));
+        schema("r1", "bigint"),
+        schema("r2", "bigint"),
+        schema("r3", "bigint"),
+        schema("r4", "bigint"),
+        schema("r5", "bigint"),
+        schema("r6", "bigint"),
+        schema("r7", "bigint"),
+        schema("r8", "bigint"),
+        schema("r9", "bigint"),
+        schema("r10", "bigint"),
+        schema("r11", "bigint"),
+        schema("r12", "bigint"),
+        schema("r13", "bigint"),
+        schema("r14", "bigint"),
+        schema("r15", "bigint"),
+        schema("r16", "bigint"),
+        schema("r17", "bigint"),
+        schema("r19", "bigint"),
+        schema("r20", "bigint"));
     verifyDataRows(
         actual, rows(1997, 1984, 1984, 2, 2, 4, 4, 15, 15, 12, 12, 9, 9, 7, 7, 42, 42, 12, 123456));
   }
@@ -1396,24 +1388,24 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual,
-        schema("r1", "long"),
-        schema("r2", "long"),
-        schema("r3", "long"),
-        schema("r4", "long"),
-        schema("r5", "long"),
-        schema("r6", "long"),
-        schema("r7", "long"),
-        schema("r8", "long"),
-        schema("r9", "long"),
-        schema("r10", "long"),
-        schema("r11", "long"),
-        schema("r12", "long"),
-        schema("r13", "long"),
-        schema("r14", "long"),
-        schema("r15", "long"),
-        schema("r16", "long"),
-        schema("r17", "long"),
-        schema("r18", "long"));
+        schema("r1", "bigint"),
+        schema("r2", "bigint"),
+        schema("r3", "bigint"),
+        schema("r4", "bigint"),
+        schema("r5", "bigint"),
+        schema("r6", "bigint"),
+        schema("r7", "bigint"),
+        schema("r8", "bigint"),
+        schema("r9", "bigint"),
+        schema("r10", "bigint"),
+        schema("r11", "bigint"),
+        schema("r12", "bigint"),
+        schema("r13", "bigint"),
+        schema("r14", "bigint"),
+        schema("r15", "bigint"),
+        schema("r16", "bigint"),
+        schema("r17", "bigint"),
+        schema("r18", "bigint"));
     verifyDataRows(
         actual,
         rows(
@@ -1448,11 +1440,11 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual,
-        schema("m1", "integer"),
-        schema("m2", "integer"),
-        schema("m3", "integer"),
-        schema("m4", "integer"),
-        schema("m5", "integer"));
+        schema("m1", "int"),
+        schema("m2", "int"),
+        schema("m3", "int"),
+        schema("m4", "int"),
+        schema("m5", "int"));
     verifyDataRows(actual, rows(0, 0, 0, 123456, 123456));
   }
 }

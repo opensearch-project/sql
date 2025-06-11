@@ -36,8 +36,8 @@ public class CalcitePPLAppendcolIT extends CalcitePPLIntegTestCase {
         actual,
         schema("gender", "string"),
         schema("state", "string"),
-        schema("sum", "long"),
-        schema("cnt", "long"));
+        schema("sum", "bigint"),
+        schema("cnt", "bigint"));
     verifyDataRows(
         actual,
         rows("F", "AK", 317, 493),
@@ -65,8 +65,8 @@ public class CalcitePPLAppendcolIT extends CalcitePPLIntegTestCase {
         actual,
         schema("gender", "string"),
         schema("state", "string"),
-        schema("sum", "long"),
-        schema("cnt", "long"));
+        schema("sum", "bigint"),
+        schema("cnt", "bigint"));
     verifyDataRows(
         actual,
         rows("F", "AK", 317, 493),

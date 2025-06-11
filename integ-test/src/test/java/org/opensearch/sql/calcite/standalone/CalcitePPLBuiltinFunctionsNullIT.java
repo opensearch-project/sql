@@ -49,7 +49,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
                 "source=%s  |  eval NullValue = YEARWEEK(date) | fields NullValue",
                 TEST_INDEX_DATE_FORMATS_WITH_NULL));
 
-    verifySchema(actual, schema("NullValue", "integer"));
+    verifySchema(actual, schema("NullValue", "int"));
     JSONArray ret = actual.getJSONArray("datarows");
     for (int i = 0; i < ret.length(); i++) {
       Object o = ((JSONArray) ret.get(i)).get(0);
@@ -142,11 +142,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
                     + " date=WEEKDAY(date), time=WEEKDAY(time) | fields timestamp, date, time",
                 TEST_INDEX_DATE_FORMATS_WITH_NULL));
 
-    verifySchema(
-        actual,
-        schema("timestamp", "integer"),
-        schema("date", "integer"),
-        schema("time", "integer"));
+    verifySchema(actual, schema("timestamp", "int"), schema("date", "int"), schema("time", "int"));
     JSONArray ret = (JSONArray) actual.getJSONArray("datarows").get(0);
     for (int i = 0; i < ret.length(); i++) {
       assertEquals(JSONObject.NULL, ret.get(i));
@@ -224,7 +220,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
                     + " date=SECOND(date) | fields timestamp, date",
                 TEST_INDEX_DATE_FORMATS_WITH_NULL));
 
-    verifySchema(actual, schema("timestamp", "integer"), schema("date", "integer"));
+    verifySchema(actual, schema("timestamp", "int"), schema("date", "int"));
     JSONArray ret = (JSONArray) actual.getJSONArray("datarows").get(0);
     for (int i = 0; i < ret.length(); i++) {
       assertEquals(JSONObject.NULL, ret.get(i));
@@ -390,7 +386,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
             String.format(
                 "source=%s  |  eval h2 = HOUR(date_time), h3 = HOUR(time) | fields h2, h3",
                 TEST_INDEX_DATE_FORMATS_WITH_NULL));
-    verifySchema(actual, schema("h2", "integer"), schema("h3", "integer"));
+    verifySchema(actual, schema("h2", "int"), schema("h3", "int"));
     verifyDataRows(actual, rows(null, null));
   }
 
@@ -453,7 +449,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
                 "source=%s | eval d1 = DAY_OF_WEEK(date), d2 = DAYOFWEEK(date_time) | fields d1,"
                     + " d2",
                 TEST_INDEX_DATE_FORMATS_WITH_NULL));
-    verifySchema(actual, schema("d1", "integer"), schema("d2", "integer"));
+    verifySchema(actual, schema("d1", "int"), schema("d2", "int"));
     verifyDataRows(actual, rows(null, null));
   }
 
@@ -465,7 +461,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
                 "source=%s | eval d1 = DAY_OF_YEAR(date), d2 = DAYOFYEAR(date_time) | fields d1,"
                     + " d2",
                 TEST_INDEX_DATE_FORMATS_WITH_NULL));
-    verifySchema(actual, schema("d1", "integer"), schema("d2", "integer"));
+    verifySchema(actual, schema("d1", "int"), schema("d2", "int"));
     verifyDataRows(actual, rows(null, null));
   }
 
@@ -477,7 +473,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
                 "source=%s | eval e1 = EXTRACT(YEAR FROM date), e2 = EXTRACT(MONTH FROM date_time),"
                     + " e3 = EXTRACT(HOUR FROM time) | fields e1, e2, e3",
                 TEST_INDEX_DATE_FORMATS_WITH_NULL));
-    verifySchema(actual, schema("e1", "long"), schema("e2", "long"), schema("e3", "long"));
+    verifySchema(actual, schema("e1", "bigint"), schema("e2", "bigint"), schema("e3", "bigint"));
     verifyDataRows(actual, rows(null, null, null));
   }
 
@@ -513,7 +509,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
                 "source=%s | eval h1 = HOUR_OF_DAY(time), h2 = HOUR_OF_DAY(date_time) | fields h1,"
                     + " h2",
                 TEST_INDEX_DATE_FORMATS_WITH_NULL));
-    verifySchema(actual, schema("h1", "integer"), schema("h2", "integer"));
+    verifySchema(actual, schema("h1", "int"), schema("h2", "int"));
     verifyDataRows(actual, rows(null, null));
   }
 
@@ -634,7 +630,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
                 "source=%s | eval diff1 = DATEDIFF(date, date), diff2 = DATEDIFF(date_time,"
                     + " date_time) | fields diff1, diff2",
                 TEST_INDEX_DATE_FORMATS_WITH_NULL));
-    verifySchema(actual, schema("diff1", "long"), schema("diff2", "long"));
+    verifySchema(actual, schema("diff1", "bigint"), schema("diff2", "bigint"));
     verifyDataRows(actual, rows(null, null));
   }
 
@@ -668,7 +664,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
             String.format(
                 "source=%s | eval d1 = DAY(date), d2 = DAY(date_time) | fields d1, d2",
                 TEST_INDEX_DATE_FORMATS_WITH_NULL));
-    verifySchema(actual, schema("d1", "integer"), schema("d2", "integer"));
+    verifySchema(actual, schema("d1", "int"), schema("d2", "int"));
     verifyDataRows(actual, rows(null, null));
   }
 
@@ -691,7 +687,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
                 "source=%s | eval d1 = DAY_OF_MONTH(date), d2 = DAYOFMONTH(date_time) | fields d1,"
                     + " d2",
                 TEST_INDEX_DATE_FORMATS_WITH_NULL));
-    verifySchema(actual, schema("d1", "integer"), schema("d2", "integer"));
+    verifySchema(actual, schema("d1", "int"), schema("d2", "int"));
     verifyDataRows(actual, rows(null, null));
   }
 
@@ -703,7 +699,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
                 "source=%s | eval m1 = MICROSECOND(time), m2 = MICROSECOND(date_time) | fields m1,"
                     + " m2",
                 TEST_INDEX_DATE_FORMATS_WITH_NULL));
-    verifySchema(actual, schema("m1", "integer"), schema("m2", "integer"));
+    verifySchema(actual, schema("m1", "int"), schema("m2", "int"));
     verifyDataRows(actual, rows(null, null));
   }
 
@@ -714,7 +710,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
             String.format(
                 "source=%s | eval m1 = MINUTE(time), m2 = MINUTE(date_time) | fields m1, m2",
                 TEST_INDEX_DATE_FORMATS_WITH_NULL));
-    verifySchema(actual, schema("m1", "integer"), schema("m2", "integer"));
+    verifySchema(actual, schema("m1", "int"), schema("m2", "int"));
     verifyDataRows(actual, rows(null, null));
   }
 
@@ -726,7 +722,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
                 "source=%s | eval md1 = MINUTE_OF_DAY(time), md2 = MINUTE_OF_DAY(date_time) |"
                     + " fields md1, md2",
                 TEST_INDEX_DATE_FORMATS_WITH_NULL));
-    verifySchema(actual, schema("md1", "integer"), schema("md2", "integer"));
+    verifySchema(actual, schema("md1", "int"), schema("md2", "int"));
     verifyDataRows(actual, rows(null, null));
   }
 
@@ -738,7 +734,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
                 "source=%s | eval mh1 = MINUTE_OF_HOUR(time), mh2 = MINUTE_OF_HOUR(date_time) |"
                     + " fields mh1, mh2",
                 TEST_INDEX_DATE_FORMATS_WITH_NULL));
-    verifySchema(actual, schema("mh1", "integer"), schema("mh2", "integer"));
+    verifySchema(actual, schema("mh1", "int"), schema("mh2", "int"));
     verifyDataRows(actual, rows(null, null));
   }
 
@@ -749,7 +745,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
             String.format(
                 "source=%s | eval mo1 = MONTH(date), mo2 = MONTH(date_time) | fields mo1, mo2",
                 TEST_INDEX_DATE_FORMATS_WITH_NULL));
-    verifySchema(actual, schema("mo1", "integer"), schema("mo2", "integer"));
+    verifySchema(actual, schema("mo1", "int"), schema("mo2", "int"));
     verifyDataRows(actual, rows(null, null));
   }
 
@@ -761,7 +757,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
                 "source=%s | eval mo1 = MONTH_OF_YEAR(date), mo2 = MONTH_OF_YEAR(date_time) |"
                     + " fields mo1, mo2",
                 TEST_INDEX_DATE_FORMATS_WITH_NULL));
-    verifySchema(actual, schema("mo1", "integer"), schema("mo2", "integer"));
+    verifySchema(actual, schema("mo1", "int"), schema("mo2", "int"));
     verifyDataRows(actual, rows(null, null));
   }
 
@@ -786,7 +782,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
                     + " PERIOD_DIFF(`int`, `int`) | fields pa1, pa2",
                 TEST_INDEX_NULL_MISSING));
 
-    verifySchema(actual, schema("pa1", "integer"), schema("pa2", "integer"));
+    verifySchema(actual, schema("pa1", "int"), schema("pa2", "int"));
     verifyDataRows(actual, rows(null, null));
   }
 
@@ -797,7 +793,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
             String.format(
                 "source=%s | eval q1 = QUARTER(date), q2 = QUARTER(date_time) | fields q1, q2",
                 TEST_INDEX_DATE_FORMATS_WITH_NULL));
-    verifySchema(actual, schema("q1", "integer"), schema("q2", "integer"));
+    verifySchema(actual, schema("q1", "int"), schema("q2", "int"));
     verifyDataRows(actual, rows(null, null));
   }
 
@@ -820,7 +816,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
             String.format(
                 "source=%s | eval s1 = SECOND(time), s2 = SECOND(date_time) | fields s1, s2",
                 TEST_INDEX_DATE_FORMATS_WITH_NULL));
-    verifySchema(actual, schema("s1", "integer"), schema("s2", "integer"));
+    verifySchema(actual, schema("s1", "int"), schema("s2", "int"));
     verifyDataRows(actual, rows(null, null));
   }
 
@@ -832,7 +828,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
                 "source=%s | eval s1 = SECOND_OF_MINUTE(time), s2 = SECOND_OF_MINUTE(date_time) |"
                     + " fields s1, s2",
                 TEST_INDEX_DATE_FORMATS_WITH_NULL));
-    verifySchema(actual, schema("s1", "integer"), schema("s2", "integer"));
+    verifySchema(actual, schema("s1", "int"), schema("s2", "int"));
     verifyDataRows(actual, rows(null, null));
   }
 
@@ -901,7 +897,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
             String.format(
                 "source=%s | eval ts1 = TIME_TO_SEC(time) | fields ts1",
                 TEST_INDEX_DATE_FORMATS_WITH_NULL));
-    verifySchema(actual, schema("ts1", "long"));
+    verifySchema(actual, schema("ts1", "bigint"));
     verifyDataRows(actual, rows((Object) null));
   }
 
@@ -948,7 +944,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
                 "source=%s | eval td1 = TIMESTAMPDIFF(DAY, date, date_time), td2 ="
                     + " TIMESTAMPDIFF(HOUR, date_time, date_time) | fields td1, td2",
                 TEST_INDEX_DATE_FORMATS_WITH_NULL));
-    verifySchema(actual, schema("td1", "long"), schema("td2", "long"));
+    verifySchema(actual, schema("td1", "bigint"), schema("td2", "bigint"));
     verifyDataRows(actual, rows(null, null));
   }
 
@@ -959,7 +955,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
             String.format(
                 "source=%s | eval td1 = TO_DAYS(date), td2 = TO_DAYS(date_time) | fields td1, td2",
                 TEST_INDEX_DATE_FORMATS_WITH_NULL));
-    verifySchema(actual, schema("td1", "long"), schema("td2", "long"));
+    verifySchema(actual, schema("td1", "bigint"), schema("td2", "bigint"));
     verifyDataRows(actual, rows(null, null));
   }
 
@@ -970,7 +966,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
             String.format(
                 "source=%s | eval w1 = WEEK(date), w2 = WEEK(date_time) | fields w1, w2",
                 TEST_INDEX_DATE_FORMATS_WITH_NULL));
-    verifySchema(actual, schema("w1", "integer"), schema("w2", "integer"));
+    verifySchema(actual, schema("w1", "int"), schema("w2", "int"));
     verifyDataRows(actual, rows(null, null));
   }
 
@@ -981,7 +977,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
             String.format(
                 "source=%s | eval wd1 = WEEKDAY(date), wd2 = WEEKDAY(date_time) | fields wd1, wd2",
                 TEST_INDEX_DATE_FORMATS_WITH_NULL));
-    verifySchema(actual, schema("wd1", "integer"), schema("wd2", "integer"));
+    verifySchema(actual, schema("wd1", "int"), schema("wd2", "int"));
     verifyDataRows(actual, rows(null, null));
   }
 
@@ -993,7 +989,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
                 "source=%s | eval wy1 = WEEK_OF_YEAR(date), wy2 = WEEK_OF_YEAR(date_time) | fields"
                     + " wy1, wy2",
                 TEST_INDEX_DATE_FORMATS_WITH_NULL));
-    verifySchema(actual, schema("wy1", "integer"), schema("wy2", "integer"));
+    verifySchema(actual, schema("wy1", "int"), schema("wy2", "int"));
     verifyDataRows(actual, rows(null, null));
   }
 
@@ -1004,7 +1000,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
             String.format(
                 "source=%s | eval y1 = YEAR(date), y2 = YEAR(date_time) | fields y1, y2",
                 TEST_INDEX_DATE_FORMATS_WITH_NULL));
-    verifySchema(actual, schema("y1", "integer"), schema("y2", "integer"));
+    verifySchema(actual, schema("y1", "int"), schema("y2", "int"));
     verifyDataRows(actual, rows(null, null));
   }
 }

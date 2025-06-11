@@ -77,7 +77,7 @@ public class CalcitePPLParseIT extends CalcitePPLIntegTestCase {
                    source = %s | parse email '.+@(?<host>.+)' | stats count() by host
                    """,
                 TEST_INDEX_BANK));
-    verifySchema(result, schema("count()", "long"), schema("host", "string"));
+    verifySchema(result, schema("count()", "bigint"), schema("host", "string"));
     verifyDataRows(
         result,
         rows(1, "pyrami.com"),
@@ -102,7 +102,7 @@ public class CalcitePPLParseIT extends CalcitePPLIntegTestCase {
                    | fields streetNumberInt, address
                    """,
                 TEST_INDEX_BANK));
-    verifySchema(result, schema("streetNumberInt", "integer"), schema("address", "string"));
+    verifySchema(result, schema("streetNumberInt", "int"), schema("address", "string"));
     verifyDataRows(
         result,
         rows(671, "671 Bristol Street"),

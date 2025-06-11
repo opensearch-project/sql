@@ -72,7 +72,7 @@ public class CalciteArrayFunctionIT extends CalcitePPLIntegTestCase {
                     + " array_length(array) | head 1 | fields length",
                 TEST_INDEX_BANK));
 
-    verifySchema(actual, schema("length", "integer"));
+    verifySchema(actual, schema("length", "int"));
 
     verifyDataRows(actual, rows(4));
   }
@@ -189,10 +189,7 @@ public class CalciteArrayFunctionIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_BANK));
 
     verifySchema(
-        actual,
-        schema("result", "integer"),
-        schema("result2", "integer"),
-        schema("result3", "double"));
+        actual, schema("result", "int"), schema("result2", "int"), schema("result3", "double"));
 
     verifyDataRows(actual, rows(6, 16, 60));
   }

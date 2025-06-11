@@ -53,8 +53,7 @@ public class CalcitePPLExistsSubqueryIT extends CalcitePPLIntegTestCase {
                    | fields id, name, salary
                    """,
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
-    verifySchema(
-        result, schema("id", "integer"), schema("name", "string"), schema("salary", "integer"));
+    verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
     verifyDataRowsInOrder(
         result,
         rows(1002, "John", 120000),
@@ -77,7 +76,7 @@ public class CalcitePPLExistsSubqueryIT extends CalcitePPLIntegTestCase {
                    | stats count() by country
                    """,
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
-    verifySchema(result, schema("country", "string"), schema("count()", "long"));
+    verifySchema(result, schema("country", "string"), schema("count()", "bigint"));
     verifyDataRows(result, rows(1, null), rows(2, "Canada"), rows(1, "USA"), rows(1, "England"));
   }
 
@@ -94,8 +93,7 @@ public class CalcitePPLExistsSubqueryIT extends CalcitePPLIntegTestCase {
                    | fields id, name, salary
                    """,
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
-    verifySchema(
-        result, schema("id", "integer"), schema("name", "string"), schema("salary", "integer"));
+    verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
     verifyDataRowsInOrder(
         result,
         rows(1002, "John", 120000),
@@ -119,8 +117,7 @@ public class CalcitePPLExistsSubqueryIT extends CalcitePPLIntegTestCase {
                    | fields id, name, salary
                    """,
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
-    verifySchema(
-        result, schema("id", "integer"), schema("name", "string"), schema("salary", "integer"));
+    verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
     verifyDataRowsInOrder(result, rows(1001, "Hello", 70000), rows(1004, "David", 0));
   }
 
@@ -137,8 +134,7 @@ public class CalcitePPLExistsSubqueryIT extends CalcitePPLIntegTestCase {
                    | fields id, name, salary
                    """,
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
-    verifySchema(
-        result, schema("id", "integer"), schema("name", "string"), schema("salary", "integer"));
+    verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
     verifyDataRowsInOrder(result, rows(1001, "Hello", 70000), rows(1004, "David", 0));
   }
 
@@ -156,8 +152,7 @@ public class CalcitePPLExistsSubqueryIT extends CalcitePPLIntegTestCase {
                    | fields id, name, salary
                    """,
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
-    verifySchema(
-        result, schema("id", "integer"), schema("name", "string"), schema("salary", "integer"));
+    verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
     verifyNumOfRows(result, 0);
   }
 
@@ -175,8 +170,7 @@ public class CalcitePPLExistsSubqueryIT extends CalcitePPLIntegTestCase {
                    | fields id, name, salary
                    """,
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
-    verifySchema(
-        result, schema("id", "integer"), schema("name", "string"), schema("salary", "integer"));
+    verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
     verifyNumOfRows(result, 7);
 
     result =
@@ -257,8 +251,7 @@ public class CalcitePPLExistsSubqueryIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_OCCUPATION,
                 TEST_INDEX_OCCUPATION,
                 TEST_INDEX_WORK_INFORMATION));
-    verifySchema(
-        result, schema("id", "integer"), schema("name", "string"), schema("salary", "integer"));
+    verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
     verifyDataRowsInOrder(
         result,
         rows(1002, "John", 120000),
@@ -290,8 +283,7 @@ public class CalcitePPLExistsSubqueryIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_WORK_INFORMATION,
                 TEST_INDEX_WORKER,
                 TEST_INDEX_WORK_INFORMATION));
-    verifySchema(
-        result, schema("id", "integer"), schema("name", "string"), schema("salary", "integer"));
+    verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
     verifyDataRowsInOrder(result, rows(1003, "David", 120000), rows(1000, "Jake", 100000));
   }
 
@@ -310,7 +302,7 @@ public class CalcitePPLExistsSubqueryIT extends CalcitePPLIntegTestCase {
                    | stats count() by country
                    """,
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
-    verifySchemaInOrder(result, schema("count()", "long"), schema("country", "string"));
+    verifySchemaInOrder(result, schema("count()", "bigint"), schema("country", "string"));
     verifyDataRows(result, rows(1, null), rows(1, "England"), rows(1, "USA"), rows(2, "Canada"));
   }
 }

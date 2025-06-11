@@ -86,7 +86,7 @@ public class CalcitePPLPatternsIT extends CalcitePPLIntegTestCase {
                 "source=%s | patterns email mode=aggregation max_sample_count=3", TEST_INDEX_BANK));
     verifySchema(
         result,
-        schema("pattern_count", "long"),
+        schema("pattern_count", "bigint"),
         schema("patterns_field", "string"),
         schema("tokens", "struct"));
     verifyDataRows(
@@ -167,7 +167,7 @@ public class CalcitePPLPatternsIT extends CalcitePPLIntegTestCase {
     verifySchema(
         result,
         schema("patterns_field", "string"),
-        schema("pattern_count", "long"),
+        schema("pattern_count", "bigint"),
         schema("tokens", "struct"));
     verifyDataRows(
         result,
@@ -233,7 +233,7 @@ public class CalcitePPLPatternsIT extends CalcitePPLIntegTestCase {
         result,
         schema("level", "string"),
         schema("patterns_field", "string"),
-        schema("pattern_count", "long"),
+        schema("pattern_count", "bigint"),
         schema("tokens", "struct"));
     verifyDataRows(
         result,

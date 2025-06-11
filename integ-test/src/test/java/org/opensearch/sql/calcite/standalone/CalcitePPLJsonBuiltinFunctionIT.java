@@ -95,7 +95,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
                     + " json_array_length('{\"key\": 1}') | fields a,b,c | head 1",
                 TEST_INDEX_PEOPLE2));
 
-    verifySchema(actual, schema("a", "integer"), schema("b", "integer"), schema("c", "integer"));
+    verifySchema(actual, schema("a", "int"), schema("b", "int"), schema("c", "int"));
 
     verifyDataRows(actual, rows(4, 5, null));
   }

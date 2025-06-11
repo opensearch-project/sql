@@ -39,13 +39,13 @@ public class CalcitePPLEventstatsIT extends CalcitePPLIntegTestCase {
         schema("name", "string"),
         schema("country", "string"),
         schema("state", "string"),
-        schema("month", "integer"),
-        schema("year", "integer"),
-        schema("age", "integer"),
-        schema("cnt", "long"),
+        schema("month", "int"),
+        schema("year", "int"),
+        schema("age", "int"),
+        schema("cnt", "bigint"),
         schema("avg", "double"),
-        schema("min", "integer"),
-        schema("max", "integer"));
+        schema("min", "int"),
+        schema("max", "int"));
 
     verifyDataRows(
         actual,
@@ -69,13 +69,13 @@ public class CalcitePPLEventstatsIT extends CalcitePPLIntegTestCase {
         schema("name", "string"),
         schema("country", "string"),
         schema("state", "string"),
-        schema("month", "integer"),
-        schema("year", "integer"),
-        schema("age", "integer"),
-        schema("cnt", "long"),
+        schema("month", "int"),
+        schema("year", "int"),
+        schema("age", "int"),
+        schema("cnt", "bigint"),
         schema("avg", "double"),
-        schema("min", "integer"),
-        schema("max", "integer"));
+        schema("min", "int"),
+        schema("max", "int"));
 
     verifyDataRows(
         actual,
@@ -101,13 +101,13 @@ public class CalcitePPLEventstatsIT extends CalcitePPLIntegTestCase {
         schema("name", "string"),
         schema("country", "string"),
         schema("state", "string"),
-        schema("month", "integer"),
-        schema("year", "integer"),
-        schema("age", "integer"),
-        schema("cnt", "long"),
+        schema("month", "int"),
+        schema("year", "int"),
+        schema("age", "int"),
+        schema("cnt", "bigint"),
         schema("avg", "double"),
-        schema("min", "integer"),
-        schema("max", "integer"));
+        schema("min", "int"),
+        schema("max", "int"));
 
     verifyDataRows(
         actual,
@@ -131,13 +131,13 @@ public class CalcitePPLEventstatsIT extends CalcitePPLIntegTestCase {
         schema("name", "string"),
         schema("country", "string"),
         schema("state", "string"),
-        schema("month", "integer"),
-        schema("year", "integer"),
-        schema("age", "integer"),
-        schema("cnt", "long"),
+        schema("month", "int"),
+        schema("year", "int"),
+        schema("age", "int"),
+        schema("cnt", "bigint"),
         schema("avg", "double"),
-        schema("min", "integer"),
-        schema("max", "integer"));
+        schema("min", "int"),
+        schema("max", "int"));
 
     verifyDataRows(
         actual,
@@ -397,9 +397,9 @@ public class CalcitePPLEventstatsIT extends CalcitePPLIntegTestCase {
         schema("name", "string"),
         schema("country", "string"),
         schema("state", "string"),
-        schema("month", "integer"),
-        schema("year", "integer"),
-        schema("age", "integer"),
+        schema("month", "int"),
+        schema("year", "int"),
+        schema("age", "int"),
         schema("stddev_pop(age)", "double"),
         schema("stddev_samp(age)", "double"),
         schema("var_pop(age)", "double"),
@@ -467,9 +467,9 @@ public class CalcitePPLEventstatsIT extends CalcitePPLIntegTestCase {
         schema("name", "string"),
         schema("country", "string"),
         schema("state", "string"),
-        schema("month", "integer"),
-        schema("year", "integer"),
-        schema("age", "integer"),
+        schema("month", "int"),
+        schema("year", "int"),
+        schema("age", "int"),
         schema("stddev_pop(age)", "double"),
         schema("stddev_samp(age)", "double"),
         schema("var_pop(age)", "double"),
@@ -606,17 +606,17 @@ public class CalcitePPLEventstatsIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_BANK_TWO));
     verifySchema(
         actual,
-        schema("account_number", "long"),
+        schema("account_number", "bigint"),
         schema("firstname", "string"),
         schema("address", "string"),
         schema("birthdate", "timestamp"),
         schema("gender", "string"),
         schema("city", "string"),
         schema("lastname", "string"),
-        schema("balance", "long"),
+        schema("balance", "bigint"),
         schema("employer", "string"),
         schema("state", "string"),
-        schema("age", "integer"),
+        schema("age", "int"),
         schema("email", "string"),
         schema("male", "boolean"),
         schema("earliest(birthdate)", "timestamp"),

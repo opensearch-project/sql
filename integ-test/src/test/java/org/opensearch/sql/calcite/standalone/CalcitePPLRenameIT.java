@@ -36,11 +36,11 @@ public class CalcitePPLRenameIT extends CalcitePPLIntegTestCase {
     verifySchema(
         result,
         schema("name", "string"),
-        schema("renamed_age", "integer"),
+        schema("renamed_age", "int"),
         schema("state", "string"),
         schema("country", "string"),
-        schema("year", "integer"),
-        schema("month", "integer"));
+        schema("year", "int"),
+        schema("month", "int"));
   }
 
   @Test
@@ -104,11 +104,11 @@ public class CalcitePPLRenameIT extends CalcitePPLIntegTestCase {
     verifySchema(
         result,
         schema("name", "string"),
-        schema("_ID", "integer"),
+        schema("_ID", "int"),
         schema("state", "string"),
         schema("country", "string"),
-        schema("year", "integer"),
-        schema("month", "integer"));
+        schema("year", "int"),
+        schema("month", "int"));
   }
 
   @Test
@@ -124,7 +124,7 @@ public class CalcitePPLRenameIT extends CalcitePPLIntegTestCase {
     verifySchema(
         result,
         schema("renamed_name", "string"),
-        schema("age", "integer"),
+        schema("age", "int"),
         schema("renamed_country", "string"));
     verifyDataRows(
         result,
@@ -160,7 +160,7 @@ public class CalcitePPLRenameIT extends CalcitePPLIntegTestCase {
     verifySchema(
         result,
         schema("renamed_name", "string"),
-        schema("age", "integer"),
+        schema("age", "int"),
         schema("renamed_country", "string"));
     verifyDataRows(
         result,

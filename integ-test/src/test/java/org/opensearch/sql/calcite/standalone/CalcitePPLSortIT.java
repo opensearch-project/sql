@@ -37,7 +37,7 @@ public class CalcitePPLSortIT extends CalcitePPLIntegTestCase {
         actual,
         schema("firstname", "string"),
         schema("gender", "string"),
-        schema("account_number", "long"));
+        schema("account_number", "bigint"));
     verifyDataRowsInOrder(
         actual,
         rows("Dillard", "F", 32),
@@ -53,7 +53,7 @@ public class CalcitePPLSortIT extends CalcitePPLIntegTestCase {
   public void testFieldsAndSort2() {
     JSONObject actual =
         executeQuery(String.format("source=%s | fields age | sort - age", TEST_INDEX_BANK));
-    verifySchema(actual, schema("age", "integer"));
+    verifySchema(actual, schema("age", "int"));
     verifyDataRowsInOrder(
         actual, rows(39), rows(36), rows(36), rows(34), rows(33), rows(32), rows(28));
   }
@@ -70,7 +70,7 @@ public class CalcitePPLSortIT extends CalcitePPLIntegTestCase {
         actual,
         schema("firstname", "string"),
         schema("gender", "string"),
-        schema("account_number", "long"));
+        schema("account_number", "bigint"));
     verifyDataRowsInOrder(
         actual,
         rows("Dillard", "F", 32),
@@ -94,7 +94,7 @@ public class CalcitePPLSortIT extends CalcitePPLIntegTestCase {
         actual,
         schema("firstname", "string"),
         schema("gender", "string"),
-        schema("account_number", "long"));
+        schema("account_number", "bigint"));
     verifyDataRowsInOrder(
         actual,
         rows("Dillard", "F", 32),
@@ -110,7 +110,7 @@ public class CalcitePPLSortIT extends CalcitePPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | sort - account_number | fields account_number", TEST_INDEX_BANK));
-    verifySchema(actual, schema("account_number", "long"));
+    verifySchema(actual, schema("account_number", "bigint"));
     verifyDataRowsInOrder(
         actual, rows(32), rows(25), rows(20), rows(18), rows(13), rows(6), rows(1));
   }
@@ -122,7 +122,7 @@ public class CalcitePPLSortIT extends CalcitePPLIntegTestCase {
             String.format(
                 "source=%s | sort - account_number | fields firstname, account_number",
                 TEST_INDEX_BANK));
-    verifySchema(actual, schema("firstname", "string"), schema("account_number", "long"));
+    verifySchema(actual, schema("firstname", "string"), schema("account_number", "bigint"));
     verifyDataRowsInOrder(
         actual,
         rows("Dillard", 32),
@@ -141,7 +141,7 @@ public class CalcitePPLSortIT extends CalcitePPLIntegTestCase {
             String.format(
                 "source=%s | sort - account_number | fields account_number, firstname",
                 TEST_INDEX_BANK));
-    verifySchema(actual, schema("account_number", "long"), schema("firstname", "string"));
+    verifySchema(actual, schema("account_number", "bigint"), schema("firstname", "string"));
     verifyDataRowsInOrder(
         actual,
         rows(32, "Dillard"),
@@ -157,7 +157,7 @@ public class CalcitePPLSortIT extends CalcitePPLIntegTestCase {
   public void testSortAgeAndFieldsAge() {
     JSONObject actual =
         executeQuery(String.format("source=%s | sort - age | fields age", TEST_INDEX_BANK));
-    verifySchema(actual, schema("age", "integer"));
+    verifySchema(actual, schema("age", "int"));
     verifyDataRowsInOrder(
         actual, rows(39), rows(36), rows(36), rows(34), rows(33), rows(32), rows(28));
   }
@@ -167,7 +167,7 @@ public class CalcitePPLSortIT extends CalcitePPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format("source=%s | sort - age | fields firstname, age", TEST_INDEX_BANK));
-    verifySchema(actual, schema("firstname", "string"), schema("age", "integer"));
+    verifySchema(actual, schema("firstname", "string"), schema("age", "int"));
     verifyDataRowsInOrder(
         actual,
         rows("Virginia", 39),
@@ -185,7 +185,7 @@ public class CalcitePPLSortIT extends CalcitePPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | sort - age, - firstname | fields firstname, age", TEST_INDEX_BANK));
-    verifySchema(actual, schema("firstname", "string"), schema("age", "integer"));
+    verifySchema(actual, schema("firstname", "string"), schema("age", "int"));
     verifyDataRowsInOrder(
         actual,
         rows("Virginia", 39),

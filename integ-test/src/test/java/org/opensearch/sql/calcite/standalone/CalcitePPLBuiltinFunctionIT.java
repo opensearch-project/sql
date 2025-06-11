@@ -40,8 +40,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
                     + " name, age, month",
                 TEST_INDEX_STATE_COUNTRY));
 
-    verifySchema(
-        actual, schema("name", "string"), schema("age", "integer"), schema("month", "integer"));
+    verifySchema(actual, schema("name", "string"), schema("age", "int"), schema("month", "int"));
     verifyDataRows(actual, rows("Hello", 30, 4));
   }
 
@@ -90,8 +89,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
                     + " fields name, age, month",
                 TEST_INDEX_STATE_COUNTRY));
 
-    verifySchema(
-        actual, schema("name", "string"), schema("age", "integer"), schema("month", "integer"));
+    verifySchema(actual, schema("name", "string"), schema("age", "int"), schema("month", "int"));
     verifyDataRowsInOrder(actual, rows("Hello", 30, 4), rows("Jake", 70, 4));
   }
 
@@ -139,7 +137,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
                 "source=%s | where age = ceiling(29.7) and month = floor(4.9) | fields name, age",
                 TEST_INDEX_STATE_COUNTRY));
 
-    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
+    verifySchema(actual, schema("name", "string"), schema("age", "int"));
     verifyDataRows(actual, rows("Hello", 30));
   }
 
@@ -206,7 +204,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
                     + " | fields crc_name, name",
                 TEST_INDEX_STATE_COUNTRY));
 
-    verifySchema(actual, schema("crc_name", "long"), schema("name", "string"));
+    verifySchema(actual, schema("crc_name", "bigint"), schema("name", "string"));
     verifyDataRows(actual, rows(1516115372L, "Jane"));
   }
 
@@ -230,7 +228,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
                 "source=%s | where age = floor(exp(3.41)) | fields name, age",
                 TEST_INDEX_STATE_COUNTRY));
 
-    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
+    verifySchema(actual, schema("name", "string"), schema("age", "int"));
     verifyDataRows(actual, rows("Hello", 30));
   }
 
@@ -256,7 +254,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
                 "source=%s | where mod(age, 10) = 0 | sort -age | fields name, age",
                 TEST_INDEX_STATE_COUNTRY));
 
-    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
+    verifySchema(actual, schema("name", "string"), schema("age", "int"));
 
     verifyDataRowsInOrder(actual, rows("Jake", 70), rows("Hello", 30), rows("Jane", 20));
   }
@@ -269,7 +267,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
                 "source=%s | eval f = mod(float_number, 2), n = -1 * short_number %% 2, nd = -1 *"
                     + " double_number %% 2 | fields f, n, nd",
                 TEST_INDEX_DATATYPE_NUMERIC));
-    verifySchema(actual, schema("f", "float"), schema("n", "integer"), schema("nd", "double"));
+    verifySchema(actual, schema("f", "float"), schema("n", "int"), schema("nd", "double"));
     verifyDataRows(actual, closeTo(0.2, -1, -1.1));
   }
 
@@ -284,12 +282,12 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifySchema(
         actual,
-        schema("b", "integer"),
-        schema("i", "integer"),
-        schema("l", "long"),
+        schema("b", "int"),
+        schema("i", "int"),
+        schema("l", "bigint"),
         schema("f", "float"),
         schema("d", "double"),
-        schema("s", "short"));
+        schema("s", "smallint"));
     verifyDataRows(actual, closeTo(0, 2, 1, 0.2, 1.1, 3));
   }
 
@@ -299,7 +297,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | head 1 | eval z = mod(5, 0) | fields z", TEST_INDEX_STATE_COUNTRY));
-    verifySchema(actual, schema("z", "integer"));
+    verifySchema(actual, schema("z", "int"));
     verifyDataRows(actual, rows((Object) null));
   }
 
@@ -349,7 +347,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_STATE_COUNTRY));
 
     verifySchema(
-        actual, schema("name", "string"), schema("age", "integer"), schema("thirty_one", "double"));
+        actual, schema("name", "string"), schema("age", "int"), schema("thirty_one", "double"));
     verifyDataRows(actual, rows("Hello", 30, 31));
   }
 
@@ -366,10 +364,10 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifySchema(
         actual,
-        schema("r1", "integer"),
-        schema("r2", "integer"),
-        schema("r3", "integer"),
-        schema("r4", "short"),
+        schema("r1", "int"),
+        schema("r2", "int"),
+        schema("r3", "int"),
+        schema("r4", "smallint"),
         schema("r5", "float"),
         schema("r6", "float"),
         schema("r7", "double"),
@@ -404,8 +402,8 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     verifySchema(
         actual,
         schema("r2", "double"),
-        schema("r3", "integer"),
-        schema("r4", "integer"),
+        schema("r3", "int"),
+        schema("r4", "int"),
         schema("r5", "double"),
         schema("r6", "double"));
     verifyDataRows(actual, rows(null, null, null, null, null));

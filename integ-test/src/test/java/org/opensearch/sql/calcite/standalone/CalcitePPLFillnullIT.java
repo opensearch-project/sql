@@ -34,11 +34,11 @@ public class CalcitePPLFillnullIT extends CalcitePPLIntegTestCase {
     verifySchema(
         actual,
         schema("name", "string"),
-        schema("age", "integer"),
+        schema("age", "int"),
         schema("state", "string"),
         schema("country", "string"),
-        schema("year", "integer"),
-        schema("month", "integer"));
+        schema("year", "int"),
+        schema("month", "int"));
     verifyDataRows(
         actual,
         rows("Jake", 70, "California", "USA", 2023, 4),
@@ -60,11 +60,11 @@ public class CalcitePPLFillnullIT extends CalcitePPLIntegTestCase {
     verifySchema(
         actual,
         schema("name", "string"),
-        schema("age", "integer"),
+        schema("age", "int"),
         schema("state", "string"),
         schema("country", "string"),
-        schema("year", "integer"),
-        schema("month", "integer"));
+        schema("year", "int"),
+        schema("month", "int"));
     verifyDataRows(
         actual,
         rows("Jake", 70, "California", "USA", 2023, 4),

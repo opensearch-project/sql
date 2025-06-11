@@ -49,7 +49,7 @@ public class CalcitePPLScalarSubqueryIT extends CalcitePPLIntegTestCase {
                    | fields name, count_dept
                    """,
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
-    verifySchema(result, schema("name", "string"), schema("count_dept", "long"));
+    verifySchema(result, schema("name", "string"), schema("count_dept", "bigint"));
     verifyDataRows(
         result,
         rows("Jake", 5),
@@ -74,7 +74,7 @@ public class CalcitePPLScalarSubqueryIT extends CalcitePPLIntegTestCase {
                    | fields name, count_dept
                    """,
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
-    verifySchema(result, schema("name", "string"), schema("count_dept", "long"));
+    verifySchema(result, schema("name", "string"), schema("count_dept", "bigint"));
     verifyDataRows(
         result,
         rows("Jake", 15),
@@ -102,7 +102,7 @@ public class CalcitePPLScalarSubqueryIT extends CalcitePPLIntegTestCase {
                    | fields name, count_dept
                    """,
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION, TEST_INDEX_WORK_INFORMATION));
-    verifySchema(result, schema("name", "string"), schema("count_dept", "long"));
+    verifySchema(result, schema("name", "string"), schema("count_dept", "bigint"));
     verifyDataRows(result, rows("Jane", 5), rows("Tommy", 5));
   }
 
@@ -119,7 +119,7 @@ public class CalcitePPLScalarSubqueryIT extends CalcitePPLIntegTestCase {
                    | fields name, count_dept
                    """,
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION, TEST_INDEX_WORK_INFORMATION));
-    verifySchema(result, schema("name", "string"), schema("count_dept", "long"));
+    verifySchema(result, schema("name", "string"), schema("count_dept", "bigint"));
     verifyDataRows(result, rows("Jane", 5), rows("Tommy", 5));
   }
 
@@ -138,7 +138,7 @@ public class CalcitePPLScalarSubqueryIT extends CalcitePPLIntegTestCase {
                    """,
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
-        result, schema("id", "integer"), schema("name", "string"), schema("count_dept", "long"));
+        result, schema("id", "int"), schema("name", "string"), schema("count_dept", "bigint"));
     verifyDataRows(
         result,
         rows(1000, "Jake", 1),
@@ -165,7 +165,7 @@ public class CalcitePPLScalarSubqueryIT extends CalcitePPLIntegTestCase {
                    """,
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
-        result, schema("id", "integer"), schema("name", "string"), schema("count_dept", "long"));
+        result, schema("id", "int"), schema("name", "string"), schema("count_dept", "bigint"));
     verifyDataRows(
         result,
         rows(1000, "Jake", 0),
@@ -190,7 +190,7 @@ public class CalcitePPLScalarSubqueryIT extends CalcitePPLIntegTestCase {
                    | fields id, name
                    """,
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
-    verifySchema(result, schema("id", "integer"), schema("name", "string"));
+    verifySchema(result, schema("id", "int"), schema("name", "string"));
     verifyDataRows(
         result,
         rows(1000, "Jake"),
@@ -210,7 +210,7 @@ public class CalcitePPLScalarSubqueryIT extends CalcitePPLIntegTestCase {
                    | fields id, name
                    """,
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
-    verifySchema(result, schema("id", "integer"), schema("name", "string"));
+    verifySchema(result, schema("id", "int"), schema("name", "string"));
     verifyDataRows(
         result,
         rows(1000, "Jake"),
@@ -233,7 +233,7 @@ public class CalcitePPLScalarSubqueryIT extends CalcitePPLIntegTestCase {
                    | fields id, name
                    """,
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
-    verifySchema(result, schema("id", "integer"), schema("name", "string"));
+    verifySchema(result, schema("id", "int"), schema("name", "string"));
     verifyDataRows(
         result,
         rows(1000, "Jake"),
@@ -258,7 +258,7 @@ public class CalcitePPLScalarSubqueryIT extends CalcitePPLIntegTestCase {
                    | fields id, name
                    """,
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION, TEST_INDEX_WORK_INFORMATION));
-    verifySchema(result, schema("id", "integer"), schema("name", "string"));
+    verifySchema(result, schema("id", "int"), schema("name", "string"));
     verifyDataRows(result, rows(1002, "John"), rows(1006, "Tommy"));
   }
 
@@ -277,7 +277,7 @@ public class CalcitePPLScalarSubqueryIT extends CalcitePPLIntegTestCase {
                    | fields id, name
                    """,
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION, TEST_INDEX_WORK_INFORMATION));
-    verifySchema(result, schema("id", "integer"), schema("name", "string"));
+    verifySchema(result, schema("id", "int"), schema("name", "string"));
     verifyDataRows(
         result,
         rows(1000, "Jake"),
@@ -306,7 +306,7 @@ public class CalcitePPLScalarSubqueryIT extends CalcitePPLIntegTestCase {
                     | fields id, name
                    """,
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION, TEST_INDEX_OCCUPATION));
-    verifySchema(result, schema("id", "integer"), schema("name", "string"));
+    verifySchema(result, schema("id", "int"), schema("name", "string"));
     verifyDataRows(result, rows(1000, "Jake"));
   }
 
@@ -329,7 +329,7 @@ public class CalcitePPLScalarSubqueryIT extends CalcitePPLIntegTestCase {
                    | fields o.id, o.name
                    """,
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION, TEST_INDEX_OCCUPATION));
-    verifySchema(result, schema("id", "integer"), schema("name", "string"));
+    verifySchema(result, schema("id", "int"), schema("name", "string"));
     verifyDataRows(result, rows(1000, "Jake"));
   }
 }

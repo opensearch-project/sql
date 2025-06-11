@@ -190,4 +190,8 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
       }
     }
   }
+
+  protected boolean isStandaloneTest() {
+    return false; // Override this method in subclasses if needed
+  }
 }

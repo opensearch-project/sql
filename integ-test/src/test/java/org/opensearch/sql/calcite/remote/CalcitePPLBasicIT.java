@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite.standalone;
+package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -16,13 +16,18 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
+import org.opensearch.client.ResponseException;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLBasicIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
     super.init();
+    enableCalcite();
+    disallowCalciteFallback();
+
     Request request1 = new Request("PUT", "/test/_doc/1?refresh=true");
     request1.setJsonEntity("{\"name\": \"hello\", \"age\": 20}");
     client().performRequest(request1);
@@ -42,55 +47,56 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testInvalidTable() {
-    IllegalStateException e =
-        assertThrows(IllegalStateException.class, () -> execute("source=unknown"));
-    verifyErrorMessageContains(
-        e, "OpenSearch exception [type=index_not_found_exception, reason=no such index [unknown]]");
+    Class<? extends Exception> expectedException =
+        isStandaloneTest() ? IllegalStateException.class : ResponseException.class;
+    Exception e = assertThrows(expectedException, () -> executeQuery("source=unknown"));
+    verifyErrorMessageContains(e, "no such index [unknown]");
   }
 
   @Test
-  public void testSourceQuery() {
+  public void testSourceQuery() throws IOException {
     JSONObject actual = executeQuery("source=test");
-    verifySchema(actual, schema("name", "string"), schema("age", "long"));
+    verifySchema(actual, schema("name", "string"), schema("age", "bigint"));
     verifyDataRows(actual, rows("hello", 20), rows("world", 30));
   }
 
   @Test
-  public void testMultipleSourceQuery_SameTable() {
+  public void testMultipleSourceQuery_SameTable() throws IOException {
     JSONObject actual = executeQuery("source=test, test");
-    verifySchema(actual, schema("name", "string"), schema("age", "long"));
+    verifySchema(actual, schema("name", "string"), schema("age", "bigint"));
     verifyDataRows(actual, rows("hello", 20), rows("world", 30));
   }
 
   @Test
-  public void testMultipleSourceQuery_DifferentTables() {
+  public void testMultipleSourceQuery_DifferentTables() throws IOException {
     JSONObject actual = executeQuery("source=test, test1");
     verifySchema(
-        actual, schema("name", "string"), schema("age", "long"), schema("alias", "string"));
+        actual, schema("name", "string"), schema("age", "bigint"), schema("alias", "string"));
     verifyDataRows(
         actual, rows("hello", null, 20), rows("world", null, 30), rows("HELLO", "Hello", null));
   }
 
   @Test
-  public void testIndexPatterns() {
+  public void testIndexPatterns() throws IOException {
     JSONObject actual = executeQuery("source=test*");
     verifySchema(
-        actual, schema("name", "string"), schema("age", "long"), schema("alias", "string"));
+        actual, schema("name", "string"), schema("age", "bigint"), schema("alias", "string"));
     verifyDataRows(
         actual, rows("hello", null, 20), rows("world", null, 30), rows("HELLO", "Hello", null));
   }
 
   @Test
-  public void testSourceFieldQuery() {
+  public void testSourceFieldQuery() throws IOException {
     JSONObject actual = executeQuery("source=test | fields name");
     verifySchema(actual, schema("name", "string"));
     verifyDataRows(actual, rows("hello"), rows("world"));
   }
 
   @Test
-  public void testFieldsShouldBeCaseSensitive() {
-    IllegalStateException e =
-        assertThrows(IllegalStateException.class, () -> execute("source=test | fields NAME"));
+  public void testFieldsShouldBeCaseSensitive() throws IOException {
+    Class<? extends Exception> expectedException =
+        isStandaloneTest() ? IllegalStateException.class : ResponseException.class;
+    Exception e = assertThrows(expectedException, () -> executeQuery("source=test | fields NAME"));
     verifyErrorMessageContains(
         e,
         "field [NAME] not found; input fields are: [name, age, _id, _index, _score, _maxscore,"
@@ -98,43 +104,43 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testFilterQuery1() {
+  public void testFilterQuery1() throws IOException {
     JSONObject actual = executeQuery("source=test | where age = 30 | fields name, age");
-    verifySchema(actual, schema("name", "string"), schema("age", "long"));
+    verifySchema(actual, schema("name", "string"), schema("age", "bigint"));
     verifyDataRows(actual, rows("world", 30));
   }
 
   @Test
-  public void testFilterQuery2() {
+  public void testFilterQuery2() throws IOException {
     JSONObject actual = executeQuery("source=test | where age = 20 | fields name, age");
-    verifySchema(actual, schema("name", "string"), schema("age", "long"));
+    verifySchema(actual, schema("name", "string"), schema("age", "bigint"));
     verifyDataRows(actual, rows("hello", 20));
   }
 
   @Test
-  public void testFilterQuery3() {
+  public void testFilterQuery3() throws IOException {
     JSONObject actual =
         executeQuery("source=test | where age > 10 AND age < 100 | fields name, age");
-    verifySchema(actual, schema("name", "string"), schema("age", "long"));
+    verifySchema(actual, schema("name", "string"), schema("age", "bigint"));
     verifyDataRows(actual, rows("hello", 20), rows("world", 30));
   }
 
   @Test
-  public void testFilterQuery4() {
+  public void testFilterQuery4() throws IOException {
     JSONObject actual = executeQuery("source=test | where age = 20.0 | fields name, age");
-    verifySchema(actual, schema("name", "string"), schema("age", "long"));
+    verifySchema(actual, schema("name", "string"), schema("age", "bigint"));
     verifyDataRows(actual, rows("hello", 20));
   }
 
   @Test
-  public void testRegexpFilter() {
+  public void testRegexpFilter() throws IOException {
     JSONObject actual = executeQuery("source=test | where name REGEXP 'he.*' | fields name, age");
-    verifySchema(actual, schema("name", "string"), schema("age", "long"));
+    verifySchema(actual, schema("name", "string"), schema("age", "bigint"));
     verifyDataRows(actual, rows("hello", 20));
   }
 
   @Test
-  public void testFilterOnTextField() {
+  public void testFilterOnTextField() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -145,7 +151,7 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testFilterOnTextFieldWithKeywordSubField() {
+  public void testFilterOnTextFieldWithKeywordSubField() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -155,7 +161,7 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testFilterQueryWithOr() {
+  public void testFilterQueryWithOr() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -167,7 +173,7 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testFilterQueryWithOr2() {
+  public void testFilterQueryWithOr2() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -179,20 +185,20 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testQueryMinusFields() {
+  public void testQueryMinusFields() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format("source=%s | fields - firstname, lastname, birthdate", TEST_INDEX_BANK));
     verifySchema(
         actual,
-        schema("account_number", "long"),
+        schema("account_number", "bigint"),
         schema("address", "string"),
         schema("gender", "string"),
         schema("city", "string"),
-        schema("balance", "long"),
+        schema("balance", "bigint"),
         schema("employer", "string"),
         schema("state", "string"),
-        schema("age", "integer"),
+        schema("age", "int"),
         schema("email", "string"),
         schema("male", "boolean"));
     verifyDataRows(
@@ -277,7 +283,7 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testQueryMinusFieldsWithFilter() {
+  public void testQueryMinusFieldsWithFilter() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -286,15 +292,15 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_BANK));
     verifySchema(
         actual,
-        schema("account_number", "long"),
+        schema("account_number", "bigint"),
         schema("address", "string"),
         schema("birthdate", "timestamp"),
         schema("gender", "string"),
         schema("city", "string"),
-        schema("balance", "long"),
+        schema("balance", "bigint"),
         schema("employer", "string"),
         schema("state", "string"),
-        schema("age", "integer"),
+        schema("age", "int"),
         schema("email", "string"),
         schema("male", "boolean"));
     verifyDataRows(
@@ -326,64 +332,64 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testFieldsPlusThenMinus() {
+  public void testFieldsPlusThenMinus() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
                 "source=%s | fields + firstname, lastname, account_number | fields - firstname,"
                     + " lastname",
                 TEST_INDEX_BANK));
-    verifySchema(actual, schema("account_number", "long"));
+    verifySchema(actual, schema("account_number", "bigint"));
     verifyDataRows(actual, rows(1), rows(6), rows(13), rows(18), rows(20), rows(25), rows(32));
   }
 
   @Test
-  public void testMultipleTables_SameTable() {
+  public void testMultipleTables_SameTable() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format("source=%s, %s | stats count() as c", TEST_INDEX_BANK, TEST_INDEX_BANK));
-    verifySchema(actual, schema("c", "long"));
+    verifySchema(actual, schema("c", "bigint"));
     verifyDataRows(actual, rows(7));
   }
 
   @Test
-  public void testMultipleTablesAndFilters_SameTable() {
+  public void testMultipleTablesAndFilters_SameTable() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
                 "source=%s, %s gender = 'F' | stats count() as c",
                 TEST_INDEX_BANK, TEST_INDEX_BANK));
-    verifySchema(actual, schema("c", "long"));
+    verifySchema(actual, schema("c", "bigint"));
     verifyDataRows(actual, rows(3));
   }
 
   @Test
-  public void testMultipleTables_DifferentTables() {
+  public void testMultipleTables_DifferentTables() throws IOException {
     JSONObject actual =
         executeQuery(String.format("source=%s, test | stats count() as c", TEST_INDEX_BANK));
-    verifySchema(actual, schema("c", "long"));
+    verifySchema(actual, schema("c", "bigint"));
     verifyDataRows(actual, rows(9));
   }
 
   @Test
-  public void testMultipleTables_WithIndexPattern() {
+  public void testMultipleTables_WithIndexPattern() throws IOException {
     JSONObject actual =
         executeQuery(String.format("source=%s, test* | stats count() as c", TEST_INDEX_BANK));
-    verifySchema(actual, schema("c", "long"));
+    verifySchema(actual, schema("c", "bigint"));
     verifyDataRows(actual, rows(10));
   }
 
   @Test
-  public void testMultipleTablesAndFilters_WithIndexPattern() {
+  public void testMultipleTablesAndFilters_WithIndexPattern() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format("source=%s, test* gender = 'F' | stats count() as c", TEST_INDEX_BANK));
-    verifySchema(actual, schema("c", "long"));
+    verifySchema(actual, schema("c", "bigint"));
     verifyDataRows(actual, rows(3));
   }
 
   @Test
-  public void testSelectDateTypeField() {
+  public void testSelectDateTypeField() throws IOException {
     JSONObject actual =
         executeQuery(String.format("source=%s | fields birthdate", TEST_INDEX_BANK));
     verifySchema(actual, schema("birthdate", "timestamp"));
@@ -410,54 +416,56 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testBetween() {
+  public void testBetween() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
                 "source=%s | where age between 35 and 38 | fields firstname, age",
                 TEST_INDEX_BANK));
-    verifySchema(actual, schema("firstname", "string"), schema("age", "integer"));
+    verifySchema(actual, schema("firstname", "string"), schema("age", "int"));
     verifyDataRows(actual, rows("Hattie", 36), rows("Elinor", 36));
   }
 
   @Test
-  public void testBetweenWithExpression() {
+  public void testBetweenWithExpression() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
                 "source=%s | where age between 36 - 1 and 37 + 1 | fields firstname, age",
                 TEST_INDEX_BANK));
-    verifySchema(actual, schema("firstname", "string"), schema("age", "integer"));
+    verifySchema(actual, schema("firstname", "string"), schema("age", "int"));
     verifyDataRows(actual, rows("Hattie", 36), rows("Elinor", 36));
   }
 
   @Test
-  public void testBetweenWithDifferentTypes() {
+  public void testBetweenWithDifferentTypes() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
                 "source=%s | where age between 35.5 and 38.5 | fields firstname, age",
                 TEST_INDEX_BANK));
-    verifySchema(actual, schema("firstname", "string"), schema("age", "integer"));
+    verifySchema(actual, schema("firstname", "string"), schema("age", "int"));
     verifyDataRows(actual, rows("Hattie", 36), rows("Elinor", 36));
   }
 
   @Test
-  public void testBetweenWithDifferentTypes2() {
+  public void testBetweenWithDifferentTypes2() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
                 "source=%s | where age between 35 and 38.5 | fields firstname, age",
                 TEST_INDEX_BANK));
-    verifySchema(actual, schema("firstname", "string"), schema("age", "integer"));
+    verifySchema(actual, schema("firstname", "string"), schema("age", "int"));
     verifyDataRows(actual, rows("Hattie", 36), rows("Elinor", 36));
   }
 
   @Test
   public void testBetweenWithIncompatibleTypes() {
-    SemanticCheckException e =
+    Class<? extends Exception> expectedException =
+        isStandaloneTest() ? SemanticCheckException.class : ResponseException.class;
+    Exception e =
         assertThrows(
-            SemanticCheckException.class,
+            expectedException,
             () ->
                 executeQuery(
                     String.format(
@@ -467,47 +475,44 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testNotBetween() {
+  public void testNotBetween() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
                 "source=%s | where age not between 30 and 39 | fields firstname, age",
                 TEST_INDEX_BANK));
-    verifySchema(actual, schema("firstname", "string"), schema("age", "integer"));
+    verifySchema(actual, schema("firstname", "string"), schema("age", "int"));
     verifyDataRows(actual, rows("Nanette", 28));
   }
 
   @Test
-  public void testNotBetween2() {
+  public void testNotBetween2() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
                 "source=%s | where not age between 30 and 39 | fields firstname, age",
                 TEST_INDEX_BANK));
-    verifySchema(actual, schema("firstname", "string"), schema("age", "integer"));
+    verifySchema(actual, schema("firstname", "string"), schema("age", "int"));
     verifyDataRows(actual, rows("Nanette", 28));
   }
 
   @Test
-  public void testNotBetween3() {
+  public void testNotBetween3() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
                 "source=%s | where not age not between 35 and 38 | fields firstname, age",
                 TEST_INDEX_BANK));
-    verifySchema(actual, schema("firstname", "string"), schema("age", "integer"));
+    verifySchema(actual, schema("firstname", "string"), schema("age", "int"));
     verifyDataRows(actual, rows("Hattie", 36), rows("Elinor", 36));
   }
 
-  public void testDateBetween() {
+  public void testDateBetween() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
-                """
-                    source=%s
-                    | where birthdate between date('2018-06-01') and date('2018-06-30')
-                    | fields firstname, birthdate
-                    """,
+                "source=%s | where birthdate between date('2018-06-01') and date('2018-06-30') |"
+                    + " fields firstname, birthdate",
                 TEST_INDEX_BANK));
     verifySchema(actual, schema("firstname", "string"), schema("birthdate", "timestamp"));
     verifyDataRows(
@@ -515,7 +520,7 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testXor() {
+  public void testXor() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -526,11 +531,13 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testKeepThrowCalciteException() throws IOException {
+    Class<? extends Exception> expectedException =
+        isStandaloneTest() ? IllegalArgumentException.class : ResponseException.class;
     withFallbackEnabled(
         () -> {
-          IllegalArgumentException e =
+          Exception e =
               assertThrows(
-                  IllegalArgumentException.class,
+                  expectedException,
                   () ->
                       executeQuery(
                           String.format("source=%s | fields firstname1, age", TEST_INDEX_BANK)));
@@ -544,18 +551,18 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testAliasDataType() {
+  public void testAliasDataType() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
                 "source=%s | where alias_col > 1 | fields original_col, alias_col ",
                 TEST_INDEX_ALIAS));
-    verifySchema(result, schema("original_col", "integer"), schema("alias_col", "integer"));
+    verifySchema(result, schema("original_col", "int"), schema("alias_col", "int"));
     verifyDataRows(result, rows(2, 2), rows(3, 3));
   }
 
   @Test
-  public void testMetaFieldAlias() {
+  public void testMetaFieldAlias() throws IOException {
     Exception e =
         assertThrows(
             Exception.class,
@@ -566,7 +573,7 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testFieldsMergedObject() {
+  public void testFieldsMergedObject() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -580,8 +587,8 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
         schema("machine.os2", "string"),
         schema("machine_array.os1", "string"),
         schema("machine_array.os2", "string"),
-        schema("machine_deep.attr1", "long"),
-        schema("machine_deep.attr2", "long"),
+        schema("machine_deep.attr1", "bigint"),
+        schema("machine_deep.attr2", "bigint"),
         schema("machine_deep.layer.os1", "string"),
         schema("machine_deep.layer.os2", "string"));
     verifyDataRows(
@@ -590,7 +597,7 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
         rows(null, "linux", null, "linux", null, 2, null, "os2"));
   }
 
-  public void testNumericLiteral() {
+  public void testNumericLiteral() throws IOException {
     JSONObject result =
         executeQuery(
             "source=test | eval decimalLiteral = 0.06 - 0.01, doubleLiteral = 0.06d - 0.01d,"
@@ -598,7 +605,7 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
     verifySchema(
         result,
         schema("name", "string"),
-        schema("age", "long"),
+        schema("age", "bigint"),
         schema("decimalLiteral", "double"),
         schema("doubleLiteral", "double"),
         schema("floatLiteral", "float"));
@@ -609,7 +616,7 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testDecimalLiteral() {
+  public void testDecimalLiteral() throws IOException {
     JSONObject result =
         executeQuery(
             "source=test | eval r1 = 22 / 7.0, r2 = 22 / 7.0d, r3 = 22.0 / 7, r4 = 22.0d / 7,"

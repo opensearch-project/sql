@@ -65,12 +65,12 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
     verifySchema(
         actual,
         schema("name", "string"),
-        schema("age", "integer"),
+        schema("age", "int"),
         schema("state", "string"),
         schema("country", "string"),
         schema("occupation", "string"),
         schema("b.country", "string"),
-        schema("salary", "integer"));
+        schema("salary", "int"));
     verifyDataRows(
         actual,
         rows("Jake", 70, "California", "USA", "Engineer", "England", 100000),
@@ -94,12 +94,12 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
     verifySchema(
         actual,
         schema("name", "string"),
-        schema("age", "integer"),
+        schema("age", "int"),
         schema("state", "string"),
         schema("country", "string"),
         schema("occupation", "string"),
         schema("b.country", "string"),
-        schema("salary", "integer"));
+        schema("salary", "int"));
     verifyDataRows(
         actual,
         rows("Hello", 30, "New York", "USA", "Artist", "USA", 70000),
@@ -121,12 +121,12 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
     verifySchema(
         actual,
         schema("name", "string"),
-        schema("age", "integer"),
+        schema("age", "int"),
         schema("state", "string"),
         schema("country", "string"),
         schema("occupation", "string"),
         schema("b.country", "string"),
-        schema("salary", "integer"));
+        schema("salary", "int"));
     verifyDataRows(
         actual,
         rows("John", 25, "Ontario", "Canada", "Doctor", "Canada", 120000),
@@ -141,7 +141,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
                 "source = %s | inner join left=a, right=b ON a.name = b.name %s | stats avg(salary)"
                     + " by span(age, 10) as age_span",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    verifySchema(actual, schema("avg(salary)", "double"), schema("age_span", "integer"));
+    verifySchema(actual, schema("avg(salary)", "double"), schema("age_span", "int"));
     verifyDataRows(
         actual, rows(105000.0, 20), rows(70000.0, 30), rows(60000.0, 40), rows(100000.0, 70));
   }
@@ -157,7 +157,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
     verifySchema(
         actual,
         schema("avg(salary)", "double"),
-        schema("age_span", "integer"),
+        schema("age_span", "int"),
         schema("b.country", "string"));
     verifyDataRows(
         actual,
@@ -180,7 +180,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
     verifySchema(
         actual,
         schema("avg(salary)", "double"),
-        schema("age_span", "integer"),
+        schema("age_span", "int"),
         schema("b.country", "string"));
     verifyDataRows(
         actual,
@@ -202,12 +202,12 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
     verifySchema(
         actual,
         schema("name", "string"),
-        schema("age", "integer"),
+        schema("age", "int"),
         schema("state", "string"),
         schema("country", "string"),
         schema("occupation", "string"),
         schema("b.country", "string"),
-        schema("salary", "integer"));
+        schema("salary", "int"));
     verifyDataRowsInOrder(
         actual,
         rows("Jane", 20, "Quebec", "Canada", "Scientist", "Canada", 90000),
@@ -229,12 +229,12 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
     verifySchema(
         actual,
         schema("name", "string"),
-        schema("age", "integer"),
+        schema("age", "int"),
         schema("state", "string"),
         schema("country", "string"),
         schema("occupation", "string"),
         schema("b.country", "string"),
-        schema("salary", "integer"));
+        schema("salary", "int"));
     verifyDataRowsInOrder(
         actual,
         rows("Jane", 20, "Quebec", "Canada", "Scientist", "Canada", 90000),
@@ -258,9 +258,9 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
         schema("name", "string"),
         schema("country", "string"),
         schema("state", "string"),
-        schema("month", "integer"),
-        schema("year", "integer"),
-        schema("age", "integer"));
+        schema("month", "int"),
+        schema("year", "int"),
+        schema("age", "int"));
     verifyDataRowsInOrder(
         actual,
         rows("Jane", "Canada", "Quebec", 4, 2023, 20),
@@ -280,9 +280,9 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
         schema("name", "string"),
         schema("country", "string"),
         schema("state", "string"),
-        schema("month", "integer"),
-        schema("year", "integer"),
-        schema("age", "integer"));
+        schema("month", "int"),
+        schema("year", "int"),
+        schema("age", "int"));
     verifyDataRowsInOrder(
         actual,
         rows("Jim", "Canada", "B.C", 4, 2023, 27),
@@ -298,7 +298,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
                 "source = %s | where country = 'Canada' OR country = 'England' | join left=a,"
                     + " right=b %s | sort a.age | stats count()",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    verifySchema(actual, schema("count()", "long"));
+    verifySchema(actual, schema("count()", "bigint"));
     verifyDataRowsInOrder(actual, rows(30));
   }
 
@@ -315,12 +315,12 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
     verifySchema(
         actual,
         schema("name", "string"),
-        schema("age", "integer"),
+        schema("age", "int"),
         schema("state", "string"),
         schema("country", "string"),
         schema("occupation", "string"),
         schema("b.country", "string"),
-        schema("salary", "integer"));
+        schema("salary", "int"));
     verifyDataRows(
         actual,
         rows("Jake", 70, "California", "USA", "Engineer", "England", 100000),
@@ -729,7 +729,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
     verifySchema(
         actual,
         schema("avg(salary)", "double"),
-        schema("age_span", "integer"),
+        schema("age_span", "int"),
         schema("b.country", "string"));
     verifyDataRowsInOrder(actual, rows(70000.0, 30, "USA"), rows(100000, 70, "England"));
   }
@@ -757,7 +757,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
     verifySchema(
         actual,
         schema("b.country", "string"),
-        schema("age_span", "integer"),
+        schema("age_span", "int"),
         schema("avg(salary)", "double"));
     verifyDataRows(
         actual, rows(70000.0, 30, "USA"), rows(null, 40, null), rows(100000, 70, "England"));

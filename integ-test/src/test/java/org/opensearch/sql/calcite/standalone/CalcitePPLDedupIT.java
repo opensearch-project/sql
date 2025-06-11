@@ -249,7 +249,7 @@ public class CalcitePPLDedupIT extends CalcitePPLIntegTestCase {
         actual1,
         schema("name", null, "string"),
         schema("category", null, "string"),
-        schema("id", null, "integer"));
+        schema("id", null, "int"));
     JSONObject actual2 =
         executeQuery(
             String.format(
@@ -261,7 +261,7 @@ public class CalcitePPLDedupIT extends CalcitePPLIntegTestCase {
         actual2,
         schema("name", null, "string"),
         schema("category", null, "string"),
-        schema("id", null, "integer"));
+        schema("id", null, "int"));
     JSONObject actual3 =
         executeQuery(
             String.format(
@@ -273,7 +273,7 @@ public class CalcitePPLDedupIT extends CalcitePPLIntegTestCase {
         actual3,
         schema("name", null, "string"),
         schema("category", null, "string"),
-        schema("id", null, "integer"));
+        schema("id", null, "int"));
     JSONObject actual4 =
         executeQuery(
             String.format(
@@ -285,6 +285,6 @@ public class CalcitePPLDedupIT extends CalcitePPLIntegTestCase {
         actual4,
         schema("name", null, "string"),
         schema("category", null, "string"),
-        schema("id", null, "integer"));
+        schema("id", null, "int"));
   }
 }
