@@ -1,12 +1,12 @@
 {
-  bash: [
+  "bash": [
     "user/ppl/interfaces/endpoint.rst",
     "user/ppl/interfaces/protocol.rst",
     "user/ppl/admin/settings.rst",
     "user/optimization/optimization.rst",
     "user/admin/settings.rst"
   ],
-  ppl_cli: [
+  "ppl_cli": [
     "user/ppl/cmd/ad.rst",
     "user/ppl/cmd/dedup.rst",
     "user/ppl/cmd/describe.rst",
@@ -42,7 +42,7 @@
     "user/ppl/functions/relevance.rst",
     "user/ppl/functions/string.rst"
   ],
-  sql_cli: [
+  "sql_cli": [
     "user/dql/expressions.rst",
     "user/general/comments.rst",
     "user/general/datatypes.rst",

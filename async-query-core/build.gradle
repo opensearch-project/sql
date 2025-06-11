@@ -84,13 +84,13 @@ spotless {
     }
 }
 
-//test {
-//    useJUnitPlatform()
-//    testLogging {
-//        events "skipped", "failed"
-//        exceptionFormat "full"
-//    }
-//}
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "skipped", "failed"
+        exceptionFormat "full"
+    }
+}
 
 jacocoTestReport {
     reports {

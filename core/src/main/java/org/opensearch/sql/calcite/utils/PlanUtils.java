@@ -21,7 +21,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.rex.RexWindowBound;
@@ -330,15 +329,5 @@ public interface PlanUtils {
           }
         };
     node.accept(leafVisitor, null);
-  }
-
-  /**
-   * Extract the integer value from a RexNode, which is used to extract value from offset and limit
-   *
-   * @param r RexNode to extract value from
-   * @param defaultValue default value could be Integer or null
-   */
-  static Integer intValue(RexNode r, Integer defaultValue) {
-    return r instanceof RexLiteral ? ((RexLiteral) r).getValueAs(Integer.class) : defaultValue;
   }
 }
