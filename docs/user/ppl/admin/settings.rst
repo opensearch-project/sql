@@ -166,9 +166,25 @@ plugins.query.system_limit
 Description
 -----------
 
-The size configures the maximum amount of documents to be pull from OpenSearch for data-intensive operations (e.g. join, lookup). The default value is: 50000.
+The size configures the maximum of rows in the subsearch to data-intensive operations against (e.g. join, lookup). The default value is: 50000. Value range is from 0 to 2147483647 (Int.MaxValue).
 
-Since v3.0.0, PPL introduces commands that may increase data volume. To prevent out-of-memory problem, the system automatically enforces this ``system limit`` in the pushdown context of the physical index scan operator for data-intensive operations.
+Since v3.0.0, PPL introduces commands that may increase data volume. To prevent out-of-memory problem, the system automatically add a ``LogicalSystemLimit`` in plan for data-intensive operations.
+
+PPL commands includes ``join``, ``lookup`` and ``expand`` will be affected by this configuration. In future, we can add more command argument to control specific command.
+
+For Join, with join type
+
+* SEMI, ANTI: no affect
+* RIGHT: add a LogicalSystemLimit operator to left side (main-search)
+* Others: add a LogicalSystemLimit operator to right side (sub-search)
+
+For Lookup
+
+* add a LogicalSystemLimit operator to right side (sub-search)
+
+For expand
+
+* add a LogicalSystemLimit operator to right side (sub-search)
 
 Version
 -------
@@ -177,17 +193,17 @@ Version
 Example
 -------
 
-Change the system_limit to 10000::
+Change the system_limit to 2147483647 (max)::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
     ... -X PUT localhost:9200/_plugins/_query/settings \
-    ... -d '{"persistent" : {"plugins.query.system_limit" : "10000"}}'
+    ... -d '{"persistent" : {"plugins.query.system_limit" : "2147483647"}}'
     {
       "acknowledged": true,
       "persistent": {
         "plugins": {
           "query": {
-            "system_limit": "10000"
+            "system_limit": "2147483647"
           }
         }
       },

@@ -40,7 +40,7 @@ public class CalciteSettingsIT extends SettingsIT {
 
   @Test
   public void testQuerySystemLimit() throws IOException {
-    // system limit won't impact data-intensive operations
+    // system limit only impact data-intensive operations
     setQuerySystemLimit(2);
     JSONObject result =
         executeQuery(String.format("search source=%s age>35 | fields firstname", TEST_INDEX_BANK));
@@ -75,7 +75,7 @@ public class CalciteSettingsIT extends SettingsIT {
                     + " | full join left=l right=r on l.firstname=r.firstname"
                     + " [ search source=%s | fields firstname ]",
                 TEST_INDEX_BANK, TEST_INDEX_BANK));
-    verifyNumOfRows(result, 3);
+    verifyNumOfRows(result, 4);
 
     // amount of final result should equals to query.size_limit
     setQuerySizeLimit(1);
