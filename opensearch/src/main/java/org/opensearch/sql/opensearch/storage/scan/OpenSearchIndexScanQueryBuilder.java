@@ -67,9 +67,9 @@ class OpenSearchIndexScanQueryBuilder implements PushDownQueryBuilder {
       // can cover this case.
       // It will fail if catching SyntaxCheckException here and keep using v2 engine.
       if (LOG.isDebugEnabled()) {
-        LOG.debug("Cannot pushdown the filter condition: {}", queryCondition, e);
+        LOG.debug("Cannot pushdown the filter condition.", e);
       } else {
-        LOG.info("Cannot pushdown the filter condition: {}, ", queryCondition);
+        LOG.info("Cannot pushdown the filter condition.");
       }
       return false;
     }
