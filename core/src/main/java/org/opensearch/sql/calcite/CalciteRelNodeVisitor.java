@@ -6,6 +6,8 @@
 package org.opensearch.sql.calcite;
 
 import static org.apache.calcite.sql.SqlKind.AS;
+import static org.opensearch.sql.ast.tree.Join.JoinType.ANTI;
+import static org.opensearch.sql.ast.tree.Join.JoinType.SEMI;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_FIRST;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_DESC;
@@ -650,8 +652,42 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         node.getJoinCondition()
             .map(c -> rexVisitor.analyzeJoinCondition(c, context))
             .orElse(context.relBuilder.literal(true));
-    context.relBuilder.join(
-        JoinAndLookupUtils.translateJoinType(node.getJoinType()), joinCondition);
+    if (node.getJoinType() == SEMI || node.getJoinType() == ANTI) {
+      // semi and anti join only return left table outputs
+      context.relBuilder.join(
+          JoinAndLookupUtils.translateJoinType(node.getJoinType()), joinCondition);
+    } else {
+      // Join condition could contain duplicated column name, Calcite will rename the duplicated
+      // column name with numeric suffix, e.g. ON t1.id = t2.id, the output contains `id` and `id0`
+      // when a new project add to stack. To avoid `id0`, we will rename the `id0` to `alias.id`
+      // or `tableIdentifier.id`:
+      List<String> leftColumns = context.relBuilder.peek(1).getRowType().getFieldNames();
+      List<String> rightColumns = context.relBuilder.peek().getRowType().getFieldNames();
+      List<String> rightTableName =
+          PlanUtils.findTable(context.relBuilder.peek()).getQualifiedName();
+      // Using `table.column` instead of `catalog.database.table.column` as column prefix because
+      // the schema for OpenSearch index is always `OpenSearch`. But if we reuse this logic in other
+      // query engines, the column can only be searched in current schema namespace. For example,
+      // If the plan convert to Spark plan, and there are two table1: database1.table1 and
+      // database2.table1. The query with column `table1.id` can only be resolved in the namespace
+      // of "database1". User should run `using database1` before the query which access `table1.id`
+      String rightTableQualifiedName = rightTableName.getLast();
+      // new columns with alias or table;
+      List<String> rightColumnsWithAliasIfConflict =
+          rightColumns.stream()
+              .map(
+                  col ->
+                      leftColumns.contains(col)
+                          ? node.getRightAlias()
+                              .map(a -> a + "." + col)
+                              .orElse(rightTableQualifiedName + "." + col)
+                          : col)
+              .toList();
+      context.relBuilder.join(
+          JoinAndLookupUtils.translateJoinType(node.getJoinType()), joinCondition);
+      JoinAndLookupUtils.renameToExpectedFields(
+          rightColumnsWithAliasIfConflict, leftColumns.size(), context);
+    }
     return context.relBuilder.peek();
   }
 

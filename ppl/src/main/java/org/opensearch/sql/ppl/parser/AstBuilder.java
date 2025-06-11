@@ -496,8 +496,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   /** Lookup command */
   @Override
   public UnresolvedPlan visitLookupCommand(OpenSearchPPLParser.LookupCommandContext ctx) {
-    Relation lookupRelation =
-        new Relation(Collections.singletonList(this.internalVisitExpression(ctx.tableSource())));
+    Relation lookupRelation = new Relation(this.internalVisitExpression(ctx.tableSource()));
     Lookup.OutputStrategy strategy =
         ctx.APPEND() != null ? Lookup.OutputStrategy.APPEND : Lookup.OutputStrategy.REPLACE;
     java.util.Map<String, String> mappingAliasMap =
@@ -702,6 +701,12 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   private UnresolvedPlan projectExceptMeta(UnresolvedPlan plan) {
     if ((plan instanceof Project) && !((Project) plan).isExcluded()) {
       return plan;
+    } else if (plan instanceof SubqueryAlias subqueryAlias) {
+      // don't wrap subquery alias with project, wrap its child
+      return new SubqueryAlias(
+          subqueryAlias.getAlias(),
+          new Project(ImmutableList.of(AllFieldsExcludeMeta.of()))
+              .attach(subqueryAlias.getChild().getFirst()));
     } else {
       return new Project(ImmutableList.of(AllFieldsExcludeMeta.of())).attach(plan);
     }
