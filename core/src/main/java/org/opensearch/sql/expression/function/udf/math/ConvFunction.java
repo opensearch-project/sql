@@ -57,7 +57,7 @@ public class ConvFunction extends ImplementorUDF {
       Expression toBase = translatedOperands.get(2);
       if (numberType.getFamily() == SqlTypeFamily.NUMERIC) {
         // Convert the first operand to String
-        number = Expressions.call(Object.class, "toString", number);
+        number = Expressions.call(Expressions.box(number), "toString");
       }
       return Expressions.call(ConvImplementor.class, "conv", number, fromBase, toBase);
     }
