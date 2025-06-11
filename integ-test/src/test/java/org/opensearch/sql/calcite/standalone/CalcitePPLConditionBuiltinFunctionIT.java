@@ -13,11 +13,15 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
     super.init();
+    enableCalcite();
+    disallowCalciteFallback();
+
     loadIndex(Index.STATE_COUNTRY);
     loadIndex(Index.STATE_COUNTRY_WITH_NULL);
     loadIndex(Index.CALCS);
@@ -35,7 +39,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
   }
 
   @Test
-  public void testIsNull() {
+  public void testIsNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -47,7 +51,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
   }
 
   @Test
-  public void testIsNotNull() {
+  public void testIsNotNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -68,7 +72,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
   }
 
   @Test
-  public void testNullIf() {
+  public void testNullIf() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -90,7 +94,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
   }
 
   @Test
-  public void testNullIfWithExpression() {
+  public void testNullIfWithExpression() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -113,7 +117,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
   }
 
   @Test
-  public void testIfNull() {
+  public void testIfNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -135,7 +139,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
   }
 
   @Test
-  public void testCoalesce() {
+  public void testCoalesce() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -156,7 +160,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
   }
 
   @Test
-  public void testIf() {
+  public void testIf() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -178,7 +182,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
   }
 
   @Test
-  public void testIfWithLike() {
+  public void testIfWithLike() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -270,8 +274,8 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval now=utc_timestamp() | eval a = earliest(\"now\", now), b ="
-                    + " earliest(\"-2d@d\", now) | fields a,b | head 1",
+                "source=%s | eval now=utc_timestamp() | eval a = earliest('now', now), b ="
+                    + " earliest('-2d@d', now) | fields a,b | head 1",
                 TEST_INDEX_CALCS));
 
     verifySchema(actual, schema("a", "boolean"), schema("b", "boolean"));

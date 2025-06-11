@@ -1,14 +1,17 @@
 /*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
+ *
+ *  * Copyright OpenSearch Contributors
+ *  * SPDX-License-Identifier: Apache-2.0
+ *
  */
 
-package org.opensearch.sql.calcite.standalone;
+package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NONNUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY_WITH_NULL;
+import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -18,11 +21,15 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CalcitePPLCastFunctionIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
     super.init();
+    enableCalcite();
+    disallowCalciteFallback();
+
     loadIndex(Index.STATE_COUNTRY);
     loadIndex(Index.STATE_COUNTRY_WITH_NULL);
     loadIndex(Index.DATA_TYPE_NUMERIC);
@@ -30,7 +37,7 @@ public class CalcitePPLCastFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCast() {
+  public void testCast() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -42,7 +49,7 @@ public class CalcitePPLCastFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCastOverriding() {
+  public void testCastOverriding() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -56,7 +63,7 @@ public class CalcitePPLCastFunctionIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testCastToUnknownType() {
-    assertThrows(
+    assertThrowsWithReplace(
         SyntaxCheckException.class,
         () ->
             executeQuery(
@@ -66,7 +73,7 @@ public class CalcitePPLCastFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testChainedCast() {
+  public void testChainedCast() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -80,14 +87,14 @@ public class CalcitePPLCastFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCastNullValues() {
-    String actual =
-        execute(
+  public void testCastNullValues() throws IOException {
+    JSONObject actual =
+        executeQuery(
             String.format(
                 "source=%s | eval a = cast(state as string) | fields a",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
-    assertEquals(
+    assertJsonEquals(
         "{\n"
             + "  \"schema\": [\n"
             + "    {\n"
@@ -118,17 +125,17 @@ public class CalcitePPLCastFunctionIT extends CalcitePPLIntegTestCase {
             + "  \"total\": 6,\n"
             + "  \"size\": 6\n"
             + "}",
-        actual);
+        actual.toString());
   }
 
   @Test
-  public void testCastToUnsupportedType() {
-    String actual =
-        execute(
+  public void testCastToUnsupportedType() throws IOException {
+    JSONObject actual =
+        executeQuery(
             String.format(
                 "source=%s | eval a = cast(name as boolean) | fields a", TEST_INDEX_STATE_COUNTRY));
 
-    assertEquals(
+    assertJsonEquals(
         "{\n"
             + "  \"schema\": [\n"
             + "    {\n"
@@ -153,11 +160,11 @@ public class CalcitePPLCastFunctionIT extends CalcitePPLIntegTestCase {
             + "  \"total\": 4,\n"
             + "  \"size\": 4\n"
             + "}",
-        actual);
+        actual.toString());
   }
 
   @Test
-  public void testCastLiteralToBoolean() {
+  public void testCastLiteralToBoolean() throws IOException {
     // In OpenSearch V2:
     // POST /_plugins/_ppl
     // {
@@ -210,12 +217,12 @@ public class CalcitePPLCastFunctionIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(actual, rows(true));
 
-    String actualString =
-        execute(
+    actual =
+        executeQuery(
             String.format(
                 "source=%s | eval a = cast('2' as boolean) | fields a | head 1",
                 TEST_INDEX_DATATYPE_NUMERIC));
-    assertEquals(
+    assertJsonEquals(
         ""
             + "{\n"
             + "  \"schema\": [\n"
@@ -232,7 +239,7 @@ public class CalcitePPLCastFunctionIT extends CalcitePPLIntegTestCase {
             + "  \"total\": 1,\n"
             + "  \"size\": 1\n"
             + "}",
-        actualString);
+        actual.toString());
 
     actual =
         executeQuery(
@@ -241,12 +248,12 @@ public class CalcitePPLCastFunctionIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(actual, rows(false));
 
-    actualString =
-        execute(
+    actual =
+        executeQuery(
             String.format(
                 "source=%s | eval a = cast('aa' as boolean) | fields a | head 1",
                 TEST_INDEX_DATATYPE_NUMERIC));
-    assertEquals(
+    assertJsonEquals(
         ""
             + "{\n"
             + "  \"schema\": [\n"
@@ -263,11 +270,11 @@ public class CalcitePPLCastFunctionIT extends CalcitePPLIntegTestCase {
             + "  \"total\": 1,\n"
             + "  \"size\": 1\n"
             + "}",
-        actualString);
+        actual.toString());
   }
 
   @Test
-  public void testCastINT() {
+  public void testCastINT() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -305,7 +312,7 @@ public class CalcitePPLCastFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCastLONG() {
+  public void testCastLONG() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -336,7 +343,7 @@ public class CalcitePPLCastFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCastFLOAT() {
+  public void testCastFLOAT() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -367,7 +374,7 @@ public class CalcitePPLCastFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCastDOUBLE() {
+  public void testCastDOUBLE() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -398,7 +405,7 @@ public class CalcitePPLCastFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCastBOOLEAN() {
+  public void testCastBOOLEAN() throws IOException {
     JSONObject actual;
     actual =
         executeQuery(
@@ -444,7 +451,7 @@ public class CalcitePPLCastFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCastNumericSTRING() {
+  public void testCastNumericSTRING() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(

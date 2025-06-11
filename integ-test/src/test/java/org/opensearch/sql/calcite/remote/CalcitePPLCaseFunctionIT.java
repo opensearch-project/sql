@@ -1,9 +1,11 @@
 /*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
+ *
+ *  * Copyright OpenSearch Contributors
+ *  * SPDX-License-Identifier: Apache-2.0
+ *
  */
 
-package org.opensearch.sql.calcite.standalone;
+package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -16,11 +18,15 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.legacy.TestsConstants;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CalcitePPLCaseFunctionIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
     super.init();
+    enableCalcite();
+    disallowCalciteFallback();
+
     loadIndex(Index.WEBLOG);
     appendDataForBadResponse();
   }
@@ -53,21 +59,18 @@ public class CalcitePPLCaseFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCaseWhenWithCast() {
+  public void testCaseWhenWithCast() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
-                """
-                    source=%s
-                    | eval status =
-                        case(
-                            cast(response as int) >= 200 AND cast(response as int) < 300, "Success",
-                            cast(response as int) >= 300 AND cast(response as int) < 400, "Redirection",
-                            cast(response as int) >= 400 AND cast(response as int) < 500, "Client Error",
-                            cast(response as int) >= 500 AND cast(response as int) < 600, "Server Error"
-                            else concat("Incorrect HTTP status code for", url))
-                    | where status != "Success" | fields host, method, message, bytes, response, url, status
-                    """,
+                "source=%s| eval status =    case(        cast(response as int) >= 200 AND"
+                    + " cast(response as int) < 300, 'Success',        cast(response as int) >= 300"
+                    + " AND cast(response as int) < 400, 'Redirection',        cast(response as"
+                    + " int) >= 400 AND cast(response as int) < 500, 'Client Error',       "
+                    + " cast(response as int) >= 500 AND cast(response as int) < 600, 'Server"
+                    + " Error'        else concat('Incorrect HTTP status code for', url))| where"
+                    + " status != 'Success' | fields host, method, message, bytes, response, url,"
+                    + " status",
                 TEST_INDEX_WEBLOGS));
     verifySchema(
         actual,
@@ -102,20 +105,17 @@ public class CalcitePPLCaseFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCaseWhenNoElse() {
+  public void testCaseWhenNoElse() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
-                """
-                    source=%s
-                    | eval status =
-                        case(
-                            cast(response as int) >= 200 AND cast(response as int) < 300, "Success",
-                            cast(response as int) >= 300 AND cast(response as int) < 400, "Redirection",
-                            cast(response as int) >= 400 AND cast(response as int) < 500, "Client Error",
-                            cast(response as int) >= 500 AND cast(response as int) < 600, "Server Error")
-                    | where isnull(status) OR status != "Success" | fields host, method, message, bytes, response, url, status
-                    """,
+                "source=%s| eval status =    case(        cast(response as int) >= 200 AND"
+                    + " cast(response as int) < 300, 'Success',        cast(response as int) >= 300"
+                    + " AND cast(response as int) < 400, 'Redirection',        cast(response as"
+                    + " int) >= 400 AND cast(response as int) < 500, 'Client Error',       "
+                    + " cast(response as int) >= 500 AND cast(response as int) < 600, 'Server"
+                    + " Error')| where isnull(status) OR status != 'Success' | fields host, method,"
+                    + " message, bytes, response, url, status",
                 TEST_INDEX_WEBLOGS));
     verifySchema(
         actual,
@@ -143,21 +143,16 @@ public class CalcitePPLCaseFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCaseWhenWithIn() {
+  public void testCaseWhenWithIn() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
-                """
-                    source=%s
-                    | eval status =
-                        case(
-                            response in ('200'), "Success",
-                            response in ('300', '301'), "Redirection",
-                            response in ('400', '403'), "Client Error",
-                            response in ('500', '505'), "Server Error"
-                            else concat("Incorrect HTTP status code for", url))
-                    | where status != "Success" | fields host, method, message, bytes, response, url, status
-                    """,
+                "source=%s   | eval status =       case(           response in ('200'), 'Success', "
+                    + "          response in ('300', '301'), 'Redirection',           response in"
+                    + " ('400', '403'), 'Client Error',           response in ('500', '505'),"
+                    + " 'Server Error'           else concat('Incorrect HTTP status code for',"
+                    + " url))   | where status != 'Success' | fields host, method, message, bytes,"
+                    + " response, url, status",
                 TEST_INDEX_WEBLOGS));
     verifySchema(
         actual,
@@ -192,21 +187,19 @@ public class CalcitePPLCaseFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCaseWhenInFilter() {
+  public void testCaseWhenInFilter() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
-                """
-                    source=%s
-                    | where not true =
-                        case(
-                            response in ('200'), true,
-                            response in ('300', '301'), false,
-                            response in ('400', '403'), false,
-                            response in ('500', '505'), false
-                            else false)
-                    | fields host, method, message, bytes, response, url
-                    """,
+                "source=%s"
+                    + "| where not true ="
+                    + "    case("
+                    + "        response in ('200'), true,"
+                    + "        response in ('300', '301'), false,"
+                    + "        response in ('400', '403'), false,"
+                    + "        response in ('500', '505'), false"
+                    + "        else false)"
+                    + "| fields host, method, message, bytes, response, url",
                 TEST_INDEX_WEBLOGS));
     verifySchema(
         actual,
@@ -225,24 +218,22 @@ public class CalcitePPLCaseFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCaseWhenInSubquery() {
+  public void testCaseWhenInSubquery() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
-                """
-                    source=%s
-                    | where response in [
-                        source = %s
-                        | eval new_response = case(
-                            response in ('200'), "201",
-                            response in ('300', '301'), "301",
-                            response in ('400', '403'), "403",
-                            response in ('500', '505'), "500"
-                            else concat("Incorrect HTTP status code for", url))
-                        | fields new_response
-                      ]
-                    | fields host, method, message, bytes, response, url
-                    """,
+                "source=%s"
+                    + "| where response in ["
+                    + "    source = %s"
+                    + "    | eval new_response = case("
+                    + "        response in ('200'), '201',"
+                    + "        response in ('300', '301'), '301',"
+                    + "        response in ('400', '403'), '403',"
+                    + "        response in ('500', '505'), '500'"
+                    + "        else concat('Incorrect HTTP status code for', url))"
+                    + "    | fields new_response"
+                    + "  ]"
+                    + "| fields host, method, message, bytes, response, url",
                 TEST_INDEX_WEBLOGS, TEST_INDEX_WEBLOGS));
     verifySchema(
         actual,
