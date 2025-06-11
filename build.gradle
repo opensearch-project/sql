@@ -160,6 +160,52 @@ subprojects {
         maven { url "https://ci.opensearch.org/ci/dbc/snapshots/lucene/" }
         maven { url 'https://jitpack.io' }
     }
+
+    // Publish internal modules as Maven artifacts for external use, such as by opensearch-spark and opensearch-cli.
+    def publishedModules = ['sql', 'ppl', 'core', 'opensearch', 'common', 'protocol']
+    if (publishedModules.contains(name)) {
+        apply plugin: 'java-library'
+        apply plugin: 'maven-publish'
+
+        def fullArtifactId = "unified-query-${project.name}"
+        publishing {
+            publications {
+                mavenJava(MavenPublication) {
+                    from components.java
+                    groupId = "org.opensearch.sql"
+                    artifactId = fullArtifactId
+
+                    pom {
+                        name = fullArtifactId
+                        description = "OpenSearch unified query ${project.name} module"
+                        licenses {
+                            license {
+                                name = 'The Apache License, Version 2.0'
+                                url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                            }
+                        }
+                        developers {
+                            developer {
+                                name = 'OpenSearch'
+                                url = 'https://github.com/opensearch-project/sql'
+                            }
+                        }
+                    }
+                }
+            }
+
+            repositories {
+                maven {
+                    name = "Snapshots"
+                    url = "https://aws.oss.sonatype.org/content/repositories/snapshots"
+                    credentials {
+                        username = "$System.env.SONATYPE_USERNAME"
+                        password = "$System.env.SONATYPE_PASSWORD"
+                    }
+                }
+            }
+        }
+    }
 }
 
 // TODO: fix compiler warnings
