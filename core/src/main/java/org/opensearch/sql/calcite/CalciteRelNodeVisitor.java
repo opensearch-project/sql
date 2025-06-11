@@ -671,7 +671,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       // If the plan convert to Spark plan, and there are two table1: database1.table1 and
       // database2.table1. The query with column `table1.id` can only be resolved in the namespace
       // of "database1". User should run `using database1` before the query which access `table1.id`
-      String rightTableQualifiedName = rightTableName.getLast();
+      String rightTableQualifiedName = rightTableName.get(rightTableName.size() - 1);
       // new columns with alias or table;
       List<String> rightColumnsWithAliasIfConflict =
           rightColumns.stream()
@@ -682,7 +682,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                               .map(a -> a + "." + col)
                               .orElse(rightTableQualifiedName + "." + col)
                           : col)
-              .toList();
+                  .collect(Collectors.toList());
       context.relBuilder.join(
           JoinAndLookupUtils.translateJoinType(node.getJoinType()), joinCondition);
       JoinAndLookupUtils.renameToExpectedFields(

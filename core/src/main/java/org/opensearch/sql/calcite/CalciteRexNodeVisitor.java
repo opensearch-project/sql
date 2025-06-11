@@ -288,8 +288,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
           // Similar to the step 2.3.
           List<String> candidates =
               context.relBuilder.peek(1).getRowType().getFieldNames().stream()
-                  .filter(col -> substringAfterLast(col, ".").equals(parts.getLast()))
-                  .toList();
+                  .filter(col -> substringAfterLast(col, ".").equals(parts.get(parts.size() - 1)))
+                      .collect(Collectors.toList());
           for (String candidate : candidates) {
             try {
               // field("nation2", "n2.n_name"); // pass
@@ -332,8 +332,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
         // Build the candidates which contains `n_name`: e.g. `(nation1.)n_name`, `n2.n_name`
         List<String> candidates =
             context.relBuilder.peek().getRowType().getFieldNames().stream()
-                .filter(col -> substringAfterLast(col, ".").equals(parts.getLast()))
-                .toList();
+                .filter(col -> substringAfterLast(col, ".").equals(parts.get(parts.size() - 1)))
+                    .collect(Collectors.toList());
         for (String candidate : candidates) {
           try {
             // field("nation2", "n2.n_name"); // pass
