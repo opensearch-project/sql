@@ -317,6 +317,8 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
           .toUDF("UTC_TIMESTAMP");
   public static final SqlOperator WEEK = new WeekFunction().toUDF("WEEK");
   public static final SqlOperator GROK = new GrokFunction().toUDF("GROK");
+  public static final SqlOperator PATTERN_PARSER =
+      new PatternParserFunctionImpl().toUDF("PATTERN_PARSER");
 
   public static final SqlOperator FORALL = new ForallFunctionImpl().toUDF("forall");
   public static final SqlOperator EXISTS = new ExistsFunctionImpl().toUDF("exists");

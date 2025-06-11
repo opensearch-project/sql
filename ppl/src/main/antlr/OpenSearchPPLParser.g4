@@ -179,12 +179,11 @@ patternsMethod
    ;
 
 patternsCommand
-   : PATTERNS (patternsParameter)* (source_field = expression) (pattern_method = patternMethod)*
+   : PATTERNS (source_field = expression) (statsByClause)? (METHOD EQUAL method = patternMethod)? (MODE EQUAL pattern_mode = patternMode)? (MAX_SAMPLE_COUNT EQUAL max_sample_count = integerLiteral)? (BUFFER_LIMIT EQUAL buffer_limit = integerLiteral)? (NEW_FIELD EQUAL new_field = stringLiteral)? (patternsParameter)*
    ;
 
 patternsParameter
-   : (NEW_FIELD EQUAL new_field = stringLiteral)
-   | (PATTERN EQUAL pattern = stringLiteral)
+   : (PATTERN EQUAL pattern = stringLiteral)
    | (VARIABLE_COUNT_THRESHOLD EQUAL variable_count_threshold = integerLiteral)
    | (FREQUENCY_THRESHOLD_PERCENTAGE EQUAL frequency_threshold_percentage = decimalLiteral)
    ;
@@ -193,6 +192,12 @@ patternMethod
    : SIMPLE_PATTERN
    | BRAIN
    ;
+
+patternMode
+   : LABEL
+   | AGGREGATION
+   ;
+
 // lookup
 lookupCommand
    : LOOKUP tableSource lookupMappingList ((APPEND | REPLACE) outputCandidateList)?
@@ -1158,8 +1163,11 @@ keywordsCanBeId
    | FROM
    | PATTERN
    | NEW_FIELD
+   | METHOD
    | VARIABLE_COUNT_THRESHOLD
    | FREQUENCY_THRESHOLD_PERCENTAGE
+   | MAX_SAMPLE_COUNT
+   | BUFFER_LIMIT
    | WITH
    | REGEX
    | PUNCT

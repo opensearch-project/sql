@@ -42,15 +42,14 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
-import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
-import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.PatternMethod;
+import org.opensearch.sql.ast.expression.PatternMode;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
@@ -92,6 +91,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ByClauseContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldListContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.KmeansCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LookupPairContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsByClauseContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
 
@@ -333,33 +333,14 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   }
 
   public UnresolvedPlan visitEventstatsCommand(OpenSearchPPLParser.EventstatsCommandContext ctx) {
-    ImmutableList.Builder<UnresolvedExpression> partExprListBuilder = new ImmutableList.Builder<>();
-    Optional.ofNullable(ctx.statsByClause())
-        .map(OpenSearchPPLParser.StatsByClauseContext::bySpanClause)
-        .map(this::internalVisitExpression)
-        .ifPresent(partExprListBuilder::add);
-
-    Optional.ofNullable(ctx.statsByClause())
-        .map(OpenSearchPPLParser.StatsByClauseContext::fieldList)
-        .map(
-            expr ->
-                expr.fieldExpression().stream()
-                    .map(
-                        groupCtx ->
-                            (UnresolvedExpression)
-                                new Alias(
-                                    StringUtils.unquoteIdentifier(getTextInQuery(groupCtx)),
-                                    internalVisitExpression(groupCtx)))
-                    .collect(Collectors.toList()))
-        .ifPresent(partExprListBuilder::addAll);
-
     ImmutableList.Builder<UnresolvedExpression> windownFunctionListBuilder =
         new ImmutableList.Builder<>();
     for (OpenSearchPPLParser.EventstatsAggTermContext aggCtx : ctx.eventstatsAggTerm()) {
       UnresolvedExpression windowFunction = internalVisitExpression(aggCtx.windowFunction());
       // set partition by list for window function
       if (windowFunction instanceof WindowFunction) {
-        ((WindowFunction) windowFunction).setPartitionByList(partExprListBuilder.build());
+        ((WindowFunction) windowFunction)
+            .setPartitionByList(getPartitionExprList(ctx.statsByClause()));
       }
       String name =
           aggCtx.alias == null
@@ -468,47 +449,46 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   public UnresolvedPlan visitPatternsCommand(OpenSearchPPLParser.PatternsCommandContext ctx) {
     UnresolvedExpression sourceField = internalVisitExpression(ctx.source_field);
     ImmutableMap.Builder<String, Literal> builder = ImmutableMap.builder();
-    List<UnresolvedExpression> unresolvedArguments = new ArrayList<>();
-    unresolvedArguments.add(sourceField);
+    Literal newField = null;
+    if (ctx.new_field != null) {
+      newField = (Literal) internalVisitExpression(ctx.new_field);
+      builder.put("new_field", newField);
+    }
     ctx.patternsParameter()
         .forEach(
             x -> {
               String argName = x.children.get(0).toString();
               Literal value = (Literal) internalVisitExpression(x.children.get(2));
               builder.put(argName, value);
-              unresolvedArguments.add(new Argument(argName, value));
             });
     java.util.Map<String, Literal> arguments = builder.build();
-    Literal pattern = arguments.getOrDefault("pattern", AstDSL.stringLiteral(""));
-    String newField =
-        arguments
-            .getOrDefault("new_field", AstDSL.stringLiteral("patterns_field"))
-            .getValue()
-            .toString();
     String patternMethod =
-        ctx.pattern_method != null
-            ? StringUtils.unquoteIdentifier(ctx.pattern_method.getText()).toLowerCase(Locale.ROOT)
-            : settings
-                .getSettingValue(Key.DEFAULT_PATTERN_METHOD)
-                .toString()
-                .toLowerCase(Locale.ROOT);
-    if (patternMethod.equalsIgnoreCase(PatternMethod.SIMPLE_PATTERN.getName())) {
-      /*
-       * Legacy patterns command is a subclass of Parse plan, which enables Expression pushdown as part of DSL AggregationScript.
-       * Keep this logic here until we implement pushdown with new script engine for calcite expressions.
-       * Also, there is opportunity of refactoring Parse plan as Project logical plan.
-       **/
-      return new Parse(ParseMethod.PATTERNS, sourceField, pattern, arguments);
-    } else {
-      return new Patterns(
-          new Alias(
-              newField,
-              new WindowFunction(
-                  new Function(patternMethod, unresolvedArguments),
-                  List.of(), // ignore partition by list for now as we haven't seen such requirement
-                  List.of()), // ignore sort by list for now as we haven't seen such requirement
-              newField));
-    }
+        ctx.method != null
+            ? StringUtils.unquoteIdentifier(ctx.method.getText()).toLowerCase(Locale.ROOT)
+            : settings.getSettingValue(Key.PATTERN_METHOD).toString().toLowerCase(Locale.ROOT);
+    String patternMode =
+        ctx.pattern_mode != null
+            ? StringUtils.unquoteIdentifier(ctx.pattern_mode.getText()).toLowerCase(Locale.ROOT)
+            : settings.getSettingValue(Key.PATTERN_MODE).toString().toLowerCase(Locale.ROOT);
+    Literal patternMaxSampleCount =
+        ctx.max_sample_count != null
+            ? (Literal) internalVisitExpression(ctx.max_sample_count)
+            : AstDSL.intLiteral(settings.getSettingValue(Key.PATTERN_MAX_SAMPLE_COUNT));
+    Literal patternBufferLimit =
+        ctx.buffer_limit != null
+            ? (Literal) internalVisitExpression(ctx.buffer_limit)
+            : AstDSL.intLiteral(settings.getSettingValue(Key.PATTERN_BUFFER_LIMIT));
+    List<UnresolvedExpression> partitionByList = getPartitionExprList(ctx.statsByClause());
+
+    return new Patterns(
+        sourceField,
+        partitionByList,
+        newField != null ? newField.getValue().toString() : "patterns_field",
+        PatternMethod.valueOf(patternMethod.toUpperCase(Locale.ROOT)),
+        PatternMode.valueOf(patternMode.toUpperCase(Locale.ROOT)),
+        patternMaxSampleCount,
+        patternBufferLimit,
+        arguments);
   }
 
   /** Lookup command */
@@ -708,5 +688,29 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     } else {
       return new Project(ImmutableList.of(AllFieldsExcludeMeta.of())).attach(plan);
     }
+  }
+
+  /** Get partition by expression list or group by expression list. */
+  private List<UnresolvedExpression> getPartitionExprList(StatsByClauseContext ctx) {
+    ImmutableList.Builder<UnresolvedExpression> partExprListBuilder = new ImmutableList.Builder<>();
+    Optional.ofNullable(ctx)
+        .map(OpenSearchPPLParser.StatsByClauseContext::bySpanClause)
+        .map(this::internalVisitExpression)
+        .ifPresent(partExprListBuilder::add);
+
+    Optional.ofNullable(ctx)
+        .map(OpenSearchPPLParser.StatsByClauseContext::fieldList)
+        .map(
+            expr ->
+                expr.fieldExpression().stream()
+                    .map(
+                        groupCtx ->
+                            (UnresolvedExpression)
+                                new Alias(
+                                    StringUtils.unquoteIdentifier(getTextInQuery(groupCtx)),
+                                    internalVisitExpression(groupCtx)))
+                    .collect(Collectors.toList()))
+        .ifPresent(partExprListBuilder::addAll);
+    return partExprListBuilder.build();
   }
 }
