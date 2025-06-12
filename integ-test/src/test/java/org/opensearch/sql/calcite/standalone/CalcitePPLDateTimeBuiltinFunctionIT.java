@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite.remote;
+package org.opensearch.sql.calcite.standalone;
 
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprYearweek;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.formatNow;
@@ -28,17 +28,15 @@ import java.util.List;
 import java.util.Locale;
 import org.hamcrest.Matchers;
 import org.json.JSONObject;
-import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
-import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CalcitePPLDateTimeBuiltinFunctionIT extends PPLIntegTestCase {
+public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   @Override
-  public void init() throws Exception {
+  public void init() throws IOException {
     super.init();
     enableCalcite();
     disallowCalciteFallback();
@@ -871,7 +869,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends PPLIntegTestCase {
    * LAST_DAY(DATE/STRING/TIMESTAMP/TIME) -> DATE (last day of the month as a DATE for a valid
    * argument.) MAKE_DATE(DOUBLE, DOUBLE) -> DATE (Create a date from the year and day of year.)
    */
-  @Ignore
   @Test
   public void testDayNameAndMonthNameAndMakeDate() throws IOException {
     JSONObject actual =
@@ -970,7 +967,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends PPLIntegTestCase {
    * date value given the day number N. DATETIME: (TIMESTAMP, STRING) -> TIMESTAMP (TIMESTAMP) ->
    * TIMESTAMP Converts the datetime to a new timezone
    */
-  @Ignore
   @Test
   public void testDateFormatAndDatetimeAndFromDays() throws IOException {
     JSONObject actual =
