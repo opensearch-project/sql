@@ -168,7 +168,7 @@ extract_artifact_version() {
   local extension="$3"  # jar, zip, etc.
   local snapshot_repo_url="${4:-$SNAPSHOT_REPO_URL}"
 
-  echo "Extracting ${extension} version for ${artifact_id} from metadata"
+  echo "Extracting ${extension} version for ${artifact_id} from metadata" >&2
 
   TEMP_METADATA=$(mktemp)
   META_URL="${snapshot_repo_url}org/opensearch/${artifact_id}/${version}/maven-metadata.xml"
@@ -178,14 +178,14 @@ extract_artifact_version() {
     ARTIFACT_VERSION=$(xmlstarlet sel -t -v "//snapshotVersion[extension='${extension}' and not(classifier)]/value" "${TEMP_METADATA}" | head -1)
 
     if [ -n "$ARTIFACT_VERSION" ]; then
-      echo "Latest ${extension} version for ${artifact_id}: ${ARTIFACT_VERSION}"
+      echo "Latest ${extension} version for ${artifact_id}: ${ARTIFACT_VERSION}" >&2
       echo "$ARTIFACT_VERSION"
     else
-      echo "Warning: Could not find ${extension} version in metadata for ${artifact_id}"
+      echo "Warning: Could not find ${extension} version in metadata for ${artifact_id}" >&2
       echo "$version"
     fi
   else
-    echo "Warning: Could not download or read metadata for ${artifact_id}"
+    echo "Warning: Could not download or read metadata for ${artifact_id}" >&2
     echo "$version"
   fi
 
