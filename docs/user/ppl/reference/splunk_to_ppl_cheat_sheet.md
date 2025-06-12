@@ -54,11 +54,11 @@ This table provides a mapping between Splunk SPL commands and their OpenSearch P
 
 **Time-based query:**
 - Splunk: `... earliest=-7d | timechart span=1h count BY host`
-- PPL: `... | where timestamp >= date_sub(now(), INTERVAL 1 DAY) | stats count() by span(timestamp, 1h), host`
+- PPL: `... | where earliest("-1d", timestamp) | stats count() by span(timestamp, 1h), host`
 
 **Complex calculation:**
 - Splunk: `... | eval mb=bytes/1024/1024 | stats avg(mb) AS avg_mb BY host | where avg_mb > 100`
-- PPL: `... | eval mb = bytes/1024/1024 | stats avg(mb) as avg_mb by host | where avg_mb > 100`
+- PPL: `... | eval mb=bytes/1024/1024 | stats avg(mb) as avg_mb by host | where avg_mb > 100`
 
 ## Basic Search Syntax
 
@@ -96,7 +96,7 @@ This table provides a mapping between Splunk SPL commands and their OpenSearch P
 | Count | `... \| stats count` | `... \| stats count()` | PPL requires parentheses |
 | Count by field | `... \| stats count BY field` | `... \| stats count() by field` | Similar syntax |
 | Multiple aggregations | `... \| stats count, avg(field1) BY field2` | `... \| stats count(), avg(field1) by field2` | Similar syntax |
-| Distinct count | `... \| stats dc(field)` | `... \| stats distinct_count(field)` | Function name difference |
+| Distinct count | `... \| stats dc(field)` | `... \| stats dc(field)` | Similar syntax |
 | Min/Max | `... \| stats min(field), max(field)` | `... \| stats min(field), max(field)` | Similar syntax |
 | Percentiles | `... \| stats perc95(field)` | `... \| stats percentile(field, 95)` | Different function syntax |
 
@@ -105,8 +105,8 @@ This table provides a mapping between Splunk SPL commands and their OpenSearch P
 | Operation | Splunk SPL | OpenSearch PPL | Notes |
 |-----------|------------|---------------|-------|
 | Sort ascending | `... \| sort field` | `... \| sort field` | Same syntax |
-| Sort descending | `... \| sort - field` | `... \| sort - field` | Similar syntax |
-| Sort multiple | `... \| sort field1, -field2` | `... \| sort field1, - field2` | Similar syntax |
+| Sort descending | `... \| sort - field` | `... \| sort - field` | Same syntax |
+| Sort multiple | `... \| sort field1, -field2` | `... \| sort field1, - field2` | Same syntax |
 | Limit results | `... \| head 10` | `... \| head 10` | Same syntax |
 | Get last results | `... \| tail 10` | `... \| tail 10` | Same syntax |
 
@@ -120,10 +120,13 @@ This table provides a mapping between Splunk SPL commands and their OpenSearch P
 | Search and replace mode | `... \| rex mode=sed "s/\d+//g"` | Not supported | PPL does not support the search-and-replace mode like SPL's rex with mode=sed |
 | Field override | `... \| rex field=address "(?<address>.+)"` | `... \| parse address "(?<address>.+)"` | Both support extracting to field with same name as source |
 
-## Time Functions
+## Date and Time Functions
 
 | Operation | Splunk SPL | OpenSearch PPL | Notes |
 |-----------|------------|---------------|-------|
+| Current time | `... \| eval now=now()` | `... \| eval now=now()` | Same syntax, SPL return epoch value, PPL return Returns the current date and time as a value in 'YYYY-MM-DD hh:mm:ss' format. |
+| Relative time | `... \| eval date=relative_time(now(), "-1d@d")` | `... \| eval date=relative_time(timestamp, "%Y-%m-%d")` | Different function |
+| Format time | `... \| eval date=strftime(_time, "%Y-%m-%d")` | `... \| eval date=date_format(timestamp, "%Y-%m-%d")` | Different function |
 | Relative time | `earliest=-1d latest=now()` | `earliest("-1d", timestamp) and latest("now", timestamp)` | PPL supports earliest() and latest() functions |
 | Time extraction | `... \| eval hour=strftime(_time, "%H")` | `... \| eval hour = date_format(timestamp, 'HH')` | PPL uses `date_format()` |
 | Time bucket | `... \| bin _time span=5m \| stats count by _time` | `... \| stats count() by span(@timestamp, 5m)` | PPL uses `span()` |
@@ -148,16 +151,6 @@ This table provides a mapping between Splunk SPL commands and their OpenSearch P
 | Left join | `... \| join type=left vendors [search index=vendors]` | `... \| left join vendors` | Different syntax format |
 | Join with ON clause | `... \| join type=inner left=a right=b where a.id = b.id vendors` | `... \| inner join left=a right=b ON a.id = b.id vendors` | PPL uses "ON" instead of "where" |
 | Append columns | `... \| appendcols [search source=other_index \| fields id, status]` | `... \| appendcols [source=other_index \| fields id, status]` | Similar syntax |
-
-## Field Manipulation
-
-| Operation | Splunk SPL | OpenSearch PPL | Notes |
-|-----------|------------|---------------|-------|
-| Include fields | `... \| fields field1, field2` | `... \| fields field1, field2` | Same syntax |
-| Exclude fields | `... \| fields - field3` | `... \| fields - field3` | Same syntax |
-| Rename fields | `... \| rename field1 AS new_name` | `... \| rename field1 as new_name` | PPL uses lowercase "as" |
-| Replace null values | `... \| fillnull value=0 field1, field2` | `... \| fillnull with 0 in field1, field2` | Similar syntax but different format |
-| Expand multi-value | `... \| mvexpand field1` | `... \| expand field1` | Different command name |
 
 ## Handling Null Values
 
@@ -214,17 +207,6 @@ This table provides a mapping between Splunk SPL commands and their OpenSearch P
 | Floor | `... \| eval result=floor(field)` | `... \| eval result = floor(field)` | Same syntax |
 | Power | `... \| eval result=pow(field, 2)` | `... \| eval result = pow(field, 2)` | Same syntax |
 | Square root | `... \| eval result=sqrt(field)` | `... \| eval result = sqrt(field)` | Same syntax |
-
-## Date and Time Functions
-
-| Operation | Splunk SPL | OpenSearch PPL | Notes |
-|-----------|------------|---------------|-------|
-| Current time | `... \| eval now=now()` | `... \| eval now = now()` | Same syntax |
-| Format time | `... \| eval date=strftime(_time, "%Y-%m-%d")` | `... \| eval date = date_format(timestamp, 'yyyy-MM-dd')` | Different function and format |
-| Extract part | `... \| eval month=date_part("month", _time)` | `... \| eval month = date_part('month', timestamp)` | Similar syntax |
-| Day ago | `... \| eval yesterday=relative_time(now(), "-1d")` | `... \| eval yesterday = date_sub(now(), INTERVAL 1 DAY)` | PPL uses interval syntax |
-| Day ahead | `... \| eval tomorrow=relative_time(now(), "+1d")` | `... \| eval tomorrow = date_add(now(), INTERVAL 1 DAY)` | PPL uses interval syntax |
-| Time difference | `... \| eval diff=(_time2 - _time1)` | `... \| eval diff = date_diff('second', timestamp1, timestamp2)` | PPL uses function |
 
 ## Other Functions
 
