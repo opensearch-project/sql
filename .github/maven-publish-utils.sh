@@ -221,9 +221,6 @@ update_commit_mapping() {
     echo '{"mappings":[]}' > "${MAPPING_FILE}"
   fi
 
-  # Create artifacts JSON object with detailed version info
-  ARTIFACTS_JSON="{\"${artifact_id}\": {\"base_version\": \"${version}\", \"artifact_version\": \"${ARTIFACT_VERSION}\"}}"
-
   # Add new mapping entry
   TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
@@ -231,18 +228,21 @@ update_commit_mapping() {
   TEMP_JSON="${MAPPING_DIR}/temp.json"
 
   # Use jq to add the new mapping or update existing one
+  # Pass values as strings instead of pre-built JSON to avoid escaping issues
   cat "${MAPPING_FILE}" | jq --arg commit "$commit_id" \
                             --arg timestamp "$TIMESTAMP" \
-                            --argjson artifacts "$ARTIFACTS_JSON" '
+                            --arg artifact_id "$artifact_id" \
+                            --arg base_version "$version" \
+                            --arg artifact_version "$ARTIFACT_VERSION" '
   # Look for an existing entry with this commit ID
   if (.mappings | map(select(.commit_id == $commit)) | length) == 0 then
     # No entry exists, add a new one
-    .mappings += [{"commit_id": $commit, "timestamp": $timestamp, "artifacts": $artifacts}]
+    .mappings += [{"commit_id": $commit, "timestamp": $timestamp, "artifacts": {($artifact_id): {"base_version": $base_version, "artifact_version": $artifact_version}}}]
   else
     # Update the existing entry
     .mappings = [.mappings[] | if .commit_id == $commit then
       # Update timestamp and merge artifacts
-      . + {"timestamp": $timestamp, "artifacts": (.artifacts + $artifacts)}
+      . + {"timestamp": $timestamp, "artifacts": (.artifacts + {($artifact_id): {"base_version": $base_version, "artifact_version": $artifact_version}})}
     else . end]
   end
   ' > "${TEMP_JSON}"

@@ -11,7 +11,7 @@ on:
 
 env:
   SNAPSHOT_REPO_URL: https://aws.oss.sonatype.org/content/repositories/snapshots/
-  COMMIT_MAP_FILENAME: commit-version-map.json
+  COMMIT_MAP_FILENAME: commit-history.json
 
 jobs:
   publish-grammar-files:
