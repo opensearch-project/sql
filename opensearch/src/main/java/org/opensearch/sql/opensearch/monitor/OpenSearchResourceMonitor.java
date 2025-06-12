@@ -36,6 +36,15 @@ public class OpenSearchResourceMonitor extends ResourceMonitor {
             .ignoreExceptions(OpenSearchMemoryHealthy.MemoryUsageExceedFastFailureException.class)
             .build();
     retry = Retry.of("mem", config);
+    retry
+        .getEventPublisher()
+        .onRetry(
+            event -> {
+              if (event.getNumberOfRetryAttempts() == 1) {
+                System.gc();
+                log.warn("isMemoryHealthy() failed in first retry, triggered System.gc()");
+              }
+            });
     this.memoryMonitor = memoryMonitor;
   }
 
