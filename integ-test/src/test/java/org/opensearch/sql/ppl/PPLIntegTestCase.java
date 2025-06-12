@@ -28,6 +28,12 @@ import org.opensearch.sql.legacy.SQLIntegTestCase;
 public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   private static final Logger LOG = LogManager.getLogger();
 
+  @Override
+  protected void init() throws Exception {
+    super.init();
+    updatePushdownSettings();
+  }
+
   protected JSONObject executeQuery(String query) throws IOException {
     return jsonify(executeQueryToString(query));
   }
