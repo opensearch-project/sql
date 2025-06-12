@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite.standalone;
+package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -15,16 +15,20 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CalcitePPLCryptographicFunctionIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLCryptographicFunctionIT extends PPLIntegTestCase {
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
     super.init();
+    enableCalcite();
+    disallowCalciteFallback();
+
     loadIndex(Index.STATE_COUNTRY);
   }
 
   @Test
-  public void testMd5() {
+  public void testMd5() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -37,7 +41,7 @@ public class CalcitePPLCryptographicFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSha1() {
+  public void testSha1() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -53,7 +57,7 @@ public class CalcitePPLCryptographicFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSha2() {
+  public void testSha2() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -79,7 +83,7 @@ public class CalcitePPLCryptographicFunctionIT extends CalcitePPLIntegTestCase {
   @Test
   public void testSha2WrongAlgorithmShouldThrow() {
     Throwable e =
-        assertThrows(
+        assertThrowsWithReplace(
             IllegalArgumentException.class,
             () ->
                 executeQuery(

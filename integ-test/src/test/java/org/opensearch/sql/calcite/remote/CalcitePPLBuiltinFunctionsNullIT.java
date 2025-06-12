@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite.standalone;
+package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS_WITH_NULL;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NULL_MISSING;
@@ -16,11 +16,15 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLBuiltinFunctionsNullIT extends PPLIntegTestCase {
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
     super.init();
+    enableCalcite();
+    disallowCalciteFallback();
+
     loadIndex(Index.STATE_COUNTRY);
     loadIndex(Index.STATE_COUNTRY_WITH_NULL);
     loadIndex(Index.DATE_FORMATS);
@@ -33,16 +37,15 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
     assertThrows(
         Exception.class,
         () -> {
-          JSONObject actual =
-              executeQuery(
-                  String.format(
-                      "source=%s  | eval `YEARWEEK('2020-08-26')` = YEARWEEK('2020-15-26')",
-                      TEST_INDEX_DATE_FORMATS_WITH_NULL));
+          executeQuery(
+              String.format(
+                  "source=%s  | eval `YEARWEEK('2020-08-26')` = YEARWEEK('2020-15-26')",
+                  TEST_INDEX_DATE_FORMATS_WITH_NULL));
         });
   }
 
   @Test
-  public void testYearWeekNull() {
+  public void testYearWeekNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -62,20 +65,17 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
     assertThrows(
         Exception.class,
         () -> {
-          JSONObject actual =
-              executeQuery(
-                  String.format(
-                      "source=%s  | eval a = YEAR('2020-15-26')",
-                      TEST_INDEX_DATE_FORMATS_WITH_NULL));
+          executeQuery(
+              String.format(
+                  "source=%s  | eval a = YEAR('2020-15-26')", TEST_INDEX_DATE_FORMATS_WITH_NULL));
         });
     assertThrows(
         Exception.class,
         () -> {
-          JSONObject actual =
-              executeQuery(
-                  String.format(
-                      "source=%s  | eval a = YEAR('2020-12-26 25:00:00')",
-                      TEST_INDEX_DATE_FORMATS_WITH_NULL));
+          executeQuery(
+              String.format(
+                  "source=%s  | eval a = YEAR('2020-12-26 25:00:00')",
+                  TEST_INDEX_DATE_FORMATS_WITH_NULL));
         });
   }
 
@@ -84,20 +84,17 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
     assertThrows(
         Exception.class,
         () -> {
-          JSONObject actual =
-              executeQuery(
-                  String.format(
-                      "source=%s  | eval a = WEEK('2020-15-26')",
-                      TEST_INDEX_DATE_FORMATS_WITH_NULL));
+          executeQuery(
+              String.format(
+                  "source=%s  | eval a = WEEK('2020-15-26')", TEST_INDEX_DATE_FORMATS_WITH_NULL));
         });
     assertThrows(
         Exception.class,
         () -> {
-          JSONObject actual =
-              executeQuery(
-                  String.format(
-                      "source=%s  | eval a = WEEK('2020-12-26 25:00:00')",
-                      TEST_INDEX_DATE_FORMATS_WITH_NULL));
+          executeQuery(
+              String.format(
+                  "source=%s  | eval a = WEEK('2020-12-26 25:00:00')",
+                  TEST_INDEX_DATE_FORMATS_WITH_NULL));
         });
   }
 
@@ -106,35 +103,31 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
     assertThrows(
         Exception.class,
         () -> {
-          JSONObject actual =
-              executeQuery(
-                  String.format(
-                      "source=%s  | eval a = WEEKDAY('2020-15-26')",
-                      TEST_INDEX_DATE_FORMATS_WITH_NULL));
+          executeQuery(
+              String.format(
+                  "source=%s  | eval a = WEEKDAY('2020-15-26')",
+                  TEST_INDEX_DATE_FORMATS_WITH_NULL));
         });
     assertThrows(
         Exception.class,
         () -> {
-          JSONObject actual =
-              executeQuery(
-                  String.format(
-                      "source=%s  | eval a = WEEKDAY('2020-12-26 25:00:00')",
-                      TEST_INDEX_DATE_FORMATS_WITH_NULL));
+          executeQuery(
+              String.format(
+                  "source=%s  | eval a = WEEKDAY('2020-12-26 25:00:00')",
+                  TEST_INDEX_DATE_FORMATS_WITH_NULL));
         });
 
     assertThrows(
         Exception.class,
         () -> {
-          JSONObject actual =
-              executeQuery(
-                  String.format(
-                      "source=%s  | eval a = WEEKDAY('25:00:00')",
-                      TEST_INDEX_DATE_FORMATS_WITH_NULL));
+          executeQuery(
+              String.format(
+                  "source=%s  | eval a = WEEKDAY('25:00:00')", TEST_INDEX_DATE_FORMATS_WITH_NULL));
         });
   }
 
   @Test
-  public void testWeekDayNull() {
+  public void testWeekDayNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -154,25 +147,23 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
     assertThrows(
         Exception.class,
         () -> {
-          JSONObject actual =
-              executeQuery(
-                  String.format(
-                      "source=%s  | eval a = UNIX_TIMESTAMP('2020-15-26')",
-                      TEST_INDEX_DATE_FORMATS_WITH_NULL));
+          executeQuery(
+              String.format(
+                  "source=%s  | eval a = UNIX_TIMESTAMP('2020-15-26')",
+                  TEST_INDEX_DATE_FORMATS_WITH_NULL));
         });
     assertThrows(
         Exception.class,
         () -> {
-          JSONObject actual =
-              executeQuery(
-                  String.format(
-                      "source=%s  | eval a = UNIX_TIMESTAMP('2020-12-26 25:00:00')",
-                      TEST_INDEX_DATE_FORMATS_WITH_NULL));
+          executeQuery(
+              String.format(
+                  "source=%s  | eval a = UNIX_TIMESTAMP('2020-12-26 25:00:00')",
+                  TEST_INDEX_DATE_FORMATS_WITH_NULL));
         });
   }
 
   @Test
-  public void testUnixTimestampNull() {
+  public void testUnixTimestampNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -194,25 +185,23 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
     assertThrows(
         Exception.class,
         () -> {
-          JSONObject actual =
-              executeQuery(
-                  String.format(
-                      "source=%s  | eval a = UNIX_TIMESTAMP('2020-15-26')",
-                      TEST_INDEX_DATE_FORMATS_WITH_NULL));
+          executeQuery(
+              String.format(
+                  "source=%s  | eval a = UNIX_TIMESTAMP('2020-15-26')",
+                  TEST_INDEX_DATE_FORMATS_WITH_NULL));
         });
     assertThrows(
         Exception.class,
         () -> {
-          JSONObject actual =
-              executeQuery(
-                  String.format(
-                      "source=%s  | eval a = UNIX_TIMESTAMP('2020-12-26 25:00:00')",
-                      TEST_INDEX_DATE_FORMATS_WITH_NULL));
+          executeQuery(
+              String.format(
+                  "source=%s  | eval a = UNIX_TIMESTAMP('2020-12-26 25:00:00')",
+                  TEST_INDEX_DATE_FORMATS_WITH_NULL));
         });
   }
 
   @Test
-  public void testToSecondsNull() {
+  public void testToSecondsNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -228,7 +217,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testDatetimeInvalid() {
+  public void testDatetimeInvalid() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -254,16 +243,15 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
     assertThrows(
         Exception.class,
         () -> {
-          JSONObject actual =
-              executeQuery(
-                  String.format(
-                      "source=%s  | eval a = str_to_date('01,13,2013', '%%d,%%m,%%Y')",
-                      TEST_INDEX_DATE_FORMATS_WITH_NULL));
+          executeQuery(
+              String.format(
+                  "source=%s  | eval a = str_to_date('01,13,2013', '%%d,%%m,%%Y')",
+                  TEST_INDEX_DATE_FORMATS_WITH_NULL));
         });
   }
 
   @Test
-  public void testStrTDateInvalid2() {
+  public void testStrTDateInvalid2() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -279,7 +267,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testConvertTZInvalid() {
+  public void testConvertTZInvalid() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -302,7 +290,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testAddSubDateNull() {
+  public void testAddSubDateNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -321,7 +309,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
    * <p>(TIME, DATE/TIMESTAMP/TIME) -> TIME
    */
   @Test
-  public void testAddTimeNull() {
+  public void testAddTimeNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -335,7 +323,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
 
   /** (DATE/TIMESTAMP/TIME, INTERVAL) -> TIMESTAMP */
   @Test
-  public void testDateAddSubNull() {
+  public void testDateAddSubNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -351,7 +339,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   STRING/DATE/TIMESTAMP
    */
   @Test
-  public void testDateNull() {
+  public void testDateNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -365,8 +353,8 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testDateInvalid() {
-    Exception semanticException =
-        assertThrows(
+    Throwable semanticException =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -380,7 +368,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
 
   /** STRING/TIME/TIMESTAMP -> INTEGER */
   @Test
-  public void testHourNull() {
+  public void testHourNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -392,8 +380,8 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testHourInvalid() {
-    Exception semanticException =
-        assertThrows(
+    Throwable semanticException =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -407,8 +395,8 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testDayInvalid() {
-    Exception malformMonthException =
-        assertThrows(
+    Throwable malformMonthException =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -418,8 +406,8 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
     verifyErrorMessageContains(
         malformMonthException, "date:2020-13-26 in unsupported format, please use 'yyyy-MM-dd'");
 
-    Exception dateAsTimeException =
-        assertThrows(
+    Throwable dateAsTimeException =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -432,7 +420,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testTimeInvalid() {
-    assertThrows(
+    assertThrowsWithReplace(
         SemanticCheckException.class,
         () ->
             executeQuery(
@@ -442,7 +430,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testDayOfWeekNull() {
+  public void testDayOfWeekNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -454,7 +442,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testDayOfYearNull() {
+  public void testDayOfYearNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -466,7 +454,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testExtractNull() {
+  public void testExtractNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -478,7 +466,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testFromDaysNull() {
+  public void testFromDaysNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -490,7 +478,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testFromUnixtimeNull() {
+  public void testFromUnixtimeNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -502,7 +490,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testHourOfDayNull() {
+  public void testHourOfDayNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -514,7 +502,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testLastDayNull() {
+  public void testLastDayNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -525,7 +513,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testMakedateNull() {
+  public void testMakedateNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -537,7 +525,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testMaketimeNull() {
+  public void testMaketimeNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -550,7 +538,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testAdddateNull() {
+  public void testAdddateNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -562,7 +550,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testAddtimeNull() {
+  public void testAddtimeNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -575,7 +563,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testConvertTzNull() {
+  public void testConvertTzNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -587,7 +575,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testDateAddNull() {
+  public void testDateAddNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -599,7 +587,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testDateFormatNull() {
+  public void testDateFormatNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -611,7 +599,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testDateSubNull() {
+  public void testDateSubNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -623,7 +611,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testDatediffNull() {
+  public void testDatediffNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -635,7 +623,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testDatetimeNullString() {
+  public void testDatetimeNullString() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -647,7 +635,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testDatetimeNullTimestamp() {
+  public void testDatetimeNullTimestamp() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -658,7 +646,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testDayNull() {
+  public void testDayNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -669,7 +657,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testDaynameNull() {
+  public void testDaynameNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -680,7 +668,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testDayOfMonthNull() {
+  public void testDayOfMonthNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -692,7 +680,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testMicrosecondNull() {
+  public void testMicrosecondNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -704,7 +692,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testMinuteNull() {
+  public void testMinuteNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -715,7 +703,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testMinuteOfDayNull() {
+  public void testMinuteOfDayNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -727,7 +715,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testMinuteOfHourNull() {
+  public void testMinuteOfHourNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -739,7 +727,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testMonthNull() {
+  public void testMonthNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -750,7 +738,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testMonthOfYearNull() {
+  public void testMonthOfYearNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -762,7 +750,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testMonthnameNull() {
+  public void testMonthnameNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -774,7 +762,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testPeriodAddDiffNull() {
+  public void testPeriodAddDiffNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -787,7 +775,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testQuarterNull() {
+  public void testQuarterNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -798,7 +786,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSecToTimeNull() {
+  public void testSecToTimeNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -810,7 +798,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSecondNull() {
+  public void testSecondNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -821,7 +809,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSecondOfMinuteNull() {
+  public void testSecondOfMinuteNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -833,7 +821,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testStrToDateNull() {
+  public void testStrToDateNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -844,7 +832,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSubdateNull() {
+  public void testSubdateNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -856,7 +844,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSubtimeNull() {
+  public void testSubtimeNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -869,7 +857,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testTimeNull() {
+  public void testTimeNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -880,7 +868,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testTimeFormatNull() {
+  public void testTimeFormatNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -891,7 +879,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testTimeToSecNull() {
+  public void testTimeToSecNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -902,7 +890,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testTimediffNull() {
+  public void testTimediffNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -913,7 +901,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testTimestampNull() {
+  public void testTimestampNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -925,7 +913,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testTimestampaddNull() {
+  public void testTimestampaddNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -937,7 +925,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testTimestampdiffNull() {
+  public void testTimestampdiffNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -949,7 +937,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testToDaysNull() {
+  public void testToDaysNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -960,7 +948,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testWeekNull() {
+  public void testWeekNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -971,7 +959,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testWeekdayNull() {
+  public void testWeekdayNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -982,7 +970,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testWeekOfYearNull() {
+  public void testWeekOfYearNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -994,7 +982,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testYearNull() {
+  public void testYearNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(

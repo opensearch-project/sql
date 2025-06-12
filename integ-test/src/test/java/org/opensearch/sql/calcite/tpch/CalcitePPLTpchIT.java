@@ -92,7 +92,7 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
         schema("avg_qty", "double"),
         schema("avg_price", "double"),
         schema("avg_disc", "double"),
-        schema("count_order", "long"));
+        schema("count_order", "bigint"));
     verifyDataRows(
         actual,
         rows(
@@ -150,7 +150,7 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
         schema("s_acctbal", "double"),
         schema("s_name", "string"),
         schema("n_name", "string"),
-        schema("p_partkey", "long"),
+        schema("p_partkey", "bigint"),
         schema("p_mfgr", "string"),
         schema("s_address", "string"),
         schema("s_phone", "string"),
@@ -164,10 +164,10 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
     JSONObject actual = executeQuery(ppl);
     verifySchemaInOrder(
         actual,
-        schema("l_orderkey", "long"),
+        schema("l_orderkey", "bigint"),
         schema("revenue", "double"),
         schema("o_orderdate", "timestamp"),
-        schema("o_shippriority", "integer"));
+        schema("o_shippriority", "int"));
     verifyDataRows(
         actual,
         rows(1637, 164224.9253, "1995-02-08 00:00:00", 0),
@@ -184,7 +184,8 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
   public void testQ4() {
     String ppl = loadFromFile("tpch/queries/q4.ppl");
     JSONObject actual = executeQuery(ppl);
-    verifySchemaInOrder(actual, schema("o_orderpriority", "string"), schema("order_count", "long"));
+    verifySchemaInOrder(
+        actual, schema("o_orderpriority", "string"), schema("order_count", "bigint"));
     verifyDataRows(
         actual,
         rows("1-URGENT", 9),
@@ -217,7 +218,7 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
         actual,
         schema("supp_nation", "string"),
         schema("cust_nation", "string"),
-        schema("l_year", "integer"),
+        schema("l_year", "int"),
         schema("revenue", "double"));
     verifyNumOfRows(actual, 0);
   }
@@ -225,7 +226,7 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
   public void testQ8() {
     String ppl = loadFromFile("tpch/queries/q8.ppl");
     JSONObject actual = executeQuery(ppl);
-    verifySchemaInOrder(actual, schema("o_year", "integer"), schema("mkt_share", "double"));
+    verifySchemaInOrder(actual, schema("o_year", "int"), schema("mkt_share", "double"));
     verifyDataRows(actual, rows(1995, 0.0), rows(1996, 0.0));
   }
 
@@ -236,7 +237,7 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
     verifySchemaInOrder(
         actual,
         schema("nation", "string"),
-        schema("o_year", "integer"),
+        schema("o_year", "int"),
         schema("sum_profit", "double"));
     verifyNumOfRows(actual, 60);
   }
@@ -247,7 +248,7 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
     JSONObject actual = executeQuery(ppl);
     verifySchemaInOrder(
         actual,
-        schema("c_custkey", "long"),
+        schema("c_custkey", "bigint"),
         schema("c_name", "string"),
         schema("revenue", "double"),
         schema("c_acctbal", "double"),
@@ -274,7 +275,7 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
   public void testQ11() {
     String ppl = loadFromFile("tpch/queries/q11.ppl");
     JSONObject actual = executeQuery(ppl);
-    verifySchemaInOrder(actual, schema("ps_partkey", "long"), schema("value", "double"));
+    verifySchemaInOrder(actual, schema("ps_partkey", "bigint"), schema("value", "double"));
     verifyNumOfRows(actual, 0);
   }
 
@@ -285,8 +286,8 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
     verifySchemaInOrder(
         actual,
         schema("l_shipmode", "string"),
-        schema("high_line_count", "integer"),
-        schema("low_line_count", "integer"));
+        schema("high_line_count", "int"),
+        schema("low_line_count", "int"));
     verifyDataRows(actual, rows("MAIL", 5, 5), rows("SHIP", 5, 10));
   }
 
@@ -294,7 +295,7 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
   public void testQ13() {
     String ppl = loadFromFile("tpch/queries/q13.ppl");
     JSONObject actual = executeQuery(ppl);
-    verifySchemaInOrder(actual, schema("c_count", "long"), schema("custdist", "long"));
+    verifySchemaInOrder(actual, schema("c_count", "bigint"), schema("custdist", "bigint"));
     verifyDataRows(
         actual,
         rows(0, 50),
@@ -340,7 +341,7 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
     JSONObject actual = executeQuery(ppl);
     verifySchemaInOrder(
         actual,
-        schema("s_suppkey", "long"),
+        schema("s_suppkey", "bigint"),
         schema("s_name", "string"),
         schema("s_address", "string"),
         schema("s_phone", "string"),
@@ -358,8 +359,8 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
         actual,
         schema("p_brand", "string"),
         schema("p_type", "string"),
-        schema("p_size", "integer"),
-        schema("supplier_cnt", "long"));
+        schema("p_size", "int"),
+        schema("supplier_cnt", "bigint"));
     verifyDataRows(
         actual,
         rows("Brand#11", "PROMO ANODIZED TIN", 45, 4),
@@ -428,8 +429,8 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
     verifySchemaInOrder(
         actual,
         schema("c_name", "string"),
-        schema("c_custkey", "long"),
-        schema("o_orderkey", "long"),
+        schema("c_custkey", "bigint"),
+        schema("o_orderkey", "bigint"),
         schema("o_orderdate", "timestamp"),
         schema("o_totalprice", "double"),
         schema("sum(l_quantity)", "double"));
@@ -471,7 +472,7 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
   public void testQ21() {
     String ppl = loadFromFile("tpch/queries/q21.ppl");
     JSONObject actual = executeQuery(ppl);
-    verifySchemaInOrder(actual, schema("s_name", "string"), schema("numwait", "long"));
+    verifySchemaInOrder(actual, schema("s_name", "string"), schema("numwait", "bigint"));
     verifyNumOfRows(actual, 0);
   }
 
@@ -482,7 +483,7 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
     verifySchemaInOrder(
         actual,
         schema("cntrycode", "string"),
-        schema("numcust", "long"),
+        schema("numcust", "bigint"),
         schema("totacctbal", "double"));
     verifyDataRows(
         actual,
