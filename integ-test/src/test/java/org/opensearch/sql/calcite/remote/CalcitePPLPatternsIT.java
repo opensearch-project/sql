@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite.standalone;
+package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_HDFS_LOGS;
@@ -17,11 +17,14 @@ import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CalcitePPLPatternsIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLPatternsIT extends PPLIntegTestCase {
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
     super.init();
+    enableCalcite();
+    disallowCalciteFallback();
 
     loadIndex(Index.BANK);
     loadIndex(Index.WEBLOG);
@@ -29,7 +32,7 @@ public class CalcitePPLPatternsIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSimplePatternLabelMode() {
+  public void testSimplePatternLabelMode() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -57,7 +60,7 @@ public class CalcitePPLPatternsIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSimplePatternLabelModeWithCustomPattern() {
+  public void testSimplePatternLabelModeWithCustomPattern() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -79,7 +82,7 @@ public class CalcitePPLPatternsIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSimplePatternAggregationMode() {
+  public void testSimplePatternAggregationMode() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -104,7 +107,7 @@ public class CalcitePPLPatternsIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testBrainLabelMode() {
+  public void testBrainLabelMode() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -157,7 +160,7 @@ public class CalcitePPLPatternsIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testBrainAggregationMode() {
+  public void testBrainAggregationMode() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -221,7 +224,7 @@ public class CalcitePPLPatternsIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testBrainAggregationModeWithGroupByClause() {
+  public void testBrainAggregationModeWithGroupByClause() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(

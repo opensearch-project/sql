@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite.standalone;
+package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OCCUPATION;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORKER;
@@ -17,12 +17,15 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.client.Request;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CalcitePPLScalarSubqueryIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLScalarSubqueryIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
     super.init();
+    enableCalcite();
+    disallowCalciteFallback();
 
     loadIndex(Index.WORKER);
     loadIndex(Index.WORK_INFORMATION);
@@ -37,7 +40,7 @@ public class CalcitePPLScalarSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testUncorrelatedScalarSubqueryInSelect() {
+  public void testUncorrelatedScalarSubqueryInSelect() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -62,7 +65,7 @@ public class CalcitePPLScalarSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testUncorrelatedScalarSubqueryInExpressionInSelect() {
+  public void testUncorrelatedScalarSubqueryInExpressionInSelect() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -87,7 +90,7 @@ public class CalcitePPLScalarSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testUncorrelatedScalarSubqueryInSelectAndWhere() {
+  public void testUncorrelatedScalarSubqueryInSelectAndWhere() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -107,7 +110,7 @@ public class CalcitePPLScalarSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testUncorrelatedScalarSubqueryInSelectAndInFilter() {
+  public void testUncorrelatedScalarSubqueryInSelectAndInFilter() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -124,7 +127,7 @@ public class CalcitePPLScalarSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCorrelatedScalarSubqueryInSelect() {
+  public void testCorrelatedScalarSubqueryInSelect() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -151,7 +154,7 @@ public class CalcitePPLScalarSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCorrelatedScalarSubqueryInSelectWithNonEqual() {
+  public void testCorrelatedScalarSubqueryInSelectWithNonEqual() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -178,7 +181,7 @@ public class CalcitePPLScalarSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCorrelatedScalarSubqueryInWhere() {
+  public void testCorrelatedScalarSubqueryInWhere() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -201,7 +204,7 @@ public class CalcitePPLScalarSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCorrelatedScalarSubqueryInFilter() {
+  public void testCorrelatedScalarSubqueryInFilter() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -221,7 +224,7 @@ public class CalcitePPLScalarSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testDisjunctiveCorrelatedScalarSubquery() {
+  public void testDisjunctiveCorrelatedScalarSubquery() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -244,7 +247,7 @@ public class CalcitePPLScalarSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testTwoUncorrelatedScalarSubqueriesInOr() {
+  public void testTwoUncorrelatedScalarSubqueriesInOr() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -263,7 +266,7 @@ public class CalcitePPLScalarSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testTwoCorrelatedScalarSubqueriesInOr() {
+  public void testTwoCorrelatedScalarSubqueriesInOr() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -288,7 +291,7 @@ public class CalcitePPLScalarSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testNestedScalarSubquery() {
+  public void testNestedScalarSubquery() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -311,7 +314,7 @@ public class CalcitePPLScalarSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testNestedScalarSubqueryWithTableAlias() {
+  public void testNestedScalarSubqueryWithTableAlias() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(

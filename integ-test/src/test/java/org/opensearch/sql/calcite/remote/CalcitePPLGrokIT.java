@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite.standalone;
+package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
@@ -16,18 +16,21 @@ import java.io.IOException;
 import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Test;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CalcitePPLGrokIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLGrokIT extends PPLIntegTestCase {
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
     super.init();
+    enableCalcite();
+    disallowCalciteFallback();
 
     loadIndex(Index.BANK);
     loadIndex(Index.WEBLOG);
   }
 
   @Test
-  public void testGrokEmail() {
+  public void testGrokEmail() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -46,7 +49,7 @@ public class CalcitePPLGrokIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testGrokAddressOverriding() {
+  public void testGrokAddressOverriding() throws IOException {
     JSONObject preGrokResult =
         executeQuery(
             String.format(
@@ -76,7 +79,7 @@ public class CalcitePPLGrokIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testGrokApacheLog() {
+  public void testGrokApacheLog() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(

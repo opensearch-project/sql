@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite.standalone;
+package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY_WITH_NULL;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -14,17 +14,21 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CalcitePPLFillnullIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLFillnullIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
     super.init();
+    enableCalcite();
+    disallowCalciteFallback();
+
     loadIndex(Index.STATE_COUNTRY_WITH_NULL);
   }
 
   @Test
-  public void testFillnullWith() {
+  public void testFillnullWith() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -50,7 +54,7 @@ public class CalcitePPLFillnullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testFillnullUsing() {
+  public void testFillnullUsing() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -76,7 +80,7 @@ public class CalcitePPLFillnullIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testFillnullWithoutFieldList() {
+  public void testFillnullWithoutFieldList() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(

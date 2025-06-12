@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite.standalone;
+package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -16,18 +16,21 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.client.Request;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CalcitePPLParseIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLParseIT extends PPLIntegTestCase {
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
     super.init();
+    enableCalcite();
+    disallowCalciteFallback();
 
     loadIndex(Index.BANK);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
   }
 
   @Test
-  public void testParseEmail() {
+  public void testParseEmail() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -48,7 +51,7 @@ public class CalcitePPLParseIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testParseOverriding() {
+  public void testParseOverriding() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -69,7 +72,7 @@ public class CalcitePPLParseIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testParseEmailCountByHost() {
+  public void testParseEmailCountByHost() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -90,7 +93,7 @@ public class CalcitePPLParseIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testParseStreetNumber() {
+  public void testParseStreetNumber() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -115,8 +118,8 @@ public class CalcitePPLParseIT extends CalcitePPLIntegTestCase {
   // https://github.com/opensearch-project/sql/issues/3472
   @Test
   public void testParseMultipleGroups() {
-    RuntimeException e =
-        assertThrows(
+    Throwable e =
+        assertThrowsWithReplace(
             RuntimeException.class,
             () ->
                 executeQuery(

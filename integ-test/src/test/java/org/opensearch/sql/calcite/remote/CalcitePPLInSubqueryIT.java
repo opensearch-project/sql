@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite.standalone;
+package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OCCUPATION;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORKER;
@@ -21,12 +21,15 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
     super.init();
+    enableCalcite();
+    disallowCalciteFallback();
 
     loadIndex(Index.WORKER);
     loadIndex(Index.WORK_INFORMATION);
@@ -41,7 +44,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSelfInSubquery() {
+  public void testSelfInSubquery() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -68,7 +71,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testWhereInSubquery() {
+  public void testWhereInSubquery() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -92,7 +95,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testFilterInSubquery() {
+  public void testFilterInSubquery() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -115,7 +118,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testInSubqueryWithParentheses() {
+  public void testInSubqueryWithParentheses() throws IOException {
     JSONObject result1 =
         executeQuery(
             String.format(
@@ -158,7 +161,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testTwoExpressionsInSubquery() {
+  public void testTwoExpressionsInSubquery() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -181,7 +184,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testWhereNotInSubquery() {
+  public void testWhereNotInSubquery() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -199,7 +202,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testFilterNotInSubquery() {
+  public void testFilterNotInSubquery() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -216,7 +219,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testTwoExpressionsNotInSubquery() {
+  public void testTwoExpressionsNotInSubquery() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -235,7 +238,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testEmptyInSubquery() {
+  public void testEmptyInSubquery() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -260,7 +263,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testNestedInSubquery() {
+  public void testNestedInSubquery() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -288,7 +291,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testNestedInSubquery2() {
+  public void testNestedInSubquery2() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -321,7 +324,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Ignore // TODO bug? fail in execution, the plan converted is correct
-  public void testInSubqueryAsJoinFilter() {
+  public void testInSubqueryAsJoinFilter() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -345,8 +348,8 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void failWhenNumOfColumnsNotMatchOutputOfSubquery() {
-    SemanticCheckException e1 =
-        assertThrows(
+    Throwable e1 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -365,8 +368,8 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
         "The number of columns in the left hand side of an IN subquery does not match the number of"
             + " columns in the output of subquery");
 
-    SemanticCheckException e2 =
-        assertThrows(
+    Throwable e2 =
+        assertThrowsWithReplace(
             SemanticCheckException.class,
             () ->
                 executeQuery(
@@ -387,7 +390,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testInSubqueryWithTableAlias() {
+  public void testInSubqueryWithTableAlias() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(

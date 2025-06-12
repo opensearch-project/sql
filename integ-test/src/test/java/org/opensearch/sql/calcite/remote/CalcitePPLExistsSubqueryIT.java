@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite.standalone;
+package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OCCUPATION;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORKER;
@@ -20,12 +20,15 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.client.Request;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CalcitePPLExistsSubqueryIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLExistsSubqueryIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
     super.init();
+    enableCalcite();
+    disallowCalciteFallback();
 
     loadIndex(Index.WORKER);
     loadIndex(Index.WORK_INFORMATION);
@@ -40,7 +43,7 @@ public class CalcitePPLExistsSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSimpleExistsSubquery() {
+  public void testSimpleExistsSubquery() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -64,7 +67,7 @@ public class CalcitePPLExistsSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testExistsSubqueryAndAggregation() {
+  public void testExistsSubqueryAndAggregation() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -81,7 +84,7 @@ public class CalcitePPLExistsSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSimpleExistsSubqueryInFilter() {
+  public void testSimpleExistsSubqueryInFilter() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -104,7 +107,7 @@ public class CalcitePPLExistsSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testNotExistsSubquery() {
+  public void testNotExistsSubquery() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -122,7 +125,7 @@ public class CalcitePPLExistsSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testNotExistsSubqueryInFilter() {
+  public void testNotExistsSubqueryInFilter() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -139,7 +142,7 @@ public class CalcitePPLExistsSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testEmptyExistsSubquery() {
+  public void testEmptyExistsSubquery() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -157,7 +160,7 @@ public class CalcitePPLExistsSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testUncorrelatedExistsSubquery() {
+  public void testUncorrelatedExistsSubquery() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -189,7 +192,8 @@ public class CalcitePPLExistsSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testUncorrelatedExistsSubqueryCheckTheReturnContentOfInnerTableIsEmptyOrNot() {
+  public void testUncorrelatedExistsSubqueryCheckTheReturnContentOfInnerTableIsEmptyOrNot()
+      throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -229,7 +233,7 @@ public class CalcitePPLExistsSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testNestedExistsSubquery() {
+  public void testNestedExistsSubquery() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -262,7 +266,7 @@ public class CalcitePPLExistsSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testExistsSubqueryWithConjunction() {
+  public void testExistsSubqueryWithConjunction() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -288,7 +292,7 @@ public class CalcitePPLExistsSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testIssue3566() {
+  public void testIssue3566() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
