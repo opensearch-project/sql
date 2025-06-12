@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import java.util.List;
+import lombok.extern.log4j.Log4j2;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
@@ -24,17 +25,14 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.calcite.plan.OpenSearchRules;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 
 /** The physical relational operator representing a scan of an OpenSearchIndex type. */
+@Log4j2
 public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan implements EnumerableRel {
-  private static final Logger LOG = LogManager.getLogger(CalciteEnumerableIndexScan.class);
-
   /**
    * Creates an CalciteOpenSearchIndexScan.
    *
