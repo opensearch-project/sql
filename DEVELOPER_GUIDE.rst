@@ -235,13 +235,10 @@ Most of the time you just need to run ./gradlew build which will make sure you p
      - Run all unit tests.
    * - ./gradlew :integ-test:integTest
      - Run all integration test (this takes time).
-<<<<<<< HEAD
-=======
    * - ./gradlew :integ-test:yamlRestTest
      - Run rest integration test.
    * - ./gradlew :doctest:doctest
      - Run doctests
->>>>>>> 8134c4e4f (Fix issue 2489 (#3442))
    * - ./gradlew build
      - Build plugin by run all tasks above (this takes time).
    * - ./gradlew pitest
