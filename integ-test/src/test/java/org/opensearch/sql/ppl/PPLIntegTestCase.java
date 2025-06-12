@@ -196,11 +196,6 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     return false; // Override this method in subclasses if needed
   }
 
-  public boolean isPushdownEnabled() throws IOException {
-    return Boolean.parseBoolean(
-        getClusterSetting(Settings.Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(), "persistent"));
-  }
-
   /**
    * assertThrows by replacing the expected throwable with {@link ResponseException} if the test is
    * not a standalone test.
@@ -221,5 +216,23 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
       expectedWithReplace = ResponseException.class;
     }
     return assertThrows(expectedWithReplace, runnable);
+  }
+
+  public static class GlobalPushdownConfig {
+    /** Whether the global pushdown is enabled or not. Enable by default. */
+    public static boolean enabled = true;
+  }
+
+  public boolean isPushdownEnabled() throws IOException {
+    return Boolean.parseBoolean(
+        getClusterSetting(Settings.Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(), "persistent"));
+  }
+
+  public void updatePushdownSettings() throws IOException {
+    updateClusterSettings(
+        new SQLIntegTestCase.ClusterSetting(
+            "persistent",
+            Settings.Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(),
+            String.valueOf(GlobalPushdownConfig.enabled)));
   }
 }
