@@ -7,20 +7,25 @@ package org.opensearch.sql.ppl.parser;
 
 import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.when;
 import static org.opensearch.sql.ast.dsl.AstDSL.agg;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
+import static org.opensearch.sql.ast.dsl.AstDSL.computation;
 import static org.opensearch.sql.ast.dsl.AstDSL.dedupe;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultDedupArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultFieldsArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultSortFieldArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultStatsArgs;
+import static org.opensearch.sql.ast.dsl.AstDSL.describe;
 import static org.opensearch.sql.ast.dsl.AstDSL.eval;
 import static org.opensearch.sql.ast.dsl.AstDSL.exprList;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
+import static org.opensearch.sql.ast.dsl.AstDSL.fillNull;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.head;
@@ -29,6 +34,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.let;
 import static org.opensearch.sql.ast.dsl.AstDSL.map;
 import static org.opensearch.sql.ast.dsl.AstDSL.nullLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.parse;
+import static org.opensearch.sql.ast.dsl.AstDSL.patterns;
 import static org.opensearch.sql.ast.dsl.AstDSL.projectWithArg;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.rareTopN;
@@ -38,32 +44,47 @@ import static org.opensearch.sql.ast.dsl.AstDSL.sort;
 import static org.opensearch.sql.ast.dsl.AstDSL.span;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.tableFunction;
+import static org.opensearch.sql.ast.dsl.AstDSL.trendline;
 import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
+import static org.opensearch.sql.ast.tree.Trendline.TrendlineType.SMA;
+import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
-import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.Mockito;
 import org.opensearch.sql.ast.Node;
+import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
+import org.opensearch.sql.ast.expression.PatternMethod;
+import org.opensearch.sql.ast.expression.PatternMode;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
+import org.opensearch.sql.utils.SystemIndexUtils;
 
 public class AstBuilderTest {
 
   @Rule public ExpectedException exceptionRule = ExpectedException.none();
 
   private PPLSyntaxParser parser = new PPLSyntaxParser();
+
+  private final Settings settings = Mockito.mock(Settings.class);
 
   @Test
   public void testSearchCommand() {
@@ -355,10 +376,7 @@ public class AstBuilderTest {
             exprList(alias("avg(price)", aggregate("avg", field("price")))),
             emptyList(),
             emptyList(),
-            alias(
-                "span(timestamp,1h)",
-                span(field("timestamp"), intLiteral(1), SpanUnit.H),
-                "time_span"),
+            alias("time_span", span(field("timestamp"), intLiteral(1), SpanUnit.H), null),
             defaultStatsArgs()));
 
     assertEqual(
@@ -368,8 +386,7 @@ public class AstBuilderTest {
             exprList(alias("count(a)", aggregate("count", field("a")))),
             emptyList(),
             emptyList(),
-            alias(
-                "span(age,10)", span(field("age"), intLiteral(10), SpanUnit.NONE), "numeric_span"),
+            alias("numeric_span", span(field("age"), intLiteral(10), SpanUnit.NONE), null),
             defaultStatsArgs()));
   }
 
@@ -442,34 +459,34 @@ public class AstBuilderTest {
     assertEqual(
         "source=`log.2020.04.20.` a=1",
         filter(relation("log.2020.04.20."), compare("=", field("a"), intLiteral(1))));
-    assertEqual("describe `log.2020.04.20.`", relation(mappingTable("log.2020.04.20.")));
+    assertEqual("describe `log.2020.04.20.`", describe(mappingTable("log.2020.04.20.")));
   }
 
   @Test
   public void testIdentifierAsIndexNameStartWithDot() {
     assertEqual("source=.opensearch_dashboards", relation(".opensearch_dashboards"));
     assertEqual(
-        "describe .opensearch_dashboards", relation(mappingTable(".opensearch_dashboards")));
+        "describe .opensearch_dashboards", describe(mappingTable(".opensearch_dashboards")));
   }
 
   @Test
   public void testIdentifierAsIndexNameWithDotInTheMiddle() {
     assertEqual("source=log.2020.10.10", relation("log.2020.10.10"));
     assertEqual("source=log-7.10-2020.10.10", relation("log-7.10-2020.10.10"));
-    assertEqual("describe log.2020.10.10", relation(mappingTable("log.2020.10.10")));
-    assertEqual("describe log-7.10-2020.10.10", relation(mappingTable("log-7.10-2020.10.10")));
+    assertEqual("describe log.2020.10.10", describe(mappingTable("log.2020.10.10")));
+    assertEqual("describe log-7.10-2020.10.10", describe(mappingTable("log-7.10-2020.10.10")));
   }
 
   @Test
   public void testIdentifierAsIndexNameWithSlashInTheMiddle() {
     assertEqual("source=log-2020", relation("log-2020"));
-    assertEqual("describe log-2020", relation(mappingTable("log-2020")));
+    assertEqual("describe log-2020", describe(mappingTable("log-2020")));
   }
 
   @Test
   public void testIdentifierAsIndexNameContainStar() {
     assertEqual("source=log-2020-10-*", relation("log-2020-10-*"));
-    assertEqual("describe log-2020-10-*", relation(mappingTable("log-2020-10-*")));
+    assertEqual("describe log-2020-10-*", describe(mappingTable("log-2020-10-*")));
   }
 
   @Test
@@ -477,9 +494,9 @@ public class AstBuilderTest {
     assertEqual("source=log-2020.10.*", relation("log-2020.10.*"));
     assertEqual("source=log-2020.*.01", relation("log-2020.*.01"));
     assertEqual("source=log-2020.*.*", relation("log-2020.*.*"));
-    assertEqual("describe log-2020.10.*", relation(mappingTable("log-2020.10.*")));
-    assertEqual("describe log-2020.*.01", relation(mappingTable("log-2020.*.01")));
-    assertEqual("describe log-2020.*.*", relation(mappingTable("log-2020.*.*")));
+    assertEqual("describe log-2020.10.*", describe(mappingTable("log-2020.10.*")));
+    assertEqual("describe log-2020.*.01", describe(mappingTable("log-2020.*.01")));
+    assertEqual("describe log-2020.*.*", describe(mappingTable("log-2020.*.*")));
   }
 
   @Test
@@ -496,7 +513,10 @@ public class AstBuilderTest {
         rareTopN(
             relation("t"),
             CommandType.RARE,
-            exprList(argument("noOfResults", intLiteral(10))),
+            exprList(
+                argument("noOfResults", intLiteral(10)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true))),
             emptyList(),
             field("a")));
   }
@@ -508,7 +528,10 @@ public class AstBuilderTest {
         rareTopN(
             relation("t"),
             CommandType.RARE,
-            exprList(argument("noOfResults", intLiteral(10))),
+            exprList(
+                argument("noOfResults", intLiteral(10)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true))),
             exprList(field("b")),
             field("a")));
   }
@@ -520,7 +543,10 @@ public class AstBuilderTest {
         rareTopN(
             relation("t"),
             CommandType.RARE,
-            exprList(argument("noOfResults", intLiteral(10))),
+            exprList(
+                argument("noOfResults", intLiteral(10)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true))),
             exprList(field("c")),
             field("a"),
             field("b")));
@@ -533,7 +559,10 @@ public class AstBuilderTest {
         rareTopN(
             relation("t"),
             CommandType.TOP,
-            exprList(argument("noOfResults", intLiteral(1))),
+            exprList(
+                argument("noOfResults", intLiteral(1)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true))),
             emptyList(),
             field("a")));
   }
@@ -545,7 +574,10 @@ public class AstBuilderTest {
         rareTopN(
             relation("t"),
             CommandType.TOP,
-            exprList(argument("noOfResults", intLiteral(10))),
+            exprList(
+                argument("noOfResults", intLiteral(10)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true))),
             emptyList(),
             field("a")));
   }
@@ -557,7 +589,10 @@ public class AstBuilderTest {
         rareTopN(
             relation("t"),
             CommandType.TOP,
-            exprList(argument("noOfResults", intLiteral(1))),
+            exprList(
+                argument("noOfResults", intLiteral(1)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true))),
             exprList(field("b")),
             field("a")));
   }
@@ -569,7 +604,10 @@ public class AstBuilderTest {
         rareTopN(
             relation("t"),
             CommandType.TOP,
-            exprList(argument("noOfResults", intLiteral(1))),
+            exprList(
+                argument("noOfResults", intLiteral(1)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true))),
             exprList(field("c")),
             field("a"),
             field("b")));
@@ -596,33 +634,6 @@ public class AstBuilderTest {
             ParseMethod.REGEX,
             field("raw"),
             stringLiteral("pattern"),
-            ImmutableMap.of()));
-  }
-
-  @Test
-  public void testPatternsCommand() {
-    assertEqual(
-        "source=t | patterns new_field=\"custom_field\" " + "pattern=\"custom_pattern\" raw",
-        parse(
-            relation("t"),
-            ParseMethod.PATTERNS,
-            field("raw"),
-            stringLiteral("custom_pattern"),
-            ImmutableMap.<String, Literal>builder()
-                .put("new_field", stringLiteral("custom_field"))
-                .put("pattern", stringLiteral("custom_pattern"))
-                .build()));
-  }
-
-  @Test
-  public void testPatternsCommandWithoutArguments() {
-    assertEqual(
-        "source=t | patterns raw",
-        parse(
-            relation("t"),
-            ParseMethod.PATTERNS,
-            field("raw"),
-            stringLiteral(""),
             ImmutableMap.of()));
   }
 
@@ -661,28 +672,115 @@ public class AstBuilderTest {
   }
 
   @Test
+  public void testFillNullCommandSameValue() {
+    assertEqual(
+        "source=t | fillnull with 0 in a, b, c",
+        fillNull(relation("t"), intLiteral(0), field("a"), field("b"), field("c")));
+  }
+
+  @Test
+  public void testFillNullCommandVariousValues() {
+    assertEqual(
+        "source=t | fillnull using a = 1, b = 2, c = 3",
+        fillNull(
+            relation("t"),
+            List.of(
+                Pair.of(field("a"), intLiteral(1)),
+                Pair.of(field("b"), intLiteral(2)),
+                Pair.of(field("c"), intLiteral(3)))));
+  }
+
+  public void testTrendline() {
+    assertEqual(
+        "source=t | trendline sma(5, test_field) as test_field_alias sma(1, test_field_2) as"
+            + " test_field_alias_2",
+        trendline(
+            relation("t"),
+            Optional.empty(),
+            computation(5, field("test_field"), "test_field_alias", SMA),
+            computation(1, field("test_field_2"), "test_field_alias_2", SMA)));
+  }
+
+  @Test
+  public void testTrendlineSort() {
+    assertEqual(
+        "source=t | trendline sort test_field sma(5, test_field)",
+        trendline(
+            relation("t"),
+            Optional.of(
+                field(
+                    "test_field",
+                    argument("asc", booleanLiteral(true)),
+                    argument("type", nullLiteral()))),
+            computation(5, field("test_field"), "test_field_trendline", SMA)));
+  }
+
+  @Test
+  public void testTrendlineSortDesc() {
+    assertEqual(
+        "source=t | trendline sort - test_field sma(5, test_field)",
+        trendline(
+            relation("t"),
+            Optional.of(
+                field(
+                    "test_field",
+                    argument("asc", booleanLiteral(false)),
+                    argument("type", nullLiteral()))),
+            computation(5, field("test_field"), "test_field_trendline", SMA)));
+  }
+
+  @Test
+  public void testTrendlineSortAsc() {
+    assertEqual(
+        "source=t | trendline sort + test_field sma(5, test_field)",
+        trendline(
+            relation("t"),
+            Optional.of(
+                field(
+                    "test_field",
+                    argument("asc", booleanLiteral(true)),
+                    argument("type", nullLiteral()))),
+            computation(5, field("test_field"), "test_field_trendline", SMA)));
+  }
+
+  @Test
+  public void testTrendlineNoAlias() {
+    assertEqual(
+        "source=t | trendline sma(5, test_field)",
+        trendline(
+            relation("t"),
+            Optional.empty(),
+            computation(5, field("test_field"), "test_field_trendline", SMA)));
+  }
+
+  @Test
+  public void testTrendlineTooFewSamples() {
+    assertThrows(SyntaxCheckException.class, () -> plan("source=t | trendline sma(0, test_field)"));
+  }
+
+  @Test
   public void testDescribeCommand() {
-    assertEqual("describe t", relation(mappingTable("t")));
+    assertEqual("describe t", describe(mappingTable("t")));
   }
 
   @Test
   public void testDescribeMatchAllCrossClusterSearchCommand() {
-    assertEqual("describe *:t", relation(mappingTable("*:t")));
+    assertEqual("describe *:t", describe(mappingTable("*:t")));
   }
 
   @Test
   public void testDescribeCommandWithMultipleIndices() {
-    assertEqual("describe t,u", relation(mappingTable("t,u")));
+    assertEqual("describe t,u", describe(mappingTable("t,u")));
   }
 
   @Test
   public void testDescribeCommandWithFullyQualifiedTableName() {
     assertEqual(
         "describe prometheus.http_metric",
-        relation(qualifiedName("prometheus", mappingTable("http_metric"))));
+        describe(qualifiedName("prometheus", mappingTable("http_metric")).toString()));
     assertEqual(
         "describe prometheus.schema.http_metric",
-        relation(qualifiedName("prometheus", "schema", mappingTable("http_metric"))));
+        describe(qualifiedName("prometheus", "schema", mappingTable("http_metric")).toString()));
   }
 
   @Test
@@ -695,14 +793,14 @@ public class AstBuilderTest {
         new AD(
             relation("t"),
             ImmutableMap.<String, Literal>builder()
-                .put("anomaly_rate", new Literal(0.1, DataType.DOUBLE))
-                .put("anomaly_score_threshold", new Literal(0.1, DataType.DOUBLE))
+                .put("anomaly_rate", new Literal(0.1, DataType.DECIMAL))
+                .put("anomaly_score_threshold", new Literal(0.1, DataType.DECIMAL))
                 .put("sample_size", new Literal(256, DataType.INTEGER))
                 .put("number_of_trees", new Literal(256, DataType.INTEGER))
                 .put("time_zone", new Literal("PST", DataType.STRING))
                 .put("output_after", new Literal(256, DataType.INTEGER))
                 .put("shingle_size", new Literal(10, DataType.INTEGER))
-                .put("time_decay", new Literal(0.0001, DataType.DOUBLE))
+                .put("time_decay", new Literal(0.0001, DataType.DECIMAL))
                 .put("time_field", new Literal("timestamp", DataType.STRING))
                 .put("training_data_size", new Literal(256, DataType.INTEGER))
                 .build()));
@@ -718,15 +816,15 @@ public class AstBuilderTest {
         new AD(
             relation("t"),
             ImmutableMap.<String, Literal>builder()
-                .put("anomaly_rate", new Literal(0.1, DataType.DOUBLE))
-                .put("anomaly_score_threshold", new Literal(0.1, DataType.DOUBLE))
+                .put("anomaly_rate", new Literal(0.1, DataType.DECIMAL))
+                .put("anomaly_score_threshold", new Literal(0.1, DataType.DECIMAL))
                 .put("sample_size", new Literal(256, DataType.INTEGER))
                 .put("number_of_trees", new Literal(256, DataType.INTEGER))
                 .put("date_format", new Literal("HH:mm:ss yyyy-MM-dd", DataType.STRING))
                 .put("time_zone", new Literal("PST", DataType.STRING))
                 .put("output_after", new Literal(256, DataType.INTEGER))
                 .put("shingle_size", new Literal(10, DataType.INTEGER))
-                .put("time_decay", new Literal(0.0001, DataType.DOUBLE))
+                .put("time_decay", new Literal(0.0001, DataType.DECIMAL))
                 .put("time_field", new Literal("timestamp", DataType.STRING))
                 .put("training_data_size", new Literal(256, DataType.INTEGER))
                 .build()));
@@ -739,7 +837,72 @@ public class AstBuilderTest {
 
   @Test
   public void testShowDataSourcesCommand() {
-    assertEqual("show datasources", relation(DATASOURCES_TABLE_NAME));
+    assertEqual("show datasources", describe(DATASOURCES_TABLE_NAME));
+  }
+
+  @Test
+  public void testPatternsCommand() {
+    when(settings.getSettingValue(Key.PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
+    when(settings.getSettingValue(Key.PATTERN_MODE)).thenReturn("LABEL");
+    when(settings.getSettingValue(Key.PATTERN_MAX_SAMPLE_COUNT)).thenReturn(10);
+    when(settings.getSettingValue(Key.PATTERN_BUFFER_LIMIT)).thenReturn(100000);
+    assertEqual(
+        "source=t | patterns raw new_field=\"custom_field\" " + "pattern=\"custom_pattern\"",
+        patterns(
+            relation("t"),
+            field("raw"),
+            emptyList(),
+            "custom_field",
+            PatternMethod.SIMPLE_PATTERN,
+            PatternMode.LABEL,
+            AstDSL.intLiteral(10),
+            AstDSL.intLiteral(100000),
+            ImmutableMap.of(
+                "new_field", AstDSL.stringLiteral("custom_field"),
+                "pattern", AstDSL.stringLiteral("custom_pattern"))));
+  }
+
+  @Test
+  public void testPatternsCommandWithBrainMethod() {
+    when(settings.getSettingValue(Key.PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
+    when(settings.getSettingValue(Key.PATTERN_MODE)).thenReturn("LABEL");
+    when(settings.getSettingValue(Key.PATTERN_MAX_SAMPLE_COUNT)).thenReturn(10);
+    when(settings.getSettingValue(Key.PATTERN_BUFFER_LIMIT)).thenReturn(100000);
+    assertEqual(
+        "source=t | patterns raw method=BRAIN variable_count_threshold=2"
+            + " frequency_threshold_percentage=0.1",
+        patterns(
+            relation("t"),
+            field("raw"),
+            emptyList(),
+            "patterns_field",
+            PatternMethod.BRAIN,
+            PatternMode.LABEL,
+            AstDSL.intLiteral(10),
+            AstDSL.intLiteral(100000),
+            ImmutableMap.of(
+                "frequency_threshold_percentage", new Literal(0.1, DataType.DECIMAL),
+                "variable_count_threshold", new Literal(2, DataType.INTEGER))));
+  }
+
+  @Test
+  public void testPatternsWithoutArguments() {
+    when(settings.getSettingValue(Key.PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
+    when(settings.getSettingValue(Key.PATTERN_MODE)).thenReturn("LABEL");
+    when(settings.getSettingValue(Key.PATTERN_MAX_SAMPLE_COUNT)).thenReturn(10);
+    when(settings.getSettingValue(Key.PATTERN_BUFFER_LIMIT)).thenReturn(100000);
+    assertEqual(
+        "source=t | patterns raw",
+        patterns(
+            relation("t"),
+            field("raw"),
+            emptyList(),
+            "patterns_field",
+            PatternMethod.SIMPLE_PATTERN,
+            PatternMode.LABEL,
+            AstDSL.intLiteral(10),
+            AstDSL.intLiteral(100000),
+            ImmutableMap.of()));
   }
 
   protected void assertEqual(String query, Node expectedPlan) {
@@ -753,7 +916,11 @@ public class AstBuilderTest {
   }
 
   private Node plan(String query) {
-    AstBuilder astBuilder = new AstBuilder(new AstExpressionBuilder(), query);
+    AstBuilder astBuilder = new AstBuilder(query, settings);
     return astBuilder.visit(parser.parse(query));
+  }
+
+  private String mappingTable(String indexName) {
+    return SystemIndexUtils.mappingTable(indexName, PPL_SPEC);
   }
 }

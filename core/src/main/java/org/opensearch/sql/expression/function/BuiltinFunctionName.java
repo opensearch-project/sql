@@ -9,11 +9,13 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /** Builtin Function Name. */
 @Getter
+@AllArgsConstructor
 @RequiredArgsConstructor
 public enum BuiltinFunctionName {
   /** Mathematical Functions. */
@@ -54,6 +56,16 @@ public enum BuiltinFunctionName {
   RADIANS(FunctionName.of("radians")),
   SIN(FunctionName.of("sin")),
   TAN(FunctionName.of("tan")),
+  SPAN(FunctionName.of("span")),
+
+  /** Collection functions */
+  ARRAY(FunctionName.of("array")),
+  ARRAY_LENGTH(FunctionName.of("array_length")),
+  FORALL(FunctionName.of("forall")),
+  EXISTS(FunctionName.of("exists")),
+  FILTER(FunctionName.of("filter")),
+  TRANSFORM(FunctionName.of("transform")),
+  REDUCE(FunctionName.of("reduce")),
 
   /** Date and Time Functions. */
   ADDDATE(FunctionName.of("adddate")),
@@ -132,6 +144,14 @@ public enum BuiltinFunctionName {
   /** Text Functions. */
   TOSTRING(FunctionName.of("tostring")),
 
+  /** IP Functions. */
+  CIDRMATCH(FunctionName.of("cidrmatch")),
+
+  /** Cryptographic Functions. */
+  MD5(FunctionName.of("md5")),
+  SHA1(FunctionName.of("sha1")),
+  SHA2(FunctionName.of("sha2")),
+
   /** Arithmetic Operators. */
   ADD(FunctionName.of("+")),
   ADDFUNCTION(FunctionName.of("add")),
@@ -177,6 +197,9 @@ public enum BuiltinFunctionName {
   TAKE(FunctionName.of("take")),
   // t-digest percentile which is used in OpenSearch core by default.
   PERCENTILE_APPROX(FunctionName.of("percentile_approx")),
+  EARLIEST(FunctionName.of("earliest")),
+  LATEST(FunctionName.of("latest")),
+  DISTINCT_COUNT_APPROX(FunctionName.of("distinct_count_approx")),
   // Not always an aggregation query
   NESTED(FunctionName.of("nested")),
 
@@ -201,6 +224,22 @@ public enum BuiltinFunctionName {
   TRIM(FunctionName.of("trim")),
   UPPER(FunctionName.of("upper")),
 
+  /** Json Functions. */
+  JSON_VALID(FunctionName.of("json_valid")),
+  JSON(FunctionName.of("json")),
+  JSON_OBJECT(FunctionName.of("json_object")),
+  JSON_ARRAY(FunctionName.of("json_array")),
+  JSON_ARRAY_LENGTH(FunctionName.of("json_array_length")),
+  JSON_EXTRACT(FunctionName.of("json_extract")),
+  JSON_KEYS(FunctionName.of("json_keys")),
+  JSON_SET(FunctionName.of("json_set")),
+  JSON_DELETE(FunctionName.of("json_delete")),
+  JSON_APPEND(FunctionName.of("json_append")),
+  JSON_EXTEND(FunctionName.of("json_extend")),
+
+  /** GEOSPATIAL Functions. */
+  GEOIP(FunctionName.of("geoip")),
+
   /** NULL Test. */
   IS_NULL(FunctionName.of("is null")),
   IS_NOT_NULL(FunctionName.of("is not null")),
@@ -208,10 +247,18 @@ public enum BuiltinFunctionName {
   IF(FunctionName.of("if")),
   NULLIF(FunctionName.of("nullif")),
   ISNULL(FunctionName.of("isnull")),
+  COALESCE(FunctionName.of("coalesce")),
+
+  IS_PRESENT(FunctionName.of("ispresent")),
+  IS_EMPTY(FunctionName.of("isempty")),
+  IS_BLANK(FunctionName.of("isblank")),
 
   ROW_NUMBER(FunctionName.of("row_number")),
+  NTH_VALUE(FunctionName.of("nth_value")),
   RANK(FunctionName.of("rank")),
   DENSE_RANK(FunctionName.of("dense_rank")),
+
+  BRAIN(FunctionName.of("brain")),
 
   INTERVAL(FunctionName.of("interval")),
 
@@ -228,6 +275,8 @@ public enum BuiltinFunctionName {
   CAST_TO_TIME(FunctionName.of("cast_to_time")),
   CAST_TO_TIMESTAMP(FunctionName.of("cast_to_timestamp")),
   CAST_TO_DATETIME(FunctionName.of("cast_to_datetime")),
+  CAST_TO_IP(FunctionName.of("cast_to_ip")),
+  CAST_TO_JSON(FunctionName.of("cast_to_json")),
   TYPEOF(FunctionName.of("typeof")),
 
   /** Relevance Function. */
@@ -252,9 +301,19 @@ public enum BuiltinFunctionName {
   MULTIMATCH(FunctionName.of("multimatch")),
   MULTIMATCHQUERY(FunctionName.of("multimatchquery")),
   WILDCARDQUERY(FunctionName.of("wildcardquery")),
-  WILDCARD_QUERY(FunctionName.of("wildcard_query"));
+  WILDCARD_QUERY(FunctionName.of("wildcard_query")),
+
+  /** Internal functions that are not exposed to customers. */
+  INTERNAL_ITEM(FunctionName.of("item"), true),
+  INTERNAL_PATTERN_PARSER(FunctionName.of("pattern_parser")),
+  INTERNAL_PATTERN(FunctionName.of("pattern")),
+  INTERNAL_UNCOLLECT_PATTERNS(FunctionName.of("uncollect_patterns")),
+  INTERNAL_REGEXP_EXTRACT(FunctionName.of("regexp_extract"), true),
+  INTERNAL_GROK(FunctionName.of("grok"), true),
+  INTERNAL_REGEXP_REPLACE_3(FunctionName.of("regexp_replace_3"), true);
 
   private final FunctionName name;
+  private boolean isInternal;
 
   private static final Map<FunctionName, BuiltinFunctionName> ALL_NATIVE_FUNCTIONS;
 
@@ -283,6 +342,29 @@ public enum BuiltinFunctionName {
           .put("take", BuiltinFunctionName.TAKE)
           .put("percentile", BuiltinFunctionName.PERCENTILE_APPROX)
           .put("percentile_approx", BuiltinFunctionName.PERCENTILE_APPROX)
+          // .put("earliest", BuiltinFunctionName.EARLIEST)
+          // .put("latest", BuiltinFunctionName.LATEST)
+          .put("distinct_count_approx", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
+          .put("pattern", BuiltinFunctionName.INTERNAL_PATTERN)
+          .build();
+
+  private static final Map<String, BuiltinFunctionName> WINDOW_FUNC_MAPPING =
+      new ImmutableMap.Builder<String, BuiltinFunctionName>()
+          .put("max", BuiltinFunctionName.MAX)
+          .put("min", BuiltinFunctionName.MIN)
+          .put("avg", BuiltinFunctionName.AVG)
+          .put("count", BuiltinFunctionName.COUNT)
+          .put("sum", BuiltinFunctionName.SUM)
+          .put("var_pop", BuiltinFunctionName.VARPOP)
+          .put("var_samp", BuiltinFunctionName.VARSAMP)
+          .put("variance", BuiltinFunctionName.VARPOP)
+          .put("std", BuiltinFunctionName.STDDEV_POP)
+          .put("stddev", BuiltinFunctionName.STDDEV_POP)
+          .put("stddev_pop", BuiltinFunctionName.STDDEV_POP)
+          .put("stddev_samp", BuiltinFunctionName.STDDEV_SAMP)
+          // .put("earliest", BuiltinFunctionName.EARLIEST)
+          // .put("latest", BuiltinFunctionName.LATEST)
+          .put("pattern", BuiltinFunctionName.INTERNAL_PATTERN)
           .build();
 
   public static Optional<BuiltinFunctionName> of(String str) {
@@ -292,5 +374,10 @@ public enum BuiltinFunctionName {
   public static Optional<BuiltinFunctionName> ofAggregation(String functionName) {
     return Optional.ofNullable(
         AGGREGATION_FUNC_MAPPING.getOrDefault(functionName.toLowerCase(Locale.ROOT), null));
+  }
+
+  public static Optional<BuiltinFunctionName> ofWindowFunction(String functionName) {
+    return Optional.ofNullable(
+        WINDOW_FUNC_MAPPING.getOrDefault(functionName.toLowerCase(Locale.ROOT), null));
   }
 }

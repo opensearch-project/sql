@@ -141,6 +141,7 @@ public class SQLQueryUtilsTest {
           + " WITH (auto_refresh = true)",
       "DROP SKIPPING INDEX ON myS3.default.alb_logs",
       "ALTER SKIPPING INDEX ON myS3.default.alb_logs WITH (auto_refresh = false)",
+      "VACUUM SKIPPING INDEX ON myS3.default.alb_logs",
     };
 
     for (String query : createSkippingIndexQueries) {
@@ -170,6 +171,7 @@ public class SQLQueryUtilsTest {
           + " WHERE elb_status_code = 500 "
           + " WITH (auto_refresh = true)",
       "DROP INDEX elb_and_requestUri ON myS3.default.alb_logs",
+      "VACUUM INDEX elb_and_requestUri ON myS3.default.alb_logs",
       "ALTER INDEX elb_and_requestUri ON myS3.default.alb_logs WITH (auto_refresh = false)"
     };
 

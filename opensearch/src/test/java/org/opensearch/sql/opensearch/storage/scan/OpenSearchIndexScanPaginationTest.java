@@ -8,7 +8,6 @@ package org.opensearch.sql.opensearch.storage.scan;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
@@ -16,7 +15,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
-import static org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScanTest.QUERY_SIZE;
 import static org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScanTest.mockResponse;
 
 import java.io.ByteArrayOutputStream;
@@ -52,7 +50,7 @@ public class OpenSearchIndexScanPaginationTest {
 
   @BeforeEach
   void setup() {
-    lenient().when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(QUERY_SIZE);
+    lenient().when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
     lenient()
         .when(settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE))
         .thenReturn(TimeValue.timeValueMinutes(1));
@@ -74,12 +72,9 @@ public class OpenSearchIndexScanPaginationTest {
   @Test
   void query_empty_result() {
     mockResponse(client);
-    var builder = new OpenSearchRequestBuilder(QUERY_SIZE, exprValueFactory, settings);
+    var builder = new OpenSearchRequestBuilder(exprValueFactory, MAX_RESULT_WINDOW, settings);
     try (var indexScan =
-        new OpenSearchIndexScan(
-            client,
-            MAX_RESULT_WINDOW,
-            builder.build(INDEX_NAME, MAX_RESULT_WINDOW, SCROLL_TIMEOUT, client))) {
+        new OpenSearchIndexScan(client, builder.build(INDEX_NAME, SCROLL_TIMEOUT, client))) {
       indexScan.open();
       assertFalse(indexScan.hasNext());
     }
@@ -101,13 +96,10 @@ public class OpenSearchIndexScanPaginationTest {
     OpenSearchRequestBuilder builder = mock();
     OpenSearchRequest request = mock();
     OpenSearchResponse response = mock();
-    when(builder.build(any(), anyInt(), any(), any())).thenReturn(request);
+    when(builder.build(any(), any(), any())).thenReturn(request);
     when(client.search(any())).thenReturn(response);
     try (var indexScan =
-        new OpenSearchIndexScan(
-            client,
-            MAX_RESULT_WINDOW,
-            builder.build(INDEX_NAME, MAX_RESULT_WINDOW, SCROLL_TIMEOUT, client))) {
+        new OpenSearchIndexScan(client, builder.build(INDEX_NAME, SCROLL_TIMEOUT, client))) {
       indexScan.open();
 
       when(request.hasAnotherBatch()).thenReturn(false);

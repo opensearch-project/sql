@@ -9,15 +9,16 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Map;
+import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 
 @ToString
 @EqualsAndHashCode(callSuper = false)
 @Getter
-@RequiredArgsConstructor
 public class Rename extends UnresolvedPlan {
   private final List<Map> renameList;
   private UnresolvedPlan child;
@@ -25,6 +26,27 @@ public class Rename extends UnresolvedPlan {
   public Rename(List<Map> renameList, UnresolvedPlan child) {
     this.renameList = renameList;
     this.child = child;
+    validate();
+  }
+
+  public Rename(List<Map> renameList) {
+    this.renameList = renameList;
+    validate();
+  }
+
+  private void validate() {
+    renameList.forEach(rename -> validate(rename.getTarget()));
+  }
+
+  private void validate(UnresolvedExpression expr) {
+    if (expr instanceof Field) {
+      Field field = (Field) expr;
+      String name = field.getField().toString();
+      if (OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(name)) {
+        throw new IllegalArgumentException(
+            String.format("Cannot use metadata field [%s] in Rename command.", name));
+      }
+    }
   }
 
   @Override
@@ -39,7 +61,7 @@ public class Rename extends UnresolvedPlan {
 
   @Override
   public List<UnresolvedPlan> getChild() {
-    return ImmutableList.of(child);
+    return this.child == null ? ImmutableList.of() : ImmutableList.of(this.child);
   }
 
   @Override

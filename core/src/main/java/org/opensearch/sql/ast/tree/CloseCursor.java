@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.ast.tree;
 
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
@@ -28,6 +29,6 @@ public class CloseCursor extends UnresolvedPlan {
 
   @Override
   public List<? extends Node> getChild() {
-    return List.of(cursor);
+    return this.cursor == null ? ImmutableList.of() : ImmutableList.of(this.cursor);
   }
 }

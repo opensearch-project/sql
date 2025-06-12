@@ -8,6 +8,7 @@ package org.opensearch.sql.planner.logical;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
+import static org.opensearch.sql.ast.tree.Trendline.TrendlineType.SMA;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.DSL.named;
 
@@ -25,9 +26,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.LiteralExpression;
@@ -132,14 +135,21 @@ class LogicalPlanNodeVisitorTest {
                 "field", new ReferenceExpression("message.info", STRING),
                 "path", new ReferenceExpression("message", STRING)));
     List<NamedExpression> projectList =
-        List.of(
-            new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING)), null));
+        List.of(new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING))));
 
     LogicalNested nested = new LogicalNested(null, nestedArgs, projectList);
 
     LogicalFetchCursor cursor = new LogicalFetchCursor("n:test", mock(StorageEngine.class));
 
     LogicalCloseCursor closeCursor = new LogicalCloseCursor(cursor);
+
+    LogicalTrendline trendline =
+        new LogicalTrendline(
+            relation,
+            Collections.singletonList(
+                Pair.of(
+                    AstDSL.computation(1, AstDSL.field("testField"), "dummy", SMA),
+                    ExprCoreType.DOUBLE)));
 
     return Stream.of(
             relation,
@@ -163,7 +173,8 @@ class LogicalPlanNodeVisitorTest {
             paginate,
             nested,
             cursor,
-            closeCursor)
+            closeCursor,
+            trendline)
         .map(Arguments::of);
   }
 

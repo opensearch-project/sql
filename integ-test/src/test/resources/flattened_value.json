@@ -1,0 +1,10 @@
+{"index": {"_id":"1"}}
+{"log": { "json" : { "status": "SUCCESS", "time": 100} } }
+{"index": {"_id":"2"}}
+{"log.json": { "status": "SUCCESS", "time": 100} }
+{"index": {"_id":"3"}}
+{"log.json.status":  "SUCCESS", "log.json.time": 100 }
+{"index": {"_id":"4"}}
+{"log.json": { "status": "SUCCESS" }, "log.json.time": 100 }
+{"index": {"_id":"5"}}
+{"log": { "json" : {} }, "log.json": { "status": "SUCCESS" }, "log.json.time": 100 }

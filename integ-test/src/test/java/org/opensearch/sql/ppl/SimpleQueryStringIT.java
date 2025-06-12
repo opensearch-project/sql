@@ -13,7 +13,8 @@ import org.junit.Test;
 
 public class SimpleQueryStringIT extends PPLIntegTestCase {
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
+    super.init();
     loadIndex(Index.BEER);
   }
 

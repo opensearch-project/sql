@@ -28,7 +28,8 @@ public class DefaultExecutionEngine implements ExecutionEngine {
       context.getSplit().ifPresent(plan::add);
       plan.open();
 
-      while (plan.hasNext()) {
+      Integer querySizeLimit = context.getQuerySizeLimit();
+      while (plan.hasNext() && (querySizeLimit == null || result.size() < querySizeLimit)) {
         result.add(plan.next());
       }
       QueryResponse response =

@@ -46,6 +46,14 @@ public enum ExprCoreType implements ExprType {
   TIMESTAMP(STRING, DATETIME),
   INTERVAL(UNDEFINED),
 
+  /** IP Address. */
+  IP(STRING),
+
+  /** Geometry. Only support point now. */
+  GEO_POINT(UNDEFINED),
+
+  BINARY(UNDEFINED),
+
   /** Struct. */
   STRUCT(UNDEFINED),
 
@@ -75,6 +83,10 @@ public enum ExprCoreType implements ExprType {
 
   ExprCoreType(ExprCoreType... compatibleTypes) {
     for (ExprCoreType subType : compatibleTypes) {
+      // for example: TIMESTAMP(STRING, DATE, TIME) and DATE(STRING) means
+      // STRING's parents is TIMESTAMP and DATE
+      // DATE's parent is TIMESTAMP
+      // TIME's parent is TIMESTAMP
       subType.parents.add(this);
     }
   }

@@ -6,6 +6,7 @@ on:
     branches:
       - 'main'
       - '[1-9]+.[0-9x]+'
+      - '2.19-dev'
 
 jobs:
   linkchecker:

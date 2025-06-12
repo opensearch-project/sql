@@ -32,6 +32,7 @@ public enum FunctionType {
   CSV("CSV"),
   MISC("Misc"),
   GENERATOR("Generator"),
+  OTHER("Other"),
   UDF("User Defined Function");
 
   private final String name;
@@ -422,6 +423,51 @@ public enum FunctionType {
                   "posexplode",
                   "posexplode_outer",
                   "stack"))
+          .put(
+              OTHER,
+              Set.of(
+                  "aggregate",
+                  "array_size",
+                  "array_sort",
+                  "cardinality",
+                  "crc32",
+                  "exists",
+                  "filter",
+                  "forall",
+                  "hash",
+                  "ilike",
+                  "in",
+                  "like",
+                  "map_filter",
+                  "map_zip_with",
+                  "md5",
+                  "mod",
+                  "named_struct",
+                  "parse_url",
+                  "raise_error",
+                  "reduce",
+                  "reverse",
+                  "sha",
+                  "sha1",
+                  "sha2",
+                  "size",
+                  "struct",
+                  "transform",
+                  "transform_keys",
+                  "transform_values",
+                  "url_decode",
+                  "url_encode",
+                  "xpath",
+                  "xpath_boolean",
+                  "xpath_double",
+                  "xpath_float",
+                  "xpath_int",
+                  "xpath_long",
+                  "xpath_number",
+                  "xpath_short",
+                  "xpath_string",
+                  "xxhash64",
+                  "zip_with"))
           .build();
 
   private static final Map<String, FunctionType> FUNCTION_NAME_TO_FUNCTION_TYPE_MAP =

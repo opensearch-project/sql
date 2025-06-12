@@ -73,7 +73,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.antlr.v4.runtime.RuleContext;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -152,7 +154,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
         .forEach(
             v ->
                 builder.put(
-                    v.highlightArgName().getText().toLowerCase(),
+                    v.highlightArgName().getText().toLowerCase(Locale.ROOT),
                     new Literal(
                         StringUtils.unquoteText(v.highlightArgValue().getText()),
                         DataType.STRING)));
@@ -379,7 +381,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
             .collect(Collectors.toList());
     UnresolvedExpression elseStatement = (ctx.elseArg == null) ? null : visit(ctx.elseArg);
 
-    return new Case(caseValue, whenStatements, elseStatement);
+    return new Case(caseValue, whenStatements, Optional.ofNullable(elseStatement));
   }
 
   @Override
@@ -420,14 +422,15 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitNoFieldRelevanceFunction(NoFieldRelevanceFunctionContext ctx) {
     return new Function(
-        ctx.noFieldRelevanceFunctionName().getText().toLowerCase(), noFieldRelevanceArguments(ctx));
+        ctx.noFieldRelevanceFunctionName().getText().toLowerCase(Locale.ROOT),
+        noFieldRelevanceArguments(ctx));
   }
 
   @Override
   public UnresolvedExpression visitSingleFieldRelevanceFunction(
       SingleFieldRelevanceFunctionContext ctx) {
     return new Function(
-        ctx.singleFieldRelevanceFunctionName().getText().toLowerCase(),
+        ctx.singleFieldRelevanceFunctionName().getText().toLowerCase(Locale.ROOT),
         singleFieldRelevanceArguments(ctx));
   }
 
@@ -435,7 +438,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   public UnresolvedExpression visitAltSingleFieldRelevanceFunction(
       AltSingleFieldRelevanceFunctionContext ctx) {
     return new Function(
-        ctx.altSyntaxFunctionName.getText().toLowerCase(),
+        ctx.altSyntaxFunctionName.getText().toLowerCase(Locale.ROOT),
         altSingleFieldRelevanceFunctionArguments(ctx));
   }
 
@@ -450,11 +453,11 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
             || funcName.equalsIgnoreCase(BuiltinFunctionName.MULTIMATCHQUERY.toString()))
         && !ctx.getRuleContexts(AlternateMultiMatchQueryContext.class).isEmpty()) {
       return new Function(
-          ctx.multiFieldRelevanceFunctionName().getText().toLowerCase(),
+          ctx.multiFieldRelevanceFunctionName().getText().toLowerCase(Locale.ROOT),
           alternateMultiMatchArguments(ctx));
     } else {
       return new Function(
-          ctx.multiFieldRelevanceFunctionName().getText().toLowerCase(),
+          ctx.multiFieldRelevanceFunctionName().getText().toLowerCase(Locale.ROOT),
           multiFieldRelevanceArguments(ctx));
     }
   }
@@ -463,7 +466,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   public UnresolvedExpression visitAltMultiFieldRelevanceFunction(
       AltMultiFieldRelevanceFunctionContext ctx) {
     return new Function(
-        ctx.altSyntaxFunctionName.getText().toLowerCase(),
+        ctx.altSyntaxFunctionName.getText().toLowerCase(Locale.ROOT),
         altMultiFieldRelevanceFunctionArguments(ctx));
   }
 
@@ -508,12 +511,12 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
             builder.add(
                 v.argName == null
                     ? new UnresolvedArgument(
-                        v.relevanceArgName().getText().toLowerCase(),
+                        v.relevanceArgName().getText().toLowerCase(Locale.ROOT),
                         new Literal(
                             StringUtils.unquoteText(v.relevanceArgValue().getText()),
                             DataType.STRING))
                     : new UnresolvedArgument(
-                        StringUtils.unquoteText(v.argName.getText()).toLowerCase(),
+                        StringUtils.unquoteText(v.argName.getText()).toLowerCase(Locale.ROOT),
                         new Literal(
                             StringUtils.unquoteText(v.argVal.getText()), DataType.STRING))));
   }

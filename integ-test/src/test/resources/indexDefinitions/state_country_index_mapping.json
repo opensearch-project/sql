@@ -1,0 +1,30 @@
+{
+  "mappings": {
+    "properties": {
+      "name": {
+        "type": "keyword"
+      },
+      "age": {
+        "type": "integer"
+      },
+      "state": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "country": {
+        "type": "text"
+      },
+      "year": {
+        "type": "integer"
+      },
+      "month": {
+        "type": "integer"
+      }
+    }
+  }
+}

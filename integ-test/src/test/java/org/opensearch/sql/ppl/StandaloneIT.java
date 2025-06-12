@@ -26,6 +26,7 @@ import org.opensearch.common.inject.Injector;
 import org.opensearch.common.inject.ModulesBuilder;
 import org.opensearch.common.inject.Provides;
 import org.opensearch.common.inject.Singleton;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.analysis.ExpressionAnalyzer;
 import org.opensearch.sql.common.response.ResponseListener;
@@ -74,7 +75,8 @@ public class StandaloneIT extends PPLIntegTestCase {
   private PPLService pplService;
 
   @Override
-  public void init() {
+  public void init() throws Exception {
+    super.init();
     RestHighLevelClient restClient = new InternalRestHighLevelClient(client());
     OpenSearchClient client = new OpenSearchRestClient(restClient);
     DataSourceService dataSourceService =
@@ -143,6 +145,18 @@ public class StandaloneIT extends PPLIntegTestCase {
           public void onFailure(Exception e) {
             throw new IllegalStateException("Exception happened during execution", e);
           }
+        },
+        new ResponseListener<ExecutionEngine.ExplainResponse>() {
+
+          @Override
+          public void onResponse(ExecutionEngine.ExplainResponse response) {
+            assertNotNull(response);
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            fail();
+          }
         });
     return actual.get();
   }
@@ -152,7 +166,7 @@ public class StandaloneIT extends PPLIntegTestCase {
       private final Map<Key, Object> defaultSettings =
           new ImmutableMap.Builder<Key, Object>()
               .put(Key.QUERY_SIZE_LIMIT, 200)
-              .put(Key.SQL_PAGINATION_API_SEARCH_AFTER, true)
+              .put(Key.SQL_CURSOR_KEEP_ALIVE, TimeValue.timeValueMinutes(1))
               .put(Key.FIELD_TYPE_TOLERANCE, true)
               .build();
 
@@ -224,7 +238,7 @@ public class StandaloneIT extends PPLIntegTestCase {
 
     @Provides
     public PPLService pplService(QueryManager queryManager, QueryPlanFactory queryPlanFactory) {
-      return new PPLService(new PPLSyntaxParser(), queryManager, queryPlanFactory);
+      return new PPLService(new PPLSyntaxParser(), queryManager, queryPlanFactory, settings);
     }
 
     @Provides

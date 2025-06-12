@@ -560,26 +560,30 @@ public class SQLQueryValidationVisitor extends SqlBaseParserBaseVisitor<Void> {
     return super.visitFunctionName(ctx);
   }
 
-  private void validateFunctionAllowed(String function) {
-    FunctionType type = FunctionType.fromFunctionName(function.toLowerCase());
+  private void validateFunctionAllowed(String functionName) {
+    String lowerCaseFunctionName = functionName.toLowerCase();
+    FunctionType type = FunctionType.fromFunctionName(lowerCaseFunctionName);
     switch (type) {
       case MAP:
-        validateAllowed(SQLGrammarElement.MAP_FUNCTIONS);
+        validateAllowed(SQLGrammarElement.MAP_FUNCTIONS, lowerCaseFunctionName);
         break;
       case BITWISE:
-        validateAllowed(SQLGrammarElement.BITWISE_FUNCTIONS);
+        validateAllowed(SQLGrammarElement.BITWISE_FUNCTIONS, lowerCaseFunctionName);
         break;
       case CSV:
-        validateAllowed(SQLGrammarElement.CSV_FUNCTIONS);
+        validateAllowed(SQLGrammarElement.CSV_FUNCTIONS, lowerCaseFunctionName);
         break;
       case MISC:
-        validateAllowed(SQLGrammarElement.MISC_FUNCTIONS);
+        validateAllowed(SQLGrammarElement.MISC_FUNCTIONS, lowerCaseFunctionName);
         break;
       case GENERATOR:
-        validateAllowed(SQLGrammarElement.GENERATOR_FUNCTIONS);
+        validateAllowed(SQLGrammarElement.GENERATOR_FUNCTIONS, lowerCaseFunctionName);
+        break;
+      case OTHER:
+        validateAllowed(SQLGrammarElement.OTHER_FUNCTIONS, lowerCaseFunctionName);
         break;
       case UDF:
-        validateAllowed(SQLGrammarElement.UDF);
+        validateAllowed(SQLGrammarElement.UDF, lowerCaseFunctionName);
         break;
     }
   }
@@ -587,6 +591,12 @@ public class SQLQueryValidationVisitor extends SqlBaseParserBaseVisitor<Void> {
   private void validateAllowed(SQLGrammarElement element) {
     if (!grammarElementValidator.isValid(element)) {
       throw new IllegalArgumentException(element + " is not allowed.");
+    }
+  }
+
+  private void validateAllowed(SQLGrammarElement element, String detail) {
+    if (!grammarElementValidator.isValid(element)) {
+      throw new IllegalArgumentException(String.format("%s (%s) is not allowed.", element, detail));
     }
   }
 

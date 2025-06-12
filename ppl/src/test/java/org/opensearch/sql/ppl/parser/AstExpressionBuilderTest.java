@@ -15,6 +15,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.argument;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.cast;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
+import static org.opensearch.sql.ast.dsl.AstDSL.decimalLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultFieldsArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultSortFieldArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultStatsArgs;
@@ -25,6 +26,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.eval;
 import static org.opensearch.sql.ast.dsl.AstDSL.exprList;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
+import static org.opensearch.sql.ast.dsl.AstDSL.floatLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.in;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
@@ -95,6 +97,51 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         filter(
             relation("t"),
             xor(compare("=", field("a"), intLiteral(1)), compare("=", field("b"), intLiteral(2)))));
+  }
+
+  @Test
+  public void testLogicalAndOr() {
+    assertEqual(
+        "source=t a=1 and b=2 and c=3 or d=4",
+        filter(
+            relation("t"),
+            or(
+                and(
+                    and(
+                        compare("=", field("a"), intLiteral(1)),
+                        compare("=", field("b"), intLiteral(2))),
+                    compare("=", field("c"), intLiteral(3))),
+                compare("=", field("d"), intLiteral(4)))));
+  }
+
+  @Test
+  public void testLogicalParenthetic() {
+    assertEqual(
+        "source=t (a=1 or b=2) and (c=3 or d=4)",
+        filter(
+            relation("t"),
+            and(
+                or(
+                    compare("=", field("a"), intLiteral(1)),
+                    compare("=", field("b"), intLiteral(2))),
+                or(
+                    compare("=", field("c"), intLiteral(3)),
+                    compare("=", field("d"), intLiteral(4))))));
+  }
+
+  @Test
+  public void testLogicalNotAndXorOr() {
+    assertEqual(
+        "source=t a=1 xor b=2 and not c=3 or d=4",
+        filter(
+            relation("t"),
+            or(
+                xor(
+                    compare("=", field("a"), intLiteral(1)),
+                    and(
+                        compare("=", field("b"), intLiteral(2)),
+                        not(compare("=", field("c"), intLiteral(3))))),
+                compare("=", field("d"), intLiteral(4)))));
   }
 
   @Test
@@ -468,7 +515,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                 alias(
                     "percentile(a, 1.0)",
                     aggregate(
-                        "percentile", field("a"), unresolvedArg("percent", doubleLiteral(1D))))),
+                        "percentile", field("a"), unresolvedArg("percent", decimalLiteral(1D))))),
             emptyList(),
             emptyList(),
             defaultStatsArgs()));
@@ -482,7 +529,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                     aggregate(
                         "percentile",
                         field("a"),
-                        unresolvedArg("percent", doubleLiteral(1D)),
+                        unresolvedArg("percent", decimalLiteral(1D)),
                         unresolvedArg("compression", intLiteral(100))))),
             emptyList(),
             emptyList(),
@@ -616,7 +663,19 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   @Test
   public void testDoubleLiteralExpr() {
     assertEqual(
-        "source=t b=0.1", filter(relation("t"), compare("=", field("b"), doubleLiteral(0.1))));
+        "source=t b=0.1d", filter(relation("t"), compare("=", field("b"), doubleLiteral(0.1))));
+  }
+
+  @Test
+  public void testFloatLiteralExpr() {
+    assertEqual(
+        "source=t b=0.1f", filter(relation("t"), compare("=", field("b"), floatLiteral(0.1f))));
+  }
+
+  @Test
+  public void testDecimalLiteralExpr() {
+    assertEqual(
+        "source=t b=0.1", filter(relation("t"), compare("=", field("b"), decimalLiteral(0.1))));
   }
 
   @Test

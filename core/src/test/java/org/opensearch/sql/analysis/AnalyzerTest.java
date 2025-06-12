@@ -18,6 +18,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.alias;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
+import static org.opensearch.sql.ast.dsl.AstDSL.computation;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
 import static org.opensearch.sql.ast.dsl.AstDSL.filteredAggregate;
@@ -33,6 +34,7 @@ import static org.opensearch.sql.ast.tree.Sort.NullOrder;
 import static org.opensearch.sql.ast.tree.Sort.SortOption;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder;
+import static org.opensearch.sql.ast.tree.Trendline.TrendlineType.SMA;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
@@ -66,6 +68,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Disabled;
@@ -76,6 +79,8 @@ import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
+import org.opensearch.sql.ast.expression.PatternMethod;
+import org.opensearch.sql.ast.expression.PatternMode;
 import org.opensearch.sql.ast.expression.ScoreFunction;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
@@ -87,6 +92,7 @@ import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
@@ -154,12 +160,7 @@ class AnalyzerTest extends AnalyzerTestBase {
 
     ExpressionEvaluationException exception =
         assertThrows(ExpressionEvaluationException.class, () -> analyze(typeMismatchPlan));
-    assertEquals(
-        "= function expected {[BYTE,BYTE],[SHORT,SHORT],[INTEGER,INTEGER],[LONG,LONG],"
-            + "[FLOAT,FLOAT],[DOUBLE,DOUBLE],[STRING,STRING],[BOOLEAN,BOOLEAN],[DATE,DATE],"
-            + "[TIME,TIME],[DATETIME,DATETIME],[TIMESTAMP,TIMESTAMP],[INTERVAL,INTERVAL],"
-            + "[STRUCT,STRUCT],[ARRAY,ARRAY]}, but get [STRING,INTEGER]",
-        exception.getMessage());
+    assertEquals(getIncompatibleTypeErrMsg(STRING, INTEGER), exception.getMessage());
   }
 
   @Test
@@ -525,7 +526,7 @@ class AnalyzerTest extends AnalyzerTestBase {
     List<NamedExpression> projectList =
         List.of(
             new NamedExpression(
-                "nested(message.info)", DSL.nested(DSL.ref("message.info", STRING)), null));
+                "nested(message.info)", DSL.nested(DSL.ref("message.info", STRING))));
 
     assertAnalyzeEqual(
         LogicalPlanDSL.project(
@@ -698,8 +699,7 @@ class AnalyzerTest extends AnalyzerTestBase {
         List.of(
             new NamedExpression(
                 "nested(message.info)",
-                DSL.nested(DSL.ref("message.info", STRING), DSL.ref("message", STRING)),
-                null));
+                DSL.nested(DSL.ref("message.info", STRING), DSL.ref("message", STRING))));
 
     assertAnalyzeEqual(
         LogicalPlanDSL.project(
@@ -728,7 +728,7 @@ class AnalyzerTest extends AnalyzerTestBase {
     List<NamedExpression> projectList =
         List.of(
             new NamedExpression(
-                "nested(message.info.id)", DSL.nested(DSL.ref("message.info.id", STRING)), null));
+                "nested(message.info.id)", DSL.nested(DSL.ref("message.info.id", STRING))));
 
     assertAnalyzeEqual(
         LogicalPlanDSL.project(
@@ -758,9 +758,9 @@ class AnalyzerTest extends AnalyzerTestBase {
     List<NamedExpression> projectList =
         List.of(
             new NamedExpression(
-                "nested(message.info)", DSL.nested(DSL.ref("message.info", STRING)), null),
+                "nested(message.info)", DSL.nested(DSL.ref("message.info", STRING))),
             new NamedExpression(
-                "nested(comment.data)", DSL.nested(DSL.ref("comment.data", STRING)), null));
+                "nested(comment.data)", DSL.nested(DSL.ref("comment.data", STRING))));
 
     assertAnalyzeEqual(
         LogicalPlanDSL.project(
@@ -1371,58 +1371,6 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void parse_relation_with_patterns_expression() {
-    Map<String, Literal> arguments =
-        ImmutableMap.<String, Literal>builder()
-            .put("new_field", AstDSL.stringLiteral("custom_field"))
-            .put("pattern", AstDSL.stringLiteral("custom_pattern"))
-            .build();
-
-    assertAnalyzeEqual(
-        LogicalPlanDSL.project(
-            LogicalPlanDSL.relation("schema", table),
-            ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING))),
-            ImmutableList.of(
-                DSL.named(
-                    "custom_field",
-                    DSL.patterns(
-                        DSL.ref("string_value", STRING),
-                        DSL.literal("custom_pattern"),
-                        DSL.literal("custom_field"))))),
-        AstDSL.project(
-            AstDSL.parse(
-                AstDSL.relation("schema"),
-                ParseMethod.PATTERNS,
-                AstDSL.field("string_value"),
-                AstDSL.stringLiteral("custom_pattern"),
-                arguments),
-            AstDSL.alias("string_value", qualifiedName("string_value"))));
-  }
-
-  @Test
-  public void parse_relation_with_patterns_expression_no_args() {
-    assertAnalyzeEqual(
-        LogicalPlanDSL.project(
-            LogicalPlanDSL.relation("schema", table),
-            ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING))),
-            ImmutableList.of(
-                DSL.named(
-                    "patterns_field",
-                    DSL.patterns(
-                        DSL.ref("string_value", STRING),
-                        DSL.literal(""),
-                        DSL.literal("patterns_field"))))),
-        AstDSL.project(
-            AstDSL.parse(
-                AstDSL.relation("schema"),
-                ParseMethod.PATTERNS,
-                AstDSL.field("string_value"),
-                AstDSL.stringLiteral(""),
-                ImmutableMap.of()),
-            AstDSL.alias("string_value", qualifiedName("string_value"))));
-  }
-
-  @Test
   public void kmeanns_relation() {
     Map<String, Literal> argumentMap =
         new HashMap<String, Literal>() {
@@ -1435,6 +1383,98 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         new LogicalMLCommons(LogicalPlanDSL.relation("schema", table), "kmeans", argumentMap),
         new Kmeans(AstDSL.relation("schema"), argumentMap));
+  }
+
+  @Test
+  public void fillnull_same_value() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.eval(
+            LogicalPlanDSL.relation("schema", table),
+            ImmutablePair.of(
+                DSL.ref("integer_value", INTEGER),
+                DSL.ifnull(DSL.ref("integer_value", INTEGER), DSL.literal(0))),
+            ImmutablePair.of(
+                DSL.ref("int_null_value", INTEGER),
+                DSL.ifnull(DSL.ref("int_null_value", INTEGER), DSL.literal(0)))),
+        AstDSL.fillNull(
+            AstDSL.relation("schema"),
+            AstDSL.intLiteral(0),
+            AstDSL.field("integer_value"),
+            AstDSL.field("int_null_value")));
+  }
+
+  @Test
+  public void fillnull_various_values() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.eval(
+            LogicalPlanDSL.relation("schema", table),
+            ImmutablePair.of(
+                DSL.ref("integer_value", INTEGER),
+                DSL.ifnull(DSL.ref("integer_value", INTEGER), DSL.literal(0))),
+            ImmutablePair.of(
+                DSL.ref("int_null_value", INTEGER),
+                DSL.ifnull(DSL.ref("int_null_value", INTEGER), DSL.literal(1)))),
+        AstDSL.fillNull(
+            AstDSL.relation("schema"),
+            List.of(
+                Pair.of(AstDSL.field("integer_value"), AstDSL.intLiteral(0)),
+                Pair.of(AstDSL.field("int_null_value"), AstDSL.intLiteral(1)))));
+  }
+
+  @Test
+  public void trendline() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.trendline(
+            LogicalPlanDSL.relation("schema", table),
+            Pair.of(computation(5, field("float_value"), "test_field_alias", SMA), DOUBLE),
+            Pair.of(computation(1, field("double_value"), "test_field_alias_2", SMA), DOUBLE)),
+        AstDSL.trendline(
+            AstDSL.relation("schema"),
+            Optional.empty(),
+            computation(5, field("float_value"), "test_field_alias", SMA),
+            computation(1, field("double_value"), "test_field_alias_2", SMA)));
+  }
+
+  @Test
+  public void trendline_datetime_types() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.trendline(
+            LogicalPlanDSL.relation("schema", table),
+            Pair.of(computation(5, field("timestamp_value"), "test_field_alias", SMA), TIMESTAMP)),
+        AstDSL.trendline(
+            AstDSL.relation("schema"),
+            Optional.empty(),
+            computation(5, field("timestamp_value"), "test_field_alias", SMA)));
+  }
+
+  @Test
+  public void trendline_illegal_type() {
+    assertThrows(
+        SemanticCheckException.class,
+        () ->
+            analyze(
+                AstDSL.trendline(
+                    AstDSL.relation("schema"),
+                    Optional.empty(),
+                    computation(5, field("array_value"), "test_field_alias", SMA))));
+  }
+
+  @Test
+  public void trendline_with_sort() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.trendline(
+            LogicalPlanDSL.sort(
+                LogicalPlanDSL.relation("schema", table),
+                Pair.of(
+                    new SortOption(SortOrder.ASC, NullOrder.NULL_FIRST),
+                    DSL.ref("float_value", ExprCoreType.FLOAT))),
+            Pair.of(computation(5, field("float_value"), "test_field_alias", SMA), DOUBLE),
+            Pair.of(computation(1, field("double_value"), "test_field_alias_2", SMA), DOUBLE)),
+        AstDSL.trendline(
+            AstDSL.relation("schema"),
+            Optional.of(field("float_value", argument("asc", booleanLiteral(true)))),
+            computation(5, field("float_value"), "test_field_alias", SMA),
+            computation(1, field("double_value"), "test_field_alias_2", SMA)));
   }
 
   @Test
@@ -1766,5 +1806,125 @@ class AnalyzerTest extends AnalyzerTestBase {
         () -> assertTrue(analyzed.getChild().get(0) instanceof LogicalFetchCursor),
         () ->
             assertEquals("pewpew", ((LogicalFetchCursor) analyzed.getChild().get(0)).getCursor()));
+  }
+
+  @Test
+  public void parse_relation_with_patterns_expression() {
+    Map<String, Literal> arguments =
+        ImmutableMap.<String, Literal>builder()
+            .put("new_field", AstDSL.stringLiteral("custom_field"))
+            .put("pattern", AstDSL.stringLiteral("custom_pattern"))
+            .build();
+
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.relation("schema", table),
+            ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING))),
+            ImmutableList.of(
+                DSL.named(
+                    "custom_field",
+                    DSL.patterns(
+                        DSL.ref("string_value", STRING),
+                        DSL.literal("custom_pattern"),
+                        DSL.literal("custom_field"))))),
+        AstDSL.project(
+            AstDSL.parse(
+                AstDSL.relation("schema"),
+                ParseMethod.PATTERNS,
+                AstDSL.field("string_value"),
+                AstDSL.stringLiteral("custom_pattern"),
+                arguments),
+            AstDSL.alias("string_value", qualifiedName("string_value"))));
+  }
+
+  @Test
+  public void parse_relation_with_patterns_expression_no_args() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.relation("schema", table),
+            ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING))),
+            ImmutableList.of(
+                DSL.named(
+                    "patterns_field",
+                    DSL.patterns(
+                        DSL.ref("string_value", STRING),
+                        DSL.literal(""),
+                        DSL.literal("patterns_field"))))),
+        AstDSL.project(
+            AstDSL.parse(
+                AstDSL.relation("schema"),
+                ParseMethod.PATTERNS,
+                AstDSL.field("string_value"),
+                AstDSL.stringLiteral(""),
+                ImmutableMap.of()),
+            AstDSL.alias("string_value", qualifiedName("string_value"))));
+  }
+
+  @Test
+  public void brain_patterns_command_with_no_additional_args() {
+    UnresolvedPlan patterns =
+        AstDSL.project(
+            AstDSL.patterns(
+                AstDSL.relation("schema"),
+                AstDSL.field("string_value"),
+                ImmutableList.of(),
+                "patterns_field",
+                PatternMethod.BRAIN,
+                PatternMode.LABEL,
+                AstDSL.intLiteral(10),
+                AstDSL.intLiteral(100000),
+                ImmutableMap.of()),
+            AstDSL.field("string_value"));
+    LogicalPlan expectedPlan =
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.window(
+                LogicalPlanDSL.relation("schema", table),
+                DSL.named(
+                    "patterns_field", DSL.brain(DSL.ref("string_value", STRING)), "patterns_field"),
+                new WindowDefinition(ImmutableList.of(), ImmutableList.of())),
+            DSL.named("string_value", DSL.ref("string_value", STRING)));
+
+    assertAnalyzeEqual(expectedPlan, patterns);
+  }
+
+  @Test
+  public void brain_patterns_command() {
+    UnresolvedPlan patterns =
+        AstDSL.project(
+            AstDSL.patterns(
+                AstDSL.relation("schema"),
+                AstDSL.field("string_value"),
+                ImmutableList.of(),
+                "custom_field",
+                PatternMethod.BRAIN,
+                PatternMode.LABEL,
+                AstDSL.intLiteral(10),
+                AstDSL.intLiteral(100000),
+                ImmutableMap.of(
+                    "variable_count_threshold",
+                    AstDSL.intLiteral(10), // with integer argument
+                    "frequency_threshold_percentage",
+                    AstDSL.doubleLiteral(0.1) // with double argument
+                    )),
+            AstDSL.field("string_value"));
+    LogicalPlan expectedPlan =
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.window(
+                LogicalPlanDSL.relation("schema", table),
+                DSL.named(
+                    "custom_field",
+                    DSL.brain(
+                        DSL.ref("string_value", STRING),
+                        DSL.namedArgument(
+                            "frequency_threshold_percentage",
+                            DSL.literal(0.1)), // with additional double argument
+                        DSL.namedArgument(
+                            "variable_count_threshold",
+                            DSL.literal(10))), // with additional integer argument
+                    "custom_field"),
+                new WindowDefinition(ImmutableList.of(), ImmutableList.of())),
+            DSL.named("string_value", DSL.ref("string_value", STRING)));
+
+    assertAnalyzeEqual(expectedPlan, patterns);
   }
 }
