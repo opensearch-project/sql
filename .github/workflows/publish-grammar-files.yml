@@ -1,0 +1,82 @@
+name: Publish grammar files to maven
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - 1.*
+      - 2.*
+      - poc/commit-metadata
+    paths:
+      - 'language-grammar/src/main/antlr4/**'
+      - 'language-grammar/build.gradle'
+      - '.github/workflows/publish-grammar-files.yml'
+      - '.github/maven-publish-utils.sh'
+      - '.github/get-sonatype-credentials.sh'
+
+env:
+  SNAPSHOT_REPO_URL: https://aws.oss.sonatype.org/content/repositories/snapshots/
+  COMMIT_MAP_FILENAME: commit-history.json
+
+jobs:
+  publish-grammar-files:
+    strategy:
+      fail-fast: false
+    #if: github.repository == 'opensearch-project/sql'
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: write
+
+    env:
+      TARGET_REPO_PATH: org/opensearch/language-grammar
+
+    steps:
+      - uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: actions/checkout@v3
+
+      - uses: aws-actions/configure-aws-credentials@v1.7.0
+        with:
+          role-to-assume: ${{ secrets.PUBLISH_SNAPSHOTS_ROLE }}
+          aws-region: us-east-1
+
+      - name: Setup publishing credentials
+        id: creds
+        run: |
+          .github/get-sonatype-credentials.sh
+
+      - name: Set version
+        id: set_version
+        run: |
+          VERSION=$(grep "version = " ./language-grammar/build.gradle | cut -d "'" -f 2)
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Using version: ${VERSION}"
+
+      - name: Set commit ID
+        id: set_commit
+        run: |
+          COMMIT_ID=$(git log -1 --format='%H')
+          echo "commit_id=${COMMIT_ID}" >> $GITHUB_OUTPUT
+          echo "Using commit ID: ${COMMIT_ID}"
+
+      - uses: actions/checkout@v4
+        with:
+          repository: 'opensearch-project/opensearch-build-libraries'
+          path: 'build'
+
+      - name: Install required tools
+        run: sudo apt-get update && sudo apt-get install -y xmlstarlet jq
+
+      - name: Publish grammar files
+        run: |
+          # Source the utility functions
+          source ./.github/maven-publish-utils.sh
+          
+          # Call the main function for grammar files
+          publish_grammar_files "${{ steps.set_version.outputs.VERSION }}" "${{ steps.set_commit.outputs.commit_id }}"
