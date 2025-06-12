@@ -352,18 +352,6 @@ class OpenSearchExprValueFactoryTest {
                 tupleValue("{ \"dateTimeCustomV\" : 19840510203040 }").get("dateTimeCustomV")),
         () ->
             assertEquals(
-                new ExprTimestampValue("2015-01-01 12:10:30"),
-                constructFromObject("timestampV", "2015-01-01 12:10:30")),
-        () ->
-            assertEquals(
-                new ExprDatetimeValue("2015-01-01 12:10:30"),
-                constructFromObject("datetimeV", "2015-01-01 12:10:30")),
-        () ->
-            assertEquals(
-                new ExprDatetimeValue("2015-01-01 12:10:30"),
-                constructFromObject("datetimeDefaultV", "2015-01-01 12:10:30")),
-        () ->
-            assertEquals(
                 new ExprTimestampValue(Instant.ofEpochMilli(1420070400001L)),
                 constructFromObject("dateOrEpochMillisV", "1420070400001")),
 
@@ -393,10 +381,6 @@ class OpenSearchExprValueFactoryTest {
     assertEquals(
         "Construct TIMESTAMP from \"2015-01-01 12-10-30\" failed, " + "unsupported format.",
         exception.getMessage());
-
-    assertEquals(
-        new ExprDatetimeValue("2015-01-01 12:10:30"),
-        constructFromObject("customAndEpochMillisV", "2015-01-01 12:10:30"));
 
     assertEquals(
         new ExprTimestampValue("2015-01-01 12:10:30"),

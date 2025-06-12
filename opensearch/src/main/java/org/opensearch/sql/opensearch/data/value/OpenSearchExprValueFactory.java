@@ -254,18 +254,9 @@ public class OpenSearchExprValueFactory {
           return new ExprDateValue(
               DateFormatters.from(STRICT_YEAR_MONTH_DAY_FORMATTER.parse(value)).toLocalDate());
         default:
-          try {
-            return new ExprTimestampValue(
-                    DateFormatters.from(DateFieldMapper.getDefaultDateTimeFormatter().parse(value))
-                            .toInstant());
-          } catch (DateTimeParseException | IllegalArgumentException ignored) {
-            try {
-              return new ExprTimestampValue(
-                      DateFormatters.from(DATE_TIME_FORMATTER.parse(value)).toInstant());
-            } catch (DateTimeParseException | IllegalArgumentException e) {
-              throw e;
-            }
-          }
+          return new ExprTimestampValue(
+                  DateFormatters.from(DateFieldMapper.getDefaultDateTimeFormatter().parse(value))
+                          .toInstant());
       }
     } catch (DateTimeParseException | IllegalArgumentException ignored) {
       // ignored
