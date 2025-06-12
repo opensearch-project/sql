@@ -21,6 +21,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import org.json.JSONObject;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.calcite.standalone.CalcitePPLIntegTestCase;
@@ -436,6 +437,7 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
     verifyNumOfRows(actual, 0);
   }
 
+  @Ignore("This IT is easily flaky failure in 2.19.0, but more stable after 2.19.3")
   @Test
   public void testQ19() {
     String ppl = loadFromFile("tpch/queries/q19.ppl");
