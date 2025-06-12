@@ -85,7 +85,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
             (rowCount, action) ->
                 switch (action.type) {
                       case AGGREGATION -> mq.getRowCount((RelNode) action.digest);
-                      case PROJECT -> rowCount;
+                      case PROJECT, SORT -> rowCount;
                       case FILTER -> NumberUtil.multiply(
                           rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest));
                       case LIMIT -> (Integer) action.digest;
@@ -133,7 +133,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     FILTER,
     PROJECT,
     AGGREGATION,
-    // SORT,
+    SORT,
     LIMIT,
     // HIGHLIGHT,
     // NESTED

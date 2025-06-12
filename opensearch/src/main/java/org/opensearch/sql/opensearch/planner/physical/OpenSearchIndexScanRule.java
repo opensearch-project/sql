@@ -36,4 +36,8 @@ public interface OpenSearchIndexScanRule {
   static boolean isLogicalSortLimit(LogicalSort sort) {
     return sort.fetch != null && sort.getCollation().getFieldCollations().isEmpty();
   }
+
+  static boolean sortByFieldsOnly(LogicalSort sort) {
+    return !sort.getCollation().getFieldCollations().isEmpty() && sort.fetch == null;
+  }
 }
