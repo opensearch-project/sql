@@ -9,6 +9,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 
@@ -31,11 +32,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
   public void testRename() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                """
-                   source = %s | rename age as renamed_age
-                   """,
-                TEST_INDEX_STATE_COUNTRY));
+            String.format("source = %s | rename age as renamed_age", TEST_INDEX_STATE_COUNTRY));
     verifySchema(
         result,
         schema("name", "string"),
@@ -54,14 +51,12 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
             () ->
                 executeQuery(
                     String.format(
-                        """
-                   source = %s | rename age as renamed_age | fields age
-                   """,
+                        "source = %s | rename age as renamed_age | fields age",
                         TEST_INDEX_STATE_COUNTRY)));
-    assertEquals(
+    verifyErrorMessageContains(
+        e,
         "field [age] not found; input fields are: [name, country, state, month, year, renamed_age,"
-            + " _id, _index, _score, _maxscore, _sort, _routing]",
-        e.getMessage());
+            + " _id, _index, _score, _maxscore, _sort, _routing]");
   }
 
   @Test
@@ -72,14 +67,11 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
             () ->
                 executeQuery(
                     String.format(
-                        """
-                   source = %s | rename renamed_age as age
-                   """,
-                        TEST_INDEX_STATE_COUNTRY)));
-    assertEquals(
+                        "source = %s | rename renamed_age as age", TEST_INDEX_STATE_COUNTRY)));
+    verifyErrorMessageContains(
+        e,
         "field [renamed_age] not found; input fields are: [name, country, state, month, year, age,"
-            + " _id, _index, _score, _maxscore, _sort, _routing]",
-        e.getMessage());
+            + " _id, _index, _score, _maxscore, _sort, _routing]");
   }
 
   @Test
@@ -89,21 +81,12 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
             IllegalArgumentException.class,
             () ->
                 executeQuery(
-                    String.format(
-                        """
-                   source = %s | rename name as _id
-                   """,
-                        TEST_INDEX_STATE_COUNTRY)));
-    assertEquals("Cannot use metadata field [_id] in Rename command.", e.getMessage());
+                    String.format("source = %s | rename name as _id", TEST_INDEX_STATE_COUNTRY)));
+    verifyErrorMessageContains(e, "Cannot use metadata field [_id] in Rename command.");
 
     // Test rename to _ID, which is allowed as metadata fields name is case-sensitive
     JSONObject result =
-        executeQuery(
-            String.format(
-                """
-                   source = %s | rename age as _ID
-                   """,
-                TEST_INDEX_STATE_COUNTRY));
+        executeQuery(String.format("source = %s | rename age as _ID", TEST_INDEX_STATE_COUNTRY));
     verifySchema(
         result,
         schema("name", "string"),
@@ -119,10 +102,8 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s | rename name as renamed_name, country as renamed_country
-                   | fields renamed_name, age, renamed_country
-                   """,
+                "source = %s | rename name as renamed_name, country as renamed_country"
+                    + "| fields renamed_name, age, renamed_country",
                 TEST_INDEX_STATE_COUNTRY));
     verifySchema(
         result,
@@ -142,9 +123,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s | rename age as user_age | stats avg(user_age) by country
-                   """,
+                "source = %s | rename age as user_age | stats avg(user_age) by country",
                 TEST_INDEX_STATE_COUNTRY));
     verifySchemaInOrder(result, schema("avg(user_age)", "double"), schema("country", "string"));
     verifyDataRows(result, rows(22.5, "Canada"), rows(50.0, "USA"));
@@ -155,10 +134,8 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s |  rename name as `renamed_name`, country as `renamed_country`
-                   | fields `renamed_name`, `age`, `renamed_country`
-                   """,
+                "source = %s |  rename name as `renamed_name`, country as `renamed_country`"
+                    + "| fields `renamed_name`, `age`, `renamed_country`",
                 TEST_INDEX_STATE_COUNTRY));
     verifySchema(
         result,
@@ -178,9 +155,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s | rename age as `user_age` | stats avg(`user_age`) by country
-                   """,
+                "source = %s | rename age as `user_age` | stats avg(`user_age`) by country",
                 TEST_INDEX_STATE_COUNTRY));
     verifySchemaInOrder(result, schema("avg(`user_age`)", "double"), schema("country", "string"));
     verifyDataRows(result, rows(22.5, "Canada"), rows(50.0, "USA"));

@@ -35,9 +35,7 @@ public class CalcitePPLGrokIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 Locale.ROOT,
-                """
-                   source = %s | grok email '%s' | head 3 | fields email, host
-                   """,
+                "source = %s | grok email '%s' | head 3 | fields email, host",
                 TEST_INDEX_BANK,
                 ".+@%{HOSTNAME:host}"));
     verifySchema(result, schema("email", "string"), schema("host", "string"));
@@ -52,12 +50,7 @@ public class CalcitePPLGrokIT extends PPLIntegTestCase {
   public void testGrokAddressOverriding() throws IOException {
     JSONObject preGrokResult =
         executeQuery(
-            String.format(
-                Locale.ROOT,
-                """
-                   source = %s | head 3 | fields address
-                   """,
-                TEST_INDEX_BANK));
+            String.format(Locale.ROOT, "source = %s | head 3 | fields address", TEST_INDEX_BANK));
     verifySchema(preGrokResult, schema("address", "string"));
     verifyDataRows(
         preGrokResult,
@@ -69,9 +62,7 @@ public class CalcitePPLGrokIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 Locale.ROOT,
-                """
-                   source = %s | grok address '%s' | head 3 | fields address
-                   """,
+                "source = %s | grok address '%s' | head 3 | fields address",
                 TEST_INDEX_BANK,
                 "%{NUMBER} %{GREEDYDATA:address}"));
     verifySchema(result, schema("address", "string"));
@@ -84,9 +75,7 @@ public class CalcitePPLGrokIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 Locale.ROOT,
-                """
-                   source = %s | grok message '%s' | fields message, timestamp, response
-                   """,
+                "source = %s | grok message '%s' | fields message, timestamp, response",
                 TEST_INDEX_WEBLOGS,
                 "%{COMMONAPACHELOG}"));
     verifySchema(

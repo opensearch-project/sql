@@ -34,9 +34,7 @@ public class CalcitePPLParseIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s | parse email '.+@(?<host>.+)' | fields email, host
-                   """,
+                "source = %s | parse email '.+@(?<host>.+)' | fields email, host",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("email", "string"), schema("host", "string"));
     verifyDataRows(
@@ -55,10 +53,7 @@ public class CalcitePPLParseIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s | parse email '.+@(?<email>.+)' | fields email
-                   """,
-                TEST_INDEX_BANK));
+                "source = %s | parse email '.+@(?<email>.+)' | fields email", TEST_INDEX_BANK));
     verifySchema(result, schema("email", "string"));
     verifyDataRows(
         result,
@@ -76,9 +71,7 @@ public class CalcitePPLParseIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s | parse email '.+@(?<host>.+)' | stats count() by host
-                   """,
+                "source = %s | parse email '.+@(?<host>.+)' | stats count() by host",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("count()", "bigint"), schema("host", "string"));
     verifyDataRows(
@@ -97,13 +90,11 @@ public class CalcitePPLParseIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s | parse address '(?<streetNumber>\\d+)'
-                   | eval streetNumberInt = cast(streetNumber as integer)
-                   | where streetNumberInt > 500
-                   | sort streetNumberInt
-                   | fields streetNumberInt, address
-                   """,
+                "source = %s | parse address '(?<streetNumber>\\\\d+)'"
+                    + "| eval streetNumberInt = cast(streetNumber as integer)"
+                    + "| where streetNumberInt > 500"
+                    + "| sort streetNumberInt"
+                    + "| fields streetNumberInt, address",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("streetNumberInt", "int"), schema("address", "string"));
     verifyDataRows(
@@ -124,10 +115,8 @@ public class CalcitePPLParseIT extends PPLIntegTestCase {
             () ->
                 executeQuery(
                     String.format(
-                        """
-                    source = %s | parse address '(?<streetNumber>\\d+) (?<street>.+)'
-                    | fields streetNumber, street
-                    """,
+                        "source = %s | parse address '(?<streetNumber>\\\\d+) (?<street>.+)'"
+                            + "| fields streetNumber, street",
                         TEST_INDEX_BANK)));
     verifyErrorMessageContains(
         e, "Multiple capturing groups (count=2) not allowed in regex input for REGEXP_EXTRACT");

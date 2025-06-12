@@ -29,10 +29,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                """
-                source=%s | dedup 1 name | fields name
-                """,
-                TEST_INDEX_DUPLICATION_NULLABLE));
+                "source=%s | dedup 1 name | fields name", TEST_INDEX_DUPLICATION_NULLABLE));
     verifyDataRows(actual, rows("A"), rows("B"), rows("C"), rows("D"), rows("E"));
   }
 
@@ -41,9 +38,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                """
-                source=%s | dedup 1 name, category | fields name, category
-                """,
+                "source=%s | dedup 1 name, category | fields name, category",
                 TEST_INDEX_DUPLICATION_NULLABLE));
     verifyDataRows(
         actual,
@@ -60,9 +55,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                """
-                source=%s | dedup 1 name KEEPEMPTY=true | fields name, category
-                """,
+                "source=%s | dedup 1 name KEEPEMPTY=true | fields name, category",
                 TEST_INDEX_DUPLICATION_NULLABLE));
     verifyDataRows(
         actual,
@@ -82,9 +75,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                """
-                source=%s | dedup 1 name, category KEEPEMPTY=true | fields name, category
-                """,
+                "source=%s | dedup 1 name, category KEEPEMPTY=true | fields name, category",
                 TEST_INDEX_DUPLICATION_NULLABLE));
     verifyDataRows(
         actual,
@@ -110,9 +101,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
         () ->
             executeQuery(
                 String.format(
-                    """
-                   source = %s | dedup 1 name CONSECUTIVE=true | fields name
-                   """,
+                    "source = %s | dedup 1 name CONSECUTIVE=true | fields name",
                     TEST_INDEX_DUPLICATION_NULLABLE)));
 
     assertThrowsWithReplace(
@@ -120,9 +109,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
         () ->
             executeQuery(
                 String.format(
-                    """
-                    source = %s | dedup 1 name KEEPEMPTY=true CONSECUTIVE=true | fields name
-                    """,
+                    "source = %s | dedup 1 name KEEPEMPTY=true CONSECUTIVE=true | fields name",
                     TEST_INDEX_DUPLICATION_NULLABLE)));
 
     assertThrowsWithReplace(
@@ -130,9 +117,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
         () ->
             executeQuery(
                 String.format(
-                    """
-                    source = %s | dedup 2 name CONSECUTIVE=true | fields name
-                    """,
+                    "source = %s | dedup 2 name CONSECUTIVE=true | fields name",
                     TEST_INDEX_DUPLICATION_NULLABLE)));
 
     assertThrowsWithReplace(
@@ -140,9 +125,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
         () ->
             executeQuery(
                 String.format(
-                    """
-                    source = %s | dedup 2 name KEEPEMPTY=true CONSECUTIVE=true | fields name
-                    """,
+                    "source = %s | dedup 2 name KEEPEMPTY=true CONSECUTIVE=true | fields name",
                     TEST_INDEX_DUPLICATION_NULLABLE)));
   }
 
@@ -151,10 +134,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                """
-                source=%s | dedup 2 name | fields name
-                """,
-                TEST_INDEX_DUPLICATION_NULLABLE));
+                "source=%s | dedup 2 name | fields name", TEST_INDEX_DUPLICATION_NULLABLE));
     verifyDataRows(
         actual, rows("A"), rows("A"), rows("B"), rows("B"), rows("C"), rows("C"), rows("D"),
         rows("E"));
@@ -165,9 +145,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                """
-                source=%s | dedup 2 name, category | fields name, category
-                """,
+                "source=%s | dedup 2 name, category | fields name, category",
                 TEST_INDEX_DUPLICATION_NULLABLE));
     verifyDataRows(
         actual,
@@ -188,9 +166,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                """
-                source=%s | dedup 2 name KEEPEMPTY=true | fields name, category
-                """,
+                "source=%s | dedup 2 name KEEPEMPTY=true | fields name, category",
                 TEST_INDEX_DUPLICATION_NULLABLE));
     verifyDataRows(
         actual,
@@ -213,9 +189,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                """
-                source=%s | dedup 2 name, category KEEPEMPTY=true | fields name, category
-                """,
+                "source=%s | dedup 2 name, category KEEPEMPTY=true | fields name, category",
                 TEST_INDEX_DUPLICATION_NULLABLE));
     verifyDataRows(
         actual,
@@ -242,9 +216,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
     JSONObject actual1 =
         executeQuery(
             String.format(
-                """
-                source=%s | dedup 2 name, category
-                """,
+                "source=%s | dedup 2 name, category | fields name, category, id",
                 TEST_INDEX_DUPLICATION_NULLABLE));
     verifySchemaInOrder(
         actual1,
@@ -254,9 +226,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
     JSONObject actual2 =
         executeQuery(
             String.format(
-                """
-                source=%s | dedup 2 category, name
-                """,
+                "source=%s | dedup 2 category, name | fields name, category, id",
                 TEST_INDEX_DUPLICATION_NULLABLE));
     verifySchemaInOrder(
         actual2,
@@ -266,9 +236,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
     JSONObject actual3 =
         executeQuery(
             String.format(
-                """
-                source=%s | dedup 2 name, category KEEPEMPTY=true
-                """,
+                "source=%s | dedup 2 name, category KEEPEMPTY=true | fields name, category, id",
                 TEST_INDEX_DUPLICATION_NULLABLE));
     verifySchemaInOrder(
         actual3,
@@ -278,9 +246,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
     JSONObject actual4 =
         executeQuery(
             String.format(
-                """
-                source=%s | dedup 2 category, name KEEPEMPTY=true
-                """,
+                "source=%s | dedup 2 category, name KEEPEMPTY=true | fields name, category, id",
                 TEST_INDEX_DUPLICATION_NULLABLE));
     verifySchemaInOrder(
         actual4,

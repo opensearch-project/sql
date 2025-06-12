@@ -44,13 +44,11 @@ public class CalcitePPLScalarSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | eval count_dept = [
-                       source = %s | stats count(department)
-                     ]
-                   | fields name, count_dept
-                   """,
+                "source = %s"
+                    + "| eval count_dept = ["
+                    + "    source = %s | stats count(department)"
+                    + "  ]"
+                    + "| fields name, count_dept",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("name", "string"), schema("count_dept", "bigint"));
     verifyDataRows(
@@ -69,13 +67,11 @@ public class CalcitePPLScalarSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | eval count_dept = [
-                       source = %s | stats count(department)
-                     ] + 10
-                   | fields name, count_dept
-                   """,
+                "source = %s"
+                    + "| eval count_dept = ["
+                    + "    source = %s | stats count(department)"
+                    + "  ] + 10"
+                    + "| fields name, count_dept",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("name", "string"), schema("count_dept", "bigint"));
     verifyDataRows(
@@ -94,16 +90,14 @@ public class CalcitePPLScalarSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | where id > [
-                       source = %s | stats count(department)
-                     ] + 999
-                   | eval count_dept = [
-                       source = %s | stats count(department)
-                     ]
-                   | fields name, count_dept
-                   """,
+                "source = %s"
+                    + "| where id > ["
+                    + "    source = %s | stats count(department)"
+                    + "  ] + 999"
+                    + "| eval count_dept = ["
+                    + "    source = %s | stats count(department)"
+                    + "  ]"
+                    + "| fields name, count_dept",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION, TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("name", "string"), schema("count_dept", "bigint"));
     verifyDataRows(result, rows("Jane", 5), rows("Tommy", 5));
@@ -114,13 +108,11 @@ public class CalcitePPLScalarSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s id > [ source = %s | stats count(department) ] + 999
-                   | eval count_dept = [
-                       source = %s | stats count(department)
-                     ]
-                   | fields name, count_dept
-                   """,
+                "source = %s id > [ source = %s | stats count(department) ] + 999"
+                    + "| eval count_dept = ["
+                    + "    source = %s | stats count(department)"
+                    + "  ]"
+                    + "| fields name, count_dept",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION, TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("name", "string"), schema("count_dept", "bigint"));
     verifyDataRows(result, rows("Jane", 5), rows("Tommy", 5));
@@ -131,14 +123,12 @@ public class CalcitePPLScalarSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | eval count_dept = [
-                       source = %s
-                       | where id = uid | stats count(department)
-                     ]
-                   | fields id, name, count_dept
-                   """,
+                "source = %s"
+                    + "| eval count_dept = ["
+                    + "    source = %s"
+                    + "    | where id = uid | stats count(department)"
+                    + "  ]"
+                    + "| fields id, name, count_dept",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result, schema("id", "int"), schema("name", "string"), schema("count_dept", "bigint"));
@@ -158,14 +148,12 @@ public class CalcitePPLScalarSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | eval count_dept = [
-                       source = %s
-                       | where id > uid | stats count(department)
-                     ]
-                   | fields id, name, count_dept
-                   """,
+                "source = %s"
+                    + "| eval count_dept = ["
+                    + "    source = %s"
+                    + "    | where id > uid | stats count(department)"
+                    + "  ]"
+                    + "| fields id, name, count_dept",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result, schema("id", "int"), schema("name", "string"), schema("count_dept", "bigint"));
@@ -185,13 +173,11 @@ public class CalcitePPLScalarSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | where id = [
-                       source = %s | where id = uid | stats max(uid)
-                     ]
-                   | fields id, name
-                   """,
+                "source = %s"
+                    + "| where id = ["
+                    + "    source = %s | where id = uid | stats max(uid)"
+                    + "  ]"
+                    + "| fields id, name",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("id", "int"), schema("name", "string"));
     verifyDataRows(
@@ -208,10 +194,8 @@ public class CalcitePPLScalarSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s id = [ source = %s | where id = uid | stats max(uid) ]
-                   | fields id, name
-                   """,
+                "source = %s id = [ source = %s | where id = uid | stats max(uid) ]"
+                    + "| fields id, name",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("id", "int"), schema("name", "string"));
     verifyDataRows(
@@ -228,13 +212,11 @@ public class CalcitePPLScalarSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | where [
-                       source = %s | where id = uid OR uid = 1010 | stats count()
-                     ] > 0
-                   | fields id, name
-                   """,
+                "source = %s"
+                    + "| where ["
+                    + "    source = %s | where id = uid OR uid = 1010 | stats count()"
+                    + "  ] > 0"
+                    + "| fields id, name",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("id", "int"), schema("name", "string"));
     verifyDataRows(
@@ -251,15 +233,13 @@ public class CalcitePPLScalarSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | where id = [
-                       source = %s | sort uid | stats max(uid)
-                     ] OR id = [
-                       source = %s | sort uid | where department = 'DATA' | stats min(uid)
-                     ]
-                   | fields id, name
-                   """,
+                "source = %s"
+                    + "| where id = ["
+                    + "    source = %s | sort uid | stats max(uid)"
+                    + "  ] OR id = ["
+                    + "    source = %s | sort uid | where department = 'DATA' | stats min(uid)"
+                    + "  ]"
+                    + "| fields id, name",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION, TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("id", "int"), schema("name", "string"));
     verifyDataRows(result, rows(1002, "John"), rows(1006, "Tommy"));
@@ -270,15 +250,13 @@ public class CalcitePPLScalarSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | where id = [
-                       source = %s | where id = uid | stats max(uid)
-                     ] OR id = [
-                       source = %s | sort uid | where department = 'DATA' | stats min(uid)
-                     ]
-                   | fields id, name
-                   """,
+                "source = %s"
+                    + "| where id = ["
+                    + "    source = %s | where id = uid | stats max(uid)"
+                    + "  ] OR id = ["
+                    + "    source = %s | sort uid | where department = 'DATA' | stats min(uid)"
+                    + "  ]"
+                    + "| fields id, name",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION, TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("id", "int"), schema("name", "string"));
     verifyDataRows(
@@ -295,19 +273,17 @@ public class CalcitePPLScalarSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                    source = %s
-                    | where id = [
-                        source = %s
-                        | where uid = [
-                            source = %s
-                            | stats min(salary)
-                          ] + 1000
-                        | sort department
-                        | stats max(uid)
-                      ]
-                    | fields id, name
-                   """,
+                " source = %s"
+                    + " | where id = ["
+                    + "     source = %s"
+                    + "     | where uid = ["
+                    + "         source = %s"
+                    + "         | stats min(salary)"
+                    + "       ] + 1000"
+                    + "     | sort department"
+                    + "     | stats max(uid)"
+                    + "   ]"
+                    + " | fields id, name",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION, TEST_INDEX_OCCUPATION));
     verifySchema(result, schema("id", "int"), schema("name", "string"));
     verifyDataRows(result, rows(1000, "Jake"));
@@ -318,19 +294,17 @@ public class CalcitePPLScalarSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s as o
-                   | where id = [
-                       source = %s as i
-                       | where uid = [
-                           source = %s as n
-                           | stats min(n.salary)
-                         ] + 1000
-                       | sort i.department
-                       | stats max(i.uid)
-                     ]
-                   | fields o.id, o.name
-                   """,
+                "source = %s as o"
+                    + "| where id = ["
+                    + "    source = %s as i"
+                    + "    | where uid = ["
+                    + "        source = %s as n"
+                    + "        | stats min(n.salary)"
+                    + "      ] + 1000"
+                    + "    | sort i.department"
+                    + "    | stats max(i.uid)"
+                    + "  ]"
+                    + "| fields o.id, o.name",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION, TEST_INDEX_OCCUPATION));
     verifySchema(result, schema("id", "int"), schema("name", "string"));
     verifyDataRows(result, rows(1000, "Jake"));

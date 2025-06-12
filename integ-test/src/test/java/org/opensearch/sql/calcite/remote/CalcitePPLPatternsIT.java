@@ -36,9 +36,8 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s | patterns email mode=label | head 1 | fields email, patterns_field, tokens
-                   """,
+                "source = %s | patterns email mode=label | head 1 | fields email, patterns_field,"
+                    + " tokens",
                 TEST_INDEX_BANK));
     verifySchema(
         result,
@@ -64,9 +63,8 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s | patterns email mode=label pattern='@.*' | head 1 | fields email, patterns_field, tokens
-                   """,
+                "source = %s | patterns email mode=label pattern='@.*' | head 1 | fields email,"
+                    + " patterns_field, tokens",
                 TEST_INDEX_BANK));
     verifySchema(
         result,
