@@ -150,7 +150,8 @@ validateNebulaPom.enabled = false
 loggerUsageCheck.enabled = false
 
 configurations {
-    zipArchive
+    jobSchedulerZip
+    geoSpatialZip
 }
 
 configurations.all {
@@ -195,10 +196,10 @@ dependencies {
     testImplementation group: 'com.google.code.gson', name: 'gson', version: '2.8.9'
     testCompileOnly 'org.apiguardian:apiguardian-api:1.1.2'
 
-    zipArchive group: 'org.opensearch.plugin', name:'opensearch-job-scheduler', version: "${opensearch_build}"
+    jobSchedulerZip group: 'org.opensearch.plugin', name:'opensearch-job-scheduler', version: "${opensearch_build}"
 
     // For GeoIP PPL functions
-    zipArchive group: 'org.opensearch.plugin', name:'geospatial', version: "${opensearch_build}"
+    geoSpatialZip group: 'org.opensearch.plugin', name:'geospatial', version: "${opensearch_build}"
 }
 
 dependencyLicenses.enabled = false
@@ -228,7 +229,7 @@ def getJobSchedulerPlugin() {
             return new RegularFile() {
                 @Override
                 File getAsFile() {
-                    return configurations.zipArchive.asFileTree.matching {
+                    return configurations.jobSchedulerZip.asFileTree.matching {
                         include '**/opensearch-job-scheduler*'
                     }.singleFile
                 }
@@ -239,7 +240,7 @@ def getJobSchedulerPlugin() {
 
 def getGeoSpatialPlugin() {
     provider { (RegularFile) (() ->
-            configurations.zipArchive.asFileTree.matching {
+            configurations.geoSpatialZip.asFileTree.matching {
                 include '**/geospatia*'
             }.singleFile )
     }
@@ -637,13 +638,24 @@ String bwcRemoteFileJSPlugin = bwcRemoteFileRoot + bwcJSPlugin
 }
 
 List<Provider<RegularFile>> plugins = [
-        provider(new Callable<RegularFile>(){
+        provider(new Callable<RegularFile>() {
             @Override
             RegularFile call() throws Exception {
                 return new RegularFile() {
                     @Override
                     File getAsFile() {
-                        return configurations.zipArchive.asFileTree.getSingleFile()
+                        return configurations.jobSchedulerZip.singleFile
+                    }
+                }
+            }
+        }),
+        provider(new Callable<RegularFile>() {
+            @Override
+            RegularFile call() throws Exception {
+                return new RegularFile() {
+                    @Override
+                    File getAsFile() {
+                        return configurations.geoSpatialZip.singleFile
                     }
                 }
             }
@@ -660,6 +672,7 @@ List<Provider<RegularFile>> plugins = [
             }
         })
 ]
+
 
 // Creates 2 test clusters with 3 nodes of the old version.
 2.times { i ->
