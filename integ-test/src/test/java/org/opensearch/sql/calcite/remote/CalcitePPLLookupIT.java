@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite.standalone;
+package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORKER;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORK_INFORMATION;
@@ -17,19 +17,22 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.client.Request;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLLookupIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
     super.init();
+    enableCalcite();
+    disallowCalciteFallback();
 
     loadIndex(Index.WORKER);
     loadIndex(Index.WORK_INFORMATION);
   }
 
   @Test
-  public void testUidAsIdReplaceDepartment() {
+  public void testUidAsIdReplaceDepartment() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -58,7 +61,7 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testUidAsIdAppendDepartment() {
+  public void testUidAsIdAppendDepartment() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -87,7 +90,7 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testUidAsIdReplaceDepartmentAsCountry() {
+  public void testUidAsIdReplaceDepartmentAsCountry() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -115,7 +118,7 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testUidAsIdAppendDepartmentAsCountry() {
+  public void testUidAsIdAppendDepartmentAsCountry() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -143,7 +146,7 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testUidAsIdNameReplaceDepartment() {
+  public void testUidAsIdNameReplaceDepartment() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -172,7 +175,7 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testUidAsIdNameAppendDepartment() {
+  public void testUidAsIdNameAppendDepartment() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -201,7 +204,7 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testUidASIdName() {
+  public void testUidASIdName() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -230,7 +233,7 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testNameReplaceOccupationAsMajor() {
+  public void testNameReplaceOccupationAsMajor() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -259,7 +262,7 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testNameAppendOccupationAsMajor() {
+  public void testNameAppendOccupationAsMajor() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -288,7 +291,7 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testName() {
+  public void testName() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -318,7 +321,7 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testIdWithRename() {
+  public void testIdWithRename() throws IOException {
     // rename country to department for verify the case if search side is not a table
     // and its output has diffed from the original fields of source table
     JSONObject result =
@@ -397,7 +400,7 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testNameReplaceOccupation2() {
+  public void testNameReplaceOccupation2() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -425,7 +428,7 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testNameReplaceOccupationAsNewName() {
+  public void testNameReplaceOccupationAsNewName() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -454,7 +457,7 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testRnameAsIdShouldnWork() {
+  public void testRnameAsIdShouldnWork() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(

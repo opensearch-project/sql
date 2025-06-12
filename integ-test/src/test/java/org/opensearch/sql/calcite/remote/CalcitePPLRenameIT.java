@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite.standalone;
+package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -15,17 +15,20 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CalcitePPLRenameIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLRenameIT extends PPLIntegTestCase {
 
-  public void init() throws IOException {
+  public void init() throws Exception {
     super.init();
+    enableCalcite();
+    disallowCalciteFallback();
 
     loadIndex(Index.STATE_COUNTRY);
   }
 
   @Test
-  public void testRename() {
+  public void testRename() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -45,8 +48,8 @@ public class CalcitePPLRenameIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testRefRenamedField() {
-    IllegalArgumentException e =
-        assertThrows(
+    Throwable e =
+        assertThrowsWithReplace(
             IllegalArgumentException.class,
             () ->
                 executeQuery(
@@ -63,8 +66,8 @@ public class CalcitePPLRenameIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testRenameNotExistedField() {
-    IllegalArgumentException e =
-        assertThrows(
+    Throwable e =
+        assertThrowsWithReplace(
             IllegalArgumentException.class,
             () ->
                 executeQuery(
@@ -80,9 +83,9 @@ public class CalcitePPLRenameIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testRenameToMetaField() {
-    IllegalArgumentException e =
-        assertThrows(
+  public void testRenameToMetaField() throws IOException {
+    Throwable e =
+        assertThrowsWithReplace(
             IllegalArgumentException.class,
             () ->
                 executeQuery(
@@ -112,7 +115,7 @@ public class CalcitePPLRenameIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testMultipleRename() {
+  public void testMultipleRename() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -135,7 +138,7 @@ public class CalcitePPLRenameIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testRenameInAgg() {
+  public void testRenameInAgg() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -148,7 +151,7 @@ public class CalcitePPLRenameIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testMultipleRenameWithBackticks() {
+  public void testMultipleRenameWithBackticks() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -171,7 +174,7 @@ public class CalcitePPLRenameIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testRenameWithBackticksInAgg() {
+  public void testRenameWithBackticksInAgg() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(

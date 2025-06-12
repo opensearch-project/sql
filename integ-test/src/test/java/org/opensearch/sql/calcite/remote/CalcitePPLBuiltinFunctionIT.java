@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite.standalone;
+package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
@@ -20,11 +20,15 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
     super.init();
+    enableCalcite();
+    disallowCalciteFallback();
+
     loadIndex(Index.STATE_COUNTRY);
     loadIndex(Index.DATA_TYPE_NUMERIC);
     loadIndex(Index.DOG);
@@ -32,7 +36,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSqrtAndCbrtAndPow() {
+  public void testSqrtAndCbrtAndPow() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -45,7 +49,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSqrtNegativeArgShouldReturnNull() {
+  public void testSqrtNegativeArgShouldReturnNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -55,7 +59,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSinAndCosAndAsinAndAcos() {
+  public void testSinAndCosAndAsinAndAcos() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -68,7 +72,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testAsinAndAcosInvalidArgShouldReturnNull() {
+  public void testAsinAndAcosInvalidArgShouldReturnNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -81,7 +85,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testAtanAndAtan2WithSort() {
+  public void testAtanAndAtan2WithSort() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -94,7 +98,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testTypeOfBasic() {
+  public void testTypeOfBasic() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -116,7 +120,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
         result, rows("INT", "BOOLEAN", "DOUBLE", "STRING", "STRING", "STRING", "INT", "INTERVAL"));
   }
 
-  public void testTypeOfDateTime() {
+  public void testTypeOfDateTime() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -130,7 +134,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCeilingAndFloor() {
+  public void testCeilingAndFloor() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -142,7 +146,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testConvAndLower() {
+  public void testConvAndLower() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -154,7 +158,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testConvNegateValue() {
+  public void testConvNegateValue() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -172,8 +176,8 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testConvWithInvalidRadix() {
-    Exception invalidRadixException =
-        assertThrows(
+    Throwable invalidRadixException =
+        assertThrowsWithReplace(
             NumberFormatException.class,
             () ->
                 executeQuery(
@@ -184,7 +188,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testPiAndCot() {
+  public void testPiAndCot() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -196,7 +200,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCrc32AndAbs() {
+  public void testCrc32AndAbs() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -209,7 +213,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testEAndLn() {
+  public void testEAndLn() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -221,7 +225,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testExpAndFloor() {
+  public void testExpAndFloor() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -233,7 +237,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testLogAndLog2AndLog10() {
+  public void testLogAndLog2AndLog10() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -247,7 +251,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testModWithSortAndFields() {
+  public void testModWithSortAndFields() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -260,7 +264,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testModFloatAndNegative() {
+  public void testModFloatAndNegative() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -272,7 +276,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testModShouldReturnWiderTypes() {
+  public void testModShouldReturnWiderTypes() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -292,7 +296,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testModByZeroShouldReturnNull() {
+  public void testModByZeroShouldReturnNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -302,7 +306,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testRadiansAndDegrees() {
+  public void testRadiansAndDegrees() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -314,7 +318,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testRand() {
+  public void testRand() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -326,7 +330,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testPowInvalidArgShouldReturnNull() {
+  public void testPowInvalidArgShouldReturnNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -338,7 +342,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSignAndRound() {
+  public void testSignAndRound() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -352,7 +356,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testDivide() {
+  public void testDivide() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -392,7 +396,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testDivideShouldReturnNull() {
+  public void testDivideShouldReturnNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite.standalone;
+package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
@@ -15,12 +15,16 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CalcitePPLTrendlineIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLTrendlineIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
     super.init();
+    enableCalcite();
+    disallowCalciteFallback();
+
     loadIndex(Index.BANK);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
   }

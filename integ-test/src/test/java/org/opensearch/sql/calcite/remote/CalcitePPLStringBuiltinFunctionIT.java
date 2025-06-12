@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite.standalone;
+package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY_WITH_NULL;
@@ -14,11 +14,15 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
     super.init();
+    enableCalcite();
+    disallowCalciteFallback();
+
     loadIndex(Index.STATE_COUNTRY);
     loadIndex(Index.STATE_COUNTRY_WITH_NULL);
   }
@@ -41,7 +45,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testConcat() {
+  public void testConcat() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -90,7 +94,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testLength() {
+  public void testLength() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -102,7 +106,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testLengthShouldBeInsensitive() {
+  public void testLengthShouldBeInsensitive() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -114,7 +118,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testLower() {
+  public void testLower() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -127,7 +131,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testUpper() {
+  public void testUpper() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -140,7 +144,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testLike() {
+  public void testLike() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -153,7 +157,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testLocate() {
+  public void testLocate() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -167,7 +171,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSubstring() {
+  public void testSubstring() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -180,7 +184,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSubstr() {
+  public void testSubstr() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -193,7 +197,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testPosition() {
+  public void testPosition() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(

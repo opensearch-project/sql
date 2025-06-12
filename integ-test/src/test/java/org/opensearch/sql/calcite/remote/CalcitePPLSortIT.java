@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite.standalone;
+package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
@@ -15,19 +15,22 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CalcitePPLSortIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLSortIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
     super.init();
+    enableCalcite();
+    disallowCalciteFallback();
 
     loadIndex(Index.BANK);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
   }
 
   @Test
-  public void testFieldsAndSort1() {
+  public void testFieldsAndSort1() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -50,7 +53,7 @@ public class CalcitePPLSortIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testFieldsAndSort2() {
+  public void testFieldsAndSort2() throws IOException {
     JSONObject actual =
         executeQuery(String.format("source=%s | fields age | sort - age", TEST_INDEX_BANK));
     verifySchema(actual, schema("age", "int"));
@@ -59,7 +62,7 @@ public class CalcitePPLSortIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testFieldsAndSortTwoFields() {
+  public void testFieldsAndSortTwoFields() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -83,7 +86,7 @@ public class CalcitePPLSortIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testFieldsAndSortWithDescAndLimit() {
+  public void testFieldsAndSortWithDescAndLimit() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -105,7 +108,7 @@ public class CalcitePPLSortIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSortAccountAndFieldsAccount() {
+  public void testSortAccountAndFieldsAccount() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -116,7 +119,7 @@ public class CalcitePPLSortIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSortAccountAndFieldsNameAccount() {
+  public void testSortAccountAndFieldsNameAccount() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -135,7 +138,7 @@ public class CalcitePPLSortIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSortAccountAndFieldsAccountName() {
+  public void testSortAccountAndFieldsAccountName() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -154,7 +157,7 @@ public class CalcitePPLSortIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSortAgeAndFieldsAge() {
+  public void testSortAgeAndFieldsAge() throws IOException {
     JSONObject actual =
         executeQuery(String.format("source=%s | sort - age | fields age", TEST_INDEX_BANK));
     verifySchema(actual, schema("age", "int"));
@@ -163,7 +166,7 @@ public class CalcitePPLSortIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSortAgeAndFieldsNameAge() {
+  public void testSortAgeAndFieldsNameAge() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format("source=%s | sort - age | fields firstname, age", TEST_INDEX_BANK));
@@ -180,7 +183,7 @@ public class CalcitePPLSortIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSortAgeNameAndFieldsNameAge() {
+  public void testSortAgeNameAndFieldsNameAge() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(

@@ -3,29 +3,29 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite.standalone;
+package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DUPLICATION_NULLABLE;
-import static org.opensearch.sql.util.MatcherUtils.rows;
-import static org.opensearch.sql.util.MatcherUtils.schema;
-import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
-import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
+import static org.opensearch.sql.util.MatcherUtils.*;
 
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CalcitePPLDedupIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLDedupIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
     super.init();
+    enableCalcite();
+    disallowCalciteFallback();
 
     loadIndex(Index.DUPLICATION_NULLABLE);
   }
 
   @Test
-  public void testDedup() {
+  public void testDedup() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -37,7 +37,7 @@ public class CalcitePPLDedupIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testDedupMultipleFields() {
+  public void testDedupMultipleFields() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -56,7 +56,7 @@ public class CalcitePPLDedupIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testDedupKeepEmpty() {
+  public void testDedupKeepEmpty() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -78,7 +78,7 @@ public class CalcitePPLDedupIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testDedupMultipleFieldsKeepEmpty() {
+  public void testDedupMultipleFieldsKeepEmpty() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -103,8 +103,9 @@ public class CalcitePPLDedupIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  @SuppressWarnings("ThrowableNotThrown")
   public void testConsecutiveThrowException() {
-    assertThrows(
+    assertThrowsWithReplace(
         UnsupportedOperationException.class,
         () ->
             executeQuery(
@@ -114,7 +115,7 @@ public class CalcitePPLDedupIT extends CalcitePPLIntegTestCase {
                    """,
                     TEST_INDEX_DUPLICATION_NULLABLE)));
 
-    assertThrows(
+    assertThrowsWithReplace(
         UnsupportedOperationException.class,
         () ->
             executeQuery(
@@ -124,7 +125,7 @@ public class CalcitePPLDedupIT extends CalcitePPLIntegTestCase {
                     """,
                     TEST_INDEX_DUPLICATION_NULLABLE)));
 
-    assertThrows(
+    assertThrowsWithReplace(
         UnsupportedOperationException.class,
         () ->
             executeQuery(
@@ -134,7 +135,7 @@ public class CalcitePPLDedupIT extends CalcitePPLIntegTestCase {
                     """,
                     TEST_INDEX_DUPLICATION_NULLABLE)));
 
-    assertThrows(
+    assertThrowsWithReplace(
         UnsupportedOperationException.class,
         () ->
             executeQuery(
@@ -146,7 +147,7 @@ public class CalcitePPLDedupIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testDedup2() {
+  public void testDedup2() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -160,7 +161,7 @@ public class CalcitePPLDedupIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testDedupMultipleFields2() {
+  public void testDedupMultipleFields2() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -183,7 +184,7 @@ public class CalcitePPLDedupIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testDedupKeepEmpty2() {
+  public void testDedupKeepEmpty2() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -208,7 +209,7 @@ public class CalcitePPLDedupIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testDedupMultipleFieldsKeepEmpty2() {
+  public void testDedupMultipleFieldsKeepEmpty2() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -237,7 +238,7 @@ public class CalcitePPLDedupIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testReorderDedupFieldsShouldNotAffectResult() {
+  public void testReorderDedupFieldsShouldNotAffectResult() throws IOException {
     JSONObject actual1 =
         executeQuery(
             String.format(

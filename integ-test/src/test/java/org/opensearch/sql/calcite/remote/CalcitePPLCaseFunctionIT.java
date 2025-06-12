@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite.standalone;
+package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -16,11 +16,15 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.legacy.TestsConstants;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CalcitePPLCaseFunctionIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
     super.init();
+    enableCalcite();
+    disallowCalciteFallback();
+
     loadIndex(Index.WEBLOG);
     appendDataForBadResponse();
   }
@@ -53,7 +57,7 @@ public class CalcitePPLCaseFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCaseWhenWithCast() {
+  public void testCaseWhenWithCast() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -102,7 +106,7 @@ public class CalcitePPLCaseFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCaseWhenNoElse() {
+  public void testCaseWhenNoElse() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -143,7 +147,7 @@ public class CalcitePPLCaseFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCaseWhenWithIn() {
+  public void testCaseWhenWithIn() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -192,7 +196,7 @@ public class CalcitePPLCaseFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCaseWhenInFilter() {
+  public void testCaseWhenInFilter() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -225,7 +229,7 @@ public class CalcitePPLCaseFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCaseWhenInSubquery() {
+  public void testCaseWhenInSubquery() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(

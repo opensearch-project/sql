@@ -3,17 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite.standalone;
+package org.opensearch.sql.calcite.remote;
 
 import java.io.IOException;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CalcitePPLExplainIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLExplainIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
     super.init();
+    enableCalcite();
+    disallowCalciteFallback();
+
     Request request1 = new Request("PUT", "/test/_doc/1?refresh=true");
     request1.setJsonEntity("{\"name\": \"hello\", \"age\": 20}");
     client().performRequest(request1);
@@ -27,7 +31,7 @@ public class CalcitePPLExplainIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testExplainCommand() {
+  public void testExplainCommand() throws IOException {
     String result = explainQuery("explain source=test | where age = 20 | fields name, age");
     assertEquals(
         "{\n"
@@ -46,7 +50,7 @@ public class CalcitePPLExplainIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testExplainCommandExtended() {
+  public void testExplainCommandExtended() throws IOException {
     String result =
         explainQuery("explain extended source=test | where age = 20 | fields name, age");
     assertTrue(
@@ -56,7 +60,7 @@ public class CalcitePPLExplainIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testExplainCommandCost() {
+  public void testExplainCommandCost() throws IOException {
     String result = explainQuery("explain cost source=test | where age = 20 | fields name, age");
     assertTrue(
         result.contains(
@@ -65,7 +69,7 @@ public class CalcitePPLExplainIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testExplainCommandSimple() {
+  public void testExplainCommandSimple() throws IOException {
     String result = explainQuery("explain simple source=test | where age = 20 | fields name, age");
     assertEquals(
         "{\n"

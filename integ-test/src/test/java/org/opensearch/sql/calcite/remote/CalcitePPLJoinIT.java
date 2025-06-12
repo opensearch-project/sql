@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite.standalone;
+package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_HOBBIES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OCCUPATION;
@@ -21,12 +21,15 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.legacy.TestsConstants;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLJoinIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
     super.init();
+    enableCalcite();
+    disallowCalciteFallback();
 
     loadIndex(Index.STATE_COUNTRY);
     loadIndex(Index.OCCUPATION);
@@ -54,7 +57,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testJoinWithCondition() {
+  public void testJoinWithCondition() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -82,7 +85,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testJoinWithTwoJoinConditions() {
+  public void testJoinWithTwoJoinConditions() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -109,7 +112,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testJoinTwoColumnsAndDisjointFilters() {
+  public void testJoinTwoColumnsAndDisjointFilters() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -134,7 +137,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testJoinThenStats() {
+  public void testJoinThenStats() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -147,7 +150,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testJoinThenStatsWithGroupBy() {
+  public void testJoinThenStatsWithGroupBy() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -169,7 +172,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testComplexInnerJoin() {
+  public void testComplexInnerJoin() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -191,7 +194,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testComplexLeftJoin() {
+  public void testComplexLeftJoin() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -218,7 +221,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testComplexRightJoin() {
+  public void testComplexRightJoin() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -246,7 +249,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testComplexSemiJoin() {
+  public void testComplexSemiJoin() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -268,7 +271,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testComplexAntiJoin() {
+  public void testComplexAntiJoin() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -291,7 +294,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testComplexCrossJoin() {
+  public void testComplexCrossJoin() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -303,7 +306,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testNonEquiJoin() {
+  public void testNonEquiJoin() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -335,24 +338,24 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCrossJoinWithJoinCriteriaFallbackToInnerJoin() {
-    String cross =
-        execute(
+  public void testCrossJoinWithJoinCriteriaFallbackToInnerJoin() throws IOException {
+    var cross =
+        executeQuery(
             String.format(
                 "source = %s | where country = 'USA' | cross join left=a, right=b ON a.name ="
                     + " b.name %s | sort a.age",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    String inner =
-        execute(
+    var inner =
+        executeQuery(
             String.format(
                 "source = %s | where country = 'USA' | inner join left=a, right=b ON a.name ="
                     + " b.name %s | sort a.age",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    assertEquals(cross, inner);
+    assertJsonEquals(cross.toString(), inner.toString());
   }
 
   @Ignore // TODO seems a calcite bug
-  public void testMultipleJoins() {
+  public void testMultipleJoins() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -392,7 +395,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
   }
 
   @Ignore // TODO seems a calcite bug
-  public void testMultipleJoinsWithRelationSubquery() {
+  public void testMultipleJoinsWithRelationSubquery() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -440,7 +443,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testMultipleJoinsWithoutTableAliases() {
+  public void testMultipleJoinsWithoutTableAliases() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -472,7 +475,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testMultipleJoinsWithPartTableAliases() {
+  public void testMultipleJoinsWithPartTableAliases() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -492,7 +495,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testMultipleJoinsWithSelfJoin() {
+  public void testMultipleJoinsWithSelfJoin() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -520,7 +523,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testMultipleJoinsWithSubquerySelfJoin() {
+  public void testMultipleJoinsWithSubquerySelfJoin() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -548,7 +551,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCheckAccessTheReferenceByAliases() {
+  public void testCheckAccessTheReferenceByAliases() throws IOException {
     JSONObject res1 =
         executeQuery(
             String.format(
@@ -588,7 +591,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCheckAccessTheReferenceBySubqueryAliases() {
+  public void testCheckAccessTheReferenceBySubqueryAliases() throws IOException {
     JSONObject res1 =
         executeQuery(
             String.format(
@@ -629,7 +632,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCheckAccessTheReferenceByOverrideAliases() {
+  public void testCheckAccessTheReferenceByOverrideAliases() throws IOException {
     JSONObject res1 =
         executeQuery(
             String.format(
@@ -655,7 +658,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCheckAccessTheReferenceByOverrideSubqueryAliases() {
+  public void testCheckAccessTheReferenceByOverrideSubqueryAliases() throws IOException {
     JSONObject res1 =
         executeQuery(
             String.format(
@@ -681,7 +684,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCheckAccessTheReferenceByOverrideSubqueryAliases2() {
+  public void testCheckAccessTheReferenceByOverrideSubqueryAliases2() throws IOException {
     JSONObject res1 =
         executeQuery(
             String.format(
@@ -707,7 +710,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testInnerJoinWithRelationSubquery() {
+  public void testInnerJoinWithRelationSubquery() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -735,7 +738,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testLeftJoinWithRelationSubquery() {
+  public void testLeftJoinWithRelationSubquery() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(

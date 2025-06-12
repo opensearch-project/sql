@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite.standalone;
+package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.gson;
 import static org.opensearch.sql.legacy.TestsConstants.*;
@@ -14,11 +14,15 @@ import java.io.IOException;
 import java.util.List;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLJsonBuiltinFunctionIT extends PPLIntegTestCase {
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
     super.init();
+    enableCalcite();
+    disallowCalciteFallback();
+
     loadIndex(Index.STATE_COUNTRY);
     loadIndex(Index.STATE_COUNTRY_WITH_NULL);
     loadIndex(Index.DATE_FORMATS);
@@ -31,7 +35,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testJson() {
+  public void testJson() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -45,7 +49,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testJsonObject() {
+  public void testJsonObject() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -59,7 +63,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testJsonArray() {
+  public void testJsonArray() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -72,7 +76,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testJsonArrayWithDifferentType() {
+  public void testJsonArrayWithDifferentType() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -86,7 +90,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testJsonArrayLength() {
+  public void testJsonArrayLength() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -101,7 +105,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testJsonExtract() {
+  public void testJsonExtract() throws IOException {
     String candidate =
         "[\n"
             + "{\n"
@@ -152,7 +156,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testJsonExtractWithMultiplyResult() {
+  public void testJsonExtractWithMultiplyResult() throws IOException {
     String candidate =
         "[\n"
             + "{\n"
@@ -191,7 +195,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testJsonKeys() {
+  public void testJsonKeys() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -206,7 +210,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testJsonValid() {
+  public void testJsonValid() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -220,7 +224,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testJsonSet() {
+  public void testJsonSet() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -234,7 +238,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testJsonSetWithWrongPath() {
+  public void testJsonSetWithWrongPath() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -248,7 +252,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testJsonSetPartialSet() {
+  public void testJsonSetPartialSet() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -262,7 +266,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testJsonDelete() {
+  public void testJsonDelete() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -277,7 +281,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testJsonDeleteWithNested() {
+  public void testJsonDeleteWithNested() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -292,7 +296,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testJsonDeleteWithNestedNothing() {
+  public void testJsonDeleteWithNestedNothing() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -307,7 +311,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testJsonDeleteWithNestedAndArray() {
+  public void testJsonDeleteWithNestedAndArray() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -322,7 +326,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testJsonAppend() {
+  public void testJsonAppend() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -346,7 +350,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testJsonExtend() {
+  public void testJsonExtend() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
