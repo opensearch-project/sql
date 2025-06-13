@@ -172,7 +172,7 @@ subprojects {
             publications {
                 unifiedQuery(MavenPublication) {
                     from components.java
-                    groupId = "org.opensearch.sql"
+                    groupId = "org.opensearch.query"
                     artifactId = fullArtifactId
 
                     pom {
