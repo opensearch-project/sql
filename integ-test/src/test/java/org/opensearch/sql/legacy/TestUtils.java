@@ -383,7 +383,9 @@ public class TestUtils {
         }
       }
     }
-    return sb.toString();
+    String resp = sb.toString();
+    // Replace windows line endings with unix line endings
+    return resp.replaceAll("\r\n", "\n");
   }
 
   public static String fileToString(
