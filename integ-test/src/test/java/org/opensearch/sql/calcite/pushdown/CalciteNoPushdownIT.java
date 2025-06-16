@@ -14,6 +14,11 @@ import org.junit.runners.Suite;
 import org.opensearch.sql.calcite.remote.*;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
+/**
+ * This test suite runs all remote Calcite integration tests without pushdown enabled.
+ *
+ * <p>Individual tests in this suite will be executed independently with pushdown enabled.
+ */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
   CalciteArrayFunctionIT.class,
