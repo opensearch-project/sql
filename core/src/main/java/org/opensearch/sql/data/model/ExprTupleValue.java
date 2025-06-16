@@ -28,11 +28,25 @@ public class ExprTupleValue extends AbstractExprValue {
     return new ExprTupleValue(linkedHashMap);
   }
 
+  public static ExprTupleValue empty() {
+    LinkedHashMap<String, ExprValue> linkedHashMap = new LinkedHashMap<>();
+    return new ExprTupleValue(linkedHashMap);
+  }
+
   @Override
   public Object value() {
     LinkedHashMap<String, Object> resultMap = new LinkedHashMap<>();
     for (Entry<String, ExprValue> entry : valueMap.entrySet()) {
       resultMap.put(entry.getKey(), entry.getValue().value());
+    }
+    return resultMap;
+  }
+
+  @Override
+  public Object valueForCalcite() {
+    LinkedHashMap<String, Object> resultMap = new LinkedHashMap<>();
+    for (Entry<String, ExprValue> entry : valueMap.entrySet()) {
+      resultMap.put(entry.getKey(), entry.getValue().valueForCalcite());
     }
     return resultMap;
   }
@@ -97,5 +111,18 @@ public class ExprTupleValue extends AbstractExprValue {
   @Override
   public int hashCode() {
     return Objects.hashCode(valueMap);
+  }
+
+  /** Implements mergeTo by merging deeply */
+  @Override
+  public ExprTupleValue mergeTo(ExprValue base) {
+    if (base instanceof ExprTupleValue) {
+      base.tupleValue()
+          .forEach((key, value) -> this.tupleValue().merge(key, value, ExprValue::mergeTo));
+    } else {
+      throw new IllegalArgumentException(
+          String.format("Cannot merge ExprTupleValue to %s", base.getClass().getSimpleName()));
+    }
+    return this;
   }
 }

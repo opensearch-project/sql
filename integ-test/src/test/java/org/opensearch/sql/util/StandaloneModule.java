@@ -89,7 +89,7 @@ public class StandaloneModule extends AbstractModule {
 
   @Provides
   public PPLService pplService(QueryManager queryManager, QueryPlanFactory queryPlanFactory) {
-    return new PPLService(new PPLSyntaxParser(), queryManager, queryPlanFactory);
+    return new PPLService(new PPLSyntaxParser(), queryManager, queryPlanFactory, settings);
   }
 
   @Provides

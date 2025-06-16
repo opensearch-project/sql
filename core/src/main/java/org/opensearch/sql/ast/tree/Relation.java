@@ -6,11 +6,11 @@
 package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
-import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
@@ -18,52 +18,27 @@ import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
 /** Logical plan node of Relation, the interface for building the searching sources. */
-@AllArgsConstructor
 @ToString
+@Getter
 @EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
 public class Relation extends UnresolvedPlan {
   private static final String COMMA = ",";
 
-  private final List<UnresolvedExpression> tableName;
+  /**
+   * A relation could contain more than one table/index names, such as source=account1, account2
+   * source=`account1`,`account2` source=`account*` They translated into union call with fields.
+   * Note, this is a list, and {@link #getTableNames} returns a list. For displaying table names,
+   * use {@link #getTableQualifiedName}.
+   */
+  private final List<UnresolvedExpression> tableNames;
 
   public Relation(UnresolvedExpression tableName) {
-    this(tableName, null);
+    this.tableNames = Collections.singletonList(tableName);
   }
 
-  public Relation(UnresolvedExpression tableName, String alias) {
-    this.tableName = Arrays.asList(tableName);
-    this.alias = alias;
-  }
-
-  /** Optional alias name for the relation. */
-  private String alias;
-
-  /**
-   * Return table name.
-   *
-   * @return table name
-   */
-  public String getTableName() {
-    return getTableQualifiedName().toString();
-  }
-
-  /**
-   * Get original table name or its alias if present in Alias.
-   *
-   * @return table name or its alias
-   */
-  public String getTableNameOrAlias() {
-    return (alias == null) ? getTableName() : alias;
-  }
-
-  /**
-   * Return alias.
-   *
-   * @return alias.
-   */
-  public String getAlias() {
-    return alias;
+  public List<QualifiedName> getQualifiedNames() {
+    return tableNames.stream().map(t -> (QualifiedName) t).collect(Collectors.toList());
   }
 
   /**
@@ -74,11 +49,11 @@ public class Relation extends UnresolvedPlan {
    * @return TableQualifiedName.
    */
   public QualifiedName getTableQualifiedName() {
-    if (tableName.size() == 1) {
-      return (QualifiedName) tableName.get(0);
+    if (tableNames.size() == 1) {
+      return (QualifiedName) tableNames.get(0);
     } else {
       return new QualifiedName(
-          tableName.stream()
+          tableNames.stream()
               .map(UnresolvedExpression::toString)
               .collect(Collectors.joining(COMMA)));
     }

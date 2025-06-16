@@ -18,7 +18,8 @@ import org.opensearch.client.Response;
 
 public class VisualizationFormatIT extends PPLIntegTestCase {
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
+    super.init();
     loadIndex(Index.BANK);
   }
 

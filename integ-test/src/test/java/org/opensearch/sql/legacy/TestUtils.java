@@ -194,6 +194,11 @@ public class TestUtils {
     return getMappingFile(mappingFile);
   }
 
+  public static String getGeoIpIndexMapping() {
+    String mappingFile = "geoip_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
   public static String getBankWithNullValuesIndexMapping() {
     String mappingFile = "bank_with_null_values_index_mapping.json";
     return getMappingFile(mappingFile);
@@ -246,6 +251,56 @@ public class TestUtils {
 
   public static String getGeopointIndexMapping() {
     String mappingFile = "geopoint_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
+  public static String getStateCountryIndexMapping() {
+    String mappingFile = "state_country_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
+  public static String getOccupationIndexMapping() {
+    String mappingFile = "occupation_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
+  public static String getHobbiesIndexMapping() {
+    String mappingFile = "hobbies_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
+  public static String getWorkerIndexMapping() {
+    String mappingFile = "worker_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
+  public static String getWorkInformationIndexMapping() {
+    String mappingFile = "work_information_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
+  public static String getDuplicationNullableIndexMapping() {
+    String mappingFile = "duplication_nullable_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
+  public static String getJsonTestIndexMapping() {
+    String mappingFile = "json_test_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
+  public static String getAliasIndexMapping() {
+    String mappingFile = "alias_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
+  public static String getArrayIndexMapping() {
+    String mappingFile = "array_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
+  public static String getHdfsLogsIndexMapping() {
+    String mappingFile = "hdfs_logs_index_mapping.json";
     return getMappingFile(mappingFile);
   }
 
@@ -409,6 +464,14 @@ public class TestUtils {
   public static String getMappingFile(String fileName) {
     try {
       return fileToString(MAPPING_FILE_PATH + fileName, false);
+    } catch (IOException e) {
+      return null;
+    }
+  }
+
+  public static String getTpchMappingFile(String fileName) {
+    try {
+      return TestUtils.fileToString("src/test/resources/tpch/mappings/" + fileName, false);
     } catch (IOException e) {
       return null;
     }

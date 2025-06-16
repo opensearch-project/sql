@@ -174,20 +174,16 @@ class OpenSearchExecutionEngineTest {
         new OpenSearchExecutionEngine(client, protector, new PlanSerializer(null));
     Settings settings = mock(Settings.class);
     when(settings.getSettingValue(SQL_CURSOR_KEEP_ALIVE)).thenReturn(TimeValue.timeValueMinutes(1));
-    when(settings.getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER)).thenReturn(true);
 
     OpenSearchExprValueFactory exprValueFactory = mock(OpenSearchExprValueFactory.class);
     final var name = new OpenSearchRequest.IndexName("test");
-    final int defaultQuerySize = 100;
     final int maxResultWindow = 10000;
     final var requestBuilder =
-        new OpenSearchRequestBuilder(defaultQuerySize, exprValueFactory, settings);
+        new OpenSearchRequestBuilder(exprValueFactory, maxResultWindow, settings);
     PhysicalPlan plan =
         new OpenSearchIndexScan(
             mock(OpenSearchClient.class),
-            maxResultWindow,
-            requestBuilder.build(
-                name, maxResultWindow, settings.getSettingValue(SQL_CURSOR_KEEP_ALIVE), client));
+            requestBuilder.build(name, settings.getSettingValue(SQL_CURSOR_KEEP_ALIVE), client));
 
     AtomicReference<ExplainResponse> result = new AtomicReference<>();
     executor.explain(
@@ -240,6 +236,7 @@ class OpenSearchExecutionEngineTest {
     FakePhysicalPlan plan = new FakePhysicalPlan(expected.iterator());
     when(protector.protect(plan)).thenReturn(plan);
     when(executionContext.getSplit()).thenReturn(Optional.of(split));
+    when(executionContext.getQuerySizeLimit()).thenReturn(null);
 
     OpenSearchExecutionEngine executor =
         new OpenSearchExecutionEngine(client, protector, new PlanSerializer(null));

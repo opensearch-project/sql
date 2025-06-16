@@ -12,6 +12,8 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_DOUBLE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_FLOAT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_INT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_IP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_JSON;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_LONG;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_SHORT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_STRING;
@@ -54,6 +56,8 @@ public class Cast extends UnresolvedExpression {
           .put("time", CAST_TO_TIME.getName())
           .put("timestamp", CAST_TO_TIMESTAMP.getName())
           .put("datetime", CAST_TO_DATETIME.getName())
+          .put("ip", CAST_TO_IP.getName())
+          .put("json", CAST_TO_JSON.getName())
           .build();
 
   /** The source expression cast from. */
@@ -70,6 +74,20 @@ public class Cast extends UnresolvedExpression {
    */
   public static boolean isCastFunction(FunctionName name) {
     return CONVERTED_TYPE_FUNCTION_NAME_MAP.containsValue(name);
+  }
+
+  /** Get the data type expression of the converted type. */
+  public DataType getDataType() {
+    String type = convertedType.toString().toUpperCase(Locale.ROOT);
+    if ("INT".equals(type)) {
+      type = "INTEGER";
+    }
+    // JSON is not a data type for now, we convert it to STRING.
+    // TODO Maybe its data type could be VARIANT in future?
+    if ("JSON".equals(type)) {
+      type = "STRING";
+    }
+    return DataType.valueOf(type);
   }
 
   /**

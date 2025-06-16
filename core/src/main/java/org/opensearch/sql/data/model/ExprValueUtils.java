@@ -5,10 +5,19 @@
 
 package org.opensearch.sql.data.model;
 
+import static org.opensearch.sql.data.type.ExprCoreType.*;
+import static org.opensearch.sql.utils.ExpressionUtils.PATH_SEP;
+
+import inet.ipaddr.IPAddress;
+import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.temporal.TemporalAmount;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -16,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 
 /** The definition of {@link ExprValue} factory. */
@@ -78,6 +88,10 @@ public class ExprValueUtils {
     return new ExprTimestampValue(value);
   }
 
+  public static ExprValue ipValue(String value) {
+    return new ExprIpValue(value);
+  }
+
   /** {@link ExprTupleValue} constructor. */
   public static ExprValue tupleValue(Map<String, Object> map) {
     LinkedHashMap<String, ExprValue> valueMap = new LinkedHashMap<>();
@@ -121,19 +135,38 @@ public class ExprValueUtils {
     } else if (o instanceof Boolean) {
       return booleanValue((Boolean) o);
     } else if (o instanceof Double) {
-      return doubleValue((Double) o);
+      Double d = (Double) o;
+      if (Double.isNaN(d)) {
+        return LITERAL_NULL;
+      }
+      return doubleValue(d);
+    } else if (o instanceof BigDecimal) {
+      BigDecimal d = (BigDecimal) o;
+      // TODO fallback decimal to double in v2
+      // until https://github.com/opensearch-project/sql/issues/3619 fixed.
+      return new ExprDoubleValue(d);
     } else if (o instanceof String) {
       return stringValue((String) o);
     } else if (o instanceof Float) {
-      return floatValue((Float) o);
+      Float f = (Float) o;
+      if (Float.isNaN(f)) {
+        return LITERAL_NULL;
+      }
+      return floatValue(f);
+    } else if (o instanceof Date) {
+      return dateValue(((Date) o).toLocalDate());
     } else if (o instanceof LocalDate) {
       return dateValue((LocalDate) o);
     } else if (o instanceof LocalDateTime) {
       return datetimeValue((LocalDateTime) o);
+    } else if (o instanceof Time) {
+      return timeValue(((Time) o).toLocalTime());
     } else if (o instanceof LocalTime) {
       return timeValue((LocalTime) o);
     } else if (o instanceof Instant) {
       return timestampValue((Instant) o);
+    } else if (o instanceof Timestamp) {
+      return timestampValue(((Timestamp) o).toInstant());
     } else if (o instanceof TemporalAmount) {
       return intervalValue((TemporalAmount) o);
     } else {
@@ -142,19 +175,17 @@ public class ExprValueUtils {
   }
 
   /** Construct ExprValue from Object with ExprCoreType. */
-  public static ExprValue fromObjectValue(Object o, ExprCoreType type) {
-    switch (type) {
-      case TIMESTAMP:
-        return new ExprTimestampValue((String) o);
-      case DATE:
-        return new ExprDateValue((String) o);
-      case TIME:
-        return new ExprTimeValue((String) o);
-      case DATETIME:
-        return new ExprDatetimeValue((String) o);
-      default:
-        return fromObjectValue(o);
-    }
+  public static ExprValue fromObjectValue(Object o, ExprType type) {
+      if (type.equals(TIMESTAMP)) {
+          return new ExprTimestampValue((String) o);
+      } else if (type.equals(DATE)) {
+          return new ExprDateValue((String) o);
+      } else if (type.equals(TIME)) {
+          return new ExprTimeValue((String) o);
+      } else if (type.equals(DATETIME)) {
+          return new ExprDatetimeValue((String) o);
+      }
+      return fromObjectValue(o);
   }
 
   public static Byte getByteValue(ExprValue exprValue) {
@@ -193,7 +224,25 @@ public class ExprValueUtils {
     return exprValue.tupleValue();
   }
 
+  public static IPAddress getIpValue(ExprValue exprValue) {
+    return exprValue.ipValue();
+  }
+
   public static Boolean getBooleanValue(ExprValue exprValue) {
     return exprValue.booleanValue();
+  }
+
+  public static ExprValue resolveRefPaths(ExprValue value, List<String> paths) {
+    ExprValue wholePathValue = value.keyValue(String.join(PATH_SEP, paths));
+    // For array types only first index currently supported.
+    if (value.type().equals(ExprCoreType.ARRAY)) {
+      wholePathValue = value.collectionValue().get(0).keyValue(paths.get(0));
+    }
+
+    if (!wholePathValue.isMissing() || paths.size() == 1) {
+      return wholePathValue;
+    } else {
+      return resolveRefPaths(value.keyValue(paths.get(0)), paths.subList(1, paths.size()));
+    }
   }
 }

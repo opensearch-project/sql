@@ -16,6 +16,7 @@ import static org.opensearch.sql.data.model.ExprValueUtils.collectionValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.doubleValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.floatValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.ipValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.longValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.nullValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.shortValue;
@@ -53,16 +54,21 @@ import org.opensearch.geometry.utils.Geohash;
 import org.opensearch.sql.data.model.ExprCollectionValue;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDatetimeValue;
+import org.opensearch.sql.data.model.ExprIpValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.data.utils.OpenSearchJsonContent;
+import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory.JsonPath;
 
 class OpenSearchExprValueFactoryTest {
+
+  static final String fieldIp = "ipV";
 
   private static final Map<String, OpenSearchDataType> MAPPING =
       new ImmutableMap.Builder<String, OpenSearchDataType>()
@@ -77,6 +83,7 @@ class OpenSearchExprValueFactoryTest {
           .put("datetimeV", OpenSearchDateType.of(DATETIME))
           .put("timeV", OpenSearchDateType.of(TIME))
           .put("timestampV", OpenSearchDateType.of(TIMESTAMP))
+          .put("timeonlyV", OpenSearchDateType.of("HH:mm:ss"))
           .put("datetimeDefaultV", OpenSearchDateType.of())
           .put("dateStringV", OpenSearchDateType.of("date"))
           .put("timeStringV", OpenSearchDateType.of("time"))
@@ -115,14 +122,13 @@ class OpenSearchExprValueFactoryTest {
               "textKeywordV",
               OpenSearchTextType.of(
                   Map.of("words", OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword))))
-          .put("ipV", OpenSearchDataType.of(OpenSearchDataType.MappingType.Ip))
+          .put(fieldIp, OpenSearchDataType.of(OpenSearchDataType.MappingType.Ip))
           .put("geoV", OpenSearchDataType.of(OpenSearchDataType.MappingType.GeoPoint))
           .put("binaryV", OpenSearchDataType.of(OpenSearchDataType.MappingType.Binary))
           .build();
-
+  private static final double TOLERANCE = 1E-5;
   private final OpenSearchExprValueFactory exprValueFactory =
       new OpenSearchExprValueFactory(MAPPING, true);
-
   private final OpenSearchExprValueFactory exprValueFactoryNoArrays =
       new OpenSearchExprValueFactory(MAPPING, false);
 
@@ -218,6 +224,16 @@ class OpenSearchExprValueFactoryTest {
   }
 
   @Test
+  public void constructIp() {
+    assertAll(
+        () -> assertEquals(ipValue("1.2.3.4"), tupleValue("{\"ipV\":\"1.2.3.4\"}").get("ipV")),
+        () ->
+            assertEquals(
+                ipValue("2001:db7::ff00:42:8329"),
+                constructFromObject("ipV", "2001:db7::ff00:42:8329")));
+  }
+
+  @Test
   public void constructBoolean() {
     assertAll(
         () -> assertEquals(booleanValue(true), tupleValue("{\"boolV\":true}").get("boolV")),
@@ -304,10 +320,6 @@ class OpenSearchExprValueFactoryTest {
                 tupleValue("{\"timestampV\":\"2015-01-01T12:10:30\"}").get("timestampV")),
         () ->
             assertEquals(
-                new ExprTimestampValue("2015-01-01 12:10:30"),
-                tupleValue("{\"timestampV\":\"2015-01-01 12:10:30\"}").get("timestampV")),
-        () ->
-            assertEquals(
                 new ExprTimestampValue(Instant.ofEpochMilli(1420070400001L)),
                 constructFromObject("timestampV", 1420070400001L)),
         () ->
@@ -340,18 +352,6 @@ class OpenSearchExprValueFactoryTest {
                 tupleValue("{ \"dateTimeCustomV\" : 19840510203040 }").get("dateTimeCustomV")),
         () ->
             assertEquals(
-                new ExprTimestampValue("2015-01-01 12:10:30"),
-                constructFromObject("timestampV", "2015-01-01 12:10:30")),
-        () ->
-            assertEquals(
-                new ExprDatetimeValue("2015-01-01 12:10:30"),
-                constructFromObject("datetimeV", "2015-01-01 12:10:30")),
-        () ->
-            assertEquals(
-                new ExprDatetimeValue("2015-01-01 12:10:30"),
-                constructFromObject("datetimeDefaultV", "2015-01-01 12:10:30")),
-        () ->
-            assertEquals(
                 new ExprTimestampValue(Instant.ofEpochMilli(1420070400001L)),
                 constructFromObject("dateOrEpochMillisV", "1420070400001")),
 
@@ -359,7 +359,7 @@ class OpenSearchExprValueFactoryTest {
         () ->
             assertEquals(
                 new ExprTimeValue("19:36:22"),
-                tupleValue("{\"timestampV\":\"19:36:22\"}").get("timestampV")),
+                tupleValue("{\"timeonlyV\":\"19:36:22\"}").get("timeonlyV")),
 
         // case: timestamp-formatted field, but it only gets a date: should match a date
         () ->
@@ -383,11 +383,7 @@ class OpenSearchExprValueFactoryTest {
         exception.getMessage());
 
     assertEquals(
-        new ExprDatetimeValue("2015-01-01 12:10:30"),
-        constructFromObject("customAndEpochMillisV", "2015-01-01 12:10:30"));
-
-    assertEquals(
-        new ExprDatetimeValue("2015-01-01 12:10:30"),
+        new ExprTimestampValue("2015-01-01 12:10:30"),
         constructFromObject("customAndEpochMillisV", "2015-01-01-12-10-30"));
   }
 
@@ -673,16 +669,6 @@ class OpenSearchExprValueFactoryTest {
   }
 
   @Test
-  public void constructArrayOfIPsReturnsAll() {
-    assertEquals(
-        new ExprCollectionValue(
-            List.of(
-                new OpenSearchExprIpValue("192.168.0.1"),
-                new OpenSearchExprIpValue("192.168.0.2"))),
-        tupleValue("{\"ipV\":[\"192.168.0.1\",\"192.168.0.2\"]}").get("ipV"));
-  }
-
-  @Test
   public void constructBinaryArrayReturnsAll() {
     assertEquals(
         new ExprCollectionValue(
@@ -694,13 +680,24 @@ class OpenSearchExprValueFactoryTest {
   }
 
   @Test
+  public void constructArrayOfIPsReturnsAll() {
+    final String ipv4String = "1.2.3.4";
+    final String ipv6String = "2001:db7::ff00:42:8329";
+
+    assertEquals(
+        new ExprCollectionValue(List.of(ipValue(ipv4String), ipValue(ipv6String))),
+        tupleValue(String.format("{\"%s\":[\"%s\",\"%s\"]}", fieldIp, ipv4String, ipv6String))
+            .get(fieldIp));
+  }
+
+  @Test
   public void constructArrayOfCustomEpochMillisReturnsAll() {
     assertEquals(
         new ExprCollectionValue(
             List.of(
                 new ExprTimestampValue("2015-01-01 12:10:30"),
                 new ExprTimestampValue("1999-11-09 01:09:44"))),
-        tupleValue("{\"customAndEpochMillisV\":[\"2015-01-01 12:10:30\",\"1999-11-09 01:09:44\"]}")
+        tupleValue("{\"customAndEpochMillisV\":[\"2015-01-01-12-10-30\",\"1999-11-09-01-09-44\"]}")
             .get("customAndEpochMillisV"));
   }
 
@@ -755,12 +752,11 @@ class OpenSearchExprValueFactoryTest {
 
   @Test
   public void constructIP() {
+    final String ipString = "192.168.0.1";
     assertEquals(
-        new OpenSearchExprIpValue("192.168.0.1"),
-        tupleValue("{\"ipV\":\"192.168.0.1\"}").get("ipV"));
+        new ExprIpValue(ipString),
+        tupleValue(String.format("{\"%s\":\"%s\"}", fieldIp, ipString)).get(fieldIp));
   }
-
-  private static final double TOLERANCE = 1E-5;
 
   @Test
   public void constructGeoPoint() {
@@ -1002,6 +998,53 @@ class OpenSearchExprValueFactoryTest {
         () -> assertTrue(mapping.containsKey("agg")),
         () -> assertEquals(OpenSearchDataType.of(INTEGER), mapping.get("value")),
         () -> assertEquals(OpenSearchDataType.of(DATE), mapping.get("agg")));
+  }
+
+  @Test
+  public void testPopulateValueRecursive() {
+    ExprTupleValue tupleValue = ExprTupleValue.empty();
+
+    OpenSearchExprValueFactory.populateValueRecursive(
+        tupleValue, new JsonPath("log.json.time"), ExprValueUtils.integerValue(100));
+    ExprValue expectedValue =
+        ExprValueUtils.tupleValue(
+            Map.of("log", Map.of("json", new LinkedHashMap<>(Map.of("time", 100)))));
+    assertEquals(expectedValue, tupleValue);
+
+    OpenSearchExprValueFactory.populateValueRecursive(
+        tupleValue,
+        new JsonPath("log.json"),
+        ExprValueUtils.tupleValue(new LinkedHashMap<>(Map.of("status", "SUCCESS"))));
+    expectedValue =
+        ExprValueUtils.tupleValue(
+            Map.of(
+                "log",
+                Map.of(
+                    "json",
+                    new LinkedHashMap<>() {
+                      {
+                        put("status", "SUCCESS");
+                        put("time", 100);
+                      }
+                    })));
+    assertEquals(expectedValue, tupleValue);
+
+    // update the conflict value with the latest
+    OpenSearchExprValueFactory.populateValueRecursive(
+        tupleValue, new JsonPath("log.json.status"), ExprValueUtils.stringValue("FAILED"));
+    expectedValue =
+        ExprValueUtils.tupleValue(
+            Map.of(
+                "log",
+                Map.of(
+                    "json",
+                    new LinkedHashMap<>() {
+                      {
+                        put("status", "FAILED");
+                        put("time", 100);
+                      }
+                    })));
+    assertEquals(expectedValue, tupleValue);
   }
 
   public Map<String, ExprValue> tupleValue(String jsonString) {

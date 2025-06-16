@@ -22,6 +22,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.IP;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.SHORT;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
@@ -54,6 +55,9 @@ class OpenSearchDataTypeTest {
 
   private static final OpenSearchDateType dateType = OpenSearchDateType.of(emptyFormatString);
 
+  private static final OpenSearchAliasType aliasTypeOnText =
+      new OpenSearchAliasType("original_path", textType);
+
   @Test
   public void isCompatible() {
     assertTrue(STRING.isCompatible(textType));
@@ -61,6 +65,14 @@ class OpenSearchDataTypeTest {
 
     assertTrue(STRING.isCompatible(textKeywordType));
     assertTrue(textType.isCompatible(textKeywordType));
+
+    assertTrue(STRING.isCompatible(aliasTypeOnText));
+    assertFalse(aliasTypeOnText.isCompatible(STRING));
+
+    assertTrue(aliasTypeOnText.isCompatible(textType));
+    assertTrue(textType.isCompatible(aliasTypeOnText));
+    assertTrue(aliasTypeOnText.isCompatible(textKeywordType));
+    assertTrue(textKeywordType.isCompatible(aliasTypeOnText));
   }
 
   // `typeName` and `legacyTypeName` return different things:
@@ -69,9 +81,11 @@ class OpenSearchDataTypeTest {
   public void typeName() {
     assertEquals("STRING", textType.typeName());
     assertEquals("STRING", textKeywordType.typeName());
+    assertEquals("STRING", aliasTypeOnText.typeName());
     assertEquals("OBJECT", OpenSearchDataType.of(MappingType.Object).typeName());
     assertEquals("TIMESTAMP", OpenSearchDataType.of(MappingType.Date).typeName());
     assertEquals("DOUBLE", OpenSearchDataType.of(MappingType.Double).typeName());
+    assertEquals("KEYWORD", OpenSearchDataType.of(MappingType.Keyword).typeName());
     assertEquals("KEYWORD", OpenSearchDataType.of(MappingType.Keyword).typeName());
   }
 
@@ -79,6 +93,7 @@ class OpenSearchDataTypeTest {
   public void legacyTypeName() {
     assertEquals("TEXT", textType.legacyTypeName());
     assertEquals("TEXT", textKeywordType.legacyTypeName());
+    assertEquals("TEXT", aliasTypeOnText.legacyTypeName());
     assertEquals("OBJECT", OpenSearchDataType.of(MappingType.Object).legacyTypeName());
     assertEquals("TIMESTAMP", OpenSearchDataType.of(MappingType.Date).legacyTypeName());
     assertEquals("DOUBLE", OpenSearchDataType.of(MappingType.Double).legacyTypeName());
@@ -89,6 +104,7 @@ class OpenSearchDataTypeTest {
   public void shouldCast() {
     assertFalse(textType.shouldCast(STRING));
     assertFalse(textKeywordType.shouldCast(STRING));
+    assertFalse(aliasTypeOnText.shouldCast(STRING));
   }
 
   private static Stream<Arguments> getTestDataWithType() {
@@ -108,9 +124,9 @@ class OpenSearchDataTypeTest {
         Arguments.of(MappingType.DateNanos, "timestamp", TIMESTAMP),
         Arguments.of(MappingType.Object, "object", STRUCT),
         Arguments.of(MappingType.Nested, "nested", ARRAY),
+        Arguments.of(MappingType.Ip, "ip", IP),
         Arguments.of(MappingType.GeoPoint, "geo_point", OpenSearchGeoPointType.of()),
-        Arguments.of(MappingType.Binary, "binary", OpenSearchBinaryType.of()),
-        Arguments.of(MappingType.Ip, "ip", OpenSearchIpType.of()));
+        Arguments.of(MappingType.Binary, "binary", OpenSearchBinaryType.of()));
   }
 
   @ParameterizedTest(name = "{1}")
@@ -188,13 +204,13 @@ class OpenSearchDataTypeTest {
         () -> assertSame(OpenSearchDataType.of(MappingType.Text), OpenSearchTextType.of()),
         () -> assertSame(OpenSearchDataType.of(MappingType.Binary), OpenSearchBinaryType.of()),
         () -> assertSame(OpenSearchDataType.of(MappingType.GeoPoint), OpenSearchGeoPointType.of()),
-        () -> assertSame(OpenSearchDataType.of(MappingType.Ip), OpenSearchIpType.of()),
         () ->
             assertNotSame(
                 OpenSearchTextType.of(),
                 OpenSearchTextType.of(Map.of("properties", OpenSearchDataType.of(INTEGER)))),
         () -> assertSame(OpenSearchDataType.of(INTEGER), OpenSearchDataType.of(INTEGER)),
         () -> assertSame(OpenSearchDataType.of(STRING), OpenSearchDataType.of(STRING)),
+        () -> assertSame(OpenSearchDataType.of(IP), OpenSearchDataType.of(IP)),
         () -> assertSame(OpenSearchDataType.of(STRUCT), OpenSearchDataType.of(STRUCT)),
         () ->
             assertNotSame(
@@ -242,12 +258,14 @@ class OpenSearchDataTypeTest {
         OpenSearchDataType.of(MappingType.Object, Map.of("val", OpenSearchDataType.of(INTEGER)));
     var clone = type.cloneEmpty();
     var textClone = textKeywordType.cloneEmpty();
+    var aliasClone = aliasTypeOnText.cloneEmpty();
 
     assertAll(
         // can compare because `properties` and `fields` are marked as @EqualsAndHashCode.Exclude
         () -> assertEquals(type, clone),
         () -> assertTrue(clone.getProperties().isEmpty()),
         () -> assertEquals(textKeywordType, textClone),
+        () -> assertEquals(aliasTypeOnText, aliasClone),
         () ->
             assertEquals(
                 FieldUtils.readField(textKeywordType, "fields", true),
@@ -430,5 +448,66 @@ class OpenSearchDataTypeTest {
   @Test
   public void test_shouldCastFunction() {
     assertFalse(dateType.shouldCast(DATE));
+  }
+
+  @Test
+  public void test_AliasType() {
+    IllegalStateException exception1 =
+        assertThrows(
+            IllegalStateException.class,
+            () -> new OpenSearchAliasType("original_path", aliasTypeOnText));
+    assertEquals(
+        "Alias field cannot refer to the path [original_path] of alias type",
+        exception1.getMessage());
+
+    IllegalStateException exception2 =
+        assertThrows(
+            IllegalStateException.class,
+            () ->
+                new OpenSearchAliasType(
+                    "original_path", OpenSearchDataType.of(MappingType.Object)));
+    assertEquals(
+        "Alias field cannot refer to the path [original_path] of object type",
+        exception2.getMessage());
+
+    var doubleType = OpenSearchDataType.of(MappingType.Double);
+    var aliasTypeOnDouble = new OpenSearchAliasType("original_path2", doubleType);
+    assertAll(
+        () -> assertEquals(aliasTypeOnText, aliasTypeOnText.cloneEmpty()),
+        () -> assertEquals(aliasTypeOnText, aliasTypeOnText.getExprType()),
+        () -> assertEquals(textType, aliasTypeOnText.getOriginalExprType()),
+        () -> assertEquals("original_path", aliasTypeOnText.getOriginalPath().orElseThrow()),
+        () -> assertEquals(aliasTypeOnDouble, aliasTypeOnDouble.cloneEmpty()),
+        () -> assertEquals(aliasTypeOnDouble, aliasTypeOnDouble.getExprType()),
+        () -> assertEquals(ExprCoreType.DOUBLE, aliasTypeOnDouble.getOriginalExprType()),
+        () -> assertEquals("original_path2", aliasTypeOnDouble.getOriginalPath().orElseThrow()));
+  }
+
+  @Test
+  public void test_parseMapping_on_AliasType() {
+    Map<String, Object> indexMapping1 =
+        Map.of(
+            "col0", Map.of("type", "alias", "path", "col1"),
+            "col1", Map.of("type", "text"),
+            "col2", Map.of("type", "alias", "path", "col1"));
+    assertEquals(
+        Map.of(
+            "col0",
+            new OpenSearchAliasType("col1", textType),
+            "col1",
+            textType,
+            "col2",
+            new OpenSearchAliasType("col1", textType)),
+        OpenSearchDataType.parseMapping(indexMapping1));
+
+    Map<String, Object> indexMapping2 =
+        Map.of(
+            "col0", Map.of("type", "alias", "path", "col1"),
+            "col1", Map.of("type", "text"),
+            "col2", Map.of("type", "alias", "path", "col3"));
+    IllegalStateException exception =
+        assertThrows(
+            IllegalStateException.class, () -> OpenSearchDataType.parseMapping(indexMapping2));
+    assertEquals("Cannot find the path [col3] for alias type field [col2]", exception.getMessage());
   }
 }

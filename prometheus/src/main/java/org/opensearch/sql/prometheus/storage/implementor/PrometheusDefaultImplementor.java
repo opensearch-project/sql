@@ -118,7 +118,7 @@ public class PrometheusDefaultImplementor extends DefaultImplementor<PrometheusM
     PrometheusResponseFieldNames prometheusResponseFieldNames = new PrometheusResponseFieldNames();
     prometheusResponseFieldNames.setValueFieldName(node.getAggregatorList().get(0).getName());
     prometheusResponseFieldNames.setValueType(node.getAggregatorList().get(0).type());
-    prometheusResponseFieldNames.setTimestampFieldName(spanExpression.get().getNameOrAlias());
+    prometheusResponseFieldNames.setTimestampFieldName(spanExpression.get().getName());
     prometheusResponseFieldNames.setGroupByList(node.getGroupByList());
     context.setPrometheusResponseFieldNames(prometheusResponseFieldNames);
   }

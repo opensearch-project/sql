@@ -10,9 +10,11 @@ package org.opensearch.sql.executor.execution;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
+import org.opensearch.sql.executor.QueryType;
 
 /** AbstractPlan represent the execution entity of the Statement. */
 @RequiredArgsConstructor
@@ -20,6 +22,8 @@ public abstract class AbstractPlan {
 
   /** Uniq query id. */
   @Getter private final QueryId queryId;
+
+  @Getter protected final QueryType queryType;
 
   /** Start query execution. */
   public abstract void execute();
@@ -29,5 +33,6 @@ public abstract class AbstractPlan {
    *
    * @param listener query explain response listener.
    */
-  public abstract void explain(ResponseListener<ExecutionEngine.ExplainResponse> listener);
+  public abstract void explain(
+      ResponseListener<ExecutionEngine.ExplainResponse> listener, Explain.ExplainFormat format);
 }

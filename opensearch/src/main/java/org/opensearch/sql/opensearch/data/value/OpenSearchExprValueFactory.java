@@ -12,6 +12,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.IP;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
@@ -33,7 +34,6 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -44,6 +44,7 @@ import org.opensearch.OpenSearchParseException;
 import org.opensearch.common.time.DateFormatter;
 import org.opensearch.common.time.DateFormatters;
 import org.opensearch.common.time.FormatNames;
+import org.opensearch.index.mapper.DateFieldMapper;
 import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.data.model.ExprByteValue;
 import org.opensearch.sql.data.model.ExprCollectionValue;
@@ -51,6 +52,7 @@ import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprFloatValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
+import org.opensearch.sql.data.model.ExprIpValue;
 import org.opensearch.sql.data.model.ExprLongValue;
 import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprShortValue;
@@ -64,7 +66,7 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchBinaryType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
-import org.opensearch.sql.opensearch.data.type.OpenSearchIpType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.data.utils.Content;
 import org.opensearch.sql.opensearch.data.utils.ObjectContent;
 import org.opensearch.sql.opensearch.data.utils.OpenSearchJsonContent;
@@ -88,9 +90,7 @@ public class OpenSearchExprValueFactory {
     for (var field : typeMapping.keySet()) {
       // Prevent overwriting, because aggregation engine may be not aware
       // of all niceties of all types.
-      if (!this.typeMapping.containsKey(field)) {
-        this.typeMapping.put(field, typeMapping.get(field));
-      }
+      this.typeMapping.putIfAbsent(field, typeMapping.get(field));
     }
   }
 
@@ -120,9 +120,7 @@ public class OpenSearchExprValueFactory {
           .put(
               OpenSearchDataType.of(OpenSearchDataType.MappingType.Double),
               (c, dt) -> new ExprDoubleValue(c.doubleValue()))
-          .put(
-              OpenSearchDataType.of(OpenSearchDataType.MappingType.Text),
-              (c, dt) -> new OpenSearchExprTextValue(c.stringValue()))
+          .put(OpenSearchTextType.of(), (c, dt) -> new OpenSearchExprTextValue(c.stringValue()))
           .put(
               OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword),
               (c, dt) -> new ExprStringValue(c.stringValue()))
@@ -135,11 +133,10 @@ public class OpenSearchExprValueFactory {
           .put(
               OpenSearchDateType.of(TIMESTAMP),
               OpenSearchExprValueFactory::createOpenSearchDateType)
+          .put(OpenSearchDateType.of(DATETIME), OpenSearchExprValueFactory::createOpenSearchDateType)
           .put(
-              OpenSearchDateType.of(DATETIME), OpenSearchExprValueFactory::createOpenSearchDateType)
-          .put(
-              OpenSearchDataType.of(OpenSearchDataType.MappingType.Ip),
-              (c, dt) -> new OpenSearchExprIpValue(c.stringValue()))
+              OpenSearchDateType.of(OpenSearchDataType.MappingType.Ip),
+              (c, dt) -> new ExprIpValue(c.stringValue()))
           .put(
               OpenSearchDataType.of(OpenSearchDataType.MappingType.Binary),
               (c, dt) -> new OpenSearchExprBinaryValue(c.stringValue()))
@@ -200,14 +197,12 @@ public class OpenSearchExprValueFactory {
     } else if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.Object))
         || type == STRUCT) {
       return parseStruct(content, field, supportArrays);
+    } else if (typeActionMap.containsKey(type)) {
+      return typeActionMap.get(type).apply(content, type);
     } else {
-      if (typeActionMap.containsKey(type)) {
-        return typeActionMap.get(type).apply(content, type);
-      } else {
-        throw new IllegalStateException(
-            String.format(
-                "Unsupported type: %s for value: %s.", type.typeName(), content.objectValue()));
-      }
+      throw new IllegalStateException(
+          String.format(
+              "Unsupported type: %s for value: %s.", type.typeName(), content.objectValue()));
     }
   }
 
@@ -260,9 +255,10 @@ public class OpenSearchExprValueFactory {
               DateFormatters.from(STRICT_YEAR_MONTH_DAY_FORMATTER.parse(value)).toLocalDate());
         default:
           return new ExprTimestampValue(
-              DateFormatters.from(DATE_TIME_FORMATTER.parse(value)).toInstant());
+                  DateFormatters.from(DateFieldMapper.getDefaultDateTimeFormatter().parse(value))
+                          .toInstant());
       }
-    } catch (DateTimeParseException ignored) {
+    } catch (DateTimeParseException | IllegalArgumentException ignored) {
       // ignored
     }
 
@@ -314,19 +310,63 @@ public class OpenSearchExprValueFactory {
    * @return Value parsed from content.
    */
   private ExprValue parseStruct(Content content, String prefix, boolean supportArrays) {
-    LinkedHashMap<String, ExprValue> result = new LinkedHashMap<>();
+    ExprTupleValue result = ExprTupleValue.empty();
     content
         .map()
         .forEachRemaining(
             entry ->
-                result.put(
-                    entry.getKey(),
+                populateValueRecursive(
+                    result,
+                    new JsonPath(entry.getKey()),
                     parse(
                         entry.getValue(),
                         makeField(prefix, entry.getKey()),
                         type(makeField(prefix, entry.getKey())),
                         supportArrays)));
-    return new ExprTupleValue(result);
+    return result;
+  }
+
+  /**
+   * Populate the current ExprTupleValue recursively.
+   *
+   * <p>If JsonPath is not a root path(i.e. has dot in its raw path), it needs update to its
+   * children recursively until the leaf node.
+   *
+   * <p>If there is existing vale for the JsonPath, we need to merge the new value to the old.
+   */
+  static void populateValueRecursive(ExprTupleValue result, JsonPath path, ExprValue value) {
+    if (path.getPaths().size() == 1) {
+      // Update the current ExprValue by using mergeTo if exists
+      result
+          .tupleValue()
+          .computeIfPresent(path.getRootPath(), (key, oldValue) -> value.mergeTo(oldValue));
+      result.tupleValue().putIfAbsent(path.getRootPath(), value);
+    } else {
+      result.tupleValue().putIfAbsent(path.getRootPath(), ExprTupleValue.empty());
+      populateValueRecursive(
+          (ExprTupleValue) result.tupleValue().get(path.getRootPath()), path.getChildPath(), value);
+    }
+  }
+
+  @Getter
+  static class JsonPath {
+    private final List<String> paths;
+
+    public JsonPath(String rawPath) {
+      this.paths = List.of(rawPath.split("\\."));
+    }
+
+    public JsonPath(List<String> paths) {
+      this.paths = paths;
+    }
+
+    public String getRootPath() {
+      return paths.get(0);
+    }
+
+    public JsonPath getChildPath() {
+      return new JsonPath(paths.subList(1, paths.size()));
+    }
   }
 
   /**
@@ -415,10 +455,10 @@ public class OpenSearchExprValueFactory {
    */
   private ExprValue parseInnerArrayValue(
       Content content, String prefix, ExprType type, boolean supportArrays) {
-    if (type instanceof OpenSearchIpType
-        || type instanceof OpenSearchBinaryType
-        || type instanceof OpenSearchDateType) {
+    if (type instanceof OpenSearchBinaryType || type instanceof OpenSearchDateType) {
       return parse(content, prefix, Optional.of(type), supportArrays);
+    } else if (content.isString() && type.equals(OpenSearchDataType.of(IP))) {
+      return parse(content, prefix, Optional.of(OpenSearchDataType.of(IP)), supportArrays);
     } else if (content.isString()) {
       return parse(content, prefix, Optional.of(OpenSearchDataType.of(STRING)), supportArrays);
     } else if (content.isLong()) {

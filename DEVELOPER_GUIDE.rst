@@ -235,6 +235,10 @@ Most of the time you just need to run ./gradlew build which will make sure you p
      - Run all unit tests.
    * - ./gradlew :integ-test:integTest
      - Run all integration test (this takes time).
+   * - ./gradlew :integ-test:yamlRestTest
+     - Run rest integration test.
+   * - ./gradlew :doctest:doctest
+     - Run doctests
    * - ./gradlew build
      - Build plugin by run all tasks above (this takes time).
    * - ./gradlew pitest
@@ -405,7 +409,7 @@ Sample test class:
 Doctest
 >>>>>>>
 
-Python doctest library makes our document executable which keeps it up-to-date to source code. The doc generator aforementioned served as scaffolding and generated many docs in short time. Now the examples inside is changed to doctest gradually. For more details please read `Doctest <./dev/Doctest.md>`_.
+Python doctest library makes our document executable which keeps it up-to-date to source code. The doc generator aforementioned served as scaffolding and generated many docs in short time. Now the examples inside is changed to doctest gradually. For more details please read `testing-doctest <./docs/dev/testing-doctest.md>`_.
 
 
 Backports

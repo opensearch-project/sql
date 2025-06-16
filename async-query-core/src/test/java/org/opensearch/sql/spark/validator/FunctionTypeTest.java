@@ -42,6 +42,8 @@ class FunctionTypeTest {
     assertEquals(FunctionType.MISC, FunctionType.fromFunctionName("version"));
     assertEquals(FunctionType.GENERATOR, FunctionType.fromFunctionName("explode"));
     assertEquals(FunctionType.GENERATOR, FunctionType.fromFunctionName("stack"));
+    assertEquals(FunctionType.OTHER, FunctionType.fromFunctionName("aggregate"));
+    assertEquals(FunctionType.OTHER, FunctionType.fromFunctionName("forall"));
     assertEquals(FunctionType.UDF, FunctionType.fromFunctionName("unknown"));
   }
 }

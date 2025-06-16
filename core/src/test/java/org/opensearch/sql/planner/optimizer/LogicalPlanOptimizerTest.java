@@ -236,7 +236,7 @@ class LogicalPlanOptimizerTest {
                 List.of(Map.of("field", new ReferenceExpression("message.info", STRING))),
                 List.of(
                     new NamedExpression(
-                        "message.info", DSL.nested(DSL.ref("message.info", STRING)), null)))));
+                        "message.info", DSL.nested(DSL.ref("message.info", STRING)))))));
   }
 
   @Test

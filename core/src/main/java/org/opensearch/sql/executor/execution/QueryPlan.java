@@ -10,12 +10,14 @@ package org.opensearch.sql.executor.execution;
 
 import java.util.Optional;
 import org.apache.commons.lang3.NotImplementedException;
+import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryService;
+import org.opensearch.sql.executor.QueryType;
 
 /** Query plan which includes a <em>select</em> query. */
 public class QueryPlan extends AbstractPlan {
@@ -33,10 +35,11 @@ public class QueryPlan extends AbstractPlan {
   /** Constructor. */
   public QueryPlan(
       QueryId queryId,
+      QueryType queryType,
       UnresolvedPlan plan,
       QueryService queryService,
       ResponseListener<ExecutionEngine.QueryResponse> listener) {
-    super(queryId);
+    super(queryId, queryType);
     this.plan = plan;
     this.queryService = queryService;
     this.listener = listener;
@@ -46,11 +49,12 @@ public class QueryPlan extends AbstractPlan {
   /** Constructor with page size. */
   public QueryPlan(
       QueryId queryId,
+      QueryType queryType,
       UnresolvedPlan plan,
       int pageSize,
       QueryService queryService,
       ResponseListener<ExecutionEngine.QueryResponse> listener) {
-    super(queryId);
+    super(queryId, queryType);
     this.plan = plan;
     this.queryService = queryService;
     this.listener = listener;
@@ -60,20 +64,21 @@ public class QueryPlan extends AbstractPlan {
   @Override
   public void execute() {
     if (pageSize.isPresent()) {
-      queryService.execute(new Paginate(pageSize.get(), plan), listener);
+      queryService.execute(new Paginate(pageSize.get(), plan), getQueryType(), listener);
     } else {
-      queryService.execute(plan, listener);
+      queryService.execute(plan, getQueryType(), listener);
     }
   }
 
   @Override
-  public void explain(ResponseListener<ExecutionEngine.ExplainResponse> listener) {
+  public void explain(
+      ResponseListener<ExecutionEngine.ExplainResponse> listener, Explain.ExplainFormat format) {
     if (pageSize.isPresent()) {
       listener.onFailure(
           new NotImplementedException(
               "`explain` feature for paginated requests is not implemented yet."));
     } else {
-      queryService.explain(plan, listener);
+      queryService.explain(plan, getQueryType(), listener, format);
     }
   }
 }

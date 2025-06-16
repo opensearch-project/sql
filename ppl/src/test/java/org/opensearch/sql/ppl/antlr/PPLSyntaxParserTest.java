@@ -417,4 +417,43 @@ public class PPLSyntaxParserTest {
         new PPLSyntaxParser()
             .parse("SOURCE=test | eval k = TIMESTAMPDIFF(WEEK,'2003-01-02','2003-01-02')"));
   }
+
+  @Test
+  public void testCanParseFillNullSameValue() {
+    assertNotNull(new PPLSyntaxParser().parse("SOURCE=test | fillnull with 0 in a"));
+    assertNotNull(new PPLSyntaxParser().parse("SOURCE=test | fillnull with 0 in a, b"));
+  }
+
+  @Test
+  public void testCanParseFillNullVariousValues() {
+    assertNotNull(new PPLSyntaxParser().parse("SOURCE=test | fillnull using a = 0"));
+    assertNotNull(new PPLSyntaxParser().parse("SOURCE=test | fillnull using a = 0, b = 1"));
+  }
+
+  @Test
+  public void testLineCommentShouldPass() {
+    assertNotNull(new PPLSyntaxParser().parse("search source=t a=1 b=2 //this is a comment"));
+    assertNotNull(new PPLSyntaxParser().parse("search source=t a=1 b=2 // this is a comment "));
+    assertNotNull(
+        new PPLSyntaxParser()
+            .parse(
+                "// test is a new line comment search source=t a=1 b=2 // test is a line comment at"
+                    + " the end of ppl command | fields a,b // this is line comment inner ppl"
+                    + " command////this is a new line comment\n"));
+  }
+
+  @Test
+  public void testBlockCommentShouldPass() {
+    assertNotNull(new PPLSyntaxParser().parse("search source=t a=1 b=2 /*block comment*/"));
+    assertNotNull(new PPLSyntaxParser().parse("search source=t a=1 b=2 /* block comment */"));
+    assertNotNull(
+        new PPLSyntaxParser()
+            .parse(
+                "/*\n"
+                    + "This is a    multiplelineblock    comment */search /* block comment */"
+                    + " source=t /* block comment */ a=1 b=2\n"
+                    + "|/*\n"
+                    + "    This is a        multiple    line    block        comment */ fields a,b"
+                    + " /* block comment */ "));
+  }
 }

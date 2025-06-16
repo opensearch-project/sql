@@ -72,7 +72,7 @@ class DefaultFunctionResolverTest {
         assertThrows(
             ExpressionEvaluationException.class, () -> resolver.resolve(functionSignature));
     assertEquals(
-        "add function expected {[INTEGER,INTEGER]}, but get [BOOLEAN,BOOLEAN]",
+        "add function expected {[INTEGER,INTEGER]}, but got [BOOLEAN,BOOLEAN]",
         exception.getMessage());
   }
 
