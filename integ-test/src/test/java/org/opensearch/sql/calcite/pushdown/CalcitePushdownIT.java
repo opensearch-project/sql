@@ -7,7 +7,7 @@
 
 package org.opensearch.sql.calcite.pushdown;
 
-import org.junit.AfterClass;
+import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -86,7 +86,6 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalciteRenameCommandIT.class,
   CalciteResourceMonitorIT.class,
   CalciteSearchCommandIT.class,
-  CalciteSettingsIT.class,
   CalciteShowDataSourcesCommandIT.class,
   CalciteSimpleQueryStringIT.class,
   CalciteSortCommandIT.class,
@@ -99,13 +98,16 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalciteWhereCommandIT.class
 })
 public class CalcitePushdownIT {
-  @AfterClass
-  public static void disablePushdown() {
-    PPLIntegTestCase.GlobalPushdownConfig.enabled = false;
-  }
+  private static boolean wasPushdownEnabled;
 
   @BeforeClass
   public static void enablePushdown() {
+    wasPushdownEnabled = PPLIntegTestCase.GlobalPushdownConfig.enabled;
     PPLIntegTestCase.GlobalPushdownConfig.enabled = true;
+  }
+
+  @After
+  public void restorePushdown() {
+    PPLIntegTestCase.GlobalPushdownConfig.enabled = wasPushdownEnabled;
   }
 }

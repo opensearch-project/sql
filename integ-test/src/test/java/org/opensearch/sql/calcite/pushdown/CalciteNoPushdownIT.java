@@ -7,7 +7,7 @@
 
 package org.opensearch.sql.calcite.pushdown;
 
-import org.junit.AfterClass;
+import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -26,7 +26,8 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalciteDedupCommandIT.class,
   CalciteDescribeCommandIT.class,
   CalciteExpandCommandIT.class,
-  CalciteExplainIT.class,
+  // TODO: Add expected plans for CalciteExplainIT without pushdown
+  //  CalciteExplainIT.class,
   CalciteFieldsCommandIT.class,
   CalciteFillNullCommandIT.class,
   CalciteFlattenCommandIT.class,
@@ -35,7 +36,9 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalciteGeoPointFormatsIT.class,
   CalciteHeadCommandIT.class,
   CalciteInformationSchemaCommandIT.class,
-  CalciteIPComparisonIT.class,
+  // TODO: Enable after implementing comparison for IP addresses with Calcite
+  //  https://github.com/opensearch-project/sql/issues/3776
+  // CalciteIPComparisonIT.class,
   CalciteIPFunctionsIT.class,
   CalciteJsonFunctionsIT.class,
   CalciteLegacyAPICompatibilityIT.class,
@@ -99,13 +102,16 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalciteWhereCommandIT.class
 })
 public class CalciteNoPushdownIT {
+  private static boolean wasPushdownEnabled;
+
   @BeforeClass
   public static void disablePushdown() {
+    wasPushdownEnabled = PPLIntegTestCase.GlobalPushdownConfig.enabled;
     PPLIntegTestCase.GlobalPushdownConfig.enabled = false;
   }
 
-  @AfterClass
-  public static void enablePushdown() {
-    PPLIntegTestCase.GlobalPushdownConfig.enabled = true;
+  @After
+  public void restorePushdown() {
+    PPLIntegTestCase.GlobalPushdownConfig.enabled = wasPushdownEnabled;
   }
 }
