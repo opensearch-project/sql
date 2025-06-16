@@ -231,7 +231,7 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
 
   public boolean isPushdownEnabled() throws IOException {
     return Boolean.parseBoolean(
-        getClusterSetting(Settings.Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(), "persistent"));
+        getClusterSetting(Settings.Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(), "transient"));
   }
 
   public void updatePushdownSettings() throws IOException {
@@ -244,7 +244,7 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
           GlobalPushdownConfig.enabled);
       updateClusterSettings(
           new SQLIntegTestCase.ClusterSetting(
-              "persistent",
+              "transient",
               Settings.Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(),
               String.valueOf(GlobalPushdownConfig.enabled)));
     }
