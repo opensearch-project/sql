@@ -263,7 +263,7 @@ public class PrometheusDataSourceCommandsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void explainQueryRange() throws Exception {
+  public void explainQueryRange() throws IOException {
     String expected = loadFromFile("expectedOutput/ppl/explain_query_range.json");
     assertJsonEquals(
         expected,
@@ -273,7 +273,7 @@ public class PrometheusDataSourceCommandsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testExplainForQueryExemplars() throws Exception {
+  public void testExplainForQueryExemplars() throws IOException {
     String expected = loadFromFile("expectedOutput/ppl/explain_query_exemplars.json");
     assertJsonEquals(
         expected,

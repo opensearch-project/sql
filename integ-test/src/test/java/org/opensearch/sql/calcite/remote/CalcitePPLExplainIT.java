@@ -33,7 +33,7 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testExplainCommand() throws Exception {
+  public void testExplainCommand() throws IOException {
     var result = executeQuery("explain source=test | where age = 20 | fields name, age");
     String expected =
         isPushdownEnabled()
