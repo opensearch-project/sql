@@ -13,11 +13,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.io.Resources;
 import java.io.IOException;
-import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import org.json.JSONObject;
@@ -66,15 +62,6 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
         return (List<?>) defaultSettings;
       }
     };
-  }
-
-  String loadFromFile(String filename) {
-    try {
-      URI uri = Resources.getResource(filename).toURI();
-      return new String(Files.readAllBytes(Paths.get(uri)));
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
   }
 
   @Test

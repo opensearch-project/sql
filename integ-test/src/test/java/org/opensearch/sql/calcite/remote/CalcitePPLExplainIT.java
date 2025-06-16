@@ -33,26 +33,12 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testExplainCommand() throws IOException {
+  public void testExplainCommand() throws Exception {
     var result = executeQuery("explain source=test | where age = 20 | fields name, age");
     String expected =
         isPushdownEnabled()
-            ? """
-            {
-              "calcite": {
-                "physical": "CalciteEnumerableIndexScan(table=[[OpenSearch, test]], PushDownContext=[[PROJECT->[name, age], FILTER->=($1, 20)], OpenSearchRequestBuilder(sourceBuilder={\\"from\\":0,\\"timeout\\":\\"1m\\",\\"query\\":{\\"term\\":{\\"age\\":{\\"value\\":20,\\"boost\\":1.0}}},\\"_source\\":{\\"includes\\":[\\"name\\",\\"age\\"],\\"excludes\\":[]},\\"sort\\":[{\\"_doc\\":{\\"order\\":\\"asc\\"}}]}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])\\n",
-                "logical": "LogicalProject(name=[$0], age=[$1])\\n  LogicalFilter(condition=[=($1, 20)])\\n    CalciteLogicalIndexScan(table=[[OpenSearch, test]])\\n"
-              }
-            }
-            """
-            : """
-            {
-              "calcite": {
-                "logical": "LogicalProject(name=[$0], age=[$1])\\n  LogicalFilter(condition=[=($1, 20)])\\n    CalciteLogicalIndexScan(table=[[OpenSearch, test]])\\n",
-                "physical": "EnumerableCalc(expr#0..7=[{inputs}], expr#8=[20], expr#9=[=($t1,\
-             $t8)], proj#0..1=[{exprs}], $condition=[$t9])\\n  CalciteEnumerableIndexScan(table=[[OpenSearch, test]])\\n"
-              }
-            }""";
+            ? loadFromFile("expectedOutput/calcite/explain_filter_w_pushdown.json")
+            : loadFromFile("expectedOutput/calcite/explain_filter_wo_pushdown.json");
 
     assertJsonEquals(expected, result.toString());
   }
@@ -73,26 +59,17 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
     var result = executeQuery("explain cost source=test | where age = 20 | fields name, age");
     String expected =
         isPushdownEnabled()
-            ? "\"CalciteEnumerableIndexScan(table=[[OpenSearch, test]],"
-                  + " PushDownContext=[[PROJECT->[name, age], FILTER->=($1, 20)],"
-                  + " OpenSearchRequestBuilder(sourceBuilder={\\\"from\\\":0,\\\"timeout\\\":\\\"1m\\\",\\\"query\\\":{\\\"term\\\":{\\\"age\\\":{\\\"value\\\":20,\\\"boost\\\":1.0}}},\\\"_source\\\":{\\\"includes\\\":[\\\"name\\\",\\\"age\\\"],\\\"excludes\\\":[]},\\\"sort\\\":[{\\\"_doc\\\":{\\\"order\\\":\\\"asc\\\"}}]},"
-                  + " requestedTotalSize=2147483647, pageSize=null, startFrom=0)]): rowcount ="
-                  + " 1215.0, cumulative cost = {1215.0 rows, 1216.0 cpu, 0.0 io}"
-            : "CalciteEnumerableIndexScan(table=[[OpenSearch, test]]): rowcount = 10000.0,"
-                + " cumulative cost = {10000.0 rows, 10001.0 cpu, 0.0 io}";
-    assertTrue("Got:\n" + result.toString(), result.toString().contains(expected));
+            ? loadFromFile("expectedOutput/calcite/explain_filter_cost_w_pushdown.txt")
+            : loadFromFile("expectedOutput/calcite/explain_filter_cost_wo_pushdown.txt");
+    assertTrue(
+        String.format("Got: %s\n, expected: %s", result, expected),
+        result.toString().contains(expected));
   }
 
   @Test
   public void testExplainCommandSimple() throws IOException {
     var result = executeQuery("explain simple source=test | where age = 20 | fields name, age");
-    assertJsonEquals(
-        "{\n"
-            + "  \"calcite\": {\n"
-            + "    \"logical\": \"LogicalProject\\n  LogicalFilter\\n    CalciteLogicalIndexScan\\n"
-            + "\"\n"
-            + "  }\n"
-            + "}",
-        result.toString());
+    String expected = loadFromFile("expectedOutput/calcite/explain_filter_simple.json");
+    assertJsonEquals(expected, result.toString());
   }
 }

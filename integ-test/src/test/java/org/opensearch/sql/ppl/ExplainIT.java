@@ -8,11 +8,7 @@ package org.opensearch.sql.ppl;
 import static org.hamcrest.Matchers.containsString;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 
-import com.google.common.io.Resources;
 import java.io.IOException;
-import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.legacy.TestUtils;
@@ -251,11 +247,6 @@ public class ExplainIT extends PPLIntegTestCase {
                 + "| head 5 "
                 + "| trendline sort age sma(2, age) as ageTrend "
                 + "| fields ageTrend"));
-  }
-
-  String loadFromFile(String filename) throws Exception {
-    URI uri = Resources.getResource(filename).toURI();
-    return new String(Files.readAllBytes(Paths.get(uri)));
   }
 
   @Test

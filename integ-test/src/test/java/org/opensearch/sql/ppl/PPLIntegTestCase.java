@@ -9,7 +9,11 @@ import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 import static org.opensearch.sql.plugin.rest.RestPPLQueryAction.EXPLAIN_API_ENDPOINT;
 import static org.opensearch.sql.plugin.rest.RestPPLQueryAction.QUERY_API_ENDPOINT;
 
+import com.google.common.io.Resources;
 import java.io.IOException;
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Locale;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -247,6 +251,23 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
               "transient",
               Settings.Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(),
               String.valueOf(GlobalPushdownConfig.enabled)));
+    }
+  }
+
+  // Utility methods
+
+  /**
+   * Load a file from the resources directory and return its content as a String.
+   *
+   * @param filename the name of the file to load
+   * @return the content of the file as a String
+   */
+  protected static String loadFromFile(String filename) {
+    try {
+      URI uri = Resources.getResource(filename).toURI();
+      return new String(Files.readAllBytes(Paths.get(uri)));
+    } catch (Exception e) {
+      throw new RuntimeException(e);
     }
   }
 }
