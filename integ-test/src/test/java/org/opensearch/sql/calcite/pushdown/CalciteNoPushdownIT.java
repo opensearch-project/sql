@@ -1,13 +1,11 @@
 /*
- *
- *  * Copyright OpenSearch Contributors
- *  * SPDX-License-Identifier: Apache-2.0
- *
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 package org.opensearch.sql.calcite.pushdown;
 
-import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -115,8 +113,8 @@ public class CalciteNoPushdownIT {
     PPLIntegTestCase.GlobalPushdownConfig.enabled = false;
   }
 
-  @After
-  public void restorePushdown() {
+  @AfterClass
+  public static void restorePushdown() {
     PPLIntegTestCase.GlobalPushdownConfig.enabled = wasPushdownEnabled;
   }
 }
