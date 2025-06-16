@@ -235,10 +235,18 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   }
 
   public void updatePushdownSettings() throws IOException {
-    updateClusterSettings(
-        new SQLIntegTestCase.ClusterSetting(
-            "persistent",
-            Settings.Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(),
-            String.valueOf(GlobalPushdownConfig.enabled)));
+    String pushdownEnabled = String.valueOf(GlobalPushdownConfig.enabled);
+    assert !pushdownEnabled.isBlank() : "Pushdown enabled setting cannot be empty";
+    if (isPushdownEnabled() != GlobalPushdownConfig.enabled) {
+      LOG.info(
+          "Updating {} to {}",
+          Settings.Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(),
+          GlobalPushdownConfig.enabled);
+      updateClusterSettings(
+          new SQLIntegTestCase.ClusterSetting(
+              "persistent",
+              Settings.Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(),
+              String.valueOf(GlobalPushdownConfig.enabled)));
+    }
   }
 }
