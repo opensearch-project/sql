@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.standalone;
 
 import static org.opensearch.sql.datasource.model.DataSourceMetadata.defaultOpenSearchDataSourceMetadata;
+import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
 import com.google.common.collect.ImmutableMap;
@@ -211,7 +212,9 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
 
           @Override
           public void onResponse(ExecutionEngine.QueryResponse response) {
-            QueryResult result = new QueryResult(response.getSchema(), response.getResults());
+            QueryResult result =
+                new QueryResult(
+                    response.getSchema(), response.getResults(), response.getCursor(), PPL_SPEC);
             String json = new SimpleJsonResponseFormatter(PRETTY).format(result);
             actual.set(jsonify(json));
           }
@@ -387,5 +390,10 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
           new QueryService(analyzer, executionEngine, planner, dataSourceService, settings);
       return new QueryPlanFactory(queryService);
     }
+  }
+
+  @Override
+  protected boolean isStandaloneTest() {
+    return true;
   }
 }
