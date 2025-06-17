@@ -293,7 +293,11 @@ public class StatsCommandIT extends PPLIntegTestCase {
                 "source=%s | where age = 36 | stats sum(balance)",
                 TEST_INDEX_BANK_WITH_NULL_VALUES));
     verifySchema(response, schema("sum(balance)", null, "bigint"));
-    verifyDataRows(response, rows(0));
+    // TODO: Fix -- temporary workaround for the pushdown issue:
+    //  The current pushdown implementation will return 0 for sum when getting null values as input.
+    //  Returning null should be the expected behavior.
+    Integer expectedValue = isPushdownEnabled() ? 0 : null;
+    verifyDataRows(response, rows(expectedValue));
   }
 
   @Test
