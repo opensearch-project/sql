@@ -38,6 +38,9 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   @Override
   public void init() throws IOException {
     super.init();
+    enableCalcite();
+    disallowCalciteFallback();
+
     loadIndex(Index.STATE_COUNTRY);
     loadIndex(Index.DATE_FORMATS);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
@@ -72,7 +75,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
-  public void testDate() {
+  public void testDate() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -101,7 +104,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
-  public void testTimestampWithTimeInput() {
+  public void testTimestampWithTimeInput() throws IOException {
     String utcTomorrow = LocalDate.now().plusDays(1).toString();
     JSONObject actual =
         executeQuery(
@@ -115,7 +118,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
-  public void testTimestamp() {
+  public void testTimestamp() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -169,7 +172,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
-  public void testTime() {
+  public void testTime() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -211,27 +214,27 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
-  public void testDateSubAndCount() {
+  public void testDateSubAndCount() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
                 "source=%s | where strict_date_optional_time > DATE_SUB(TIMESTAMP('1984-04-12"
                     + " 20:07:00'), INTERVAL 12 HOUR) | stats COUNT() AS CNT ",
                 TEST_INDEX_DATE_FORMATS));
-    verifySchema(actual, schema("CNT", "long"));
+    verifySchema(actual, schema("CNT", "bigint"));
 
     // relative ones
     verifyDataRows(actual, rows(7));
   }
 
   @Test
-  public void testTimeStrToDate() {
+  public void testTimeStrToDate() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
                 "source=%s | where YEAR(strict_date_optional_time) < 2000| eval demo ="
-                    + " str_to_date(\"01,5,2013\", \"%%d,%%m,%%Y\")| where"
-                    + " str_to_date(\"01,5,2013\", \"%%d,%%m,%%Y\")='2013-05-01 00:00:00'| eval s2d"
+                    + " str_to_date('01,5,2013', '%%d,%%m,%%Y')| where"
+                    + " str_to_date('01,5,2013', '%%d,%%m,%%Y')='2013-05-01 00:00:00'| eval s2d"
                     + " =  STR_TO_DATE('2010-09-10 12:56:45.123456', '%%Y-%%m-%%d %%T.%%f')| fields"
                     + " demo, s2d | head 1",
                 TEST_INDEX_DATE_FORMATS));
@@ -240,7 +243,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
-  public void testTimeFormat() {
+  public void testTimeFormat() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -261,7 +264,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
-  public void testTimeToSec() {
+  public void testTimeToSec() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -276,15 +279,15 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual,
-        schema("timestamp", "long"),
-        schema("time", "long"),
-        schema("date", "long"),
-        schema("long_value", "long"));
+        schema("timestamp", "bigint"),
+        schema("time", "bigint"),
+        schema("date", "bigint"),
+        schema("long_value", "bigint"));
     verifyDataRows(actual, rows(32862, 32862, 0, 80580));
   }
 
   @Test
-  public void testSecToTime() {
+  public void testSecToTime() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -299,7 +302,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
-  public void testToSeconds() {
+  public void testToSeconds() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -314,15 +317,15 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual,
-        schema("timestamp", "long"),
-        schema("date", "long"),
-        schema("string_value", "long"),
-        schema("long_value", "long"));
+        schema("timestamp", "bigint"),
+        schema("date", "bigint"),
+        schema("string_value", "bigint"),
+        schema("long_value", "bigint"));
     verifyDataRows(actual, rows(62617828062L, 62617795200L, 63390556800L, 62961148800L));
   }
 
   @Test
-  public void testToDays() {
+  public void testToDays() throws IOException {
     ZonedDateTime utcNow = ZonedDateTime.now(ZoneOffset.UTC);
     LocalDate utcDate = utcNow.toLocalDate();
 
@@ -344,14 +347,14 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual,
-        schema("timestamp", "long"),
-        schema("date", "long"),
-        schema("string_value", "long"));
+        schema("timestamp", "bigint"),
+        schema("date", "bigint"),
+        schema("string_value", "bigint"));
     verifyDataRows(actual, rows(724743, 724743, 733687));
   }
 
   @Test
-  public void testFromUnixtime() {
+  public void testFromUnixtime() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -365,7 +368,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
-  public void testUnixTimestamp() {
+  public void testUnixTimestamp() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -383,7 +386,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
-  public void testWeekAndWeekOfYear() {
+  public void testWeekAndWeekOfYear() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -408,18 +411,18 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
 
     verifySchema(
         actual,
-        schema("WEEK(DATE(strict_date_optional_time))", "integer"),
-        schema("WEEK_OF_YEAR(DATE(strict_date_optional_time))", "integer"),
-        schema("WEEK(DATE(strict_date_optional_time), 1)", "integer"),
-        schema("WEEK_OF_YEAR(DATE(strict_date_optional_time), 1)", "integer"),
-        schema("WEEK(DATE('2008-02-20'))", "integer"),
-        schema("WEEK(DATE('2008-02-20'), 1)", "integer"));
+        schema("WEEK(DATE(strict_date_optional_time))", "int"),
+        schema("WEEK_OF_YEAR(DATE(strict_date_optional_time))", "int"),
+        schema("WEEK(DATE(strict_date_optional_time), 1)", "int"),
+        schema("WEEK_OF_YEAR(DATE(strict_date_optional_time), 1)", "int"),
+        schema("WEEK(DATE('2008-02-20'))", "int"),
+        schema("WEEK(DATE('2008-02-20'), 1)", "int"));
 
     verifyDataRows(actual, rows(15, 15, 15, 15, 7, 8));
   }
 
   @Test
-  public void testWeekAndWeekOfYearWithFilter() {
+  public void testWeekAndWeekOfYearWithFilter() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -430,13 +433,13 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                     + "| head 1 ",
                 TEST_INDEX_DATE_FORMATS));
 
-    verifySchema(actual, schema("CNT", "long"));
+    verifySchema(actual, schema("CNT", "bigint"));
 
     verifyDataRows(actual, rows(2));
   }
 
   @Test
-  public void testWeekDay() {
+  public void testWeekDay() throws IOException {
     int currentWeekDay =
         formatNow(new FunctionProperties().getQueryStartClock()).getDayOfWeek().getValue() - 1;
     JSONObject actual =
@@ -452,16 +455,16 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
 
     verifySchema(
         actual,
-        schema("timestamp", "integer"),
-        schema("time", "integer"),
-        schema("date", "integer"),
-        schema("weekday('2020-08-26')", "integer"));
+        schema("timestamp", "int"),
+        schema("time", "int"),
+        schema("date", "int"),
+        schema("weekday('2020-08-26')", "int"));
 
     verifyDataRows(actual, rows(3, currentWeekDay, 3, 2));
   }
 
   @Test
-  public void testYearWeek() {
+  public void testYearWeek() throws IOException {
     int currentYearWeek =
         exprYearweek(
                 new ExprDateValue(
@@ -482,17 +485,17 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
 
     verifySchema(
         actual,
-        schema("timestamp", "integer"),
-        schema("time", "integer"),
-        schema("date", "integer"),
-        schema("YEARWEEK('2020-08-26')", "integer"),
-        schema("YEARWEEK('2019-01-05', 1)", "integer"));
+        schema("timestamp", "int"),
+        schema("time", "int"),
+        schema("date", "int"),
+        schema("YEARWEEK('2020-08-26')", "int"),
+        schema("YEARWEEK('2019-01-05', 1)", "int"));
 
     verifyDataRows(actual, rows(198415, currentYearWeek, 198415, 202034, 201901));
   }
 
   @Test
-  public void testYearWeekWithFilter() {
+  public void testYearWeekWithFilter() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -502,13 +505,13 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                     + "| head 1 ",
                 TEST_INDEX_DATE_FORMATS));
 
-    verifySchema(actual, schema("CNT", "long"));
+    verifySchema(actual, schema("CNT", "bigint"));
 
     verifyDataRows(actual, rows(2));
   }
 
   @Test
-  public void testYear() {
+  public void testYear() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -520,9 +523,9 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
 
     verifySchema(
         actual,
-        schema("timestamp", "integer"),
-        schema("date", "integer"),
-        schema("YEAR('2020-08-26')", "integer"));
+        schema("timestamp", "int"),
+        schema("date", "int"),
+        schema("YEAR('2020-08-26')", "int"));
 
     verifyDataRows(actual, rows(1984, 1984, 2020));
   }
@@ -572,7 +575,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
-  public void testAddDateAndSubDateWithConditionsAndRename() {
+  public void testAddDateAndSubDateWithConditionsAndRename() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -593,7 +596,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
-  public void testDateAddAndSub() {
+  public void testDateAddAndSub() throws IOException {
     String expectedDate = getFormattedLocalDate();
 
     JSONObject actual =
@@ -646,7 +649,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
-  public void testDateAddWithComparisonAndConditions() {
+  public void testDateAddWithComparisonAndConditions() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -674,18 +677,18 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
-  public void testComparisonBetweenDateAndTimestamp() {
+  public void testComparisonBetweenDateAndTimestamp() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
                 "source=%s | where date > TIMESTAMP('1984-04-11 00:00:00') | stats COUNT() AS cnt",
                 TEST_INDEX_DATE_FORMATS));
-    verifySchema(actual, schema("cnt", "long"));
+    verifySchema(actual, schema("cnt", "bigint"));
     verifyDataRows(actual, rows(2));
   }
 
   @Test
-  public void testAddSubTime() {
+  public void testAddSubTime() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -718,7 +721,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
 
   /** HOUR, HOUR_OF_DAY, DATE */
   @Test
-  public void testHourAndDateWithConditions() {
+  public void testHourAndDateWithConditions() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -727,17 +730,13 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                     + " 16:03:00') | head 1 | fields t1, t2, t3, t4",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
-        actual,
-        schema("t1", "integer"),
-        schema("t2", "integer"),
-        schema("t3", "integer"),
-        schema("t4", "integer"));
+        actual, schema("t1", "int"), schema("t2", "int"), schema("t3", "int"), schema("t4", "int"));
     verifyDataRows(actual, rows(9, 9, 23, 16));
   }
 
   /** MONTH, MONTH_OF_YEAR */
   @Test
-  public void testMonth() {
+  public void testMonth() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -745,7 +744,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                     + " MONTH(date), m2 = MONTH_OF_YEAR(date_time), m3 = MONTH('2023-01-12"
                     + " 10:11:12') | fields m1, m2, m3",
                 TEST_INDEX_DATE_FORMATS));
-    verifySchema(actual, schema("m1", "integer"), schema("m2", "integer"), schema("m3", "integer"));
+    verifySchema(actual, schema("m1", "int"), schema("m2", "int"), schema("m3", "int"));
     verifyDataRows(actual, rows(4, 4, 1));
   }
 
@@ -753,7 +752,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
    * CURDATE, CURTIME, CURRENT_DATE, CURRENT_TIME, CURRENT_TIMESTAMP, NOW, LOCALTIMESTAMP, LOCALTIME
    */
   @Test
-  public void testCurrentDateTimeWithComparison() {
+  public void testCurrentDateTimeWithComparison() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -778,7 +777,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
-  public void testUtc() {
+  public void testUtc() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -790,7 +789,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
-  public void testSysdate() {
+  public void testSysdate() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -830,7 +829,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
    * SUBDATE
    */
   @Test
-  public void testDayOfAndAddSubDateWithConditions() {
+  public void testDayOfAndAddSubDateWithConditions() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -843,16 +842,16 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
 
     verifySchema(
         actual,
-        schema("d1", "integer"),
-        schema("d2", "integer"),
-        schema("d3", "integer"),
-        schema("d4", "integer"),
-        schema("d5", "integer"));
+        schema("d1", "int"),
+        schema("d2", "int"),
+        schema("d3", "int"),
+        schema("d4", "int"),
+        schema("d5", "int"));
     verifyDataRows(actual, rows(13, 9, 5, 6, 103));
   }
 
   @Test
-  public void testDayName() {
+  public void testDayName() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -863,6 +862,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 TEST_INDEX_DATE_FORMATS));
   }
 
+  // TODO: Set remote cluster locale & timezone settings to that matching the test environment
   /**
    * DAYNAME, MONTHNAME, LAST_DAY, MAKEDATE
    *
@@ -871,7 +871,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
    * argument.) MAKE_DATE(DOUBLE, DOUBLE) -> DATE (Create a date from the year and day of year.)
    */
   @Test
-  public void testDayNameAndMonthNameAndMakeDate() {
+  public void testDayNameAndMonthNameAndMakeDate() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -939,7 +939,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
    * to the next year(s) (see example).
    */
   @Test
-  public void testMakeDateWithNullIO() {
+  public void testMakeDateWithNullIO() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -961,6 +961,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         actual, rows("2020-01-01", "2020-12-31", "2021-01-01", "2000-03-18", null, null));
   }
 
+  // TODO: Set remote cluster locale & timezone settings to that matching the test environment
   /**
    * DATE_FORMAT: (STRING/DATE/TIME/TIMESTAMP) -> STRING formats the date argument using the
    * specifiers in the format argument FROM_DAYS: (Integer/Long) -> DATE from_days(N) returns the
@@ -968,7 +969,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
    * TIMESTAMP Converts the datetime to a new timezone
    */
   @Test
-  public void testDateFormatAndDatetimeAndFromDays() {
+  public void testDateFormatAndDatetimeAndFromDays() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -1022,7 +1023,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
-  public void testDateDiffAndMakeTime() {
+  public void testDateDiffAndMakeTime() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -1040,15 +1041,15 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual,
-        schema("d1", "long"),
-        schema("d2", "long"),
-        schema("d3", "long"),
-        schema("d4", "long"),
-        schema("d5", "long"),
-        schema("d6", "long"),
-        schema("d7", "long"),
-        schema("d8", "long"),
-        schema("d9", "long"),
+        schema("d1", "bigint"),
+        schema("d2", "bigint"),
+        schema("d3", "bigint"),
+        schema("d4", "bigint"),
+        schema("d5", "bigint"),
+        schema("d6", "bigint"),
+        schema("d7", "bigint"),
+        schema("d8", "bigint"),
+        schema("d9", "bigint"),
         schema("t", "time"));
 
     LocalDate today = LocalDate.now(ZoneId.systemDefault());
@@ -1069,7 +1070,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
-  public void testTimestampDiffAndTimestampAdd() {
+  public void testTimestampDiffAndTimestampAdd() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -1089,24 +1090,24 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
 
     verifySchema(
         actual,
-        schema("d1", "long"),
-        schema("d2", "long"),
-        schema("d3", "long"),
-        schema("d4", "long"),
-        schema("d5", "long"),
-        schema("d6", "long"),
-        schema("d7", "long"),
-        schema("d8", "long"),
-        schema("d9", "long"),
+        schema("d1", "bigint"),
+        schema("d2", "bigint"),
+        schema("d3", "bigint"),
+        schema("d4", "bigint"),
+        schema("d5", "bigint"),
+        schema("d6", "bigint"),
+        schema("d7", "bigint"),
+        schema("d8", "bigint"),
+        schema("d9", "bigint"),
         schema("t", "timestamp"),
-        schema("d10", "long"));
+        schema("d10", "bigint"));
 
     verifyDataRows(
         actual, rows(0, 24, 547, 3600, 202, -820, -187, -96, 29, "1984-04-12 09:07:42.000001", -1));
   }
 
   @Test
-  public void testPeriodAddAndPeriodDiff() {
+  public void testPeriodAddAndPeriodDiff() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -1117,17 +1118,13 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                     + "| fields  p1, p2, p3, p4",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
-        actual,
-        schema("p1", "integer"),
-        schema("p2", "integer"),
-        schema("p3", "integer"),
-        schema("p4", "integer"));
+        actual, schema("p1", "int"), schema("p2", "int"), schema("p3", "int"), schema("p4", "int"));
 
     verifyDataRows(actual, rows(200804, 199206, 11, -25));
   }
 
   @Test
-  public void testMinuteOfHourAndMinuteOfDay() {
+  public void testMinuteOfHourAndMinuteOfDay() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -1142,18 +1139,18 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
 
     verifySchema(
         actual,
-        schema("m1", "integer"),
-        schema("m2", "integer"),
-        schema("m3", "integer"),
-        schema("m4", "integer"),
-        schema("m5", "integer"),
-        schema("m6", "integer"));
+        schema("m1", "int"),
+        schema("m2", "int"),
+        schema("m3", "int"),
+        schema("m4", "int"),
+        schema("m5", "int"),
+        schema("m6", "int"));
 
     verifyDataRows(actual, rows(7, 7, 547, 547, 40, 20));
   }
 
   @Test
-  public void testTimeDiff() {
+  public void testTimeDiff() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -1169,7 +1166,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
-  public void testQuarter() {
+  public void testQuarter() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -1182,14 +1179,14 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual,
-        schema("QUARTER(DATE('2020-08-26'))", "integer"),
-        schema("quarter2", "integer"),
-        schema("timestampQuarter2", "integer"));
+        schema("QUARTER(DATE('2020-08-26'))", "int"),
+        schema("quarter2", "int"),
+        schema("timestampQuarter2", "int"));
     verifyDataRows(actual, rows(3, 2, 2));
   }
 
   @Test
-  public void testSecond() {
+  public void testSecond() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -1203,15 +1200,15 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual,
-        schema("s", "integer"),
-        schema("secondForTime", "integer"),
-        schema("secondForDate", "integer"),
-        schema("secondForTimestamp", "integer"));
+        schema("s", "int"),
+        schema("secondForTime", "int"),
+        schema("secondForDate", "int"),
+        schema("secondForTimestamp", "int"));
     verifyDataRows(actual, rows(3, 42, 0, 42));
   }
 
   @Test
-  public void testSecondOfMinute() {
+  public void testSecondOfMinute() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -1223,15 +1220,15 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual,
-        schema("s", "integer"),
-        schema("secondForTime", "integer"),
-        schema("secondForDate", "integer"),
-        schema("secondForTimestamp", "integer"));
+        schema("s", "int"),
+        schema("secondForTime", "int"),
+        schema("secondForDate", "int"),
+        schema("secondForTimestamp", "int"));
     verifyDataRows(actual, rows(3, 42, 0, 42));
   }
 
   @Test
-  public void testConvertTz() {
+  public void testConvertTz() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -1272,7 +1269,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
-  public void testConvertTzWithInvalidResult() {
+  public void testConvertTzWithInvalidResult() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -1289,7 +1286,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
-  public void testGetFormat() {
+  public void testGetFormat() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -1311,7 +1308,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
-  public void testExtractWithSimpleFormats() {
+  public void testExtractWithSimpleFormats() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -1336,31 +1333,31 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual,
-        schema("r1", "long"),
-        schema("r2", "long"),
-        schema("r3", "long"),
-        schema("r4", "long"),
-        schema("r5", "long"),
-        schema("r6", "long"),
-        schema("r7", "long"),
-        schema("r8", "long"),
-        schema("r9", "long"),
-        schema("r10", "long"),
-        schema("r11", "long"),
-        schema("r12", "long"),
-        schema("r13", "long"),
-        schema("r14", "long"),
-        schema("r15", "long"),
-        schema("r16", "long"),
-        schema("r17", "long"),
-        schema("r19", "long"),
-        schema("r20", "long"));
+        schema("r1", "bigint"),
+        schema("r2", "bigint"),
+        schema("r3", "bigint"),
+        schema("r4", "bigint"),
+        schema("r5", "bigint"),
+        schema("r6", "bigint"),
+        schema("r7", "bigint"),
+        schema("r8", "bigint"),
+        schema("r9", "bigint"),
+        schema("r10", "bigint"),
+        schema("r11", "bigint"),
+        schema("r12", "bigint"),
+        schema("r13", "bigint"),
+        schema("r14", "bigint"),
+        schema("r15", "bigint"),
+        schema("r16", "bigint"),
+        schema("r17", "bigint"),
+        schema("r19", "bigint"),
+        schema("r20", "bigint"));
     verifyDataRows(
         actual, rows(1997, 1984, 1984, 2, 2, 4, 4, 15, 15, 12, 12, 9, 9, 7, 7, 42, 42, 12, 123456));
   }
 
   @Test
-  public void testTpchQueryDate() {
+  public void testTpchQueryDate() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -1370,7 +1367,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
-  public void testExtractWithComplexFormats() {
+  public void testExtractWithComplexFormats() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -1397,24 +1394,24 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual,
-        schema("r1", "long"),
-        schema("r2", "long"),
-        schema("r3", "long"),
-        schema("r4", "long"),
-        schema("r5", "long"),
-        schema("r6", "long"),
-        schema("r7", "long"),
-        schema("r8", "long"),
-        schema("r9", "long"),
-        schema("r10", "long"),
-        schema("r11", "long"),
-        schema("r12", "long"),
-        schema("r13", "long"),
-        schema("r14", "long"),
-        schema("r15", "long"),
-        schema("r16", "long"),
-        schema("r17", "long"),
-        schema("r18", "long"));
+        schema("r1", "bigint"),
+        schema("r2", "bigint"),
+        schema("r3", "bigint"),
+        schema("r4", "bigint"),
+        schema("r5", "bigint"),
+        schema("r6", "bigint"),
+        schema("r7", "bigint"),
+        schema("r8", "bigint"),
+        schema("r9", "bigint"),
+        schema("r10", "bigint"),
+        schema("r11", "bigint"),
+        schema("r12", "bigint"),
+        schema("r13", "bigint"),
+        schema("r14", "bigint"),
+        schema("r15", "bigint"),
+        schema("r16", "bigint"),
+        schema("r17", "bigint"),
+        schema("r18", "bigint"));
     verifyDataRows(
         actual,
         rows(
@@ -1439,7 +1436,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
-  public void testMicrosecond() {
+  public void testMicrosecond() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -1449,11 +1446,11 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual,
-        schema("m1", "integer"),
-        schema("m2", "integer"),
-        schema("m3", "integer"),
-        schema("m4", "integer"),
-        schema("m5", "integer"));
+        schema("m1", "int"),
+        schema("m2", "int"),
+        schema("m3", "int"),
+        schema("m4", "int"),
+        schema("m5", "int"));
     verifyDataRows(actual, rows(0, 0, 0, 123456, 123456));
   }
 }
