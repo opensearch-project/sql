@@ -10,6 +10,7 @@ import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.opensearch.sql.calcite.remote.*;
+import org.opensearch.sql.calcite.tpch.CalcitePPLTpchIT;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 /**
@@ -102,7 +103,8 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalciteTopCommandIT.class,
   CalciteTrendlineCommandIT.class,
   CalciteVisualizationFormatIT.class,
-  CalciteWhereCommandIT.class
+  CalciteWhereCommandIT.class,
+  CalcitePPLTpchIT.class
 })
 public class CalciteNoPushdownIT {
   private static boolean wasPushdownEnabled;

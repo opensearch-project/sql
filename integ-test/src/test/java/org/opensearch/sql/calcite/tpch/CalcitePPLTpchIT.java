@@ -463,6 +463,6 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
    */
   private static String sanitize(String ppl) {
     String withoutComments = ppl.replaceAll("(?s)/\\*.*?\\*/", "");
-    return withoutComments.replaceAll("\\n", " ").trim();
+    return withoutComments.replaceAll("\\r\\n", " ").replaceAll("\\n", " ").trim();
   }
 }
