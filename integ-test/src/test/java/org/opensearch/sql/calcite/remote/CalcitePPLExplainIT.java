@@ -34,42 +34,42 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testExplainCommand() throws IOException {
-    var result = executeQuery("explain source=test | where age = 20 | fields name, age");
+    var result = explainQueryToString("explain source=test | where age = 20 | fields name, age");
     String expected =
         isPushdownEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_filter_w_pushdown.json")
             : loadFromFile("expectedOutput/calcite/explain_filter_wo_pushdown.json");
 
-    assertJsonEquals(expected, result.toString());
+    assertJsonEquals(expected, result);
   }
 
   @Test
   public void testExplainCommandExtended() throws IOException {
-    var result = executeQuery("explain extended source=test | where age = 20 | fields name, age");
+    var result =
+        explainQueryToString("explain extended source=test | where age = 20 | fields name, age");
     assertTrue(
-        result
-            .toString()
-            .contains(
-                "public org.apache.calcite.linq4j.Enumerable bind(final"
-                    + " org.apache.calcite.DataContext root)"));
+        result.contains(
+            "public org.apache.calcite.linq4j.Enumerable bind(final"
+                + " org.apache.calcite.DataContext root)"));
   }
 
   @Test
   public void testExplainCommandCost() throws IOException {
-    var result = executeQuery("explain cost source=test | where age = 20 | fields name, age");
+    var result =
+        explainQueryToString("explain cost source=test | where age = 20 | fields name, age");
     String expected =
         isPushdownEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_filter_cost_w_pushdown.txt")
             : loadFromFile("expectedOutput/calcite/explain_filter_cost_wo_pushdown.txt");
     assertTrue(
-        String.format("Got: %s\n, expected: %s", result, expected),
-        result.toString().contains(expected));
+        String.format("Got: %s\n, expected: %s", result, expected), result.contains(expected));
   }
 
   @Test
   public void testExplainCommandSimple() throws IOException {
-    var result = executeQuery("explain simple source=test | where age = 20 | fields name, age");
+    var result =
+        explainQueryToString("explain simple source=test | where age = 20 | fields name, age");
     String expected = loadFromFile("expectedOutput/calcite/explain_filter_simple.json");
-    assertJsonEquals(expected, result.toString());
+    assertJsonEquals(expected, result);
   }
 }
