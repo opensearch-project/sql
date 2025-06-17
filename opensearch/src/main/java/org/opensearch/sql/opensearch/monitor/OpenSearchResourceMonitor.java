@@ -10,6 +10,9 @@ import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
 import java.util.function.Supplier;
 import lombok.extern.log4j.Log4j2;
+import org.opensearch.cluster.node.DiscoveryNode;
+import org.opensearch.cluster.node.DiscoveryNodes;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.core.common.unit.ByteSizeValue;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.monitor.ResourceMonitor;
@@ -24,9 +27,11 @@ public class OpenSearchResourceMonitor extends ResourceMonitor {
   private final Settings settings;
   private final Retry retry;
   private final OpenSearchMemoryHealthy memoryMonitor;
+  private final ClusterService clusterService;
 
   /** Constructor. */
-  public OpenSearchResourceMonitor(Settings settings, OpenSearchMemoryHealthy memoryMonitor) {
+  public OpenSearchResourceMonitor(
+      Settings settings, OpenSearchMemoryHealthy memoryMonitor, ClusterService clusterService) {
     this.settings = settings;
     RetryConfig config =
         RetryConfig.custom()
@@ -35,17 +40,31 @@ public class OpenSearchResourceMonitor extends ResourceMonitor {
             .retryExceptions(OpenSearchMemoryHealthy.MemoryUsageExceedException.class)
             .ignoreExceptions(OpenSearchMemoryHealthy.MemoryUsageExceedFastFailureException.class)
             .build();
-    retry = Retry.of("mem", config);
-    retry
+    this.retry = Retry.of("mem", config);
+    this.retry
         .getEventPublisher()
         .onRetry(
             event -> {
-              if (event.getNumberOfRetryAttempts() == 1) {
+              if (event.getNumberOfRetryAttempts() == 2 && canTriggerGC()) {
                 System.gc();
                 log.warn("isMemoryHealthy() failed in first retry, triggered System.gc()");
               }
             });
     this.memoryMonitor = memoryMonitor;
+    this.clusterService = clusterService;
+  }
+
+  private boolean canTriggerGC() {
+    return clusterService.isStateInitialised()
+        && isDedicatedCoordinator(clusterService.localNode());
+  }
+
+  /** Keep the same behaviour with {@link DiscoveryNodes#getCoordinatingOnlyNodes()} */
+  private boolean isDedicatedCoordinator(DiscoveryNode local) {
+    return !local.isDataNode() // Not a data role
+        && !local.isWarmNode() // Not a warm data role
+        && !local.isIngestNode() // Not an ingest role
+        && !local.isClusterManagerNode(); // Not a manager role
   }
 
   /**

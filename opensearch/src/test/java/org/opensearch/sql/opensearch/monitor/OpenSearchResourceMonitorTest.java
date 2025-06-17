@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.core.common.unit.ByteSizeValue;
 import org.opensearch.sql.common.setting.Settings;
 
@@ -27,6 +28,8 @@ class OpenSearchResourceMonitorTest {
 
   @Mock private OpenSearchMemoryHealthy memoryMonitor;
 
+  @Mock private ClusterService clusterService;
+
   @BeforeEach
   public void setup() {
     when(settings.getSettingValue(Settings.Key.QUERY_MEMORY_LIMIT))
@@ -36,9 +39,8 @@ class OpenSearchResourceMonitorTest {
   @Test
   void isHealthy() {
     when(memoryMonitor.isMemoryHealthy(anyLong())).thenReturn(true);
-
     OpenSearchResourceMonitor resourceMonitor =
-        new OpenSearchResourceMonitor(settings, memoryMonitor);
+        new OpenSearchResourceMonitor(settings, memoryMonitor, clusterService);
     assertTrue(resourceMonitor.isHealthy());
   }
 
@@ -46,9 +48,8 @@ class OpenSearchResourceMonitorTest {
   void notHealthyFastFailure() {
     when(memoryMonitor.isMemoryHealthy(anyLong()))
         .thenThrow(OpenSearchMemoryHealthy.MemoryUsageExceedFastFailureException.class);
-
     OpenSearchResourceMonitor resourceMonitor =
-        new OpenSearchResourceMonitor(settings, memoryMonitor);
+        new OpenSearchResourceMonitor(settings, memoryMonitor, clusterService);
     assertFalse(resourceMonitor.isHealthy());
     verify(memoryMonitor, times(1)).isMemoryHealthy(anyLong());
   }
@@ -59,20 +60,19 @@ class OpenSearchResourceMonitorTest {
         .thenThrow(OpenSearchMemoryHealthy.MemoryUsageExceedException.class);
 
     OpenSearchResourceMonitor resourceMonitor =
-        new OpenSearchResourceMonitor(settings, memoryMonitor);
+        new OpenSearchResourceMonitor(settings, memoryMonitor, clusterService);
     assertFalse(resourceMonitor.isHealthy());
     verify(memoryMonitor, times(3)).isMemoryHealthy(anyLong());
   }
 
   @Test
   void healthyWithRetry() {
-
     when(memoryMonitor.isMemoryHealthy(anyLong()))
         .thenThrow(OpenSearchMemoryHealthy.MemoryUsageExceedException.class)
         .thenReturn(true);
 
     OpenSearchResourceMonitor resourceMonitor =
-        new OpenSearchResourceMonitor(settings, memoryMonitor);
+        new OpenSearchResourceMonitor(settings, memoryMonitor, clusterService);
     assertTrue(resourceMonitor.isHealthy());
     verify(memoryMonitor, times(2)).isMemoryHealthy(anyLong());
   }

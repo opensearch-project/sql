@@ -72,6 +72,7 @@ public class TransportPPLQueryAction
           b.bind(org.opensearch.sql.common.setting.Settings.class)
               .toInstance(new OpenSearchSettings(clusterService.getClusterSettings()));
           b.bind(DataSourceService.class).toInstance(dataSourceService);
+          b.bind(ClusterService.class).toInstance(clusterService);
         });
     this.injector = modules.createInjector();
     this.pplEnabled =

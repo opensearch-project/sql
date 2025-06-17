@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.calcite.plan.AbstractOpenSearchTable;
 import org.opensearch.sql.common.setting.Settings;
@@ -98,11 +99,15 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
   /** The cached max result window setting of index. */
   private Integer cachedMaxResultWindow = null;
 
+  private final ClusterService clusterService;
+
   /** Constructor. */
-  public OpenSearchIndex(OpenSearchClient client, Settings settings, String indexName) {
+  public OpenSearchIndex(
+      OpenSearchClient client, Settings settings, String indexName, ClusterService clusterService) {
     this.client = client;
     this.settings = settings;
     this.indexName = new OpenSearchRequest.IndexName(indexName);
+    this.clusterService = clusterService;
   }
 
   @Override
@@ -276,7 +281,8 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
   }
 
   public OpenSearchResourceMonitor createOpenSearchResourceMonitor() {
-    return new OpenSearchResourceMonitor(getSettings(), new OpenSearchMemoryHealthy());
+    return new OpenSearchResourceMonitor(
+        getSettings(), new OpenSearchMemoryHealthy(), clusterService);
   }
 
   public OpenSearchRequest buildRequest(OpenSearchRequestBuilder requestBuilder) {

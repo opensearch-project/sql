@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.storage;
 
 import lombok.RequiredArgsConstructor;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
@@ -21,6 +22,8 @@ public class OpenSearchDataSourceFactory implements DataSourceFactory {
 
   private final Settings settings;
 
+  private final ClusterService clusterService;
+
   @Override
   public DataSourceType getDataSourceType() {
     return DataSourceType.OPENSEARCH;
@@ -31,6 +34,6 @@ public class OpenSearchDataSourceFactory implements DataSourceFactory {
     return new DataSource(
         metadata.getName(),
         DataSourceType.OPENSEARCH,
-        new OpenSearchStorageEngine(client, settings));
+        new OpenSearchStorageEngine(client, settings, clusterService));
   }
 }

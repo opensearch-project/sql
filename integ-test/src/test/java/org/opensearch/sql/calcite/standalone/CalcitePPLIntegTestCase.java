@@ -19,8 +19,10 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.RequiredArgsConstructor;
 import org.json.JSONObject;
+import org.mockito.Mock;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestHighLevelClient;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.AbstractModule;
 import org.opensearch.common.inject.Injector;
 import org.opensearch.common.inject.ModulesBuilder;
@@ -78,6 +80,8 @@ import org.opensearch.sql.util.ExecuteOnCallerThreadQueryManager;
 public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
   protected PPLService pplService;
 
+  @Mock private ClusterService clusterService;
+
   @Override
   public void init() throws IOException {
     RestHighLevelClient restClient =
@@ -86,7 +90,7 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
     DataSourceService dataSourceService =
         new DataSourceServiceImpl(
             new ImmutableSet.Builder<DataSourceFactory>()
-                .add(new OpenSearchDataSourceFactory(client, getSettings()))
+                .add(new OpenSearchDataSourceFactory(client, getSettings(), clusterService))
                 .build(),
             getDataSourceMetadataStorage(),
             getDataSourceUserRoleHelper());

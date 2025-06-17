@@ -39,6 +39,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.common.setting.Settings;
@@ -74,11 +75,13 @@ class OpenSearchIndexTest {
 
   @Mock private IndexMapping mapping;
 
+  @Mock private ClusterService clusterService;
+
   private OpenSearchIndex index;
 
   @BeforeEach
   void setUp() {
-    this.index = new OpenSearchIndex(client, settings, "test");
+    this.index = new OpenSearchIndex(client, settings, "test", clusterService);
     lenient().when(settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE)).thenReturn(true);
     lenient()
         .when(settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE))
@@ -165,7 +168,7 @@ class OpenSearchIndexTest {
         .thenReturn(Map.of("name", OpenSearchDataType.of(MappingType.Keyword)));
     when(client.getIndexMappings("test")).thenReturn(ImmutableMap.of("test", mapping));
 
-    OpenSearchIndex index = new OpenSearchIndex(client, settings, "test");
+    OpenSearchIndex index = new OpenSearchIndex(client, settings, "test", clusterService);
     assertThat(index.getFieldTypes(), allOf(aMapWithSize(1), hasEntry("name", STRING)));
     assertThat(
         index.getFieldOpenSearchTypes(),
