@@ -34,7 +34,7 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testExplainCommand() throws IOException {
-    var result = explainQueryToString("explain source=test | where age = 20 | fields name, age");
+    var result = explainQueryToString("source=test | where age = 20 | fields name, age");
     String expected =
         isPushdownEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_filter_w_pushdown.json")
@@ -46,7 +46,7 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
   @Test
   public void testExplainCommandExtended() throws IOException {
     var result =
-        explainQueryToString("explain extended source=test | where age = 20 | fields name, age");
+        executeWithReplace("explain extended source=test | where age = 20 | fields name, age");
     assertTrue(
         result.contains(
             "public org.apache.calcite.linq4j.Enumerable bind(final"
@@ -55,8 +55,7 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testExplainCommandCost() throws IOException {
-    var result =
-        explainQueryToString("explain cost source=test | where age = 20 | fields name, age");
+    var result = executeWithReplace("explain cost source=test | where age = 20 | fields name, age");
     String expected =
         isPushdownEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_filter_cost_w_pushdown.txt")
@@ -68,8 +67,21 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
   @Test
   public void testExplainCommandSimple() throws IOException {
     var result =
-        explainQueryToString("explain simple source=test | where age = 20 | fields name, age");
+        executeWithReplace("explain simple source=test | where age = 20 | fields name, age");
     String expected = loadFromFile("expectedOutput/calcite/explain_filter_simple.json");
     assertJsonEquals(expected, result);
+  }
+
+  /**
+   * Executes the PPL query and returns the result as a string with windows-style line breaks
+   * replaced with Unix-style ones.
+   *
+   * @param ppl the PPL query to execute
+   * @return the result of the query as a string with line breaks replaced
+   * @throws IOException if an error occurs during query execution
+   */
+  private String executeWithReplace(String ppl) throws IOException {
+    var result = executeQueryToString(ppl);
+    return result.replace("\\r\\n", "\\n");
   }
 }
