@@ -8,11 +8,7 @@ package org.opensearch.sql.ppl;
 import static org.hamcrest.Matchers.containsString;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 
-import com.google.common.io.Resources;
 import java.io.IOException;
-import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.legacy.TestUtils;
@@ -25,13 +21,8 @@ public class ExplainIT extends PPLIntegTestCase {
     loadIndex(Index.ACCOUNT);
   }
 
-  protected String loadFromFile(String filename) throws Exception {
-    URI uri = Resources.getResource(filename).toURI();
-    return new String(Files.readAllBytes(Paths.get(uri)));
-  }
-
   @Test
-  public void testExplain() throws Exception {
+  public void testExplain() throws IOException {
     String expected =
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_output.json")
@@ -50,7 +41,7 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testFilterPushDownExplain() throws Exception {
+  public void testFilterPushDownExplain() throws IOException {
     String expected =
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_filter_push.json")
@@ -67,7 +58,7 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testFilterAndAggPushDownExplain() throws Exception {
+  public void testFilterAndAggPushDownExplain() throws IOException {
     String expected =
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_filter_agg_push.json")
@@ -82,7 +73,7 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testSortPushDownExplain() throws Exception {
+  public void testSortPushDownExplain() throws IOException {
     // TODO fix after https://github.com/opensearch-project/sql/issues/3380
     String expected =
         isCalciteEnabled()
@@ -99,7 +90,7 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testLimitPushDownExplain() throws Exception {
+  public void testLimitPushDownExplain() throws IOException {
     String expected =
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_limit_push.json")
@@ -115,7 +106,7 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testLimitWithFilterPushdownExplain() throws Exception {
+  public void testLimitWithFilterPushdownExplain() throws IOException {
     String expectedFilterThenLimit =
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_filter_then_limit_push.json")
@@ -144,7 +135,7 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testMultipleLimitExplain() throws Exception {
+  public void testMultipleLimitExplain() throws IOException {
     String expected5Then10 =
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_limit_5_10_push.json")
@@ -197,7 +188,7 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testLimitWithMultipleOffsetPushdownExplain() throws Exception {
+  public void testLimitWithMultipleOffsetPushdownExplain() throws IOException {
     String expected =
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_limit_offsets_push.json")
@@ -213,7 +204,7 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testFillNullPushDownExplain() throws Exception {
+  public void testFillNullPushDownExplain() throws IOException {
     String expected =
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_fillnull_push.json")
@@ -227,7 +218,7 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testTrendlinePushDownExplain() throws Exception {
+  public void testTrendlinePushDownExplain() throws IOException {
     String expected =
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_trendline_push.json")
@@ -243,7 +234,7 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testTrendlineWithSortPushDownExplain() throws Exception {
+  public void testTrendlineWithSortPushDownExplain() throws IOException {
     String expected =
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_trendline_sort_push.json")
@@ -271,7 +262,7 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testPatternsSimplePatternMethodWithoutAggExplain() throws Exception {
+  public void testPatternsSimplePatternMethodWithoutAggExplain() throws IOException {
     // TODO: Correct calcite expected result once pushdown is supported
     String expected =
         isCalciteEnabled()
@@ -284,7 +275,7 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testPatternsSimplePatternMethodWithAggPushDownExplain() throws Exception {
+  public void testPatternsSimplePatternMethodWithAggPushDownExplain() throws IOException {
     // TODO: Correct calcite expected result once pushdown is supported
     String expected =
         isCalciteEnabled()
@@ -298,7 +289,7 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testPatternsBrainMethodWithAggPushDownExplain() throws Exception {
+  public void testPatternsBrainMethodWithAggPushDownExplain() throws IOException {
     // TODO: Correct calcite expected result once pushdown is supported
     String expected =
         isCalciteEnabled()

@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.tpch;
 
+import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 import static org.opensearch.sql.util.MatcherUtils.closeTo;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -12,25 +13,18 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.io.Resources;
 import java.io.IOException;
-import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.List;
-import java.util.Map;
 import org.json.JSONObject;
 import org.junit.Test;
-import org.opensearch.common.unit.TimeValue;
-import org.opensearch.sql.calcite.standalone.CalcitePPLIntegTestCase;
-import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLTpchIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
     super.init();
+    enableCalcite();
+    disallowCalciteFallback();
 
     loadIndex(Index.TPCH_CUSTOMER);
     loadIndex(Index.TPCH_LINEITEM);
@@ -42,45 +36,9 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
     loadIndex(Index.TPCH_REGION);
   }
 
-  @Override
-  public Settings getSettings() {
-    return new Settings() {
-      private final Map<Key, Object> defaultSettings =
-          new ImmutableMap.Builder<Key, Object>()
-              .put(Key.QUERY_SIZE_LIMIT, 10000)
-              .put(Key.QUERY_SYSTEM_LIMIT, 50000)
-              .put(Key.SQL_CURSOR_KEEP_ALIVE, TimeValue.timeValueMinutes(1))
-              .put(Key.FIELD_TYPE_TOLERANCE, true)
-              .put(Key.CALCITE_ENGINE_ENABLED, true)
-              .put(Key.CALCITE_FALLBACK_ALLOWED, false)
-              .put(Key.CALCITE_PUSHDOWN_ENABLED, true)
-              .put(Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR, 0.9)
-              .build();
-
-      @Override
-      public <T> T getSettingValue(Key key) {
-        return (T) defaultSettings.get(key);
-      }
-
-      @Override
-      public List<?> getSettings() {
-        return (List<?>) defaultSettings;
-      }
-    };
-  }
-
-  String loadFromFile(String filename) {
-    try {
-      URI uri = Resources.getResource(filename).toURI();
-      return new String(Files.readAllBytes(Paths.get(uri)));
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
   @Test
-  public void testQ1() {
-    String ppl = loadFromFile("tpch/queries/q1.ppl");
+  public void testQ1() throws IOException {
+    String ppl = sanitize(loadFromFile("tpch/queries/q1.ppl"));
     JSONObject actual = executeQuery(ppl);
     verifySchemaInOrder(
         actual,
@@ -93,7 +51,7 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
         schema("avg_qty", "double"),
         schema("avg_price", "double"),
         schema("avg_disc", "double"),
-        schema("count_order", "long"));
+        schema("count_order", "bigint"));
     verifyDataRows(
         actual,
         rows(
@@ -143,15 +101,15 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testQ2() {
-    String ppl = loadFromFile("tpch/queries/q2.ppl");
+  public void testQ2() throws IOException {
+    String ppl = sanitize(loadFromFile("tpch/queries/q2.ppl"));
     JSONObject actual = executeQuery(ppl);
     verifySchemaInOrder(
         actual,
         schema("s_acctbal", "double"),
         schema("s_name", "string"),
         schema("n_name", "string"),
-        schema("p_partkey", "long"),
+        schema("p_partkey", "bigint"),
         schema("p_mfgr", "string"),
         schema("s_address", "string"),
         schema("s_phone", "string"),
@@ -160,15 +118,15 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testQ3() {
-    String ppl = loadFromFile("tpch/queries/q3.ppl");
+  public void testQ3() throws IOException {
+    String ppl = sanitize(loadFromFile("tpch/queries/q3.ppl"));
     JSONObject actual = executeQuery(ppl);
     verifySchemaInOrder(
         actual,
-        schema("l_orderkey", "long"),
+        schema("l_orderkey", "bigint"),
         schema("revenue", "double"),
         schema("o_orderdate", "timestamp"),
-        schema("o_shippriority", "integer"));
+        schema("o_shippriority", "int"));
     verifyDataRows(
         actual,
         rows(1637, 164224.9253, "1995-02-08 00:00:00", 0),
@@ -182,10 +140,11 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testQ4() {
-    String ppl = loadFromFile("tpch/queries/q4.ppl");
+  public void testQ4() throws IOException {
+    String ppl = sanitize(loadFromFile("tpch/queries/q4.ppl"));
     JSONObject actual = executeQuery(ppl);
-    verifySchemaInOrder(actual, schema("o_orderpriority", "string"), schema("order_count", "long"));
+    verifySchemaInOrder(
+        actual, schema("o_orderpriority", "string"), schema("order_count", "bigint"));
     verifyDataRows(
         actual,
         rows("1-URGENT", 9),
@@ -196,59 +155,59 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testQ5() {
-    String ppl = loadFromFile("tpch/queries/q5.ppl");
+  public void testQ5() throws IOException {
+    String ppl = sanitize(loadFromFile("tpch/queries/q5.ppl"));
     JSONObject actual = executeQuery(ppl);
     verifySchemaInOrder(actual, schema("n_name", "string"), schema("revenue", "double"));
     verifyNumOfRows(actual, 0);
   }
 
   @Test
-  public void testQ6() {
-    String ppl = loadFromFile("tpch/queries/q6.ppl");
+  public void testQ6() throws IOException {
+    String ppl = sanitize(loadFromFile("tpch/queries/q6.ppl"));
     JSONObject actual = executeQuery(ppl);
     verifySchemaInOrder(actual, schema("revenue", "double"));
     verifyDataRows(actual, rows(77949.9186));
   }
 
-  public void testQ7() {
-    String ppl = loadFromFile("tpch/queries/q7.ppl");
+  public void testQ7() throws IOException {
+    String ppl = sanitize(loadFromFile("tpch/queries/q7.ppl"));
     JSONObject actual = executeQuery(ppl);
     verifySchemaInOrder(
         actual,
         schema("supp_nation", "string"),
         schema("cust_nation", "string"),
-        schema("l_year", "integer"),
+        schema("l_year", "int"),
         schema("revenue", "double"));
     verifyNumOfRows(actual, 0);
   }
 
-  public void testQ8() {
-    String ppl = loadFromFile("tpch/queries/q8.ppl");
+  public void testQ8() throws IOException {
+    String ppl = sanitize(loadFromFile("tpch/queries/q8.ppl"));
     JSONObject actual = executeQuery(ppl);
-    verifySchemaInOrder(actual, schema("o_year", "integer"), schema("mkt_share", "double"));
+    verifySchemaInOrder(actual, schema("o_year", "int"), schema("mkt_share", "double"));
     verifyDataRows(actual, rows(1995, 0.0), rows(1996, 0.0));
   }
 
   @Test
-  public void testQ9() {
-    String ppl = loadFromFile("tpch/queries/q9.ppl");
+  public void testQ9() throws IOException {
+    String ppl = sanitize(loadFromFile("tpch/queries/q9.ppl"));
     JSONObject actual = executeQuery(ppl);
     verifySchemaInOrder(
         actual,
         schema("nation", "string"),
-        schema("o_year", "integer"),
+        schema("o_year", "int"),
         schema("sum_profit", "double"));
     verifyNumOfRows(actual, 60);
   }
 
   @Test
-  public void testQ10() {
-    String ppl = loadFromFile("tpch/queries/q10.ppl");
+  public void testQ10() throws IOException {
+    String ppl = sanitize(loadFromFile("tpch/queries/q10.ppl"));
     JSONObject actual = executeQuery(ppl);
     verifySchemaInOrder(
         actual,
-        schema("c_custkey", "long"),
+        schema("c_custkey", "bigint"),
         schema("c_name", "string"),
         schema("revenue", "double"),
         schema("c_acctbal", "double"),
@@ -272,30 +231,30 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testQ11() {
-    String ppl = loadFromFile("tpch/queries/q11.ppl");
+  public void testQ11() throws IOException {
+    String ppl = sanitize(loadFromFile("tpch/queries/q11.ppl"));
     JSONObject actual = executeQuery(ppl);
-    verifySchemaInOrder(actual, schema("ps_partkey", "long"), schema("value", "double"));
+    verifySchemaInOrder(actual, schema("ps_partkey", "bigint"), schema("value", "double"));
     verifyNumOfRows(actual, 0);
   }
 
   @Test
-  public void testQ12() {
-    String ppl = loadFromFile("tpch/queries/q12.ppl");
+  public void testQ12() throws IOException {
+    String ppl = sanitize(loadFromFile("tpch/queries/q12.ppl"));
     JSONObject actual = executeQuery(ppl);
     verifySchemaInOrder(
         actual,
         schema("l_shipmode", "string"),
-        schema("high_line_count", "integer"),
-        schema("low_line_count", "integer"));
+        schema("high_line_count", "int"),
+        schema("low_line_count", "int"));
     verifyDataRows(actual, rows("MAIL", 5, 5), rows("SHIP", 5, 10));
   }
 
   @Test
-  public void testQ13() {
-    String ppl = loadFromFile("tpch/queries/q13.ppl");
+  public void testQ13() throws IOException {
+    String ppl = sanitize(loadFromFile("tpch/queries/q13.ppl"));
     JSONObject actual = executeQuery(ppl);
-    verifySchemaInOrder(actual, schema("c_count", "long"), schema("custdist", "long"));
+    verifySchemaInOrder(actual, schema("c_count", "bigint"), schema("custdist", "bigint"));
     verifyDataRows(
         actual,
         rows(0, 50),
@@ -328,20 +287,20 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testQ14() {
-    String ppl = loadFromFile("tpch/queries/q14.ppl");
+  public void testQ14() throws IOException {
+    String ppl = sanitize(loadFromFile("tpch/queries/q14.ppl"));
     JSONObject actual = executeQuery(ppl);
     verifySchemaInOrder(actual, schema("promo_revenue", "double"));
     verifyDataRows(actual, closeTo(15.230212611597254));
   }
 
   @Test
-  public void testQ15() {
-    String ppl = loadFromFile("tpch/queries/q15.ppl");
+  public void testQ15() throws IOException {
+    String ppl = sanitize(loadFromFile("tpch/queries/q15.ppl"));
     JSONObject actual = executeQuery(ppl);
     verifySchemaInOrder(
         actual,
-        schema("s_suppkey", "long"),
+        schema("s_suppkey", "bigint"),
         schema("s_name", "string"),
         schema("s_address", "string"),
         schema("s_phone", "string"),
@@ -352,15 +311,15 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testQ16() {
-    String ppl = loadFromFile("tpch/queries/q16.ppl");
+  public void testQ16() throws IOException {
+    String ppl = sanitize(loadFromFile("tpch/queries/q16.ppl"));
     JSONObject actual = executeQuery(ppl);
     verifySchemaInOrder(
         actual,
         schema("p_brand", "string"),
         schema("p_type", "string"),
-        schema("p_size", "integer"),
-        schema("supplier_cnt", "long"));
+        schema("p_size", "int"),
+        schema("supplier_cnt", "bigint"));
     verifyDataRows(
         actual,
         rows("Brand#11", "PROMO ANODIZED TIN", 45, 4),
@@ -400,10 +359,10 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testQ17() {
-    String ppl = loadFromFile("tpch/queries/q17.ppl");
-    String actual = execute(ppl);
-    assertEquals(
+  public void testQ17() throws IOException {
+    String ppl = sanitize(loadFromFile("tpch/queries/q17.ppl"));
+    String actual = executeQuery(ppl).toString();
+    assertJsonEquals(
         "{\n"
             + "  \"schema\": [\n"
             + "    {\n"
@@ -423,14 +382,14 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testQ18() {
-    String ppl = loadFromFile("tpch/queries/q18.ppl");
+  public void testQ18() throws IOException {
+    String ppl = sanitize(loadFromFile("tpch/queries/q18.ppl"));
     JSONObject actual = executeQuery(ppl);
     verifySchemaInOrder(
         actual,
         schema("c_name", "string"),
-        schema("c_custkey", "long"),
-        schema("o_orderkey", "long"),
+        schema("c_custkey", "bigint"),
+        schema("o_orderkey", "bigint"),
         schema("o_orderdate", "timestamp"),
         schema("o_totalprice", "double"),
         schema("sum(l_quantity)", "double"));
@@ -438,10 +397,10 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testQ19() {
-    String ppl = loadFromFile("tpch/queries/q19.ppl");
-    String actual = execute(ppl);
-    assertEquals(
+  public void testQ19() throws IOException {
+    String ppl = sanitize(loadFromFile("tpch/queries/q19.ppl"));
+    String actual = executeQuery(ppl).toString();
+    assertJsonEquals(
         "{\n"
             + "  \"schema\": [\n"
             + "    {\n"
@@ -461,29 +420,29 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testQ20() {
-    String ppl = loadFromFile("tpch/queries/q20.ppl");
+  public void testQ20() throws IOException {
+    String ppl = sanitize(loadFromFile("tpch/queries/q20.ppl"));
     JSONObject actual = executeQuery(ppl);
     verifySchemaInOrder(actual, schema("s_name", "string"), schema("s_address", "string"));
     verifyNumOfRows(actual, 0);
   }
 
   @Test
-  public void testQ21() {
-    String ppl = loadFromFile("tpch/queries/q21.ppl");
+  public void testQ21() throws IOException {
+    String ppl = sanitize(loadFromFile("tpch/queries/q21.ppl"));
     JSONObject actual = executeQuery(ppl);
-    verifySchemaInOrder(actual, schema("s_name", "string"), schema("numwait", "long"));
+    verifySchemaInOrder(actual, schema("s_name", "string"), schema("numwait", "bigint"));
     verifyNumOfRows(actual, 0);
   }
 
   @Test
-  public void testQ22() {
-    String ppl = loadFromFile("tpch/queries/q22.ppl");
+  public void testQ22() throws IOException {
+    String ppl = sanitize(loadFromFile("tpch/queries/q22.ppl"));
     JSONObject actual = executeQuery(ppl);
     verifySchemaInOrder(
         actual,
         schema("cntrycode", "string"),
-        schema("numcust", "long"),
+        schema("numcust", "bigint"),
         schema("totacctbal", "double"));
     verifyDataRows(
         actual,
@@ -494,5 +453,16 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
         rows("29", 2, 17195.08),
         rows("30", 1, 7638.57),
         rows("31", 1, 9331.13));
+  }
+
+  /**
+   * Sanitizes the PPL query by removing block comments and replacing new lines with spaces.
+   *
+   * @param ppl the PPL query string
+   * @return the sanitized PPL query string
+   */
+  private static String sanitize(String ppl) {
+    String withoutComments = ppl.replaceAll("(?s)/\\*.*?\\*/", "");
+    return withoutComments.replaceAll("\\r\\n", " ").replaceAll("\\n", " ").trim();
   }
 }
