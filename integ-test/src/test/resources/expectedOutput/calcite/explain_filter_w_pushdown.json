@@ -1,0 +1,6 @@
+{
+  "calcite" : {
+    "physical" : "CalciteEnumerableIndexScan(table=[[OpenSearch, test]], PushDownContext=[[PROJECT->[name, age], FILTER->=($1, 20)], OpenSearchRequestBuilder(sourceBuilder={\"from\":0,\"timeout\":\"1m\",\"query\":{\"term\":{\"age\":{\"value\":20,\"boost\":1.0}}},\"_source\":{\"includes\":[\"name\",\"age\"],\"excludes\":[]},\"sort\":[{\"_doc\":{\"order\":\"asc\"}}]}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])\n",
+    "logical" : "LogicalProject(name=[$0], age=[$1])\n  LogicalFilter(condition=[=($1, 20)])\n    CalciteLogicalIndexScan(table=[[OpenSearch, test]])\n"
+  }
+}
