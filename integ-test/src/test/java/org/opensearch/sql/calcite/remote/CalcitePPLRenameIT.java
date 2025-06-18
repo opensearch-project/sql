@@ -16,7 +16,6 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -174,7 +173,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
    */
   private static void verifyNotFoundAndInputFields(String actual, String expected) {
     String notFoundFieldPattern = "field \\[(.*?)\\] not found";
-    String inputFieldsPattern = "input fields are:\\s*\\[([^]]+)\\]";
+    String inputFieldsPattern = "input fields are: \\[(.*?)\\]";
     String actualUnfoundField = extractByPattern(actual, notFoundFieldPattern);
     String expectedUnfoundField = extractByPattern(expected, notFoundFieldPattern);
     // splitIntoSet makes it order-insensitive
@@ -187,16 +186,16 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
   }
 
     /**
-     * Split a string representation of a list into a HashSet.
-     * The input string is expected to be in the format: "[item1, item2, item3]"
+     * Split a string of comma-separated fields into a Set.
      *
-     * @param listString the string representation of the list
+     * @param str the string representation of the list
      * @return a HashSet containing the items from the list
      */
-  private static HashSet<String> splitIntoSet(String listString) {
-    List<String> list =
-            Arrays.stream(listString.strip().substring(1, listString.length() - 1).split(",")).collect(Collectors.toList());
-    return list.stream().map(String::strip).collect(Collectors.toCollection(HashSet::new));
+  private static Set<String> splitIntoSet(String str) {
+    if (str.isEmpty()) {
+      return new HashSet<>();
+    }
+    return Arrays.stream(str.split(",")).map(String::trim).collect(Collectors.toSet());
   }
 
   /**
