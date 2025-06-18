@@ -1,4 +1,4 @@
-[datasource-query-s3.md](..%2F..%2F..%2Fsearch-plugins-sql%2Fdocs%2Fdev%2Fdatasource-query-s3.md)# SQL Engine V2 - Release Notes
+# SQL Engine V2 - Release Notes
 
 ---
 ## 1.Motivations
