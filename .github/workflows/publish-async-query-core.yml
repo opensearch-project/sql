@@ -13,9 +13,13 @@ on:
       - '.github/maven-publish-utils.sh'
       - '.github/get-sonatype-credentials.sh'
 
+concurrency:
+  group: maven-publish-async-query-core
+  cancel-in-progress: false
+
 env:
   SNAPSHOT_REPO_URL: https://aws.oss.sonatype.org/content/repositories/snapshots/
-  COMMIT_MAP_FILENAME: commit-history.json
+  COMMIT_MAP_FILENAME: commit-history-async-query-core.json
 
 jobs:
   publish-async-query-core:

@@ -210,8 +210,8 @@ update_commit_mapping() {
   # Extract the actual artifact version from metadata
   ARTIFACT_VERSION=$(extract_artifact_version "$artifact_id" "$version" "$extension" "$snapshot_repo_url")
 
-  # Try to download existing mapping file
-  MAPPING_URL="${snapshot_repo_url}org/opensearch/${commit_map_filename}"
+  # Try to download existing mapping file - MODIFIED: Changed URL structure
+  MAPPING_URL="${snapshot_repo_url}org/opensearch/${artifact_id}/${commit_map_filename}"
   HTTP_CODE=$(curl -s -o "${MAPPING_FILE}" -w "%{http_code}" -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" "${MAPPING_URL}" || echo "000")
 
   if [ "$HTTP_CODE" = "200" ]; then
