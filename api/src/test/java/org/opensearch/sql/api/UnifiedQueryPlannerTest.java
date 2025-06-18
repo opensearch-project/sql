@@ -7,7 +7,6 @@ package org.opensearch.sql.api;
 
 import static org.junit.Assert.assertNotNull;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.calcite.rel.RelNode;
@@ -22,30 +21,28 @@ import org.opensearch.sql.executor.QueryType;
 
 public class UnifiedQueryPlannerTest {
 
-  /** Test database with a test table with id and name columns */
-  private AbstractSchema testSchema =
+  /** Test schema consists of a test table with id and name columns */
+  private final AbstractSchema testSchema =
       new AbstractSchema() {
         @Override
         protected Map<String, Table> getTableMap() {
-          return new HashMap<>() {
-            @Override
-            public Table get(Object key) {
-              return new AbstractTable() {
+          return Map.of(
+              "test",
+              new AbstractTable() {
                 @Override
                 public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-                  final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
-                  final RelDataType stringType = typeFactory.createSqlType(SqlTypeName.VARCHAR);
                   return typeFactory.createStructType(
-                      List.of(intType, stringType), List.of("id", "name"));
+                      List.of(
+                          typeFactory.createSqlType(SqlTypeName.INTEGER),
+                          typeFactory.createSqlType(SqlTypeName.VARCHAR)),
+                      List.of("id", "name"));
                 }
-              };
-            }
-          };
+              });
         }
       };
 
   @Test
-  public void testSimpleQuery() {
+  public void testPPLQueryPlanning() {
     UnifiedQueryPlanner planner =
         UnifiedQueryPlanner.builder()
             .language(QueryType.PPL)
@@ -53,21 +50,46 @@ public class UnifiedQueryPlannerTest {
             .build();
 
     RelNode plan = planner.plan("source = opensearch.test | eval f = abs(id)");
-    assertNotNull("Plan should not be null", plan);
+    assertNotNull("Plan should be created", plan);
   }
 
   @Test
-  public void testJoinQuery() {
+  public void testPPLQueryPlanningWithMultipleCatalogs() {
+    UnifiedQueryPlanner planner =
+        UnifiedQueryPlanner.builder()
+            .language(QueryType.PPL)
+            .catalog("catalog1", testSchema)
+            .catalog("catalog2", testSchema)
+            .build();
+
+    RelNode plan =
+        planner.plan("source = catalog1.test | lookup catalog2.test id | eval f = abs(id)");
+    assertNotNull("Plan should be created with multiple catalogs", plan);
+  }
+
+  @Test
+  public void testSchemaCaching() {
     UnifiedQueryPlanner planner =
         UnifiedQueryPlanner.builder()
             .language(QueryType.PPL)
             .catalog("opensearch", testSchema)
-            .catalog("spark_catalog", testSchema)
+            .cacheSchema(true)
             .build();
 
-    RelNode plan =
-        planner.plan(
-            "source = opensearch.test |" + "lookup spark_catalog.test id |" + "eval f = abs(id)");
-    assertNotNull("Plan should not be null", plan);
+    RelNode plan = planner.plan("source = opensearch.test | eval f = abs(id)");
+    assertNotNull("Planner should work with caching enabled", plan);
+  }
+
+  @Test(expected = NullPointerException.class)
+  public void testMissingQueryLanguage() {
+    UnifiedQueryPlanner.builder().catalog("opensearch", testSchema).build();
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testUnsupportedQueryLanguage() {
+    UnifiedQueryPlanner.builder()
+        .language(QueryType.SQL) // only PPL is supported
+        .catalog("opensearch", testSchema)
+        .build();
   }
 }

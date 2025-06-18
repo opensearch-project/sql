@@ -5,7 +5,9 @@
 
 package org.opensearch.sql.api;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.calcite.jdbc.CalciteSchema;
@@ -79,7 +81,7 @@ public class UnifiedQueryPlanner {
     if (queryType == QueryType.PPL) {
       return new PPLSyntaxParser();
     }
-    throw new UnsupportedOperationException("Unsupported query type: " + queryType);
+    throw new IllegalArgumentException("Unsupported query type: " + queryType);
   }
 
   private FrameworkConfig buildCalciteConfig(SchemaPlus defaultSchema) {
@@ -125,12 +127,9 @@ public class UnifiedQueryPlanner {
    * registration for use in query planning.
    */
   public static class Builder {
+    private final Map<String, Schema> catalogs = new HashMap<>();
     private QueryType queryType;
-    private SchemaPlus rootSchema;
-
-    public Builder() {
-      this.rootSchema = CalciteSchema.createRootSchema(true, false).plus();
-    }
+    private boolean cacheSchema;
 
     /**
      * Sets the query language frontend to be used by the planner.
@@ -153,7 +152,18 @@ public class UnifiedQueryPlanner {
      * @return this builder instance
      */
     public Builder catalog(String name, Schema schema) {
-      rootSchema.add(name, schema);
+      catalogs.put(name, schema);
+      return this;
+    }
+
+    /**
+     * Enables or disables schema caching in the root schema.
+     *
+     * @param cache whether to enable schema caching
+     * @return this builder instance
+     */
+    public Builder cacheSchema(boolean cache) {
+      this.cacheSchema = cache;
       return this;
     }
 
@@ -164,6 +174,8 @@ public class UnifiedQueryPlanner {
      */
     public UnifiedQueryPlanner build() {
       Objects.requireNonNull(queryType, "Must specify language before build");
+      SchemaPlus rootSchema = CalciteSchema.createRootSchema(true, cacheSchema).plus();
+      catalogs.forEach(rootSchema::add);
       return new UnifiedQueryPlanner(queryType, rootSchema);
     }
   }
