@@ -16,7 +16,6 @@ dependencies {
     testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: "${hamcrest_version}"
     testImplementation group: 'org.mockito', name: 'mockito-core', version: "${mockito_version}"
     testImplementation group: 'org.apache.calcite', name: 'calcite-testkit', version: '1.38.0'
-    // testImplementation(testFixtures(project(":core")))
 }
 
 spotless {
@@ -26,10 +25,6 @@ spotless {
             exclude '**/build/**', '**/build-*/**', 'src/main/gen/**'
         }
         importOrder()
-//        licenseHeader("/*\n" +
-//                " * Copyright OpenSearch Contributors\n" +
-//                " * SPDX-License-Identifier: Apache-2.0\n" +
-//                " */\n\n")
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()

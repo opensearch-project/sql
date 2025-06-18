@@ -6,7 +6,6 @@
 package org.opensearch.sql.api;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.calcite.jdbc.CalciteSchema;
@@ -19,7 +18,6 @@ import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
@@ -74,25 +72,7 @@ public class UnifiedQueryPlanner {
    * @return a logical plan representing the query
    */
   public RelNode plan(String query) {
-    // Parse query and build AST
-    ParseTree cst = parser.parse(query);
-    AstStatementBuilder astStmtBuilder =
-        new AstStatementBuilder(
-            new AstBuilder(query), AstStatementBuilder.StatementBuilderContext.builder().build());
-    Statement statement = cst.accept(astStmtBuilder);
-    UnresolvedPlan ast = ((Query) statement).getPlan();
-
-    // Analyze the ASt and convert to Calcite logical plan
-    CalcitePlanContext calcitePlanContext = CalcitePlanContext.create(config, 100, queryType);
-    RelNode logical = relNodeVisitor.analyze(ast, calcitePlanContext);
-
-    // Add redundant sort if necessary to preserve collation.
-    RelNode calcitePlan = logical;
-    RelCollation collation = logical.getTraitSet().getCollation();
-    if (!(logical instanceof Sort) && collation != RelCollations.EMPTY) {
-      calcitePlan = LogicalSort.create(logical, collation, null, null);
-    }
-    return calcitePlan;
+    return preserveCollation(analyze(parse(query)));
   }
 
   private Parser buildQueryParser(QueryType queryType) {
@@ -110,6 +90,29 @@ public class UnifiedQueryPlanner {
         .programs(Programs.calc(DefaultRelMetadataProvider.INSTANCE))
         .typeSystem(OpenSearchTypeSystem.INSTANCE)
         .build();
+  }
+
+  private UnresolvedPlan parse(String query) {
+    ParseTree cst = parser.parse(query);
+    AstStatementBuilder astStmtBuilder =
+        new AstStatementBuilder(
+            new AstBuilder(query), AstStatementBuilder.StatementBuilderContext.builder().build());
+    Statement statement = cst.accept(astStmtBuilder);
+    return ((Query) statement).getPlan();
+  }
+
+  private RelNode analyze(UnresolvedPlan ast) {
+    CalcitePlanContext calcitePlanContext = CalcitePlanContext.create(config, 100, queryType);
+    return relNodeVisitor.analyze(ast, calcitePlanContext);
+  }
+
+  private RelNode preserveCollation(RelNode logical) {
+    RelNode calcitePlan = logical;
+    RelCollation collation = logical.getTraitSet().getCollation();
+    if (!(logical instanceof Sort) && collation != RelCollations.EMPTY) {
+      calcitePlan = LogicalSort.create(logical, collation, null, null);
+    }
+    return calcitePlan;
   }
 
   /** Builder for {@link UnifiedQueryPlanner}, supporting declarative fluent API. */
@@ -141,17 +144,16 @@ public class UnifiedQueryPlanner {
     }
 
     /**
-     * Registers a catalog and its databases.
+     * Registers a catalog with the specified name and its associated schema. The schema can be a
+     * flat or nested structure (e.g., catalog → schema → table), depending on how data is
+     * organized.
      *
-     * @param catalogName the name of the catalog
-     * @param databases a map of database name → schema
+     * @param name the name of the catalog to register
+     * @param schema the schema representing the structure of the catalog
      * @return this builder instance
      */
-    public Builder catalog(String catalogName, Map<String, Schema> databases) {
-      SchemaPlus catalog = rootSchema.add(catalogName, new AbstractSchema());
-      for (Map.Entry<String, Schema> e : databases.entrySet()) {
-        catalog.add(e.getKey(), e.getValue());
-      }
+    public Builder catalog(String name, Schema schema) {
+      rootSchema.add(name, schema);
       return this;
     }
 

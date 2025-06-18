@@ -7,6 +7,7 @@ package org.opensearch.sql.api;
 
 import static org.junit.Assert.assertNotNull;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.calcite.rel.RelNode;
@@ -22,13 +23,14 @@ import org.opensearch.sql.executor.QueryType;
 public class UnifiedQueryPlannerTest {
 
   /** Test database with a test table with id and name columns */
-  private AbstractSchema testDatabase =
+  private AbstractSchema testSchema =
       new AbstractSchema() {
         @Override
         protected Map<String, Table> getTableMap() {
-          return Map.of(
-              "test",
-              new AbstractTable() {
+          return new HashMap<>() {
+            @Override
+            public Table get(Object key) {
+              return new AbstractTable() {
                 @Override
                 public RelDataType getRowType(RelDataTypeFactory typeFactory) {
                   final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
@@ -36,7 +38,9 @@ public class UnifiedQueryPlannerTest {
                   return typeFactory.createStructType(
                       List.of(intType, stringType), List.of("id", "name"));
                 }
-              });
+              };
+            }
+          };
         }
       };
 
@@ -45,10 +49,10 @@ public class UnifiedQueryPlannerTest {
     UnifiedQueryPlanner planner =
         UnifiedQueryPlanner.builder()
             .language(QueryType.PPL)
-            .catalog("opensearch", Map.of("default", testDatabase))
+            .catalog("opensearch", testSchema)
             .build();
 
-    RelNode plan = planner.plan("source = opensearch.default.test | eval f = abs(123)");
+    RelNode plan = planner.plan("source = opensearch.test | eval f = abs(id)");
     assertNotNull("Plan should not be null", plan);
   }
 
@@ -57,15 +61,13 @@ public class UnifiedQueryPlannerTest {
     UnifiedQueryPlanner planner =
         UnifiedQueryPlanner.builder()
             .language(QueryType.PPL)
-            .catalog("opensearch", Map.of("default", testDatabase))
-            .catalog("spark_catalog", Map.of("default", testDatabase))
+            .catalog("opensearch", testSchema)
+            .catalog("spark_catalog", testSchema)
             .build();
 
     RelNode plan =
         planner.plan(
-            "source = opensearch.default.test |"
-                + "lookup spark_catalog.default.test id |"
-                + "eval f = abs(123)");
+            "source = opensearch.test |" + "lookup spark_catalog.test id |" + "eval f = abs(id)");
     assertNotNull("Plan should not be null", plan);
   }
 }
