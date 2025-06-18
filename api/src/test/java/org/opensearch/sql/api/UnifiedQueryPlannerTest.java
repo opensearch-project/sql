@@ -68,7 +68,7 @@ public class UnifiedQueryPlannerTest {
   }
 
   @Test
-  public void testSchemaCaching() {
+  public void testPPLQueryPlanningWithSchemaCaching() {
     UnifiedQueryPlanner planner =
         UnifiedQueryPlanner.builder()
             .language(QueryType.PPL)
@@ -77,7 +77,7 @@ public class UnifiedQueryPlannerTest {
             .build();
 
     RelNode plan = planner.plan("source = opensearch.test | eval f = abs(id)");
-    assertNotNull("Planner should work with caching enabled", plan);
+    assertNotNull("Planner should work with schema caching enabled", plan);
   }
 
   @Test(expected = NullPointerException.class)

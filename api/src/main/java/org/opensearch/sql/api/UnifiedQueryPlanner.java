@@ -104,7 +104,8 @@ public class UnifiedQueryPlanner {
   }
 
   private RelNode analyze(UnresolvedPlan ast) {
-    CalcitePlanContext calcitePlanContext = CalcitePlanContext.create(config, 100, queryType);
+    // TODO: Hardcoded query size limit (10000) for now as only logical plan is generated.
+    CalcitePlanContext calcitePlanContext = CalcitePlanContext.create(config, 10000, queryType);
     return relNodeVisitor.analyze(ast, calcitePlanContext);
   }
 
