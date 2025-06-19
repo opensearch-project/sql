@@ -69,7 +69,6 @@ import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.type.ExprSqlType;
-import org.opensearch.sql.calcite.type.ExprTimeStampType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -232,9 +231,10 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   private RexNode transferCompareForDateRelated(
       RexNode candidate, CalcitePlanContext context, boolean whetherCompareByTime) {
     if (whetherCompareByTime) {
-      if (!(candidate.getType() instanceof ExprSqlType && ((ExprSqlType) candidate.getType()).getUdt() == EXPR_TIMESTAMP)) {
+      if (!(candidate.getType() instanceof ExprSqlType
+          && ((ExprSqlType) candidate.getType()).getUdt() == EXPR_TIMESTAMP)) {
         RexNode transferredStringNode =
-                context.rexBuilder.makeCall(PPLBuiltinOperators.TIMESTAMP, candidate);
+            context.rexBuilder.makeCall(PPLBuiltinOperators.TIMESTAMP, candidate);
         return transferredStringNode;
       }
     }
