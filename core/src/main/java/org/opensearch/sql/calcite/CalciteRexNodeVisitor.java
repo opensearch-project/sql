@@ -10,6 +10,7 @@ import static org.apache.calcite.sql.SqlKind.AS;
 import static org.apache.commons.lang3.StringUtils.substringAfterLast;
 import static org.opensearch.sql.ast.expression.SpanUnit.NONE;
 import static org.opensearch.sql.ast.expression.SpanUnit.UNKNOWN;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIMESTAMP;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 
 import java.math.BigDecimal;
@@ -68,6 +69,7 @@ import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.type.ExprSqlType;
+import org.opensearch.sql.calcite.type.ExprTimeStampType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -230,12 +232,13 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   private RexNode transferCompareForDateRelated(
       RexNode candidate, CalcitePlanContext context, boolean whetherCompareByTime) {
     if (whetherCompareByTime) {
-      RexNode transferredStringNode =
-          context.rexBuilder.makeCall(PPLBuiltinOperators.TIMESTAMP, candidate);
-      return transferredStringNode;
-    } else {
-      return candidate;
+      if (!(candidate.getType() instanceof ExprSqlType && ((ExprSqlType) candidate.getType()).getUdt() == EXPR_TIMESTAMP)) {
+        RexNode transferredStringNode =
+                context.rexBuilder.makeCall(PPLBuiltinOperators.TIMESTAMP, candidate);
+        return transferredStringNode;
+      }
     }
+    return candidate;
   }
 
   @Override
