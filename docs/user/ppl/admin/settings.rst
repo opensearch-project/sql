@@ -17,7 +17,7 @@ Introduction
 When OpenSearch bootstraps, PPL plugin will register a few settings in OpenSearch cluster settings. Most of the settings are able to change dynamically so you can control the behavior of PPL plugin without need to bounce your cluster.
 
 plugins.ppl.enabled
-======================
+===================
 
 Description
 -----------
@@ -89,8 +89,40 @@ PPL query::
       "transient": {}
     }
 
+plugins.ppl.spl_compatible.enabled
+==================================
+
+Description
+-----------
+
+This setting is present from 3.2.0. Enabling Calcite is a prerequisite. You can use this setting to decide whether to allow parsing a query of Splunk SPL compatible grammar.
+
+1. The default value is false.
+2. This setting is node scope.
+3. This setting can be updated dynamically.
+
+Example
+-------
+
+PPL query::
+
+    sh$ curl -sS -H 'Content-Type: application/json' \
+    ... -X PUT localhost:9200/_plugins/_query/settings \
+    ... -d '{"persistent" : {"plugins.ppl.spl_compatible.enabled" : "true"}}'
+    {
+      "acknowledged": true,
+      "persistent": {
+        "plugins": {
+          "spl_compatible": {
+            "enabled": "true"
+          }
+        }
+      },
+      "transient": {}
+    }
+
 plugins.query.memory_limit
-=================================
+==========================
 
 Description
 -----------
@@ -120,7 +152,7 @@ PPL query::
 Note: the legacy settings of ``opendistro.ppl.query.memory_limit`` is deprecated, it will fallback to the new settings if you request an update with the legacy name.
 
 plugins.query.size_limit
-===========================
+========================
 
 Description
 -----------

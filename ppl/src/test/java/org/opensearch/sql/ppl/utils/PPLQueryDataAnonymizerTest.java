@@ -12,9 +12,10 @@ import static org.opensearch.sql.ast.dsl.AstDSL.projectWithArg;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 
 import java.util.Collections;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
@@ -27,9 +28,14 @@ import org.opensearch.sql.ppl.parser.AstStatementBuilder;
 @RunWith(MockitoJUnitRunner.class)
 public class PPLQueryDataAnonymizerTest {
 
-  private final PPLSyntaxParser parser = new PPLSyntaxParser();
+  private final Settings settings = Mockito.mock(Settings.class);
 
-  @Mock private Settings settings;
+  @Before
+  public void setup() {
+    when(settings.getSettingValue(Key.SPL_COMPATIBLE_GRAMMAR_ENABLED)).thenReturn(true);
+  }
+
+  private final PPLSyntaxParser parser = new PPLSyntaxParser(settings);
 
   @Test
   public void testSearchCommand() {
@@ -290,8 +296,8 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testJoin() {
     assertEquals(
-        "source=t | cross join on true s | fields + id",
-        anonymize("source=t | cross join s | fields id"));
+        "source=t | cross join on *** = *** s | fields + id",
+        anonymize("source=t | cross join on 1=1 s | fields id"));
     assertEquals(
         "source=t | inner join on id = uid s | fields + id",
         anonymize("source=t | inner join on id = uid s | fields id"));
@@ -314,6 +320,19 @@ public class PPLQueryDataAnonymizerTest {
         anonymize(
             "source=t as t1 | right join on t1.id = t2.id [ source=s | fields id] as t2 | fields"
                 + " t1.id"));
+  }
+
+  @Test
+  public void testSplCompatibleJoin() {
+    assertEquals(
+        "source=t | join type=inner overwrite=true  s | fields + id",
+        anonymize("source=t | join s | fields id"));
+    assertEquals(
+        "source=t | join type=inner overwrite=true id s | fields + id",
+        anonymize("source=t | join id s | fields id"));
+    assertEquals(
+        "source=t | join type=left overwrite=false id1,id2 s | fields + id1",
+        anonymize("source=t | join type=left overwrite=false id1,id2 s | fields id1"));
   }
 
   @Test
