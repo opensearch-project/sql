@@ -6,9 +6,13 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import lombok.Getter;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
@@ -16,6 +20,9 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.hint.RelHint;
@@ -27,6 +34,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.search.aggregations.AggregationBuilder;
+import org.opensearch.search.sort.ScoreSortBuilder;
+import org.opensearch.search.sort.SortBuilder;
+import org.opensearch.search.sort.SortBuilders;
+import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprType;
@@ -188,5 +199,93 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       }
     }
     return null;
+  }
+
+  public CalciteLogicalIndexScan pushDownSort(List<RelFieldCollation> collations) {
+    try {
+      // Merge with existing sort if any
+      RelCollation existingCollation = getTraitSet().getCollation();
+      List<RelFieldCollation> existingFieldCollations =
+          existingCollation == null ? List.of() : existingCollation.getFieldCollations();
+      List<RelFieldCollation> mergedCollations =
+          mergeCollations(existingFieldCollations, collations);
+
+      // Propagate the sort to the new scan
+      RelTraitSet traitsWithCollations = getTraitSet().plus(RelCollations.of(mergedCollations));
+      CalciteLogicalIndexScan newScan =
+          new CalciteLogicalIndexScan(
+              getCluster(),
+              traitsWithCollations,
+              hints,
+              table,
+              osIndex,
+              getRowType(),
+              pushDownContext.clone());
+
+      List<SortBuilder<?>> builders = new ArrayList<>();
+      for (RelFieldCollation collation : mergedCollations) {
+        int index = collation.getFieldIndex();
+        String fieldName = this.getRowType().getFieldNames().get(index);
+        RelFieldCollation.Direction direction = collation.getDirection();
+        // Default sort order is ASCENDING
+        SortOrder order =
+            RelFieldCollation.Direction.DESCENDING.equals(direction)
+                ? SortOrder.DESC
+                : SortOrder.ASC;
+        // TODO: support script sort and distance sort
+        SortBuilder<?> sortBuilder;
+        if (ScoreSortBuilder.NAME.equals(fieldName)) {
+          sortBuilder = SortBuilders.scoreSort();
+        } else {
+          sortBuilder = SortBuilders.fieldSort(fieldName);
+        }
+        builders.add(sortBuilder.order(order));
+      }
+      newScan.pushDownContext.add(
+          PushDownAction.of(
+              PushDownType.SORT,
+              builders.toString(),
+              requestBuilder -> requestBuilder.pushDownSort(builders)));
+      return newScan;
+    } catch (Exception e) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Cannot pushdown the sort {}", collations, e);
+      } else {
+        LOG.warn("Cannot pushdown the sort {}, ", collations);
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Merges existing and new collations, ensuring that the last occurrence of each field index takes
+   * precedence.
+   *
+   * @param existingCollations Existing collation list.
+   * @param newCollations New collation list to be merged.
+   * @return Merged list of collations.
+   */
+  private static List<RelFieldCollation> mergeCollations(
+      List<RelFieldCollation> existingCollations, List<RelFieldCollation> newCollations) {
+    // We add new collations first, then existing collations
+    // Consider `sort a | sort b`, the second sort should take precedence
+    List<RelFieldCollation> concatenatedCollations = new ArrayList<>(newCollations);
+    concatenatedCollations.addAll(existingCollations);
+    // Within the same group of collations, the first occurrence of each field index
+    // should take precedence, so we need to remove duplicates while preserving the order
+    LinkedList<RelFieldCollation> mergedCollations = new LinkedList<>();
+    for (RelFieldCollation collation : concatenatedCollations) {
+      // If the collation is already in the merged list, remove it from the list before adding
+      // This is because the sort that comes later in the list should take precedence
+      OptionalInt index =
+          IntStream.range(0, mergedCollations.size())
+              .filter(i -> mergedCollations.get(i).getFieldIndex() == collation.getFieldIndex())
+              .findFirst();
+      if (index.isPresent()) {
+        mergedCollations.remove(index.getAsInt());
+      }
+      mergedCollations.add(collation);
+    }
+    return mergedCollations;
   }
 }
