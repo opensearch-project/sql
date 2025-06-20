@@ -724,4 +724,86 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
     verifyDataRows(
         actual, rows(70000.0, 30, "USA"), rows(null, 40, null), rows(100000, 70, "England"));
   }
+
+  @Test
+  public void testFieldList1() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | join type=inner name,year,month %s",
+                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+    verifySchema(
+        actual,
+        schema("name", "string"),
+        schema("age", "int"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("year", "int"),
+        schema("month", "int"),
+        schema("occupation", "string"),
+        schema("salary", "int"));
+    JSONObject actual2 =
+        executeQuery(
+            String.format(
+                "source=%s | join type=inner name,year,month %s | fields name, country",
+                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+    verifyDataRows(
+        actual2,
+        rows("Jake", "USA"),
+        rows("Hello", "USA"),
+        rows("John", "Canada"),
+        rows("Jane", "Canada"),
+        rows("David", "USA"),
+        rows("David", "USA"));
+  }
+
+  @Test
+  public void testFieldList2() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | join type=inner overwrite=true name,year,month %s",
+                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+    verifySchema(
+        actual,
+        schema("name", "string"),
+        schema("age", "int"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("year", "int"),
+        schema("month", "int"),
+        schema("occupation", "string"),
+        schema("salary", "int"));
+    JSONObject actual2 =
+        executeQuery(
+            String.format(
+                "source=%s | join type=inner overwrite=true name,year,month %s | fields name,"
+                    + " country",
+                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+    verifyDataRows(
+        actual2,
+        rows("Jake", "England"),
+        rows("Hello", "USA"),
+        rows("John", "Canada"),
+        rows("Jane", "Canada"),
+        rows("David", "USA"),
+        rows("David", "Canada"));
+  }
+
+  @Test
+  public void testFieldListSelfJoin() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | join name,year,month %s",
+                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        actual,
+        schema("name", "string"),
+        schema("age", "int"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("year", "int"),
+        schema("month", "int"));
+  }
 }

@@ -78,6 +78,7 @@ STANDARD:                           'STANDARD';
 COST:                               'COST';
 EXTENDED:                           'EXTENDED';
 OVERRIDE:                           'OVERRIDE';
+OVERWRITE:                          'OVERWRITE';
 
 // SORT FIELD KEYWORDS
 // TODO #3180: Fix broken sort functionality

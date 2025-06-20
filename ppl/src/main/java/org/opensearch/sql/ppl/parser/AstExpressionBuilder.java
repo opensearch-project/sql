@@ -517,6 +517,16 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return new WindowFunction(f);
   }
 
+  @Override
+  public UnresolvedExpression visitOverwriteOption(OpenSearchPPLParser.OverwriteOptionContext ctx) {
+    return new Argument("overwrite", (Literal) this.visit(ctx.booleanLiteral()));
+  }
+
+  @Override
+  public UnresolvedExpression visitTypeOption(OpenSearchPPLParser.TypeOptionContext ctx) {
+    return new Argument("type", new Literal(ctx.joinType().getText(), DataType.STRING));
+  }
+
   private QualifiedName visitIdentifiers(List<? extends ParserRuleContext> ctx) {
     return new QualifiedName(
         ctx.stream()

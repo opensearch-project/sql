@@ -718,4 +718,67 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
             + "ORDER BY `GRADE` DESC NULLS FIRST) `t5`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  @Test
+  public void testJoinWithJoinFields() {
+    String ppl = "source=EMP | join DEPTNO DEPT";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], DNAME=[$9], LOC=[$10])\n"
+            + "  LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 14);
+
+    String expectedSparkSql =
+        "SELECT `EMP`.`EMPNO`, `EMP`.`ENAME`, `EMP`.`JOB`, `EMP`.`MGR`, `EMP`.`HIREDATE`,"
+            + " `EMP`.`SAL`, `EMP`.`COMM`, `EMP`.`DEPTNO`, `DEPT`.`DNAME`, `DEPT`.`LOC`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "INNER JOIN `scott`.`DEPT` ON `EMP`.`DEPTNO` = `DEPT`.`DEPTNO`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testJoinWithJoinArguments() {
+    String ppl = "source=EMP | join type=inner overwrite=false DEPTNO DEPT";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], DNAME=[$9], LOC=[$10])\n"
+            + "  LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 14);
+
+    String expectedSparkSql =
+        "SELECT `EMP`.`EMPNO`, `EMP`.`ENAME`, `EMP`.`JOB`, `EMP`.`MGR`, `EMP`.`HIREDATE`,"
+            + " `EMP`.`SAL`, `EMP`.`COMM`, `EMP`.`DEPTNO`, `DEPT`.`DNAME`, `DEPT`.`LOC`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "INNER JOIN `scott`.`DEPT` ON `EMP`.`DEPTNO` = `DEPT`.`DEPTNO`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testJoinWithJoinArguments2() {
+    String ppl = "source=EMP | join type=left overwrite=true DEPTNO DEPT";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$8], DNAME=[$9], LOC=[$10])\n"
+            + "  LogicalJoin(condition=[=($7, $8)], joinType=[left])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 14);
+
+    String expectedSparkSql =
+        "SELECT `EMP`.`EMPNO`, `EMP`.`ENAME`, `EMP`.`JOB`, `EMP`.`MGR`, `EMP`.`HIREDATE`,"
+            + " `EMP`.`SAL`, `EMP`.`COMM`, `DEPT`.`DEPTNO`, `DEPT`.`DNAME`, `DEPT`.`LOC`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LEFT JOIN `scott`.`DEPT` ON `EMP`.`DEPTNO` = `DEPT`.`DEPTNO`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
 }

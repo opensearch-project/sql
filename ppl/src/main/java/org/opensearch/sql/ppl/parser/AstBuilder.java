@@ -42,6 +42,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
+import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
@@ -186,20 +187,35 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitJoinCommand(OpenSearchPPLParser.JoinCommandContext ctx) {
     Join.JoinType joinType = getJoinType(ctx.joinType());
-    if (ctx.joinCriteria() == null) {
+    if (ctx.joinCriteria() == null && ctx.fieldList() == null) {
       joinType = Join.JoinType.CROSS;
     }
+    List<Argument> arguments =
+        ctx.joinOption().stream().map(o -> (Argument) expressionBuilder.visit(o)).toList();
+    Argument.ArgumentMap argumentMap = Argument.ArgumentMap.of(arguments);
+    if (argumentMap.get("type") != null) {
+      Join.JoinType joinTypeFromArgument = getJoinType(argumentMap.get("type").toString());
+      if (ctx.joinType() == null) {
+        joinType = joinTypeFromArgument;
+      } else {
+        if (joinType != joinTypeFromArgument) {
+          throw new SemanticCheckException(
+              "Join type is ambiguous, please remove the join type before JOIN keyword or 'type='"
+                  + " option.");
+        }
+      }
+    }
     Join.JoinHint joinHint = getJoinHint(ctx.joinHintList());
-    Optional<String> leftAlias =
-        ctx.sideAlias().leftAlias != null
-            ? Optional.of(internalVisitExpression(ctx.sideAlias().leftAlias).toString())
-            : Optional.empty();
+    Optional<String> leftAlias = Optional.empty();
     Optional<String> rightAlias = Optional.empty();
+    if (ctx.sideAlias() != null && ctx.sideAlias().leftAlias != null) {
+      leftAlias = Optional.of(internalVisitExpression(ctx.sideAlias().leftAlias).toString());
+    }
     if (ctx.tableOrSubqueryClause().alias != null) {
       rightAlias =
           Optional.of(internalVisitExpression(ctx.tableOrSubqueryClause().alias).toString());
     }
-    if (ctx.sideAlias().rightAlias != null) {
+    if (ctx.sideAlias() != null && ctx.sideAlias().rightAlias != null) {
       rightAlias = Optional.of(internalVisitExpression(ctx.sideAlias().rightAlias).toString());
     }
 
@@ -218,8 +234,19 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         ctx.joinCriteria() == null
             ? Optional.empty()
             : Optional.of(expressionBuilder.visitJoinCriteria(ctx.joinCriteria()));
+    Optional<List<Field>> joinFields = Optional.empty();
+    if (ctx.fieldList() != null) {
+      joinFields = Optional.of(getFieldList(ctx.fieldList()));
+    }
     return new Join(
-        projectExceptMeta(right), leftAlias, rightAlias, joinType, joinCondition, joinHint);
+        projectExceptMeta(right),
+        leftAlias,
+        rightAlias,
+        joinType,
+        joinCondition,
+        joinHint,
+        joinFields,
+        argumentMap);
   }
 
   private Join.JoinHint getJoinHint(OpenSearchPPLParser.JoinHintListContext ctx) {
@@ -260,6 +287,28 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     } else if (ctx.CROSS() != null) {
       joinType = Join.JoinType.CROSS;
     } else if (ctx.FULL() != null) {
+      joinType = Join.JoinType.FULL;
+    } else {
+      joinType = Join.JoinType.INNER;
+    }
+    return joinType;
+  }
+
+  private Join.JoinType getJoinType(String type) {
+    Join.JoinType joinType;
+    if (type.equalsIgnoreCase(Join.JoinType.INNER.name())) {
+      joinType = Join.JoinType.INNER;
+    } else if (type.equalsIgnoreCase(Join.JoinType.SEMI.name())) {
+      joinType = Join.JoinType.SEMI;
+    } else if (type.equalsIgnoreCase(Join.JoinType.ANTI.name())) {
+      joinType = Join.JoinType.ANTI;
+    } else if (type.equalsIgnoreCase(Join.JoinType.LEFT.name())) {
+      joinType = Join.JoinType.LEFT;
+    } else if (type.equalsIgnoreCase(Join.JoinType.RIGHT.name())) {
+      joinType = Join.JoinType.RIGHT;
+    } else if (type.equalsIgnoreCase(Join.JoinType.CROSS.name())) {
+      joinType = Join.JoinType.CROSS;
+    } else if (type.equalsIgnoreCase(Join.JoinType.FULL.name())) {
       joinType = Join.JoinType.FULL;
     } else {
       joinType = Join.JoinType.INNER;

@@ -644,10 +644,57 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitJoin(Join node, CalcitePlanContext context) {
     List<UnresolvedPlan> children = node.getChildren();
     children.forEach(c -> analyze(c, context));
-    RexNode joinCondition =
-        node.getJoinCondition()
-            .map(c -> rexVisitor.analyzeJoinCondition(c, context))
-            .orElse(context.relBuilder.literal(true));
+    RexNode joinCondition;
+    if (node.getJoinFields().isPresent()) {
+      joinCondition =
+          node.getJoinFields().get().stream()
+              .map(
+                  field -> {
+                    RexNode lookupKey =
+                        JoinAndLookupUtils.analyzeFieldsForLookUp(
+                            field.getField().toString(), false, context);
+                    RexNode sourceKey =
+                        JoinAndLookupUtils.analyzeFieldsForLookUp(
+                            field.getField().toString(), true, context);
+                    return context.rexBuilder.equals(sourceKey, lookupKey);
+                  })
+              .reduce(context.rexBuilder::and)
+              .orElse(context.relBuilder.literal(true));
+      if (node.getJoinType() == SEMI || node.getJoinType() == ANTI) {
+        // semi and anti join only return left table outputs
+        context.relBuilder.join(
+            JoinAndLookupUtils.translateJoinType(node.getJoinType()), joinCondition);
+        return context.relBuilder.peek();
+      }
+      List<String> leftColumns = context.relBuilder.peek(1).getRowType().getFieldNames();
+      List<String> rightColumns = context.relBuilder.peek().getRowType().getFieldNames();
+      List<String> duplicatedFieldNames =
+          leftColumns.stream().filter(rightColumns::contains).toList();
+      List<RexNode> toBeRemovedFields;
+      if (node.getArgumentMap().get("overwrite") == null
+          || (node.getArgumentMap().get("overwrite").equals(Literal.FALSE))) {
+        toBeRemovedFields =
+            duplicatedFieldNames.stream()
+                .map(field -> JoinAndLookupUtils.analyzeFieldsForLookUp(field, false, context))
+                .toList();
+      } else {
+        toBeRemovedFields =
+            duplicatedFieldNames.stream()
+                .map(field -> JoinAndLookupUtils.analyzeFieldsForLookUp(field, true, context))
+                .toList();
+      }
+      context.relBuilder.join(
+          JoinAndLookupUtils.translateJoinType(node.getJoinType()), joinCondition);
+      if (!toBeRemovedFields.isEmpty()) {
+        context.relBuilder.projectExcept(toBeRemovedFields);
+      }
+      return context.relBuilder.peek();
+    } else {
+      joinCondition =
+          node.getJoinCondition()
+              .map(c -> rexVisitor.analyzeJoinCondition(c, context))
+              .orElse(context.relBuilder.literal(true));
+    }
     if (node.getJoinType() == SEMI || node.getJoinType() == ANTI) {
       // semi and anti join only return left table outputs
       context.relBuilder.join(

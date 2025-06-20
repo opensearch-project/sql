@@ -315,7 +315,8 @@ tableSourceClause
 
 // join
 joinCommand
-   : (joinType) JOIN sideAlias joinHintList? joinCriteria? right = tableOrSubqueryClause
+   : joinType JOIN sideAlias joinHintList? joinCriteria? right = tableOrSubqueryClause
+   | JOIN (joinOption)* fieldList right = tableOrSubqueryClause
    ;
 
 joinType
@@ -343,6 +344,11 @@ joinHintList
 hintPair
    : leftHintKey = LEFT_HINT DOT ID EQUAL leftHintValue = ident             #leftHint
    | rightHintKey = RIGHT_HINT DOT ID EQUAL rightHintValue = ident          #rightHint
+   ;
+
+joinOption
+   : OVERWRITE EQUAL booleanLiteral                     # overwriteOption
+   | TYPE EQUAL joinType                                # typeOption
    ;
 
 renameClasue
