@@ -7,8 +7,10 @@ package org.opensearch.sql.opensearch.storage;
 
 import static org.opensearch.sql.utils.SystemIndexUtils.isSystemIndex;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
@@ -18,6 +20,7 @@ import org.opensearch.sql.storage.Table;
 
 /** OpenSearch storage engine implementation. */
 @RequiredArgsConstructor
+@AllArgsConstructor
 public class OpenSearchStorageEngine implements StorageEngine {
 
   /** OpenSearch client connection. */
@@ -25,12 +28,14 @@ public class OpenSearchStorageEngine implements StorageEngine {
 
   @Getter private final Settings settings;
 
+  private ClusterService clusterService;
+
   @Override
   public Table getTable(DataSourceSchemaName dataSourceSchemaName, String name) {
     if (isSystemIndex(name)) {
       return new OpenSearchSystemIndex(client, name);
     } else {
-      return new OpenSearchIndex(client, settings, name);
+      return new OpenSearchIndex(client, settings, name, clusterService);
     }
   }
 }
