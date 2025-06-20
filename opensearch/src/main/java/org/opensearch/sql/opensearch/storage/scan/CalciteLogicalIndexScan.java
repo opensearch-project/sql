@@ -211,11 +211,11 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
           mergeCollations(existingFieldCollations, collations);
 
       // Propagate the sort to the new scan
-      RelTraitSet newTraitSet = getTraitSet().plus(RelCollations.of(mergedCollations));
+      RelTraitSet traitsWithCollations = getTraitSet().plus(RelCollations.of(mergedCollations));
       CalciteLogicalIndexScan newScan =
           new CalciteLogicalIndexScan(
               getCluster(),
-              newTraitSet,
+              traitsWithCollations,
               hints,
               table,
               osIndex,
@@ -267,8 +267,12 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
    */
   private static List<RelFieldCollation> mergeCollations(
       List<RelFieldCollation> existingCollations, List<RelFieldCollation> newCollations) {
-    List<RelFieldCollation> concatenatedCollations = new ArrayList<>(existingCollations);
-    concatenatedCollations.addAll(newCollations);
+    // We add new collations first, then existing collations
+    // Consider `sort a | sort b`, the second sort should take precedence
+    List<RelFieldCollation> concatenatedCollations = new ArrayList<>(newCollations);
+    concatenatedCollations.addAll(existingCollations);
+    // Within the same group of collations, the first occurrence of each field index
+    // should take precedence, so we need to remove duplicates while preserving the order
     LinkedList<RelFieldCollation> mergedCollations = new LinkedList<>();
     for (RelFieldCollation collation : concatenatedCollations) {
       // If the collation is already in the merged list, remove it from the list before adding
