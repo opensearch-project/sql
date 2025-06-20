@@ -61,10 +61,14 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Sarg;
+import org.opensearch.index.mapper.DateFieldMapper;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.RangeQueryBuilder;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
+import org.opensearch.sql.calcite.type.ExprSqlType;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
@@ -1061,6 +1065,8 @@ public class PredicateAnalyzer {
         return doubleValue();
       } else if (isBoolean()) {
         return booleanValue();
+      } else if (isTimestamp()) {
+        return timestampValueForPushDown();
       } else if (isString()) {
         return RexLiteral.stringValue(literal);
       } else {
@@ -1088,6 +1094,13 @@ public class PredicateAnalyzer {
       return SqlTypeName.SARG.getName().equalsIgnoreCase(literal.getTypeName().getName());
     }
 
+    public boolean isTimestamp() {
+      if (literal.getType() instanceof ExprSqlType exprSqlType) {
+        return exprSqlType.getUdt() == OpenSearchTypeFactory.ExprUDT.EXPR_TIMESTAMP;
+      }
+      return false;
+    }
+
     long longValue() {
       return ((Number) literal.getValue()).longValue();
     }
@@ -1102,6 +1115,13 @@ public class PredicateAnalyzer {
 
     String stringValue() {
       return RexLiteral.stringValue(literal);
+    }
+
+    String timestampValueForPushDown() {
+      ExprTimestampValue exprTimestampValue =
+          new ExprTimestampValue(RexLiteral.stringValue(literal));
+      return DateFieldMapper.getDefaultDateTimeFormatter()
+          .format(exprTimestampValue.timestampValue());
     }
 
     List<Object> sargValue() {
