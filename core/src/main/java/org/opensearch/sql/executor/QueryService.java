@@ -98,9 +98,7 @@ public class QueryService {
               () -> {
                 CalcitePlanContext context =
                     CalcitePlanContext.create(
-                        buildFrameworkConfig(),
-                        settings.getSettingValue(Key.QUERY_SIZE_LIMIT),
-                        queryType);
+                        buildFrameworkConfig(), getQuerySizeLimit(), queryType, isSplCompatible());
                 RelNode relNode = analyze(plan, context);
                 RelNode optimized = optimize(relNode);
                 RelNode calcitePlan = convertToCalcitePlan(optimized);
@@ -133,7 +131,7 @@ public class QueryService {
               () -> {
                 CalcitePlanContext context =
                     CalcitePlanContext.create(
-                        buildFrameworkConfig(), getQuerySizeLimit(), queryType);
+                        buildFrameworkConfig(), getQuerySizeLimit(), queryType, isSplCompatible());
                 RelNode relNode = analyze(plan, context);
                 RelNode optimized = optimize(relNode);
                 RelNode calcitePlan = convertToCalcitePlan(optimized);
@@ -274,6 +272,10 @@ public class QueryService {
 
   private Integer getQuerySizeLimit() {
     return settings == null ? null : settings.getSettingValue(Key.QUERY_SIZE_LIMIT);
+  }
+
+  private boolean isSplCompatible() {
+    return settings == null ? false : settings.getSettingValue(Key.SPL_COMPATIBLE_GRAMMAR_ENABLED);
   }
 
   // TODO https://github.com/opensearch-project/sql/issues/3457

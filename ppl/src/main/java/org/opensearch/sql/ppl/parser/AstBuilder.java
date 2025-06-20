@@ -187,9 +187,6 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitJoinCommand(OpenSearchPPLParser.JoinCommandContext ctx) {
     Join.JoinType joinType = getJoinType(ctx.joinType());
-    if (ctx.joinCriteria() == null && ctx.fieldList() == null) {
-      joinType = Join.JoinType.CROSS;
-    }
     List<Argument> arguments =
         ctx.joinOption().stream().map(o -> (Argument) expressionBuilder.visit(o)).toList();
     Argument.ArgumentMap argumentMap = Argument.ArgumentMap.of(arguments);

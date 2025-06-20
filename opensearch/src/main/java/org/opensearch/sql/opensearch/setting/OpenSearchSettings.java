@@ -99,6 +99,13 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  public static final Setting<?> SPL_COMPATIBLE_GRAMMAR_ENABLED_SETTING =
+      Setting.boolSetting(
+          Key.SPL_COMPATIBLE_GRAMMAR_ENABLED.getKeyValue(),
+          false,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
   public static final Setting<?> CALCITE_ENGINE_ENABLED_SETTING =
       Setting.boolSetting(
           Key.CALCITE_ENGINE_ENABLED.getKeyValue(),
@@ -330,6 +337,12 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
+        Key.SPL_COMPATIBLE_GRAMMAR_ENABLED,
+        SPL_COMPATIBLE_GRAMMAR_ENABLED_SETTING,
+        new Updater(Key.SPL_COMPATIBLE_GRAMMAR_ENABLED));
+    register(
+        settingBuilder,
+        clusterSettings,
         Key.CALCITE_ENGINE_ENABLED,
         CALCITE_ENGINE_ENABLED_SETTING,
         new Updater(Key.CALCITE_ENGINE_ENABLED));
@@ -523,6 +536,7 @@ public class OpenSearchSettings extends Settings {
         .add(SQL_SLOWLOG_SETTING)
         .add(SQL_CURSOR_KEEP_ALIVE_SETTING)
         .add(PPL_ENABLED_SETTING)
+        .add(SPL_COMPATIBLE_GRAMMAR_ENABLED_SETTING)
         .add(CALCITE_ENGINE_ENABLED_SETTING)
         .add(CALCITE_FALLBACK_ALLOWED_SETTING)
         .add(CALCITE_PUSHDOWN_ENABLED_SETTING)

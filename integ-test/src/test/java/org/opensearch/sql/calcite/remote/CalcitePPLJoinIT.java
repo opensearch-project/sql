@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_HOBBIES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OCCUPATION;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
@@ -13,11 +14,12 @@ import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
+import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import org.hamcrest.MatcherAssert;
 import org.json.JSONObject;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.legacy.TestsConstants;
@@ -299,7 +301,7 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source = %s | where country = 'Canada' OR country = 'England' | join left=a,"
-                    + " right=b %s | sort a.age | stats count()",
+                    + " right=b on 1=1 %s | sort a.age | stats count()",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
     verifySchema(actual, schema("count()", "bigint"));
     verifyDataRowsInOrder(actual, rows(30));
@@ -354,7 +356,7 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
     assertJsonEquals(cross.toString(), inner.toString());
   }
 
-  @Ignore // TODO seems a calcite bug
+  @Test
   public void testMultipleJoins() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -367,7 +369,7 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
                     + " a.a_name = b.name    %s| eval aa_country = a.a_country| eval ab_country ="
                     + " a.b_country| eval bb_country = b.country| fields a_name, age, state,"
                     + " aa_country, occupation, ab_country, salary, bb_country, hobby, language|"
-                    + " cross join left=a, right=b    %s| eval new_country = a.aa_country| eval"
+                    + " cross join left=a, right=b on 1=1 %s| eval new_country = a.aa_country| eval"
                     + " new_salary = b.salary| stats avg(new_salary) as avg_salary by span(age, 5)"
                     + " as age_span, state| left semi join left=a, right=b    ON a.state = b.state "
                     + "   %s| eval new_avg_salary = floor(avg_salary)| fields state, age_span,"
@@ -377,9 +379,10 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
                 TEST_INDEX_HOBBIES,
                 TEST_INDEX_OCCUPATION,
                 TEST_INDEX_STATE_COUNTRY));
+    verifyNumOfRows(actual, 2);
   }
 
-  @Ignore // TODO seems a calcite bug
+  @Test
   public void testMultipleJoinsWithRelationSubquery() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -392,17 +395,18 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
                     + "   ON a.a_name = b.name    [      source = %s    ]| eval aa_country ="
                     + " a.a_country| eval ab_country = a.b_country| eval bb_country = b.country|"
                     + " fields a_name, age, state, aa_country, occupation, ab_country, salary,"
-                    + " bb_country, hobby, language| cross join left=a, right=b    [      source ="
-                    + " %s    ]| eval new_country = a.aa_country| eval new_salary = b.salary| stats"
-                    + " avg(new_salary) as avg_salary by span(age, 5) as age_span, state| left semi"
-                    + " join left=a, right=b    ON a.state = b.state    [      source = %s    ]|"
-                    + " eval new_avg_salary = floor(avg_salary)| fields state, age_span,"
-                    + " new_avg_salary",
+                    + " bb_country, hobby, language| cross join left=a, right=b on 1=1 [     "
+                    + " source = %s    ]| eval new_country = a.aa_country| eval new_salary ="
+                    + " b.salary| stats avg(new_salary) as avg_salary by span(age, 5) as age_span,"
+                    + " state| left semi join left=a, right=b    ON a.state = b.state    [     "
+                    + " source = %s    ]| eval new_avg_salary = floor(avg_salary)| fields state,"
+                    + " age_span, new_avg_salary",
                 TEST_INDEX_STATE_COUNTRY,
                 TEST_INDEX_OCCUPATION,
                 TEST_INDEX_HOBBIES,
                 TEST_INDEX_OCCUPATION,
                 TEST_INDEX_STATE_COUNTRY));
+    verifyNumOfRows(actual, 2);
   }
 
   @Test
@@ -726,84 +730,172 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testFieldList1() throws IOException {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | join type=inner name,year,month %s",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    verifySchema(
-        actual,
-        schema("name", "string"),
-        schema("age", "int"),
-        schema("state", "string"),
-        schema("country", "string"),
-        schema("year", "int"),
-        schema("month", "int"),
-        schema("occupation", "string"),
-        schema("salary", "int"));
-    JSONObject actual2 =
-        executeQuery(
-            String.format(
-                "source=%s | join type=inner name,year,month %s | fields name, country",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    verifyDataRows(
-        actual2,
-        rows("Jake", "USA"),
-        rows("Hello", "USA"),
-        rows("John", "Canada"),
-        rows("Jane", "Canada"),
-        rows("David", "USA"),
-        rows("David", "USA"));
+  public void testSplCompatibleJoin1() throws IOException {
+    withSplCompatible(
+        () -> {
+          try {
+            JSONObject actual =
+                executeQuery(
+                    String.format(
+                        "source=%s | join type=inner name,year,month %s",
+                        TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+            verifySchema(
+                actual,
+                schema("name", "string"),
+                schema("age", "int"),
+                schema("state", "string"),
+                schema("country", "string"),
+                schema("year", "int"),
+                schema("month", "int"),
+                schema("occupation", "string"),
+                schema("salary", "int"));
+            JSONObject actual2 =
+                executeQuery(
+                    String.format(
+                        "source=%s | join type=inner name,year,month %s | fields name, country",
+                        TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+            verifyDataRows(
+                actual2,
+                rows("Jake", "England"),
+                rows("Hello", "USA"),
+                rows("John", "Canada"),
+                rows("Jane", "Canada"),
+                rows("David", "USA"),
+                rows("David", "Canada"));
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+        });
   }
 
   @Test
-  public void testFieldList2() throws IOException {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | join type=inner overwrite=true name,year,month %s",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    verifySchema(
-        actual,
-        schema("name", "string"),
-        schema("age", "int"),
-        schema("state", "string"),
-        schema("country", "string"),
-        schema("year", "int"),
-        schema("month", "int"),
-        schema("occupation", "string"),
-        schema("salary", "int"));
-    JSONObject actual2 =
-        executeQuery(
-            String.format(
-                "source=%s | join type=inner overwrite=true name,year,month %s | fields name,"
-                    + " country",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    verifyDataRows(
-        actual2,
-        rows("Jake", "England"),
-        rows("Hello", "USA"),
-        rows("John", "Canada"),
-        rows("Jane", "Canada"),
-        rows("David", "USA"),
-        rows("David", "Canada"));
+  public void testSplCompatibleJoin2() throws IOException {
+    withSplCompatible(
+        () -> {
+          try {
+            JSONObject actual =
+                executeQuery(
+                    String.format(
+                        "source=%s | join type=inner overwrite=false name,year,month %s",
+                        TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+            verifySchema(
+                actual,
+                schema("name", "string"),
+                schema("age", "int"),
+                schema("state", "string"),
+                schema("country", "string"),
+                schema("year", "int"),
+                schema("month", "int"),
+                schema("occupation", "string"),
+                schema("salary", "int"));
+            JSONObject actual2 =
+                executeQuery(
+                    String.format(
+                        "source=%s | join type=inner overwrite=false name,year,month %s | fields"
+                            + " name, country",
+                        TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+            verifyDataRows(
+                actual2,
+                rows("Jake", "USA"),
+                rows("Hello", "USA"),
+                rows("John", "Canada"),
+                rows("Jane", "Canada"),
+                rows("David", "USA"),
+                rows("David", "USA"));
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+        });
   }
 
   @Test
-  public void testFieldListSelfJoin() throws IOException {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | join name,year,month %s",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_STATE_COUNTRY));
-    verifySchema(
-        actual,
-        schema("name", "string"),
-        schema("age", "int"),
-        schema("state", "string"),
-        schema("country", "string"),
-        schema("year", "int"),
-        schema("month", "int"));
+  public void testSplCompatibleSelfJoin1() throws IOException {
+    withSplCompatible(
+        () -> {
+          try {
+            JSONObject actual =
+                executeQuery(
+                    String.format(
+                        "source=%s | join name,year,month %s",
+                        TEST_INDEX_STATE_COUNTRY, TEST_INDEX_STATE_COUNTRY));
+            verifySchema(
+                actual,
+                schema("name", "string"),
+                schema("age", "int"),
+                schema("state", "string"),
+                schema("country", "string"),
+                schema("year", "int"),
+                schema("month", "int"));
+            verifyNumOfRows(actual, 8);
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+        });
+  }
+
+  @Test
+  public void testSplCompatibleSelfJoin2() throws IOException {
+    withSplCompatible(
+        () -> {
+          try {
+            JSONObject actual =
+                executeQuery(
+                    String.format(
+                        "source=%s | join type=inner overwrite=true name,year,month %s | join"
+                            + " type=left overwrite=false name,year,month %s",
+                        TEST_INDEX_STATE_COUNTRY,
+                        TEST_INDEX_STATE_COUNTRY,
+                        TEST_INDEX_STATE_COUNTRY));
+            verifySchema(
+                actual,
+                schema("name", "string"),
+                schema("age", "int"),
+                schema("state", "string"),
+                schema("country", "string"),
+                schema("year", "int"),
+                schema("month", "int"));
+            verifyNumOfRows(actual, 8);
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+        });
+  }
+
+  @Test
+  public void testSplJoinWithoutFieldList() throws IOException {
+    withSplCompatible(
+        () -> {
+          try {
+            JSONObject actual =
+                executeQuery(
+                    String.format(
+                        "source=%s | join type=inner overwrite=false %s",
+                        TEST_INDEX_STATE_COUNTRY, TEST_INDEX_STATE_COUNTRY));
+            verifySchema(
+                actual,
+                schema("name", "string"),
+                schema("age", "int"),
+                schema("state", "string"),
+                schema("country", "string"),
+                schema("year", "int"),
+                schema("month", "int"));
+            verifyNumOfRows(actual, 8);
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+        });
+  }
+
+  @Test
+  public void testSplCompatibleWithoutConfig() {
+    Exception e =
+        assertThrows(
+            Exception.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | join name %s",
+                        TEST_INDEX_STATE_COUNTRY, TEST_INDEX_STATE_COUNTRY)));
+    MatcherAssert.assertThat(e.getMessage(), containsString("[join] is not a valid term"));
   }
 }
