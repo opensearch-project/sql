@@ -1121,7 +1121,9 @@ public class PredicateAnalyzer {
       ExprTimestampValue exprTimestampValue =
           new ExprTimestampValue(RexLiteral.stringValue(literal));
       return DateFieldMapper.getDefaultDateTimeFormatter()
-          .format(exprTimestampValue.timestampValue());
+          .format(
+              exprTimestampValue.timestampValue()); // format using opensearch default formatter as
+      // https://github.com/opensearch-project/sql/pull/3442
     }
 
     List<Object> sargValue() {
