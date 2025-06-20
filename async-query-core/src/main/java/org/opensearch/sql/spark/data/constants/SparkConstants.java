@@ -72,7 +72,7 @@ public class SparkConstants {
   public static final String PPL_STANDALONE_PACKAGE =
       "org.opensearch:opensearch-spark-ppl_2.12:0.3.0-SNAPSHOT";
   public static final String AWS_SNAPSHOT_REPOSITORY =
-      "https://aws.oss.sonatype.org/content/repositories/snapshots";
+      "https://central.sonatype.com/repository/maven-snapshots/";
   public static final String GLUE_HIVE_CATALOG_FACTORY_CLASS =
       "com.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory";
   public static final String FLINT_DELEGATE_CATALOG =
