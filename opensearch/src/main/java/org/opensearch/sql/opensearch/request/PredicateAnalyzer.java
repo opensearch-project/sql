@@ -40,7 +40,6 @@ import static org.opensearch.index.query.QueryBuilders.termsQuery;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.Range;
-
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;

@@ -26,7 +26,7 @@ teardown:
         refresh: true
         body:
           - '{"index": {}}'
-          - '{"balance": 1000.0}'
+          - '{"balance": 1000}'
   - do:
       headers:
         Content-Type: 'application/json'
