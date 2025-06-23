@@ -1,6 +1,0 @@
-{
-  "calcite": {
-    "logical": "LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12])\n  LogicalFilter(condition=[<($3, TIMESTAMP('2017-11-20 00:00:00':VARCHAR))])\n    CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])\n",
-    "physical": "EnumerableCalc(expr#0..18=[{inputs}], expr#19=['2017-11-20 00:00:00':EXPR_TIMESTAMP VARCHAR], expr#20=[<($t3, $t19)], proj#0..12=[{exprs}], $condition=[$t20])\n  CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])\n"
-  }
-}

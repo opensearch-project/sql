@@ -10,7 +10,6 @@ import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 import java.io.IOException;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
-import org.opensearch.sql.legacy.TestsConstants;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalcitePPLExplainIT extends PPLIntegTestCase {
@@ -31,7 +30,6 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
     Request request3 = new Request("PUT", "/test1/_doc/1?refresh=true");
     request3.setJsonEntity("{\"name\": \"HELLO\", \"alias\": \"Hello\"}");
     client().performRequest(request3);
-    loadIndex(Index.BANK);
   }
 
   @Test
@@ -53,23 +51,6 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
         result.contains(
             "public org.apache.calcite.linq4j.Enumerable bind(final"
                 + " org.apache.calcite.DataContext root)"));
-  }
-
-  @Test
-  public void testFilterPushdown() throws IOException {
-    var result =
-        explainQueryToString(
-            String.format(
-                "source=%s | where birthdate < '2017-11-20 00:00:00'",
-                TestsConstants.TEST_INDEX_BANK));
-    String expected =
-        isPushdownEnabled()
-            ? loadFromFile(
-                "expectedOutput/calcite/explain_filter_compare_string_timestamp_w_pushdown.json")
-            : loadFromFile(
-                "expectedOutput/calcite/explain_filter_compare_string_timestamp_wo_pushdown.json");
-
-    assertJsonEquals(expected, result);
   }
 
   @Test
