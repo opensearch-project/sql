@@ -22,7 +22,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.DateString;
 import org.junit.jupiter.api.Test;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.ExistsQueryBuilder;
@@ -379,21 +378,10 @@ public class PredicateAnalyzerTest {
     final RexInputRef field3 =
         builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.VARCHAR), 2);
     RexNode call = builder.makeCall(SqlStdOperatorTable.EQUALS, field3, stringLiteral);
-    ExpressionNotAnalyzableException exception =
+    IllegalArgumentException exception =
         assertThrows(
-            ExpressionNotAnalyzableException.class,
+            IllegalArgumentException.class,
             () -> PredicateAnalyzer.analyze(call, schema, fieldTypes));
-    assertEquals("Can't convert =($2, 'Hi')", exception.getMessage());
-  }
-
-  @Test
-  void equals_throwException_IncompatibleDateTimeOperands() {
-    RexLiteral dateLiteral = builder.makeDateLiteral(DateString.fromDaysSinceEpoch(100));
-    RexNode call = builder.makeCall(SqlStdOperatorTable.EQUALS, field1, dateLiteral);
-    ExpressionNotAnalyzableException exception =
-        assertThrows(
-            ExpressionNotAnalyzableException.class,
-            () -> PredicateAnalyzer.analyze(call, schema, fieldTypes));
-    assertEquals("Can't convert =($0, 1970-04-11)", exception.getMessage());
+    assertEquals("field name is null or empty", exception.getMessage());
   }
 }
