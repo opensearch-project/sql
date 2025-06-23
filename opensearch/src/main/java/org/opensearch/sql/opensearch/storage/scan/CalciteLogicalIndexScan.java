@@ -7,12 +7,11 @@ package org.opensearch.sql.opensearch.storage.scan;
 
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
-import java.util.LinkedList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.OptionalInt;
+import java.util.Objects;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import lombok.Getter;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
@@ -131,19 +130,54 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       builder.add(fieldList.get(project));
     }
     RelDataType newSchema = builder.build();
-    CalciteLogicalIndexScan newScan = this.copyWithNewSchema(newSchema);
+
+    // Projection may alter the index of the collations.
+    // E.g. For sort age
+    // `Sort($1)\n TableScan(name, age)` may become
+    // `Sort($0)\n Project(age)\n  TableScan(name, age)` after projection.
+    RelTraitSet traitSetWithReIndexedCollations = reIndexCollations(selectedColumns);
+
+    CalciteLogicalIndexScan newScan =
+        new CalciteLogicalIndexScan(
+            getCluster(),
+            traitSetWithReIndexedCollations,
+            hints,
+            table,
+            osIndex,
+            newSchema,
+            pushDownContext.clone());
+
     Map<String, String> aliasMapping = this.osIndex.getAliasMapping();
     // For alias types, we need to push down its original path instead of the alias name.
     List<String> projectedFields =
         newSchema.getFieldNames().stream()
             .map(fieldName -> aliasMapping.getOrDefault(fieldName, fieldName))
             .toList();
+
     newScan.pushDownContext.add(
         PushDownAction.of(
             PushDownType.PROJECT,
             newSchema.getFieldNames(),
             requestBuilder -> requestBuilder.pushDownProjectStream(projectedFields.stream())));
     return newScan;
+  }
+
+  private RelTraitSet reIndexCollations(List<Integer> selectedColumns) {
+    RelTraitSet newTraitSet;
+    RelCollation relCollation = getTraitSet().getCollation();
+    if (!Objects.isNull(relCollation) && !relCollation.getFieldCollations().isEmpty()) {
+      List<RelFieldCollation> newCollations =
+          relCollation.getFieldCollations().stream()
+              .filter(collation -> selectedColumns.contains(collation.getFieldIndex()))
+              .map(
+                  collation ->
+                      collation.withFieldIndex(selectedColumns.indexOf(collation.getFieldIndex())))
+              .collect(Collectors.toList());
+      newTraitSet = getTraitSet().plus(RelCollations.of(newCollations));
+    } else {
+      newTraitSet = getTraitSet();
+    }
+    return newTraitSet;
   }
 
   public CalciteLogicalIndexScan pushDownAggregate(Aggregate aggregate) {
@@ -267,25 +301,15 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
    */
   private static List<RelFieldCollation> mergeCollations(
       List<RelFieldCollation> existingCollations, List<RelFieldCollation> newCollations) {
-    // We add new collations first, then existing collations
-    // Consider `sort a | sort b`, the second sort should take precedence
-    List<RelFieldCollation> concatenatedCollations = new ArrayList<>(newCollations);
-    concatenatedCollations.addAll(existingCollations);
-    // Within the same group of collations, the first occurrence of each field index
-    // should take precedence, so we need to remove duplicates while preserving the order
-    LinkedList<RelFieldCollation> mergedCollations = new LinkedList<>();
-    for (RelFieldCollation collation : concatenatedCollations) {
-      // If the collation is already in the merged list, remove it from the list before adding
-      // This is because the sort that comes later in the list should take precedence
-      OptionalInt index =
-          IntStream.range(0, mergedCollations.size())
-              .filter(i -> mergedCollations.get(i).getFieldIndex() == collation.getFieldIndex())
-              .findFirst();
-      if (index.isPresent()) {
-        mergedCollations.remove(index.getAsInt());
-      }
-      mergedCollations.add(collation);
+    Map<Integer, RelFieldCollation> mergedCollations = new LinkedHashMap<>();
+
+    for (RelFieldCollation collation : newCollations) {
+      mergedCollations.put(collation.getFieldIndex(), collation);
     }
-    return mergedCollations;
+
+    for (RelFieldCollation collation : existingCollations) {
+      mergedCollations.put(collation.getFieldIndex(), collation);
+    }
+    return new ArrayList<>(mergedCollations.values());
   }
 }
