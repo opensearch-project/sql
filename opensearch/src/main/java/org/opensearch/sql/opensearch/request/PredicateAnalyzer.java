@@ -1057,7 +1057,7 @@ public class PredicateAnalyzer {
         return sargValue();
       } else if (isIntegral()) {
         return longValue();
-      } else if (isFloatingPoint()) {
+      } else if (isFractional()) {
         return doubleValue();
       } else if (isBoolean()) {
         return booleanValue();
@@ -1072,8 +1072,8 @@ public class PredicateAnalyzer {
       return SqlTypeName.INT_TYPES.contains(literal.getType().getSqlTypeName());
     }
 
-    boolean isFloatingPoint() {
-      return SqlTypeName.APPROX_TYPES.contains(literal.getType().getSqlTypeName());
+    boolean isFractional() {
+      return SqlTypeName.FRACTIONAL_TYPES.contains(literal.getType().getSqlTypeName());
     }
 
     boolean isBoolean() {

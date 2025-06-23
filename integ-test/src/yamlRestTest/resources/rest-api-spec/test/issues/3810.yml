@@ -1,0 +1,38 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+            plugins.calcite.fallback.allowed : false
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+            plugins.calcite.fallback.allowed : true
+
+---
+"Decimal literal should convert to double in pushdown":
+  - skip:
+      features:
+        - headers
+  - do:
+      bulk:
+        index: test
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"balance": 1000.0}'
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=test | where balance >= 1000.0 | stats avg(balance)'
+  - match: {"total": 1}
+  - match: {"schema": [{"name": "avg(balance)", "type": "double"}]}
+  - match: {"datarows": [[1000.0]]}
