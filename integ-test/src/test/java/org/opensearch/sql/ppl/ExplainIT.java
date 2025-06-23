@@ -19,6 +19,7 @@ public class ExplainIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     loadIndex(Index.ACCOUNT);
+    loadIndex(Index.BANK);
   }
 
   @Test
@@ -55,6 +56,21 @@ public class ExplainIT extends PPLIntegTestCase {
                 + "| where age < 40 "
                 + "| where balance > 10000 "
                 + "| fields age"));
+  }
+
+  @Test
+  public void testFilterByCompareStringTimestampPushDownExplain() throws IOException {
+    String expected =
+            isCalciteEnabled()
+                    ? loadFromFile("expectedOutput/calcite/explain_filter_push_compare_timestamp_string.json")
+                    : loadFromFile("expectedOutput/ppl/explain_filter_push_compare_timestamp_string.json");
+
+    assertJsonEqualsIgnoreId(
+            expected,
+            explainQueryToString(
+                    "source=opensearch-sql_test_index_bank"
+                    + "| where birthdate > '2016-12-08 00:00:00' "
+                    + "| where birthdate < '2018-11-09 00:00:00' "));
   }
 
   @Test
