@@ -24,11 +24,11 @@ Example::
 
     os> source=people | eval `CONCAT('hello', 'world')` = CONCAT('hello', 'world'), `CONCAT('hello ', 'whole ', 'world', '!')` = CONCAT('hello ', 'whole ', 'world', '!') | fields `CONCAT('hello', 'world')`, `CONCAT('hello ', 'whole ', 'world', '!')`
     fetched rows / total rows = 1/1
-    +----------------------------+--------------------------------------------+
-    | CONCAT('hello', 'world')   | CONCAT('hello ', 'whole ', 'world', '!')   |
-    |----------------------------+--------------------------------------------|
-    | helloworld                 | hello whole world!                         |
-    +----------------------------+--------------------------------------------+
+    +--------------------------+------------------------------------------+
+    | CONCAT('hello', 'world') | CONCAT('hello ', 'whole ', 'world', '!') |
+    |--------------------------+------------------------------------------|
+    | helloworld               | hello whole world!                       |
+    +--------------------------+------------------------------------------+
 
 
 CONCAT_WS
@@ -47,11 +47,11 @@ Example::
 
     os> source=people | eval `CONCAT_WS(',', 'hello', 'world')` = CONCAT_WS(',', 'hello', 'world') | fields `CONCAT_WS(',', 'hello', 'world')`
     fetched rows / total rows = 1/1
-    +------------------------------------+
-    | CONCAT_WS(',', 'hello', 'world')   |
-    |------------------------------------|
-    | hello,world                        |
-    +------------------------------------+
+    +----------------------------------+
+    | CONCAT_WS(',', 'hello', 'world') |
+    |----------------------------------|
+    | hello,world                      |
+    +----------------------------------+
 
 
 LENGTH
@@ -74,11 +74,11 @@ Example::
 
     os> source=people | eval `LENGTH('helloworld')` = LENGTH('helloworld') | fields `LENGTH('helloworld')`
     fetched rows / total rows = 1/1
-    +------------------------+
-    | LENGTH('helloworld')   |
-    |------------------------|
-    | 10                     |
-    +------------------------+
+    +----------------------+
+    | LENGTH('helloworld') |
+    |----------------------|
+    | 10                   |
+    +----------------------+
 
 
 LIKE
@@ -98,11 +98,11 @@ Example::
 
     os> source=people | eval `LIKE('hello world', '_ello%')` = LIKE('hello world', '_ELLO%') | fields `LIKE('hello world', '_ello%')`
     fetched rows / total rows = 1/1
-    +---------------------------------+
-    | LIKE('hello world', '_ello%')   |
-    |---------------------------------|
-    | True                            |
-    +---------------------------------+
+    +-------------------------------+
+    | LIKE('hello world', '_ello%') |
+    |-------------------------------|
+    | True                          |
+    +-------------------------------+
 
 
 LOWER
@@ -121,11 +121,11 @@ Example::
 
     os> source=people | eval `LOWER('helloworld')` = LOWER('helloworld'), `LOWER('HELLOWORLD')` = LOWER('HELLOWORLD') | fields `LOWER('helloworld')`, `LOWER('HELLOWORLD')`
     fetched rows / total rows = 1/1
-    +-----------------------+-----------------------+
-    | LOWER('helloworld')   | LOWER('HELLOWORLD')   |
-    |-----------------------+-----------------------|
-    | helloworld            | helloworld            |
-    +-----------------------+-----------------------+
+    +---------------------+---------------------+
+    | LOWER('helloworld') | LOWER('HELLOWORLD') |
+    |---------------------+---------------------|
+    | helloworld          | helloworld          |
+    +---------------------+---------------------+
 
 
 LTRIM
@@ -144,11 +144,11 @@ Example::
 
     os> source=people | eval `LTRIM('   hello')` = LTRIM('   hello'), `LTRIM('hello   ')` = LTRIM('hello   ') | fields `LTRIM('   hello')`, `LTRIM('hello   ')`
     fetched rows / total rows = 1/1
-    +---------------------+---------------------+
-    | LTRIM('   hello')   | LTRIM('hello   ')   |
-    |---------------------+---------------------|
-    | hello               | hello               |
-    +---------------------+---------------------+
+    +-------------------+-------------------+
+    | LTRIM('   hello') | LTRIM('hello   ') |
+    |-------------------+-------------------|
+    | hello             | hello             |
+    +-------------------+-------------------+
 
 
 POSITION
@@ -169,11 +169,11 @@ Example::
 
     os> source=people | eval `POSITION('world' IN 'helloworld')` = POSITION('world' IN 'helloworld'), `POSITION('invalid' IN 'helloworld')`= POSITION('invalid' IN 'helloworld')  | fields `POSITION('world' IN 'helloworld')`, `POSITION('invalid' IN 'helloworld')`
     fetched rows / total rows = 1/1
-    +-------------------------------------+---------------------------------------+
-    | POSITION('world' IN 'helloworld')   | POSITION('invalid' IN 'helloworld')   |
-    |-------------------------------------+---------------------------------------|
-    | 6                                   | 0                                     |
-    +-------------------------------------+---------------------------------------+
+    +-----------------------------------+-------------------------------------+
+    | POSITION('world' IN 'helloworld') | POSITION('invalid' IN 'helloworld') |
+    |-----------------------------------+-------------------------------------|
+    | 6                                 | 0                                   |
+    +-----------------------------------+-------------------------------------+
 
 
 REVERSE
@@ -192,11 +192,11 @@ Example::
 
     os> source=people | eval `REVERSE('abcde')` = REVERSE('abcde') | fields `REVERSE('abcde')`
     fetched rows / total rows = 1/1
-    +--------------------+
-    | REVERSE('abcde')   |
-    |--------------------|
-    | edcba              |
-    +--------------------+
+    +------------------+
+    | REVERSE('abcde') |
+    |------------------|
+    | edcba            |
+    +------------------+
 
 
 RIGHT
@@ -215,11 +215,11 @@ Example::
 
     os> source=people | eval `RIGHT('helloworld', 5)` = RIGHT('helloworld', 5), `RIGHT('HELLOWORLD', 0)` = RIGHT('HELLOWORLD', 0) | fields `RIGHT('helloworld', 5)`, `RIGHT('HELLOWORLD', 0)`
     fetched rows / total rows = 1/1
-    +--------------------------+--------------------------+
-    | RIGHT('helloworld', 5)   | RIGHT('HELLOWORLD', 0)   |
-    |--------------------------+--------------------------|
-    | world                    |                          |
-    +--------------------------+--------------------------+
+    +------------------------+------------------------+
+    | RIGHT('helloworld', 5) | RIGHT('HELLOWORLD', 0) |
+    |------------------------+------------------------|
+    | world                  |                        |
+    +------------------------+------------------------+
 
 
 RTRIM
@@ -238,11 +238,11 @@ Example::
 
     os> source=people | eval `RTRIM('   hello')` = RTRIM('   hello'), `RTRIM('hello   ')` = RTRIM('hello   ') | fields `RTRIM('   hello')`, `RTRIM('hello   ')`
     fetched rows / total rows = 1/1
-    +---------------------+---------------------+
-    | RTRIM('   hello')   | RTRIM('hello   ')   |
-    |---------------------+---------------------|
-    |    hello            | hello               |
-    +---------------------+---------------------+
+    +-------------------+-------------------+
+    | RTRIM('   hello') | RTRIM('hello   ') |
+    |-------------------+-------------------|
+    | hello             | hello             |
+    +-------------------+-------------------+
 
 
 SUBSTRING
@@ -263,11 +263,11 @@ Example::
 
     os> source=people | eval `SUBSTRING('helloworld', 5)` = SUBSTRING('helloworld', 5), `SUBSTRING('helloworld', 5, 3)` = SUBSTRING('helloworld', 5, 3) | fields `SUBSTRING('helloworld', 5)`, `SUBSTRING('helloworld', 5, 3)`
     fetched rows / total rows = 1/1
-    +------------------------------+---------------------------------+
-    | SUBSTRING('helloworld', 5)   | SUBSTRING('helloworld', 5, 3)   |
-    |------------------------------+---------------------------------|
-    | oworld                       | owo                             |
-    +------------------------------+---------------------------------+
+    +----------------------------+-------------------------------+
+    | SUBSTRING('helloworld', 5) | SUBSTRING('helloworld', 5, 3) |
+    |----------------------------+-------------------------------|
+    | oworld                     | owo                           |
+    +----------------------------+-------------------------------+
 
 
 TRIM
@@ -284,11 +284,11 @@ Example::
 
     os> source=people | eval `TRIM('   hello')` = TRIM('   hello'), `TRIM('hello   ')` = TRIM('hello   ') | fields `TRIM('   hello')`, `TRIM('hello   ')`
     fetched rows / total rows = 1/1
-    +--------------------+--------------------+
-    | TRIM('   hello')   | TRIM('hello   ')   |
-    |--------------------+--------------------|
-    | hello              | hello              |
-    +--------------------+--------------------+
+    +------------------+------------------+
+    | TRIM('   hello') | TRIM('hello   ') |
+    |------------------+------------------|
+    | hello            | hello            |
+    +------------------+------------------+
 
 
 UPPER
@@ -307,8 +307,8 @@ Example::
 
     os> source=people | eval `UPPER('helloworld')` = UPPER('helloworld'), `UPPER('HELLOWORLD')` = UPPER('HELLOWORLD') | fields `UPPER('helloworld')`, `UPPER('HELLOWORLD')`
     fetched rows / total rows = 1/1
-    +-----------------------+-----------------------+
-    | UPPER('helloworld')   | UPPER('HELLOWORLD')   |
-    |-----------------------+-----------------------|
-    | HELLOWORLD            | HELLOWORLD            |
-    +-----------------------+-----------------------+
+    +---------------------+---------------------+
+    | UPPER('helloworld') | UPPER('HELLOWORLD') |
+    |---------------------+---------------------|
+    | HELLOWORLD          | HELLOWORLD          |
+    +---------------------+---------------------+

@@ -7,8 +7,10 @@ package org.opensearch.sql.spark.config;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.google.gson.Gson;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * This POJO is just for reading stringified json in `plugins.query.executionengine.spark.config`
@@ -16,6 +18,8 @@ import lombok.Data;
  */
 @Data
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SparkExecutionEngineConfigClusterSetting {
   // optional

@@ -8,6 +8,7 @@ package org.opensearch.sql.spark.dispatcher.model;
 public enum JobType {
   INTERACTIVE("interactive"),
   STREAMING("streaming"),
+  REFRESH("refresh"),
   BATCH("batch");
 
   private String text;

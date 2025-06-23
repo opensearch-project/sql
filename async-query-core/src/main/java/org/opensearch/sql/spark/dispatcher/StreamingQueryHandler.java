@@ -13,6 +13,7 @@ import java.util.Map;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
+import org.opensearch.sql.spark.asyncquery.model.QueryState;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.client.StartJobRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryContext;
@@ -82,6 +83,7 @@ public class StreamingQueryHandler extends BatchQueryHandler {
             sparkSubmitParametersBuilderProvider
                 .getSparkSubmitParametersBuilder()
                 .clusterName(clusterName)
+                .queryId(context.getQueryId())
                 .query(dispatchQueryRequest.getQuery())
                 .structuredStreaming(true)
                 .dataSource(
@@ -101,6 +103,7 @@ public class StreamingQueryHandler extends BatchQueryHandler {
         .datasourceName(dataSourceMetadata.getName())
         .jobType(JobType.STREAMING)
         .indexName(indexQueryDetails.openSearchIndexName())
+        .status(QueryState.WAITING)
         .build();
   }
 }

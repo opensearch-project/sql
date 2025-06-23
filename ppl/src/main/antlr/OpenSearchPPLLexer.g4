@@ -35,6 +35,11 @@ NEW_FIELD:                          'NEW_FIELD';
 KMEANS:                             'KMEANS';
 AD:                                 'AD';
 ML:                                 'ML';
+PATTERN_METHOD:                     'PATTERN_METHOD';
+SIMPLE_PATTERN:                     'SIMPLE_PATTERN';
+BRAIN:                              'BRAIN';
+VARIABLE_COUNT_THRESHOLD:           'VARIABLE_COUNT_THRESHOLD';
+FREQUENCY_THRESHOLD_PERCENTAGE:     'FREQUENCY_THRESHOLD_PERCENTAGE';
 
 // COMMAND ASSIST KEYWORDS
 AS:                                 'AS';
@@ -389,13 +394,16 @@ INTEGER_LITERAL:                    DEC_DIGIT+;
 DECIMAL_LITERAL:                    (DEC_DIGIT+)? '.' DEC_DIGIT+;
 
 fragment DATE_SUFFIX:               ([\-.][*0-9]+)+;
-fragment ID_LITERAL:                [@*A-Z]+?[*A-Z_\-0-9]*;
 fragment CLUSTER_PREFIX_LITERAL:    [*A-Z]+?[*A-Z_\-0-9]* COLON;
 ID_DATE_SUFFIX:                     CLUSTER_PREFIX_LITERAL? ID_LITERAL DATE_SUFFIX;
 DQUOTA_STRING:                      '"' ( '\\'. | '""' | ~('"'| '\\') )* '"';
 SQUOTA_STRING:                      '\'' ('\\'. | '\'\'' | ~('\'' | '\\'))* '\'';
 BQUOTA_STRING:                      '`' ( '\\'. | '``' | ~('`'|'\\'))* '`';
 fragment DEC_DIGIT:                 [0-9];
+
+// Identifiers cannot start with a single '_' since this an OpenSearch reserved
+// metadata field.  Two underscores (or more) is acceptable, such as '__field'.
+fragment ID_LITERAL:                ([@*A-Z_])+?[*A-Z_\-0-9]*;
 
 
 ERROR_RECOGNITION:                  .    -> channel(ERRORCHANNEL);

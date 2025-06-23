@@ -8,6 +8,9 @@ on:
       - 1.*
       - 2.*
 
+env:
+  SNAPSHOT_REPO_URL: https://aws.oss.sonatype.org/content/repositories/snapshots/
+
 jobs:
   build-and-publish-snapshots:
     strategy:
@@ -20,19 +23,21 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/setup-java@v3
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin # Temurin is a distribution of adoptium
           java-version: 11
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: aws-actions/configure-aws-credentials@v1.7.0
         with:
           role-to-assume: ${{ secrets.PUBLISH_SNAPSHOTS_ROLE }}
           aws-region: us-east-1
+
+      - name: get credentials
+        run: |
+          # Get credentials for publishing
+          .github/get-sonatype-credentials.sh
+
       - name: publish snapshots to maven
         run: |
-          export SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
-          export SONATYPE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-password --query SecretString --output text)
-          echo "::add-mask::$SONATYPE_USERNAME"
-          echo "::add-mask::$SONATYPE_PASSWORD"
           ./gradlew publishPluginZipPublicationToSnapshotsRepository

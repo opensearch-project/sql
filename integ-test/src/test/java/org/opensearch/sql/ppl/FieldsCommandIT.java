@@ -68,4 +68,19 @@ public class FieldsCommandIT extends PPLIntegTestCase {
         rows("2018-08-19 00:00:00"),
         rows("2018-08-11 00:00:00"));
   }
+
+  @Test
+  public void testMetadataFields() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source=%s | fields firstname, _index", TEST_INDEX_ACCOUNT));
+    verifyColumn(result, columnName("firstname"), columnName("_index"));
+  }
+
+  @Test
+  public void testDelimitedMetadataFields() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | fields firstname, `_id`, `_index`", TEST_INDEX_ACCOUNT));
+    verifyColumn(result, columnName("firstname"), columnName("_id"), columnName("_index"));
+  }
 }

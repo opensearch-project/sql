@@ -9,6 +9,7 @@ import java.util.Map;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
+import org.opensearch.sql.spark.asyncquery.model.QueryState;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryContext;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
@@ -71,9 +72,13 @@ public class RefreshQueryHandler extends BatchQueryHandler {
   }
 
   @Override
+  protected void borrow(String datasource) {
+    leaseManager.borrow(new LeaseRequest(JobType.REFRESH, datasource));
+  }
+
+  @Override
   public DispatchQueryResponse submit(
       DispatchQueryRequest dispatchQueryRequest, DispatchQueryContext context) {
-    leaseManager.borrow(new LeaseRequest(JobType.BATCH, dispatchQueryRequest.getDatasource()));
 
     DispatchQueryResponse resp = super.submit(dispatchQueryRequest, context);
     DataSourceMetadata dataSourceMetadata = context.getDataSourceMetadata();
@@ -83,8 +88,9 @@ public class RefreshQueryHandler extends BatchQueryHandler {
         .resultIndex(resp.getResultIndex())
         .sessionId(resp.getSessionId())
         .datasourceName(dataSourceMetadata.getName())
-        .jobType(JobType.BATCH)
+        .jobType(JobType.REFRESH)
         .indexName(context.getIndexQueryDetails().openSearchIndexName())
+        .status(QueryState.WAITING)
         .build();
   }
 }

@@ -15,6 +15,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.opensearch.common.unit.TimeValue.timeValueMinutes;
 import static org.opensearch.sql.opensearch.setting.LegacyOpenDistroSettings.legacySettings;
+import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.ASYNC_QUERY_EXTERNAL_SCHEDULER_ENABLED_SETTING;
+import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.ASYNC_QUERY_EXTERNAL_SCHEDULER_INTERVAL_SETTING;
 import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.METRICS_ROLLING_INTERVAL_SETTING;
 import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.METRICS_ROLLING_WINDOW_SETTING;
 import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.PPL_ENABLED_SETTING;
@@ -194,5 +196,23 @@ class OpenSearchSettingsTest {
             org.opensearch.common.settings.Settings.builder()
                 .put(SPARK_EXECUTION_ENGINE_CONFIG.getKey(), sparkConfig)
                 .build()));
+  }
+
+  @Test
+  void getAsyncQueryExternalSchedulerEnabledSetting() {
+    // Default is true
+    assertEquals(
+        true,
+        ASYNC_QUERY_EXTERNAL_SCHEDULER_ENABLED_SETTING.get(
+            org.opensearch.common.settings.Settings.builder().build()));
+  }
+
+  @Test
+  void getAsyncQueryExternalSchedulerIntervalSetting() {
+    // Default is empty string
+    assertEquals(
+        "",
+        ASYNC_QUERY_EXTERNAL_SCHEDULER_INTERVAL_SETTING.get(
+            org.opensearch.common.settings.Settings.builder().build()));
   }
 }

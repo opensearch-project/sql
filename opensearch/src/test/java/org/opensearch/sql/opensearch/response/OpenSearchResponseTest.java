@@ -14,10 +14,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -163,7 +165,8 @@ class OpenSearchResponseTest {
                 "_sort", new ExprLongValue(123456L),
                 "_score", new ExprFloatValue(3.75F),
                 "_maxscore", new ExprFloatValue(3.75F)));
-    List includes = List.of("id1", "_index", "_id", "_routing", "_sort", "_score", "_maxscore");
+    List<String> includes =
+        List.of("id1", "_index", "_id", "_routing", "_sort", "_score", "_maxscore");
     int i = 0;
     for (ExprValue hit : new OpenSearchResponse(searchResponse, factory, includes)) {
       if (i == 0) {
@@ -248,20 +251,15 @@ class OpenSearchResponseTest {
 
   @Test
   void iterator_with_inner_hits() {
+    Map<String, SearchHits> innerHits = new HashMap<>();
+    innerHits.put("a", mock(SearchHits.class));
+    when(searchHit1.getInnerHits()).thenReturn(innerHits);
     when(searchResponse.getHits())
         .thenReturn(
             new SearchHits(
                 new SearchHit[] {searchHit1},
                 new TotalHits(2L, TotalHits.Relation.EQUAL_TO),
                 1.0F));
-    when(searchHit1.getInnerHits())
-        .thenReturn(
-            Map.of(
-                "innerHit",
-                new SearchHits(
-                    new SearchHit[] {searchHit1},
-                    new TotalHits(2L, TotalHits.Relation.EQUAL_TO),
-                    1.0F)));
 
     when(factory.construct(any(), anyBoolean())).thenReturn(exprTupleValue1);
 

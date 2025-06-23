@@ -24,6 +24,7 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.And;
+import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Between;
 import org.opensearch.sql.ast.expression.Case;
 import org.opensearch.sql.ast.expression.Cast;
@@ -356,8 +357,7 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
 
   @Override
   public Expression visitField(Field node, AnalysisContext context) {
-    String attr = node.getField().toString();
-    return visitIdentifier(attr, context);
+    return visitQualifiedName((QualifiedName) node.getField(), context);
   }
 
   @Override
@@ -398,6 +398,11 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
 
   @Override
   public Expression visitUnresolvedArgument(UnresolvedArgument node, AnalysisContext context) {
+    return new NamedArgumentExpression(node.getArgName(), node.getValue().accept(this, context));
+  }
+
+  @Override
+  public Expression visitArgument(Argument node, AnalysisContext context) {
     return new NamedArgumentExpression(node.getArgName(), node.getValue().accept(this, context));
   }
 

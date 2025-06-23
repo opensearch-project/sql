@@ -30,14 +30,14 @@ PPL query::
 
     os> source=accounts | fields firstname, age | head;
     fetched rows / total rows = 4/4
-    +-------------+-------+
-    | firstname   | age   |
-    |-------------+-------|
-    | Amber       | 32    |
-    | Hattie      | 36    |
-    | Nanette     | 28    |
-    | Dale        | 33    |
-    +-------------+-------+
+    +-----------+-----+
+    | firstname | age |
+    |-----------+-----|
+    | Amber     | 32  |
+    | Hattie    | 36  |
+    | Nanette   | 28  |
+    | Dale      | 33  |
+    +-----------+-----+
 
 Example 2: Get first N results
 ===========================================
@@ -48,13 +48,13 @@ PPL query::
 
     os> source=accounts | fields firstname, age | head 3;
     fetched rows / total rows = 3/3
-    +-------------+-------+
-    | firstname   | age   |
-    |-------------+-------|
-    | Amber       | 32    |
-    | Hattie      | 36    |
-    | Nanette     | 28    |
-    +-------------+-------+
+    +-----------+-----+
+    | firstname | age |
+    |-----------+-----|
+    | Amber     | 32  |
+    | Hattie    | 36  |
+    | Nanette   | 28  |
+    +-----------+-----+
 
 Example 3: Get first N results after offset M
 =============================================
@@ -65,13 +65,13 @@ PPL query::
 
     os> source=accounts | fields firstname, age | head 3 from 1;
     fetched rows / total rows = 3/3
-    +-------------+-------+
-    | firstname   | age   |
-    |-------------+-------|
-    | Hattie      | 36    |
-    | Nanette     | 28    |
-    | Dale        | 33    |
-    +-------------+-------+
+    +-----------+-----+
+    | firstname | age |
+    |-----------+-----|
+    | Hattie    | 36  |
+    | Nanette   | 28  |
+    | Dale      | 33  |
+    +-----------+-----+
 
 Limitation
 ==========

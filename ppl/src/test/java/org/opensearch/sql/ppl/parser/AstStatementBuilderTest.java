@@ -19,16 +19,20 @@ import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.Mock;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 
 public class AstStatementBuilderTest {
 
   @Rule public ExpectedException exceptionRule = ExpectedException.none();
+
+  @Mock private Settings settings;
 
   private PPLSyntaxParser parser = new PPLSyntaxParser();
 
@@ -65,7 +69,7 @@ public class AstStatementBuilderTest {
   private Node plan(String query, boolean isExplain) {
     final AstStatementBuilder builder =
         new AstStatementBuilder(
-            new AstBuilder(new AstExpressionBuilder(), query),
+            new AstBuilder(new AstExpressionBuilder(), settings, query),
             AstStatementBuilder.StatementBuilderContext.builder().isExplain(isExplain).build());
     return builder.visit(parser.parse(query));
   }

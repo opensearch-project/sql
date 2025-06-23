@@ -5,7 +5,8 @@
 
 package org.opensearch.sql.expression.datetime;
 
-import static java.time.temporal.ChronoField.ALIGNED_WEEK_OF_YEAR;
+import static java.time.DayOfWeek.SUNDAY;
+import static java.time.temporal.TemporalAdjusters.nextOrSame;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -13,6 +14,7 @@ import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -97,13 +99,9 @@ class YearweekTest extends ExpressionTestBase {
     assertEquals(eval(expression), eval(expressionWithoutMode));
   }
 
-  // subtracting 1 as a temporary fix for year 2024.
-  // Issue: https://github.com/opensearch-project/sql/issues/2477
   @Test
   public void testYearweekWithTimeType() {
-    int week = LocalDate.now(functionProperties.getQueryStartClock()).get(ALIGNED_WEEK_OF_YEAR) - 1;
-    int year = LocalDate.now(functionProperties.getQueryStartClock()).getYear();
-    int expected = Integer.parseInt(String.format("%d%02d", year, week));
+    int expected = getYearWeekBeforeSunday(LocalDate.now(functionProperties.getQueryStartClock()));
 
     FunctionExpression expression =
         DSL.yearweek(
@@ -112,9 +110,27 @@ class YearweekTest extends ExpressionTestBase {
     FunctionExpression expressionWithoutMode =
         DSL.yearweek(functionProperties, DSL.literal(new ExprTimeValue("10:11:12")));
 
-    assertAll(
-        () -> assertEquals(expected, eval(expression).integerValue()),
-        () -> assertEquals(expected, eval(expressionWithoutMode).integerValue()));
+    assertEquals(
+        expected,
+        eval(expression).integerValue(),
+        String.format(
+            "Expected year week: %d, got %s (test with mode)", expected, eval(expression)));
+    assertEquals(
+        expected,
+        eval(expressionWithoutMode).integerValue(),
+        String.format(
+            "Expected year week: %d, got %s (test without mode)", expected, eval(expression)));
+  }
+
+  private int getYearWeekBeforeSunday(LocalDate date) {
+    LocalDate firstSundayOfYear = date.withDayOfYear(1).with(nextOrSame(SUNDAY));
+    if (date.isBefore(firstSundayOfYear)) {
+      return getYearWeekBeforeSunday(date.minusDays(1));
+    }
+
+    int week = (int) ChronoUnit.WEEKS.between(firstSundayOfYear, date) + 1;
+    int year = date.getYear();
+    return Integer.parseInt(String.format("%d%02d", year, week));
   }
 
   @Test

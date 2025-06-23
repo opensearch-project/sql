@@ -8,9 +8,15 @@
 # Also "dynamic" is set to "false" so that other fields cannot be added.
 dynamic: false
 properties:
-  name:
+  accountId:
     type: keyword
-  jobType:
+  jobId:
+    type: keyword
+  dataSource:
+    type: keyword
+  scheduledQuery:
+    type: text
+  queryLang:
     type: keyword
   lastUpdateTime:
     type: date

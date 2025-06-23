@@ -101,3 +101,32 @@ The response in JDBC format with cursor id::
     }
 
 The query with `aggregation` and `join` does not support pagination for now.
+
+Limitations on Using Multi-valued Fields
+========================================
+
+OpenSearch does not natively support the ARRAY data type but does allow multi-value fields implicitly. The
+SQL/PPL plugin adheres strictly to the data type semantics defined in index mappings. When parsing OpenSearch
+responses, it expects data to match the declared type and does not account for data in array format. If the
+plugins.query.field_type_tolerance setting is enabled, the SQL/PPL plugin will handle array datasets by returning
+scalar data types, allowing basic queries (e.g., SELECT * FROM tbl WHERE condition). However, using multi-value
+fields in expressions or functions will result in exceptions. If this setting is disabled or absent, only the
+first element of an array is returned, preserving the default behavior.
+
+For example, the following query tries to calculate the absolute value of a field that contains arrays of
+longs::
+
+    POST _plugins/_sql/
+    {
+      "query": "SELECT id, ABS(long_array) FROM multi_value_long"
+    }
+The response in JSON format is::
+
+    {
+      "error": {
+        "reason": "Invalid SQL query",
+        "details": "invalid to get longValue from value of type ARRAY",
+        "type": "ExpressionEvaluationException"
+      },
+      "status": 400
+    }

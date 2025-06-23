@@ -48,10 +48,34 @@ class DocTestConnection(OpenSearchConnection):
         click.echo(output)
 
 
+"""
+For _explain requests, there are several additional request fields that will inconsistently
+appear/change depending on underlying cluster state. This method normalizes these responses in-place
+to make _explain doctests more consistent.
+
+If the passed response is not an _explain response, the input is left unmodified.
+"""
+def normalize_explain_response(data):
+    if "root" in data:
+        data = data["root"]
+
+    if (request := data.get("description", {}).get("request", None)) and request.startswith("OpenSearchQueryRequest("):
+        for filter_field in ["needClean", "pitId", "cursorKeepAlive", "searchAfter", "searchResponse"]:
+            request = re.sub(f", {filter_field}=\\w+", "", request)
+        data["description"]["request"] = request
+
+    for child in data.get("children", []):
+        normalize_explain_response(child)
+
+    return data
+
+
 def pretty_print(s):
     try:
-        d = json.loads(s)
-        print(json.dumps(d, indent=2))
+        data = json.loads(s)
+        normalize_explain_response(data)
+
+        print(json.dumps(data, indent=2))
     except json.decoder.JSONDecodeError:
         print(s)
 

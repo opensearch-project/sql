@@ -925,6 +925,10 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
                 "SELECT str_to_date(firstname," + " '%%Y-%%m-%%d %%h:%%i:%%s') FROM %s LIMIT 2",
                 TEST_INDEX_BANK));
     verifyDataRows(result, rows((Object) null), rows((Object) null));
+
+    // two digits year case
+    result = executeQuery("SELECT str_to_date('23-Oct-17 00:00:00', '%d-%b-%y %h:%i:%s')");
+    verifyDataRows(result, rows("2017-10-23 00:00:00"));
   }
 
   @Test

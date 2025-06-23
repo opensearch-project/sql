@@ -12,6 +12,7 @@ import lombok.EqualsAndHashCode;
 import lombok.experimental.SuperBuilder;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
 import org.opensearch.sql.spark.execution.statestore.StateModel;
+import org.opensearch.sql.spark.rest.model.LangType;
 import org.opensearch.sql.utils.SerializeUtils;
 
 /** This class models all the metadata required for a job. */
@@ -35,6 +36,10 @@ public class AsyncQueryJobMetadata extends StateModel {
   private final String datasourceName;
   // null if JobType is INTERACTIVE or null
   private final String indexName;
+  private final String query;
+  private final LangType langType;
+  private final QueryState state;
+  private final String error;
 
   @Override
   public String toString() {
@@ -54,6 +59,10 @@ public class AsyncQueryJobMetadata extends StateModel {
         .datasourceName(copy.datasourceName)
         .jobType(copy.jobType)
         .indexName(copy.indexName)
+        .query(copy.query)
+        .langType(copy.langType)
+        .state(copy.state)
+        .error(copy.error)
         .metadata(metadata)
         .build();
   }

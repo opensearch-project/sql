@@ -65,6 +65,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.format.TextStyle;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.IsoFields;
 import java.time.temporal.TemporalAmount;
 import java.util.Locale;
 import java.util.Map;
@@ -125,7 +126,8 @@ public class DateTimeFunction {
           .put("MINUTE", "mm")
           .put("HOUR", "HH")
           .put("DAY", "dd")
-          .put("WEEK", "w")
+          // removing "WEEK" to standardize the extract
+          // .put("WEEK", "w")
           .put("MONTH", "MM")
           .put("YEAR", "yyyy")
           .put("SECOND_MICROSECOND", "ssSSSSSS")
@@ -1585,7 +1587,13 @@ public class DateTimeFunction {
    */
   public ExprLongValue formatExtractFunction(ExprValue part, ExprValue datetime) {
     String partName = part.stringValue().toUpperCase();
-    LocalDateTime arg = datetime.datetimeValue();
+    LocalDateTime arg = datetime.datetimeValue().atZone(ZoneOffset.UTC).toLocalDateTime();
+
+    // Override "Week" to use the IsoFields week-of-week-based-year format
+    if (partName.equals("WEEK")) {
+      return new ExprLongValue(arg.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR));
+    }
+
     String text =
         arg.format(DateTimeFormatter.ofPattern(extract_formats.get(partName), Locale.ENGLISH));
 

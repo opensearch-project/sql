@@ -60,6 +60,7 @@ import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Values;
+import org.opensearch.sql.ast.tree.Window;
 
 /** AST nodes visitor Defines the traverse path. */
 public abstract class AbstractNodeVisitor<T, C> {
@@ -311,5 +312,9 @@ public abstract class AbstractNodeVisitor<T, C> {
 
   public T visitCloseCursor(CloseCursor closeCursor, C context) {
     return visitChildren(closeCursor, context);
+  }
+
+  public T visitWindow(Window window, C context) {
+    return visitChildren(window, context);
   }
 }

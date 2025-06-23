@@ -575,7 +575,7 @@ public class DateFieldFormatterTest {
     String dateFormat = "date_optional_time";
     String originalDateValue = "1581724085";
     // Invalid format for date value; should return original value
-    String expectedDateValue = "1581724085";
+    String expectedDateValue = "2020-02-14 23:48:05.000";
 
     verifyFormatting(columnName, dateFormat, originalDateValue, expectedDateValue);
   }
@@ -606,6 +606,24 @@ public class DateFieldFormatterTest {
 
     originalDateValue = "1420070400001";
     expectedDateValue = "2015-01-01 00:00:00.001";
+    verifyFormatting(columnName, dateFormat, originalDateValue, expectedDateValue);
+  }
+
+  @Test
+  public void testDateInTimestampFormInSecondWithoutHint() {
+    String columnName = "date_field";
+    String dateFormat = "date_optional_time";
+    String originalDateValue = "1732057981";
+    String expectedDateValue = "2024-11-19 23:13:01.000";
+    verifyFormatting(columnName, dateFormat, originalDateValue, expectedDateValue);
+  }
+
+  @Test
+  public void testDateInTimestampFormInMilliSecondWithoutHint() {
+    String columnName = "date_field";
+    String dateFormat = "date_optional_time";
+    String originalDateValue = "1732057981000";
+    String expectedDateValue = "2024-11-19 23:13:01.000";
     verifyFormatting(columnName, dateFormat, originalDateValue, expectedDateValue);
   }
 

@@ -30,14 +30,14 @@ PPL query::
 
     os> source=accounts | eval doubleAge = age * 2 | fields age, doubleAge ;
     fetched rows / total rows = 4/4
-    +-------+-------------+
-    | age   | doubleAge   |
-    |-------+-------------|
-    | 32    | 64          |
-    | 36    | 72          |
-    | 28    | 56          |
-    | 33    | 66          |
-    +-------+-------------+
+    +-----+-----------+
+    | age | doubleAge |
+    |-----+-----------|
+    | 32  | 64        |
+    | 36  | 72        |
+    | 28  | 56        |
+    | 33  | 66        |
+    +-----+-----------+
 
 
 Example 2: Override the existing field
@@ -49,14 +49,14 @@ PPL query::
 
     os> source=accounts | eval age = age + 1 | fields age ;
     fetched rows / total rows = 4/4
-    +-------+
-    | age   |
-    |-------|
-    | 33    |
-    | 37    |
-    | 29    |
-    | 34    |
-    +-------+
+    +-----+
+    | age |
+    |-----|
+    | 33  |
+    | 37  |
+    | 29  |
+    | 34  |
+    +-----+
 
 Example 3: Create the new field with field defined in eval
 ==========================================================
@@ -67,14 +67,14 @@ PPL query::
 
     os> source=accounts | eval doubleAge = age * 2, ddAge = doubleAge * 2 | fields age, doubleAge, ddAge ;
     fetched rows / total rows = 4/4
-    +-------+-------------+---------+
-    | age   | doubleAge   | ddAge   |
-    |-------+-------------+---------|
-    | 32    | 64          | 128     |
-    | 36    | 72          | 144     |
-    | 28    | 56          | 112     |
-    | 33    | 66          | 132     |
-    +-------+-------------+---------+
+    +-----+-----------+-------+
+    | age | doubleAge | ddAge |
+    |-----+-----------+-------|
+    | 32  | 64        | 128   |
+    | 36  | 72        | 144   |
+    | 28  | 56        | 112   |
+    | 33  | 66        | 132   |
+    +-----+-----------+-------+
 
 Limitation
 ==========

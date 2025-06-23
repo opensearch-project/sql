@@ -32,12 +32,12 @@ PPL query::
 
     os> source=accounts | top gender;
     fetched rows / total rows = 2/2
-    +----------+
-    | gender   |
-    |----------|
-    | M        |
-    | F        |
-    +----------+
+    +--------+
+    | gender |
+    |--------|
+    | M      |
+    | F      |
+    +--------+
 
 Example 2: Find the most common values in a field
 ===========================================
@@ -48,11 +48,11 @@ PPL query::
 
     os> source=accounts | top 1 gender;
     fetched rows / total rows = 1/1
-    +----------+
-    | gender   |
-    |----------|
-    | M        |
-    +----------+
+    +--------+
+    | gender |
+    |--------|
+    | M      |
+    +--------+
 
 Example 2: Find the most common values organized by gender
 ====================================================
@@ -63,12 +63,12 @@ PPL query::
 
     os> source=accounts | top 1 age by gender;
     fetched rows / total rows = 2/2
-    +----------+-------+
-    | gender   | age   |
-    |----------+-------|
-    | F        | 28    |
-    | M        | 32    |
-    +----------+-------+
+    +--------+-----+
+    | gender | age |
+    |--------+-----|
+    | F      | 28  |
+    | M      | 32  |
+    +--------+-----+
 
 Limitation
 ==========

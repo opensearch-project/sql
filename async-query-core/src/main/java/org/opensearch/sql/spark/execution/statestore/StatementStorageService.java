@@ -20,7 +20,10 @@ public interface StatementStorageService {
       StatementModel statementModel, AsyncQueryRequestContext asyncQueryRequestContext);
 
   StatementModel updateStatementState(
-      StatementModel oldStatementModel, StatementState statementState);
+      StatementModel oldStatementModel,
+      StatementState statementState,
+      AsyncQueryRequestContext asyncQueryRequestContext);
 
-  Optional<StatementModel> getStatement(String id, String datasourceName);
+  Optional<StatementModel> getStatement(
+      String id, String datasourceName, AsyncQueryRequestContext asyncQueryRequestContext);
 }

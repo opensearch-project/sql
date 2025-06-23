@@ -42,6 +42,7 @@ import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.domain.JoinSelect;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SqlParseException;
@@ -104,6 +105,7 @@ public abstract class QueryPlannerTest {
     // to mock.
     // In this case, default value in Setting will be returned all the time.
     doReturn(emptyList()).when(settings).getSettings();
+    doReturn(false).when(settings).getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER);
     LocalClusterState.state().setPluginSettings(settings);
 
     ActionFuture mockFuture = mock(ActionFuture.class);

@@ -19,7 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.opensearch.action.admin.cluster.settings.ClusterGetSettingsRequest;
 import org.opensearch.action.admin.indices.settings.get.GetSettingsRequest;
 import org.opensearch.action.admin.indices.settings.get.GetSettingsResponse;
-import org.opensearch.action.search.ClearScrollRequest;
+import org.opensearch.action.search.*;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.client.indices.CreateIndexRequest;
@@ -32,6 +32,7 @@ import org.opensearch.cluster.metadata.AliasMetadata;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
+import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 
 /**
@@ -166,6 +167,8 @@ public class OpenSearchRestClient implements OpenSearchClient {
       final Settings defaultSettings =
           client.cluster().getSettings(request, RequestOptions.DEFAULT).getDefaultSettings();
       builder.put(META_CLUSTER_NAME, defaultSettings.get("cluster.name", "opensearch"));
+      builder.put(
+          "plugins.sql.pagination.api", defaultSettings.get("plugins.sql.pagination.api", "true"));
       return builder.build();
     } catch (IOException e) {
       throw new IllegalStateException("Failed to get cluster meta info", e);
@@ -174,17 +177,25 @@ public class OpenSearchRestClient implements OpenSearchClient {
 
   @Override
   public void cleanup(OpenSearchRequest request) {
-    request.clean(
-        scrollId -> {
-          try {
-            ClearScrollRequest clearRequest = new ClearScrollRequest();
-            clearRequest.addScrollId(scrollId);
-            client.clearScroll(clearRequest, RequestOptions.DEFAULT);
-          } catch (IOException e) {
-            throw new IllegalStateException(
-                "Failed to clean up resources for search request " + request, e);
-          }
-        });
+    if (request instanceof OpenSearchScrollRequest) {
+      request.clean(
+          scrollId -> {
+            try {
+              ClearScrollRequest clearRequest = new ClearScrollRequest();
+              clearRequest.addScrollId(scrollId);
+              client.clearScroll(clearRequest, RequestOptions.DEFAULT);
+            } catch (IOException e) {
+              throw new IllegalStateException(
+                  "Failed to clean up resources for search request " + request, e);
+            }
+          });
+    } else {
+      request.clean(
+          pitId -> {
+            DeletePitRequest deletePitRequest = new DeletePitRequest(pitId);
+            deletePit(deletePitRequest);
+          });
+    }
   }
 
   @Override
@@ -195,5 +206,26 @@ public class OpenSearchRestClient implements OpenSearchClient {
   @Override
   public NodeClient getNodeClient() {
     throw new UnsupportedOperationException("Unsupported method.");
+  }
+
+  @Override
+  public String createPit(CreatePitRequest createPitRequest) {
+    try {
+      CreatePitResponse createPitResponse =
+          client.createPit(createPitRequest, RequestOptions.DEFAULT);
+      return createPitResponse.getId();
+    } catch (IOException e) {
+      throw new RuntimeException("Error occurred while creating PIT for new engine SQL query", e);
+    }
+  }
+
+  @Override
+  public void deletePit(DeletePitRequest deletePitRequest) {
+    try {
+      DeletePitResponse deletePitResponse =
+          client.deletePit(deletePitRequest, RequestOptions.DEFAULT);
+    } catch (IOException e) {
+      throw new RuntimeException("Error occurred while creating PIT for new engine SQL query", e);
+    }
   }
 }

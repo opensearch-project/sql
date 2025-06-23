@@ -178,6 +178,8 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
     includes = in.readStringList();
     indexName = new IndexName(in);
     OpenSearchIndex index = (OpenSearchIndex) engine.getTable(null, indexName.toString());
-    exprValueFactory = new OpenSearchExprValueFactory(index.getFieldOpenSearchTypes());
+    exprValueFactory =
+        new OpenSearchExprValueFactory(
+            index.getFieldOpenSearchTypes(), index.isFieldTypeTolerance());
   }
 }

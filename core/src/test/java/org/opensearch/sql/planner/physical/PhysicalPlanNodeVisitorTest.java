@@ -22,6 +22,7 @@ import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.rareTopN;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.remove;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.rename;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.sort;
+import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.takeOrdered;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.values;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.window;
 
@@ -117,6 +118,8 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
 
     PhysicalPlan sort = sort(plan, Pair.of(SortOption.DEFAULT_ASC, ref));
 
+    PhysicalPlan takeOrdered = takeOrdered(plan, 1, 1, Pair.of(SortOption.DEFAULT_ASC, ref));
+
     PhysicalPlan dedupe = dedupe(plan, ref);
 
     PhysicalPlan values = values(emptyList());
@@ -140,6 +143,7 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
         Arguments.of(remove, "remove"),
         Arguments.of(eval, "eval"),
         Arguments.of(sort, "sort"),
+        Arguments.of(takeOrdered, "takeOrdered"),
         Arguments.of(dedupe, "dedupe"),
         Arguments.of(values, "values"),
         Arguments.of(rareTopN, "rareTopN"),

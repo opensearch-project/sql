@@ -31,7 +31,8 @@ public interface AsyncQueryExecutorService {
    * @param queryId queryId.
    * @return {@link AsyncQueryExecutionResponse}
    */
-  AsyncQueryExecutionResponse getAsyncQueryResults(String queryId);
+  AsyncQueryExecutionResponse getAsyncQueryResults(
+      String queryId, AsyncQueryRequestContext asyncQueryRequestContext);
 
   /**
    * Cancels running async query and returns the cancelled queryId.

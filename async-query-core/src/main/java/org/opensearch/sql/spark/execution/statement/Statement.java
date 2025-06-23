@@ -70,7 +70,8 @@ public class Statement {
       throw new IllegalStateException(errorMsg);
     }
     this.statementModel =
-        statementStorageService.updateStatementState(statementModel, StatementState.CANCELLED);
+        statementStorageService.updateStatementState(
+            statementModel, StatementState.CANCELLED, asyncQueryRequestContext);
   }
 
   public StatementState getStatementState() {

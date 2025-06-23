@@ -56,11 +56,11 @@ PPL query::
 
     os> source=nyc_taxi | fields value, timestamp | ml action='train' algorithm='rcf' time_field='timestamp' | where value=10844.0
     fetched rows / total rows = 1/1
-    +---------+---------------------+---------+-----------------+
-    | value   | timestamp           | score   | anomaly_grade   |
-    |---------+---------------------+---------+-----------------|
-    | 10844.0 | 2014-07-01 00:00:00 | 0.0     | 0.0             |
-    +---------+---------------------+---------+-----------------+
+    +---------+---------------------+-------+---------------+
+    | value   | timestamp           | score | anomaly_grade |
+    |---------+---------------------+-------+---------------|
+    | 10844.0 | 2014-07-01 00:00:00 | 0.0   | 0.0           |
+    +---------+---------------------+-------+---------------+
 
 Example 2: Detecting events in New York City from taxi ridership data with time-series data independently with each category
 ============================================================================================================================
@@ -71,12 +71,12 @@ PPL query::
 
     os> source=nyc_taxi | fields category, value, timestamp | ml action='train' algorithm='rcf' time_field='timestamp' category_field='category' | where value=10844.0 or value=6526.0
     fetched rows / total rows = 2/2
-    +------------+---------+---------------------+---------+-----------------+
-    | category   | value   | timestamp           | score   | anomaly_grade   |
-    |------------+---------+---------------------+---------+-----------------|
-    | night      | 10844.0 | 2014-07-01 00:00:00 | 0.0     | 0.0             |
-    | day        | 6526.0  | 2014-07-01 06:00:00 | 0.0     | 0.0             |
-    +------------+---------+---------------------+---------+-----------------+
+    +----------+---------+---------------------+-------+---------------+
+    | category | value   | timestamp           | score | anomaly_grade |
+    |----------+---------+---------------------+-------+---------------|
+    | night    | 10844.0 | 2014-07-01 00:00:00 | 0.0   | 0.0           |
+    | day      | 6526.0  | 2014-07-01 06:00:00 | 0.0   | 0.0           |
+    +----------+---------+---------------------+-------+---------------+
 
 
 Example 3: Detecting events in New York City from taxi ridership data with non-time-series data
@@ -88,11 +88,11 @@ PPL query::
 
     os> source=nyc_taxi | fields value | ml action='train' algorithm='rcf' | where value=10844.0
     fetched rows / total rows = 1/1
-    +---------+---------+-------------+
-    | value   | score   | anomalous   |
-    |---------+---------+-------------|
-    | 10844.0 | 0.0     | False       |
-    +---------+---------+-------------+
+    +---------+-------+-----------+
+    | value   | score | anomalous |
+    |---------+-------+-----------|
+    | 10844.0 | 0.0   | False     |
+    +---------+-------+-----------+
 
 Example 4: Detecting events in New York City from taxi ridership data with non-time-series data independently with each category
 ================================================================================================================================
@@ -103,12 +103,12 @@ PPL query::
 
     os> source=nyc_taxi | fields category, value | ml action='train' algorithm='rcf' category_field='category' | where value=10844.0 or value=6526.0
     fetched rows / total rows = 2/2
-    +------------+---------+---------+-------------+
-    | category   | value   | score   | anomalous   |
-    |------------+---------+---------+-------------|
-    | night      | 10844.0 | 0.0     | False       |
-    | day        | 6526.0  | 0.0     | False       |
-    +------------+---------+---------+-------------+
+    +----------+---------+-------+-----------+
+    | category | value   | score | anomalous |
+    |----------+---------+-------+-----------|
+    | night    | 10844.0 | 0.0   | False     |
+    | day      | 6526.0  | 0.0   | False     |
+    +----------+---------+-------+-----------+
 
 KMEANS
 ======

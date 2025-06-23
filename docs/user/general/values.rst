@@ -19,14 +19,14 @@ Here is an example, Nanette doesn't have email field and Dail has employer filed
 
     os> SELECT firstname, employer, email FROM accounts;
     fetched rows / total rows = 4/4
-    +-------------+------------+-----------------------+
-    | firstname   | employer   | email                 |
-    |-------------+------------+-----------------------|
-    | Amber       | Pyrami     | amberduke@pyrami.com  |
-    | Hattie      | Netagy     | hattiebond@netagy.com |
-    | Nanette     | Quility    | null                  |
-    | Dale        | null       | daleadams@boink.com   |
-    +-------------+------------+-----------------------+
+    +-----------+----------+-----------------------+
+    | firstname | employer | email                 |
+    |-----------+----------+-----------------------|
+    | Amber     | Pyrami   | amberduke@pyrami.com  |
+    | Hattie    | Netagy   | hattiebond@netagy.com |
+    | Nanette   | Quility  | null                  |
+    | Dale      | null     | daleadams@boink.com   |
+    +-----------+----------+-----------------------+
 
 
 General NULL and MISSING Values Handling
@@ -37,14 +37,14 @@ Here is an example::
 
     os> SELECT firstname, employer LIKE 'Quility', email LIKE '%com' FROM accounts;
     fetched rows / total rows = 4/4
-    +-------------+---------------------------+---------------------+
-    | firstname   | employer LIKE 'Quility'   | email LIKE '%com'   |
-    |-------------+---------------------------+---------------------|
-    | Amber       | False                     | True                |
-    | Hattie      | False                     | True                |
-    | Nanette     | True                      | null                |
-    | Dale        | null                      | True                |
-    +-------------+---------------------------+---------------------+
+    +-----------+-------------------------+-------------------+
+    | firstname | employer LIKE 'Quility' | email LIKE '%com' |
+    |-----------+-------------------------+-------------------|
+    | Amber     | False                   | True              |
+    | Hattie    | False                   | True              |
+    | Nanette   | True                    | null              |
+    | Dale      | null                    | True              |
+    +-----------+-------------------------+-------------------+
 
 Special NULL and MISSING Values Handling
 ----------------------------------------

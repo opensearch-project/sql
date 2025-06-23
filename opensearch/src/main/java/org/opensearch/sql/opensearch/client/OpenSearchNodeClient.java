@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -21,13 +22,16 @@ import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.opensearch.action.admin.indices.get.GetIndexResponse;
 import org.opensearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.opensearch.action.admin.indices.settings.get.GetSettingsResponse;
+import org.opensearch.action.search.*;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.metadata.AliasMetadata;
+import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.IndexSettings;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
+import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 
 /** OpenSearch connection by node client. */
@@ -155,20 +159,32 @@ public class OpenSearchNodeClient implements OpenSearchClient {
    */
   @Override
   public Map<String, String> meta() {
-    return ImmutableMap.of(META_CLUSTER_NAME, client.settings().get("cluster.name", "opensearch"));
+    return ImmutableMap.of(
+        META_CLUSTER_NAME,
+        client.settings().get("cluster.name", "opensearch"),
+        "plugins.sql.pagination.api",
+        client.settings().get("plugins.sql.pagination.api", "true"));
   }
 
   @Override
   public void cleanup(OpenSearchRequest request) {
-    request.clean(
-        scrollId -> {
-          try {
-            client.prepareClearScroll().addScrollId(scrollId).get();
-          } catch (Exception e) {
-            throw new IllegalStateException(
-                "Failed to clean up resources for search request " + request, e);
-          }
-        });
+    if (request instanceof OpenSearchScrollRequest) {
+      request.clean(
+          scrollId -> {
+            try {
+              client.prepareClearScroll().addScrollId(scrollId).get();
+            } catch (Exception e) {
+              throw new IllegalStateException(
+                  "Failed to clean up resources for search request " + request, e);
+            }
+          });
+    } else {
+      request.clean(
+          pitId -> {
+            DeletePitRequest deletePitRequest = new DeletePitRequest(pitId);
+            deletePit(deletePitRequest);
+          });
+    }
   }
 
   @Override
@@ -180,5 +196,28 @@ public class OpenSearchNodeClient implements OpenSearchClient {
   @Override
   public NodeClient getNodeClient() {
     return client;
+  }
+
+  @Override
+  public String createPit(CreatePitRequest createPitRequest) {
+    ActionFuture<CreatePitResponse> execute =
+        this.client.execute(CreatePitAction.INSTANCE, createPitRequest);
+    try {
+      CreatePitResponse pitResponse = execute.get();
+      return pitResponse.getId();
+    } catch (InterruptedException | ExecutionException e) {
+      throw new RuntimeException("Error occurred while creating PIT for new engine SQL query", e);
+    }
+  }
+
+  @Override
+  public void deletePit(DeletePitRequest deletePitRequest) {
+    ActionFuture<DeletePitResponse> execute =
+        this.client.execute(DeletePitAction.INSTANCE, deletePitRequest);
+    try {
+      DeletePitResponse deletePitResponse = execute.get();
+    } catch (InterruptedException | ExecutionException e) {
+      throw new RuntimeException("Error occurred while deleting PIT.", e);
+    }
   }
 }

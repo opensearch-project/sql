@@ -29,10 +29,10 @@ PPL query::
 
     os> source=accounts | where account_number=1 or gender="F" | fields account_number, gender;
     fetched rows / total rows = 2/2
-    +------------------+----------+
-    | account_number   | gender   |
-    |------------------+----------|
-    | 1                | M        |
-    | 13               | F        |
-    +------------------+----------+
+    +----------------+--------+
+    | account_number | gender |
+    |----------------+--------|
+    | 1              | M      |
+    | 13             | F      |
+    +----------------+--------+
 

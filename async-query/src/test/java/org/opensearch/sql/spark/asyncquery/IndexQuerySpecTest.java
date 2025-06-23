@@ -143,7 +143,8 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
 
               // 2.fetch result
               AsyncQueryExecutionResponse asyncQueryResults =
-                  asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+                  asyncQueryExecutorService.getAsyncQueryResults(
+                      response.getQueryId(), asyncQueryRequestContext);
               assertEquals("SUCCESS", asyncQueryResults.getStatus());
               assertNull(asyncQueryResults.getError());
               emrsClient.cancelJobRunCalled(1);
@@ -193,7 +194,8 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
 
               // 2.fetch result.
               AsyncQueryExecutionResponse asyncQueryResults =
-                  asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+                  asyncQueryExecutorService.getAsyncQueryResults(
+                      response.getQueryId(), asyncQueryRequestContext);
               assertEquals("SUCCESS", asyncQueryResults.getStatus());
               assertNull(asyncQueryResults.getError());
             });
@@ -233,7 +235,8 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
 
               // 2. fetch result
               AsyncQueryExecutionResponse asyncQueryResults =
-                  asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+                  asyncQueryExecutorService.getAsyncQueryResults(
+                      response.getQueryId(), asyncQueryRequestContext);
               assertEquals("FAILED", asyncQueryResults.getStatus());
               assertEquals("Cancel job operation timed out.", asyncQueryResults.getError());
             });
@@ -270,7 +273,8 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
 
     // 2.fetch result.
     AsyncQueryExecutionResponse asyncQueryResults =
-        asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+        asyncQueryExecutorService.getAsyncQueryResults(
+            response.getQueryId(), asyncQueryRequestContext);
     assertEquals("SUCCESS", asyncQueryResults.getStatus());
     assertNull(asyncQueryResults.getError());
   }
@@ -319,7 +323,8 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
 
               // 2.fetch result
               AsyncQueryExecutionResponse asyncQueryResults =
-                  asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+                  asyncQueryExecutorService.getAsyncQueryResults(
+                      response.getQueryId(), asyncQueryRequestContext);
               assertEquals("SUCCESS", asyncQueryResults.getStatus());
               assertNull(asyncQueryResults.getError());
               emrsClient.cancelJobRunCalled(1);
@@ -375,7 +380,8 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
 
               // 2.fetch result.
               AsyncQueryExecutionResponse asyncQueryResults =
-                  asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+                  asyncQueryExecutorService.getAsyncQueryResults(
+                      response.getQueryId(), asyncQueryRequestContext);
               assertEquals("SUCCESS", asyncQueryResults.getStatus());
               assertNull(asyncQueryResults.getError());
 
@@ -422,7 +428,8 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
 
               // 2. fetch result
               AsyncQueryExecutionResponse asyncQueryResults =
-                  asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+                  asyncQueryExecutorService.getAsyncQueryResults(
+                      response.getQueryId(), asyncQueryRequestContext);
               assertEquals("FAILED", asyncQueryResults.getStatus());
               assertEquals("Cancel job operation timed out.", asyncQueryResults.getError());
               flintIndexJob.assertState(FlintIndexState.REFRESHING);
@@ -470,7 +477,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
               assertEquals(
                   "SUCCESS",
                   asyncQueryExecutorService
-                      .getAsyncQueryResults(response.getQueryId())
+                      .getAsyncQueryResults(response.getQueryId(), asyncQueryRequestContext)
                       .getStatus());
 
               flintIndexJob.assertState(FlintIndexState.DELETED);
@@ -519,7 +526,8 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
 
               // 2. fetch result
               AsyncQueryExecutionResponse asyncQueryExecutionResponse =
-                  asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+                  asyncQueryExecutorService.getAsyncQueryResults(
+                      response.getQueryId(), asyncQueryRequestContext);
               assertEquals("SUCCESS", asyncQueryExecutionResponse.getStatus());
               flintIndexJob.assertState(FlintIndexState.DELETED);
               emrsClient.startJobRunCalled(0);
@@ -569,7 +577,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
               assertEquals(
                   "SUCCESS",
                   asyncQueryExecutorService
-                      .getAsyncQueryResults(response.getQueryId())
+                      .getAsyncQueryResults(response.getQueryId(), asyncQueryRequestContext)
                       .getStatus());
 
               flintIndexJob.assertState(FlintIndexState.DELETED);
@@ -616,7 +624,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
               assertEquals(
                   "SUCCESS",
                   asyncQueryExecutorService
-                      .getAsyncQueryResults(response.getQueryId())
+                      .getAsyncQueryResults(response.getQueryId(), asyncQueryRequestContext)
                       .getStatus());
 
               flintIndexJob.assertState(FlintIndexState.DELETED);
@@ -668,7 +676,8 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       asyncQueryRequestContext);
 
               AsyncQueryExecutionResponse asyncQueryExecutionResponse =
-                  asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+                  asyncQueryExecutorService.getAsyncQueryResults(
+                      response.getQueryId(), asyncQueryRequestContext);
               // 2. fetch result
               assertEquals("FAILED", asyncQueryExecutionResponse.getStatus());
               assertEquals(
@@ -714,7 +723,8 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
 
     // 2.fetch result.
     AsyncQueryExecutionResponse asyncQueryResults =
-        asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+        asyncQueryExecutorService.getAsyncQueryResults(
+            response.getQueryId(), asyncQueryRequestContext);
     assertEquals("FAILED", asyncQueryResults.getStatus());
     assertEquals("Internal Server Error.", asyncQueryResults.getError());
 
@@ -762,7 +772,8 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
 
               // 2. fetch result
               AsyncQueryExecutionResponse asyncQueryResults =
-                  asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+                  asyncQueryExecutorService.getAsyncQueryResults(
+                      response.getQueryId(), asyncQueryRequestContext);
               assertEquals("FAILED", asyncQueryResults.getStatus());
               assertTrue(asyncQueryResults.getError().contains("no state found"));
             });

@@ -31,6 +31,7 @@ public class IndexQueryDetails {
   // materialized view special case where
   // table name and mv name are combined.
   private String mvName;
+  private String mvQuery;
   private FlintIndexType indexType;
 
   private IndexQueryDetails() {}
@@ -73,6 +74,11 @@ public class IndexQueryDetails {
       return this;
     }
 
+    public IndexQueryDetailsBuilder mvQuery(String mvQuery) {
+      indexQueryDetails.mvQuery = mvQuery;
+      return this;
+    }
+
     public IndexQueryDetailsBuilder indexType(FlintIndexType indexType) {
       indexQueryDetails.indexType = indexType;
       return this;
@@ -87,24 +93,35 @@ public class IndexQueryDetails {
   }
 
   public String openSearchIndexName() {
+    if (getIndexType() == null) {
+      return null;
+    }
     FullyQualifiedTableName fullyQualifiedTableName = getFullyQualifiedTableName();
     String indexName = StringUtils.EMPTY;
     switch (getIndexType()) {
       case COVERING:
-        indexName =
-            "flint_"
-                + fullyQualifiedTableName.toFlintName()
-                + "_"
-                + strip(getIndexName(), STRIP_CHARS)
-                + "_"
-                + getIndexType().getSuffix();
+        if (getIndexName() != null) { // getIndexName will be null for SHOW INDEX query
+          indexName =
+              "flint_"
+                  + fullyQualifiedTableName.toFlintName()
+                  + "_"
+                  + strip(getIndexName(), STRIP_CHARS)
+                  + "_"
+                  + getIndexType().getSuffix();
+        } else {
+          return null;
+        }
         break;
       case SKIPPING:
         indexName =
             "flint_" + fullyQualifiedTableName.toFlintName() + "_" + getIndexType().getSuffix();
         break;
       case MATERIALIZED_VIEW:
-        indexName = "flint_" + new FullyQualifiedTableName(mvName).toFlintName();
+        if (mvName != null) { // mvName is not available for SHOW MATERIALIZED VIEW query
+          indexName = "flint_" + new FullyQualifiedTableName(mvName).toFlintName();
+        } else {
+          return null;
+        }
         break;
     }
     return percentEncode(indexName).toLowerCase();

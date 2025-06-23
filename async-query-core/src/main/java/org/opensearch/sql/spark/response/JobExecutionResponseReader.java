@@ -6,17 +6,22 @@
 package org.opensearch.sql.spark.response;
 
 import org.json.JSONObject;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 
 /** Interface for reading job execution result */
 public interface JobExecutionResponseReader {
   /**
    * Retrieves the job execution result based on the job ID.
    *
-   * @param jobId The job ID.
-   * @param resultLocation The location identifier where the result is stored (optional).
+   * @param asyncQueryJobMetadata metadata will have jobId and resultLocation and other required
+   *     params.
+   * @param asyncQueryRequestContext request context passed to AsyncQueryExecutorService
    * @return A JSONObject containing the result data.
    */
-  JSONObject getResultWithJobId(String jobId, String resultLocation);
+  JSONObject getResultFromResultIndex(
+      AsyncQueryJobMetadata asyncQueryJobMetadata,
+      AsyncQueryRequestContext asyncQueryRequestContext);
 
   /**
    * Retrieves the job execution result based on the query ID.
@@ -25,5 +30,6 @@ public interface JobExecutionResponseReader {
    * @param resultLocation The location identifier where the result is stored (optional).
    * @return A JSONObject containing the result data.
    */
-  JSONObject getResultWithQueryId(String queryId, String resultLocation);
+  JSONObject getResultWithQueryId(
+      String queryId, String resultLocation, AsyncQueryRequestContext asyncQueryRequestContext);
 }

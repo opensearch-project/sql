@@ -47,7 +47,7 @@ class ResourceMonitorPlanTest {
 
     IllegalStateException exception =
         assertThrows(IllegalStateException.class, () -> monitorPlan.open());
-    assertEquals("resource is not enough to run the query, quit.", exception.getMessage());
+    assertEquals("insufficient resources to run the query, quit.", exception.getMessage());
   }
 
   @Test
@@ -79,7 +79,7 @@ class ResourceMonitorPlanTest {
 
     IllegalStateException exception =
         assertThrows(IllegalStateException.class, () -> monitorPlan.next());
-    assertEquals("resource is not enough to load next row, quit.", exception.getMessage());
+    assertEquals("insufficient resources to load next row, quit.", exception.getMessage());
   }
 
   @Test
