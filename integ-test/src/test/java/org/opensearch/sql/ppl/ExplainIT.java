@@ -74,7 +74,6 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testSortPushDownExplain() throws IOException {
-    // TODO fix after https://github.com/opensearch-project/sql/issues/3380
     String expected =
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_sort_push.json")
@@ -87,6 +86,25 @@ public class ExplainIT extends PPLIntegTestCase {
                 + "| sort age "
                 + "| where age > 30"
                 + "| fields age"));
+  }
+
+  @Test
+  public void testSortWithAggregationExplain() throws IOException {
+    // Sorts whose by fields are aggregators should not be pushed down
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_sort_agg_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_sort_agg_push.json");
+
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| stats avg(age) AS avg_age by state, city "
+                + "| sort avg_age "));
+
+    // sorts whose by fields are not aggregators can be pushed down.
+    // This test is covered in testExplain
   }
 
   @Test

@@ -40,11 +40,7 @@ public class OpenSearchSortIndexScanRule extends RelRule<OpenSearchSortIndexScan
                 b0 ->
                     b0.operand(LogicalSort.class)
                         .predicate(OpenSearchIndexScanRule::sortByFieldsOnly)
-                        .oneInput(
-                            b1 ->
-                                b1.operand(CalciteLogicalIndexScan.class)
-                                    .predicate(OpenSearchIndexScanRule::noAggregatePushed)
-                                    .noInputs()));
+                        .oneInput(b1 -> b1.operand(CalciteLogicalIndexScan.class).noInputs()));
 
     @Override
     default OpenSearchSortIndexScanRule toRule() {
