@@ -36,3 +36,13 @@ teardown:
   - match: {"total": 1}
   - match: {"schema": [{"name": "avg(balance)", "type": "double"}]}
   - match: {"datarows": [[1000.0]]}
+
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=test | where balance in (999.0, 1000.0) | stats avg(balance)'
+  - match: {"total": 1}
+  - match: {"schema": [{"name": "avg(balance)", "type": "double"}]}
+  - match: {"datarows": [[1000.0]]}

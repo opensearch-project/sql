@@ -40,6 +40,8 @@ import static org.opensearch.index.query.QueryBuilders.termsQuery;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.Range;
+
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.GregorianCalendar;
@@ -1124,6 +1126,8 @@ public class PredicateAnalyzer {
         case CHAR:
         case VARCHAR:
           return ((NlsString) point).getValue();
+        case DECIMAL:
+          return ((BigDecimal) point).doubleValue();
         default:
           return point;
       }
