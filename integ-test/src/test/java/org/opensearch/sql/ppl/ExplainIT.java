@@ -70,8 +70,8 @@ public class ExplainIT extends PPLIntegTestCase {
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_bank"
-                + "| where birthdate > '2016-12-08 00:00:00' "
-                + "| where birthdate < '2018-11-09 00:00:00' "));
+                + "| where birthdate > '2016-12-08 00:00:00.000000000' "
+                + "| where birthdate < '2018-11-09 00:00:00.000000000' "));
   }
 
   @Test
