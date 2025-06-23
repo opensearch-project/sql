@@ -30,7 +30,7 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
 import org.opensearch.sql.common.antlr.Parser;
-import org.opensearch.sql.executor.OpenSearchTypeSystem;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.parser.AstBuilder;
@@ -59,22 +59,30 @@ public class UnifiedQueryPlanner {
    *
    * @param queryType the query language type (e.g., PPL)
    * @param rootSchema the root Calcite schema containing all catalogs and tables
+   * @param defaultPath dot-separated path of schema to set as default schema
    */
-  public UnifiedQueryPlanner(QueryType queryType, SchemaPlus rootSchema) {
+  public UnifiedQueryPlanner(QueryType queryType, SchemaPlus rootSchema, String defaultPath) {
     this.queryType = queryType;
     this.parser = buildQueryParser(queryType);
-    this.config = buildCalciteConfig(rootSchema);
+    this.config = buildCalciteConfig(rootSchema, defaultPath);
   }
 
   /**
    * Parses and analyzes a query string into a Calcite logical plan (RelNode). TODO: Generate
-   * optimal physical plan to fully unify query execution and leverage Calcite's optimzer.
+   * optimal physical plan to fully unify query execution and leverage Calcite's optimizer.
    *
    * @param query the raw query string in PPL or other supported syntax
    * @return a logical plan representing the query
    */
   public RelNode plan(String query) {
-    return preserveCollation(analyze(parse(query)));
+    try {
+      return preserveCollation(analyze(parse(query)));
+    } catch (SyntaxCheckException e) {
+      // Re-throw syntax error without wrapping
+      throw e;
+    } catch (Exception e) {
+      throw new IllegalStateException("Failed to plan query", e);
+    }
   }
 
   private Parser buildQueryParser(QueryType queryType) {
@@ -84,14 +92,30 @@ public class UnifiedQueryPlanner {
     throw new IllegalArgumentException("Unsupported query type: " + queryType);
   }
 
-  private FrameworkConfig buildCalciteConfig(SchemaPlus defaultSchema) {
+  private FrameworkConfig buildCalciteConfig(SchemaPlus rootSchema, String defaultPath) {
+    SchemaPlus defaultSchema = findSchemaByPath(rootSchema, defaultPath);
     return Frameworks.newConfigBuilder()
-        .parserConfig(SqlParser.Config.DEFAULT) // TODO check
+        .parserConfig(SqlParser.Config.DEFAULT)
         .defaultSchema(defaultSchema)
         .traitDefs((List<RelTraitDef>) null)
         .programs(Programs.calc(DefaultRelMetadataProvider.INSTANCE))
-        .typeSystem(OpenSearchTypeSystem.INSTANCE)
         .build();
+  }
+
+  private static SchemaPlus findSchemaByPath(SchemaPlus rootSchema, String defaultPath) {
+    if (defaultPath == null) {
+      return rootSchema;
+    }
+
+    // Find schema by the path recursively
+    SchemaPlus current = rootSchema;
+    for (String part : defaultPath.split("\\.")) {
+      current = current.getSubSchema(part);
+      if (current == null) {
+        throw new IllegalArgumentException("Invalid default catalog path: " + defaultPath);
+      }
+    }
+    return current;
   }
 
   private UnresolvedPlan parse(String query) {
@@ -100,7 +124,12 @@ public class UnifiedQueryPlanner {
         new AstStatementBuilder(
             new AstBuilder(query), AstStatementBuilder.StatementBuilderContext.builder().build());
     Statement statement = cst.accept(astStmtBuilder);
-    return ((Query) statement).getPlan();
+
+    if (statement instanceof Query) {
+      return ((Query) statement).getPlan();
+    }
+    throw new UnsupportedOperationException(
+        "Only query statements are supported but got " + statement.getClass().getSimpleName());
   }
 
   private RelNode analyze(UnresolvedPlan ast) {
@@ -129,8 +158,9 @@ public class UnifiedQueryPlanner {
    */
   public static class Builder {
     private final Map<String, Schema> catalogs = new HashMap<>();
+    private String defaultNamespace;
     private QueryType queryType;
-    private boolean cacheSchema;
+    private boolean cacheMetadata;
 
     /**
      * Sets the query language frontend to be used by the planner.
@@ -158,13 +188,24 @@ public class UnifiedQueryPlanner {
     }
 
     /**
-     * Enables or disables schema caching in the root schema.
+     * Sets the default namespace path for resolving unqualified table names.
      *
-     * @param cache whether to enable schema caching
+     * @param namespace dot-separated path (e.g., "spark_catalog.default" or "opensearch")
      * @return this builder instance
      */
-    public Builder cacheSchema(boolean cache) {
-      this.cacheSchema = cache;
+    public Builder defaultNamespace(String namespace) {
+      this.defaultNamespace = namespace;
+      return this;
+    }
+
+    /**
+     * Enables or disables catalog metadata caching in the root schema.
+     *
+     * @param cache whether to enable metadata caching
+     * @return this builder instance
+     */
+    public Builder cacheMetadata(boolean cache) {
+      this.cacheMetadata = cache;
       return this;
     }
 
@@ -175,9 +216,9 @@ public class UnifiedQueryPlanner {
      */
     public UnifiedQueryPlanner build() {
       Objects.requireNonNull(queryType, "Must specify language before build");
-      SchemaPlus rootSchema = CalciteSchema.createRootSchema(true, cacheSchema).plus();
+      SchemaPlus rootSchema = CalciteSchema.createRootSchema(true, cacheMetadata).plus();
       catalogs.forEach(rootSchema::add);
-      return new UnifiedQueryPlanner(queryType, rootSchema);
+      return new UnifiedQueryPlanner(queryType, rootSchema, defaultNamespace);
     }
   }
 }

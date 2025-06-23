@@ -14,7 +14,8 @@ Use the declarative, fluent builder API to initialize the `UnifiedQueryPlanner`.
 UnifiedQueryPlanner planner = UnifiedQueryPlanner.builder()
     .language(QueryType.PPL)
     .catalog("opensearch", schema)
-    .cacheSchema(true)
+    .defaultNamespace("opensearch")
+    .cacheMetadata(true)
     .build();
 
 RelNode plan = planner.plan("source = opensearch.test");
