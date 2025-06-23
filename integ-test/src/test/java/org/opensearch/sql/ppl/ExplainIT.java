@@ -61,16 +61,17 @@ public class ExplainIT extends PPLIntegTestCase {
   @Test
   public void testFilterByCompareStringTimestampPushDownExplain() throws IOException {
     String expected =
-            isCalciteEnabled()
-                    ? loadFromFile("expectedOutput/calcite/explain_filter_push_compare_timestamp_string.json")
-                    : loadFromFile("expectedOutput/ppl/explain_filter_push_compare_timestamp_string.json");
+        isCalciteEnabled()
+            ? loadFromFile(
+                "expectedOutput/calcite/explain_filter_push_compare_timestamp_string.json")
+            : loadFromFile("expectedOutput/ppl/explain_filter_push_compare_timestamp_string.json");
 
     assertJsonEqualsIgnoreId(
-            expected,
-            explainQueryToString(
-                    "source=opensearch-sql_test_index_bank"
-                    + "| where birthdate > '2016-12-08 00:00:00' "
-                    + "| where birthdate < '2018-11-09 00:00:00' "));
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_bank"
+                + "| where birthdate > '2016-12-08 00:00:00' "
+                + "| where birthdate < '2018-11-09 00:00:00' "));
   }
 
   @Test
