@@ -126,6 +126,23 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testSortThenAggregatePushDownExplain() throws IOException {
+    // TODO: Remove pushed-down sort in DSL in expectedOutput/ppl/explain_sort_then_agg_push.json
+    //  existing collations should be eliminated when pushing down aggregations
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_sort_then_agg_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_sort_then_agg_push.json");
+
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| sort balance, age "
+                + "| stats avg(balance) by state"));
+  }
+
+  @Test
   public void testLimitPushDownExplain() throws IOException {
     String expected =
         isCalciteEnabled()
