@@ -309,6 +309,12 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     return null;
   }
 
+  private List<String> getCollationNames(List<RelFieldCollation> collations) {
+    return collations.stream()
+        .map(collation -> getRowType().getFieldNames().get(collation.getFieldIndex()))
+        .toList();
+  }
+
   /**
    * Check if the sort by collations contains any aggregators that are pushed down. E.g. In `stats
    * avg(age) as avg_age by state | sort avg_age`, the sort clause has `avg_age` which is an
@@ -327,10 +333,17 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         .reduce(false, Boolean::logicalOr);
   }
 
-  private List<String> getCollationNames(List<RelFieldCollation> collations) {
+  private static boolean isAnyCollationNameInAggregateOutput(
+      LogicalAggregate aggregate, List<String> collations) {
+    List<String> fieldNames = aggregate.getRowType().getFieldNames();
+    // The output fields of the aggregate are in the format of
+    // [...grouping fields, ...aggregator fields], so we set an offset to skip
+    // the grouping fields.
+    int groupOffset = aggregate.getGroupSet().cardinality();
+    List<String> fieldsWithoutGrouping = fieldNames.subList(groupOffset, fieldNames.size());
     return collations.stream()
-        .map(collation -> getRowType().getFieldNames().get(collation.getFieldIndex()))
-        .toList();
+        .map(fieldsWithoutGrouping::contains)
+        .reduce(false, Boolean::logicalOr);
   }
 
   /**
@@ -355,19 +368,6 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       mergedCollations.putIfAbsent(collation.getFieldIndex(), collation);
     }
     return new ArrayList<>(mergedCollations.values());
-  }
-
-  private static boolean isAnyCollationNameInAggregateOutput(
-      LogicalAggregate aggregate, List<String> collations) {
-    List<String> fieldNames = aggregate.getRowType().getFieldNames();
-    // The output fields of the aggregate are in the format of
-    // [...grouping fields, ...aggregator fields], so we set an offset to skip
-    // the grouping fields.
-    int groupOffset = aggregate.getGroupSet().cardinality();
-    List<String> fieldsWithoutGrouping = fieldNames.subList(groupOffset, fieldNames.size());
-    return collations.stream()
-        .map(fieldsWithoutGrouping::contains)
-        .reduce(false, Boolean::logicalOr);
   }
 
   /**
