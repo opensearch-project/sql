@@ -184,7 +184,16 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
 
   public CalciteLogicalIndexScan pushDownAggregate(Aggregate aggregate) {
     try {
-      CalciteLogicalIndexScan newScan = this.copyWithNewSchema(aggregate.getRowType());
+      CalciteLogicalIndexScan newScan =
+          new CalciteLogicalIndexScan(
+              getCluster(),
+              traitSet,
+              hints,
+              table,
+              osIndex,
+              aggregate.getRowType(),
+              // Aggregation will eliminate all collations.
+              cloneWithoutSort(pushDownContext));
       List<String> schema = this.getRowType().getFieldNames();
       Map<String, ExprType> fieldTypes = this.osIndex.getFieldTypes();
       List<String> outputFields = aggregate.getRowType().getFieldNames();
@@ -267,7 +276,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               table,
               osIndex,
               getRowType(),
-              pushDownContext.clone());
+              cloneWithoutSort(pushDownContext));
 
       List<SortBuilder<?>> builders = new ArrayList<>();
       for (RelFieldCollation collation : mergedCollations) {
@@ -317,11 +326,13 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     Map<Integer, RelFieldCollation> mergedCollations = new LinkedHashMap<>();
 
     for (RelFieldCollation collation : newCollations) {
-      mergedCollations.put(collation.getFieldIndex(), collation);
+      mergedCollations.putIfAbsent(collation.getFieldIndex(), collation);
     }
 
     for (RelFieldCollation collation : existingCollations) {
-      mergedCollations.put(collation.getFieldIndex(), collation);
+      // Existing collations will not replace the new one
+      // E.g. in `sort age | sort - age`, the first sort (existing one) will be ignored
+      mergedCollations.putIfAbsent(collation.getFieldIndex(), collation);
     }
     return new ArrayList<>(mergedCollations.values());
   }
@@ -355,5 +366,21 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     return collations.stream()
         .map(fieldsWithoutGrouping::contains)
         .reduce(false, Boolean::logicalOr);
+  }
+
+  /**
+   * Create a new {@link PushDownContext} without the collation action.
+   *
+   * @param pushDownContext The original push-down context.
+   * @return A new push-down context without the collation action.
+   */
+  private static PushDownContext cloneWithoutSort(PushDownContext pushDownContext) {
+    PushDownContext newContext = new PushDownContext();
+    for (PushDownAction action : pushDownContext) {
+      if (action.type() != PushDownType.SORT) {
+        newContext.add(action);
+      }
+    }
+    return newContext;
   }
 }

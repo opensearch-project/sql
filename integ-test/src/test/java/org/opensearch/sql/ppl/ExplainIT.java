@@ -108,6 +108,24 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testMultiSortPushDownExplain() throws IOException {
+    // TODO: Fix the expected output in expectedOutput/ppl/explain_multi_sort_push.json
+    //  balance and gender should take precedence over account_number and firstname
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_multi_sort_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_multi_sort_push.json");
+
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account "
+                + "| sort account_number, firstname, address, balance "
+                + "| sort - balance, - gender, address "
+                + "| fields account_number, firstname, address, balance, gender"));
+  }
+
+  @Test
   public void testLimitPushDownExplain() throws IOException {
     String expected =
         isCalciteEnabled()
