@@ -32,11 +32,6 @@ import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.io.IOException;
-import java.io.Serializable;
-import java.io.StringReader;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Type;
 import java.time.chrono.ChronoZonedDateTime;
 import java.util.List;
@@ -69,7 +64,6 @@ import org.apache.calcite.rex.RexExecutable;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
-import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
@@ -77,9 +71,6 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Util;
 import org.apache.commons.lang3.StringUtils;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.codehaus.commons.compiler.CompileException;
-import org.codehaus.janino.ClassBodyEvaluator;
-import org.codehaus.janino.Scanner;
 import org.opensearch.index.fielddata.ScriptDocValues;
 import org.opensearch.script.FilterScript;
 import org.opensearch.script.ScriptContext;
@@ -116,7 +107,8 @@ public class CalciteScriptEngine implements ScriptEngine {
   @Override
   public <T> T compile(
       String scriptName, String scriptCode, ScriptContext<T> context, Map<String, String> options) {
-    Function1<DataContext, Object[]> function = compile(scriptCode, "generated Rex code");
+    Function1<DataContext, Object[]> function =
+        new RexExecutable(scriptCode, "generated Rex code").getFunction();
 
     if (CONTEXTS.containsKey(context)) {
       return context.factoryClazz.cast(CONTEXTS.get(context).apply(function));
@@ -304,31 +296,5 @@ public class CalciteScriptEngine implements ScriptEngine {
     }
 
     return code;
-  }
-
-  /**
-   * This function is copied from Calcite RexExecutable It's used to compile java code string to
-   * java function.
-   */
-  public static Function1<DataContext, Object[]> compile(String code, Object reason) {
-    try {
-      ClassBodyEvaluator cbe = new ClassBodyEvaluator();
-      cbe.setClassName("Reducer");
-      cbe.setExtendedClass(Utilities.class);
-      cbe.setImplementedInterfaces(new Class[] {Function1.class, Serializable.class});
-      cbe.setParentClassLoader(RexExecutable.class.getClassLoader());
-      cbe.cook(new Scanner((String) null, new StringReader(code)));
-      Class c = cbe.getClazz();
-      Constructor<Function1<DataContext, Object[]>> constructor = c.getConstructor();
-      return (Function1) constructor.newInstance();
-    } catch (IOException
-        | InstantiationException
-        | IllegalAccessException
-        | InvocationTargetException
-        | NoSuchMethodException
-        | CompileException var5) {
-      Exception e = var5;
-      throw new RuntimeException("While compiling " + reason, e);
-    }
   }
 }

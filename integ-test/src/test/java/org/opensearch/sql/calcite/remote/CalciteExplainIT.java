@@ -24,6 +24,12 @@ public class CalciteExplainIT extends ExplainIT {
 
   // Only for Calcite, as v2 gets unstable serialized string for function
   @Test
+  public void testFilterScriptPushDownExplain() throws Exception {
+    super.testFilterScriptPushDownExplain();
+  }
+
+  // Only for Calcite, as v2 gets unstable serialized string for function
+  @Test
   public void testFilterFunctionScriptPushDownExplain() throws Exception {
     super.testFilterFunctionScriptPushDownExplain();
   }

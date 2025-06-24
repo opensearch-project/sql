@@ -1233,8 +1233,6 @@ public class PredicateAnalyzer {
         return booleanValue();
       } else if (isString()) {
         return RexLiteral.stringValue(literal);
-      } else if (isDecimal()) {
-        return ((BigDecimal) literal.getValue()).doubleValue();
       } else {
         return rawValue();
       }
