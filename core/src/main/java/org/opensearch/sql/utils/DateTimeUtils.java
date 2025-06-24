@@ -15,11 +15,22 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.regex.Pattern;
 import lombok.experimental.UtilityClass;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.type.ExprSqlType;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_DATE;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIME;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIMESTAMP;
 
 @UtilityClass
 public class DateTimeUtils {
@@ -293,5 +304,56 @@ public class DateTimeUtils {
         throw new IllegalArgumentException("Unsupported unit alias: " + rawUnit);
       }
     }
+  }
+
+  public static RexNode transferCompareForDateRelated(
+          RexNode candidate, CalcitePlanContext context, SqlTypeName castTarget) {
+    if (!(Objects.isNull(castTarget))) {
+      switch (castTarget) {
+        case DATE:
+          if (!(candidate.getType() instanceof ExprSqlType
+                && ((ExprSqlType) candidate.getType()).getUdt() == EXPR_DATE)) {
+            return context.rexBuilder.makeCall(PPLBuiltinOperators.DATE, candidate);
+          }
+          break;
+        case TIME:
+          if (!(candidate.getType() instanceof ExprSqlType
+                && ((ExprSqlType) candidate.getType()).getUdt() == EXPR_TIME)) {
+            return context.rexBuilder.makeCall(PPLBuiltinOperators.TIME, candidate);
+          }
+          break;
+        case TIMESTAMP:
+          if (!(candidate.getType() instanceof ExprSqlType
+                && ((ExprSqlType) candidate.getType()).getUdt() == EXPR_TIMESTAMP)) {
+            return context.rexBuilder.makeCall(PPLBuiltinOperators.TIMESTAMP, candidate);
+          }
+          break;
+        default:
+          return candidate;
+      }
+    }
+    return candidate;
+  }
+
+  public static SqlTypeName findCastType(RexNode left, RexNode right) {
+    SqlTypeName leftType = returnCorrespondingSqlType(left);
+    SqlTypeName rightType = returnCorrespondingSqlType(right);
+    if (leftType != null && rightType != null) {
+      return SqlTypeName.TIMESTAMP;
+    }
+    return leftType == null ? rightType : leftType;
+  }
+
+  public static SqlTypeName returnCorrespondingSqlType(RexNode node) {
+    if (node.getType() instanceof ExprSqlType) {
+      OpenSearchTypeFactory.ExprUDT udt = ((ExprSqlType) node.getType()).getUdt();
+      return switch (udt) {
+        case EXPR_DATE -> SqlTypeName.DATE;
+        case EXPR_TIME -> SqlTypeName.TIME;
+        case EXPR_TIMESTAMP -> SqlTypeName.TIMESTAMP;
+        default -> null;
+      };
+    }
+    return null;
   }
 }

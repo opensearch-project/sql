@@ -10,8 +10,12 @@ import static org.apache.calcite.sql.SqlKind.AS;
 import static org.apache.commons.lang3.StringUtils.substringAfterLast;
 import static org.opensearch.sql.ast.expression.SpanUnit.NONE;
 import static org.opensearch.sql.ast.expression.SpanUnit.UNKNOWN;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_DATE;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIME;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIMESTAMP;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
+import static org.opensearch.sql.utils.DateTimeUtils.findCastType;
+import static org.opensearch.sql.utils.DateTimeUtils.transferCompareForDateRelated;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -20,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.annotation.Nullable;
@@ -217,28 +222,12 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   public RexNode visitCompare(Compare node, CalcitePlanContext context) {
     RexNode leftCandidate = analyze(node.getLeft(), context);
     RexNode rightCandidate = analyze(node.getRight(), context);
-    Boolean whetherCompareByTime =
-        leftCandidate.getType() instanceof ExprSqlType
-            || rightCandidate.getType() instanceof ExprSqlType;
-
+    SqlTypeName castTarget = findCastType(leftCandidate, rightCandidate);
     final RexNode left =
-        transferCompareForDateRelated(leftCandidate, context, whetherCompareByTime);
+        transferCompareForDateRelated(leftCandidate, context, castTarget);
     final RexNode right =
-        transferCompareForDateRelated(rightCandidate, context, whetherCompareByTime);
+        transferCompareForDateRelated(rightCandidate, context, castTarget);
     return PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, node.getOperator(), left, right);
-  }
-
-  private RexNode transferCompareForDateRelated(
-      RexNode candidate, CalcitePlanContext context, boolean whetherCompareByTime) {
-    if (whetherCompareByTime) {
-      if (!(candidate.getType() instanceof ExprSqlType
-          && ((ExprSqlType) candidate.getType()).getUdt() == EXPR_TIMESTAMP)) {
-        RexNode transferredStringNode =
-            context.rexBuilder.makeCall(PPLBuiltinOperators.TIMESTAMP, candidate);
-        return transferredStringNode;
-      }
-    }
-    return candidate;
   }
 
   @Override

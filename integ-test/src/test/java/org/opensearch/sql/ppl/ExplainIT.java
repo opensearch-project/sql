@@ -20,6 +20,7 @@ public class ExplainIT extends PPLIntegTestCase {
     super.init();
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK);
+    loadIndex(Index.DATE_FORMATS);
   }
 
   @Test
@@ -72,6 +73,38 @@ public class ExplainIT extends PPLIntegTestCase {
             "source=opensearch-sql_test_index_bank"
                 + "| where birthdate > '2016-12-08 00:00:00.000000000' "
                 + "| where birthdate < '2018-11-09 00:00:00.000000000' "));
+  }
+
+  @Test
+  public void testFilterByCompareStringDatePushDownExplain() throws IOException {
+    String expected =
+            isCalciteEnabled()
+                    ? loadFromFile(
+                    "expectedOutput/calcite/explain_filter_push_compare_date_string.json")
+                    : loadFromFile("expectedOutput/ppl/explain_filter_push_compare_date_string.json");
+
+    assertJsonEqualsIgnoreId(
+            expected,
+            explainQueryToString(
+                    "source=opensearch-sql_test_index_date_formats | fields yyyy-MM-dd"
+                    + "| where yyyy-MM-dd > '2016-12-08 00:00:00.123456789' "
+                    + "| where yyyy-MM-dd < '2018-11-09 00:00:00.000000000' "));
+  }
+
+  @Test
+  public void testFilterByCompareStringTimePushDownExplain() throws IOException {
+    String expected =
+            isCalciteEnabled()
+                    ? loadFromFile(
+                    "expectedOutput/calcite/explain_filter_push_compare_time_string.json")
+                    : loadFromFile("expectedOutput/ppl/explain_filter_push_compare_time_string.json");
+
+    assertJsonEqualsIgnoreId(
+            expected,
+            explainQueryToString(
+                    "source=opensearch-sql_test_index_date_formats | fields custom_time"
+                    + "| where custom_time > '2016-12-08 12:00:00.123456789' "
+                    + "| where custom_time < '2018-11-09 19:00:00.123456789' "));
   }
 
   @Test
