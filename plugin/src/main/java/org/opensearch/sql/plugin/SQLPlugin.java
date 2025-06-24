@@ -81,7 +81,7 @@ import org.opensearch.sql.legacy.plugin.RestSqlStatsAction;
 import org.opensearch.sql.opensearch.client.OpenSearchNodeClient;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
-import org.opensearch.sql.opensearch.storage.script.PPLCompoundedScriptEngine;
+import org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine;
 import org.opensearch.sql.plugin.config.OpenSearchPluginModule;
 import org.opensearch.sql.plugin.rest.RestPPLQueryAction;
 import org.opensearch.sql.plugin.rest.RestPPLStatsAction;
@@ -296,7 +296,7 @@ public class SQLPlugin extends Plugin
 
   @Override
   public ScriptEngine getScriptEngine(Settings settings, Collection<ScriptContext<?>> contexts) {
-    return new PPLCompoundedScriptEngine();
+    return new CompoundedScriptEngine();
   }
 
   private DataSourceServiceImpl createDataSourceService() {

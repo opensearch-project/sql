@@ -7,7 +7,7 @@ package org.opensearch.sql.opensearch.storage.script.aggregation.dsl;
 
 import static java.util.Collections.emptyMap;
 import static org.opensearch.script.Script.DEFAULT_SCRIPT_TYPE;
-import static org.opensearch.sql.opensearch.storage.script.PPLCompoundedScriptEngine.PPL_LANG_NAME;
+import static org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.COMPOUNDED_LANG_NAME;
 
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
@@ -41,7 +41,10 @@ public class AggregationBuilderHelper {
         || expression instanceof LiteralExpression) {
       return scriptBuilder.apply(
           new Script(
-              DEFAULT_SCRIPT_TYPE, PPL_LANG_NAME, serializer.serialize(expression), emptyMap()));
+              DEFAULT_SCRIPT_TYPE,
+              COMPOUNDED_LANG_NAME,
+              serializer.serialize(expression),
+              emptyMap()));
     } else {
       throw new IllegalStateException(
           String.format("metric aggregation doesn't support " + "expression %s", expression));

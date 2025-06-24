@@ -38,9 +38,9 @@ import static org.opensearch.index.query.QueryBuilders.regexpQuery;
 import static org.opensearch.index.query.QueryBuilders.termQuery;
 import static org.opensearch.index.query.QueryBuilders.termsQuery;
 import static org.opensearch.script.Script.DEFAULT_SCRIPT_TYPE;
-import static org.opensearch.sql.opensearch.storage.script.PPLCompoundedScriptEngine.CALCITE_ENGINE_TYPE;
-import static org.opensearch.sql.opensearch.storage.script.PPLCompoundedScriptEngine.ENGINE_TYPE;
-import static org.opensearch.sql.opensearch.storage.script.PPLCompoundedScriptEngine.PPL_LANG_NAME;
+import static org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.CALCITE_ENGINE_TYPE;
+import static org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.COMPOUNDED_LANG_NAME;
+import static org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.ENGINE_TYPE;
 
 import com.google.common.collect.Range;
 import java.math.BigDecimal;
@@ -986,7 +986,7 @@ public class PredicateAnalyzer {
       return new ScriptQueryBuilder(
           new Script(
               DEFAULT_SCRIPT_TYPE,
-              PPL_LANG_NAME,
+              COMPOUNDED_LANG_NAME,
               code,
               Map.of(ENGINE_TYPE, CALCITE_ENGINE_TYPE),
               Map.of(Variable.UTC_TIMESTAMP.camelName, currentTime)));

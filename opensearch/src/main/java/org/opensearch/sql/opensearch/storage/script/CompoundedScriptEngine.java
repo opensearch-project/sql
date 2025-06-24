@@ -19,10 +19,10 @@ import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSeri
  * script language just like built-in Painless language.
  */
 @RequiredArgsConstructor
-public class PPLCompoundedScriptEngine implements ScriptEngine {
+public class CompoundedScriptEngine implements ScriptEngine {
 
   /** Expression script language name. */
-  public static final String PPL_LANG_NAME = "opensearch_ppl_compounded";
+  public static final String COMPOUNDED_LANG_NAME = "opensearch_compounded_script";
 
   public static final String ENGINE_TYPE = "engine_type";
   public static final String V2_ENGINE_TYPE = "v2";
@@ -34,7 +34,7 @@ public class PPLCompoundedScriptEngine implements ScriptEngine {
 
   @Override
   public String getType() {
-    return PPL_LANG_NAME;
+    return COMPOUNDED_LANG_NAME;
   }
 
   @Override
