@@ -248,11 +248,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
 
   public CalciteLogicalIndexScan pushDownSort(List<RelFieldCollation> collations) {
     try {
-      List<String> collationNames =
-          collations.stream()
-              .map(RelFieldCollation::getFieldIndex)
-              .map(index -> this.getRowType().getFieldNames().get(index))
-              .collect(Collectors.toList());
+      List<String> collationNames = getCollationNames(collations);
       if (getPushDownContext().isAggregatePushed() && hasAggregatorInSortBy(collationNames)) {
         // If aggregation is pushed down, we cannot push down sorts where its by fields contain
         // aggregators.
@@ -305,12 +301,36 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       return newScan;
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
-        LOG.debug("Cannot pushdown the sort {}", collations, e);
+        LOG.debug("Cannot pushdown the sort {}", getCollationNames(collations), e);
       } else {
-        LOG.warn("Cannot pushdown the sort {}, ", collations);
+        LOG.warn("Cannot pushdown the sort {}, ", getCollationNames(collations));
       }
     }
     return null;
+  }
+
+  /**
+   * Check if the sort by collations contains any aggregators that are pushed down. E.g. In `stats
+   * avg(age) as avg_age by state | sort avg_age`, the sort clause has `avg_age` which is an
+   * aggregator. The function will return true in this case.
+   *
+   * @param collations List of collation names to check against aggregators.
+   * @return True if any collation name matches an aggregator output, false otherwise.
+   */
+  private boolean hasAggregatorInSortBy(List<String> collations) {
+    Stream<LogicalAggregate> aggregates =
+        pushDownContext.stream()
+            .filter(action -> action.type() == PushDownType.AGGREGATION)
+            .map(action -> ((LogicalAggregate) action.digest()));
+    return aggregates
+        .map(aggregate -> isAnyCollationNameInAggregateOutput(aggregate, collations))
+        .reduce(false, Boolean::logicalOr);
+  }
+
+  private List<String> getCollationNames(List<RelFieldCollation> collations) {
+    return collations.stream()
+        .map(collation -> getRowType().getFieldNames().get(collation.getFieldIndex()))
+        .toList();
   }
 
   /**
@@ -335,24 +355,6 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       mergedCollations.putIfAbsent(collation.getFieldIndex(), collation);
     }
     return new ArrayList<>(mergedCollations.values());
-  }
-
-  /**
-   * Check if the sort by collations contains any aggregators that are pushed down. E.g. In `stats
-   * avg(age) as avg_age by state | sort avg_age`, the sort clause has `avg_age` which is an
-   * aggregator. The function will return true in this case.
-   *
-   * @param collations List of collation names to check against aggregators.
-   * @return True if any collation name matches an aggregator output, false otherwise.
-   */
-  private boolean hasAggregatorInSortBy(List<String> collations) {
-    Stream<LogicalAggregate> aggregates =
-        pushDownContext.stream()
-            .filter(action -> action.type() == PushDownType.AGGREGATION)
-            .map(action -> ((LogicalAggregate) action.digest()));
-    return aggregates
-        .map(aggregate -> isAnyCollationNameInAggregateOutput(aggregate, collations))
-        .reduce(false, Boolean::logicalOr);
   }
 
   private static boolean isAnyCollationNameInAggregateOutput(
