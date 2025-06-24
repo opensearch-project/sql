@@ -5,6 +5,10 @@
 
 package org.opensearch.sql.utils;
 
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_DATE;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIME;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIMESTAMP;
+
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -27,10 +31,6 @@ import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
-
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_DATE;
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIME;
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIMESTAMP;
 
 @UtilityClass
 public class DateTimeUtils {
@@ -307,24 +307,24 @@ public class DateTimeUtils {
   }
 
   public static RexNode transferCompareForDateRelated(
-          RexNode candidate, CalcitePlanContext context, SqlTypeName castTarget) {
+      RexNode candidate, CalcitePlanContext context, SqlTypeName castTarget) {
     if (!(Objects.isNull(castTarget))) {
       switch (castTarget) {
         case DATE:
           if (!(candidate.getType() instanceof ExprSqlType
-                && ((ExprSqlType) candidate.getType()).getUdt() == EXPR_DATE)) {
+              && ((ExprSqlType) candidate.getType()).getUdt() == EXPR_DATE)) {
             return context.rexBuilder.makeCall(PPLBuiltinOperators.DATE, candidate);
           }
           break;
         case TIME:
           if (!(candidate.getType() instanceof ExprSqlType
-                && ((ExprSqlType) candidate.getType()).getUdt() == EXPR_TIME)) {
+              && ((ExprSqlType) candidate.getType()).getUdt() == EXPR_TIME)) {
             return context.rexBuilder.makeCall(PPLBuiltinOperators.TIME, candidate);
           }
           break;
         case TIMESTAMP:
           if (!(candidate.getType() instanceof ExprSqlType
-                && ((ExprSqlType) candidate.getType()).getUdt() == EXPR_TIMESTAMP)) {
+              && ((ExprSqlType) candidate.getType()).getUdt() == EXPR_TIMESTAMP)) {
             return context.rexBuilder.makeCall(PPLBuiltinOperators.TIMESTAMP, candidate);
           }
           break;

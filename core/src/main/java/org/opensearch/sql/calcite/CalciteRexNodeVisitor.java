@@ -10,9 +10,6 @@ import static org.apache.calcite.sql.SqlKind.AS;
 import static org.apache.commons.lang3.StringUtils.substringAfterLast;
 import static org.opensearch.sql.ast.expression.SpanUnit.NONE;
 import static org.opensearch.sql.ast.expression.SpanUnit.UNKNOWN;
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_DATE;
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIME;
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIMESTAMP;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 import static org.opensearch.sql.utils.DateTimeUtils.findCastType;
 import static org.opensearch.sql.utils.DateTimeUtils.transferCompareForDateRelated;
@@ -24,7 +21,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.annotation.Nullable;
@@ -73,7 +69,6 @@ import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
-import org.opensearch.sql.calcite.type.ExprSqlType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -81,7 +76,6 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
-import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
 @RequiredArgsConstructor
@@ -223,10 +217,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     RexNode leftCandidate = analyze(node.getLeft(), context);
     RexNode rightCandidate = analyze(node.getRight(), context);
     SqlTypeName castTarget = findCastType(leftCandidate, rightCandidate);
-    final RexNode left =
-        transferCompareForDateRelated(leftCandidate, context, castTarget);
-    final RexNode right =
-        transferCompareForDateRelated(rightCandidate, context, castTarget);
+    final RexNode left = transferCompareForDateRelated(leftCandidate, context, castTarget);
+    final RexNode right = transferCompareForDateRelated(rightCandidate, context, castTarget);
     return PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, node.getOperator(), left, right);
   }
 
