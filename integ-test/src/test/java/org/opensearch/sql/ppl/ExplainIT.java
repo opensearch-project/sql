@@ -101,7 +101,7 @@ public class ExplainIT extends PPLIntegTestCase {
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
                 + "| stats avg(age) AS avg_age by state, city "
-                + "| sort avg_age "));
+                + "| sort avg_age"));
 
     // sorts whose by fields are not aggregators can be pushed down.
     // This test is covered in testExplain

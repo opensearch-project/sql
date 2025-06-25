@@ -279,6 +279,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         int index = collation.getFieldIndex();
         String fieldName = this.getRowType().getFieldNames().get(index);
         RelFieldCollation.Direction direction = collation.getDirection();
+        RelFieldCollation.NullDirection nullDirection = collation.nullDirection;
         // Default sort order is ASCENDING
         SortOrder order =
             RelFieldCollation.Direction.DESCENDING.equals(direction)
@@ -289,7 +290,13 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         if (ScoreSortBuilder.NAME.equals(fieldName)) {
           sortBuilder = SortBuilders.scoreSort();
         } else {
-          sortBuilder = SortBuilders.fieldSort(fieldName);
+          String missing =
+              switch (nullDirection) {
+                case FIRST -> "_first";
+                case LAST -> "_last";
+                default -> null;
+              };
+          sortBuilder = SortBuilders.fieldSort(fieldName).missing(missing);
         }
         builders.add(sortBuilder.order(order));
       }
