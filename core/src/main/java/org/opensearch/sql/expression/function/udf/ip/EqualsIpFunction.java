@@ -43,15 +43,12 @@ public class EqualsIpFunction extends ImplementorUDF {
   }
 
   @Override
-  //  public UDFOperandMetadata getOperandMetadata() {
-  //    return UDFOperandMetadata.wrap(
-  //        (CompositeOperandTypeChecker)
-  //            OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.NULL)
-  //                .or(OperandTypes.family(SqlTypeFamily.NULL, SqlTypeFamily.STRING))
-  //                .or(OperandTypes.family(SqlTypeFamily.NULL, SqlTypeFamily.NULL)));
-  //  }
   public UDFOperandMetadata getOperandMetadata() {
-    return UDFOperandMetadata.wrap(OperandTypes.STRING_STRING);
+    return UDFOperandMetadata.wrap(
+        (CompositeOperandTypeChecker)
+            OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.NULL)
+                .or(OperandTypes.family(SqlTypeFamily.NULL, SqlTypeFamily.STRING))
+                .or(OperandTypes.family(SqlTypeFamily.NULL, SqlTypeFamily.NULL)));
   }
 
   public static class EqualsImplementor implements NotNullImplementor {

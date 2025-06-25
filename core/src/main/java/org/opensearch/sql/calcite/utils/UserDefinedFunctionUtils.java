@@ -115,7 +115,10 @@ public class UserDefinedFunctionUtils {
         case EXPR_DATE -> SqlTypeName.DATE;
         case EXPR_TIME -> SqlTypeName.TIME;
         case EXPR_TIMESTAMP -> SqlTypeName.TIMESTAMP;
-        case EXPR_IP -> SqlTypeName.VARCHAR;
+          // EXPR_IP is mapped to SqlTypeName.NULL since there is no
+          // corresponding SqlTypeName in Calcite. This is a workaround to allow
+          // type checking for IP types in UDFs.
+        case EXPR_IP -> SqlTypeName.NULL;
         case EXPR_BINARY -> SqlTypeName.VARBINARY;
         default -> type.getSqlTypeName();
       };

@@ -12,9 +12,7 @@ import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.sql.type.OperandTypes;
-import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.*;
 import org.opensearch.sql.data.model.ExprIpValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -44,9 +42,12 @@ public class CidrMatchFunction extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    // EXPR_IP is mapped to SqlTypeFamily.VARCHAR in
+    // EXPR_IP is mapped to SqlTypeFamily.NULL in
     // UserDefinedFunctionUtils.convertRelDataTypeToSqlTypeName
-    return UDFOperandMetadata.wrap(OperandTypes.STRING_STRING);
+    return UDFOperandMetadata.wrap(
+        (CompositeOperandTypeChecker)
+            OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING)
+                .or(OperandTypes.family(SqlTypeFamily.NULL, SqlTypeFamily.STRING)));
   }
 
   public static class CidrMatchImplementor implements NotNullImplementor {
