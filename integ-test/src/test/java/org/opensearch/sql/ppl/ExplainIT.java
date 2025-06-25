@@ -143,6 +143,23 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testSortWithRenameExplain() throws IOException {
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_sort_rename_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_sort_rename_push.json");
+
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account "
+                + "| rename firstname as name "
+                + "| eval alias = name "
+                + "|  sort alias "
+                + "| fields alias"));
+  }
+
+  @Test
   public void testLimitPushDownExplain() throws IOException {
     String expected =
         isCalciteEnabled()
