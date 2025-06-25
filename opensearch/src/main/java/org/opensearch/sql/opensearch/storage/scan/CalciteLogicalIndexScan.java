@@ -43,6 +43,7 @@ import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.planner.physical.EnumerableIndexScanRule;
 import org.opensearch.sql.opensearch.planner.physical.OpenSearchIndexRules;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer;
@@ -296,7 +297,11 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
                 case LAST -> "_last";
                 default -> null;
               };
-          sortBuilder = SortBuilders.fieldSort(fieldName).missing(missing);
+          // Keyword field is optimized for sorting in OpenSearch
+          String fieldNameKeyword =
+              OpenSearchTextType.convertTextToKeyword(
+                  fieldName, osIndex.getFieldTypes().get(fieldName));
+          sortBuilder = SortBuilders.fieldSort(fieldNameKeyword).missing(missing);
         }
         builders.add(sortBuilder.order(order));
       }
