@@ -70,7 +70,7 @@ import org.opensearch.sql.expression.function.udf.datetime.UnixTimestampFunction
 import org.opensearch.sql.expression.function.udf.datetime.WeekFunction;
 import org.opensearch.sql.expression.function.udf.datetime.WeekdayFunction;
 import org.opensearch.sql.expression.function.udf.datetime.YearweekFunction;
-import org.opensearch.sql.expression.function.udf.ip.CidrMatchFunction;
+import org.opensearch.sql.expression.function.udf.ip.*;
 import org.opensearch.sql.expression.function.udf.math.CRC32Function;
 import org.opensearch.sql.expression.function.udf.math.ConvFunction;
 import org.opensearch.sql.expression.function.udf.math.DivideFunction;
@@ -101,6 +101,14 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator DIVIDE = new DivideFunction().toUDF("DIVIDE");
   public static final SqlOperator SHA2 = CryptographicFunction.sha2().toUDF("SHA2");
   public static final SqlOperator CIDRMATCH = new CidrMatchFunction().toUDF("CIDRMATCH");
+
+  // IP comparing functions
+  public static final SqlOperator NOT_EQUALS_IP = new NotEqualsIpFunction().toUDF("NOT_EQUALS_IP");
+  public static final SqlOperator EQUALS_IP = new EqualsIpFunction().toUDF("EQUALS_IP");
+  public static final SqlOperator GREATER_IP = new GreaterIpFunction().toUDF("GREATER_IP");
+  public static final SqlOperator GTE_IP = new GteIpFunction().toUDF("GTE_IP");
+  public static final SqlOperator LESS_IP = new LessIpFunction().toUDF("LESS_IP");
+  public static final SqlOperator LTE_IP = new LteIpFunction().toUDF("LTE_IP");
 
   // Condition function
   public static final SqlOperator EARLIEST = new EarliestFunction().toUDF("EARLIEST");
