@@ -37,6 +37,8 @@ import static org.opensearch.index.query.QueryBuilders.rangeQuery;
 import static org.opensearch.index.query.QueryBuilders.regexpQuery;
 import static org.opensearch.index.query.QueryBuilders.termQuery;
 import static org.opensearch.index.query.QueryBuilders.termsQuery;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.MULTI_FIELDS_RELEVANCE_FUNCTION_SET;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.SINGLE_FIELD_RELEVANCE_FUNCTION_SET;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.Range;
@@ -68,6 +70,13 @@ import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchBoolPrefixQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchPhrasePrefixQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchPhraseQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MultiMatchQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.QueryStringQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.SimpleQueryStringQuery;
 
 /**
  * Query predicate analyzer. Uses visitor pattern to traverse existing expression and convert it to
@@ -277,12 +286,63 @@ public class PredicateAnalyzer {
             }
           };
         case FUNCTION:
-          if (call.getOperator().getName().equalsIgnoreCase("CONTAINS")) {
-            List<Expression> operands = visitList(call.getOperands());
-            String query =
-                convertQueryString(
-                    operands.subList(0, operands.size() - 1), operands.get(operands.size() - 1));
-            return QueryExpression.create(new NamedFieldExpression()).queryString(query);
+          String funcName = call.getOperator().getName().toLowerCase(Locale.ROOT);
+          List<RexNode> ops = call.getOperands();
+          assert ops.size() == 2 || ops.size() == 3
+              : "Relevance query function should have 2 or 3 operands";
+
+          if (SINGLE_FIELD_RELEVANCE_FUNCTION_SET.contains(funcName)) {
+            List<Expression> fieldQueryOperands;
+            RexCall mapRexCall;
+            if (!(ops.get(ops.size() - 1) instanceof RexCall)) {
+              fieldQueryOperands = visitList(ops);
+              mapRexCall = null;
+            } else {
+              fieldQueryOperands = visitList(ops.subList(0, ops.size() - 1));
+              mapRexCall = (RexCall) call.getOperands().get(ops.size() - 1);
+            }
+            String queryLiteralOperand =
+                ((LiteralExpression) fieldQueryOperands.get(1)).stringValue();
+
+            switch (funcName) {
+              case "match":
+                return QueryExpression.create((NamedFieldExpression) fieldQueryOperands.get(0))
+                    .match(queryLiteralOperand, mapRexCall);
+              case "match_phrase":
+                return QueryExpression.create((NamedFieldExpression) fieldQueryOperands.get(0))
+                    .matchPhrase(queryLiteralOperand, mapRexCall);
+              case "match_bool_prefix":
+                return QueryExpression.create((NamedFieldExpression) fieldQueryOperands.get(0))
+                    .matchBoolPrefix(queryLiteralOperand, mapRexCall);
+              case "match_phrase_prefix":
+                return QueryExpression.create((NamedFieldExpression) fieldQueryOperands.get(0))
+                    .matchPhrasePrefix(queryLiteralOperand, mapRexCall);
+              default:
+                throw new PredicateAnalyzerException(
+                    "Unsupported single field relevance query function");
+            }
+          } else if (MULTI_FIELDS_RELEVANCE_FUNCTION_SET.contains(funcName)) {
+            RexCall fieldsRexCall = (RexCall) ops.get(0);
+            String queryLiteralOperand =
+                ((LiteralExpression) visitList(List.of(ops.get(1))).get(0)).stringValue();
+            RexCall mapRexCall =
+                !(ops.get(ops.size() - 1) instanceof RexCall)
+                    ? null
+                    : (RexCall) call.getOperands().get(call.getOperands().size() - 1);
+            switch (funcName) {
+              case "simple_query_string":
+                return QueryExpression.create(new NamedFieldExpression())
+                    .simpleQueryString(fieldsRexCall, queryLiteralOperand, mapRexCall);
+              case "query_string":
+                return QueryExpression.create(new NamedFieldExpression())
+                    .queryString(fieldsRexCall, queryLiteralOperand, mapRexCall);
+              case "multi_match":
+                return QueryExpression.create(new NamedFieldExpression())
+                    .multiMatch(fieldsRexCall, queryLiteralOperand, mapRexCall);
+              default:
+                throw new PredicateAnalyzerException(
+                    "Unsupported multi fields relevance query function");
+            }
           }
           // fall through
         default:
@@ -607,7 +667,22 @@ public class PredicateAnalyzer {
 
     public abstract QueryExpression lte(LiteralExpression literal);
 
-    public abstract QueryExpression queryString(String query);
+    public abstract QueryExpression match(String query, RexCall mapRexCall);
+
+    public abstract QueryExpression matchPhrase(String query, RexCall mapRexCall);
+
+    public abstract QueryExpression matchBoolPrefix(String query, RexCall mapRexCall);
+
+    public abstract QueryExpression matchPhrasePrefix(String query, RexCall mapRexCall);
+
+    public abstract QueryExpression simpleQueryString(
+        RexCall fieldsRexCall, String query, RexCall mapRexCall);
+
+    public abstract QueryExpression queryString(
+        RexCall fieldsRexCall, String query, RexCall mapRexCall);
+
+    public abstract QueryExpression multiMatch(
+        RexCall fieldsRexCall, String query, RexCall mapRexCall);
 
     public abstract QueryExpression isTrue();
 
@@ -747,9 +822,45 @@ public class PredicateAnalyzer {
     }
 
     @Override
-    public QueryExpression queryString(String query) {
+    public QueryExpression match(String query, RexCall mapRexCall) {
+      throw new PredicateAnalyzerException("Match " + "cannot be applied to a compound expression");
+    }
+
+    @Override
+    public QueryExpression matchPhrase(String query, RexCall mapRexCall) {
+      throw new PredicateAnalyzerException(
+          "MatchPhrase " + "cannot be applied to a compound expression");
+    }
+
+    @Override
+    public QueryExpression matchBoolPrefix(String query, RexCall mapRexCall) {
+      throw new PredicateAnalyzerException(
+          "MatchBoolPrefix " + "cannot be applied to a compound expression");
+    }
+
+    @Override
+    public QueryExpression matchPhrasePrefix(String query, RexCall mapRexCall) {
+      throw new PredicateAnalyzerException(
+          "MatchPhrasePrefix " + "cannot be applied to a compound expression");
+    }
+
+    @Override
+    public QueryExpression simpleQueryString(
+        RexCall fieldsRexCall, String query, RexCall mapRexCall) {
+      throw new PredicateAnalyzerException(
+          "SimpleQueryString " + "cannot be applied to a compound expression");
+    }
+
+    @Override
+    public QueryExpression queryString(RexCall fieldsRexCall, String query, RexCall mapRexCall) {
       throw new PredicateAnalyzerException(
           "QueryString " + "cannot be applied to a compound expression");
+    }
+
+    @Override
+    public QueryExpression multiMatch(RexCall fieldsRexCall, String query, RexCall mapRexCall) {
+      throw new PredicateAnalyzerException(
+          "MultiMatch " + "cannot be applied to a compound expression");
     }
 
     @Override
@@ -897,8 +1008,46 @@ public class PredicateAnalyzer {
     }
 
     @Override
-    public QueryExpression queryString(String query) {
-      throw new UnsupportedOperationException("QueryExpression not yet supported: " + query);
+    public QueryExpression match(String query, RexCall mapRexCall) {
+      builder = new MatchQuery().build(getFieldReference(), query, mapRexCall);
+      return this;
+    }
+
+    @Override
+    public QueryExpression matchPhrase(String query, RexCall mapRexCall) {
+      builder = new MatchPhraseQuery().build(getFieldReference(), query, mapRexCall);
+      return this;
+    }
+
+    @Override
+    public QueryExpression matchBoolPrefix(String query, RexCall mapRexCall) {
+      builder = new MatchBoolPrefixQuery().build(getFieldReference(), query, mapRexCall);
+      return this;
+    }
+
+    @Override
+    public QueryExpression matchPhrasePrefix(String query, RexCall mapRexCall) {
+      builder = new MatchPhrasePrefixQuery().build(getFieldReference(), query, mapRexCall);
+      return this;
+    }
+
+    @Override
+    public QueryExpression simpleQueryString(
+        RexCall fieldsRexCall, String query, RexCall mapRexCall) {
+      builder = new SimpleQueryStringQuery().build(fieldsRexCall, query, mapRexCall);
+      return this;
+    }
+
+    @Override
+    public QueryExpression queryString(RexCall fieldsRexCall, String query, RexCall mapRexCall) {
+      builder = new QueryStringQuery().build(fieldsRexCall, query, mapRexCall);
+      return this;
+    }
+
+    @Override
+    public QueryExpression multiMatch(RexCall fieldsRexCall, String query, RexCall mapRexCall) {
+      builder = new MultiMatchQuery().build(fieldsRexCall, query, mapRexCall);
+      return this;
     }
 
     @Override

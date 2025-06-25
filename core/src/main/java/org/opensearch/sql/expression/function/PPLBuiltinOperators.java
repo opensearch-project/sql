@@ -47,6 +47,7 @@ import org.opensearch.sql.expression.function.jsonUDF.JsonKeysFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonSetFunctionImpl;
 import org.opensearch.sql.expression.function.udf.CryptographicFunction;
 import org.opensearch.sql.expression.function.udf.GrokFunction;
+import org.opensearch.sql.expression.function.udf.RelevanceQueryFunction;
 import org.opensearch.sql.expression.function.udf.SpanFunction;
 import org.opensearch.sql.expression.function.udf.condition.EarliestFunction;
 import org.opensearch.sql.expression.function.udf.condition.LatestFunction;
@@ -326,6 +327,17 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator FILTER = new FilterFunctionImpl().toUDF("filter");
   public static final SqlOperator TRANSFORM = new TransformFunctionImpl().toUDF("transform");
   public static final SqlOperator REDUCE = new ReduceFunctionImpl().toUDF("reduce");
+
+  public static final SqlOperator MATCH = new RelevanceQueryFunction().toUDF("match");
+  public static final SqlOperator MATCH_PHRASE = new RelevanceQueryFunction().toUDF("match_phrase");
+  public static final SqlOperator MATCH_BOOL_PREFIX =
+      new RelevanceQueryFunction().toUDF("match_bool_prefix");
+  public static final SqlOperator MATCH_PHRASE_PREFIX =
+      new RelevanceQueryFunction().toUDF("match_phrase_prefix");
+  public static final SqlOperator SIMPLE_QUERY_STRING =
+      new RelevanceQueryFunction().toUDF("simple_query_string");
+  public static final SqlOperator QUERY_STRING = new RelevanceQueryFunction().toUDF("query_string");
+  public static final SqlOperator MULTI_MATCH = new RelevanceQueryFunction().toUDF("multi_match");
 
   /**
    * Invoking an implementor registered in {@link RexImpTable}, need to use reflection since they're

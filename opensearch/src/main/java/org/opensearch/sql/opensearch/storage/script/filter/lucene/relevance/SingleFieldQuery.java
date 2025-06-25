@@ -7,6 +7,7 @@ package org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance;
 
 import java.util.List;
 import java.util.Map;
+import org.apache.calcite.rex.RexCall;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.NamedArgumentExpression;
@@ -44,4 +45,9 @@ abstract class SingleFieldQuery<T extends QueryBuilder> extends RelevanceQuery<T
   }
 
   protected abstract T createBuilder(String field, String query);
+
+  public T build(String field, String query, RexCall mapRexCall) {
+    T queryBuilder = createBuilder(field, query);
+    return applyArguments(queryBuilder, mapRexCall);
+  }
 }
