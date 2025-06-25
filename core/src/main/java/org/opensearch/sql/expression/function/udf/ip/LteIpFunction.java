@@ -43,12 +43,15 @@ public class LteIpFunction extends ImplementorUDF {
   }
 
   @Override
+  //  public UDFOperandMetadata getOperandMetadata() {
+  //    return UDFOperandMetadata.wrap(
+  //        (CompositeOperandTypeChecker)
+  //            OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.NULL)
+  //                .or(OperandTypes.family(SqlTypeFamily.NULL, SqlTypeFamily.STRING))
+  //                .or(OperandTypes.family(SqlTypeFamily.NULL, SqlTypeFamily.NULL)));
+  //  }
   public UDFOperandMetadata getOperandMetadata() {
-    return UDFOperandMetadata.wrap(
-        (CompositeOperandTypeChecker)
-            OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.ANY)
-                .or(OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.STRING))
-                .or(OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.ANY)));
+    return UDFOperandMetadata.wrap(OperandTypes.STRING_STRING);
   }
 
   public static class LteImplementor implements NotNullImplementor {
