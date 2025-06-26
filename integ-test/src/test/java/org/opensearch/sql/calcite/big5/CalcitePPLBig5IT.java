@@ -26,10 +26,6 @@ public class CalcitePPLBig5IT extends PPLBig5IT {
 
   @Override
   @Ignore("Relevance fields expression is unsupported in Calcite")
-  public void testTQ1() throws IOException {}
-
-  @Override
-  @Ignore("Relevance fields expression is unsupported in Calcite")
   public void testTQ2() throws IOException {}
 
   @Override
