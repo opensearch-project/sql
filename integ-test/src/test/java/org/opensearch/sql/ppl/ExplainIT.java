@@ -9,6 +9,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 
 import java.io.IOException;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.legacy.TestUtils;
@@ -301,5 +302,35 @@ public class ExplainIT extends PPLIntegTestCase {
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
                 + "| patterns email method=brain mode=aggregation"));
+  }
+
+  @Ignore("The serialized string is unstable because of function properties")
+  @Test
+  public void testFilterScriptPushDownExplain() throws Exception {
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_filter_script_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_filter_script_push.json");
+
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | where firstname ='Amber' and age - 2 = 30 |"
+                + " fields firstname, age"));
+  }
+
+  @Ignore("The serialized string is unstable because of function properties")
+  @Test
+  public void testFilterFunctionScriptPushDownExplain() throws Exception {
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_filter_function_script_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_filter_function_script_push.json");
+
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account |  where length(firstname) = 5 and abs(age) ="
+                + " 32 and balance = 39225 | fields firstname, age"));
   }
 }
