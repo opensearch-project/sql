@@ -1,0 +1,1 @@
+source = big5 | where `@timestamp` < '2023-01-01 23:59:58.000000000' | sort - `@timestamp`
