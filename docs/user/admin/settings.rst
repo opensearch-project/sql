@@ -166,7 +166,7 @@ plugins.query.size_limit
 Description
 -----------
 
-The new engine fetches a default size of index from OpenSearch set by this setting, the default value equals to max result window in index level (10000 by default). You can change the value to any value not greater than the max result window value in index level (`index.max_result_window`), here is an example::
+The size configures the maximum amount of rows to be fetched from query execution results. The default value is: 10000. You can change the value::
 
 	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
 	  "transient" : {
@@ -186,6 +186,65 @@ Result set::
           }
         }
       }
+    }
+
+plugins.query.system_limit
+==========================
+
+Description
+-----------
+
+The size configures the maximum of rows in the subsearch to data-intensive operations against (e.g. join, lookup). The default value is: 50000. Value range is from 0 to 2147483647 (Int.MaxValue).
+
+PPL commands includes ``join``, ``lookup`` and ``expand`` will be affected by this configuration. In future, we can add more command argument to control specific command.
+
+For Join, with join type
+
+* SEMI, ANTI: no affect
+* RIGHT: add a LogicalSystemLimit operator to left side (main-search)
+* Others: add a LogicalSystemLimit operator to right side (sub-search)
+
+For Lookup
+
+* add a LogicalSystemLimit operator to right side (sub-search)
+
+For expand
+
+* add a LogicalSystemLimit operator to right side (sub-search)
+
+Version
+-------
+3.1.0
+
+Example
+-------
+
+Change the system_limit to 2147483647 (max)::
+
+    sh$ curl -sS -H 'Content-Type: application/json' \
+    ... -X PUT localhost:9200/_plugins/_query/settings \
+    ... -d '{"persistent" : {"plugins.query.system_limit" : "2147483647"}}'
+    {
+      "acknowledged": true,
+      "persistent": {
+        "plugins": {
+          "query": {
+            "system_limit": "2147483647"
+          }
+        }
+      },
+      "transient": {}
+    }
+
+Rollback to default value::
+
+    sh$ curl -sS -H 'Content-Type: application/json' \
+    ... -X PUT localhost:9200/_plugins/_query/settings \
+    ... -d '{"persistent" : {"plugins.query.system_limit" : null}}'
+    {
+      "acknowledged": true,
+      "persistent": {},
+      "transient": {}
     }
 
 plugins.query.memory_limit

@@ -122,6 +122,7 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
               .put(Key.PATTERN_MODE, "LABEL")
               .put(Key.PATTERN_MAX_SAMPLE_COUNT, 10)
               .put(Key.PATTERN_BUFFER_LIMIT, 100000)
+              .put(Key.QUERY_SYSTEM_LIMIT, 5000)
               .build();
 
       @Override
@@ -152,6 +153,7 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
               .put(Key.PATTERN_MODE, "LABEL")
               .put(Key.PATTERN_MAX_SAMPLE_COUNT, 10)
               .put(Key.PATTERN_BUFFER_LIMIT, 100000)
+              .put(Key.QUERY_SYSTEM_LIMIT, 5000)
               .build();
 
       @Override
