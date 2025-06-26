@@ -57,6 +57,7 @@ import org.apache.calcite.linq4j.tree.LabelTarget;
 import org.apache.calcite.linq4j.tree.MethodCallExpression;
 import org.apache.calcite.linq4j.tree.MethodDeclaration;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
@@ -80,6 +81,7 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
 import org.opensearch.sql.opensearch.storage.script.filter.CalciteFilterScriptFactory;
+import org.opensearch.sql.opensearch.storage.serialization.RelJsonSerializer;
 
 /**
  * Custom expression script engine that supports using core engine expression code in DSL as a new
@@ -87,6 +89,12 @@ import org.opensearch.sql.opensearch.storage.script.filter.CalciteFilterScriptFa
  */
 @RequiredArgsConstructor
 public class CalciteScriptEngine implements ScriptEngine {
+
+  private final RelJsonSerializer relJsonSerializer;
+
+  public CalciteScriptEngine(RelOptCluster relOptCluster) {
+    this.relJsonSerializer = new RelJsonSerializer(relOptCluster);
+  }
 
   /** Expression script language name. */
   public static final String CALCITE_LANG_NAME = "opensearch_calcite";
@@ -107,8 +115,21 @@ public class CalciteScriptEngine implements ScriptEngine {
   @Override
   public <T> T compile(
       String scriptName, String scriptCode, ScriptContext<T> context, Map<String, String> options) {
+    Map<String, Object> objectMap = relJsonSerializer.deserialize(scriptCode);
+    RexNode rexNode = (RexNode) objectMap.get(RelJsonSerializer.EXPR);
+    RelDataType rowType = (RelDataType) objectMap.get(RelJsonSerializer.ROW_TYPE);
+    Map<String, ExprType> fieldTypes =
+        (Map<String, ExprType>) objectMap.get(RelJsonSerializer.FIELD_TYPES);
+
+    JavaTypeFactoryImpl typeFactory =
+        new JavaTypeFactoryImpl(relJsonSerializer.getCluster().getTypeFactory().getTypeSystem());
+    RexToLixTranslator.InputGetter getter = new ScriptInputGetter(typeFactory, rowType, fieldTypes);
+    String code =
+        CalciteScriptEngine.translate(
+            relJsonSerializer.getCluster().getRexBuilder(), List.of(rexNode), getter, rowType);
+
     Function1<DataContext, Object[]> function =
-        new RexExecutable(scriptCode, "generated Rex code").getFunction();
+        new RexExecutable(code, "generated Rex code").getFunction();
 
     if (CONTEXTS.containsKey(context)) {
       return context.factoryClazz.cast(CONTEXTS.get(context).apply(function));

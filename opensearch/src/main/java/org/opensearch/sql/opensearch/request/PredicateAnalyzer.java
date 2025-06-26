@@ -53,11 +53,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import org.apache.calcite.DataContext.Variable;
-import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
-import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -79,9 +77,8 @@ import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
-import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine;
-import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.ScriptInputGetter;
 import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.UnsupportedScriptException;
+import org.opensearch.sql.opensearch.storage.serialization.RelJsonSerializer;
 
 /**
  * Query predicate analyzer. Uses visitor pattern to traverse existing expression and convert it to
@@ -131,28 +128,28 @@ public class PredicateAnalyzer {
    *
    * @param expression expression to analyze
    * @param schema current schema of scan operator
-   * @param filedTypes mapping of OpenSearch field name to ExprType, nested fields are flattened
+   * @param fieldTypes mapping of OpenSearch field name to ExprType, nested fields are flattened
    * @return search query which can be used to query OS cluster
    * @throws ExpressionNotAnalyzableException when expression can't processed by this analyzer
    */
   public static QueryBuilder analyze(
-      RexNode expression, List<String> schema, Map<String, ExprType> filedTypes)
+      RexNode expression, List<String> schema, Map<String, ExprType> fieldTypes)
       throws ExpressionNotAnalyzableException {
-    return analyze(expression, schema, filedTypes, null, null);
+    return analyze(expression, schema, fieldTypes, null, null);
   }
 
   public static QueryBuilder analyze(
       RexNode expression,
       List<String> schema,
-      Map<String, ExprType> filedTypes,
-      RexBuilder rexBuilder,
-      RelDataType rowType)
+      Map<String, ExprType> fieldTypes,
+      RelDataType rowType,
+      RelOptCluster cluster)
       throws ExpressionNotAnalyzableException {
     requireNonNull(expression, "expression");
     try {
       // visits expression tree
       QueryExpression queryExpression =
-          (QueryExpression) expression.accept(new Visitor(schema, filedTypes, rexBuilder, rowType));
+          (QueryExpression) expression.accept(new Visitor(schema, fieldTypes, rowType, cluster));
 
       if (queryExpression != null && queryExpression.isPartial()) {
         throw new UnsupportedOperationException(
@@ -160,7 +157,7 @@ public class PredicateAnalyzer {
       }
       return queryExpression != null ? queryExpression.builder() : null;
     } catch (PredicateAnalyzerException | UnsupportedOperationException e) {
-      return new ScriptQueryExpression(expression, rexBuilder, rowType, filedTypes).builder();
+      return new ScriptQueryExpression(expression, rowType, fieldTypes, cluster).builder();
     }
   }
 
@@ -168,25 +165,25 @@ public class PredicateAnalyzer {
   private static class Visitor extends RexVisitorImpl<Expression> {
 
     List<String> schema;
-    Map<String, ExprType> filedTypes;
-    RexBuilder rexBuilder;
+    Map<String, ExprType> fieldTypes;
     RelDataType rowType;
+    RelOptCluster cluster;
 
     private Visitor(
         List<String> schema,
-        Map<String, ExprType> filedTypes,
-        RexBuilder rexBuilder,
-        RelDataType rowType) {
+        Map<String, ExprType> fieldTypes,
+        RelDataType rowType,
+        RelOptCluster cluster) {
       super(true);
       this.schema = schema;
-      this.filedTypes = filedTypes;
-      this.rexBuilder = rexBuilder;
+      this.fieldTypes = fieldTypes;
       this.rowType = rowType;
+      this.cluster = cluster;
     }
 
     @Override
     public Expression visitInputRef(RexInputRef inputRef) {
-      return new NamedFieldExpression(inputRef, schema, filedTypes);
+      return new NamedFieldExpression(inputRef, schema, fieldTypes);
     }
 
     @Override
@@ -476,8 +473,7 @@ public class PredicateAnalyzer {
         } catch (PredicateAnalyzerException e) {
           try {
             expressions[i] =
-                new ScriptQueryExpression(
-                    call.getOperands().get(i), rexBuilder, rowType, filedTypes);
+                new ScriptQueryExpression(call.getOperands().get(i), rowType, fieldTypes, cluster);
           } catch (UnsupportedScriptException ex) {
             if (call.getKind() == SqlKind.OR) throw ex;
             partial = true;
@@ -965,15 +961,11 @@ public class PredicateAnalyzer {
 
     public ScriptQueryExpression(
         RexNode rexNode,
-        RexBuilder rexBuilder,
         RelDataType rowType,
-        Map<String, ExprType> fieldTypes) {
-      // Compile code when creating to detect exception as early as possible
-      JavaTypeFactoryImpl typeFactory =
-          new JavaTypeFactoryImpl(rexBuilder.getTypeFactory().getTypeSystem());
-      RexToLixTranslator.InputGetter getter =
-          new ScriptInputGetter(typeFactory, rowType, fieldTypes);
-      this.code = CalciteScriptEngine.translate(rexBuilder, List.of(rexNode), getter, rowType);
+        Map<String, ExprType> fieldTypes,
+        RelOptCluster cluster) {
+      RelJsonSerializer serializer = new RelJsonSerializer(cluster);
+      this.code = serializer.serialize(rexNode, rowType, fieldTypes);
     }
 
     @Override

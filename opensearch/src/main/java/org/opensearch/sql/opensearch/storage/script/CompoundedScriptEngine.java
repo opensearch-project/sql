@@ -8,6 +8,7 @@ package org.opensearch.sql.opensearch.storage.script;
 import java.util.Map;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import org.apache.calcite.plan.RelOptCluster;
 import org.opensearch.script.AggregationScript;
 import org.opensearch.script.FilterScript;
 import org.opensearch.script.ScriptContext;
@@ -30,7 +31,12 @@ public class CompoundedScriptEngine implements ScriptEngine {
 
   private static final ExpressionScriptEngine v2ExpressionScriptEngine =
       new ExpressionScriptEngine(new DefaultExpressionSerializer());
-  private static final CalciteScriptEngine calciteScriptEngine = new CalciteScriptEngine();
+
+  private final CalciteScriptEngine calciteScriptEngine;
+
+  public CompoundedScriptEngine(RelOptCluster relOptCluster) {
+    this.calciteScriptEngine = new CalciteScriptEngine(relOptCluster);
+  }
 
   @Override
   public String getType() {
