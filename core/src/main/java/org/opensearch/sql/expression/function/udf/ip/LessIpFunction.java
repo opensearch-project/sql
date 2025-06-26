@@ -62,7 +62,7 @@ public class LessIpFunction extends ImplementorUDF {
       try {
         IPAddress ipAddress1 = IPUtils.toAddress(ip1);
         IPAddress ipAddress2 = IPUtils.toAddress(ip2);
-        return IPUtils.compare(ipAddress1, ipAddress2) <= 0;
+        return IPUtils.compare(ipAddress1, ipAddress2) < 0;
       } catch (SemanticCheckException e) {
         return false;
       }
