@@ -168,23 +168,26 @@ public class AggregateAnalyzer {
 
     for (int i = 0; i < aggCalls.size(); i++) {
       AggregateCall aggCall = aggCalls.get(i);
-      RexNode argRex = project.getProjects().get(aggCall.getArgList().getFirst());
-      if (argRex instanceof RexInputRef ref) {
-        String argStr =
-            aggCall.getAggregation().kind == SqlKind.COUNT && aggCall.getArgList().isEmpty()
-                ? METADATA_FIELD_INDEX
-                : fieldExpressionCreator.create(ref.getIndex()).getReferenceForTermQuery();
-        String aggField = outputFields.get(groupOffset + i);
+      String argStr =
+          aggCall.getAggregation().kind == SqlKind.COUNT && aggCall.getArgList().isEmpty()
+              ? METADATA_FIELD_INDEX
+              : fieldExpressionCreator
+                  .create(convertAggArgThroughProject(aggCall, project).getIndex())
+                  .getReferenceForTermQuery();
+      String aggField = outputFields.get(groupOffset + i);
 
-        Pair<ValuesSourceAggregationBuilder<?>, MetricParser> builderAndParser =
-            createAggregationBuilderAndParser(aggCall, argStr, aggField);
-        metricBuilder.addAggregator(builderAndParser.getLeft());
-        metricParserList.add(builderAndParser.getRight());
-      } else {
-        throw new IllegalArgumentException("Unsupported aggregate argument: " + argRex);
-      }
+      Pair<ValuesSourceAggregationBuilder<?>, MetricParser> builderAndParser =
+          createAggregationBuilderAndParser(aggCall, argStr, aggField);
+      metricBuilder.addAggregator(builderAndParser.getLeft());
+      metricParserList.add(builderAndParser.getRight());
     }
     return Pair.of(metricBuilder, metricParserList);
+  }
+
+  private static RexInputRef convertAggArgThroughProject(AggregateCall aggCall, Project project) {
+    RexNode argRex = project.getProjects().get(aggCall.getArgList().getFirst());
+    if (argRex instanceof RexInputRef rexInputRef) return rexInputRef;
+    else throw new IllegalArgumentException("Unsupported aggregate argument: " + argRex);
   }
 
   private interface FieldExpressionCreator {
