@@ -18,9 +18,11 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 import org.opensearch.client.Request;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestHighLevelClient;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.AbstractModule;
 import org.opensearch.common.inject.Injector;
 import org.opensearch.common.inject.ModulesBuilder;
@@ -74,6 +76,8 @@ public class StandaloneIT extends PPLIntegTestCase {
 
   private PPLService pplService;
 
+  @Mock private ClusterService clusterService;
+
   @Override
   public void init() throws Exception {
     super.init();
@@ -82,7 +86,7 @@ public class StandaloneIT extends PPLIntegTestCase {
     DataSourceService dataSourceService =
         new DataSourceServiceImpl(
             new ImmutableSet.Builder<DataSourceFactory>()
-                .add(new OpenSearchDataSourceFactory(client, defaultSettings()))
+                .add(new OpenSearchDataSourceFactory(client, defaultSettings(), clusterService))
                 .build(),
             getDataSourceMetadataStorage(),
             getDataSourceUserRoleHelper());
