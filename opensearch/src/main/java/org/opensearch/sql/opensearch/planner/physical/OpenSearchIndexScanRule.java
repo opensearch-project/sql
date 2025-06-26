@@ -5,8 +5,12 @@
 
 package org.opensearch.sql.opensearch.planner.physical;
 
+import java.util.HashSet;
+import java.util.Set;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rex.RexNode;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
@@ -23,6 +27,11 @@ public interface OpenSearchIndexScanRule {
 
   static boolean isLimitPushed(CalciteLogicalIndexScan scan) {
     return scan.getPushDownContext().isLimitPushed();
+  }
+
+  static boolean distinctProjectList(LogicalProject project) {
+    Set<RexNode> rexSet = new HashSet<>();
+    return project.getProjects().stream().allMatch(rexSet::add);
   }
 
   /**

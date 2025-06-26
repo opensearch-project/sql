@@ -18,6 +18,7 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -135,14 +136,14 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     return newScan;
   }
 
-  public CalciteLogicalIndexScan pushDownAggregate(Aggregate aggregate) {
+  public CalciteLogicalIndexScan pushDownAggregate(Aggregate aggregate, Project project) {
     try {
       CalciteLogicalIndexScan newScan = this.copyWithNewSchema(aggregate.getRowType());
       List<String> schema = this.getRowType().getFieldNames();
       Map<String, ExprType> fieldTypes = this.osIndex.getFieldTypes();
       List<String> outputFields = aggregate.getRowType().getFieldNames();
       final Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder =
-          AggregateAnalyzer.analyze(aggregate, schema, fieldTypes, outputFields);
+          AggregateAnalyzer.analyze(aggregate, project, schema, fieldTypes, outputFields);
       Map<String, OpenSearchDataType> extendedTypeMapping =
           aggregate.getRowType().getFieldList().stream()
               .collect(
