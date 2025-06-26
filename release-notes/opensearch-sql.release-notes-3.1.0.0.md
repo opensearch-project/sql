@@ -2,11 +2,9 @@
 
 Compatible with OpenSearch and OpenSearch Dashboards version 3.1.0
 
-### Breaking
+### Features
 * Switch percentile implementation to MergingDigest to align with OpenSearch ([#3698](https://github.com/opensearch-project/sql/pull/3698))
 * Support decimal literal with Calcite ([#3673](https://github.com/opensearch-project/sql/pull/3673))
-
-### Features
 * Support ResourceMonitor with Calcite ([#3738](https://github.com/opensearch-project/sql/pull/3738))
 * Support `flatten` command with Calcite ([#3747](https://github.com/opensearch-project/sql/pull/3747))
 * Support `expand` command with Calcite ([#3745](https://github.com/opensearch-project/sql/pull/3745))
