@@ -15,6 +15,8 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
 @ToString
@@ -28,6 +30,8 @@ public class Join extends UnresolvedPlan {
   private final JoinType joinType;
   private final Optional<UnresolvedExpression> joinCondition;
   private final JoinHint joinHint;
+  private final Optional<List<Field>> joinFields;
+  private final Argument.ArgumentMap argumentMap;
 
   public Join(
       UnresolvedPlan right,
@@ -35,13 +39,17 @@ public class Join extends UnresolvedPlan {
       Optional<String> rightAlias,
       JoinType joinType,
       Optional<UnresolvedExpression> joinCondition,
-      JoinHint joinHint) {
+      JoinHint joinHint,
+      Optional<List<Field>> joinFields,
+      Argument.ArgumentMap argumentMap) {
     this.right = right;
     this.leftAlias = leftAlias;
     this.rightAlias = rightAlias;
     this.joinType = joinType;
     this.joinCondition = joinCondition;
     this.joinHint = joinHint;
+    this.joinFields = joinFields;
+    this.argumentMap = argumentMap;
   }
 
   @Override
