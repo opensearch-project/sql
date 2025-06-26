@@ -16,9 +16,18 @@ public class PointInTime extends Paginate {
 
   private String pitId;
   private PointInTimeHandlerImpl pit;
+  private final TimeValue customPitKeepAlive; // Store custom keepalive
 
   public PointInTime(TableInJoinRequestBuilder request, int pageSize) {
     super(request, pageSize);
+    this.customPitKeepAlive = null; // Default constructor - no custom timeout
+  }
+
+  // Enhanced constructor with custom keepalive
+  public PointInTime(
+      TableInJoinRequestBuilder request, int pageSize, TimeValue customPitKeepAlive) {
+    super(request, pageSize);
+    this.customPitKeepAlive = customPitKeepAlive;
   }
 
   @Override
@@ -35,8 +44,20 @@ public class PointInTime extends Paginate {
 
   @Override
   protected void loadFirstBatch() {
-    // Create PIT and set to request object
-    pit = new PointInTimeHandlerImpl(client, request.getOriginalSelect().getIndexArr());
+    // Create PIT with custom keepalive if available
+    if (customPitKeepAlive != null) {
+      LOG.info(
+          "PointInTime: Creating PIT with custom keepalive: {} seconds ({}ms)",
+          customPitKeepAlive.getSeconds(),
+          customPitKeepAlive.getMillis());
+      pit =
+          new PointInTimeHandlerImpl(
+              client, request.getOriginalSelect().getIndexArr(), customPitKeepAlive);
+    } else {
+      LOG.info("PointInTime: Creating PIT with default keepalive");
+      pit = new PointInTimeHandlerImpl(client, request.getOriginalSelect().getIndexArr());
+    }
+
     pit.create();
     pitId = pit.getPitId();
 

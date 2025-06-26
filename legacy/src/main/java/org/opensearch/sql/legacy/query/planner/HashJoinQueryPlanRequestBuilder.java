@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.legacy.query.planner;
 
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.legacy.query.join.HashJoinElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.planner.core.Config;
 import org.opensearch.sql.legacy.query.planner.core.QueryParams;
@@ -44,6 +45,7 @@ public class HashJoinQueryPlanRequestBuilder extends HashJoinElasticRequestBuild
    *
    * @return query planner
    */
+  // ENHANCED plan() method:
   public QueryPlanner plan() {
     config.configureLimit(
         getTotalLimit(), getFirstTable().getHintLimit(), getSecondTable().getHintLimit());
@@ -54,6 +56,20 @@ public class HashJoinQueryPlanRequestBuilder extends HashJoinElasticRequestBuild
         config,
         new QueryParams(
             getFirstTable(), getSecondTable(), getJoinType(), getT1ToT2FieldsComparison()));
+  }
+
+  // Add new plan method that accepts custom timeout
+  public QueryPlanner plan(TimeValue customPitKeepAlive) {
+    config.configureLimit(
+        getTotalLimit(), getFirstTable().getHintLimit(), getSecondTable().getHintLimit());
+    config.configureTermsFilterOptimization(isUseTermFiltersOptimization());
+
+    return new QueryPlanner(
+        client,
+        config,
+        new QueryParams(
+            getFirstTable(), getSecondTable(), getJoinType(), getT1ToT2FieldsComparison()),
+        customPitKeepAlive);
   }
 
   public Config getConfig() {

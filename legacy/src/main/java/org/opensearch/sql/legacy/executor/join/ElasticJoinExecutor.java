@@ -17,6 +17,7 @@ import org.apache.lucene.search.TotalHits;
 import org.apache.lucene.search.TotalHits.Relation;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.document.DocumentField;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.index.mapper.MapperService;
@@ -25,6 +26,9 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.sql.legacy.domain.Field;
+import org.opensearch.sql.legacy.domain.Select;
+import org.opensearch.sql.legacy.domain.hints.Hint;
+import org.opensearch.sql.legacy.domain.hints.HintType;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.executor.ElasticHitsExecutor;
 import org.opensearch.sql.legacy.metrics.MetricName;
@@ -47,6 +51,7 @@ public abstract class ElasticJoinExecutor extends ElasticHitsExecutor {
   private final Set<String> aliasesOnReturn;
   private final boolean allFieldsReturn;
   protected final String[] indices;
+  protected final JoinRequestBuilder requestBuilder; // Added to store request builder
 
   protected ElasticJoinExecutor(Client client, JoinRequestBuilder requestBuilder) {
     metaResults = new MetaSearchResult();
@@ -58,6 +63,7 @@ public abstract class ElasticJoinExecutor extends ElasticHitsExecutor {
             && (secondTableReturnedField == null || secondTableReturnedField.size() == 0);
     indices = getIndices(requestBuilder);
     this.client = client;
+    this.requestBuilder = requestBuilder; // Store request builder for hint access
   }
 
   public void sendResponse(RestChannel channel) throws IOException {
@@ -87,7 +93,23 @@ public abstract class ElasticJoinExecutor extends ElasticHitsExecutor {
   public void run() throws IOException, SqlParseException {
     try {
       long timeBefore = System.currentTimeMillis();
-      pit = new PointInTimeHandlerImpl(client, indices);
+
+      LOG.info("🔍 Starting join execution, checking for JOIN_TIME_OUT hints...");
+
+      // ✅ Extract JOIN_TIME_OUT hint and create PIT with custom keepalive
+      TimeValue customKeepAlive = extractJoinTimeoutFromHints();
+
+      if (customKeepAlive != null) {
+        LOG.info(
+            "✅ Using custom PIT keepalive from JOIN_TIME_OUT hint: {} seconds ({}ms)",
+            customKeepAlive.getSeconds(),
+            customKeepAlive.getMillis());
+        pit = new PointInTimeHandlerImpl(client, indices, customKeepAlive);
+      } else {
+        LOG.info("⚠️  No JOIN_TIME_OUT hint found, using default PIT keepalive");
+        pit = new PointInTimeHandlerImpl(client, indices);
+      }
+
       pit.create();
       results = innerRun();
       long joinTimeInMilli = System.currentTimeMillis() - timeBefore;
@@ -103,6 +125,158 @@ public abstract class ElasticJoinExecutor extends ElasticHitsExecutor {
         LOG.info("Error deleting point in time {} ", pit);
       }
     }
+  }
+
+  /**
+   * Extract JOIN_TIME_OUT hint value from the request builder
+   *
+   * @return TimeValue for custom keepalive, or null if no hint found
+   */
+  protected TimeValue extractJoinTimeoutFromHints() {
+    try {
+      LOG.info("🔍 DEBUG: Starting hint extraction");
+      LOG.info(
+          "🔍 DEBUG: requestBuilder = {}",
+          requestBuilder != null ? requestBuilder.getClass().getSimpleName() : "null");
+
+      // Debug first table
+      TableInJoinRequestBuilder firstTable = requestBuilder.getFirstTable();
+      LOG.info("🔍 DEBUG: firstTable = {}", firstTable != null ? "exists" : "null");
+
+      if (firstTable != null) {
+        Select firstSelect = firstTable.getOriginalSelect();
+        LOG.info(
+            "🔍 DEBUG: firstTable.getOriginalSelect() = {}",
+            firstSelect != null ? "exists" : "null");
+
+        if (firstSelect != null) {
+          List<Hint> firstHints = firstSelect.getHints();
+          LOG.info(
+              "🔍 DEBUG: firstTable hints count = {}",
+              firstHints != null ? firstHints.size() : "null");
+
+          if (firstHints != null && !firstHints.isEmpty()) {
+            LOG.info("🔍 DEBUG: First table hints:");
+            for (int i = 0; i < firstHints.size(); i++) {
+              Hint hint = firstHints.get(i);
+              LOG.info(
+                  "🔍 DEBUG:   Hint[{}]: type={}, params={}",
+                  i,
+                  hint.getType(),
+                  hint.getParams() != null ? java.util.Arrays.toString(hint.getParams()) : "null");
+            }
+          }
+        }
+      }
+
+      // Debug second table
+      TableInJoinRequestBuilder secondTable = requestBuilder.getSecondTable();
+      LOG.info("🔍 DEBUG: secondTable = {}", secondTable != null ? "exists" : "null");
+
+      if (secondTable != null) {
+        Select secondSelect = secondTable.getOriginalSelect();
+        LOG.info(
+            "🔍 DEBUG: secondTable.getOriginalSelect() = {}",
+            secondSelect != null ? "exists" : "null");
+
+        if (secondSelect != null) {
+          List<Hint> secondHints = secondSelect.getHints();
+          LOG.info(
+              "🔍 DEBUG: secondTable hints count = {}",
+              secondHints != null ? secondHints.size() : "null");
+
+          if (secondHints != null && !secondHints.isEmpty()) {
+            LOG.info("🔍 DEBUG: Second table hints:");
+            for (int i = 0; i < secondHints.size(); i++) {
+              Hint hint = secondHints.get(i);
+              LOG.info(
+                  "🔍 DEBUG:   Hint[{}]: type={}, params={}",
+                  i,
+                  hint.getType(),
+                  hint.getParams() != null ? java.util.Arrays.toString(hint.getParams()) : "null");
+            }
+          }
+        }
+      }
+
+      // Continue with original logic
+      TimeValue timeout = getJoinTimeoutFromTable(requestBuilder.getFirstTable());
+      if (timeout != null) {
+        return timeout;
+      }
+
+      timeout = getJoinTimeoutFromTable(requestBuilder.getSecondTable());
+      if (timeout != null) {
+        return timeout;
+      }
+
+      LOG.info("🔍 DEBUG: No JOIN_TIME_OUT hint found after checking both tables");
+      return null;
+
+    } catch (Exception e) {
+      LOG.error("🔍 DEBUG: Exception during hint extraction", e);
+      return null;
+    }
+  }
+
+  /** Extract JOIN_TIME_OUT hint from a specific table */
+  private TimeValue getJoinTimeoutFromTable(TableInJoinRequestBuilder table) {
+    if (table == null) {
+      LOG.debug("Table is null, no hints to extract");
+      return null;
+    }
+
+    Select originalSelect = table.getOriginalSelect();
+    if (originalSelect == null) {
+      LOG.debug("Original select is null, no hints to extract");
+      return null;
+    }
+
+    // Get hints from the Select object
+    List<Hint> hints = originalSelect.getHints();
+    LOG.debug("Found {} hints in select statement", hints != null ? hints.size() : 0);
+
+    if (hints != null && !hints.isEmpty()) {
+      for (Hint hint : hints) {
+        LOG.debug("Processing hint type: {}", hint.getType());
+      }
+    }
+
+    return findJoinTimeoutInHints(hints);
+  }
+
+  /** Find JOIN_TIME_OUT hint in a list of hints */
+  private TimeValue findJoinTimeoutInHints(List<Hint> hints) {
+    if (hints == null) {
+      LOG.debug("Hints list is null");
+      return null;
+    }
+
+    LOG.debug("Searching for JOIN_TIME_OUT in {} hints", hints.size());
+
+    for (Hint hint : hints) {
+      LOG.debug(
+          "Checking hint: type={}, params={}",
+          hint.getType(),
+          hint.getParams() != null ? java.util.Arrays.toString(hint.getParams()) : "null");
+
+      if (hint.getType() == HintType.JOIN_TIME_OUT) {
+        Object[] params = hint.getParams();
+        if (params != null && params.length > 0) {
+          Integer timeoutSeconds = (Integer) params[0];
+          LOG.info(
+              "✅ FOUND JOIN_TIME_OUT hint: {} seconds, converting to TimeValue", timeoutSeconds);
+          TimeValue result = TimeValue.timeValueSeconds(timeoutSeconds);
+          LOG.info("✅ Converted to TimeValue: {} ({}ms)", result, result.getMillis());
+          return result;
+        } else {
+          LOG.warn("JOIN_TIME_OUT hint found but has no parameters");
+        }
+      }
+    }
+
+    LOG.debug("No JOIN_TIME_OUT hint found in hints list");
+    return null;
   }
 
   protected abstract List<SearchHit> innerRun() throws IOException, SqlParseException;
