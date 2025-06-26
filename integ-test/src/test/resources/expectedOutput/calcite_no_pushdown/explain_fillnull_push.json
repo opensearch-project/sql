@@ -1,0 +1,6 @@
+{
+  "calcite": {
+    "logical": "LogicalProject(age=[COALESCE($8, -1)], balance=[COALESCE($3, -1)])\n  CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
+    "physical": "EnumerableCalc(expr#0..16=[{inputs}], expr#17=[-1], expr#18=[COALESCE($t8, $t17)], expr#19=[COALESCE($t3, $t17)], age=[$t18], balance=[$t19])\n  CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n"
+  }
+}
