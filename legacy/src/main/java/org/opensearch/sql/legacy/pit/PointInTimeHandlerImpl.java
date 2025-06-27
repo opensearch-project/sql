@@ -86,8 +86,7 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
     } catch (InterruptedException | ExecutionException e) {
       throw new RuntimeException(
           String.format(
-              "Error occurred while creating PIT with keepalive %s. "
-                  + "Consider increasing JOIN_TIME_OUT hint if join operations are timing out.",
+              "Error occurred while creating PIT.",
               keepAlive),
           e);
     }
