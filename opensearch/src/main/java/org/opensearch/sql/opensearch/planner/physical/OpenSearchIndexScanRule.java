@@ -34,7 +34,7 @@ public interface OpenSearchIndexScanRule {
    * @return True if the LogicalSort is a LIMIT, false otherwise.
    */
   static boolean isLogicalSortLimit(LogicalSort sort) {
-    return sort.fetch != null && sort.getCollation().getFieldCollations().isEmpty();
+    return sort.fetch != null;
   }
 
   static boolean sortByFieldsOnly(LogicalSort sort) {

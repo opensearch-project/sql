@@ -109,7 +109,7 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testMultiSortPushDownExplain() throws IOException {
-    // TODO: Fix the expected output in expectedOutput/ppl/explain_multi_sort_push.json
+    // TODO: Fix the expected output in expectedOutput/ppl/explain_multi_sort_push.json (v2)
     //  balance and gender should take precedence over account_number and firstname
     String expected =
         isCalciteEnabled()
@@ -128,7 +128,7 @@ public class ExplainIT extends PPLIntegTestCase {
   @Test
   public void testSortThenAggregatePushDownExplain() throws IOException {
     // TODO: Remove pushed-down sort in DSL in expectedOutput/ppl/explain_sort_then_agg_push.json
-    //  existing collations should be eliminated when pushing down aggregations
+    //  existing collations should be eliminated when pushing down aggregations (v2)
     String expected =
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_sort_then_agg_push.json")
@@ -157,6 +157,46 @@ public class ExplainIT extends PPLIntegTestCase {
                 + "| eval alias = name "
                 + "|  sort alias "
                 + "| fields alias"));
+  }
+
+  /**
+   * Pushdown SORT and LIMIT Sort should be pushed down since DSL process sort before limit when
+   * they coexist
+   */
+  @Test
+  public void testSortThenLimitExplain() throws IOException {
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_sort_then_limit_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_sort_then_limit_push.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| sort age "
+                + "| head 5 "
+                + "| fields age"));
+  }
+
+  /**
+   * Push down LIMIT only Sort should NOT be pushed down since DSL process limit before sort when
+   * they coexist
+   */
+  @Test
+  public void testLimitThenSortExplain() throws IOException {
+    // TODO: Fix the expected output in expectedOutput/ppl/explain_limit_then_sort_push.json (v2)
+    //  limit-then-sort should not be pushed down.
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_limit_then_sort_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_limit_then_sort_push.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| head 5 "
+                + "| sort age "
+                + "| fields age"));
   }
 
   @Test
@@ -310,6 +350,7 @@ public class ExplainIT extends PPLIntegTestCase {
             ? loadFromFile("expectedOutput/calcite/explain_trendline_sort_push.json")
             : loadFromFile("expectedOutput/ppl/explain_trendline_sort_push.json");
 
+    // Sort will not be pushed down because there's a head before it.
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(

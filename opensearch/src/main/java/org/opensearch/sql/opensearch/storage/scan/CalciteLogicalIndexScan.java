@@ -315,7 +315,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Cannot pushdown the sort {}", getCollationNames(collations), e);
       } else {
-        LOG.warn("Cannot pushdown the sort {}, ", getCollationNames(collations));
+        LOG.info("Cannot pushdown the sort {}, ", getCollationNames(collations));
       }
     }
     return null;
