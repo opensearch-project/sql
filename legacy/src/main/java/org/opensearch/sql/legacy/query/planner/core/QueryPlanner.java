@@ -48,7 +48,7 @@ public class QueryPlanner {
   public QueryPlanner(Client client, Config config, QueryParams params) {
     this.client = client;
     this.config = config;
-    this.customPitKeepAlive = null; //Default constructor - no custom timeout
+    this.customPitKeepAlive = null; // Default constructor - no custom timeout
     this.stats = new Stats(client);
     this.resourceMgr = new ResourceManager(stats, config);
 
