@@ -278,7 +278,7 @@ public class AggregateAnalyzer {
           project.getRowType().getFieldList().get(groupIndex).getName(),
           fieldName.getReferenceForTermQuery(),
           valueLiteral.getValueAs(Double.class),
-          SpanUnit.of(requireNonNull(unitLiteral.getValueAs(String.class))),
+          SpanUnit.of(unitLiteral.getValueAs(String.class)),
           MissingOrder.FIRST);
     } else {
       throw new AggregateAnalyzer.AggregateAnalyzerException(

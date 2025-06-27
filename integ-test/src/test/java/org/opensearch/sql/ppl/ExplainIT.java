@@ -6,6 +6,7 @@
 package org.opensearch.sql.ppl;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 
 import java.io.IOException;
@@ -19,6 +20,7 @@ public class ExplainIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     loadIndex(Index.ACCOUNT);
+    loadIndex(Index.BANK);
   }
 
   @Test
@@ -301,5 +303,41 @@ public class ExplainIT extends PPLIntegTestCase {
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
                 + "| patterns email method=brain mode=aggregation"));
+  }
+
+  @Test
+  public void testStatsBySpan() throws IOException {
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_stats_by_span.json")
+            : loadFromFile("expectedOutput/ppl/explain_stats_by_span.json");
+
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format("source=%s | stats count() by span(age,10)", TEST_INDEX_BANK)));
+  }
+
+  @Test
+  public void testStatsByTimeSpan() throws IOException {
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_stats_by_timespan.json")
+            : loadFromFile("expectedOutput/ppl/explain_stats_by_timespan.json");
+
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format("source=%s | stats count() by span(birthdate,1m)", TEST_INDEX_BANK)));
+
+    expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_stats_by_timespan2.json")
+            : loadFromFile("expectedOutput/ppl/explain_stats_by_timespan2.json");
+
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format("source=%s | stats count() by span(birthdate,1M)", TEST_INDEX_BANK)));
   }
 }

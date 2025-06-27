@@ -29,6 +29,13 @@ public interface OpenSearchIndexScanRule {
     return scan.getPushDownContext().isLimitPushed();
   }
 
+  // `RelDecorrelator` may generate a Project with duplicated fields, e.g. Project($0,$0).
+  // There will be problem if pushing down the pattern like `Aggregate(AGG($0),{1})-Project($0,$0)`,
+  // as it will lead to field-name conflict.
+  // We should wait and rely on `AggregateProjectMergeRule` to mitigate it by having this constraint
+  // Nevertheless, that rule cannot handle all cases if there is RexCall in the Project,
+  // e.g. Project($0, $0, +($0,1)). We cannot push down the Aggregate for this corner case.
+  // TODO: Simplify the Project where there is RexCall by adding a new rule.
   static boolean distinctProjectList(LogicalProject project) {
     Set<RexNode> rexSet = new HashSet<>();
     return project.getProjects().stream().allMatch(rexSet::add);
