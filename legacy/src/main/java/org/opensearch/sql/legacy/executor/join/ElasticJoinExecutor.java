@@ -94,7 +94,7 @@ public abstract class ElasticJoinExecutor extends ElasticHitsExecutor {
     try {
       long timeBefore = System.currentTimeMillis();
 
-      LOG.info("🔍 Starting join execution, checking for JOIN_TIME_OUT hints...");
+      LOG.debug("🔍 Starting join execution, checking for JOIN_TIME_OUT hints...");
 
       // ✅ Extract JOIN_TIME_OUT hint and create PIT with custom keepalive
       TimeValue customKeepAlive = extractJoinTimeoutFromHints();
@@ -122,160 +122,86 @@ public abstract class ElasticJoinExecutor extends ElasticHitsExecutor {
         pit.delete();
       } catch (RuntimeException e) {
         Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-        LOG.info("Error deleting point in time {} ", pit);
+        LOG.error("Error deleting point in time {} ", pit);
       }
+    }
+  }
+
+  protected TimeValue extractJoinTimeoutFromHints() {
+    try {
+      LOG.debug(
+          "Starting hint extraction from request builder: {}",
+          requestBuilder != null ? requestBuilder.getClass().getSimpleName() : "null");
+
+      // Check first table for hints
+      TimeValue timeout = extractJoinTimeoutFromTable("firstTable", requestBuilder.getFirstTable());
+      if (timeout != null) {
+        return timeout;
+      }
+
+      // Check second table for hints if not found in first
+      timeout = extractJoinTimeoutFromTable("secondTable", requestBuilder.getSecondTable());
+      if (timeout != null) {
+        return timeout;
+      }
+
+      LOG.debug("No JOIN_TIME_OUT hint found in either table");
+      return null;
+
+    } catch (Exception e) {
+      LOG.warn("Error extracting JOIN_TIME_OUT hint, using default keepalive", e);
+      return null;
     }
   }
 
   /**
-   * Extract JOIN_TIME_OUT hint value from the request builder
+   * Extract JOIN_TIME_OUT hint from a specific table request builder
    *
-   * @return TimeValue for custom keepalive, or null if no hint found
+   * @param tableName descriptive name for logging (e.g., "firstTable", "secondTable")
+   * @param table the table request builder to examine
+   * @return TimeValue if JOIN_TIME_OUT hint found, null otherwise
    */
-  protected TimeValue extractJoinTimeoutFromHints() {
-    try {
-      LOG.info("🔍 DEBUG: Starting hint extraction");
-      LOG.info(
-          "🔍 DEBUG: requestBuilder = {}",
-          requestBuilder != null ? requestBuilder.getClass().getSimpleName() : "null");
-
-      // Debug first table
-      TableInJoinRequestBuilder firstTable = requestBuilder.getFirstTable();
-      LOG.info("🔍 DEBUG: firstTable = {}", firstTable != null ? "exists" : "null");
-
-      if (firstTable != null) {
-        Select firstSelect = firstTable.getOriginalSelect();
-        LOG.info(
-            "🔍 DEBUG: firstTable.getOriginalSelect() = {}",
-            firstSelect != null ? "exists" : "null");
-
-        if (firstSelect != null) {
-          List<Hint> firstHints = firstSelect.getHints();
-          LOG.info(
-              "🔍 DEBUG: firstTable hints count = {}",
-              firstHints != null ? firstHints.size() : "null");
-
-          if (firstHints != null && !firstHints.isEmpty()) {
-            LOG.info("🔍 DEBUG: First table hints:");
-            for (int i = 0; i < firstHints.size(); i++) {
-              Hint hint = firstHints.get(i);
-              LOG.info(
-                  "🔍 DEBUG:   Hint[{}]: type={}, params={}",
-                  i,
-                  hint.getType(),
-                  hint.getParams() != null ? java.util.Arrays.toString(hint.getParams()) : "null");
-            }
-          }
-        }
-      }
-
-      // Debug second table
-      TableInJoinRequestBuilder secondTable = requestBuilder.getSecondTable();
-      LOG.info("🔍 DEBUG: secondTable = {}", secondTable != null ? "exists" : "null");
-
-      if (secondTable != null) {
-        Select secondSelect = secondTable.getOriginalSelect();
-        LOG.info(
-            "🔍 DEBUG: secondTable.getOriginalSelect() = {}",
-            secondSelect != null ? "exists" : "null");
-
-        if (secondSelect != null) {
-          List<Hint> secondHints = secondSelect.getHints();
-          LOG.info(
-              "🔍 DEBUG: secondTable hints count = {}",
-              secondHints != null ? secondHints.size() : "null");
-
-          if (secondHints != null && !secondHints.isEmpty()) {
-            LOG.info("🔍 DEBUG: Second table hints:");
-            for (int i = 0; i < secondHints.size(); i++) {
-              Hint hint = secondHints.get(i);
-              LOG.info(
-                  "🔍 DEBUG:   Hint[{}]: type={}, params={}",
-                  i,
-                  hint.getType(),
-                  hint.getParams() != null ? java.util.Arrays.toString(hint.getParams()) : "null");
-            }
-          }
-        }
-      }
-
-      // Continue with original logic
-      TimeValue timeout = getJoinTimeoutFromTable(requestBuilder.getFirstTable());
-      if (timeout != null) {
-        return timeout;
-      }
-
-      timeout = getJoinTimeoutFromTable(requestBuilder.getSecondTable());
-      if (timeout != null) {
-        return timeout;
-      }
-
-      LOG.info("🔍 DEBUG: No JOIN_TIME_OUT hint found after checking both tables");
-      return null;
-
-    } catch (Exception e) {
-      LOG.error("🔍 DEBUG: Exception during hint extraction", e);
-      return null;
-    }
-  }
-
-  /** Extract JOIN_TIME_OUT hint from a specific table */
-  private TimeValue getJoinTimeoutFromTable(TableInJoinRequestBuilder table) {
+  private TimeValue extractJoinTimeoutFromTable(String tableName, TableInJoinRequestBuilder table) {
     if (table == null) {
-      LOG.debug("Table is null, no hints to extract");
+      LOG.debug("{} is null", tableName);
       return null;
     }
 
     Select originalSelect = table.getOriginalSelect();
     if (originalSelect == null) {
-      LOG.debug("Original select is null, no hints to extract");
+      LOG.debug("{}.getOriginalSelect() is null", tableName);
       return null;
     }
 
-    // Get hints from the Select object
     List<Hint> hints = originalSelect.getHints();
-    LOG.debug("Found {} hints in select statement", hints != null ? hints.size() : 0);
+    int hintCount = hints != null ? hints.size() : 0;
+    LOG.debug("{} has {} hints", tableName, hintCount);
 
     if (hints != null && !hints.isEmpty()) {
-      for (Hint hint : hints) {
-        LOG.debug("Processing hint type: {}", hint.getType());
-      }
-    }
+      LOG.debug("Examining hints in {}:", tableName);
+      for (int i = 0; i < hints.size(); i++) {
+        Hint hint = hints.get(i);
+        LOG.debug(
+            "  Hint[{}]: type={}, params={}",
+            i,
+            hint.getType(),
+            hint.getParams() != null ? java.util.Arrays.toString(hint.getParams()) : "null");
 
-    return findJoinTimeoutInHints(hints);
-  }
-
-  /** Find JOIN_TIME_OUT hint in a list of hints */
-  private TimeValue findJoinTimeoutInHints(List<Hint> hints) {
-    if (hints == null) {
-      LOG.debug("Hints list is null");
-      return null;
-    }
-
-    LOG.debug("Searching for JOIN_TIME_OUT in {} hints", hints.size());
-
-    for (Hint hint : hints) {
-      LOG.debug(
-          "Checking hint: type={}, params={}",
-          hint.getType(),
-          hint.getParams() != null ? java.util.Arrays.toString(hint.getParams()) : "null");
-
-      if (hint.getType() == HintType.JOIN_TIME_OUT) {
-        Object[] params = hint.getParams();
-        if (params != null && params.length > 0) {
-          Integer timeoutSeconds = (Integer) params[0];
-          LOG.info(
-              "✅ FOUND JOIN_TIME_OUT hint: {} seconds, converting to TimeValue", timeoutSeconds);
-          TimeValue result = TimeValue.timeValueSeconds(timeoutSeconds);
-          LOG.info("✅ Converted to TimeValue: {} ({}ms)", result, result.getMillis());
-          return result;
-        } else {
-          LOG.warn("JOIN_TIME_OUT hint found but has no parameters");
+        // Check if this is the JOIN_TIME_OUT hint we're looking for
+        if (hint.getType() == HintType.JOIN_TIME_OUT) {
+          Object[] params = hint.getParams();
+          if (params != null && params.length > 0) {
+            Integer timeoutSeconds = (Integer) params[0];
+            LOG.info("Found JOIN_TIME_OUT hint in {}: {} seconds", tableName, timeoutSeconds);
+            return TimeValue.timeValueSeconds(timeoutSeconds);
+          } else {
+            LOG.warn("JOIN_TIME_OUT hint found in {} but has no parameters", tableName);
+          }
         }
       }
     }
 
-    LOG.debug("No JOIN_TIME_OUT hint found in hints list");
+    LOG.debug("No JOIN_TIME_OUT hint found in {}", tableName);
     return null;
   }
 

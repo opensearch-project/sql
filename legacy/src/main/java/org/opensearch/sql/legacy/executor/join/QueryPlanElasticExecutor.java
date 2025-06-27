@@ -54,23 +54,7 @@ class QueryPlanElasticExecutor extends ElasticJoinExecutor {
           "🔍 QueryPlanElasticExecutor: Starting execution, checking for JOIN_TIME_OUT hints...");
 
       // ✅ Extract JOIN_TIME_OUT hint from the original SQL request
-      TimeValue customKeepAlive = extractJoinTimeoutFromSqlRequest();
-
-      if (customKeepAlive != null) {
-        LOG.info(
-            "✅ QueryPlanElasticExecutor: Using custom PIT keepalive from JOIN_TIME_OUT hint: {}"
-                + " seconds ({}ms)",
-            customKeepAlive.getSeconds(),
-            customKeepAlive.getMillis());
-        pit = new PointInTimeHandlerImpl(client, indices, customKeepAlive);
-      } else {
-        LOG.info(
-            "⚠️ QueryPlanElasticExecutor: No JOIN_TIME_OUT hint found, using default PIT"
-                + " keepalive");
-        pit = new PointInTimeHandlerImpl(client, indices);
-      }
-
-      pit.create();
+      createPointInTimeWithCustomTimeout();
       results = innerRun();
       long joinTimeInMilli = System.currentTimeMillis() - timeBefore;
       this.metaResults.setTookImMilli(joinTimeInMilli);
@@ -78,13 +62,39 @@ class QueryPlanElasticExecutor extends ElasticJoinExecutor {
       LOG.error("Failed during QueryPlan join query run.", e);
       throw new IllegalStateException("Error occurred during QueryPlan join query run", e);
     } finally {
+      cleanupPointInTime();
+    }
+  }
+
+  /** Create Point-in-Time with custom timeout if JOIN_TIME_OUT hint is present */
+  private void createPointInTimeWithCustomTimeout() {
+    TimeValue customKeepAlive = extractJoinTimeoutFromSqlRequest();
+
+    if (customKeepAlive != null) {
+      LOG.info(
+          "✅ QueryPlanElasticExecutor: Using custom PIT keepalive from JOIN_TIME_OUT hint: {}"
+              + " seconds ({}ms)",
+          customKeepAlive.getSeconds(),
+          customKeepAlive.getMillis());
+      pit = new PointInTimeHandlerImpl(client, indices, customKeepAlive);
+    } else {
+      LOG.info(
+          "⚠️ QueryPlanElasticExecutor: No JOIN_TIME_OUT hint found, using default PIT keepalive");
+      pit = new PointInTimeHandlerImpl(client, indices);
+    }
+
+    pit.create();
+  }
+
+  /** Clean up Point-in-Time resources */
+  private void cleanupPointInTime() {
+    if (pit != null) {
       try {
-        if (pit != null) {
-          pit.delete();
-        }
+        pit.delete();
+        LOG.debug("Successfully deleted PIT: {}", pit.getPitId());
       } catch (RuntimeException e) {
         Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-        LOG.info("Error deleting point in time {} ", pit);
+        LOG.warn("Error deleting point in time {}: {}", pit.getPitId(), e.getMessage(), e);
       }
     }
   }
@@ -102,8 +112,6 @@ class QueryPlanElasticExecutor extends ElasticJoinExecutor {
 
       if (sqlRequest != null) {
         String originalSql = sqlRequest.getSql();
-        LOG.info("🔍 Original SQL: {}", originalSql);
-
         // Parse JOIN_TIME_OUT hint from the SQL string
         TimeValue timeout = parseJoinTimeoutFromSql(originalSql);
         if (timeout != null) {
@@ -118,7 +126,8 @@ class QueryPlanElasticExecutor extends ElasticJoinExecutor {
       }
 
     } catch (Exception e) {
-      LOG.warn("⚠️ Error accessing original SQL request", e);
+      LOG.error("⚠️ Error accessing original SQL request", e);
+      throw new RuntimeException("Unexpected error accessing SQL request", e);
     }
 
     return null;
@@ -146,7 +155,8 @@ class QueryPlanElasticExecutor extends ElasticJoinExecutor {
       }
 
     } catch (Exception e) {
-      LOG.warn("Error parsing JOIN_TIME_OUT from SQL: {}", sql, e);
+      LOG.error("Error parsing JOIN_TIME_OUT from SQL: {}", sql, e);
+      throw new RuntimeException("Failed to parse JOIN_TIME_OUT from SQL: " + sql, e);
     }
 
     return null;

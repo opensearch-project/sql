@@ -82,7 +82,10 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
     try {
       CreatePitResponse pitResponse = execute.get();
       pitId = pitResponse.getId();
-      LOG.info("Created Point In Time {} with keepalive {} successfully.", pitId, keepAlive);
+      LOG.debug(
+          "Created Point In Time {} with keepalive {} successfully.",
+          truncatePitId(pitId),
+          keepAlive);
     } catch (InterruptedException | ExecutionException e) {
       throw new RuntimeException(String.format("Error occurred while creating PIT.", keepAlive), e);
     }
@@ -96,7 +99,10 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
         client.execute(DeletePitAction.INSTANCE, deletePitRequest);
     try {
       DeletePitResponse deletePitResponse = execute.get();
-      LOG.info("Delete Point In Time {} status: {}", pitId, deletePitResponse.status().getStatus());
+      LOG.debug(
+          "Delete Point In Time {} status: {}",
+          truncatePitId(pitId),
+          deletePitResponse.status().getStatus());
     } catch (InterruptedException | ExecutionException e) {
       throw new RuntimeException("Error occurred while deleting PIT.", e);
     }
@@ -117,5 +123,12 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
     TimeValue defaultKeepAlive = LocalClusterState.state().getSettingValue(SQL_CURSOR_KEEP_ALIVE);
     LOG.debug("Using default PIT keepalive: {}", defaultKeepAlive);
     return defaultKeepAlive;
+  }
+
+  /** Truncate PIT ID for logging to improve readability */
+  private String truncatePitId(String pitId) {
+    if (pitId == null) return "null";
+    if (pitId.length() <= 16) return pitId;
+    return pitId.substring(0, 8) + "..." + pitId.substring(pitId.length() - 8);
   }
 }
