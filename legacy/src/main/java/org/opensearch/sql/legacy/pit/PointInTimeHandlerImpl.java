@@ -84,11 +84,7 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
       pitId = pitResponse.getId();
       LOG.info("Created Point In Time {} with keepalive {} successfully.", pitId, keepAlive);
     } catch (InterruptedException | ExecutionException e) {
-      throw new RuntimeException(
-          String.format(
-              "Error occurred while creating PIT.",
-              keepAlive),
-          e);
+      throw new RuntimeException(String.format("Error occurred while creating PIT.", keepAlive), e);
     }
   }
 
