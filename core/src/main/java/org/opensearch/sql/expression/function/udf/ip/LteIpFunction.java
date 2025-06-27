@@ -26,7 +26,6 @@ import org.opensearch.sql.utils.IPUtils;
  * <p>Signature:
  *
  * <ul>
- *   <li>(STRING, STRING) -> BOOLEAN
  *   <li>(IP, STRING) -> BOOLEAN
  *   <li>(STRING, IP) -> BOOLEAN
  *   <li>(IP, IP) -> BOOLEAN
