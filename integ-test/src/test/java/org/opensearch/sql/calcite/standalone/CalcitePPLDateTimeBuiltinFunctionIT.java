@@ -439,12 +439,14 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | fields  strict_date_optional_time"
                     + "| where YEAR(strict_date_optional_time) < 2000"
                     + "| where WEEK(DATE(strict_date_optional_time)) = %d"
                     + "| stats COUNT() AS CNT "
                     + "| head 1 ",
-                TEST_INDEX_DATE_FORMATS, week19840412));
+                TEST_INDEX_DATE_FORMATS,
+                week19840412));
 
     verifySchema(actual, schema("CNT", "bigint"));
 
@@ -1039,8 +1041,8 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
             "2017-11-02",
             expectedDatetimeAtPlus8,
             expectedDatetimeAtUTC,
-            String.format("%d 1984 %d", week19840412, week19840412),
-            String.format("%d %d 1984", week19840412Mode1, week19840412Mode1),
+            String.format(Locale.ROOT, "%d 1984 %d", week19840412, week19840412),
+            String.format(Locale.ROOT, "%d %d 1984", week19840412Mode1, week19840412Mode1),
             "09:07:42.000123"));
   }
 
