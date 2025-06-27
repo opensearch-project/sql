@@ -13,13 +13,17 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -124,8 +128,9 @@ class AggregateAnalyzerTest {
     Aggregate aggregate =
         createMockAggregate(
             List.of(countCall, avgCall, sumCall, minCall, maxCall), ImmutableBitSet.of());
+    Project project = createMockProject(List.of(0));
     Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
-        AggregateAnalyzer.analyze(aggregate, schema, fieldTypes, outputFields);
+        AggregateAnalyzer.analyze(aggregate, project, schema, fieldTypes, outputFields);
     assertEquals(
         "[{\"cnt\":{\"value_count\":{\"field\":\"_index\"}}},"
             + " {\"avg\":{\"avg\":{\"field\":\"a\"}}},"
@@ -204,8 +209,9 @@ class AggregateAnalyzerTest {
     Aggregate aggregate =
         createMockAggregate(
             List.of(varSampCall, varPopCall, stddevSampCall, stddevPopCall), ImmutableBitSet.of());
+    Project project = createMockProject(List.of(0));
     Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
-        AggregateAnalyzer.analyze(aggregate, schema, fieldTypes, outputFields);
+        AggregateAnalyzer.analyze(aggregate, project, schema, fieldTypes, outputFields);
     assertEquals(
         "[{\"var_samp\":{\"extended_stats\":{\"field\":\"a\",\"sigma\":2.0}}},"
             + " {\"var_pop\":{\"extended_stats\":{\"field\":\"a\",\"sigma\":2.0}}},"
@@ -242,8 +248,9 @@ class AggregateAnalyzerTest {
             "cnt");
     List<String> outputFields = List.of("a", "b", "cnt");
     Aggregate aggregate = createMockAggregate(List.of(aggCall), ImmutableBitSet.of(0, 1));
+    Project project = createMockProject(List.of(0, 1));
     Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
-        AggregateAnalyzer.analyze(aggregate, schema, fieldTypes, outputFields);
+        AggregateAnalyzer.analyze(aggregate, project, schema, fieldTypes, outputFields);
 
     assertEquals(
         "[{\"composite_buckets\":{\"composite\":{\"size\":1000,\"sources\":["
@@ -273,17 +280,19 @@ class AggregateAnalyzerTest {
             false,
             false,
             ImmutableList.of(),
-            ImmutableList.of(2),
+            ImmutableList.of(0),
             -1,
             null,
             RelCollations.EMPTY,
             typeFactory.createSqlType(SqlTypeName.INTEGER),
             "sum");
     Aggregate aggregate = createMockAggregate(List.of(aggCall), ImmutableBitSet.of());
+    Project project = createMockProject(List.of(2));
     ExpressionNotAnalyzableException exception =
         assertThrows(
             ExpressionNotAnalyzableException.class,
-            () -> AggregateAnalyzer.analyze(aggregate, schema, fieldTypes, List.of("sum")));
+            () ->
+                AggregateAnalyzer.analyze(aggregate, project, schema, fieldTypes, List.of("sum")));
     assertEquals("[field] must not be null: [sum]", exception.getCause().getMessage());
   }
 
@@ -303,11 +312,12 @@ class AggregateAnalyzerTest {
             typeFactory.createSqlType(SqlTypeName.INTEGER),
             "cnt");
     List<String> outputFields = List.of("c", "cnt");
-    Aggregate aggregate = createMockAggregate(List.of(aggCall), ImmutableBitSet.of(2));
+    Aggregate aggregate = createMockAggregate(List.of(aggCall), ImmutableBitSet.of(0));
+    Project project = createMockProject(List.of(2));
     ExpressionNotAnalyzableException exception =
         assertThrows(
             ExpressionNotAnalyzableException.class,
-            () -> AggregateAnalyzer.analyze(aggregate, schema, fieldTypes, outputFields));
+            () -> AggregateAnalyzer.analyze(aggregate, project, schema, fieldTypes, outputFields));
     assertEquals("[field] must not be null", exception.getCause().getMessage());
   }
 
@@ -316,5 +326,17 @@ class AggregateAnalyzerTest {
     when(agg.getGroupSet()).thenReturn(groups);
     when(agg.getAggCallList()).thenReturn(calls);
     return agg;
+  }
+
+  private Project createMockProject(List<Integer> refIndex) {
+    Project project = mock(Project.class);
+    List<RexNode> rexNodes = new ArrayList<>();
+    for (Integer index : refIndex) {
+      RexInputRef ref = mock(RexInputRef.class);
+      when(ref.getIndex()).thenReturn(index);
+      rexNodes.add(ref);
+    }
+    when(project.getProjects()).thenReturn(rexNodes);
+    return project;
   }
 }

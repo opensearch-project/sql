@@ -51,13 +51,14 @@ public class SpanFunction extends ImplementorUDF {
   public UDFOperandMetadata getOperandMetadata() {
     return UDFOperandMetadata.wrap(
         (CompositeOperandTypeChecker)
-            OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.INTEGER, SqlTypeFamily.STRING)
+            OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.NUMERIC, SqlTypeFamily.STRING)
                 .or(
                     OperandTypes.family(
-                        SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER, SqlTypeFamily.STRING))
+                        SqlTypeFamily.DATETIME, SqlTypeFamily.NUMERIC, SqlTypeFamily.STRING))
+                // TODO: numeric span should support decimal as its interval
                 .or(
                     OperandTypes.family(
-                        SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER, SqlTypeFamily.ANY)));
+                        SqlTypeFamily.NUMERIC, SqlTypeFamily.INTEGER, SqlTypeFamily.ANY)));
   }
 
   public static class SpanImplementor implements NotNullImplementor {
