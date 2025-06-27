@@ -40,6 +40,7 @@ import static org.opensearch.index.query.QueryBuilders.termsQuery;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.Range;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.GregorianCalendar;
@@ -1057,7 +1058,7 @@ public class PredicateAnalyzer {
         return sargValue();
       } else if (isIntegral()) {
         return longValue();
-      } else if (isFloatingPoint()) {
+      } else if (isFractional()) {
         return doubleValue();
       } else if (isBoolean()) {
         return booleanValue();
@@ -1072,8 +1073,8 @@ public class PredicateAnalyzer {
       return SqlTypeName.INT_TYPES.contains(literal.getType().getSqlTypeName());
     }
 
-    boolean isFloatingPoint() {
-      return SqlTypeName.APPROX_TYPES.contains(literal.getType().getSqlTypeName());
+    boolean isFractional() {
+      return SqlTypeName.FRACTIONAL_TYPES.contains(literal.getType().getSqlTypeName());
     }
 
     boolean isBoolean() {
@@ -1124,6 +1125,8 @@ public class PredicateAnalyzer {
         case CHAR:
         case VARCHAR:
           return ((NlsString) point).getValue();
+        case DECIMAL:
+          return ((BigDecimal) point).doubleValue();
         default:
           return point;
       }

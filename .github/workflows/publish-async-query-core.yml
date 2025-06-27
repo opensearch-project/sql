@@ -1,0 +1,86 @@
+name: Publish async-query-core to maven
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - 1.*
+      - 2.*
+    paths:
+      - 'async-query-core/**'
+      - '.github/workflows/publish-async-query-core.yml'
+      - '.github/maven-publish-utils.sh'
+      - '.github/get-sonatype-credentials.sh'
+
+concurrency:
+  group: maven-publish-async-query-core
+  cancel-in-progress: false
+
+env:
+  SNAPSHOT_REPO_URL: https://aws.oss.sonatype.org/content/repositories/snapshots/
+  COMMIT_MAP_FILENAME: commit-history-async-query-core.json
+
+jobs:
+  publish-async-query-core:
+    strategy:
+      fail-fast: false
+    if: github.repository == 'opensearch-project/sql'
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: write
+
+    steps:
+      - uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: actions/checkout@v3
+
+      - uses: aws-actions/configure-aws-credentials@v1.7.0
+        with:
+          role-to-assume: ${{ secrets.PUBLISH_SNAPSHOTS_ROLE }}
+          aws-region: us-east-1
+
+      - name: Setup publishing credentials
+        id: creds
+        run: |
+          .github/get-sonatype-credentials.sh
+
+      - name: Set commit ID
+        id: set_commit
+        run: |
+          COMMIT_ID=$(git log -1 --format='%H')
+          echo "commit_id=${COMMIT_ID}" >> $GITHUB_OUTPUT
+          echo "Using commit ID: ${COMMIT_ID}"
+
+      - name: Extract version from build.gradle
+        id: extract_version
+        run: |
+          VERSION=$(grep -m 1 "archiveVersion.set" ./async-query-core/build.gradle | sed -n "s/.*archiveVersion.set('\([^']*\)').*/\1/p")
+          
+          if [[ ! $VERSION == *-SNAPSHOT ]]; then
+            VERSION="${VERSION}-SNAPSHOT"
+          fi
+          
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Version: ${VERSION}"
+
+      - uses: actions/checkout@v4
+        with:
+          repository: 'opensearch-project/opensearch-build-libraries'
+          path: 'build'
+
+      - name: Install required tools
+        run: sudo apt-get update && sudo apt-get install -y xmlstarlet jq
+
+      - name: Publish async-query-core
+        run: |
+          # Source the utility functions
+          source ./.github/maven-publish-utils.sh
+          
+          # Call the main function for async-query-core
+          publish_async_query_core "${{ steps.extract_version.outputs.VERSION }}" "${{ steps.set_commit.outputs.commit_id }}"
