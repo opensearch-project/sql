@@ -65,10 +65,8 @@ class QueryPlanElasticExecutor extends ElasticJoinExecutor {
       this.metaResults.setTookImMilli(joinTimeInMilli);
 
     } catch (RuntimeException e) {
-      LOG.error("Runtime error during QueryPlan join query execution", e);
       throw new IllegalStateException("Error occurred during QueryPlan join query run", e);
     } catch (Exception e) {
-      LOG.error("Unexpected error during QueryPlan join query execution", e);
       throw new IllegalStateException(
           "Unexpected error occurred during QueryPlan join query run", e);
     } finally {
@@ -105,7 +103,7 @@ class QueryPlanElasticExecutor extends ElasticJoinExecutor {
         LOG.debug("Successfully deleted PIT");
       } catch (RuntimeException e) {
         Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-        LOG.error("Error deleting point in time: {}", e.getMessage(), e);
+        throw new RuntimeException("Error deleting point in time: " + e.getMessage(), e);
       }
     }
   }

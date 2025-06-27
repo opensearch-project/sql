@@ -107,17 +107,9 @@ public abstract class ElasticJoinExecutor extends ElasticHitsExecutor {
       long joinTimeInMilli = System.currentTimeMillis() - timeBefore;
       this.metaResults.setTookImMilli(joinTimeInMilli);
 
-    } catch (IOException e) {
-      LOG.error("IO error during join query execution", e);
-      throw e;
-    } catch (SqlParseException e) {
-      LOG.error("SQL parsing error during join query execution", e);
-      throw e;
     } catch (RuntimeException e) {
-      LOG.error("Runtime error during join query execution", e);
       throw new IllegalStateException("Error occurred during join query run", e);
     } catch (Exception e) {
-      LOG.error("Unexpected error during join query execution", e);
       throw new IllegalStateException("Unexpected error occurred during join query run", e);
     } finally {
       cleanupPointInTime();
@@ -151,7 +143,7 @@ public abstract class ElasticJoinExecutor extends ElasticHitsExecutor {
         LOG.debug("Successfully deleted PIT");
       } catch (RuntimeException e) {
         Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-        LOG.error("Error deleting point in time: {}", e.getMessage(), e);
+        throw new RuntimeException("Error deleting point in time: " + e.getMessage(), e);
       }
     }
   }
