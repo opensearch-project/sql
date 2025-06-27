@@ -7,8 +7,10 @@ package org.opensearch.sql.legacy.executor.join;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.search.SearchHit;
 import org.opensearch.sql.legacy.exception.SqlParseException;
@@ -33,12 +35,15 @@ class QueryPlanElasticExecutor extends ElasticJoinExecutor {
   QueryPlanElasticExecutor(Client client, HashJoinQueryPlanRequestBuilder request) {
     super(client, request);
     this.planRequestBuilder = request;
-    TimeValue customKeepAlive = extractJoinTimeoutFromSqlRequest();
-    if (customKeepAlive != null) {
+
+    // Create QueryPlanner with custom timeout if available
+    Optional<TimeValue> customKeepAlive = extractJoinTimeoutFromSqlRequest();
+    if (customKeepAlive.isPresent()) {
+      TimeValue keepAlive = customKeepAlive.get();
       LOG.info(
           "✅ QueryPlanElasticExecutor: Passing custom timeout to QueryPlanner: {} seconds",
-          customKeepAlive.getSeconds());
-      this.queryPlanner = request.plan(customKeepAlive);
+          keepAlive.getSeconds());
+      this.queryPlanner = request.plan(keepAlive);
     } else {
       LOG.info("⚠️ QueryPlanElasticExecutor: No custom timeout, using default QueryPlanner");
       this.queryPlanner = request.plan();
@@ -50,17 +55,22 @@ class QueryPlanElasticExecutor extends ElasticJoinExecutor {
     try {
       long timeBefore = System.currentTimeMillis();
 
-      LOG.info(
+      LOG.debug(
           "🔍 QueryPlanElasticExecutor: Starting execution, checking for JOIN_TIME_OUT hints...");
 
-      // ✅ Extract JOIN_TIME_OUT hint from the original SQL request
+      // Create PIT with appropriate timeout
       createPointInTimeWithCustomTimeout();
       results = innerRun();
       long joinTimeInMilli = System.currentTimeMillis() - timeBefore;
       this.metaResults.setTookImMilli(joinTimeInMilli);
-    } catch (Exception e) {
-      LOG.error("Failed during QueryPlan join query run.", e);
+
+    } catch (RuntimeException e) {
+      LOG.error("Runtime error during QueryPlan join query execution", e);
       throw new IllegalStateException("Error occurred during QueryPlan join query run", e);
+    } catch (Exception e) {
+      LOG.error("Unexpected error during QueryPlan join query execution", e);
+      throw new IllegalStateException(
+          "Unexpected error occurred during QueryPlan join query run", e);
     } finally {
       cleanupPointInTime();
     }
@@ -68,15 +78,16 @@ class QueryPlanElasticExecutor extends ElasticJoinExecutor {
 
   /** Create Point-in-Time with custom timeout if JOIN_TIME_OUT hint is present */
   private void createPointInTimeWithCustomTimeout() {
-    TimeValue customKeepAlive = extractJoinTimeoutFromSqlRequest();
+    Optional<TimeValue> customKeepAlive = extractJoinTimeoutFromSqlRequest();
 
-    if (customKeepAlive != null) {
+    if (customKeepAlive.isPresent()) {
+      TimeValue keepAlive = customKeepAlive.get();
       LOG.info(
           "✅ QueryPlanElasticExecutor: Using custom PIT keepalive from JOIN_TIME_OUT hint: {}"
               + " seconds ({}ms)",
-          customKeepAlive.getSeconds(),
-          customKeepAlive.getMillis());
-      pit = new PointInTimeHandlerImpl(client, indices, customKeepAlive);
+          keepAlive.getSeconds(),
+          keepAlive.getMillis());
+      pit = new PointInTimeHandlerImpl(client, indices, keepAlive);
     } else {
       LOG.info(
           "⚠️ QueryPlanElasticExecutor: No JOIN_TIME_OUT hint found, using default PIT keepalive");
@@ -86,23 +97,27 @@ class QueryPlanElasticExecutor extends ElasticJoinExecutor {
     pit.create();
   }
 
-  /** Clean up Point-in-Time resources */
+  /** Clean up Point-in-Time resources safely */
   private void cleanupPointInTime() {
     if (pit != null) {
       try {
         pit.delete();
-        LOG.debug("Successfully deleted PIT: {}", pit.getPitId());
+        LOG.debug("Successfully deleted PIT");
       } catch (RuntimeException e) {
         Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-        LOG.warn("Error deleting point in time {}: {}", pit.getPitId(), e.getMessage(), e);
+        LOG.error("Error deleting point in time: {}", e.getMessage(), e);
       }
     }
   }
 
-  /** Extract JOIN_TIME_OUT hint directly from the original SQL request */
-  private TimeValue extractJoinTimeoutFromSqlRequest() {
+  /**
+   * Extract JOIN_TIME_OUT hint directly from the original SQL request
+   *
+   * @return Optional containing TimeValue if JOIN_TIME_OUT hint found, empty otherwise
+   */
+  private Optional<TimeValue> extractJoinTimeoutFromSqlRequest() {
     try {
-      LOG.info("🔍 Extracting hints from original SQL request...");
+      LOG.debug("Extracting hints from original SQL request...");
 
       // Access the private 'request' field from HashJoinQueryPlanRequestBuilder
       java.lang.reflect.Field requestField =
@@ -112,31 +127,50 @@ class QueryPlanElasticExecutor extends ElasticJoinExecutor {
 
       if (sqlRequest != null) {
         String originalSql = sqlRequest.getSql();
+        LOG.debug("Original SQL: {}", originalSql);
+
         // Parse JOIN_TIME_OUT hint from the SQL string
-        TimeValue timeout = parseJoinTimeoutFromSql(originalSql);
-        if (timeout != null) {
+        Optional<TimeValue> timeout = parseJoinTimeoutFromSql(originalSql);
+        if (timeout.isPresent()) {
           LOG.info(
-              "✅ Successfully extracted JOIN_TIME_OUT from SQL: {} seconds", timeout.getSeconds());
+              "✅ Successfully extracted JOIN_TIME_OUT from SQL: {} seconds",
+              timeout.get().getSeconds());
           return timeout;
         } else {
-          LOG.info("⚠️ No JOIN_TIME_OUT hint found in SQL string");
+          LOG.debug("No JOIN_TIME_OUT hint found in SQL string");
         }
       } else {
-        LOG.warn("⚠️ SqlRequest is null");
+        LOG.warn("SqlRequest is null");
       }
 
-    } catch (Exception e) {
-      LOG.error("⚠️ Error accessing original SQL request", e);
-      throw new RuntimeException("Unexpected error accessing SQL request", e);
+    } catch (NoSuchFieldException e) {
+      LOG.warn(
+          "Could not find 'request' field in HashJoinQueryPlanRequestBuilder - class structure may"
+              + " have changed",
+          e);
+    } catch (IllegalAccessException e) {
+      LOG.warn(
+          "Could not access 'request' field in HashJoinQueryPlanRequestBuilder - security"
+              + " restrictions",
+          e);
+    } catch (ClassCastException e) {
+      LOG.warn("Request field is not of type SqlRequest - unexpected class structure", e);
+    } catch (SecurityException e) {
+      LOG.warn("Security manager prevented access to request field", e);
     }
 
-    return null;
+    return Optional.empty();
   }
 
-  /** Parse JOIN_TIME_OUT(number) hint from SQL string using regex */
-  private TimeValue parseJoinTimeoutFromSql(String sql) {
+  /**
+   * Parse JOIN_TIME_OUT(number) hint from SQL string using regex
+   *
+   * @param sql the SQL string to parse
+   * @return Optional containing TimeValue if JOIN_TIME_OUT hint found, empty otherwise
+   */
+  private Optional<TimeValue> parseJoinTimeoutFromSql(String sql) {
     if (sql == null) {
-      return null;
+      return Optional.empty();
     }
 
     try {
@@ -151,15 +185,18 @@ class QueryPlanElasticExecutor extends ElasticJoinExecutor {
         int timeoutSeconds = Integer.parseInt(timeoutStr);
 
         LOG.info("✅ Parsed JOIN_TIME_OUT hint: {} seconds", timeoutSeconds);
-        return TimeValue.timeValueSeconds(timeoutSeconds);
+        return Optional.of(TimeValue.timeValueSeconds(timeoutSeconds));
       }
 
-    } catch (Exception e) {
-      LOG.error("Error parsing JOIN_TIME_OUT from SQL: {}", sql, e);
-      throw new RuntimeException("Failed to parse JOIN_TIME_OUT from SQL: " + sql, e);
+    } catch (NumberFormatException e) {
+      LOG.warn("Invalid JOIN_TIME_OUT value in SQL - not a valid number: {}", sql, e);
+    } catch (PatternSyntaxException e) {
+      LOG.warn("Regex pattern error while parsing JOIN_TIME_OUT from SQL: {}", sql, e);
+    } catch (IllegalStateException e) {
+      LOG.warn("Regex matcher error while parsing JOIN_TIME_OUT from SQL: {}", sql, e);
     }
 
-    return null;
+    return Optional.empty();
   }
 
   @Override

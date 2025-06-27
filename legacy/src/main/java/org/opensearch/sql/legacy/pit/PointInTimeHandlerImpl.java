@@ -7,6 +7,7 @@ package org.opensearch.sql.legacy.pit;
 
 import static org.opensearch.sql.common.setting.Settings.Key.SQL_CURSOR_KEEP_ALIVE;
 
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import lombok.Getter;
 import lombok.Setter;
@@ -27,7 +28,7 @@ import org.opensearch.transport.client.Client;
 public class PointInTimeHandlerImpl implements PointInTimeHandler {
   private final Client client;
   private String[] indices;
-  private final TimeValue customKeepAlive;
+  private final Optional<TimeValue> customKeepAlive;
   @Getter @Setter private String pitId;
   private static final Logger LOG = LogManager.getLogger();
 
@@ -40,7 +41,7 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
   public PointInTimeHandlerImpl(Client client, String[] indices) {
     this.client = client;
     this.indices = indices;
-    this.customKeepAlive = null;
+    this.customKeepAlive = Optional.empty();
   }
 
   /**
@@ -53,7 +54,7 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
   public PointInTimeHandlerImpl(Client client, String[] indices, TimeValue customKeepAlive) {
     this.client = client;
     this.indices = indices;
-    this.customKeepAlive = customKeepAlive;
+    this.customKeepAlive = Optional.ofNullable(customKeepAlive);
   }
 
   /**
@@ -65,7 +66,7 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
   public PointInTimeHandlerImpl(Client client, String pitId) {
     this.client = client;
     this.pitId = pitId;
-    this.customKeepAlive = null;
+    this.customKeepAlive = Optional.empty();
   }
 
   /** Create PIT for given indices */
@@ -73,7 +74,6 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
   public void create() {
     TimeValue keepAlive = getEffectiveKeepAlive();
 
-    // Add this logging to verify the keepalive value
     LOG.info("Creating PIT with keepalive: {} ({}ms)", keepAlive, keepAlive.getMillis());
 
     CreatePitRequest createPitRequest = new CreatePitRequest(keepAlive, false, indices);
@@ -94,6 +94,11 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
   /** Delete PIT */
   @Override
   public void delete() {
+    if (pitId == null) {
+      LOG.warn("Cannot delete PIT: pitId is null");
+      return;
+    }
+
     DeletePitRequest deletePitRequest = new DeletePitRequest(pitId);
     ActionFuture<DeletePitResponse> execute =
         client.execute(DeletePitAction.INSTANCE, deletePitRequest);
@@ -115,17 +120,27 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
    * @return TimeValue for PIT keepalive
    */
   private TimeValue getEffectiveKeepAlive() {
-    if (customKeepAlive != null) {
-      LOG.debug("Using custom PIT keepalive: {}", customKeepAlive);
-      return customKeepAlive;
-    }
-
-    TimeValue defaultKeepAlive = LocalClusterState.state().getSettingValue(SQL_CURSOR_KEEP_ALIVE);
-    LOG.debug("Using default PIT keepalive: {}", defaultKeepAlive);
-    return defaultKeepAlive;
+    return customKeepAlive
+        .map(
+            keepAlive -> {
+              LOG.debug("Using custom PIT keepalive: {}", keepAlive);
+              return keepAlive;
+            })
+        .orElseGet(
+            () -> {
+              TimeValue defaultKeepAlive =
+                  LocalClusterState.state().getSettingValue(SQL_CURSOR_KEEP_ALIVE);
+              LOG.debug("Using default PIT keepalive: {}", defaultKeepAlive);
+              return defaultKeepAlive;
+            });
   }
 
-  /** Truncate PIT ID for logging to improve readability */
+  /**
+   * Truncate PIT ID for logging to improve readability
+   *
+   * @param pitId the PIT ID to truncate
+   * @return truncated PIT ID string
+   */
   private String truncatePitId(String pitId) {
     if (pitId == null) return "null";
     if (pitId.length() <= 16) return pitId;
