@@ -22,13 +22,14 @@ import org.opensearch.action.search.DeletePitResponse;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
+import org.opensearch.sql.legacy.query.planner.core.Config;
 import org.opensearch.transport.client.Client;
 
 /** Handler for Point In Time */
 public class PointInTimeHandlerImpl implements PointInTimeHandler {
   private final Client client;
   private String[] indices;
-  private final Optional<TimeValue> customKeepAlive;
+  private final Optional<Config> config;
   @Getter @Setter private String pitId;
   private static final Logger LOG = LogManager.getLogger();
 
@@ -41,20 +42,20 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
   public PointInTimeHandlerImpl(Client client, String[] indices) {
     this.client = client;
     this.indices = indices;
-    this.customKeepAlive = Optional.empty();
+    this.config = Optional.empty();
   }
 
   /**
-   * Enhanced constructor with custom keepalive
+   * Enhanced constructor with Config for custom timeout support
    *
    * @param client OpenSearch client
    * @param indices list of indices
-   * @param customKeepAlive custom keepalive duration (can be null)
+   * @param config Configuration object containing custom PIT settings
    */
-  public PointInTimeHandlerImpl(Client client, String[] indices, TimeValue customKeepAlive) {
+  public PointInTimeHandlerImpl(Client client, String[] indices, Config config) {
     this.client = client;
     this.indices = indices;
-    this.customKeepAlive = Optional.ofNullable(customKeepAlive);
+    this.config = Optional.ofNullable(config);
   }
 
   /**
@@ -66,7 +67,7 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
   public PointInTimeHandlerImpl(Client client, String pitId) {
     this.client = client;
     this.pitId = pitId;
-    this.customKeepAlive = Optional.empty();
+    this.config = Optional.empty();
   }
 
   /** Create PIT for given indices */
@@ -87,18 +88,14 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
           truncatePitId(pitId),
           keepAlive);
     } catch (InterruptedException | ExecutionException e) {
-      throw new RuntimeException(String.format("Error occurred while creating PIT.", keepAlive), e);
+      throw new RuntimeException(
+          String.format("Error occurred while creating PIT with keepalive %s", keepAlive), e);
     }
   }
 
   /** Delete PIT */
   @Override
   public void delete() {
-    if (pitId == null) {
-      LOG.warn("Cannot delete PIT: pitId is null");
-      return;
-    }
-
     DeletePitRequest deletePitRequest = new DeletePitRequest(pitId);
     ActionFuture<DeletePitResponse> execute =
         client.execute(DeletePitAction.INSTANCE, deletePitRequest);
@@ -114,25 +111,28 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
   }
 
   /**
-   * Determines the effective keepalive value to use for PIT creation. Uses custom keepalive if
-   * provided, otherwise falls back to default setting.
+   * Get effective keepalive value by checking config first, then falling back to default
    *
    * @return TimeValue for PIT keepalive
    */
   private TimeValue getEffectiveKeepAlive() {
-    return customKeepAlive
-        .map(
-            keepAlive -> {
-              LOG.debug("Using custom PIT keepalive: {}", keepAlive);
-              return keepAlive;
-            })
-        .orElseGet(
-            () -> {
-              TimeValue defaultKeepAlive =
-                  LocalClusterState.state().getSettingValue(SQL_CURSOR_KEEP_ALIVE);
-              LOG.debug("Using default PIT keepalive: {}", defaultKeepAlive);
-              return defaultKeepAlive;
-            });
+    // First: try to get from config if available
+    if (config.isPresent()) {
+      Optional<TimeValue> customTimeout = config.get().getCustomPitKeepAlive();
+      if (customTimeout.isPresent()) {
+        LOG.debug(
+            "Using custom PIT keepalive from config: {} ({}ms)",
+            customTimeout.get(),
+            customTimeout.get().getMillis());
+        return customTimeout.get();
+      }
+    }
+
+    // Fallback: use default
+    TimeValue defaultKeepAlive = LocalClusterState.state().getSettingValue(SQL_CURSOR_KEEP_ALIVE);
+    LOG.debug(
+        "Using default PIT keepalive: {} ({}ms)", defaultKeepAlive, defaultKeepAlive.getMillis());
+    return defaultKeepAlive;
   }
 
   /**
@@ -143,7 +143,7 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
    */
   private String truncatePitId(String pitId) {
     if (pitId == null) return "null";
-    if (pitId.length() <= 16) return pitId;
-    return pitId.substring(0, 8) + "..." + pitId.substring(pitId.length() - 8);
+    if (pitId.length() <= 12) return pitId;
+    return pitId.substring(0, 12);
   }
 }

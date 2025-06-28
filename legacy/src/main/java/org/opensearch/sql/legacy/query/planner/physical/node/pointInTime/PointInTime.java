@@ -1,7 +1,15 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package org.opensearch.sql.legacy.query.planner.physical.node.pointInTime;
 
 import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
 
+import java.util.Optional;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.PointInTimeBuilder;
@@ -9,25 +17,33 @@ import org.opensearch.search.sort.FieldSortBuilder;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.legacy.pit.PointInTimeHandlerImpl;
 import org.opensearch.sql.legacy.query.join.TableInJoinRequestBuilder;
+import org.opensearch.sql.legacy.query.planner.core.Config;
 import org.opensearch.sql.legacy.query.planner.physical.node.Paginate;
 
 /** OpenSearch Search API with Point in time as physical implementation of TableScan */
 public class PointInTime extends Paginate {
 
+  private static final Logger LOG = LogManager.getLogger();
+
   private String pitId;
   private PointInTimeHandlerImpl pit;
-  private final TimeValue customPitKeepAlive; // Store custom keepalive
+  private final Optional<Config> config;
 
   public PointInTime(TableInJoinRequestBuilder request, int pageSize) {
     super(request, pageSize);
-    this.customPitKeepAlive = null; // Default constructor - no custom timeout
+    this.config = Optional.empty();
   }
 
-  // Enhanced constructor with custom keepalive
-  public PointInTime(
-      TableInJoinRequestBuilder request, int pageSize, TimeValue customPitKeepAlive) {
+  /**
+   * Enhanced constructor with Config for custom timeout support
+   *
+   * @param request Table request builder
+   * @param pageSize Page size for pagination
+   * @param config Configuration object containing custom PIT settings
+   */
+  public PointInTime(TableInJoinRequestBuilder request, int pageSize, Config config) {
     super(request, pageSize);
-    this.customPitKeepAlive = customPitKeepAlive;
+    this.config = Optional.ofNullable(config);
   }
 
   @Override
@@ -44,24 +60,20 @@ public class PointInTime extends Paginate {
 
   @Override
   protected void loadFirstBatch() {
-    // Create PIT with custom keepalive if available
-    if (customPitKeepAlive != null) {
-      LOG.info(
-          "PointInTime: Creating PIT with custom keepalive: {} seconds ({}ms)",
-          customPitKeepAlive.getSeconds(),
-          customPitKeepAlive.getMillis());
+    if (config.isPresent()) {
+      LOG.debug("PointInTime: Creating PIT with config support");
       pit =
           new PointInTimeHandlerImpl(
-              client, request.getOriginalSelect().getIndexArr(), customPitKeepAlive);
+              client, request.getOriginalSelect().getIndexArr(), config.get());
     } else {
-      LOG.info("PointInTime: Creating PIT with default keepalive");
+      LOG.debug("PointInTime: Creating PIT with default settings");
       pit = new PointInTimeHandlerImpl(client, request.getOriginalSelect().getIndexArr());
     }
 
     pit.create();
     pitId = pit.getPitId();
 
-    LOG.info("Loading first batch of response using Point In Time");
+    LOG.debug("Loading first batch of response using Point In Time");
     searchResponse =
         request
             .getRequestBuilder()
@@ -80,7 +92,7 @@ public class PointInTime extends Paginate {
     if (hits != null && hits.length > 0) {
       Object[] sortValues = hits[hits.length - 1].getSortValues();
 
-      LOG.info("Loading next batch of response using Point In Time. - " + pitId);
+      LOG.debug("Loading next batch of response using Point In Time. - " + pitId);
       searchResponse =
           request
               .getRequestBuilder()

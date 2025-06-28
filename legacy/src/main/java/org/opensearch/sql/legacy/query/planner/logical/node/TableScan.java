@@ -6,8 +6,9 @@
 package org.opensearch.sql.legacy.query.planner.logical.node;
 
 import java.util.Map;
-import org.opensearch.common.unit.TimeValue;
+import java.util.Optional;
 import org.opensearch.sql.legacy.query.join.TableInJoinRequestBuilder;
+import org.opensearch.sql.legacy.query.planner.core.Config;
 import org.opensearch.sql.legacy.query.planner.core.PlanNode;
 import org.opensearch.sql.legacy.query.planner.logical.LogicalOperator;
 import org.opensearch.sql.legacy.query.planner.physical.PhysicalOperator;
@@ -22,20 +23,19 @@ public class TableScan implements LogicalOperator {
   /** Page size for physical operator */
   private final int pageSize;
 
-  /** Custom PIT keepalive timeout */
-  private final TimeValue customPitKeepAlive;
+  /** Configuration object for accessing custom settings */
+  private final Optional<Config> config;
 
   public TableScan(TableInJoinRequestBuilder request, int pageSize) {
     this.request = request;
     this.pageSize = pageSize;
-    this.customPitKeepAlive = null; // Default constructor - no custom timeout
+    this.config = Optional.empty();
   }
 
-  // Enhanced constructor with custom PIT keepalive
-  public TableScan(TableInJoinRequestBuilder request, int pageSize, TimeValue customPitKeepAlive) {
+  public TableScan(TableInJoinRequestBuilder request, int pageSize, Config config) {
     this.request = request;
     this.pageSize = pageSize;
-    this.customPitKeepAlive = customPitKeepAlive;
+    this.config = Optional.ofNullable(config);
   }
 
   @Override
@@ -45,9 +45,8 @@ public class TableScan implements LogicalOperator {
 
   @Override
   public <T> PhysicalOperator[] toPhysical(Map<LogicalOperator, PhysicalOperator<T>> optimalOps) {
-    // Create PointInTime with custom timeout if available
-    if (customPitKeepAlive != null) {
-      return new PhysicalOperator[] {new PointInTime(request, pageSize, customPitKeepAlive)};
+    if (config.isPresent()) {
+      return new PhysicalOperator[] {new PointInTime(request, pageSize, config.get())};
     } else {
       return new PhysicalOperator[] {new PointInTime(request, pageSize)};
     }

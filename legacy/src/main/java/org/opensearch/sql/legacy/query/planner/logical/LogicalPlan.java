@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.legacy.domain.Field;
 import org.opensearch.sql.legacy.domain.Order;
 import org.opensearch.sql.legacy.query.join.TableInJoinRequestBuilder;
@@ -41,9 +40,6 @@ public class LogicalPlan implements Plan {
   /** Parameters */
   private final QueryParams params;
 
-  /** Custom PIT keepalive timeout */
-  private final TimeValue customPitKeepAlive;
-
   /** Root node of logical query plan tree */
   private final LogicalOperator root;
 
@@ -57,15 +53,6 @@ public class LogicalPlan implements Plan {
   public LogicalPlan(Config config, QueryParams params) {
     this.config = config;
     this.params = params;
-    this.customPitKeepAlive = null; // Default constructor - no custom timeout
-    this.root = buildPlanTree();
-  }
-
-  // Enhanced constructor with custom PIT keepalive
-  public LogicalPlan(Config config, QueryParams params, TimeValue customPitKeepAlive) {
-    this.config = config;
-    this.params = params;
-    this.customPitKeepAlive = customPitKeepAlive;
     this.root = buildPlanTree();
   }
 
@@ -183,13 +170,8 @@ public class LogicalPlan implements Plan {
     return orCond;
   }
 
-  // Pass custom timeout to TableScan
   private LogicalOperator group(TableInJoinRequestBuilder request, int pageSize) {
-    if (customPitKeepAlive != null) {
-      return new Group(new TableScan(request, pageSize, customPitKeepAlive));
-    } else {
-      return new Group(new TableScan(request, pageSize));
-    }
+    return new Group(new TableScan(request, pageSize, config));
   }
 
   private List<TableInJoinRequestBuilder> getRequests() {

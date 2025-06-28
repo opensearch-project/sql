@@ -18,7 +18,6 @@ import org.apache.lucene.search.TotalHits;
 import org.apache.lucene.search.TotalHits.Relation;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.document.DocumentField;
-import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.index.mapper.MapperService;
@@ -27,9 +26,6 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.sql.legacy.domain.Field;
-import org.opensearch.sql.legacy.domain.Select;
-import org.opensearch.sql.legacy.domain.hints.Hint;
-import org.opensearch.sql.legacy.domain.hints.HintType;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.executor.ElasticHitsExecutor;
 import org.opensearch.sql.legacy.metrics.MetricName;
@@ -41,6 +37,7 @@ import org.opensearch.sql.legacy.query.join.JoinRequestBuilder;
 import org.opensearch.sql.legacy.query.join.NestedLoopsElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.join.TableInJoinRequestBuilder;
 import org.opensearch.sql.legacy.query.planner.HashJoinQueryPlanRequestBuilder;
+import org.opensearch.sql.legacy.query.planner.core.Config;
 import org.opensearch.transport.client.Client;
 
 /** Created by Eliran on 15/9/2015. */
@@ -52,7 +49,7 @@ public abstract class ElasticJoinExecutor extends ElasticHitsExecutor {
   private final Set<String> aliasesOnReturn;
   private final boolean allFieldsReturn;
   protected final String[] indices;
-  protected final JoinRequestBuilder requestBuilder; // Added to store request builder
+  protected final JoinRequestBuilder requestBuilder;
 
   protected ElasticJoinExecutor(Client client, JoinRequestBuilder requestBuilder) {
     metaResults = new MetaSearchResult();
@@ -64,7 +61,7 @@ public abstract class ElasticJoinExecutor extends ElasticHitsExecutor {
             && (secondTableReturnedField == null || secondTableReturnedField.size() == 0);
     indices = getIndices(requestBuilder);
     this.client = client;
-    this.requestBuilder = requestBuilder; // Store request builder for hint access
+    this.requestBuilder = requestBuilder;
   }
 
   public void sendResponse(RestChannel channel) throws IOException {
@@ -95,139 +92,48 @@ public abstract class ElasticJoinExecutor extends ElasticHitsExecutor {
     try {
       long timeBefore = System.currentTimeMillis();
 
-      LOG.debug("🔍 Starting join execution, checking for JOIN_TIME_OUT hints...");
+      LOG.info("ElasticJoinExecutor: Starting join execution");
 
-      // ✅ Create PIT with appropriate timeout
-      createPointInTimeWithCustomTimeout();
+      Optional<Config> config = getConfigFromRequestBuilder();
 
-      // Execute the query
+      if (config.isPresent()) {
+        LOG.info("ElasticJoinExecutor: Creating PIT with config support");
+        pit = new PointInTimeHandlerImpl(client, indices, config.get());
+      } else {
+        LOG.info("ElasticJoinExecutor: Creating PIT with default settings");
+        pit = new PointInTimeHandlerImpl(client, indices);
+      }
+
+      pit.create();
       results = innerRun();
-
-      // Record execution time
       long joinTimeInMilli = System.currentTimeMillis() - timeBefore;
       this.metaResults.setTookImMilli(joinTimeInMilli);
-
-    } catch (RuntimeException e) {
-      throw new IllegalStateException("Error occurred during join query run", e);
     } catch (Exception e) {
-      throw new IllegalStateException("Unexpected error occurred during join query run", e);
+      LOG.error("Failed during join query run.", e);
+      throw new IllegalStateException("Error occurred during join query run", e);
     } finally {
-      cleanupPointInTime();
-    }
-  }
-
-  /** Create Point-in-Time with custom timeout if JOIN_TIME_OUT hint is present */
-  private void createPointInTimeWithCustomTimeout() {
-    Optional<TimeValue> customKeepAlive = extractJoinTimeoutFromHints();
-
-    if (customKeepAlive.isPresent()) {
-      TimeValue keepAlive = customKeepAlive.get();
-      LOG.info(
-          "✅ Using custom PIT keepalive from JOIN_TIME_OUT hint: {} seconds ({}ms)",
-          keepAlive.getSeconds(),
-          keepAlive.getMillis());
-      pit = new PointInTimeHandlerImpl(client, indices, keepAlive);
-    } else {
-      LOG.info("⚠️ No JOIN_TIME_OUT hint found, using default PIT keepalive");
-      pit = new PointInTimeHandlerImpl(client, indices);
-    }
-
-    pit.create();
-  }
-
-  /** Clean up Point-in-Time resources safely */
-  private void cleanupPointInTime() {
-    if (pit != null) {
       try {
-        pit.delete();
-        LOG.debug("Successfully deleted PIT");
+        if (pit != null) {
+          pit.delete();
+        }
       } catch (RuntimeException e) {
         Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-        throw new RuntimeException("Error deleting point in time: " + e.getMessage(), e);
+        LOG.debug("Error deleting point in time {} ", pit);
       }
-    }
-  }
-
-  protected Optional<TimeValue> extractJoinTimeoutFromHints() {
-    try {
-      LOG.debug(
-          "Starting hint extraction from request builder: {}",
-          requestBuilder != null ? requestBuilder.getClass().getSimpleName() : "null");
-
-      // Check first table for hints
-      Optional<TimeValue> timeout =
-          extractJoinTimeoutFromTable("firstTable", requestBuilder.getFirstTable());
-      if (timeout.isPresent()) {
-        return timeout;
-      }
-
-      // Check second table for hints if not found in first
-      timeout = extractJoinTimeoutFromTable("secondTable", requestBuilder.getSecondTable());
-      if (timeout.isPresent()) {
-        return timeout;
-      }
-
-      LOG.debug("No JOIN_TIME_OUT hint found in either table");
-      return Optional.empty();
-
-    } catch (Exception e) {
-      LOG.warn("Error extracting JOIN_TIME_OUT hint, using default keepalive", e);
-      return Optional.empty();
     }
   }
 
   /**
-   * Extract JOIN_TIME_OUT hint from a specific table request builder
+   * Try to get Config from request builder if available
    *
-   * @param tableName descriptive name for logging (e.g., "firstTable", "secondTable")
-   * @param table the table request builder to examine
-   * @return Optional containing TimeValue if JOIN_TIME_OUT hint found, empty otherwise
+   * @return Optional containing Config if this is a QueryPlan execution, otherwise empty
    */
-  private Optional<TimeValue> extractJoinTimeoutFromTable(
-      String tableName, TableInJoinRequestBuilder table) {
-    if (table == null) {
-      LOG.debug("{} is null", tableName);
-      return Optional.empty();
+  private Optional<Config> getConfigFromRequestBuilder() {
+    if (requestBuilder instanceof HashJoinQueryPlanRequestBuilder) {
+      HashJoinQueryPlanRequestBuilder queryPlanBuilder =
+          (HashJoinQueryPlanRequestBuilder) requestBuilder;
+      return Optional.of(queryPlanBuilder.getConfig());
     }
-
-    Select originalSelect = table.getOriginalSelect();
-    if (originalSelect == null) {
-      LOG.debug("{}.getOriginalSelect() is null", tableName);
-      return Optional.empty();
-    }
-
-    List<Hint> hints = originalSelect.getHints();
-    int hintCount = hints != null ? hints.size() : 0;
-    LOG.debug("{} has {} hints", tableName, hintCount);
-
-    if (hints == null || hints.isEmpty()) {
-      LOG.debug("No hints found in {}", tableName);
-      return Optional.empty();
-    }
-
-    LOG.debug("Examining hints in {}:", tableName);
-    for (int i = 0; i < hints.size(); i++) {
-      Hint hint = hints.get(i);
-      LOG.debug(
-          "  Hint[{}]: type={}, params={}",
-          i,
-          hint.getType(),
-          hint.getParams() != null ? java.util.Arrays.toString(hint.getParams()) : "null");
-
-      // Check if this is the JOIN_TIME_OUT hint we're looking for
-      if (hint.getType() == HintType.JOIN_TIME_OUT) {
-        Object[] params = hint.getParams();
-        if (params != null && params.length > 0) {
-          Integer timeoutSeconds = (Integer) params[0];
-          LOG.info("Found JOIN_TIME_OUT hint in {}: {} seconds", tableName, timeoutSeconds);
-          return Optional.of(TimeValue.timeValueSeconds(timeoutSeconds));
-        } else {
-          LOG.warn("JOIN_TIME_OUT hint found in {} but has no parameters", tableName);
-        }
-      }
-    }
-
-    LOG.debug("No JOIN_TIME_OUT hint found in {}", tableName);
     return Optional.empty();
   }
 

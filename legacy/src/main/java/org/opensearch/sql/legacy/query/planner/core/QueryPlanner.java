@@ -10,7 +10,6 @@ import static org.opensearch.sql.legacy.query.planner.core.ExecuteParams.Execute
 import static org.opensearch.sql.legacy.query.planner.core.ExecuteParams.ExecuteParamType.TIMEOUT;
 
 import java.util.List;
-import org.opensearch.common.unit.TimeValue;
 import org.opensearch.search.SearchHit;
 import org.opensearch.sql.legacy.executor.join.MetaSearchResult;
 import org.opensearch.sql.legacy.query.planner.explain.Explanation;
@@ -30,9 +29,6 @@ public class QueryPlanner {
   /** Query plan configuration */
   private final Config config;
 
-  /** Custom PIT keepalive timeout */
-  private final TimeValue customPitKeepAlive;
-
   /** Optimized logical plan */
   private final LogicalPlan logicalPlan;
 
@@ -48,33 +44,10 @@ public class QueryPlanner {
   public QueryPlanner(Client client, Config config, QueryParams params) {
     this.client = client;
     this.config = config;
-    this.customPitKeepAlive = null; // Default constructor - no custom timeout
     this.stats = new Stats(client);
     this.resourceMgr = new ResourceManager(stats, config);
 
     logicalPlan = new LogicalPlan(config, params);
-    logicalPlan.optimize();
-
-    physicalPlan = new PhysicalPlan(logicalPlan);
-    physicalPlan.optimize();
-  }
-
-  // Added constructor with custom PIT keepalive
-  public QueryPlanner(
-      Client client, Config config, QueryParams params, TimeValue customPitKeepAlive) {
-    this.client = client;
-    this.config = config;
-    this.customPitKeepAlive = customPitKeepAlive;
-    this.stats = new Stats(client);
-    this.resourceMgr = new ResourceManager(stats, config);
-
-    // Create LogicalPlan with custom timeout
-    if (customPitKeepAlive != null) {
-      logicalPlan = new LogicalPlan(config, params, customPitKeepAlive);
-    } else {
-      logicalPlan = new LogicalPlan(config, params);
-    }
-
     logicalPlan.optimize();
 
     physicalPlan = new PhysicalPlan(logicalPlan);
