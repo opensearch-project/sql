@@ -15,6 +15,7 @@ import static org.opensearch.sql.spark.utils.SQLQueryUtilsTest.IndexQuery.mv;
 import static org.opensearch.sql.spark.utils.SQLQueryUtilsTest.IndexQuery.skippingIndex;
 
 import java.util.List;
+import java.util.Locale;
 import lombok.Getter;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -467,7 +468,7 @@ public class SQLQueryUtilsTest {
     }
 
     public IndexQuery withProperty(String key, String value) {
-      query = String.format("%s with (%s = %s)", query, key, value);
+      query = String.format(Locale.ROOT, "%s with (%s = %s)", query, key, value);
       return this;
     }
 

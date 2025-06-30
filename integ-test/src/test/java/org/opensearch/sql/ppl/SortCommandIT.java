@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -36,7 +37,8 @@ public class SortCommandIT extends PPLIntegTestCase {
   @Test
   public void testSortCommand() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | sort age | fields age", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(Locale.ROOT, "source=%s | sort age | fields age", TEST_INDEX_BANK));
     verifyOrder(result, rows(28), rows(32), rows(33), rows(34), rows(36), rows(36), rows(39));
   }
 
@@ -45,6 +47,7 @@ public class SortCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | sort balance | fields firstname, balance",
                 TEST_INDEX_BANK_WITH_NULL_VALUES));
 
@@ -121,7 +124,9 @@ public class SortCommandIT extends PPLIntegTestCase {
   @Test
   public void testSortStringField() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | sort lastname | fields lastname", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(
+                Locale.ROOT, "source=%s | sort lastname | fields lastname", TEST_INDEX_BANK));
     verifyOrder(
         result,
         rows("Adams"),
@@ -136,7 +141,8 @@ public class SortCommandIT extends PPLIntegTestCase {
   @Test
   public void testSortIpField() throws IOException {
     final JSONObject result =
-        executeQuery(String.format("source=%s | fields host | sort host", TEST_INDEX_WEBLOGS));
+        executeQuery(
+            String.format(Locale.ROOT, "source=%s | fields host | sort host", TEST_INDEX_WEBLOGS));
     verifyOrder(
         result,
         rows("::1"),
@@ -151,7 +157,10 @@ public class SortCommandIT extends PPLIntegTestCase {
   public void testSortMultipleFields() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format("source=%s | sort dog_name, age | fields dog_name, age", TEST_INDEX_DOG));
+            String.format(
+                Locale.ROOT,
+                "source=%s | sort dog_name, age | fields dog_name, age",
+                TEST_INDEX_DOG));
     verifyOrder(result, rows("rex", 2), rows("snoopy", 4));
   }
 }

@@ -24,6 +24,7 @@ import java.time.temporal.ChronoField;
 import java.time.temporal.Temporal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.TimeZone;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
@@ -225,11 +226,11 @@ public class NowLikeFunctionIT extends PPLIntegTestCase {
                 + TEST_INDEX_PEOPLE2
                 + "| eval "
                 + calls.stream()
-                    .map(c -> String.format("`%s`=%s", c, c))
+                    .map(c -> String.format(Locale.ROOT, "`%s`=%s", c, c))
                     .collect(Collectors.joining(","))
                 + " | fields "
                 + calls.stream()
-                    .map(c -> String.format("`%s`", c))
+                    .map(c -> String.format(Locale.ROOT, "`%s`", c))
                     .collect(Collectors.joining(",")));
 
     var rows = result.getJSONArray("datarows");

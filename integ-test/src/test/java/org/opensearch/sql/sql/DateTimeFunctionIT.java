@@ -63,7 +63,9 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "SELECT DATE(birthdate) FROM %s GROUP BY DATE(birthdate)", TEST_INDEX_BANK));
+                Locale.ROOT,
+                "SELECT DATE(birthdate) FROM %s GROUP BY DATE(birthdate)",
+                TEST_INDEX_BANK));
     verifySchema(result, schema("DATE(birthdate)", null, "date"));
     verifyDataRows(
         result,
@@ -81,6 +83,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "SELECT (TO_DAYS(DATE('2050-01-01')) - 693961) FROM %s HAVING (COUNT(1) > 0)",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("(TO_DAYS(DATE('2050-01-01')) - 693961)", null, "long"));
@@ -192,7 +195,10 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
 
     result =
         executeQuery(
-            String.format("SELECT DATE_ADD(birthdate, INTERVAL 1 YEAR) FROM %s", TEST_INDEX_BANK));
+            String.format(
+                Locale.ROOT,
+                "SELECT DATE_ADD(birthdate, INTERVAL 1 YEAR) FROM %s",
+                TEST_INDEX_BANK));
 
     verifySchema(result, schema("DATE_ADD(birthdate, INTERVAL 1 YEAR)", null, "timestamp"));
     verifyDataRows(
@@ -303,31 +309,46 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     verifyDataRows(result1, rows(22));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
-    result1 = executeQuery(String.format("SELECT dayofmonth(date0) FROM %s", TEST_INDEX_CALCS));
-    result2 = executeQuery(String.format("SELECT day_of_month(date0) FROM %s", TEST_INDEX_CALCS));
+    result1 =
+        executeQuery(
+            String.format(Locale.ROOT, "SELECT dayofmonth(date0) FROM %s", TEST_INDEX_CALCS));
+    result2 =
+        executeQuery(
+            String.format(Locale.ROOT, "SELECT day_of_month(date0) FROM %s", TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
     result1 =
         executeQuery(
             String.format(
-                "SELECT dayofmonth(timestamp(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+                Locale.ROOT,
+                "SELECT dayofmonth(timestamp(CAST(time0 AS STRING))) FROM %s",
+                TEST_INDEX_CALCS));
     result2 =
         executeQuery(
             String.format(
-                "SELECT day_of_month(timestamp(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+                Locale.ROOT,
+                "SELECT day_of_month(timestamp(CAST(time0 AS STRING))) FROM %s",
+                TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
     result1 =
         executeQuery(
-            String.format("SELECT dayofmonth(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+            String.format(
+                Locale.ROOT, "SELECT dayofmonth(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
     result2 =
         executeQuery(
-            String.format("SELECT day_of_month(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+            String.format(
+                Locale.ROOT,
+                "SELECT day_of_month(CAST(time0 AS STRING)) FROM %s",
+                TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
-    result1 = executeQuery(String.format("SELECT dayofmonth(datetime0) FROM %s", TEST_INDEX_CALCS));
+    result1 =
+        executeQuery(
+            String.format(Locale.ROOT, "SELECT dayofmonth(datetime0) FROM %s", TEST_INDEX_CALCS));
     result2 =
-        executeQuery(String.format("SELECT day_of_month(datetime0) FROM %s", TEST_INDEX_CALCS));
+        executeQuery(
+            String.format(Locale.ROOT, "SELECT day_of_month(datetime0) FROM %s", TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
   }
 
@@ -360,31 +381,46 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     verifyDataRows(result1, rows(3));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
-    result1 = executeQuery(String.format("SELECT dayofweek(date0) FROM %s", TEST_INDEX_CALCS));
-    result2 = executeQuery(String.format("SELECT day_of_week(date0) FROM %s", TEST_INDEX_CALCS));
+    result1 =
+        executeQuery(
+            String.format(Locale.ROOT, "SELECT dayofweek(date0) FROM %s", TEST_INDEX_CALCS));
+    result2 =
+        executeQuery(
+            String.format(Locale.ROOT, "SELECT day_of_week(date0) FROM %s", TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
     result1 =
         executeQuery(
             String.format(
-                "SELECT dayofweek(timestamp(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+                Locale.ROOT,
+                "SELECT dayofweek(timestamp(CAST(time0 AS STRING))) FROM %s",
+                TEST_INDEX_CALCS));
     result2 =
         executeQuery(
             String.format(
-                "SELECT day_of_week(timestamp(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+                Locale.ROOT,
+                "SELECT day_of_week(timestamp(CAST(time0 AS STRING))) FROM %s",
+                TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
     result1 =
         executeQuery(
-            String.format("SELECT dayofweek(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+            String.format(
+                Locale.ROOT, "SELECT dayofweek(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
     result2 =
         executeQuery(
-            String.format("SELECT day_of_week(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+            String.format(
+                Locale.ROOT,
+                "SELECT day_of_week(CAST(time0 AS STRING)) FROM %s",
+                TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
-    result1 = executeQuery(String.format("SELECT dayofweek(datetime0) FROM %s", TEST_INDEX_CALCS));
+    result1 =
+        executeQuery(
+            String.format(Locale.ROOT, "SELECT dayofweek(datetime0) FROM %s", TEST_INDEX_CALCS));
     result2 =
-        executeQuery(String.format("SELECT day_of_week(datetime0) FROM %s", TEST_INDEX_CALCS));
+        executeQuery(
+            String.format(Locale.ROOT, "SELECT day_of_week(datetime0) FROM %s", TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
   }
 
@@ -425,31 +461,46 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     verifyDataRows(result1, rows(326));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
-    result1 = executeQuery(String.format("SELECT dayofyear(date0) FROM %s", TEST_INDEX_CALCS));
-    result2 = executeQuery(String.format("SELECT day_of_year(date0) FROM %s", TEST_INDEX_CALCS));
+    result1 =
+        executeQuery(
+            String.format(Locale.ROOT, "SELECT dayofyear(date0) FROM %s", TEST_INDEX_CALCS));
+    result2 =
+        executeQuery(
+            String.format(Locale.ROOT, "SELECT day_of_year(date0) FROM %s", TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
     result1 =
         executeQuery(
             String.format(
-                "SELECT dayofyear(timestamp(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+                Locale.ROOT,
+                "SELECT dayofyear(timestamp(CAST(time0 AS STRING))) FROM %s",
+                TEST_INDEX_CALCS));
     result2 =
         executeQuery(
             String.format(
-                "SELECT day_of_year(timestamp(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+                Locale.ROOT,
+                "SELECT day_of_year(timestamp(CAST(time0 AS STRING))) FROM %s",
+                TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
     result1 =
         executeQuery(
-            String.format("SELECT dayofyear(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+            String.format(
+                Locale.ROOT, "SELECT dayofyear(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
     result2 =
         executeQuery(
-            String.format("SELECT day_of_year(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+            String.format(
+                Locale.ROOT,
+                "SELECT day_of_year(CAST(time0 AS STRING)) FROM %s",
+                TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
-    result1 = executeQuery(String.format("SELECT dayofyear(datetime0) FROM %s", TEST_INDEX_CALCS));
+    result1 =
+        executeQuery(
+            String.format(Locale.ROOT, "SELECT dayofyear(datetime0) FROM %s", TEST_INDEX_CALCS));
     result2 =
-        executeQuery(String.format("SELECT day_of_year(datetime0) FROM %s", TEST_INDEX_CALCS));
+        executeQuery(
+            String.format(Locale.ROOT, "SELECT day_of_year(datetime0) FROM %s", TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
   }
 
@@ -503,6 +554,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     JSONObject datetimeResult =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "SELECT extract(DAY_SECOND FROM timestamp(cast(datetime0 AS STRING))) FROM %s LIMIT"
                     + " 1",
                 TEST_INDEX_CALCS));
@@ -514,7 +566,9 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     JSONObject timeResult =
         executeQuery(
             String.format(
-                "SELECT extract(HOUR_SECOND FROM time0) FROM %s LIMIT 1", TEST_INDEX_CALCS));
+                Locale.ROOT,
+                "SELECT extract(HOUR_SECOND FROM time0) FROM %s LIMIT 1",
+                TEST_INDEX_CALCS));
     verifyDataRows(timeResult, rows(210732));
   }
 
@@ -523,7 +577,9 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     JSONObject dateResult =
         executeQuery(
             String.format(
-                "SELECT extract(YEAR_MONTH FROM date0) FROM %s LIMIT 1", TEST_INDEX_CALCS));
+                Locale.ROOT,
+                "SELECT extract(YEAR_MONTH FROM date0) FROM %s LIMIT 1",
+                TEST_INDEX_CALCS));
     verifyDataRows(dateResult, rows(200404));
   }
 
@@ -532,11 +588,14 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     JSONObject dateResult =
         executeQuery(
             String.format(
-                "SELECT extract(YEAR_MONTH FROM datetime0) FROM %s LIMIT 1", TEST_INDEX_CALCS));
+                Locale.ROOT,
+                "SELECT extract(YEAR_MONTH FROM datetime0) FROM %s LIMIT 1",
+                TEST_INDEX_CALCS));
 
     JSONObject datetimeResult =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "SELECT extract(YEAR_MONTH FROM date(datetime0)) FROM %s LIMIT 1",
                 TEST_INDEX_CALCS));
 
@@ -553,38 +612,53 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result1 =
         executeQuery(
             String.format(
-                "SELECT hour(timestamp(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+                Locale.ROOT,
+                "SELECT hour(timestamp(CAST(time0 AS STRING))) FROM %s",
+                TEST_INDEX_CALCS));
     result2 =
         executeQuery(
             String.format(
-                "SELECT hour_of_day(timestamp(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+                Locale.ROOT,
+                "SELECT hour_of_day(timestamp(CAST(time0 AS STRING))) FROM %s",
+                TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
     result1 =
-        executeQuery(String.format("SELECT hour(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+        executeQuery(
+            String.format(
+                Locale.ROOT, "SELECT hour(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
     result2 =
         executeQuery(
-            String.format("SELECT hour_of_day(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+            String.format(
+                Locale.ROOT,
+                "SELECT hour_of_day(CAST(time0 AS STRING)) FROM %s",
+                TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
-    result1 = executeQuery(String.format("SELECT hour(datetime0) FROM %s", TEST_INDEX_CALCS));
+    result1 =
+        executeQuery(
+            String.format(Locale.ROOT, "SELECT hour(datetime0) FROM %s", TEST_INDEX_CALCS));
     result2 =
-        executeQuery(String.format("SELECT hour_of_day(datetime0) FROM %s", TEST_INDEX_CALCS));
+        executeQuery(
+            String.format(Locale.ROOT, "SELECT hour_of_day(datetime0) FROM %s", TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
   }
 
   @Test
   public void testLastDay() throws IOException {
     JSONObject result =
-        executeQuery(String.format("SELECT last_day(date0) FROM %s LIMIT 3", TEST_INDEX_CALCS));
+        executeQuery(
+            String.format(Locale.ROOT, "SELECT last_day(date0) FROM %s LIMIT 3", TEST_INDEX_CALCS));
     verifyDataRows(result, rows("2004-04-30"), rows("1972-07-31"), rows("1975-11-30"));
 
     result =
-        executeQuery(String.format("SELECT last_day(date0) FROM %s LIMIT 3", TEST_INDEX_CALCS));
+        executeQuery(
+            String.format(Locale.ROOT, "SELECT last_day(date0) FROM %s LIMIT 3", TEST_INDEX_CALCS));
     verifyDataRows(result, rows("2004-04-30"), rows("1972-07-31"), rows("1975-11-30"));
 
     result =
-        executeQuery(String.format("SELECT last_day(date0) FROM %s LIMIT 3", TEST_INDEX_CALCS));
+        executeQuery(
+            String.format(Locale.ROOT, "SELECT last_day(date0) FROM %s LIMIT 3", TEST_INDEX_CALCS));
     verifyDataRows(result, rows("2004-04-30"), rows("1972-07-31"), rows("1975-11-30"));
   }
 
@@ -703,26 +777,36 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result1 =
         executeQuery(
             String.format(
-                "SELECT minute(timestamp(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+                Locale.ROOT,
+                "SELECT minute(timestamp(CAST(time0 AS STRING))) FROM %s",
+                TEST_INDEX_CALCS));
     result2 =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "SELECT minute_of_hour(timestamp(CAST(time0 AS STRING))) FROM %s",
                 TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
     result1 =
         executeQuery(
-            String.format("SELECT minute(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+            String.format(
+                Locale.ROOT, "SELECT minute(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
     result2 =
         executeQuery(
             String.format(
-                "SELECT minute_of_hour(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+                Locale.ROOT,
+                "SELECT minute_of_hour(CAST(time0 AS STRING)) FROM %s",
+                TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
-    result1 = executeQuery(String.format("SELECT minute(datetime0) FROM %s", TEST_INDEX_CALCS));
+    result1 =
+        executeQuery(
+            String.format(Locale.ROOT, "SELECT minute(datetime0) FROM %s", TEST_INDEX_CALCS));
     result2 =
-        executeQuery(String.format("SELECT minute_of_hour(datetime0) FROM %s", TEST_INDEX_CALCS));
+        executeQuery(
+            String.format(
+                Locale.ROOT, "SELECT minute_of_hour(datetime0) FROM %s", TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
   }
 
@@ -765,32 +849,46 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     verifyDataRows(result1, rows(11));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
-    result1 = executeQuery(String.format("SELECT month(date0) FROM %s", TEST_INDEX_CALCS));
-    result2 = executeQuery(String.format("SELECT month_of_year(date0) FROM %s", TEST_INDEX_CALCS));
+    result1 =
+        executeQuery(String.format(Locale.ROOT, "SELECT month(date0) FROM %s", TEST_INDEX_CALCS));
+    result2 =
+        executeQuery(
+            String.format(Locale.ROOT, "SELECT month_of_year(date0) FROM %s", TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
     result1 =
         executeQuery(
             String.format(
-                "SELECT month(timestamp(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+                Locale.ROOT,
+                "SELECT month(timestamp(CAST(time0 AS STRING))) FROM %s",
+                TEST_INDEX_CALCS));
     result2 =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "SELECT month_of_year(timestamp(CAST(time0 AS STRING))) FROM %s",
                 TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
     result1 =
         executeQuery(
-            String.format("SELECT month(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+            String.format(
+                Locale.ROOT, "SELECT month(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
     result2 =
         executeQuery(
-            String.format("SELECT month_of_year(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+            String.format(
+                Locale.ROOT,
+                "SELECT month_of_year(CAST(time0 AS STRING)) FROM %s",
+                TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
-    result1 = executeQuery(String.format("SELECT month(datetime0) FROM %s", TEST_INDEX_CALCS));
+    result1 =
+        executeQuery(
+            String.format(Locale.ROOT, "SELECT month(datetime0) FROM %s", TEST_INDEX_CALCS));
     result2 =
-        executeQuery(String.format("SELECT month_of_year(datetime0) FROM %s", TEST_INDEX_CALCS));
+        executeQuery(
+            String.format(
+                Locale.ROOT, "SELECT month_of_year(datetime0) FROM %s", TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
   }
 
@@ -819,7 +917,9 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   @Test
   public void testSecToTime() throws IOException {
     JSONObject result =
-        executeQuery(String.format("SELECT sec_to_time(balance) FROM %s LIMIT 3", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(
+                Locale.ROOT, "SELECT sec_to_time(balance) FROM %s LIMIT 3", TEST_INDEX_BANK));
     verifyDataRows(result, rows("10:53:45"), rows("01:34:46"), rows("09:07:18"));
   }
 
@@ -871,26 +971,36 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result1 =
         executeQuery(
             String.format(
-                "SELECT second(timestamp(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+                Locale.ROOT,
+                "SELECT second(timestamp(CAST(time0 AS STRING))) FROM %s",
+                TEST_INDEX_CALCS));
     result2 =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "SELECT second_of_minute(timestamp(CAST(time0 AS STRING))) FROM %s",
                 TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
     result1 =
         executeQuery(
-            String.format("SELECT second(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+            String.format(
+                Locale.ROOT, "SELECT second(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
     result2 =
         executeQuery(
             String.format(
-                "SELECT second_of_minute(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+                Locale.ROOT,
+                "SELECT second_of_minute(CAST(time0 AS STRING)) FROM %s",
+                TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
-    result1 = executeQuery(String.format("SELECT second(datetime0) FROM %s", TEST_INDEX_CALCS));
+    result1 =
+        executeQuery(
+            String.format(Locale.ROOT, "SELECT second(datetime0) FROM %s", TEST_INDEX_CALCS));
     result2 =
-        executeQuery(String.format("SELECT second_of_minute(datetime0) FROM %s", TEST_INDEX_CALCS));
+        executeQuery(
+            String.format(
+                Locale.ROOT, "SELECT second_of_minute(datetime0) FROM %s", TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
   }
 
@@ -900,6 +1010,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "SELECT str_to_date(CAST(birthdate AS STRING),"
                     + " '%%Y-%%m-%%d %%h:%%i:%%s') FROM %s LIMIT 2",
                 TEST_INDEX_BANK));
@@ -909,6 +1020,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "SELECT str_to_date(CAST(birthdate AS STRING)," + " '%%Y %%s') FROM %s LIMIT 2",
                 TEST_INDEX_BANK));
     verifyDataRows(result, rows((Object) null), rows((Object) null));
@@ -917,6 +1029,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "SELECT str_to_date(firstname," + " '%%Y-%%m-%%d %%h:%%i:%%s') FROM %s LIMIT 2",
                 TEST_INDEX_BANK));
     verifyDataRows(result, rows((Object) null), rows((Object) null));
@@ -994,7 +1107,10 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   public void testTimstampadd() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format("SELECT timestampadd(WEEK, 2, time0) FROM %s LIMIT 3", TEST_INDEX_CALCS));
+            String.format(
+                Locale.ROOT,
+                "SELECT timestampadd(WEEK, 2, time0) FROM %s LIMIT 3",
+                TEST_INDEX_CALCS));
 
     verifyDataRows(
         result,
@@ -1008,7 +1124,9 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "SELECT timestampdiff(DAY, time0, datetime0) FROM %s LIMIT 3", TEST_INDEX_CALCS));
+                Locale.ROOT,
+                "SELECT timestampdiff(DAY, time0, datetime0) FROM %s LIMIT 3",
+                TEST_INDEX_CALCS));
 
     verifyDataRows(result, rows(38176), rows(38191), rows(38198));
   }
@@ -1038,19 +1156,23 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   @Test
   public void testToSeconds() throws IOException {
     JSONObject result =
-        executeQuery(String.format("select to_seconds(date0) FROM %s LIMIT 2", TEST_INDEX_CALCS));
+        executeQuery(
+            String.format(
+                Locale.ROOT, "select to_seconds(date0) FROM %s LIMIT 2", TEST_INDEX_CALCS));
     verifyDataRows(result, rows(63249206400L), rows(62246275200L));
 
     result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "SELECT to_seconds(timestamp(cast(datetime0 AS string))) FROM %s LIMIT 2",
                 TEST_INDEX_CALCS));
     verifyDataRows(result, rows(63256587455L), rows(63258064234L));
 
     result =
         executeQuery(
-            String.format("select to_seconds(datetime0) FROM %s LIMIT 2", TEST_INDEX_CALCS));
+            String.format(
+                Locale.ROOT, "select to_seconds(datetime0) FROM %s LIMIT 2", TEST_INDEX_CALCS));
     verifyDataRows(result, rows(63256587455L), rows(63258064234L));
   }
 
@@ -1092,7 +1214,8 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   @Test
   public void testWeekday() throws IOException {
     JSONObject result =
-        executeQuery(String.format("SELECT weekday(date0) FROM %s LIMIT 3", TEST_INDEX_CALCS));
+        executeQuery(
+            String.format(Locale.ROOT, "SELECT weekday(date0) FROM %s LIMIT 3", TEST_INDEX_CALCS));
     verifyDataRows(result, rows(3), rows(1), rows(2));
   }
 
@@ -1123,9 +1246,12 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   private void compareWeekResults(String arg, String table) throws IOException {
-    JSONObject result1 = executeQuery(String.format("SELECT week(%s) FROM %s", arg, table));
-    JSONObject result2 = executeQuery(String.format("SELECT week_of_year(%s) FROM %s", arg, table));
-    JSONObject result3 = executeQuery(String.format("SELECT weekofyear(%s) FROM %s", arg, table));
+    JSONObject result1 =
+        executeQuery(String.format(Locale.ROOT, "SELECT week(%s) FROM %s", arg, table));
+    JSONObject result2 =
+        executeQuery(String.format(Locale.ROOT, "SELECT week_of_year(%s) FROM %s", arg, table));
+    JSONObject result3 =
+        executeQuery(String.format(Locale.ROOT, "SELECT weekofyear(%s) FROM %s", arg, table));
 
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
     result1.getJSONArray("datarows").similar(result3.getJSONArray("datarows"));
@@ -1151,19 +1277,21 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "SELECT yearweek(time0), yearweek(time0, 4) FROM %s LIMIT 2", TEST_INDEX_CALCS));
+                Locale.ROOT,
+                "SELECT yearweek(time0), yearweek(time0, 4) FROM %s LIMIT 2",
+                TEST_INDEX_CALCS));
 
     verifyDataRows(result, rows(189952, 189952), rows(189953, 190001));
   }
 
   void verifyDateFormat(String date, String type, String format, String formatted)
       throws IOException {
-    String query = String.format("date_format(%s('%s'), '%s')", type, date, format);
+    String query = String.format(Locale.ROOT, "date_format(%s('%s'), '%s')", type, date, format);
     JSONObject result = executeQuery("select " + query);
     verifySchema(result, schema(query, null, "keyword"));
     verifyDataRows(result, rows(formatted));
 
-    query = String.format("date_format('%s', '%s')", date, format);
+    query = String.format(Locale.ROOT, "date_format('%s', '%s')", date, format);
     result = executeQuery("select " + query);
     verifySchema(result, schema(query, null, "keyword"));
     verifyDataRows(result, rows(formatted));
@@ -1365,12 +1493,12 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
 
   void verifyTimeFormat(String time, String type, String format, String formatted)
       throws IOException {
-    String query = String.format("time_format(%s('%s'), '%s')", type, time, format);
+    String query = String.format(Locale.ROOT, "time_format(%s('%s'), '%s')", type, time, format);
     JSONObject result = executeQuery("select " + query);
     verifySchema(result, schema(query, null, "keyword"));
     verifyDataRows(result, rows(formatted));
 
-    query = String.format("time_format('%s', '%s')", time, format);
+    query = String.format(Locale.ROOT, "time_format('%s', '%s')", time, format);
     result = executeQuery("select " + query);
     verifySchema(result, schema(query, null, "keyword"));
     verifyDataRows(result, rows(formatted));

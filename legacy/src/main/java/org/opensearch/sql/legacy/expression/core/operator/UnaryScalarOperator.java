@@ -11,6 +11,7 @@ import static org.opensearch.sql.legacy.expression.model.ExprValueUtils.getInteg
 import static org.opensearch.sql.legacy.expression.model.ExprValueUtils.getLongValue;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.legacy.expression.model.ExprValue;
@@ -42,7 +43,8 @@ public class UnaryScalarOperator implements ScalarOperator {
         return ExprValueFactory.from(floatFunc.apply(getFloatValue(exprValue)));
       default:
         throw new RuntimeException(
-            String.format("unexpected operation type: %s(%s)", op.name(), exprValue.kind()));
+            String.format(
+                Locale.ROOT, "unexpected operation type: %s(%s)", op.name(), exprValue.kind()));
     }
   }
 

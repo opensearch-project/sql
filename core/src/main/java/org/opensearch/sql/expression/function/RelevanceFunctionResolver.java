@@ -6,6 +6,7 @@
 package org.opensearch.sql.expression.function;
 
 import java.util.List;
+import java.util.Locale;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
@@ -23,6 +24,7 @@ public class RelevanceFunctionResolver implements FunctionResolver {
     if (!unresolvedSignature.getFunctionName().equals(functionName)) {
       throw new SemanticCheckException(
           String.format(
+              Locale.ROOT,
               "Expected '%s' but got '%s'",
               functionName.getFunctionName(),
               unresolvedSignature.getFunctionName().getFunctionName()));
@@ -54,7 +56,10 @@ public class RelevanceFunctionResolver implements FunctionResolver {
    */
   private String getWrongParameterErrorMessage(int i, ExprType paramType, ExprType expectedType) {
     return String.format(
+        Locale.ROOT,
         "Expected type %s instead of %s for parameter #%d",
-        expectedType.typeName(), paramType.typeName(), i + 1);
+        expectedType.typeName(),
+        paramType.typeName(),
+        i + 1);
   }
 }

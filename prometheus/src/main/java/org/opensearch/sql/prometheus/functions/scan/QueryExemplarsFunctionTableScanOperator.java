@@ -49,7 +49,7 @@ public class QueryExemplarsFunctionTableScanOperator extends TableScanOperator {
                   } catch (IOException e) {
                     LOG.error(e.getMessage());
                     throw new RuntimeException(
-                        String.format(
+                        String.format(Locale.ROOT,
                             "Error fetching data from prometheus server: %s", e.getMessage()));
                   }
                 });

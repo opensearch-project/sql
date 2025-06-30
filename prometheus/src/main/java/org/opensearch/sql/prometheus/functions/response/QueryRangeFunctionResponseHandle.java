@@ -19,6 +19,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.opensearch.sql.data.model.ExprCollectionValue;
@@ -61,7 +63,7 @@ public class QueryRangeFunctionResponseHandle implements PrometheusFunctionRespo
       }
     } else {
       throw new RuntimeException(
-          String.format(
+          String.format(Locale.ROOT,
               "Unexpected Result Type: %s during Prometheus "
                   + "Response Parsing. 'matrix' resultType is expected",
               responseObject.getString("resultType")));

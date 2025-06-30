@@ -133,7 +133,7 @@ public class DataSourceServiceImpl implements DataSourceService {
   private void verifyDataSourceAccess(DataSourceMetadata dataSourceMetadata) {
     if (dataSourceMetadata.getStatus().equals(DataSourceStatus.DISABLED)) {
       throw new DatasourceDisabledException(
-          String.format("Datasource %s is disabled.", dataSourceMetadata.getName()));
+          String.format(Locale.ROOT, "Datasource %s is disabled.", dataSourceMetadata.getName()));
     }
     this.dataSourceUserAuthorizationHelper.authorizeDataSource(dataSourceMetadata);
   }
@@ -180,7 +180,7 @@ public class DataSourceServiceImpl implements DataSourceService {
           this.dataSourceMetadataStorage.getDataSourceMetadata(dataSourceName);
       if (dataSourceMetadataOptional.isEmpty()) {
         throw new DataSourceNotFoundException(
-            String.format("DataSource with name %s doesn't exist.", dataSourceName));
+            String.format(Locale.ROOT, "DataSource with name %s doesn't exist.", dataSourceName));
       } else {
         return dataSourceMetadataOptional.get();
       }

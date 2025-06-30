@@ -338,7 +338,7 @@ public class RestDataSourceQueryAction extends BaseRestHandler {
       reportError(
           channel,
           new OpenSearchStatusException(
-              String.format("%s setting is false", Settings.Key.DATASOURCES_ENABLED.getKeyValue()),
+              String.format(Locale.ROOT, "%s setting is false", Settings.Key.DATASOURCES_ENABLED.getKeyValue()),
               BAD_REQUEST),
           BAD_REQUEST);
     };

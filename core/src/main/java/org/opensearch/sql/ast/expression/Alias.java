@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.ast.expression;
 
+import java.util.Locale;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -54,7 +55,7 @@ public class Alias extends UnresolvedExpression {
       String name, UnresolvedExpression expr, String alias, boolean metadataFieldAllowed) {
     if (!metadataFieldAllowed && OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(name)) {
       throw new IllegalArgumentException(
-          String.format("Cannot use metadata field [%s] as the alias.", name));
+          String.format(Locale.ROOT, "Cannot use metadata field [%s] as the alias.", name));
     }
     this.name = name;
     this.delegated = expr;

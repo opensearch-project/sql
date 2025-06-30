@@ -25,6 +25,7 @@ import com.alibaba.druid.sql.parser.ParserException;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -126,6 +127,7 @@ public class TermFieldRewriter extends MySqlASTVisitorAdapter {
         if (index == null) {
           throw new IndexNotFoundException(
               String.format(
+                  Locale.ROOT,
                   "The requested table '%s' does not correspond to any known index. Only indices or"
                       + " table aliases are allowed.",
                   alias.replaceFirst("_\\d+$", "")));
@@ -135,6 +137,7 @@ public class TermFieldRewriter extends MySqlASTVisitorAdapter {
         if (fieldMappings == null) {
           throw new IndexNotFoundException(
               String.format(
+                  Locale.ROOT,
                   "The index '%s' could not be found. Note that wildcard indices are not permitted"
                       + " in SQL.",
                   index));

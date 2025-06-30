@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -129,7 +130,7 @@ public class TrendlineOperator extends PhysicalPlan {
           return TimestampArithmeticEvaluator.INSTANCE;
       }
       throw new IllegalArgumentException(
-          String.format("Invalid type %s used for moving average.", type.typeName()));
+          String.format(Locale.ROOT, "Invalid type %s used for moving average.", type.typeName()));
     }
   }
 

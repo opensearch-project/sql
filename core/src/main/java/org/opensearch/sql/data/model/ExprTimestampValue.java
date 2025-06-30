@@ -15,6 +15,7 @@ import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
+import java.util.Locale;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -37,6 +38,7 @@ public class ExprTimestampValue extends AbstractExprValue {
     } catch (DateTimeParseException e) {
       throw new SemanticCheckException(
           String.format(
+              Locale.ROOT,
               "timestamp:%s in unsupported format, please use 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'",
               timestamp));
     }
@@ -83,7 +85,7 @@ public class ExprTimestampValue extends AbstractExprValue {
 
   @Override
   public String toString() {
-    return String.format("TIMESTAMP '%s'", value());
+    return String.format(Locale.ROOT, "TIMESTAMP '%s'", value());
   }
 
   @Override

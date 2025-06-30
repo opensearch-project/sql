@@ -14,6 +14,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
+import java.util.Locale;
 import lombok.SneakyThrows;
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
@@ -68,14 +69,16 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
 
   @Test
   public void testCrossClusterSearchAllFields() throws IOException {
-    JSONObject result = executeQuery(String.format("search source=%s", TEST_INDEX_DOG_REMOTE));
+    JSONObject result =
+        executeQuery(String.format(Locale.ROOT, "search source=%s", TEST_INDEX_DOG_REMOTE));
     verifyColumn(result, columnName("dog_name"), columnName("holdersName"), columnName("age"));
   }
 
   @Test
   public void testMatchAllCrossClusterSearchAllFields() throws IOException {
     JSONObject result =
-        executeQuery(String.format("search source=%s", TEST_INDEX_DOG_MATCH_ALL_REMOTE));
+        executeQuery(
+            String.format(Locale.ROOT, "search source=%s", TEST_INDEX_DOG_MATCH_ALL_REMOTE));
     verifyColumn(result, columnName("dog_name"), columnName("holdersName"), columnName("age"));
   }
 
@@ -84,7 +87,9 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
     var exception =
         assertThrows(
             ResponseException.class,
-            () -> executeQuery(String.format("search source=%s", TEST_INDEX_ACCOUNT_REMOTE)));
+            () ->
+                executeQuery(
+                    String.format(Locale.ROOT, "search source=%s", TEST_INDEX_ACCOUNT_REMOTE)));
     assertTrue(exception.getMessage().contains("IndexNotFoundException"));
   }
 
@@ -93,7 +98,9 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s firstname='Hattie' | fields firstname", TEST_INDEX_BANK_REMOTE));
+                Locale.ROOT,
+                "search source=%s firstname='Hattie' | fields firstname",
+                TEST_INDEX_BANK_REMOTE));
     verifyDataRows(result, rows("Hattie"));
   }
 
@@ -102,14 +109,17 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "search source=%s,%s firstname='Hattie' | fields firstname",
-                TEST_INDEX_BANK_REMOTE, TEST_INDEX_BANK));
+                TEST_INDEX_BANK_REMOTE,
+                TEST_INDEX_BANK));
     verifyDataRows(result, rows("Hattie"), rows("Hattie"));
   }
 
   @Test
   public void testCrossClusterDescribeAllFields() throws IOException {
-    JSONObject result = executeQuery(String.format("describe %s", TEST_INDEX_DOG_REMOTE));
+    JSONObject result =
+        executeQuery(String.format(Locale.ROOT, "describe %s", TEST_INDEX_DOG_REMOTE));
     verifyColumn(
         result,
         columnName("TABLE_CAT"),
@@ -140,7 +150,8 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
 
   @Test
   public void testMatchAllCrossClusterDescribeAllFields() throws IOException {
-    JSONObject result = executeQuery(String.format("describe %s", TEST_INDEX_DOG_MATCH_ALL_REMOTE));
+    JSONObject result =
+        executeQuery(String.format(Locale.ROOT, "describe %s", TEST_INDEX_DOG_MATCH_ALL_REMOTE));
     verifyColumn(
         result,
         columnName("TABLE_CAT"),

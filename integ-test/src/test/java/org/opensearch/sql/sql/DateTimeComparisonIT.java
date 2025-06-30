@@ -405,7 +405,7 @@ public class DateTimeComparisonIT extends SQLIntegTestCase {
 
   @Test
   public void testCompare() throws IOException {
-    var result = executeQuery(String.format("select %s AS `%s`", functionCall, name));
+    var result = executeQuery(String.format(Locale.ROOT, "select %s AS `%s`", functionCall, name));
     verifySchema(result, schema(functionCall, name, "boolean"));
     verifyDataRows(result, rows(expectedResult));
   }

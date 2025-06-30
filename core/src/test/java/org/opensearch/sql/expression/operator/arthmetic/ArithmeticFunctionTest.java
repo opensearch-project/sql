@@ -13,6 +13,7 @@ import static org.opensearch.sql.expression.DSL.literal;
 import com.google.common.collect.Lists;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -76,7 +77,9 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
     ExprType expectedType = WideningTypeRule.max(op1.type(), op2.type());
     assertEquals(expectedType, expression.type());
     assertValueEqual(BuiltinFunctionName.ADD, expectedType, op1, op2, expression.valueOf());
-    assertEquals(String.format("+(%s, %s)", op1.toString(), op2.toString()), expression.toString());
+    assertEquals(
+        String.format(Locale.ROOT, "+(%s, %s)", op1.toString(), op2.toString()),
+        expression.toString());
   }
 
   @ParameterizedTest(name = "addFunction({1}, {2})")
@@ -87,7 +90,8 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
     assertEquals(expectedType, expression.type());
     assertValueEqual(BuiltinFunctionName.ADDFUNCTION, expectedType, op1, op2, expression.valueOf());
     assertEquals(
-        String.format("add(%s, %s)", op1.toString(), op2.toString()), expression.toString());
+        String.format(Locale.ROOT, "add(%s, %s)", op1.toString(), op2.toString()),
+        expression.toString());
   }
 
   @ParameterizedTest(name = "subtract({1}, {2})")
@@ -97,7 +101,9 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
     ExprType expectedType = WideningTypeRule.max(op1.type(), op2.type());
     assertEquals(expectedType, expression.type());
     assertValueEqual(BuiltinFunctionName.SUBTRACT, expectedType, op1, op2, expression.valueOf());
-    assertEquals(String.format("-(%s, %s)", op1.toString(), op2.toString()), expression.toString());
+    assertEquals(
+        String.format(Locale.ROOT, "-(%s, %s)", op1.toString(), op2.toString()),
+        expression.toString());
   }
 
   @ParameterizedTest(name = "subtractFunction({1}, {2})")
@@ -109,7 +115,8 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
     assertValueEqual(
         BuiltinFunctionName.SUBTRACTFUNCTION, expectedType, op1, op2, expression.valueOf());
     assertEquals(
-        String.format("subtract(%s, %s)", op1.toString(), op2.toString()), expression.toString());
+        String.format(Locale.ROOT, "subtract(%s, %s)", op1.toString(), op2.toString()),
+        expression.toString());
   }
 
   @ParameterizedTest(name = "mod({1}, {2})")
@@ -120,11 +127,12 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
     assertEquals(expectedType, expression.type());
     assertValueEqual(BuiltinFunctionName.MOD, expectedType, op1, op2, expression.valueOf());
     assertEquals(
-        String.format("mod(%s, %s)", op1.toString(), op2.toString()), expression.toString());
+        String.format(Locale.ROOT, "mod(%s, %s)", op1.toString(), op2.toString()),
+        expression.toString());
 
     expression = DSL.mod(literal(op1), literal(new ExprByteValue(0)));
     assertTrue(expression.valueOf(valueEnv()).isNull());
-    assertEquals(String.format("mod(%s, 0)", op1.toString()), expression.toString());
+    assertEquals(String.format(Locale.ROOT, "mod(%s, 0)", op1.toString()), expression.toString());
   }
 
   @ParameterizedTest(name = "modulus({1}, {2})")
@@ -135,11 +143,12 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
     assertEquals(expectedType, expression.type());
     assertValueEqual(BuiltinFunctionName.MODULUS, expectedType, op1, op2, expression.valueOf());
     assertEquals(
-        String.format("%%(%s, %s)", op1.toString(), op2.toString()), expression.toString());
+        String.format(Locale.ROOT, "%%(%s, %s)", op1.toString(), op2.toString()),
+        expression.toString());
 
     expression = DSL.modulus(literal(op1), literal(new ExprByteValue(0)));
     assertTrue(expression.valueOf(valueEnv()).isNull());
-    assertEquals(String.format("%%(%s, 0)", op1.toString()), expression.toString());
+    assertEquals(String.format(Locale.ROOT, "%%(%s, 0)", op1.toString()), expression.toString());
   }
 
   @ParameterizedTest(name = "modulusFunction({1}, {2})")
@@ -151,11 +160,13 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
     assertValueEqual(
         BuiltinFunctionName.MODULUSFUNCTION, expectedType, op1, op2, expression.valueOf());
     assertEquals(
-        String.format("modulus(%s, %s)", op1.toString(), op2.toString()), expression.toString());
+        String.format(Locale.ROOT, "modulus(%s, %s)", op1.toString(), op2.toString()),
+        expression.toString());
 
     expression = DSL.modulusFunction(literal(op1), literal(new ExprByteValue(0)));
     assertTrue(expression.valueOf(valueEnv()).isNull());
-    assertEquals(String.format("modulus(%s, 0)", op1.toString()), expression.toString());
+    assertEquals(
+        String.format(Locale.ROOT, "modulus(%s, 0)", op1.toString()), expression.toString());
   }
 
   @ParameterizedTest(name = "multiply({1}, {2})")
@@ -165,7 +176,9 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
     ExprType expectedType = WideningTypeRule.max(op1.type(), op2.type());
     assertEquals(expectedType, expression.type());
     assertValueEqual(BuiltinFunctionName.MULTIPLY, expectedType, op1, op2, expression.valueOf());
-    assertEquals(String.format("*(%s, %s)", op1.toString(), op2.toString()), expression.toString());
+    assertEquals(
+        String.format(Locale.ROOT, "*(%s, %s)", op1.toString(), op2.toString()),
+        expression.toString());
   }
 
   @ParameterizedTest(name = "multiplyFunction({1}, {2})")
@@ -177,7 +190,8 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
     assertValueEqual(
         BuiltinFunctionName.MULTIPLYFUNCTION, expectedType, op1, op2, expression.valueOf());
     assertEquals(
-        String.format("multiply(%s, %s)", op1.toString(), op2.toString()), expression.toString());
+        String.format(Locale.ROOT, "multiply(%s, %s)", op1.toString(), op2.toString()),
+        expression.toString());
   }
 
   @ParameterizedTest(name = "divide({1}, {2})")
@@ -187,11 +201,13 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
     ExprType expectedType = WideningTypeRule.max(op1.type(), op2.type());
     assertEquals(expectedType, expression.type());
     assertValueEqual(BuiltinFunctionName.DIVIDE, expectedType, op1, op2, expression.valueOf());
-    assertEquals(String.format("/(%s, %s)", op1.toString(), op2.toString()), expression.toString());
+    assertEquals(
+        String.format(Locale.ROOT, "/(%s, %s)", op1.toString(), op2.toString()),
+        expression.toString());
 
     expression = DSL.divide(literal(op1), literal(new ExprByteValue(0)));
     assertTrue(expression.valueOf(valueEnv()).isNull());
-    assertEquals(String.format("/(%s, 0)", op1.toString()), expression.toString());
+    assertEquals(String.format(Locale.ROOT, "/(%s, 0)", op1.toString()), expression.toString());
   }
 
   @ParameterizedTest(name = "divideFunction({1}, {2})")
@@ -203,11 +219,13 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
     assertValueEqual(
         BuiltinFunctionName.DIVIDEFUNCTION, expectedType, op1, op2, expression.valueOf());
     assertEquals(
-        String.format("divide(%s, %s)", op1.toString(), op2.toString()), expression.toString());
+        String.format(Locale.ROOT, "divide(%s, %s)", op1.toString(), op2.toString()),
+        expression.toString());
 
     expression = DSL.divideFunction(literal(op1), literal(new ExprByteValue(0)));
     assertTrue(expression.valueOf(valueEnv()).isNull());
-    assertEquals(String.format("divide(%s, 0)", op1.toString()), expression.toString());
+    assertEquals(
+        String.format(Locale.ROOT, "divide(%s, 0)", op1.toString()), expression.toString());
   }
 
   @ParameterizedTest(name = "multipleParameters({1},{2})")

@@ -11,6 +11,7 @@ import static org.opensearch.sql.spark.execution.session.SessionState.END_STATE;
 import static org.opensearch.sql.spark.execution.session.SessionState.FAIL;
 import static org.opensearch.sql.spark.execution.statement.StatementId.newStatementId;
 
+import java.util.Locale;
 import java.util.Optional;
 import lombok.Builder;
 import lombok.Getter;
@@ -111,6 +112,7 @@ public class InteractiveSession implements Session {
       } else {
         String errMsg =
             String.format(
+                Locale.ROOT,
                 "can't submit statement, session should not be in end state, "
                     + "current session state is: %s",
                 sessionModel.getSessionState().getSessionState());

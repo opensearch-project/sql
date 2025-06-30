@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.storage.script;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -59,9 +60,11 @@ public class ExpressionScriptEngine implements ScriptEngine {
     }
     throw new IllegalStateException(
         String.format(
+            Locale.ROOT,
             "Script context is currently not supported: "
                 + "all supported contexts [%s], given context [%s] ",
-            CONTEXTS, context));
+            CONTEXTS,
+            context));
   }
 
   @Override

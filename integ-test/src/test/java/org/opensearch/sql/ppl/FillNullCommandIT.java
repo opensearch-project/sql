@@ -10,6 +10,7 @@ import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
@@ -25,7 +26,9 @@ public class FillNullCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | fields str2, num0 | fillnull with -1 in num0", TEST_INDEX_CALCS));
+                Locale.ROOT,
+                "source=%s | fields str2, num0 | fillnull with -1 in num0",
+                TEST_INDEX_CALCS));
     verifyDataRows(
         result,
         rows("one", 12.3),
@@ -52,7 +55,9 @@ public class FillNullCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | fields num0, num2 | fillnull with -1 in num0,num2", TEST_INDEX_CALCS));
+                Locale.ROOT,
+                "source=%s | fields num0, num2 | fillnull with -1 in num0,num2",
+                TEST_INDEX_CALCS));
     verifyDataRows(
         result,
         rows(12.3, 17.86),
@@ -79,7 +84,9 @@ public class FillNullCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | fields str2, num0 | fillnull using num0 = -1", TEST_INDEX_CALCS));
+                Locale.ROOT,
+                "source=%s | fields str2, num0 | fillnull using num0 = -1",
+                TEST_INDEX_CALCS));
     verifyDataRows(
         result,
         rows("one", 12.3),
@@ -106,6 +113,7 @@ public class FillNullCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | fields num0, num2 | fillnull using num0 = -1, num2 = -2",
                 TEST_INDEX_CALCS));
     verifyDataRows(
@@ -134,7 +142,9 @@ public class FillNullCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | fillnull using num0 = num1 | fields str2, num0", TEST_INDEX_CALCS));
+                Locale.ROOT,
+                "source=%s | fillnull using num0 = num1 | fields str2, num0",
+                TEST_INDEX_CALCS));
     verifyDataRows(
         result,
         rows("one", 12.3),
@@ -161,6 +171,7 @@ public class FillNullCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | fillnull with ceil(num1) in num0 | fields str2, num0",
                 TEST_INDEX_CALCS));
     verifyDataRows(
@@ -189,6 +200,7 @@ public class FillNullCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | fillnull with num1 in num0 | fields str2, num0 | fillnull with"
                     + " 'unknown' in str2",
                 TEST_INDEX_CALCS));

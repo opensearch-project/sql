@@ -8,6 +8,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelRule;
@@ -41,8 +42,10 @@ public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectInd
     } else {
       throw new AssertionError(
           String.format(
+              Locale.ROOT,
               "The length of rels should be %s but got %s",
-              this.operands.size(), call.rels.length));
+              this.operands.size(),
+              call.rels.length));
     }
   }
 

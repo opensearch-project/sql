@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.spark.asyncquery.model;
 
+import java.util.Locale;
 import java.util.Map;
 import lombok.Getter;
 import lombok.SneakyThrows;
@@ -30,7 +31,7 @@ public class MockFlintIndex {
   }
 
   public void createIndex() {
-    String mappingFile = String.format("flint-index-mappings/%s_mapping.json", indexName);
+    String mappingFile = String.format(Locale.ROOT, "flint-index-mappings/%s_mapping.json", indexName);
     TestUtils.createIndexWithMappings(client, indexName, mappingFile);
   }
 

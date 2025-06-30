@@ -54,7 +54,7 @@ public class AvgAggregator extends Aggregator<AvgAggregator.AvgState> {
         return new DoubleAvgState();
       default: // unreachable code - we don't expose signatures for unsupported types
         throw new IllegalArgumentException(
-            String.format("avg aggregation over %s type is not supported", dataType));
+            String.format(Locale.ROOT, "avg aggregation over %s type is not supported", dataType));
     }
   }
 

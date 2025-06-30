@@ -8,6 +8,7 @@ package org.opensearch.sql.executor.execution;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
@@ -110,6 +111,7 @@ public class StreamingQueryPlan extends QueryPlan {
       if (children.isEmpty()) {
         String errorMsg =
             String.format(
+                Locale.ROOT,
                 "Could find relation plan, %s does not have child node.",
                 plan.getClass().getSimpleName());
         log.error(errorMsg);
@@ -125,7 +127,9 @@ public class StreamingQueryPlan extends QueryPlan {
       } catch (UnsupportedOperationException e) {
         String errorMsg =
             String.format(
-                "table %s could not been used as streaming source.", plan.getRelationName());
+                Locale.ROOT,
+                "table %s could not been used as streaming source.",
+                plan.getRelationName());
         log.error(errorMsg);
         throw new UnsupportedOperationException(errorMsg);
       }

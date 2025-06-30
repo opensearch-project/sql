@@ -17,6 +17,7 @@ import com.google.common.collect.Multimap;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -187,7 +188,7 @@ public class JoinRewriteRule implements RewriteRule<SQLQueryExpr> {
   }
 
   private String createAlias(String alias) {
-    return String.format("%s_%d", alias, next());
+    return String.format(Locale.ROOT, "%s_%d", alias, next());
   }
 
   private Integer next() {

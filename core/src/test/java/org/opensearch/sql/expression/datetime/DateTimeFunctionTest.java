@@ -27,6 +27,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import org.junit.jupiter.api.Test;
@@ -1132,7 +1133,8 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     FunctionExpression expression =
         DSL.week(functionProperties, DSL.literal(new ExprDateValue(date)), DSL.literal(mode));
     assertEquals(INTEGER, expression.type());
-    assertEquals(String.format("week(DATE '%s', %d)", date, mode), expression.toString());
+    assertEquals(
+        String.format(Locale.ROOT, "week(DATE '%s', %d)", date, mode), expression.toString());
     assertEquals(integerValue(expectedResult), eval(expression));
   }
 
@@ -1141,7 +1143,9 @@ class DateTimeFunctionTest extends ExpressionTestBase {
         DSL.week_of_year(
             functionProperties, DSL.literal(new ExprDateValue(date)), DSL.literal(mode));
     assertEquals(INTEGER, expression.type());
-    assertEquals(String.format("week_of_year(DATE '%s', %d)", date, mode), expression.toString());
+    assertEquals(
+        String.format(Locale.ROOT, "week_of_year(DATE '%s', %d)", date, mode),
+        expression.toString());
     assertEquals(integerValue(expectedResult), eval(expression));
   }
 
@@ -1149,7 +1153,8 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     FunctionExpression expression =
         DSL.weekofyear(functionProperties, DSL.literal(new ExprDateValue(date)), DSL.literal(mode));
     assertEquals(INTEGER, expression.type());
-    assertEquals(String.format("weekofyear(DATE '%s', %d)", date, mode), expression.toString());
+    assertEquals(
+        String.format(Locale.ROOT, "weekofyear(DATE '%s', %d)", date, mode), expression.toString());
     assertEquals(integerValue(expectedResult), eval(expression));
   }
 
@@ -1218,15 +1223,15 @@ class DateTimeFunctionTest extends ExpressionTestBase {
       LiteralExpression arg, String expectedString, Integer expectedInteger) {
     validateStringFormat(
         DSL.week(functionProperties, arg),
-        String.format("week(%s)", expectedString),
+        String.format(Locale.ROOT, "week(%s)", expectedString),
         expectedInteger);
     validateStringFormat(
         DSL.week_of_year(functionProperties, arg),
-        String.format("week_of_year(%s)", expectedString),
+        String.format(Locale.ROOT, "week_of_year(%s)", expectedString),
         expectedInteger);
     validateStringFormat(
         DSL.weekofyear(functionProperties, arg),
-        String.format("weekofyear(%s)", expectedString),
+        String.format(Locale.ROOT, "weekofyear(%s)", expectedString),
         expectedInteger);
   }
 

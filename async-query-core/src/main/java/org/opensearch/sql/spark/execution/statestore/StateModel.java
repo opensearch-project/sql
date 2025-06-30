@@ -6,6 +6,7 @@
 package org.opensearch.sql.spark.execution.statestore;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.Locale;
 import java.util.Optional;
 import lombok.Builder.Default;
 import lombok.EqualsAndHashCode;
@@ -27,8 +28,11 @@ public abstract class StateModel {
       } else {
         throw new RuntimeException(
             String.format(
+                Locale.ROOT,
                 "The metadata field %s is an instance of %s instead of %s",
-                name, value.getClass(), type));
+                name,
+                value.getClass(),
+                type));
       }
     } else {
       return Optional.empty();

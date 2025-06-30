@@ -17,6 +17,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.client.Request;
@@ -47,13 +48,15 @@ public class CalcitePPLExistsSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s"
                     + "| where exists ["
                     + "    source = %s | where id = uid"
                     + "  ]"
                     + "| sort  - salary"
                     + "| fields id, name, salary",
-                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+                TEST_INDEX_WORKER,
+                TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
     verifyDataRowsInOrder(
         result,
@@ -69,12 +72,14 @@ public class CalcitePPLExistsSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s"
                     + "| where exists ["
                     + "    source = %s | where id = uid"
                     + "  ]"
                     + "| stats count() by country",
-                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+                TEST_INDEX_WORKER,
+                TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("country", "string"), schema("count()", "bigint"));
     verifyDataRows(result, rows(1, null), rows(2, "Canada"), rows(1, "USA"), rows(1, "England"));
   }
@@ -84,12 +89,14 @@ public class CalcitePPLExistsSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s exists ["
                     + "    source = %s | where id = uid"
                     + "  ]"
                     + "| sort  - salary"
                     + "| fields id, name, salary",
-                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+                TEST_INDEX_WORKER,
+                TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
     verifyDataRowsInOrder(
         result,
@@ -105,13 +112,15 @@ public class CalcitePPLExistsSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s"
                     + "| where not exists ["
                     + "    source = %s | where id = uid"
                     + "  ]"
                     + "| sort  - salary"
                     + "| fields id, name, salary",
-                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+                TEST_INDEX_WORKER,
+                TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
     verifyDataRowsInOrder(result, rows(1001, "Hello", 70000), rows(1004, "David", 0));
   }
@@ -121,12 +130,14 @@ public class CalcitePPLExistsSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s not exists ["
                     + "    source = %s | where id = uid"
                     + "  ]"
                     + "| sort  - salary"
                     + "| fields id, name, salary",
-                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+                TEST_INDEX_WORKER,
+                TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
     verifyDataRowsInOrder(result, rows(1001, "Hello", 70000), rows(1004, "David", 0));
   }
@@ -136,13 +147,15 @@ public class CalcitePPLExistsSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s"
                     + "| where exists ["
                     + "    source = %s | where uid = 0000 AND id = uid"
                     + "  ]"
                     + "| sort  - salary"
                     + "| fields id, name, salary",
-                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+                TEST_INDEX_WORKER,
+                TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
     verifyNumOfRows(result, 0);
   }
@@ -152,26 +165,30 @@ public class CalcitePPLExistsSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s"
                     + "| where exists ["
                     + "    source = %s | where name = 'Tom'"
                     + "  ]"
                     + "| sort  - salary"
                     + "| fields id, name, salary",
-                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+                TEST_INDEX_WORKER,
+                TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
     verifyNumOfRows(result, 7);
 
     result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s"
                     + "| where not exists ["
                     + "    source = %s | where name = 'Tom'"
                     + "  ]"
                     + "| sort  - salary"
                     + "| fields id, name, salary",
-                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+                TEST_INDEX_WORKER,
+                TEST_INDEX_WORK_INFORMATION));
     verifyNumOfRows(result, 0);
   }
 
@@ -181,13 +198,15 @@ public class CalcitePPLExistsSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s"
                     + "| where exists ["
                     + "    source = %s"
                     + "  ]"
                     + "| eval constant = \\\"Bala\\\""
                     + "| fields constant",
-                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+                TEST_INDEX_WORKER,
+                TEST_INDEX_WORK_INFORMATION));
 
     verifyDataRows(
         result,
@@ -202,13 +221,15 @@ public class CalcitePPLExistsSubqueryIT extends PPLIntegTestCase {
     result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s"
                     + "| where exists ["
                     + "    source = %s | where uid = 999"
                     + "  ]"
                     + "| eval constant = 'Bala'"
                     + "| fields constant",
-                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+                TEST_INDEX_WORKER,
+                TEST_INDEX_WORK_INFORMATION));
     verifyNumOfRows(result, 0);
   }
 
@@ -217,6 +238,7 @@ public class CalcitePPLExistsSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s"
                     + "| where exists ["
                     + "    source = %s"
@@ -248,6 +270,7 @@ public class CalcitePPLExistsSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s"
                     + "| where exists ["
                     + "    source = %s"
@@ -272,6 +295,7 @@ public class CalcitePPLExistsSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s"
                     + "| fields id, country"
                     + "| where exists ["
@@ -279,7 +303,8 @@ public class CalcitePPLExistsSubqueryIT extends PPLIntegTestCase {
                     + "    | where id = uid"
                     + "  ]"
                     + "| stats count() by country",
-                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+                TEST_INDEX_WORKER,
+                TEST_INDEX_WORK_INFORMATION));
     verifySchemaInOrder(result, schema("count()", "bigint"), schema("country", "string"));
     verifyDataRows(result, rows(1, null), rows(1, "England"), rows(1, "USA"), rows(2, "Canada"));
   }

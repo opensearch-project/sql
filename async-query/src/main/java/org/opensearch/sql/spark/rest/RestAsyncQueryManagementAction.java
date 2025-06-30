@@ -295,7 +295,7 @@ public class RestAsyncQueryManagementAction extends BaseRestHandler {
       reportError(
           channel,
           new IllegalAccessException(
-              String.format("%s setting is false", Settings.Key.DATASOURCES_ENABLED.getKeyValue())),
+              String.format(Locale.ROOT, "%s setting is false", Settings.Key.DATASOURCES_ENABLED.getKeyValue())),
           BAD_REQUEST);
     };
   }

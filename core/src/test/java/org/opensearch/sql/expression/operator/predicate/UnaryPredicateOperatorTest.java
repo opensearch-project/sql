@@ -17,6 +17,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -38,7 +39,7 @@ class UnaryPredicateOperatorTest extends ExpressionTestBase {
     FunctionExpression not = DSL.not(DSL.literal(booleanValue(v)));
     assertEquals(BOOLEAN, not.type());
     assertEquals(!v, ExprValueUtils.getBooleanValue(not.valueOf(valueEnv())));
-    assertEquals(String.format("not(%s)", v.toString()), not.toString());
+    assertEquals(String.format(Locale.ROOT, "not(%s)", v.toString()), not.toString());
   }
 
   private static Stream<Arguments> isNullArguments() {

@@ -12,6 +12,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
@@ -32,6 +33,7 @@ public class IPFunctionsIT extends PPLIntegTestCase {
     result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where cidrmatch(host, '250.0.0.0/24') | fields host",
                 TEST_INDEX_WEBLOGS));
     verifySchema(result, schema("host", null, "ip"));
@@ -41,6 +43,7 @@ public class IPFunctionsIT extends PPLIntegTestCase {
     result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where cidrmatch(host, '0.0.0.0/24') | fields host",
                 TEST_INDEX_WEBLOGS));
     verifySchema(result, schema("host", null, "ip"));
@@ -50,6 +53,7 @@ public class IPFunctionsIT extends PPLIntegTestCase {
     result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where cidrmatch(host, '1.2.3.0/24') | fields host",
                 TEST_INDEX_WEBLOGS));
     verifySchema(result, schema("host", null, "ip"));

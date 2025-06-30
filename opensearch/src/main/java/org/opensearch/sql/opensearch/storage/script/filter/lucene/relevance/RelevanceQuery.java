@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiFunction;
@@ -37,8 +38,10 @@ public abstract class RelevanceQuery<T extends QueryBuilder> extends LuceneQuery
     if (!queryBuildActions.containsKey(argNormalized)) {
       throw new SemanticCheckException(
           String.format(
+              Locale.ROOT,
               "Parameter %s is invalid for %s function.",
-              argNormalized, queryBuilder.getWriteableName()));
+              argNormalized,
+              queryBuilder.getWriteableName()));
     }
   }
 
@@ -50,7 +53,7 @@ public abstract class RelevanceQuery<T extends QueryBuilder> extends LuceneQuery
             (k, v) -> {
               if (v.size() > 1) {
                 throw new SemanticCheckException(
-                    String.format("Parameter '%s' can only be specified once.", k));
+                    String.format(Locale.ROOT, "Parameter '%s' can only be specified once.", k));
               }
             });
 
@@ -80,7 +83,7 @@ public abstract class RelevanceQuery<T extends QueryBuilder> extends LuceneQuery
             .collect(Collectors.toList());
     if (arguments.size() < 2) {
       throw new SyntaxCheckException(
-          String.format("%s requires at least two parameters", getQueryName()));
+          String.format(Locale.ROOT, "%s requires at least two parameters", getQueryName()));
     }
 
     return loadArguments(arguments);

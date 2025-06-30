@@ -10,6 +10,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
@@ -132,11 +133,11 @@ public class NestedAnalyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisCon
     for (int i = 0; i < args.size(); i++) {
       if (!(args.get(i) instanceof QualifiedName)) {
         throw new IllegalArgumentException(
-            String.format("Illegal nested field name: %s", args.get(i).toString()));
+            String.format(Locale.ROOT, "Illegal nested field name: %s", args.get(i).toString()));
       }
       if (i == 0 && ((QualifiedName) args.get(i)).getParts().size() < 2) {
         throw new IllegalArgumentException(
-            String.format("Illegal nested field name: %s", args.get(i).toString()));
+            String.format(Locale.ROOT, "Illegal nested field name: %s", args.get(i).toString()));
       }
     }
   }

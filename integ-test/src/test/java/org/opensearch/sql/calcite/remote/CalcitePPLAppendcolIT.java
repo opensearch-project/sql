@@ -12,6 +12,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
@@ -30,6 +31,7 @@ public class CalcitePPLAppendcolIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | stats sum(age) as sum by gender, state | sort gender, state |"
                     + " appendcol [ stats count(age) as cnt by gender | sort gender ] | fields"
                     + " gender, state, sum, cnt | head 10",
@@ -59,6 +61,7 @@ public class CalcitePPLAppendcolIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | stats sum(age) as sum by gender, state | sort gender, state |"
                     + " appendcol override = true [ stats count(age) as cnt by gender | sort gender"
                     + " ] | fields gender, state, sum, cnt | head 10",

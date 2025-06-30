@@ -46,8 +46,7 @@ public class ExprNullValue extends AbstractExprValue {
 
   @Override
   public int compare(ExprValue other) {
-    throw new IllegalStateException(
-        String.format("[BUG] Unreachable, Comparing with NULL is undefined"));
+    throw new IllegalStateException("[BUG] Unreachable, Comparing with NULL is undefined");
   }
 
   /**

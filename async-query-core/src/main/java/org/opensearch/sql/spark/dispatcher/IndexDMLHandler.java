@@ -9,6 +9,7 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.ERROR_FIELD
 import static org.opensearch.sql.spark.data.constants.SparkConstants.STATUS_FIELD;
 
 import com.amazonaws.services.emrserverless.model.JobRunState;
+import java.util.Locale;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
@@ -145,6 +146,7 @@ public class IndexDMLHandler extends AsyncQueryHandler {
       default:
         throw new IllegalStateException(
             String.format(
+                Locale.ROOT,
                 "IndexQueryActionType: %s is not supported in IndexDMLHandler.",
                 indexQueryDetails.getIndexQueryActionType()));
     }
@@ -158,7 +160,9 @@ public class IndexDMLHandler extends AsyncQueryHandler {
     if (!indexMetadataMap.containsKey(indexDetails.openSearchIndexName())) {
       throw new IllegalStateException(
           String.format(
-              "Couldn't fetch flint index: %s details", indexDetails.openSearchIndexName()));
+              Locale.ROOT,
+              "Couldn't fetch flint index: %s details",
+              indexDetails.openSearchIndexName()));
     }
     return indexMetadataMap.get(indexDetails.openSearchIndexName());
   }

@@ -6,6 +6,7 @@
 package org.opensearch.sql.expression.parse;
 
 import com.google.common.collect.ImmutableList;
+import java.util.Locale;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -57,7 +58,11 @@ public abstract class ParseExpression extends FunctionExpression {
       return parseValue(value);
     } catch (ExpressionEvaluationException e) {
       throw new SemanticCheckException(
-          String.format("failed to parse field \"%s\" with type [%s]", sourceField, value.type()));
+          String.format(
+              Locale.ROOT,
+              "failed to parse field \"%s\" with type [%s]",
+              sourceField,
+              value.type()));
     }
   }
 

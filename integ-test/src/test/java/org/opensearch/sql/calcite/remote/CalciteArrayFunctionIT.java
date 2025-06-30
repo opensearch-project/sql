@@ -10,6 +10,7 @@ import static org.opensearch.sql.util.MatcherUtils.*;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
@@ -29,6 +30,7 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval array = array(1, -1.5, 2, 1.0) | head 1 | fields array",
                 TEST_INDEX_BANK));
 
@@ -42,6 +44,7 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval array = array(1, 'demo') | head 1 | fields array",
                 TEST_INDEX_BANK));
 
@@ -60,6 +63,7 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
             () ->
                 executeQuery(
                     String.format(
+                        Locale.ROOT,
                         "source=%s | eval array = array(1, true) | head 1 | fields array",
                         TEST_INDEX_BANK)));
 
@@ -74,6 +78,7 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval array = array(1, -1.5, 2, 1.0) | eval length ="
                     + " array_length(array) | head 1 | fields length",
                 TEST_INDEX_BANK));
@@ -88,6 +93,7 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval array = array(1, -1, 2), result = forall(array, x -> x > 0) |"
                     + " fields result | head 1",
                 TEST_INDEX_BANK));
@@ -102,6 +108,7 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval array = array(1, -1, 2), result = exists(array, x -> x > 0) |"
                     + " fields result | head 1",
                 TEST_INDEX_BANK));
@@ -116,6 +123,7 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval array = array(1, -1, 2), result = filter(array, x -> x > 0) |"
                     + " fields result | head 1",
                 TEST_INDEX_BANK));
@@ -130,6 +138,7 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval array = array(1, 2, 3), result = transform(array, x -> x + 1) |"
                     + " fields result | head 1",
                 TEST_INDEX_BANK));
@@ -144,6 +153,7 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval array = array(1, 2, 3), result = transform(array, (x, i) -> x +"
                     + " i) | fields result | head 1",
                 TEST_INDEX_BANK));
@@ -158,6 +168,7 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval array = array(1, 2, 3), result = transform(array, (x, i) -> x +"
                     + " i * 10.1) | fields result | head 1",
                 TEST_INDEX_BANK));
@@ -172,6 +183,7 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval array = array(TIMESTAMP('2000-01-02 00:00:00'),"
                     + " TIMESTAMP('2000-01-03 00:00:00'), TIMESTAMP('2000-01-04 00:00:00')), result"
                     + " = transform(array, (x, i) -> DATEDIFF(x, TIMESTAMP('2000-01-01 23:59:59'))"
@@ -188,6 +200,7 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval array = array(1, 2, 3), result = reduce(array, 0, (acc, x) -> acc"
                     + " + x), result2 = reduce(array, 10, (acc, x) -> acc + x), result3 ="
                     + " reduce(array, 0, (acc, x) -> acc + x, acc -> acc * 10.0) | fields"
@@ -205,6 +218,7 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval array = array(1.0, 2.0, 3.0), result3 = reduce(array, 0, (acc, x)"
                     + " -> acc * 10.0 + x, acc -> acc * 10.0) | fields result3 | head 1",
                 TEST_INDEX_BANK));
@@ -219,6 +233,7 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where age=28 | eval array = array(1.0, 2.0, 3.0), result3 ="
                     + " reduce(array, age, (acc, x) -> acc * 1.0 + x, acc -> acc * 10.0) | fields"
                     + " result3 | head 1",
@@ -234,6 +249,7 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval array = array('a', 'ab', 'abc'), result3 = reduce(array, 0, (acc,"
                     + " x) -> acc + length(x), acc -> acc * 10.0) | fields result3 | head 1",
                 TEST_INDEX_BANK));

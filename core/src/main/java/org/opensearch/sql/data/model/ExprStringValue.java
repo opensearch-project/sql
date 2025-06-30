@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Locale;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -66,7 +67,7 @@ public class ExprStringValue extends AbstractExprValue {
 
   @Override
   public String toString() {
-    return String.format("\"%s\"", value);
+    return String.format(Locale.ROOT, "\"%s\"", value);
   }
 
   @Override

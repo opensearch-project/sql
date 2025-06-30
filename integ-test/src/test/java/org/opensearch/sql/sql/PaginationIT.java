@@ -10,6 +10,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ONLINE;
 
 import java.io.IOException;
+import java.util.Locale;
 import lombok.SneakyThrows;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -98,7 +99,8 @@ public class PaginationIT extends SQLIntegTestCase {
 
     // Close the cursor
     Request closeCursorRequest = new Request("POST", "_plugins/_sql/close");
-    closeCursorRequest.setJsonEntity(String.format("{ \"cursor\" : \"%s\" } ", cursor));
+    closeCursorRequest.setJsonEntity(
+        String.format(Locale.ROOT, "{ \"cursor\" : \"%s\" } ", cursor));
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
     restOptionsBuilder.addHeader("Content-Type", "application/json");
     closeCursorRequest.setOptions(restOptionsBuilder);
@@ -125,7 +127,8 @@ public class PaginationIT extends SQLIntegTestCase {
   @Test
   @SneakyThrows
   public void testQueryWithOrderBy() {
-    var response = executeJdbcRequest(String.format("select * from %s", TEST_INDEX_CALCS));
+    var response =
+        executeJdbcRequest(String.format(Locale.ROOT, "select * from %s", TEST_INDEX_CALCS));
     var indexSize = response.getInt("total");
     var rows = response.getJSONArray("datarows");
     var schema = response.getJSONArray("schema");
@@ -135,7 +138,7 @@ public class PaginationIT extends SQLIntegTestCase {
     var rowsPagedDesc = new JSONArray();
     var rowsReturnedDesc = 0;
 
-    var query = String.format("SELECT * from %s ORDER BY num1 ASC", TEST_INDEX_CALCS);
+    var query = String.format(Locale.ROOT, "SELECT * from %s ORDER BY num1 ASC", TEST_INDEX_CALCS);
     response = new JSONObject(executeFetchQuery(query, 4, "jdbc"));
     assertTrue(response.has("cursor"));
     TestUtils.verifyIsV2Cursor(response);
@@ -162,7 +165,7 @@ public class PaginationIT extends SQLIntegTestCase {
 
     } while (!cursor.isEmpty());
 
-    query = String.format("SELECT * from %s ORDER BY num1 DESC", TEST_INDEX_CALCS);
+    query = String.format(Locale.ROOT, "SELECT * from %s ORDER BY num1 DESC", TEST_INDEX_CALCS);
     response = new JSONObject(executeFetchQuery(query, 7, "jdbc"));
     assertTrue(response.has("cursor"));
     TestUtils.verifyIsV2Cursor(response);
@@ -202,7 +205,7 @@ public class PaginationIT extends SQLIntegTestCase {
 
     for (int row = 0; row < indexSize; row++) {
       assertTrue(
-          String.format("Row %d: row order is incorrect", row),
+          String.format(Locale.ROOT, "Row %d: row order is incorrect", row),
           rowsPagedAsc.getJSONArray(row).similar(rowsPagedDesc.getJSONArray(indexSize - row - 1)));
     }
   }
@@ -231,8 +234,10 @@ public class PaginationIT extends SQLIntegTestCase {
     // Create an alias
     String createAliasQuery =
         String.format(
+            Locale.ROOT,
             "{ \"actions\": [ { \"add\": { \"index\": \"%s\", \"alias\": \"%s\" } } ] }",
-            indexName, aliasName);
+            indexName,
+            aliasName);
     Request createAliasRequest = new Request("POST", "/_aliases");
     createAliasRequest.setJsonEntity(createAliasQuery);
     JSONObject aliasResponse = new JSONObject(executeRequest(createAliasRequest));
@@ -241,7 +246,7 @@ public class PaginationIT extends SQLIntegTestCase {
     assertTrue(aliasResponse.getBoolean("acknowledged"));
 
     // Query using the alias
-    String aliasSelectQuery = String.format("SELECT * FROM %s", aliasName);
+    String aliasSelectQuery = String.format(Locale.ROOT, "SELECT * FROM %s", aliasName);
     JSONObject aliasQueryResponse = new JSONObject(executeFetchQuery(aliasSelectQuery, 4, "jdbc"));
     assertEquals(4, aliasQueryResponse.getInt("size"));
 

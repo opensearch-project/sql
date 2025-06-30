@@ -6,6 +6,7 @@
 package org.opensearch.sql.protocol.response.format;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.opensearch.sql.protocol.response.QueryResult;
@@ -48,6 +49,6 @@ public class FlatResponseWithPrettifier extends FlatResponseBase {
   }
 
   private String padRight(String s, int n) {
-    return String.format("%-" + n + "s", s);
+    return String.format(Locale.ROOT, "%-" + n + "s", s);
   }
 }

@@ -16,6 +16,7 @@ import com.alibaba.druid.sql.ast.expr.SQLNotExpr;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlASTVisitorAdapter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import org.opensearch.sql.legacy.domain.Field;
 import org.opensearch.sql.legacy.domain.Where;
 import org.opensearch.sql.legacy.exception.SqlParseException;
@@ -98,7 +99,7 @@ public class HavingParser {
     }
 
     private String methodAlias(String methodName) {
-      return String.format("%s_%d", methodName.toLowerCase(), nextAlias());
+      return String.format(Locale.ROOT, "%s_%d", methodName.toLowerCase(), nextAlias());
     }
 
     private Integer nextAlias() {

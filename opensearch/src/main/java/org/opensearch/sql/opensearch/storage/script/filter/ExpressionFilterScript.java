@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.opensearch.storage.script.filter;
 
+import java.util.Locale;
 import java.util.Map;
 import lombok.EqualsAndHashCode;
 import org.apache.lucene.index.LeafReaderContext;
@@ -51,9 +52,11 @@ class ExpressionFilterScript extends FilterScript {
     if (result.type() != ExprCoreType.BOOLEAN) {
       throw new IllegalStateException(
           String.format(
+              Locale.ROOT,
               "Expression has wrong result type instead of boolean: "
                   + "expression [%s], result [%s]",
-              expression, result));
+              expression,
+              result));
     }
     return result;
   }

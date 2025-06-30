@@ -12,6 +12,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
@@ -191,7 +192,10 @@ public class DateFieldFormatter {
       } catch (ParseException | NumberFormatException e) {
         LOG.warn(
             String.format(
-                "Could not parse date string %s as %s", columnOriginalDate, columnFormat));
+                Locale.ROOT,
+                "Could not parse date string %s as %s",
+                columnOriginalDate,
+                columnFormat));
       }
     }
     // Reset default timezone after parsing

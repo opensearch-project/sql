@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.sql;
 
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
@@ -23,6 +24,7 @@ public class PreparedStatementIT extends SQLIntegTestCase {
         new JSONObject(
             executeQuery(
                 String.format(
+                    Locale.ROOT,
                     "{\n"
                         + "  \"query\": \"SELECT state FROM %s WHERE state = ? GROUP BY state\",\n"
                         + "  \"parameters\": [\n"

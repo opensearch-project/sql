@@ -7,6 +7,7 @@ package org.opensearch.sql.data.model;
 
 import java.time.temporal.TemporalAmount;
 import java.time.temporal.TemporalUnit;
+import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -27,8 +28,10 @@ public class ExprIntervalValue extends AbstractExprValue {
     if (!interval.getClass().equals(other.intervalValue().getClass())) {
       throw new ExpressionEvaluationException(
           String.format(
+              Locale.ROOT,
               "invalid to compare intervals with units %s and %s",
-              unit(), ((ExprIntervalValue) other).unit()));
+              unit(),
+              ((ExprIntervalValue) other).unit()));
     }
     return Long.compare(
         interval.get(unit()), otherInterval.get(((ExprIntervalValue) other).unit()));

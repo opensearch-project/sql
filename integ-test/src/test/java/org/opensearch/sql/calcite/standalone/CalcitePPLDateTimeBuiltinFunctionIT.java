@@ -60,16 +60,23 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval f = date_format(%s('%s'), '%s') | fields f",
-                TEST_INDEX_DATE, type, date, format));
+                TEST_INDEX_DATE,
+                type,
+                date,
+                format));
     verifySchema(result, schema("f", null, "string"));
     verifySome(result.getJSONArray("datarows"), rows(formatted));
 
     result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval f = date_format('%s', '%s') | fields f",
-                TEST_INDEX_DATE, date, format));
+                TEST_INDEX_DATE,
+                date,
+                format));
     verifySchema(result, schema("f", null, "string"));
     verifySome(result.getJSONArray("datarows"), rows(formatted));
   }
@@ -79,6 +86,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval `DATE('2020-08-26')` = DATE('2020-08-26') | eval"
                     + " `DATE(TIMESTAMP('2020-08-26 13:49:00'))` = DATE(TIMESTAMP('2020-08-26"
                     + " 13:49:00')) | eval `DATE('2020-08-26 13:49')` = DATE('2020-08-26 13:49') "
@@ -109,6 +117,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s "
                     + "| eval timestamp = timestamp(time('12:00:00'), time('12:00:00'))"
                     + "| fields timestamp | head 1",
@@ -122,6 +131,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | head 1 | eval `TIMESTAMP('2020-08-26 13:49:00')` ="
                     + " TIMESTAMP('2020-08-26 13:49:00')| eval `TIMESTAMP(DATE('2020-08-26"
                     + " 13:49:00'))` = TIMESTAMP(DATE('2020-08-26 13:49:00'))| eval"
@@ -176,6 +186,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval `TIME('2020-08-26 13:49:00')` = TIME('2020-08-26 13:49:00')| eval"
                     + " `TIME('2020-08-26 13:49')` = TIME('2020-08-26 13:49')| eval `TIME('13:49')`"
                     + " = TIME('13:49')| eval `TIME('13:49:00.123')` = TIME('13:49:00.123')| eval"
@@ -218,6 +229,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where strict_date_optional_time > DATE_SUB(TIMESTAMP('1984-04-12"
                     + " 20:07:00'), INTERVAL 12 HOUR) | stats COUNT() AS CNT ",
                 TEST_INDEX_DATE_FORMATS));
@@ -232,6 +244,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where YEAR(strict_date_optional_time) < 2000| eval demo ="
                     + " str_to_date('01,5,2013', '%%d,%%m,%%Y')| where"
                     + " str_to_date('01,5,2013', '%%d,%%m,%%Y')='2013-05-01 00:00:00'| eval s2d"
@@ -247,6 +260,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where YEAR(strict_date_optional_time) < 2000| eval"
                     + " timestamp=TIME_FORMAT(strict_date_optional_time, '%%h') | eval"
                     + " time=TIME_FORMAT(time, '%%h')| eval date=TIME_FORMAT(date, '%%h')| eval"
@@ -268,6 +282,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s "
                     + "| where YEAR(strict_date_optional_time) < 2000"
                     + "| eval timestamp=TIME_TO_SEC(strict_date_optional_time) "
@@ -291,6 +306,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s "
                     + "| where YEAR(strict_date_optional_time) < 2000"
                     + "| eval long_value=SEC_TO_TIME(3601) "
@@ -306,6 +322,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s "
                     + "| where YEAR(strict_date_optional_time) < 2000"
                     + "| eval timestamp=to_seconds(strict_date_optional_time) "
@@ -337,6 +354,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s "
                     + "| where YEAR(strict_date_optional_time) < 2000"
                     + "| eval timestamp=to_days(strict_date_optional_time) "
@@ -358,6 +376,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s "
                     + "| eval from_unix_format = FROM_UNIXTIME(1220249547, '%%T')"
                     + "| eval from_unix = from_unixtime(1220249547)"
@@ -372,6 +391,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval unix_timestamp = unix_timestamp(timestamp('2008-09-01"
                     + " 06:12:27'))| eval unix_long = UNIX_TIMESTAMP(20771122143845)| eval"
                     + " unix_ms = UNIX_TIMESTAMP(TIMESTAMP('2008-09-01 06:12:27.123456')) "
@@ -390,6 +410,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | fields  strict_date_optional_time| where"
                     + " YEAR(strict_date_optional_time) < 2000| eval"
                     + " `WEEK(DATE(strict_date_optional_time))` ="
@@ -439,12 +460,14 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | fields  strict_date_optional_time"
                     + "| where YEAR(strict_date_optional_time) < 2000"
                     + "| where WEEK(DATE(strict_date_optional_time)) = %d"
                     + "| stats COUNT() AS CNT "
                     + "| head 1 ",
-                TEST_INDEX_DATE_FORMATS, week19840412));
+                TEST_INDEX_DATE_FORMATS,
+                week19840412));
 
     verifySchema(actual, schema("CNT", "bigint"));
 
@@ -458,6 +481,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where YEAR(strict_date_optional_time) < 2000| eval"
                     + " timestamp=weekday(TIMESTAMP(strict_date_optional_time)),"
                     + " time=weekday(TIME(strict_date_optional_time)),"
@@ -488,6 +512,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where YEAR(strict_date_optional_time) < 2000| eval"
                     + " timestamp=YEARWEEK(TIMESTAMP(strict_date_optional_time)),"
                     + " date=YEARWEEK(DATE(strict_date_optional_time))| eval"
@@ -520,6 +545,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s "
                     + "| where YEARWEEK(strict_date_optional_time) < 200000"
                     + "| stats COUNT() AS CNT"
@@ -536,6 +562,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where YEAR(strict_date_optional_time) = 1984 | eval"
                     + " timestamp=YEAR(TIMESTAMP(strict_date_optional_time)),"
                     + " date=YEAR(DATE(strict_date_optional_time))| eval `YEAR('2020-08-26')` ="
@@ -599,6 +626,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | head 1 | eval lower = SUBDATE(strict_date_optional_time_nanos, 3),"
                     + " upper = ADDDATE(date, 1), ts = ADDDATE(date, INTERVAL 1 DAY) | where"
                     + " strict_date < upper | rename strict_date as d | fields lower, upper, d, ts",
@@ -622,6 +650,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s "
                     + "| eval t1 = DATE_ADD(strict_date_optional_time, INTERVAL 1 HOUR) "
                     + "| eval t2 = DATE_ADD(strict_date_optional_time, INTERVAL 1 DAY) "
@@ -673,6 +702,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where date > DATE('1984-04-11') | eval tomorrow = DATE_ADD(date,"
                     + " INTERVAL 1 DAY) | fields date, tomorrow",
                 TEST_INDEX_DATE_FORMATS));
@@ -689,6 +719,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval f = convert_tz('2021-02-30 10:00:00','+00:00','+00:00') | fields"
                     + " f",
                 TEST_INDEX_DATE));
@@ -701,6 +732,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where date > TIMESTAMP('1984-04-11 00:00:00') | stats COUNT() AS cnt",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(actual, schema("cnt", "bigint"));
@@ -712,6 +744,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | head 1 | eval t1 = ADDTIME(date, date) "
                     + "| eval t2 = ADDTIME(time, date) "
                     + "| eval t3 = SUBTIME(date, time)"
@@ -745,6 +778,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where incomplete_1 > DATE('2000-10-01') | eval t1 = HOUR(date_time),"
                     + " t2 = HOUR_OF_DAY(time), t3 = HOUR('23:14:00'), t4 = HOUR('2023-12-31"
                     + " 16:03:00') | head 1 | fields t1, t2, t3, t4",
@@ -760,6 +794,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where MONTH(date) > MONTH('2003-03-10') | head 1 |eval m1 ="
                     + " MONTH(date), m2 = MONTH_OF_YEAR(date_time), m3 = MONTH('2023-01-12"
                     + " 10:11:12') | fields m1, m2, m3",
@@ -776,6 +811,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval cd = CURDATE(), ct = CURTIME(), cdt = CURRENT_DATE(), ctm ="
                     + " CURRENT_TIME(), cts = CURRENT_TIMESTAMP(), now = NOW(), lt = LOCALTIME(),"
                     + " lts = LOCALTIMESTAMP() | where lt = lts and lts = now | where now >= cd and"
@@ -801,6 +837,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | head 1 | eval utc = UTC_TIMESTAMP(), utc1 = UTC_DATE(), utc2 ="
                     + " UTC_TIME() | fields utc, utc1, utc2",
                 TEST_INDEX_DATE_FORMATS));
@@ -813,6 +850,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | head 1 | eval d1 = SYSDATE(), d2 = SYSDATE(3), d3 = SYSDATE(6)|eval"
                     + " df1 = DATE_FORMAT(d1, '%%Y-%%m-%%d %%T.%%f'), df2 = DATE_FORMAT(d2,"
                     + " '%%Y-%%m-%%d %%T.%%f'), df3 = DATE_FORMAT(d3, '%%Y-%%m-%%d %%T.%%f') |"
@@ -853,6 +891,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where DAY(date) > 11 and DAY_OF_YEAR(date) < 104 | where"
                     + " DAY_OF_WEEK(date) = 5 | eval d1 = DAY_OF_MONTH(ADDDATE(date, 1)), d2 ="
                     + " DAYOFMONTH(SUBDATE(date, 3)) | eval d3 = DAY_OF_WEEK('1984-04-12'), d4 ="
@@ -875,6 +914,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | head 1 | eval d1 = DAYNAME(date), d2 = DAYNAME('1984-04-12'), d3 ="
                     + " DAYNAME(date_time),m1 = MONTHNAME(date), m2 = MONTHNAME('1984-04-12"
                     + " 10:07:42')"
@@ -895,6 +935,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | head 1 | eval d1 = DAYNAME(date), d2 = DAYNAME('1984-04-12'), d3 ="
                     + " DAYNAME(date_time),m1 = MONTHNAME(date), m2 = MONTHNAME('1984-04-12"
                     + " 10:07:42'),ld1 = LAST_DAY(date), ld2 = LAST_DAY('1984-04-12'), ld3 ="
@@ -963,6 +1004,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where firstname = 'Virginia' | eval md1 = MAKEDATE(2020, 1), md2 ="
                     + " MAKEDATE(2020, 366), md3 = MAKEDATE(2020, 367),md4 = MAKEDATE(0, 78), md5 ="
                     + " MAKEDATE(2008, 0), md6 = MAKEDATE(age, 70) | fields md1, md2, md3, md4,"
@@ -993,6 +1035,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | head 1 | eval d1 = DATE_FORMAT(date, '%%Y-%%m-%%d'), d2 ="
                     + " DATE_FORMAT('1984-04-12', '%%Y-%%b-%%D %%r'),d3 = DATE_FORMAT(date_time,"
                     + " '%%d.%%m.%%y %%l:%%i %%p'), d4 = DATE_FORMAT(time, '%%T'),d5 ="
@@ -1039,8 +1082,8 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
             "2017-11-02",
             expectedDatetimeAtPlus8,
             expectedDatetimeAtUTC,
-            String.format("%d 1984 %d", week19840412, week19840412),
-            String.format("%d %d 1984", week19840412Mode1, week19840412Mode1),
+            String.format(Locale.ROOT, "%d 1984 %d", week19840412, week19840412),
+            String.format(Locale.ROOT, "%d %d 1984", week19840412Mode1, week19840412Mode1),
             "09:07:42.000123"));
   }
 
@@ -1049,6 +1092,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | head 1 | eval d1 = DATEDIFF(date, ADDDATE(date, INTERVAL 1 DAY)), "
                     + "d2 = DATEDIFF(date, SUBDATE(date, INTERVAL 50 DAY)), "
                     + "d3 = DATEDIFF(date, TIME('20:59')), "
@@ -1096,6 +1140,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | head 1 | eval d1 = TIMESTAMPDIFF(DAY, SUBDATE(date_time, INTERVAL 1"
                     + " DAY), date), d2 = TIMESTAMPDIFF(HOUR, date_time, TIMESTAMPADD(DAY, 1,"
                     + " date_time)), d3 = TIMESTAMPDIFF(MINUTE, date, date_time), d4 ="
@@ -1133,6 +1178,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | head 1 | eval p1 = PERIOD_ADD(200801, 3), "
                     + "p2 = PERIOD_ADD(199307, -13), "
                     + "p3 = PERIOD_DIFF(200802, 200703), "
@@ -1150,6 +1196,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | head 1 | eval m1 = MINUTE_OF_HOUR(date_time), "
                     + "m2 = MINUTE(time), "
                     + "m3 = MINUTE_OF_DAY(strict_date_time), "
@@ -1176,6 +1223,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | head 1 | eval t1 = TIMEDIFF('23:59:59', '13:00:00'),"
                     + "t2 = TIMEDIFF(time, '13:00:00'),"
                     + "t3 = TIMEDIFF(time, time) "
@@ -1192,6 +1240,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s "
                     + "| eval `QUARTER(DATE('2020-08-26'))` = QUARTER(DATE('2020-08-26')) "
                     + "| eval quarter2 = QUARTER(basic_date) "
@@ -1212,6 +1261,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s "
                     + "| eval s = SECOND(TIMESTAMP(TIME('01:02:03'))) "
                     + "| eval secondForTime = SECOND(basic_time) "
@@ -1234,6 +1284,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval s = second_of_minute(TIMESTAMP(TIME('01:02:03'))) | eval"
                     + " secondForTime = second_of_minute(basic_time) | eval secondForDate ="
                     + " second_of_minute(basic_date) | eval secondForTimestamp ="
@@ -1254,6 +1305,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | head 1 | eval r1 = convert_tz('2008-05-15 12:00:00', '+00:00',"
                     + " '+10:00') | eval r2 = convert_tz(TIMESTAMP('2008-05-15 12:00:00'),"
                     + " '+00:00', '+10:00') | eval r3 = convert_tz(date_time, '+00:00', '+10:00') |"
@@ -1295,6 +1347,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s "
                     + "| eval r1 = convert_tz('2021-05-30 11:34:50', '-17:00', '+08:00') "
                     + "| eval r2 = convert_tz('2021-05-12 11:34:50', '-12:00', '+15:00') "
@@ -1312,6 +1365,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s "
                     + "| eval r1 = GET_FORMAT(DATE, 'USA') "
                     + "| eval r2 = GET_FORMAT(TIME, 'INTERNAL') "
@@ -1334,6 +1388,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval r1 = extract(YEAR FROM '1997-01-01 00:00:00') | eval r2 ="
                     + " extract(YEAR FROM strict_date_optional_time_nanos) | eval r3 = extract(year"
                     + " FROM basic_date) | eval r4 = extract(QUARTER FROM"
@@ -1383,6 +1438,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where strict_date <= subdate(date('1998-12-01'), 90) | stats COUNT()",
                 TEST_INDEX_DATE_FORMATS));
     verifyDataRows(actual, rows(2));
@@ -1393,6 +1449,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval r1 = extract(YEAR_MONTH FROM '1997-01-01 00:00:00') | eval r2 ="
                     + " extract(DAY_HOUR FROM strict_date_optional_time_nanos) | eval r3 ="
                     + " extract(DAY_HOUR FROM basic_date) | eval r4 = extract(DAY_MINUTE FROM"
@@ -1462,6 +1519,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | head 1 |  eval m1 = MICROSECOND(date_time), m2 = MICROSECOND(time), m3"
                     + " = MICROSECOND(date), m4 = MICROSECOND('13:45:22.123456789'), m5 ="
                     + " MICROSECOND('2012-09-13 13:45:22.123456789')| fields m1, m2, m3, m4, m5",

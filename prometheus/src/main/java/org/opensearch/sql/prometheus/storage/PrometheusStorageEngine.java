@@ -12,6 +12,8 @@ import static org.opensearch.sql.utils.SystemIndexUtils.isSystemIndex;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Locale;
+
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -56,7 +58,7 @@ public class PrometheusStorageEngine implements StorageEngine {
           prometheusClient, dataSourceSchemaName, SystemIndexUtils.TABLE_INFO);
     } else {
       throw new SemanticCheckException(
-          String.format("Information Schema doesn't contain %s table", tableName));
+          String.format(Locale.ROOT, "Information Schema doesn't contain %s table", tableName));
     }
   }
 }

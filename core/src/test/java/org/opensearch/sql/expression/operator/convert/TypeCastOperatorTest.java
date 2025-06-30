@@ -25,6 +25,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -423,7 +424,10 @@ class TypeCastOperatorTest {
     assertThrows(
         SemanticCheckException.class,
         exp::valueOf,
-        String.format("IP address string '%s' is not valid. Error details: .*", ipInvalidString));
+        String.format(
+            Locale.ROOT,
+            "IP address string '%s' is not valid. Error details: .*",
+            ipInvalidString));
 
     // From IP address
     exp = DSL.castIp(DSL.literal(exprIpv4Value));

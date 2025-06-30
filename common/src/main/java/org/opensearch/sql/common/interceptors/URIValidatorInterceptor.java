@@ -9,6 +9,7 @@ package org.opensearch.sql.common.interceptors;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import lombok.NonNull;
 import okhttp3.Interceptor;
 import okhttp3.Request;
@@ -36,6 +37,7 @@ public class URIValidatorInterceptor implements Interceptor {
     } else {
       throw new IllegalArgumentException(
           String.format(
+              Locale.ROOT,
               "Disallowed hostname in the uri. Validate with %s config",
               Settings.Key.DATASOURCES_URI_HOSTS_DENY_LIST.getKeyValue()));
     }

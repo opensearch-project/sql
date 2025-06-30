@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import lombok.NonNull;
 import lombok.ToString;
@@ -82,7 +83,7 @@ public class PrometheusDescribeMetricRequest implements PrometheusSystemRequest 
                     metricName,
                     e.getMessage());
                 throw new PrometheusClientException(
-                    String.format(
+                    String.format(Locale.ROOT,
                         "Error while fetching labels " + "for %s from prometheus: %s",
                         metricName, e.getMessage()));
               }

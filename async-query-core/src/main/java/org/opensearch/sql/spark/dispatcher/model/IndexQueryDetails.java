@@ -7,6 +7,7 @@ package org.opensearch.sql.spark.dispatcher.model;
 
 import static org.apache.commons.lang3.StringUtils.strip;
 
+import java.util.Locale;
 import java.util.Set;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -134,7 +135,7 @@ public class IndexQueryDetails {
     StringBuilder builder = new StringBuilder(indexName.length());
     for (char ch : indexName.toCharArray()) {
       if (INVALID_INDEX_NAME_CHARS.contains(ch)) {
-        builder.append(String.format("%%%02X", (int) ch));
+        builder.append(String.format(Locale.ROOT, "%%%02X", (int) ch));
       } else {
         builder.append(ch);
       }

@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.util.Locale;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -200,12 +201,12 @@ public class DateTimeValueTest {
       nanos.append(nanoPrecision);
       String timeWithNanos = String.format(timeWithNanosFormat, nanos);
 
-      String timestampString = String.format("%s %s", dateValue, timeWithNanos);
+      String timestampString = String.format(Locale.ROOT, "%s %s", dateValue, timeWithNanos);
       ExprValue timestampValue = new ExprTimestampValue(timestampString);
 
       assertEquals(LocalDate.parse(dateValue), timestampValue.dateValue());
       assertEquals(LocalTime.parse(timeWithNanos), timestampValue.timeValue());
-      String localDateTime = String.format("%sT%s", dateValue, timeWithNanos);
+      String localDateTime = String.format(Locale.ROOT, "%sT%s", dateValue, timeWithNanos);
       assertEquals(
           LocalDateTime.parse(localDateTime),
           LocalDateTime.ofInstant(timestampValue.timestampValue(), ZoneOffset.UTC));

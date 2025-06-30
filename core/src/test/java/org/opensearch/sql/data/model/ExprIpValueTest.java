@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.Locale;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
@@ -57,7 +58,10 @@ public class ExprIpValueTest {
     assertThrows(
         SemanticCheckException.class,
         () -> ExprValueUtils.ipValue(ipInvalidString),
-        String.format("IP address string '%s' is not valid. Error details: .*", ipInvalidString));
+        String.format(
+            Locale.ROOT,
+            "IP address string '%s' is not valid. Error details: .*",
+            ipInvalidString));
   }
 
   @Test
@@ -124,10 +128,14 @@ public class ExprIpValueTest {
   public void testToString() {
     ipv4EqualStrings.forEach(
         (s) ->
-            assertEquals(String.format("IP %s", ipv4String), ExprValueUtils.ipValue(s).toString()));
+            assertEquals(
+                String.format(Locale.ROOT, "IP %s", ipv4String),
+                ExprValueUtils.ipValue(s).toString()));
     ipv6EqualStrings.forEach(
         (s) ->
-            assertEquals(String.format("IP %s", ipv6String), ExprValueUtils.ipValue(s).toString()));
+            assertEquals(
+                String.format(Locale.ROOT, "IP %s", ipv6String),
+                ExprValueUtils.ipValue(s).toString()));
   }
 
   @Test

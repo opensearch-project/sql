@@ -18,6 +18,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLFeatureNotSupportedException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -328,6 +329,7 @@ public class JSONRequestTest {
     String result =
         explain(
             String.format(
+                Locale.ROOT,
                 "{\"query\":\""
                     + "SELECT * "
                     + "FROM %s "
@@ -352,6 +354,7 @@ public class JSONRequestTest {
     String result =
         explain(
             String.format(
+                Locale.ROOT,
                 "{\"query\":\"SELECT address, CASE WHEN gender='0' THEN 'aaa' ELSE 'bbb' END AS"
                     + " a2345, count(age) FROM %s GROUP BY"
                     + " terms('field'='address','execution_hint'='global_ordinals'), a2345\"}",
@@ -385,6 +388,7 @@ public class JSONRequestTest {
     String result =
         explain(
             String.format(
+                Locale.ROOT,
                 "{\"query\":\""
                     + "SELECT * "
                     + "FROM %s "
@@ -407,11 +411,11 @@ public class JSONRequestTest {
   }
 
   private String explainSQL(String sql) {
-    return explain(String.format("{\"query\":\"%s\"}", sql));
+    return explain(String.format(Locale.ROOT, "{\"query\":\"%s\"}", sql));
   }
 
   private JSONObject explainSQLToJson(String sql) {
-    return new JSONObject(explain(String.format("{\"query\":\"%s\"}", sql)));
+    return new JSONObject(explain(String.format(Locale.ROOT, "{\"query\":\"%s\"}", sql)));
   }
 
   private String query(JSONObject jsonObject, String jsonPath) {

@@ -16,6 +16,7 @@ import static org.opensearch.sql.spark.execution.xcontent.StatementModelXContent
 
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.Ignore;
@@ -117,12 +118,12 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
             asyncQueryRequestContext);
     String params = emrsClient.getJobRequest().getSparkSubmitParams();
     assertNull(response.getSessionId());
-    assertTrue(params.contains(String.format("--class %s", DEFAULT_CLASS_NAME)));
+    assertTrue(params.contains(String.format(Locale.ROOT, "--class %s", DEFAULT_CLASS_NAME)));
     assertFalse(
         params.contains(
-            String.format("%s=%s", FLINT_JOB_REQUEST_INDEX, SPARK_REQUEST_BUFFER_INDEX_NAME)));
+            String.format(Locale.ROOT, "%s=%s", FLINT_JOB_REQUEST_INDEX, SPARK_REQUEST_BUFFER_INDEX_NAME)));
     assertFalse(
-        params.contains(String.format("%s=%s", FLINT_JOB_SESSION_ID, response.getSessionId())));
+        params.contains(String.format(Locale.ROOT, "%s=%s", FLINT_JOB_SESSION_ID, response.getSessionId())));
 
     // enable session
     enableSession(true);
@@ -131,12 +132,12 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
             new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null),
             asyncQueryRequestContext);
     params = emrsClient.getJobRequest().getSparkSubmitParams();
-    assertTrue(params.contains(String.format("--class %s", FLINT_SESSION_CLASS_NAME)));
+    assertTrue(params.contains(String.format(Locale.ROOT, "--class %s", FLINT_SESSION_CLASS_NAME)));
     assertTrue(
         params.contains(
-            String.format("%s=%s", FLINT_JOB_REQUEST_INDEX, SPARK_REQUEST_BUFFER_INDEX_NAME)));
+            String.format(Locale.ROOT, "%s=%s", FLINT_JOB_REQUEST_INDEX, SPARK_REQUEST_BUFFER_INDEX_NAME)));
     assertTrue(
-        params.contains(String.format("%s=%s", FLINT_JOB_SESSION_ID, response.getSessionId())));
+        params.contains(String.format(Locale.ROOT, "%s=%s", FLINT_JOB_SESSION_ID, response.getSessionId())));
   }
 
   @Test
@@ -292,11 +293,11 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
         new CreateAsyncQueryRequest("select 1", "mybasicauth", LangType.SQL, null),
         asyncQueryRequestContext);
     String params = emrsClient.getJobRequest().getSparkSubmitParams();
-    assertTrue(params.contains(String.format("--conf spark.datasource.flint.auth=basic")));
+    assertTrue(params.contains(String.format(Locale.ROOT, "--conf spark.datasource.flint.auth=basic")));
     assertTrue(
-        params.contains(String.format("--conf spark.datasource.flint.auth.username=username")));
+        params.contains(String.format(Locale.ROOT, "--conf spark.datasource.flint.auth.username=username")));
     assertTrue(
-        params.contains(String.format("--conf spark.datasource.flint.auth.password=password")));
+        params.contains(String.format(Locale.ROOT, "--conf spark.datasource.flint.auth.password=password")));
   }
 
   @Test

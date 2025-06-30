@@ -8,6 +8,7 @@ package org.opensearch.sql.spark.asyncquery;
 import static org.opensearch.sql.spark.constants.TestConstants.EMRS_APPLICATION_ID;
 import static org.opensearch.sql.spark.constants.TestConstants.EMR_JOB_ID;
 
+import java.util.Locale;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
@@ -89,7 +90,7 @@ public class OpenSearchAsyncQueryJobMetadataStorageServiceTest extends OpenSearc
             AsyncQueryNotFoundException.class,
             () -> openSearchJobMetadataStorageService.getJobMetadata(MOCK_QUERY_ID));
     Assertions.assertEquals(
-        String.format("Invalid QueryId: %s", MOCK_QUERY_ID),
+        String.format(Locale.ROOT, "Invalid QueryId: %s", MOCK_QUERY_ID),
         asyncQueryNotFoundException.getMessage());
   }
 

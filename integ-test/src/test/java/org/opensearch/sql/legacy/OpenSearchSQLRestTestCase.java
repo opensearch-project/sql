@@ -8,6 +8,7 @@ package org.opensearch.sql.legacy;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.hc.client5.http.auth.AuthScope;
@@ -297,7 +298,10 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
     Request connectionRequest = new Request("PUT", "_cluster/settings");
     String connectionSetting =
         String.format(
-            REMOTE_CLUSTER_SETTING, remote, getTestTransportCluster(remote).split(",")[0]);
+            Locale.ROOT,
+            REMOTE_CLUSTER_SETTING,
+            remote,
+            getTestTransportCluster(remote).split(",")[0]);
     connectionRequest.setJsonEntity(connectionSetting);
     adminClient().performRequest(connectionRequest);
   }

@@ -12,6 +12,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
@@ -33,6 +34,7 @@ public class CalcitePPLIPFunctionIT extends PPLIntegTestCase {
     JSONObject resultNoMatch =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where cidrmatch(host, '250.0.0.0/24') | fields host",
                 TEST_INDEX_WEBLOGS));
     verifySchema(resultNoMatch, schema("host", null, "ip"));
@@ -42,6 +44,7 @@ public class CalcitePPLIPFunctionIT extends PPLIntegTestCase {
     JSONObject resultSingleMatch =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where cidrmatch(host, '0.0.0.0/24') | fields host",
                 TEST_INDEX_WEBLOGS));
     verifySchema(resultSingleMatch, schema("host", null, "ip"));
@@ -51,6 +54,7 @@ public class CalcitePPLIPFunctionIT extends PPLIntegTestCase {
     JSONObject resultMultipleMatch =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where cidrmatch(host, '1.2.3.0/24') | fields host",
                 TEST_INDEX_WEBLOGS));
     verifySchema(resultMultipleMatch, schema("host", null, "ip"));
@@ -59,6 +63,7 @@ public class CalcitePPLIPFunctionIT extends PPLIntegTestCase {
     JSONObject resultIpv6 =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | head 1 | eval m4 = CIDRMATCH('192.169.1.5', '192.169.1.0/24'), m6 ="
                     + " CIDRMATCH('2003:0db8:0000:0000:0000:0000:0000:0000', '2003:db8::/32') |"
                     + " fields m4, m6",

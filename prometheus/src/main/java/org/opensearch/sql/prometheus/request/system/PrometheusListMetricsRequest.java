@@ -14,6 +14,7 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -56,7 +57,7 @@ public class PrometheusListMetricsRequest implements PrometheusSystemRequest {
                 LOG.error(
                     "Error while fetching metric list for from prometheus: {}", e.getMessage());
                 throw new RuntimeException(
-                    String.format(
+                    String.format(Locale.ROOT,
                         "Error while fetching metric list " + "for from prometheus: %s",
                         e.getMessage()));
               }

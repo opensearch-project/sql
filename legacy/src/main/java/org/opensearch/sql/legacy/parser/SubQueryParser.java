@@ -13,6 +13,7 @@ import com.google.common.base.Strings;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 import org.opensearch.sql.legacy.domain.Condition;
@@ -105,6 +106,6 @@ public class SubQueryParser {
   }
 
   private String getFieldName(SQLExpr expr, String owner) {
-    return expr.toString().replace(String.format("%s.", owner), "");
+    return expr.toString().replace(String.format(Locale.ROOT, "%s.", owner), "");
   }
 }

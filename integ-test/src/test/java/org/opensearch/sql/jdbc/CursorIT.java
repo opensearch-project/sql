@@ -22,6 +22,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import javax.annotation.Nullable;
 import lombok.SneakyThrows;
@@ -109,7 +110,7 @@ public class CursorIT extends SQLIntegTestCase {
 
     for (var table :
         List.of(TEST_INDEX_CALCS, TEST_INDEX_ONLINE, TEST_INDEX_BANK, TEST_INDEX_ACCOUNT)) {
-      var query = String.format("SELECT * FROM %s", table);
+      var query = String.format(Locale.ROOT, "SELECT * FROM %s", table);
       ResultSet rs = stmt.executeQuery(query);
       int rows = 0;
       while (rs.next()) rows++;
@@ -128,7 +129,7 @@ public class CursorIT extends SQLIntegTestCase {
 
     for (var table :
         List.of(TEST_INDEX_CALCS, TEST_INDEX_ONLINE, TEST_INDEX_BANK, TEST_INDEX_ACCOUNT)) {
-      var query = String.format("SELECT COUNT(*) FROM %s", table);
+      var query = String.format(Locale.ROOT, "SELECT COUNT(*) FROM %s", table);
       ResultSet rs = stmt.executeQuery(query);
       int rows = 0;
       for (; rs.next(); rows++)
@@ -147,7 +148,7 @@ public class CursorIT extends SQLIntegTestCase {
     Statement stmt = connection.createStatement();
 
     for (var table : List.of(TEST_INDEX_CALCS, TEST_INDEX_BANK)) {
-      var query = String.format("SELECT COUNT(*) FROM %s", table);
+      var query = String.format(Locale.ROOT, "SELECT COUNT(*) FROM %s", table);
       stmt.setFetchSize(200);
       ResultSet rs = stmt.executeQuery(query);
       int rows = 0;
@@ -167,7 +168,7 @@ public class CursorIT extends SQLIntegTestCase {
     Statement stmt = connection.createStatement();
 
     for (var table : List.of(TEST_INDEX_CALCS, TEST_INDEX_BANK)) {
-      var query = String.format("SELECT * FROM %s", table);
+      var query = String.format(Locale.ROOT, "SELECT * FROM %s", table);
       stmt.setFetchSize(3);
       ResultSet rs = stmt.executeQuery(query);
       int rows = 0;
@@ -187,7 +188,7 @@ public class CursorIT extends SQLIntegTestCase {
     Statement stmt = connection.createStatement();
 
     for (var table : List.of(TEST_INDEX_ONLINE, TEST_INDEX_ACCOUNT)) {
-      var query = String.format("SELECT * FROM %s", table);
+      var query = String.format(Locale.ROOT, "SELECT * FROM %s", table);
       stmt.setFetchSize(10);
       ResultSet rs = stmt.executeQuery(query);
       int rows = 0;
@@ -207,7 +208,7 @@ public class CursorIT extends SQLIntegTestCase {
     Statement stmt = connection.createStatement();
 
     for (var table : List.of(TEST_INDEX_ONLINE, TEST_INDEX_ACCOUNT)) {
-      var query = String.format("SELECT * FROM %s", table);
+      var query = String.format(Locale.ROOT, "SELECT * FROM %s", table);
       stmt.setFetchSize(500);
       ResultSet rs = stmt.executeQuery(query);
       int rows = 0;
@@ -225,7 +226,7 @@ public class CursorIT extends SQLIntegTestCase {
   private static String getConnectionString() {
     // string like "[::1]:46751,127.0.0.1:34403"
     var clusterUrls = System.getProperty("tests.rest.cluster").split(",");
-    return String.format("jdbc:opensearch://%s", clusterUrls[clusterUrls.length - 1]);
+    return String.format(Locale.ROOT, "jdbc:opensearch://%s", clusterUrls[clusterUrls.length - 1]);
   }
 
   @SneakyThrows
@@ -239,9 +240,10 @@ public class CursorIT extends SQLIntegTestCase {
     Request request = new Request("POST", QUERY_API_ENDPOINT);
     if (fetch_size != null) {
       request.setJsonEntity(
-          String.format("{ \"query\": \"%s\", \"fetch_size\": %d }", query, fetch_size));
+          String.format(
+              Locale.ROOT, "{ \"query\": \"%s\", \"fetch_size\": %d }", query, fetch_size));
     } else {
-      request.setJsonEntity(String.format("{ \"query\": \"%s\" }", query));
+      request.setJsonEntity(String.format(Locale.ROOT, "{ \"query\": \"%s\" }", query));
     }
     request.addParameters(params);
 

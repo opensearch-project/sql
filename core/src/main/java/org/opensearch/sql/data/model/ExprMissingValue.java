@@ -36,8 +36,7 @@ public class ExprMissingValue extends AbstractExprValue {
 
   @Override
   public int compare(ExprValue other) {
-    throw new IllegalStateException(
-        String.format("[BUG] Unreachable, Comparing with MISSING is " + "undefined"));
+    throw new IllegalStateException("[BUG] Unreachable, Comparing with MISSING is " + "undefined");
   }
 
   /**

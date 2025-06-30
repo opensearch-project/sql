@@ -18,6 +18,7 @@ import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.TimeZone;
 import org.junit.After;
 import org.junit.Before;
@@ -402,8 +403,12 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
     var result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval `%s` = %s | fields `%s`",
-                TEST_INDEX_DATATYPE_NONNUMERIC, name, functionCall, name));
+                TEST_INDEX_DATATYPE_NONNUMERIC,
+                name,
+                functionCall,
+                name));
     verifySchema(result, schema(name, null, "boolean"));
     verifyDataRows(result, rows(expectedResult));
   }

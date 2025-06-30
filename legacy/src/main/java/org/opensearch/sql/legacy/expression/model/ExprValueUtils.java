@@ -12,6 +12,7 @@ import static org.opensearch.sql.legacy.expression.model.ExprValue.ExprValueKind
 
 import com.google.common.annotations.VisibleForTesting;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /** The definition of ExprValue Utils. */
@@ -60,7 +61,8 @@ public class ExprValueUtils {
         break;
     }
     throw new IllegalStateException(
-        String.format("invalid to get NUMBER_VALUE from expr type of %s", exprValue.kind()));
+        String.format(
+            Locale.ROOT, "invalid to get NUMBER_VALUE from expr type of %s", exprValue.kind()));
   }
 
   @SuppressWarnings("unchecked")
@@ -69,7 +71,8 @@ public class ExprValueUtils {
       return (T) exprValue.value();
     } else {
       throw new IllegalStateException(
-          String.format("invalid to get %s from expr type of %s", toType, exprValue.kind()));
+          String.format(
+              Locale.ROOT, "invalid to get %s from expr type of %s", toType, exprValue.kind()));
     }
   }
 }

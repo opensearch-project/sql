@@ -6,6 +6,7 @@
 package org.opensearch.sql.expression.aggregation;
 
 import java.util.List;
+import java.util.Locale;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -79,7 +80,7 @@ public abstract class Aggregator<S extends AggregationState>
   @Override
   public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
     throw new ExpressionEvaluationException(
-        String.format("can't evaluate on aggregator: %s", functionName));
+        String.format(Locale.ROOT, "can't evaluate on aggregator: %s", functionName));
   }
 
   @Override

@@ -10,6 +10,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 
 import java.util.List;
+import java.util.Locale;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.hamcrest.text.StringContainsInOrder;
 import org.junit.Rule;
@@ -390,7 +391,10 @@ public class PPLSyntaxParserTest {
       assertNotNull(
           new PPLSyntaxParser()
               .parse(
-                  String.format("SOURCE=test | eval k = extract(%s FROM \"2023-02-06\")", part)));
+                  String.format(
+                      Locale.ROOT,
+                      "SOURCE=test | eval k = extract(%s FROM \"2023-02-06\")",
+                      part)));
     }
   }
 
@@ -403,7 +407,9 @@ public class PPLSyntaxParserTest {
       for (String format : formats) {
         assertNotNull(
             new PPLSyntaxParser()
-                .parse(String.format("SOURCE=test | eval k = get_format(%s, %s)", type, format)));
+                .parse(
+                    String.format(
+                        Locale.ROOT, "SOURCE=test | eval k = get_format(%s, %s)", type, format)));
       }
     }
   }

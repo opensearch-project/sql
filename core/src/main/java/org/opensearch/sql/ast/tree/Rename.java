@@ -7,6 +7,7 @@ package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import java.util.Locale;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -43,7 +44,7 @@ public class Rename extends UnresolvedPlan {
       String name = field.getField().toString();
       if (OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(name)) {
         throw new IllegalArgumentException(
-            String.format("Cannot use metadata field [%s] in Rename command.", name));
+            String.format(Locale.ROOT, "Cannot use metadata field [%s] in Rename command.", name));
       }
     }
   }

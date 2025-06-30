@@ -13,6 +13,7 @@ import static org.opensearch.sql.util.TestUtils.createHiddenIndexByRestClient;
 import static org.opensearch.sql.util.TestUtils.performRequest;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
@@ -238,14 +239,16 @@ public class IdentifierIT extends SQLIntegTestCase {
     }
 
     void addDoc(String doc) {
-      Request indexDoc = new Request("POST", String.format("/%s/_doc?refresh=true", indexName));
+      Request indexDoc =
+          new Request("POST", String.format(Locale.ROOT, "/%s/_doc?refresh=true", indexName));
       indexDoc.setJsonEntity(doc);
       performRequest(client(), indexDoc);
     }
 
     public Index addDoc(String doc, String id) {
       Request indexDoc =
-          new Request("POST", String.format("/%s/_doc/%s?refresh=true", indexName, id));
+          new Request(
+              "POST", String.format(Locale.ROOT, "/%s/_doc/%s?refresh=true", indexName, id));
       indexDoc.setJsonEntity(doc);
       performRequest(client(), indexDoc);
       return this;
@@ -254,7 +257,9 @@ public class IdentifierIT extends SQLIntegTestCase {
     public Index addDocWithShardId(String doc, String id, String routing) {
       Request indexDoc =
           new Request(
-              "POST", String.format("/%s/_doc/%s?refresh=true&routing=%s", indexName, id, routing));
+              "POST",
+              String.format(
+                  Locale.ROOT, "/%s/_doc/%s?refresh=true&routing=%s", indexName, id, routing));
       indexDoc.setJsonEntity(doc);
       performRequest(client(), indexDoc);
       return this;

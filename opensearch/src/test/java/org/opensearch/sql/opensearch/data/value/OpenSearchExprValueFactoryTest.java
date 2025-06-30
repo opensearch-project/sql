@@ -44,6 +44,7 @@ import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -680,7 +681,9 @@ class OpenSearchExprValueFactoryTest {
 
     assertEquals(
         new ExprCollectionValue(List.of(ipValue(ipv4String), ipValue(ipv6String))),
-        tupleValue(String.format("{\"%s\":[\"%s\",\"%s\"]}", fieldIp, ipv4String, ipv6String))
+        tupleValue(
+                String.format(
+                    Locale.ROOT, "{\"%s\":[\"%s\",\"%s\"]}", fieldIp, ipv4String, ipv6String))
             .get(fieldIp));
   }
 
@@ -749,7 +752,7 @@ class OpenSearchExprValueFactoryTest {
     final String ipString = "192.168.0.1";
     assertEquals(
         new ExprIpValue(ipString),
-        tupleValue(String.format("{\"%s\":\"%s\"}", fieldIp, ipString)).get(fieldIp));
+        tupleValue(String.format(Locale.ROOT, "{\"%s\":\"%s\"}", fieldIp, ipString)).get(fieldIp));
   }
 
   @Test
@@ -760,17 +763,19 @@ class OpenSearchExprValueFactoryTest {
     // An object with a latitude and longitude.
     assertEquals(
         expectedGeoPointValue,
-        tupleValue(String.format("{\"geoV\":{\"lat\":%.8f,\"lon\":%.8f}}", lat, lon)).get("geoV"));
+        tupleValue(String.format(Locale.ROOT, "{\"geoV\":{\"lat\":%.8f,\"lon\":%.8f}}", lat, lon))
+            .get("geoV"));
 
     // A string in the “latitude,longitude” format.
     assertEquals(
         expectedGeoPointValue,
-        tupleValue(String.format("{\"geoV\":\"%.8f,%.8f\"}", lat, lon)).get("geoV"));
+        tupleValue(String.format(Locale.ROOT, "{\"geoV\":\"%.8f,%.8f\"}", lat, lon)).get("geoV"));
 
     // A geohash.
     var point =
         (OpenSearchExprGeoPointValue.GeoPoint)
-            tupleValue(String.format("{\"geoV\":\"%s\"}", Geohash.stringEncode(lon, lat)))
+            tupleValue(
+                    String.format(Locale.ROOT, "{\"geoV\":\"%s\"}", Geohash.stringEncode(lon, lat)))
                 .get("geoV")
                 .value();
     assertEquals(lat, point.getLat(), TOLERANCE);
@@ -779,19 +784,23 @@ class OpenSearchExprValueFactoryTest {
     // An array in the [longitude, latitude] format.
     assertEquals(
         expectedGeoPointValue,
-        tupleValue(String.format("{\"geoV\":[%.8f, %.8f]}", lon, lat)).get("geoV"));
+        tupleValue(String.format(Locale.ROOT, "{\"geoV\":[%.8f, %.8f]}", lon, lat)).get("geoV"));
 
     // A Well-Known Text POINT in the “POINT(longitude latitude)” format.
     assertEquals(
         expectedGeoPointValue,
-        tupleValue(String.format("{\"geoV\":\"POINT (%.8f %.8f)\"}", lon, lat)).get("geoV"));
+        tupleValue(String.format(Locale.ROOT, "{\"geoV\":\"POINT (%.8f %.8f)\"}", lon, lat))
+            .get("geoV"));
 
     // GeoJSON format, where the coordinates are in the [longitude, latitude] format
     assertEquals(
         expectedGeoPointValue,
         tupleValue(
                 String.format(
-                    "{\"geoV\":{\"type\":\"Point\",\"coordinates\":[%.8f,%.8f]}}", lon, lat))
+                    Locale.ROOT,
+                    "{\"geoV\":{\"type\":\"Point\",\"coordinates\":[%.8f,%.8f]}}",
+                    lon,
+                    lat))
             .get("geoV"));
 
     assertEquals(

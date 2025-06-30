@@ -15,6 +15,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
@@ -36,6 +37,7 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | patterns email mode=label | head 1 | fields email, patterns_field,"
                     + " tokens",
                 TEST_INDEX_BANK));
@@ -63,6 +65,7 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | patterns email mode=label pattern='@.*' | head 1 | fields email,"
                     + " patterns_field, tokens",
                 TEST_INDEX_BANK));
@@ -84,7 +87,9 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | patterns email mode=aggregation max_sample_count=3", TEST_INDEX_BANK));
+                Locale.ROOT,
+                "source=%s | patterns email mode=aggregation max_sample_count=3",
+                TEST_INDEX_BANK));
     verifySchema(
         result,
         schema("pattern_count", "bigint"),
@@ -109,6 +114,7 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | patterns content method=BRAIN mode=label"
                     + " max_sample_count=5 variable_count_threshold=5"
                     + " frequency_threshold_percentage=0.2 | head 2 | fields content,"
@@ -162,6 +168,7 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | patterns content method=brain mode=aggregation"
                     + " variable_count_threshold=5",
                 TEST_INDEX_HDFS_LOGS));
@@ -226,6 +233,7 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | patterns content by level method=BRAIN"
                     + " mode=aggregation max_sample_count=5"
                     + " variable_count_threshold=2 frequency_threshold_percentage=0.2",

@@ -15,6 +15,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.Locale;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -39,7 +40,8 @@ class YearweekTest extends ExpressionTestBase {
         () -> assertEquals(INTEGER, expression.type()),
         () ->
             assertEquals(
-                String.format("yearweek(DATE '%s', %d)", date, mode), expression.toString()),
+                String.format(Locale.ROOT, "yearweek(DATE '%s', %d)", date, mode),
+                expression.toString()),
         () -> assertEquals(integerValue(expectedResult), eval(expression)));
   }
 
@@ -114,12 +116,18 @@ class YearweekTest extends ExpressionTestBase {
         expected,
         eval(expression).integerValue(),
         String.format(
-            "Expected year week: %d, got %s (test with mode)", expected, eval(expression)));
+            Locale.ROOT,
+            "Expected year week: %d, got %s (test with mode)",
+            expected,
+            eval(expression)));
     assertEquals(
         expected,
         eval(expressionWithoutMode).integerValue(),
         String.format(
-            "Expected year week: %d, got %s (test without mode)", expected, eval(expression)));
+            Locale.ROOT,
+            "Expected year week: %d, got %s (test without mode)",
+            expected,
+            eval(expression)));
   }
 
   private int getYearWeekBeforeSunday(LocalDate date) {
@@ -130,7 +138,7 @@ class YearweekTest extends ExpressionTestBase {
 
     int week = (int) ChronoUnit.WEEKS.between(firstSundayOfYear, date) + 1;
     int year = date.getYear();
-    return Integer.parseInt(String.format("%d%02d", year, week));
+    return Integer.parseInt(String.format(Locale.ROOT, "%d%02d", year, week));
   }
 
   @Test

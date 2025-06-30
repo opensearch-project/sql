@@ -15,6 +15,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import com.google.common.collect.Ordering;
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
@@ -248,7 +249,7 @@ public class DateFormatIT extends SQLIntegTestCase {
       JSONObject response = executeQuery(sql);
       return getResult(response, "insert_time", DateTimeFormat.forPattern(format));
     } catch (IOException e) {
-      throw new SqlParseException(String.format("Unable to process query '%s'", sql));
+      throw new SqlParseException(String.format(Locale.ROOT, "Unable to process query '%s'", sql));
     }
   }
 

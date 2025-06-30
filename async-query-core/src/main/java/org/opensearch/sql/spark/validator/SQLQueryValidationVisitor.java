@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.spark.validator;
 
+import java.util.Locale;
 import lombok.AllArgsConstructor;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.AddTableColumnsContext;
@@ -596,7 +597,8 @@ public class SQLQueryValidationVisitor extends SqlBaseParserBaseVisitor<Void> {
 
   private void validateAllowed(SQLGrammarElement element, String detail) {
     if (!grammarElementValidator.isValid(element)) {
-      throw new IllegalArgumentException(String.format("%s (%s) is not allowed.", element, detail));
+      throw new IllegalArgumentException(
+          String.format(Locale.ROOT, "%s (%s) is not allowed.", element, detail));
     }
   }
 

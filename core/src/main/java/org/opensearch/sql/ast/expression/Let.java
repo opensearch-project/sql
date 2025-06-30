@@ -7,6 +7,7 @@ package org.opensearch.sql.ast.expression;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import java.util.Locale;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -25,7 +26,7 @@ public class Let extends UnresolvedExpression {
     String varName = var.getField().toString();
     if (OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(varName)) {
       throw new IllegalArgumentException(
-          String.format("Cannot use metadata field [%s] as the eval field.", varName));
+          String.format(Locale.ROOT, "Cannot use metadata field [%s] as the eval field.", varName));
     }
     this.var = var;
     this.expression = expression;

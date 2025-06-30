@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Table;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -117,7 +118,8 @@ class WideningTypeRuleTest {
     if (null == expected) {
       ExpressionEvaluationException exception =
           assertThrows(ExpressionEvaluationException.class, () -> WideningTypeRule.max(v1, v2));
-      assertEquals(String.format("no max type of %s and %s ", v1, v2), exception.getMessage());
+      assertEquals(
+          String.format(Locale.ROOT, "no max type of %s and %s ", v1, v2), exception.getMessage());
     } else {
       assertEquals(expected, WideningTypeRule.max(v1, v2));
     }

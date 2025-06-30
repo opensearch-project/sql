@@ -163,7 +163,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String strategy =
         node.getOutputAliasMap().isEmpty()
             ? ""
-            : String.format(" %s ", node.getOutputStrategy().toString().toLowerCase());
+            : String.format(Locale.ROOT, " %s ", node.getOutputStrategy().toString().toLowerCase());
     String outputFields = formatFieldAlias(node.getOutputAliasMap());
     return StringUtils.format(
         "%s | lookup %s %s%s%s", child, lookupTable, mappingFields, strategy, outputFields);

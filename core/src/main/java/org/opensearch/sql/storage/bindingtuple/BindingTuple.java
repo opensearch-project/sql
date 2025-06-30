@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.storage.bindingtuple;
 
+import java.util.Locale;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
@@ -31,7 +32,8 @@ public abstract class BindingTuple implements Environment<Expression, ExprValue>
     if (var instanceof ReferenceExpression) {
       return resolve(((ReferenceExpression) var));
     } else {
-      throw new ExpressionEvaluationException(String.format("can resolve expression: %s", var));
+      throw new ExpressionEvaluationException(
+          String.format(Locale.ROOT, "can resolve expression: %s", var));
     }
   }
 

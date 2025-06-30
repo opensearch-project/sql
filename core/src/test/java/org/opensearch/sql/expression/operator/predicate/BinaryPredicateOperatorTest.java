@@ -39,6 +39,7 @@ import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -215,7 +216,8 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
     FunctionExpression and = DSL.and(DSL.literal(booleanValue(v1)), DSL.literal(booleanValue(v2)));
     assertEquals(BOOLEAN, and.type());
     assertEquals(v1 && v2, ExprValueUtils.getBooleanValue(and.valueOf(valueEnv())));
-    assertEquals(String.format("and(%s, %s)", v1.toString(), v2.toString()), and.toString());
+    assertEquals(
+        String.format(Locale.ROOT, "and(%s, %s)", v1.toString(), v2.toString()), and.toString());
   }
 
   @Test
@@ -295,7 +297,8 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
     FunctionExpression or = DSL.or(DSL.literal(booleanValue(v1)), DSL.literal(booleanValue(v2)));
     assertEquals(BOOLEAN, or.type());
     assertEquals(v1 || v2, ExprValueUtils.getBooleanValue(or.valueOf(valueEnv())));
-    assertEquals(String.format("or(%s, %s)", v1.toString(), v2.toString()), or.toString());
+    assertEquals(
+        String.format(Locale.ROOT, "or(%s, %s)", v1.toString(), v2.toString()), or.toString());
   }
 
   @Test
@@ -375,7 +378,8 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
     FunctionExpression xor = DSL.xor(DSL.literal(booleanValue(v1)), DSL.literal(booleanValue(v2)));
     assertEquals(BOOLEAN, xor.type());
     assertEquals(v1 ^ v2, ExprValueUtils.getBooleanValue(xor.valueOf(valueEnv())));
-    assertEquals(String.format("xor(%s, %s)", v1.toString(), v2.toString()), xor.toString());
+    assertEquals(
+        String.format(Locale.ROOT, "xor(%s, %s)", v1.toString(), v2.toString()), xor.toString());
   }
 
   @Test
@@ -469,12 +473,17 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   private void assertStringRepr(
       ExprValue v1, ExprValue v2, String function, FunctionExpression functionExpression) {
     if (v1.type() == v2.type()) {
-      assertEquals(String.format("%s(%s, %s)", function, v1, v2), functionExpression.toString());
+      assertEquals(
+          String.format(Locale.ROOT, "%s(%s, %s)", function, v1, v2),
+          functionExpression.toString());
     } else {
       assertEquals(
           String.format(
+              Locale.ROOT,
               "%s(%s, %s)",
-              function, getExpectedStringRepr(TIMESTAMP, v1), getExpectedStringRepr(TIMESTAMP, v2)),
+              function,
+              getExpectedStringRepr(TIMESTAMP, v1),
+              getExpectedStringRepr(TIMESTAMP, v2)),
           functionExpression.toString());
     }
   }
@@ -483,7 +492,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
     if (widerType == value.type()) {
       return value.toString();
     }
-    return String.format("cast_to_%s(%s)", widerType.toString().toLowerCase(), value);
+    return String.format(Locale.ROOT, "cast_to_%s(%s)", widerType.toString().toLowerCase(), value);
   }
 
   @ParameterizedTest(name = "equal({0}, {1})")
@@ -555,7 +564,8 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
     FunctionExpression like = DSL.like(DSL.literal(v1), DSL.literal(v2));
     assertEquals(BOOLEAN, like.type());
     assertEquals(matches(v1, v2), like.valueOf(valueEnv()));
-    assertEquals(String.format("like(%s, %s)", v1.toString(), v2.toString()), like.toString());
+    assertEquals(
+        String.format(Locale.ROOT, "like(%s, %s)", v1.toString(), v2.toString()), like.toString());
   }
 
   @Test
@@ -563,11 +573,13 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
     FunctionExpression notLike = DSL.notLike(DSL.literal("bob"), DSL.literal("tom"));
     assertEquals(BOOLEAN, notLike.type());
     assertTrue(notLike.valueOf(valueEnv()).booleanValue());
-    assertEquals(String.format("not like(\"%s\", \"%s\")", "bob", "tom"), notLike.toString());
+    assertEquals(
+        String.format(Locale.ROOT, "not like(\"%s\", \"%s\")", "bob", "tom"), notLike.toString());
 
     notLike = DSL.notLike(DSL.literal("bob"), DSL.literal("bo%"));
     assertFalse(notLike.valueOf(valueEnv()).booleanValue());
-    assertEquals(String.format("not like(\"%s\", \"%s\")", "bob", "bo%"), notLike.toString());
+    assertEquals(
+        String.format(Locale.ROOT, "not like(\"%s\", \"%s\")", "bob", "bo%"), notLike.toString());
   }
 
   @Test

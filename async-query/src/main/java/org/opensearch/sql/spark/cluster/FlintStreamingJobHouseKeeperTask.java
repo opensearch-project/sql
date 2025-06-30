@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.spark.cluster;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -120,7 +121,7 @@ public class FlintStreamingJobHouseKeeperTask implements Runnable {
       case "covering":
         return flintIndexMetadata.getSource().split("\\.")[0];
       default:
-        throw new IllegalArgumentException(String.format("Unknown flint index kind: %s", kind));
+        throw new IllegalArgumentException(String.format(Locale.ROOT, "Unknown flint index kind: %s", kind));
     }
   }
 

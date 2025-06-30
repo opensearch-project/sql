@@ -22,6 +22,7 @@ import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 import org.hamcrest.Description;
@@ -196,7 +197,11 @@ public class MatcherUtils {
       public void describeTo(Description description) {
         description.appendText(
             String.format(
-                "(name=%s, alias=%s, type=%s)", expectedName, expectedAlias, expectedType));
+                Locale.ROOT,
+                "(name=%s, alias=%s, type=%s)",
+                expectedName,
+                expectedAlias,
+                expectedType));
       }
 
       @Override
@@ -237,7 +242,7 @@ public class MatcherUtils {
 
       @Override
       public void describeTo(Description description) {
-        description.appendText(String.format("(column_pattern=%s)", regex));
+        description.appendText(String.format(Locale.ROOT, "(column_pattern=%s)", regex));
       }
     };
   }
@@ -251,7 +256,7 @@ public class MatcherUtils {
 
       @Override
       public void describeTo(Description description) {
-        description.appendText(String.format("(name=%s)", name));
+        description.appendText(String.format(Locale.ROOT, "(name=%s)", name));
       }
     };
   }

@@ -7,6 +7,7 @@ package org.opensearch.sql.legacy.query.join;
 
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
 import java.io.IOException;
+import java.util.Locale;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestBuilder;
 import org.opensearch.action.search.MultiSearchRequest;
@@ -62,6 +63,7 @@ public class JoinRequestBuilder implements SqlElasticRequestBuilder {
           .source()
           .toXContent(secondBuilder, ToXContent.EMPTY_PARAMS);
       return String.format(
+          Locale.ROOT,
           " first query:\n%s\n second query:\n%s",
           BytesReference.bytes(firstBuilder).utf8ToString(),
           BytesReference.bytes(secondBuilder).utf8ToString());

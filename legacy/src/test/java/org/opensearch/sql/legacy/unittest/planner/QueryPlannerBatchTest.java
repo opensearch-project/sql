@@ -15,6 +15,7 @@ import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -124,7 +125,11 @@ public class QueryPlannerBatchTest extends QueryPlannerTest {
     assertThat(
         query(
             String.format(
-                TEST_SQL1 + TEST_SQL2_JOIN1 + TEST_SQL3, blockSize, pageSize, "INNER JOIN"),
+                Locale.ROOT,
+                TEST_SQL1 + TEST_SQL2_JOIN1 + TEST_SQL3,
+                blockSize,
+                pageSize,
+                "INNER JOIN"),
             departments(pageSize, departments),
             employees(pageSize, employees)),
         expectedInnerJoinResult);
@@ -135,7 +140,11 @@ public class QueryPlannerBatchTest extends QueryPlannerTest {
     assertThat(
         query(
             String.format(
-                TEST_SQL1 + TEST_SQL2_JOIN2 + TEST_SQL3, blockSize, pageSize, "INNER JOIN"),
+                Locale.ROOT,
+                TEST_SQL1 + TEST_SQL2_JOIN2 + TEST_SQL3,
+                blockSize,
+                pageSize,
+                "INNER JOIN"),
             employees(pageSize, employees),
             departments(pageSize, departments)),
         expectedInnerJoinResult);
@@ -146,7 +155,11 @@ public class QueryPlannerBatchTest extends QueryPlannerTest {
     assertThat(
         query(
             String.format(
-                TEST_SQL1 + TEST_SQL2_JOIN1 + TEST_SQL3, blockSize, pageSize, "LEFT JOIN"),
+                Locale.ROOT,
+                TEST_SQL1 + TEST_SQL2_JOIN1 + TEST_SQL3,
+                blockSize,
+                pageSize,
+                "LEFT JOIN"),
             departments(pageSize, departments),
             employees(pageSize, employees)),
         expectedLeftOuterJoinResult1);
@@ -157,7 +170,11 @@ public class QueryPlannerBatchTest extends QueryPlannerTest {
     assertThat(
         query(
             String.format(
-                TEST_SQL1 + TEST_SQL2_JOIN2 + TEST_SQL3, blockSize, pageSize, "LEFT JOIN"),
+                Locale.ROOT,
+                TEST_SQL1 + TEST_SQL2_JOIN2 + TEST_SQL3,
+                blockSize,
+                pageSize,
+                "LEFT JOIN"),
             employees(pageSize, employees),
             departments(pageSize, departments)),
         expectedLeftOuterJoinResult2);

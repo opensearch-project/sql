@@ -8,6 +8,7 @@ package org.opensearch.sql.legacy.expression.core.operator;
 import static org.opensearch.sql.legacy.expression.model.ExprValueUtils.getDoubleValue;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.function.BiFunction;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.legacy.expression.model.ExprDoubleValue;
@@ -30,8 +31,11 @@ public class DoubleBinaryScalarOperator implements ScalarOperator {
     if (exprValue1.kind() != exprValue2.kind()) {
       throw new RuntimeException(
           String.format(
+              Locale.ROOT,
               "unexpected operation type: %s(%s,%s)",
-              op.name(), exprValue1.kind(), exprValue2.kind()));
+              op.name(),
+              exprValue1.kind(),
+              exprValue2.kind()));
     }
     switch (exprValue1.kind()) {
       case DOUBLE_VALUE:
@@ -43,8 +47,11 @@ public class DoubleBinaryScalarOperator implements ScalarOperator {
       default:
         throw new RuntimeException(
             String.format(
+                Locale.ROOT,
                 "unexpected operation type: %s(%s,%s)",
-                op.name(), exprValue1.kind(), exprValue2.kind()));
+                op.name(),
+                exprValue1.kind(),
+                exprValue2.kind()));
     }
   }
 

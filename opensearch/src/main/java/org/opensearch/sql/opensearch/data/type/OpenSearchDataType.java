@@ -9,6 +9,7 @@ import com.google.common.collect.ImmutableMap;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import lombok.EqualsAndHashCode;
@@ -143,7 +144,8 @@ public class OpenSearchDataType implements ExprType, Serializable {
               result.put(k, new OpenSearchAliasType(v, flattenResult.get(v)));
             } else {
               throw new IllegalStateException(
-                  String.format("Cannot find the path [%s] for alias type field [%s]", v, k));
+                  String.format(
+                      Locale.ROOT, "Cannot find the path [%s] for alias type field [%s]", v, k));
             }
           });
     }
@@ -292,7 +294,9 @@ public class OpenSearchDataType implements ExprType, Serializable {
             for (var entry : subtree.entrySet()) {
               String entryKey = entry.getKey();
               var nextPrefix =
-                  prefix.isEmpty() ? entryKey : String.format("%s.%s", prefix, entryKey);
+                  prefix.isEmpty()
+                      ? entryKey
+                      : String.format(Locale.ROOT, "%s.%s", prefix, entryKey);
               result.put(nextPrefix, entry.getValue().cloneEmpty());
               var nextSubtree = entry.getValue().getProperties();
               if (!nextSubtree.isEmpty()) {

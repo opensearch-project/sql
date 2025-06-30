@@ -20,6 +20,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Locale;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -151,7 +152,7 @@ class AvgAggregatorTest extends AggregationTest {
             DSL.multiply(
                 DSL.ref("integer_value", INTEGER), DSL.literal(ExprValueUtils.integerValue(10))));
     assertEquals(
-        String.format("avg(*(%s, %d))", DSL.ref("integer_value", INTEGER), 10),
+        String.format(Locale.ROOT, "avg(*(%s, %d))", DSL.ref("integer_value", INTEGER), 10),
         avgAggregator.toString());
   }
 }

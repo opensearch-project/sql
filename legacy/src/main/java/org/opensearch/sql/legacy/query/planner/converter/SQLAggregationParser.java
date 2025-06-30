@@ -19,6 +19,7 @@ import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -274,13 +275,18 @@ public class SQLAggregationParser {
         SQLAggregateOption option = aggExpr.getOption();
         exprName =
             option == null
-                ? String.format("%s(%s)", aggExpr.getMethodName(), aggExpr.getArguments().get(0))
+                ? String.format(
+                    Locale.ROOT, "%s(%s)", aggExpr.getMethodName(), aggExpr.getArguments().get(0))
                 : String.format(
+                    Locale.ROOT,
                     "%s(%s %s)",
-                    aggExpr.getMethodName(), option.name(), aggExpr.getArguments().get(0));
+                    aggExpr.getMethodName(),
+                    option.name(),
+                    aggExpr.getArguments().get(0));
       } else if (expr instanceof SQLMethodInvokeExpr) {
         exprName =
             String.format(
+                Locale.ROOT,
                 "%s(%s)",
                 ((SQLMethodInvokeExpr) expr).getMethodName(),
                 nameOfExpr(((SQLMethodInvokeExpr) expr).getParameters().get(0)));
@@ -289,8 +295,10 @@ public class SQLAggregationParser {
       } else if (expr instanceof SQLCastExpr) {
         exprName =
             String.format(
+                Locale.ROOT,
                 "CAST(%s AS %s)",
-                ((SQLCastExpr) expr).getExpr(), ((SQLCastExpr) expr).getDataType().getName());
+                ((SQLCastExpr) expr).getExpr(),
+                ((SQLCastExpr) expr).getDataType().getName());
       }
       return exprName;
     }
@@ -299,7 +307,7 @@ public class SQLAggregationParser {
       private int aliasSuffix = 0;
 
       private String nextAlias(String name) {
-        return String.format("%s_%d", name, next());
+        return String.format(Locale.ROOT, "%s_%d", name, next());
       }
 
       private Integer next() {

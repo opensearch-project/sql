@@ -16,6 +16,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
@@ -39,7 +40,9 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval a = cast(age as string) | fields a", TEST_INDEX_STATE_COUNTRY));
+                Locale.ROOT,
+                "source=%s | eval a = cast(age as string) | fields a",
+                TEST_INDEX_STATE_COUNTRY));
 
     verifySchema(actual, schema("a", "string"));
 
@@ -51,6 +54,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval age = cast(age as STRING) | fields age",
                 TEST_INDEX_STATE_COUNTRY));
 
@@ -66,6 +70,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
         () ->
             executeQuery(
                 String.format(
+                    Locale.ROOT,
                     "source=%s | eval age = cast(age as VARCHAR) | fields age",
                     TEST_INDEX_STATE_COUNTRY)));
   }
@@ -75,6 +80,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval age = cast(concat(cast(age as string), '0') as DOUBLE) | fields"
                     + " age",
                 TEST_INDEX_STATE_COUNTRY));
@@ -89,6 +95,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast(state as string) | fields a",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
@@ -131,7 +138,9 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval a = cast(name as boolean) | fields a", TEST_INDEX_STATE_COUNTRY));
+                Locale.ROOT,
+                "source=%s | eval a = cast(name as boolean) | fields a",
+                TEST_INDEX_STATE_COUNTRY));
 
     assertJsonEquals(
         "{\n"
@@ -190,6 +199,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast(1 as boolean) | fields a | head 1",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(actual, rows(true));
@@ -197,6 +207,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast(2 as boolean) | fields a | head 1",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(actual, rows(true));
@@ -204,6 +215,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast(0 as boolean) | fields a | head 1",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(actual, rows(false));
@@ -211,6 +223,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast('1' as boolean) | fields a | head 1",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(actual, rows(true));
@@ -218,6 +231,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast('2' as boolean) | fields a | head 1",
                 TEST_INDEX_DATATYPE_NUMERIC));
     assertJsonEquals(
@@ -242,6 +256,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast('0' as boolean) | fields a | head 1",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(actual, rows(false));
@@ -249,6 +264,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast('aa' as boolean) | fields a | head 1",
                 TEST_INDEX_DATATYPE_NUMERIC));
     assertJsonEquals(
@@ -276,6 +292,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast(integer_number as INTEGER) | fields a",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(actual, rows(2));
@@ -283,6 +300,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast(integer_number as FLOAT) | fields a",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(actual, rows(2));
@@ -290,6 +308,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast(integer_number as LONG) | fields a",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(actual, rows(2));
@@ -297,6 +316,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast(integer_number as DOUBLE) | fields a",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(actual, rows(2));
@@ -304,6 +324,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast(integer_number as STRING) | fields a",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(actual, rows("2"));
@@ -314,6 +335,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast(long_number as INT) | fields a",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(actual, rows(1));
@@ -321,6 +343,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast(long_number as FLOAT) | fields a",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(actual, rows(1));
@@ -328,6 +351,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast(long_number as DOUBLE) | fields a",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(actual, rows(1));
@@ -335,6 +359,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast(long_number as STRING) | fields a",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(actual, rows("1"));
@@ -345,6 +370,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast(float_number as INT) | fields a",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(actual, rows(6));
@@ -352,6 +378,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast(float_number as LONG) | fields a",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(actual, rows(6));
@@ -359,6 +386,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast(float_number as DOUBLE) | fields a",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(actual, rows(6.199999809265137));
@@ -366,6 +394,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast(float_number as STRING) | fields a",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(actual, rows("6.2"));
@@ -376,6 +405,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast(double_number as INT) | fields a",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(actual, rows(5));
@@ -383,6 +413,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast(double_number as LONG) | fields a",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(actual, rows(5));
@@ -390,6 +421,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast(double_number as FLOAT) | fields a",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(actual, rows(5.1));
@@ -397,6 +429,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast(double_number as STRING) | fields a",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(actual, rows("5.1"));
@@ -408,6 +441,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast(boolean_value as INT) | fields a",
                 TEST_INDEX_DATATYPE_NONNUMERIC));
     verifyDataRows(actual, rows(1));
@@ -415,6 +449,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast(boolean_value as LONG) | fields a",
                 TEST_INDEX_DATATYPE_NONNUMERIC));
     verifyDataRows(actual, rows(1));
@@ -443,6 +478,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast(boolean_value as STRING) | fields a",
                 TEST_INDEX_DATATYPE_NONNUMERIC));
     verifyDataRows(actual, rows("TRUE"));
@@ -453,6 +489,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast(cast(integer_number as STRING) as INT) | fields a",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(actual, rows(2));
@@ -460,6 +497,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast(cast(long_number as STRING) as LONG) | fields a",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(actual, rows(1));
@@ -467,6 +505,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast(cast(float_number as STRING) as FLOAT) | fields a",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(actual, rows(6.2));
@@ -474,6 +513,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast(cast(double_number as STRING) as DOUBLE) | fields a",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(actual, rows(5.1));
@@ -481,6 +521,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = cast(cast(boolean_value as STRING) as BOOLEAN)| fields a",
                 TEST_INDEX_DATATYPE_NONNUMERIC));
     verifyDataRows(actual, rows(true));

@@ -52,7 +52,7 @@ public class WindowFrame extends UnresolvedExpression {
         lowerBound = createBound(lower.getValue().toString());
       } else {
         throw new IllegalArgumentException(
-            String.format("Unsupported bound type: %s", lower.getType()));
+            String.format(Locale.ROOT, "Unsupported bound type: %s", lower.getType()));
       }
     }
     if (upper != null) {
@@ -60,7 +60,7 @@ public class WindowFrame extends UnresolvedExpression {
         upperBound = createBound(upper.getValue().toString());
       } else {
         throw new IllegalArgumentException(
-            String.format("Unsupported bound type: %s", upper.getType()));
+            String.format(Locale.ROOT, "Unsupported bound type: %s", upper.getType()));
       }
     }
     return new WindowFrame(type, lowerBound, upperBound);
@@ -81,7 +81,8 @@ public class WindowFrame extends UnresolvedExpression {
       long number = Long.parseLong(boundType.split(" FOLLOWING")[0]);
       return new WindowBound.OffSetWindowBound(number, false);
     } else {
-      throw new IllegalArgumentException(String.format("Unsupported bound type: %s", boundType));
+      throw new IllegalArgumentException(
+          String.format(Locale.ROOT, "Unsupported bound type: %s", boundType));
     }
   }
 }

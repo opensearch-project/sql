@@ -12,6 +12,7 @@ import static org.opensearch.sql.utils.DateTimeUtils.extractTimestamp;
 import java.time.ZoneOffset;
 import java.time.temporal.TemporalAmount;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
@@ -135,6 +136,7 @@ public class AddSubDateFunction extends ImplementorUDF {
       } else {
         throw new IllegalArgumentException(
             String.format(
+                Locale.ROOT,
                 "The second argument of %s function must be a number or an interval",
                 isAdd ? "date_add" : "date_sub"));
       }

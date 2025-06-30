@@ -14,6 +14,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
@@ -32,7 +33,8 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
   public void testRename() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format("source = %s | rename age as renamed_age", TEST_INDEX_STATE_COUNTRY));
+            String.format(
+                Locale.ROOT, "source = %s | rename age as renamed_age", TEST_INDEX_STATE_COUNTRY));
     verifySchema(
         result,
         schema("name", "string"),
@@ -51,6 +53,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
             () ->
                 executeQuery(
                     String.format(
+                        Locale.ROOT,
                         "source = %s | rename age as renamed_age | fields age",
                         TEST_INDEX_STATE_COUNTRY)));
     verifyErrorMessageContains(
@@ -67,7 +70,9 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
             () ->
                 executeQuery(
                     String.format(
-                        "source = %s | rename renamed_age as age", TEST_INDEX_STATE_COUNTRY)));
+                        Locale.ROOT,
+                        "source = %s | rename renamed_age as age",
+                        TEST_INDEX_STATE_COUNTRY)));
     verifyErrorMessageContains(
         e,
         "field [renamed_age] not found; input fields are: [name, country, state, month, year, age,"
@@ -81,12 +86,17 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
             IllegalArgumentException.class,
             () ->
                 executeQuery(
-                    String.format("source = %s | rename name as _id", TEST_INDEX_STATE_COUNTRY)));
+                    String.format(
+                        Locale.ROOT,
+                        "source = %s | rename name as _id",
+                        TEST_INDEX_STATE_COUNTRY)));
     verifyErrorMessageContains(e, "Cannot use metadata field [_id] in Rename command.");
 
     // Test rename to _ID, which is allowed as metadata fields name is case-sensitive
     JSONObject result =
-        executeQuery(String.format("source = %s | rename age as _ID", TEST_INDEX_STATE_COUNTRY));
+        executeQuery(
+            String.format(
+                Locale.ROOT, "source = %s | rename age as _ID", TEST_INDEX_STATE_COUNTRY));
     verifySchema(
         result,
         schema("name", "string"),
@@ -102,6 +112,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | rename name as renamed_name, country as renamed_country"
                     + "| fields renamed_name, age, renamed_country",
                 TEST_INDEX_STATE_COUNTRY));
@@ -123,6 +134,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | rename age as user_age | stats avg(user_age) by country",
                 TEST_INDEX_STATE_COUNTRY));
     verifySchemaInOrder(result, schema("avg(user_age)", "double"), schema("country", "string"));
@@ -134,6 +146,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s |  rename name as `renamed_name`, country as `renamed_country`"
                     + "| fields `renamed_name`, `age`, `renamed_country`",
                 TEST_INDEX_STATE_COUNTRY));
@@ -155,6 +168,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | rename age as `user_age` | stats avg(`user_age`) by country",
                 TEST_INDEX_STATE_COUNTRY));
     verifySchemaInOrder(result, schema("avg(`user_age`)", "double"), schema("country", "string"));

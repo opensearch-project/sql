@@ -6,6 +6,7 @@
 package org.opensearch.sql.expression.function.udf;
 
 import java.util.List;
+import java.util.Locale;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexImpTable;
@@ -88,7 +89,8 @@ public class SpanFunction extends ImplementorUDF {
               case EXPR_TIME -> "evalTime";
               case EXPR_TIMESTAMP -> "evalTimestamp";
               default -> throw new IllegalArgumentException(
-                  String.format("Unsupported expr type: %s", exprSqlType.getExprType()));
+                  String.format(
+                      Locale.ROOT, "Unsupported expr type: %s", exprSqlType.getExprType()));
             };
         ScalarFunctionImpl function =
             (ScalarFunctionImpl)
@@ -99,6 +101,7 @@ public class SpanFunction extends ImplementorUDF {
       }
       throw new IllegalArgumentException(
           String.format(
+              Locale.ROOT,
               "Unsupported expr type: %s",
               OpenSearchTypeFactory.convertRelDataTypeToExprType(fieldType)));
     }

@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.remote;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
@@ -61,7 +62,8 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
             ? loadFromFile("expectedOutput/calcite/explain_filter_cost_w_pushdown.txt")
             : loadFromFile("expectedOutput/calcite/explain_filter_cost_wo_pushdown.txt");
     assertTrue(
-        String.format("Got: %s\n, expected: %s", result, expected), result.contains(expected));
+        String.format(Locale.ROOT, "Got: %s\n, expected: %s", result, expected),
+        result.contains(expected));
   }
 
   @Test

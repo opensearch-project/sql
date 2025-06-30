@@ -17,6 +17,7 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlASTVisitorAdapter;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.Locale;
 
 /**
  *
@@ -133,7 +134,7 @@ public class SubqueryAliasRewriter extends MySqlASTVisitorAdapter {
   }
 
   private String createAlias(String alias) {
-    return String.format("%s_%d", alias, next());
+    return String.format(Locale.ROOT, "%s_%d", alias, next());
   }
 
   private Integer next() {

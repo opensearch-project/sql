@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -278,9 +279,10 @@ public class AnalyzerTestBase {
 
   public static String getIncompatibleTypeErrMsg(ExprType lType, ExprType rType) {
     return String.format(
+        Locale.ROOT,
         "= function expected %s, but got [%s,%s]",
         ExprCoreType.coreTypes().stream()
-            .map(type -> String.format("[%s,%s]", type.typeName(), type.typeName()))
+            .map(type -> String.format(Locale.ROOT, "[%s,%s]", type.typeName(), type.typeName()))
             .collect(Collectors.joining(",", "{", "}")),
         lType,
         rType);

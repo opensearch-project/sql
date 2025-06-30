@@ -9,6 +9,7 @@ import static java.util.Collections.emptyMap;
 import static org.opensearch.script.Script.DEFAULT_SCRIPT_TYPE;
 import static org.opensearch.sql.opensearch.storage.script.ExpressionScriptEngine.EXPRESSION_LANG_NAME;
 
+import java.util.Locale;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.script.Script;
@@ -47,7 +48,8 @@ public class AggregationBuilderHelper {
               emptyMap()));
     } else {
       throw new IllegalStateException(
-          String.format("metric aggregation doesn't support " + "expression %s", expression));
+          String.format(
+              Locale.ROOT, "metric aggregation doesn't support " + "expression %s", expression));
     }
   }
 }

@@ -8,6 +8,7 @@ package org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance;
 import com.google.common.collect.ImmutableMap;
 import java.time.ZoneId;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
@@ -225,6 +226,7 @@ public class FunctionParameterRepository {
           .put(
               "flags",
               String.format(
+                  Locale.ROOT,
                   "Available values are: %s and any combinations of these separated by '|'.",
                   Arrays.stream(SimpleQueryStringFlag.class.getEnumConstants())
                       .map(Enum::toString)
@@ -239,6 +241,7 @@ public class FunctionParameterRepository {
           .put(
               "operator",
               String.format(
+                  Locale.ROOT,
                   "Available values are: %s.",
                   Arrays.stream(Operator.class.getEnumConstants())
                       .map(Enum::toString)
@@ -246,6 +249,7 @@ public class FunctionParameterRepository {
           .put(
               "type",
               String.format(
+                  Locale.ROOT,
                   "Available values are: %s.",
                   Arrays.stream(MultiMatchQueryBuilder.Type.class.getEnumConstants())
                       .map(Enum::toString)
@@ -253,6 +257,7 @@ public class FunctionParameterRepository {
           .put(
               "zero_terms_query",
               String.format(
+                  Locale.ROOT,
                   "Available values are: %s.",
                   Arrays.stream(MatchQuery.ZeroTermsQuery.class.getEnumConstants())
                       .map(Enum::toString)
@@ -268,6 +273,7 @@ public class FunctionParameterRepository {
 
   private static String formatErrorMessage(String name, String value, String limitationName) {
     return String.format(
+        Locale.ROOT,
         "Invalid %s value: '%s'. %s",
         name,
         value,

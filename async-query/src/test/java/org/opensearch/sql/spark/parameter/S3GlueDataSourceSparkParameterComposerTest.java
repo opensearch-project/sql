@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
@@ -362,7 +363,7 @@ class S3GlueDataSourceSparkParameterComposerTest {
 
   private static String getConfList(String... params) {
     return Arrays.stream(params)
-        .map(param -> String.format(" --conf %s ", param))
+        .map(param -> String.format(Locale.ROOT, " --conf %s ", param))
         .collect(Collectors.joining());
   }
 }

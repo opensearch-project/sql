@@ -23,6 +23,7 @@ import com.amazonaws.services.emrserverless.model.StartJobRunResult;
 import com.amazonaws.services.emrserverless.model.ValidationException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -128,7 +129,7 @@ public class EmrServerlessClientImpl implements EMRServerlessClient {
                     throw new RuntimeException(GENERIC_INTERNAL_SERVER_ERROR_MESSAGE);
                   }
                 });
-    logger.info(String.format("Job : %s cancelled", cancelJobRunResult.getJobRunId()));
+    logger.info(String.format(Locale.ROOT, "Job : %s cancelled", cancelJobRunResult.getJobRunId()));
     return cancelJobRunResult;
   }
 }

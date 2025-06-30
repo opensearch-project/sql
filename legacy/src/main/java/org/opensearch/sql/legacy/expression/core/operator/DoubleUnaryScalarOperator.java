@@ -8,6 +8,7 @@ package org.opensearch.sql.legacy.expression.core.operator;
 import static org.opensearch.sql.legacy.expression.model.ExprValueUtils.getDoubleValue;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.legacy.expression.model.ExprDoubleValue;
@@ -34,7 +35,8 @@ public class DoubleUnaryScalarOperator implements ScalarOperator {
         return ExprValueFactory.from(doubleFunc.apply(getDoubleValue(exprValue)));
       default:
         throw new RuntimeException(
-            String.format("unexpected operation type: %s(%s)", op.name(), exprValue.kind()));
+            String.format(
+                Locale.ROOT, "unexpected operation type: %s(%s)", op.name(), exprValue.kind()));
     }
   }
 

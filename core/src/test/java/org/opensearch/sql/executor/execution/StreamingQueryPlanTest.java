@@ -13,6 +13,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 
+import java.util.Locale;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -66,7 +67,9 @@ class StreamingQueryPlanTest {
   void failIfNoStreamingSource() throws InterruptedException {
     streamingQuery()
         .nonStreamingSource()
-        .shouldFail(String.format("table %s could not been used as streaming source.", tableName));
+        .shouldFail(
+            String.format(
+                Locale.ROOT, "table %s could not been used as streaming source.", tableName));
   }
 
   @Test

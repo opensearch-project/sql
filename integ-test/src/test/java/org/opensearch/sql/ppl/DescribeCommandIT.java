@@ -13,6 +13,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
@@ -28,7 +29,7 @@ public class DescribeCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testDescribeAllFields() throws IOException {
-    JSONObject result = executeQuery(String.format("describe %s", TEST_INDEX_DOG));
+    JSONObject result = executeQuery(String.format(Locale.ROOT, "describe %s", TEST_INDEX_DOG));
     verifyColumn(
         result,
         columnName("TABLE_CAT"),
@@ -62,7 +63,9 @@ public class DescribeCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "describe %s | fields TABLE_NAME, COLUMN_NAME, TYPE_NAME", TEST_INDEX_DOG));
+                Locale.ROOT,
+                "describe %s | fields TABLE_NAME, COLUMN_NAME, TYPE_NAME",
+                TEST_INDEX_DOG));
     verifyColumn(
         result, columnName("TABLE_NAME"), columnName("COLUMN_NAME"), columnName("TYPE_NAME"));
     verifyDataRows(

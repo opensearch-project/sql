@@ -12,6 +12,8 @@ import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
 import org.opensearch.sql.spark.rest.model.LangType;
 
+import java.util.Locale;
+
 @UtilityClass
 public class CreateAsyncQueryRequestConverter {
   public static CreateAsyncQueryRequest fromXContentParser(XContentParser parser) {
@@ -40,7 +42,7 @@ public class CreateAsyncQueryRequestConverter {
       return new CreateAsyncQueryRequest(query, datasource, lang, sessionId);
     } catch (Exception e) {
       throw new IllegalArgumentException(
-          String.format("Error while parsing the request body: %s", e.getMessage()));
+          String.format(Locale.ROOT, "Error while parsing the request body: %s", e.getMessage()));
     }
   }
 }

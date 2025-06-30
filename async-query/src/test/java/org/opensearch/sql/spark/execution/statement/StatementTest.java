@@ -12,6 +12,7 @@ import static org.opensearch.sql.spark.execution.statement.StatementState.RUNNIN
 import static org.opensearch.sql.spark.execution.statement.StatementState.WAITING;
 import static org.opensearch.sql.spark.execution.statement.StatementTest.TestStatement.testStatement;
 
+import java.util.Locale;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.junit.After;
@@ -134,7 +135,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
 
     IllegalStateException exception = assertThrows(IllegalStateException.class, st::cancel);
     assertEquals(
-        String.format("cancel statement failed. no statement found. statement: %s.", stId),
+        String.format(Locale.ROOT, "cancel statement failed. no statement found. statement: %s.", stId),
         exception.getMessage());
   }
 
@@ -151,7 +152,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
     assertEquals(StatementState.CANCELLED, running.getStatementState());
     IllegalStateException exception = assertThrows(IllegalStateException.class, st::cancel);
     assertEquals(
-        String.format(
+        String.format(Locale.ROOT,
             "cancel statement failed. current statementState: CANCELLED " + "statement: %s.", stId),
         exception.getMessage());
   }
@@ -186,7 +187,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
 
     IllegalStateException exception = assertThrows(IllegalStateException.class, st::cancel);
     assertEquals(
-        String.format("can't cancel statement in %s state. statement: %s.", state.getState(), stId),
+        String.format(Locale.ROOT, "can't cancel statement in %s state. statement: %s.", state.getState(), stId),
         exception.getMessage());
   }
 

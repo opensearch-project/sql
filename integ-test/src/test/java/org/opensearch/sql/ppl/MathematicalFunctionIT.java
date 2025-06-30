@@ -15,6 +15,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import static org.opensearch.sql.util.MatcherUtils.verifySome;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
@@ -31,7 +32,9 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   @Test
   public void testAbs() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | eval f = abs(age) | fields f", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(
+                Locale.ROOT, "source=%s | eval f = abs(age) | fields f", TEST_INDEX_BANK));
     verifySchema(result, schema("f", null, "int"));
     verifyDataRows(result, rows(32), rows(36), rows(28), rows(33), rows(36), rows(39), rows(34));
   }
@@ -39,7 +42,9 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   @Test
   public void testCeil() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | eval f = ceil(age) | fields f", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(
+                Locale.ROOT, "source=%s | eval f = ceil(age) | fields f", TEST_INDEX_BANK));
     if (isCalciteEnabled()) {
       verifySchema(result, schema("f", null, "int"));
     } else {
@@ -52,7 +57,8 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   public void testCeiling() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format("source=%s | eval f = ceiling(age) | fields f", TEST_INDEX_BANK));
+            String.format(
+                Locale.ROOT, "source=%s | eval f = ceiling(age) | fields f", TEST_INDEX_BANK));
     if (isCalciteEnabled()) {
       verifySchema(result, schema("f", null, "int"));
     } else {
@@ -64,7 +70,8 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   @Test
   public void testE() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | eval f = e() | fields f", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(Locale.ROOT, "source=%s | eval f = e() | fields f", TEST_INDEX_BANK));
     verifySchema(result, schema("f", null, "double"));
     verifyDataRows(
         result,
@@ -80,7 +87,9 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   @Test
   public void testExp() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | eval f = exp(age) | fields f", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(
+                Locale.ROOT, "source=%s | eval f = exp(age) | fields f", TEST_INDEX_BANK));
     verifySchema(result, schema("f", null, "double"));
     verifyDataRows(
         result,
@@ -96,7 +105,9 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   @Test
   public void testFloor() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | eval f = floor(age) | fields f", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(
+                Locale.ROOT, "source=%s | eval f = floor(age) | fields f", TEST_INDEX_BANK));
     if (isCalciteEnabled()) {
       verifySchema(result, schema("f", null, "int"));
     } else {
@@ -108,7 +119,8 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   @Test
   public void testLn() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | eval f = ln(age) | fields f", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(Locale.ROOT, "source=%s | eval f = ln(age) | fields f", TEST_INDEX_BANK));
     verifySchema(result, schema("f", null, "double"));
     verifyDataRows(
         result,
@@ -124,7 +136,9 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   @Test
   public void testLogOneArg() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | eval f = log(age) | fields f", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(
+                Locale.ROOT, "source=%s | eval f = log(age) | fields f", TEST_INDEX_BANK));
     verifySchema(result, schema("f", null, "double"));
     verifyDataRows(
         result,
@@ -141,7 +155,8 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   public void testLogTwoArgs() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format("source=%s | eval f = log(age, balance) | fields f", TEST_INDEX_BANK));
+            String.format(
+                Locale.ROOT, "source=%s | eval f = log(age, balance) | fields f", TEST_INDEX_BANK));
     verifySchema(result, schema("f", null, "double"));
     verifyDataRows(
         result,
@@ -157,7 +172,9 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   @Test
   public void testLog10() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | eval f = log10(age) | fields f", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(
+                Locale.ROOT, "source=%s | eval f = log10(age) | fields f", TEST_INDEX_BANK));
     verifySchema(result, schema("f", null, "double"));
     verifyDataRows(
         result,
@@ -173,7 +190,9 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   @Test
   public void testLog2() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | eval f = log2(age) | fields f", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(
+                Locale.ROOT, "source=%s | eval f = log2(age) | fields f", TEST_INDEX_BANK));
     verifySchema(result, schema("f", null, "double"));
     verifyDataRows(
         result,
@@ -190,7 +209,8 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   public void testConv() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format("source=%s | eval f = conv(age, 10, 16) | fields f", TEST_INDEX_BANK));
+            String.format(
+                Locale.ROOT, "source=%s | eval f = conv(age, 10, 16) | fields f", TEST_INDEX_BANK));
     verifySchema(result, schema("f", null, "string"));
     verifyDataRows(
         result, rows("20"), rows("24"), rows("1c"), rows("21"), rows("24"), rows("27"), rows("22"));
@@ -200,7 +220,8 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   public void testCrc32() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format("source=%s | eval f = crc32(firstname) | fields f", TEST_INDEX_BANK));
+            String.format(
+                Locale.ROOT, "source=%s | eval f = crc32(firstname) | fields f", TEST_INDEX_BANK));
     verifySchema(result, schema("f", null, "bigint"));
     verifyDataRows(
         result,
@@ -217,7 +238,8 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   public void testMod() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format("source=%s | eval f = mod(age, 10) | fields f", TEST_INDEX_BANK));
+            String.format(
+                Locale.ROOT, "source=%s | eval f = mod(age, 10) | fields f", TEST_INDEX_BANK));
     verifySchema(result, schema("f", null, "int"));
     verifyDataRows(result, rows(2), rows(6), rows(8), rows(3), rows(6), rows(9), rows(4));
   }
@@ -225,7 +247,9 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   @Test
   public void testPow() throws IOException {
     JSONObject pow =
-        executeQuery(String.format("source=%s | eval f = pow(age, 2) | fields f", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(
+                Locale.ROOT, "source=%s | eval f = pow(age, 2) | fields f", TEST_INDEX_BANK));
     verifySchema(pow, schema("f", null, "double"));
     verifyDataRows(
         pow,
@@ -239,7 +263,8 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
 
     JSONObject power =
         executeQuery(
-            String.format("source=%s | eval f = power(age, 2) | fields f", TEST_INDEX_BANK));
+            String.format(
+                Locale.ROOT, "source=%s | eval f = power(age, 2) | fields f", TEST_INDEX_BANK));
     verifySchema(power, schema("f", null, "double"));
     verifyDataRows(
         power,
@@ -255,7 +280,9 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   @Test
   public void testRound() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | eval f = round(age) | fields f", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(
+                Locale.ROOT, "source=%s | eval f = round(age) | fields f", TEST_INDEX_BANK));
     if (isCalciteEnabled()) {
       verifySchema(result, schema("f", null, "int"));
     } else {
@@ -265,7 +292,8 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
 
     result =
         executeQuery(
-            String.format("source=%s | eval f = round(age, -1) | fields f", TEST_INDEX_BANK));
+            String.format(
+                Locale.ROOT, "source=%s | eval f = round(age, -1) | fields f", TEST_INDEX_BANK));
     if (isCalciteEnabled()) {
       verifySchema(result, schema("f", null, "int"));
     } else {
@@ -277,7 +305,9 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   @Test
   public void testSign() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | eval f = sign(age) | fields f", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(
+                Locale.ROOT, "source=%s | eval f = sign(age) | fields f", TEST_INDEX_BANK));
     verifySchema(result, schema("f", null, "int"));
     verifyDataRows(result, rows(1), rows(1), rows(1), rows(1), rows(1), rows(1), rows(1));
   }
@@ -285,7 +315,9 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   @Test
   public void testSqrt() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | eval f = sqrt(age) | fields f", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(
+                Locale.ROOT, "source=%s | eval f = sqrt(age) | fields f", TEST_INDEX_BANK));
     verifySchema(result, schema("f", null, "double"));
     verifyDataRows(
         result,
@@ -301,7 +333,9 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   @Test
   public void testCbrt() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | eval f = cbrt(num3) | fields f", TEST_INDEX_CALCS));
+        executeQuery(
+            String.format(
+                Locale.ROOT, "source=%s | eval f = cbrt(num3) | fields f", TEST_INDEX_CALCS));
     verifySchema(result, schema("f", null, "double"));
     verifyDataRows(
         result,
@@ -328,7 +362,8 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   public void testTruncate() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format("source=%s | eval f = truncate(age, 1) | fields f", TEST_INDEX_BANK));
+            String.format(
+                Locale.ROOT, "source=%s | eval f = truncate(age, 1) | fields f", TEST_INDEX_BANK));
     if (isCalciteEnabled()) {
       verifySchema(result, schema("f", null, "int"));
     } else {
@@ -338,7 +373,8 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
 
     result =
         executeQuery(
-            String.format("source=%s | eval f = truncate(age, -1) | fields f", TEST_INDEX_BANK));
+            String.format(
+                Locale.ROOT, "source=%s | eval f = truncate(age, -1) | fields f", TEST_INDEX_BANK));
     if (isCalciteEnabled()) {
       verifySchema(result, schema("f", null, "int"));
     } else {
@@ -350,7 +386,8 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   @Test
   public void testPi() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | eval f = pi() | fields f", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(Locale.ROOT, "source=%s | eval f = pi() | fields f", TEST_INDEX_BANK));
     verifySchema(result, schema("f", null, "double"));
     verifyDataRows(
         result,
@@ -366,14 +403,16 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   @Test
   public void testRand() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | eval f = rand() | fields f", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(Locale.ROOT, "source=%s | eval f = rand() | fields f", TEST_INDEX_BANK));
     if (isCalciteEnabled()) {
       verifySchema(result, schema("f", null, "double"));
     } else {
       verifySchema(result, schema("f", null, "float"));
     }
     result =
-        executeQuery(String.format("source=%s | eval f = rand(5) | fields f", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(Locale.ROOT, "source=%s | eval f = rand(5) | fields f", TEST_INDEX_BANK));
     if (isCalciteEnabled()) {
       verifySchema(result, schema("f", null, "double"));
     } else {
@@ -384,7 +423,8 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   @Test
   public void testAcos() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | eval f = acos(0) | fields f", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(Locale.ROOT, "source=%s | eval f = acos(0) | fields f", TEST_INDEX_BANK));
     verifySchema(result, schema("f", null, "double"));
     verifySome(result.getJSONArray("datarows"), rows(Math.acos(0)));
   }
@@ -392,7 +432,8 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   @Test
   public void testAsin() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | eval f = asin(1) | fields f", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(Locale.ROOT, "source=%s | eval f = asin(1) | fields f", TEST_INDEX_BANK));
     verifySchema(result, schema("f", null, "double"));
     verifySome(result.getJSONArray("datarows"), rows(Math.asin(1)));
   }
@@ -400,12 +441,15 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   @Test
   public void testAtan() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | eval f = atan(2) | fields f", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(Locale.ROOT, "source=%s | eval f = atan(2) | fields f", TEST_INDEX_BANK));
     verifySchema(result, schema("f", null, "double"));
     verifySome(result.getJSONArray("datarows"), rows(Math.atan(2)));
 
     result =
-        executeQuery(String.format("source=%s | eval f = atan(2, 3) | fields f", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(
+                Locale.ROOT, "source=%s | eval f = atan(2, 3) | fields f", TEST_INDEX_BANK));
     verifySchema(result, schema("f", null, "double"));
     verifySome(result.getJSONArray("datarows"), rows(Math.atan2(2, 3)));
   }
@@ -413,7 +457,9 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   @Test
   public void testAtan2() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | eval f = atan2(2, 3) | fields f", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(
+                Locale.ROOT, "source=%s | eval f = atan2(2, 3) | fields f", TEST_INDEX_BANK));
     verifySchema(result, schema("f", null, "double"));
     verifySome(result.getJSONArray("datarows"), rows(Math.atan2(2, 3)));
   }
@@ -421,7 +467,9 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   @Test
   public void testCos() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | eval f = cos(1.57) | fields f", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(
+                Locale.ROOT, "source=%s | eval f = cos(1.57) | fields f", TEST_INDEX_BANK));
     verifySchema(result, schema("f", null, "double"));
     verifySome(result.getJSONArray("datarows"), rows(Math.cos(1.57)));
   }
@@ -429,7 +477,8 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   @Test
   public void testCot() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | eval f = cot(2) | fields f", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(Locale.ROOT, "source=%s | eval f = cot(2) | fields f", TEST_INDEX_BANK));
     verifySchema(result, schema("f", null, "double"));
     verifySome(result.getJSONArray("datarows"), closeTo(1 / Math.tan(2)));
   }
@@ -438,7 +487,8 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   public void testDegrees() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format("source=%s | eval f = degrees(1.57) | fields f", TEST_INDEX_BANK));
+            String.format(
+                Locale.ROOT, "source=%s | eval f = degrees(1.57) | fields f", TEST_INDEX_BANK));
     verifySchema(result, schema("f", null, "double"));
     verifySome(result.getJSONArray("datarows"), rows(Math.toDegrees(1.57)));
   }
@@ -446,7 +496,9 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   @Test
   public void testRadians() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | eval f = radians(90) | fields f", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(
+                Locale.ROOT, "source=%s | eval f = radians(90) | fields f", TEST_INDEX_BANK));
     verifySchema(result, schema("f", null, "double"));
     verifySome(result.getJSONArray("datarows"), rows(Math.toRadians(90)));
   }
@@ -454,7 +506,9 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   @Test
   public void testSin() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | eval f = sin(1.57) | fields f", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(
+                Locale.ROOT, "source=%s | eval f = sin(1.57) | fields f", TEST_INDEX_BANK));
     verifySchema(result, schema("f", null, "double"));
     verifySome(result.getJSONArray("datarows"), rows(Math.sin(1.57)));
   }

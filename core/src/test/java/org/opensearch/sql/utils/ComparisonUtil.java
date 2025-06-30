@@ -12,6 +12,7 @@ import static org.opensearch.sql.data.model.ExprValueUtils.getLongValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.getStringValue;
 import static org.opensearch.sql.utils.DateTimeUtils.extractTimestamp;
 
+import java.util.Locale;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
@@ -71,7 +72,8 @@ public class ComparisonUtil {
         return v1.timestampValue().compareTo(v2.timestampValue());
       default:
         throw new ExpressionEvaluationException(
-            String.format("%s instances are not comparable", v1.getClass().getSimpleName()));
+            String.format(
+                Locale.ROOT, "%s instances are not comparable", v1.getClass().getSimpleName()));
     }
   }
 }

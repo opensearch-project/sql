@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.ArrayUtils;
 import org.junit.jupiter.api.Test;
@@ -69,7 +70,7 @@ class TimeStampDiffTest extends ExpressionTestBase {
         break;
       default:
         throw new SemanticCheckException(
-            String.format("%s is not a valid interval type.", intervalType));
+            String.format(Locale.ROOT, "%s is not a valid interval type.", intervalType));
     }
 
     switch (argType) {
@@ -82,6 +83,7 @@ class TimeStampDiffTest extends ExpressionTestBase {
       case "STRING":
         return new ExprStringValue(
             String.format(
+                Locale.ROOT,
                 "%04d-%02d-%02d %02d:%02d:%02d.%06d",
                 arg.getYear(),
                 arg.getMonthValue(),
@@ -92,7 +94,7 @@ class TimeStampDiffTest extends ExpressionTestBase {
                 arg.getNano() / 1000));
       default:
         throw new SemanticCheckException(
-            String.format("%s is not a valid ExprCoreValueType.", argType));
+            String.format(Locale.ROOT, "%s is not a valid ExprCoreValueType.", argType));
     }
   }
 

@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.spark.asyncquery;
 
+import java.util.Locale;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
@@ -61,7 +62,7 @@ public class OpenSearchAsyncQueryJobMetadataStorageService
           OpenSearchStateStoreUtil.getIndexName(IDUtils.decode(queryId)));
     } catch (Exception e) {
       LOGGER.error("Error while fetching the job metadata.", e);
-      throw new AsyncQueryNotFoundException(String.format("Invalid QueryId: %s", queryId));
+      throw new AsyncQueryNotFoundException(String.format(Locale.ROOT, "Invalid QueryId: %s", queryId));
     }
   }
 }

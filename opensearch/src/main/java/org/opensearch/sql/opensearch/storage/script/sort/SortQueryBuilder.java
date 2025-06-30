@@ -9,6 +9,7 @@ import static org.opensearch.sql.analysis.NestedAnalyzer.generatePath;
 import static org.opensearch.sql.analysis.NestedAnalyzer.isNestedFunction;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.Locale;
 import java.util.Map;
 import org.opensearch.search.sort.FieldSortBuilder;
 import org.opensearch.search.sort.NestedSortBuilder;
@@ -82,7 +83,7 @@ public class SortQueryBuilder {
     for (Expression arg : nestedFunc.getArguments()) {
       if (!(arg instanceof ReferenceExpression)) {
         throw new IllegalArgumentException(
-            String.format("Illegal nested field name: %s", arg.toString()));
+            String.format(Locale.ROOT, "Illegal nested field name: %s", arg.toString()));
       }
     }
   }

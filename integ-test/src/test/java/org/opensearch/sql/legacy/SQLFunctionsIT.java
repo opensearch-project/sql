@@ -30,6 +30,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import com.fasterxml.jackson.core.JsonFactory;
 import java.io.IOException;
 import java.util.Date;
+import java.util.Locale;
 import java.util.stream.IntStream;
 import org.hamcrest.collection.IsMapContaining;
 import org.json.JSONObject;
@@ -73,9 +74,10 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
         .forEach(
             i -> {
               Assert.assertNotNull(
-                  result.query(String.format("/aggregations/key/buckets/%d/key", i)));
+                  result.query(String.format(Locale.ROOT, "/aggregations/key/buckets/%d/key", i)));
               Assert.assertNotNull(
-                  result.query(String.format("/aggregations/key/buckets/%d/cvalue/value", i)));
+                  result.query(
+                      String.format(Locale.ROOT, "/aggregations/key/buckets/%d/cvalue/value", i)));
             });
   }
 

@@ -9,6 +9,7 @@ import com.alibaba.druid.sql.ast.statement.SQLUnionOperator;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestBuilder;
@@ -57,6 +58,7 @@ public class MultiQueryRequestBuilder implements SqlElasticRequestBuilder {
           .source()
           .toXContent(secondBuilder, ToXContent.EMPTY_PARAMS);
       return String.format(
+          Locale.ROOT,
           "performing %s on :\n left query:\n%s\n right query:\n%s",
           this.relation.name,
           BytesReference.bytes(firstBuilder).utf8ToString(),

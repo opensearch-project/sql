@@ -31,6 +31,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import org.opensearch.sql.legacy.domain.Condition;
 import org.opensearch.sql.legacy.domain.KVValue;
 import org.opensearch.sql.legacy.domain.MethodField;
@@ -825,8 +826,10 @@ public class WhereParser {
     } else {
       throw new SqlParseException(
           String.format(
+              Locale.ROOT,
               "Failed to parse SqlExpression of type %s. expression value: %s",
-              expr.getClass(), expr));
+              expr.getClass(),
+              expr));
     }
   }
 

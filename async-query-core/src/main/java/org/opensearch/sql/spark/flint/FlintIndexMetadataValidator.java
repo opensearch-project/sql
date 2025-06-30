@@ -15,6 +15,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
@@ -50,6 +51,7 @@ public class FlintIndexMetadataValidator {
     if (!ALTER_TO_FULL_REFRESH_ALLOWED_OPTIONS.containsAll(newOptions.keySet())) {
       throw new IllegalArgumentException(
           String.format(
+              Locale.ROOT,
               "Altering to full refresh only allows: %s options",
               ALTER_TO_FULL_REFRESH_ALLOWED_OPTIONS));
     }
@@ -60,6 +62,7 @@ public class FlintIndexMetadataValidator {
     if (!ALTER_TO_INCREMENTAL_REFRESH_ALLOWED_OPTIONS.containsAll(newOptions.keySet())) {
       throw new IllegalArgumentException(
           String.format(
+              Locale.ROOT,
               "Altering to incremental refresh only allows: %s options",
               ALTER_TO_INCREMENTAL_REFRESH_ALLOWED_OPTIONS));
     }

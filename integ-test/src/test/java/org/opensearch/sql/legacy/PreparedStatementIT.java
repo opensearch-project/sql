@@ -6,6 +6,7 @@
 package org.opensearch.sql.legacy;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Assert;
@@ -31,6 +32,7 @@ public class PreparedStatementIT extends SQLIntegTestCase {
     JSONObject response =
         executeRequest(
             String.format(
+                Locale.ROOT,
                 "{\n"
                     + "  \"query\": \"SELECT * FROM %s WHERE age > ? AND state in (?, ?) LIMIT"
                     + " ?\",\n"

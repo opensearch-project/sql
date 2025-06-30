@@ -8,6 +8,7 @@ package org.opensearch.sql.legacy.spatial;
 import com.google.common.base.Joiner;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import org.opensearch.sql.legacy.utils.StringUtils;
 
 /** Created by Eliran on 4/8/2015. */
@@ -67,7 +68,7 @@ public class WktToGeoJsonConverter {
       coordinates[i] = lineStringCoordinatesFromWkt(lineStrings[i]);
     }
     String multiLineStringCoordinates = Joiner.on(",").join(coordinates);
-    return String.format("[%s]", multiLineStringCoordinates);
+    return String.format(Locale.ROOT, "[%s]", multiLineStringCoordinates);
   }
 
   // input v1:MULTIPOINT (10 40, 40 30, 20 20, 30 10)
@@ -95,7 +96,7 @@ public class WktToGeoJsonConverter {
       polygonsCoordinates[i] = polygonCoordinatesFromWkt(polygons[i]);
     }
     String coordinates = Joiner.on(",").join(polygonsCoordinates);
-    return String.format("[%s]", coordinates);
+    return String.format(Locale.ROOT, "[%s]", coordinates);
   }
 
   // input : (30 10, 10 30, 40 40)
@@ -121,7 +122,7 @@ public class WktToGeoJsonConverter {
     } else {
       coordinates = getJsonArrayFromListOfPoints(wkt);
     }
-    return String.format("[%s]", coordinates);
+    return String.format(Locale.ROOT, "[%s]", coordinates);
   }
 
   private static String getJsonArrayFromListOfPoints(String pointsInWkt) {
@@ -132,11 +133,11 @@ public class WktToGeoJsonConverter {
     }
 
     String joinedCoordinates = Joiner.on(",").join(coordinates);
-    return String.format("[%s]", joinedCoordinates);
+    return String.format(Locale.ROOT, "[%s]", joinedCoordinates);
   }
 
   private static String buildGeoJson(String type, String coordinates) {
-    return String.format("{\"type\":\"%s\", \"coordinates\": %s}", type, coordinates);
+    return String.format(Locale.ROOT, "{\"type\":\"%s\", \"coordinates\": %s}", type, coordinates);
   }
 
   // input : (30 10)

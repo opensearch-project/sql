@@ -32,6 +32,7 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.opensearch.sql.legacy.domain.Condition;
@@ -207,8 +208,10 @@ public class SqlParser {
       }
       throw new SqlParseException(
           String.format(
+              Locale.ROOT,
               "Field [%s] with condition [%s] does not contain an alias",
-              fieldName, condition.toString()));
+              fieldName,
+              condition.toString()));
     }
     List<String> sameAliases = new ArrayList<>();
     if (where.getWheres() != null && where.getWheres().size() > 0) {

@@ -13,6 +13,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Test;
 
@@ -29,7 +30,9 @@ public class ObjectFieldOperateIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | fields city.name, city.location.latitude", TEST_INDEX_DEEP_NESTED));
+                Locale.ROOT,
+                "source=%s | fields city.name, city.location.latitude",
+                TEST_INDEX_DEEP_NESTED));
     verifySchema(result, schema("city.name", "string"), schema("city.location.latitude", "double"));
     verifyDataRows(result, rows("Seattle", 10.5));
   }
@@ -39,6 +42,7 @@ public class ObjectFieldOperateIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s "
                     + "| where city.name = 'Seattle' "
                     + "| fields city.name, city.location.latitude",
@@ -51,7 +55,8 @@ public class ObjectFieldOperateIT extends PPLIntegTestCase {
   public void group_object_field_in_stats() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format("source=%s | stats count() by city.name", TEST_INDEX_DEEP_NESTED));
+            String.format(
+                Locale.ROOT, "source=%s | stats count() by city.name", TEST_INDEX_DEEP_NESTED));
     verifySchema(
         result,
         schema("count()", isCalciteEnabled() ? "bigint" : "int"),
@@ -64,6 +69,7 @@ public class ObjectFieldOperateIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | sort city.name | fields city.name, city.location.latitude",
                 TEST_INDEX_DEEP_NESTED));
     verifySchema(result, schema("city.name", "string"), schema("city.location.latitude", "double"));
@@ -73,7 +79,8 @@ public class ObjectFieldOperateIT extends PPLIntegTestCase {
   @Test
   public void verify_schema_without_fields() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | sort city.name ", TEST_INDEX_DEEP_NESTED));
+        executeQuery(
+            String.format(Locale.ROOT, "source=%s | sort city.name ", TEST_INDEX_DEEP_NESTED));
     verifySchema(
         result,
         schema("projects", "array"),

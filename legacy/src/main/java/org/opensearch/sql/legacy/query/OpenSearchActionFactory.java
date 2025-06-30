@@ -25,6 +25,7 @@ import com.google.common.annotations.VisibleForTesting;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.sql.legacy.domain.ColumnTypeProvider;
@@ -132,7 +133,8 @@ public class OpenSearchActionFactory {
         return new DescribeQueryAction(client, describeStatement);
       default:
         throw new SQLFeatureNotSupportedException(
-            String.format("Query must start with SELECT, DELETE, SHOW or DESCRIBE: %s", sql));
+            String.format(
+                Locale.ROOT, "Query must start with SELECT, DELETE, SHOW or DESCRIBE: %s", sql));
     }
   }
 

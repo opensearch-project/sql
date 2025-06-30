@@ -15,6 +15,7 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -32,7 +33,8 @@ public class ExprDateValue extends AbstractExprValue {
       this.date = LocalDate.parse(date, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
     } catch (DateTimeParseException e) {
       throw new SemanticCheckException(
-          String.format("date:%s in unsupported format, please use 'yyyy-MM-dd'", date));
+          String.format(
+              Locale.ROOT, "date:%s in unsupported format, please use 'yyyy-MM-dd'", date));
     }
   }
 
@@ -68,7 +70,7 @@ public class ExprDateValue extends AbstractExprValue {
 
   @Override
   public String toString() {
-    return String.format("DATE '%s'", value());
+    return String.format(Locale.ROOT, "DATE '%s'", value());
   }
 
   @Override

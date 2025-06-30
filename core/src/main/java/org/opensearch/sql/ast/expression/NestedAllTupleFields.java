@@ -7,6 +7,7 @@ package org.opensearch.sql.ast.expression;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,6 @@ public class NestedAllTupleFields extends UnresolvedExpression {
 
   @Override
   public String toString() {
-    return String.format("nested(%s.*)", path);
+    return String.format(Locale.ROOT, "nested(%s.*)", path);
   }
 }

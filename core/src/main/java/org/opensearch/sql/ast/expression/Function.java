@@ -7,6 +7,7 @@ package org.opensearch.sql.ast.expression;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -37,7 +38,9 @@ public class Function extends UnresolvedExpression {
   @Override
   public String toString() {
     return String.format(
+        Locale.ROOT,
         "%s(%s)",
-        funcName, funcArgs.stream().map(Object::toString).collect(Collectors.joining(", ")));
+        funcName,
+        funcArgs.stream().map(Object::toString).collect(Collectors.joining(", ")));
   }
 }

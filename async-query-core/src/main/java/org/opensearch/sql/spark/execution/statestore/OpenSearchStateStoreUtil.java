@@ -15,6 +15,9 @@ public class OpenSearchStateStoreUtil {
 
   public static String getIndexName(String datasourceName) {
     return String.format(
-        "%s_%s", SPARK_REQUEST_BUFFER_INDEX_NAME, datasourceName.toLowerCase(Locale.ROOT));
+        Locale.ROOT,
+        "%s_%s",
+        SPARK_REQUEST_BUFFER_INDEX_NAME,
+        datasourceName.toLowerCase(Locale.ROOT));
   }
 }

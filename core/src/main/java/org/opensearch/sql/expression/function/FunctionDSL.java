@@ -8,6 +8,7 @@ package org.opensearch.sql.expression.function;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
@@ -85,7 +86,7 @@ public class FunctionDSL {
 
                 @Override
                 public String toString() {
-                  return String.format("%s()", functionName);
+                  return String.format(Locale.ROOT, "%s()", functionName);
                 }
               };
       return Pair.of(functionSignature, functionBuilder);
@@ -127,6 +128,7 @@ public class FunctionDSL {
                 @Override
                 public String toString() {
                   return String.format(
+                      Locale.ROOT,
                       "%s(%s)",
                       functionName,
                       arguments.stream().map(Object::toString).collect(Collectors.joining(", ")));
@@ -174,6 +176,7 @@ public class FunctionDSL {
                 @Override
                 public String toString() {
                   return String.format(
+                      Locale.ROOT,
                       "%s(%s)",
                       functionName,
                       arguments.stream().map(Object::toString).collect(Collectors.joining(", ")));
@@ -225,6 +228,7 @@ public class FunctionDSL {
                 @Override
                 public String toString() {
                   return String.format(
+                      Locale.ROOT,
                       "%s(%s)",
                       functionName,
                       arguments.stream().map(Object::toString).collect(Collectors.joining(", ")));
@@ -317,6 +321,7 @@ public class FunctionDSL {
                 @Override
                 public String toString() {
                   return String.format(
+                      Locale.ROOT,
                       "%s(%s, %s, %s)",
                       functionName,
                       arguments.get(0).toString(),
@@ -370,6 +375,7 @@ public class FunctionDSL {
                 @Override
                 public String toString() {
                   return String.format(
+                      Locale.ROOT,
                       "%s(%s, %s, %s, %s)",
                       functionName,
                       arguments.get(0).toString(),

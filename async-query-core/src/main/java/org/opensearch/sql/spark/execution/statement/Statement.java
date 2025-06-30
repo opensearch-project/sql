@@ -7,6 +7,7 @@ package org.opensearch.sql.spark.execution.statement;
 
 import static org.opensearch.sql.spark.execution.statement.StatementModel.submitStatement;
 
+import java.util.Locale;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -64,8 +65,10 @@ public class Statement {
         || statementState.equals(StatementState.CANCELLED)) {
       String errorMsg =
           String.format(
+              Locale.ROOT,
               "can't cancel statement in %s state. statement: %s.",
-              statementState.getState(), statementId);
+              statementState.getState(),
+              statementId);
       LOG.error(errorMsg);
       throw new IllegalStateException(errorMsg);
     }

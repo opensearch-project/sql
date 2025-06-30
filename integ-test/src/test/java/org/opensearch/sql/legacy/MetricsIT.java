@@ -13,6 +13,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import org.json.JSONObject;
 import org.junit.Assert;
@@ -41,7 +42,7 @@ public class MetricsIT extends SQLIntegTestCase {
 
   private void multiQueries(int n) throws IOException {
     for (int i = 0; i < n; ++i) {
-      executeQuery(String.format("SELECT COUNT(*) FROM %s/dog", TEST_INDEX_DOG));
+      executeQuery(String.format(Locale.ROOT, "SELECT COUNT(*) FROM %s/dog", TEST_INDEX_DOG));
     }
   }
 

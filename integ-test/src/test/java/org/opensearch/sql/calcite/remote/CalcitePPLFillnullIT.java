@@ -12,6 +12,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
@@ -32,6 +33,7 @@ public class CalcitePPLFillnullIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | fillnull with 'N/A' in name, state, country | fields name, age, state,"
                     + " country, year, month",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
@@ -58,6 +60,7 @@ public class CalcitePPLFillnullIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | fillnull using name='N/A', state='N/A', country='N/A' | fields name,"
                     + " age, state, country, year, month",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
@@ -84,6 +87,7 @@ public class CalcitePPLFillnullIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | fields name, state, country | fillnull with 'N/A'",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
     verifySchema(

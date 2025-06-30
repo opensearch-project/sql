@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.spark.execution.statestore;
 
+import java.util.Locale;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
@@ -60,6 +61,7 @@ public class OpenSearchStatementStorageService implements StatementStorageServic
     } catch (DocumentMissingException e) {
       String errorMsg =
           String.format(
+              Locale.ROOT,
               "cancel statement failed. no statement found. statement: %s.",
               oldStatementModel.getStatementId());
       LOG.error(errorMsg);
@@ -73,6 +75,7 @@ public class OpenSearchStatementStorageService implements StatementStorageServic
               .orElse(oldStatementModel);
       String errorMsg =
           String.format(
+              Locale.ROOT,
               "cancel statement failed. current statementState: %s " + "statement: %s.",
               statementModel.getStatementState(), statementModel.getStatementId());
       LOG.error(errorMsg);

@@ -356,7 +356,10 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     } else {
       throw new IllegalArgumentException(
           String.format(
-              "field [%s] not found; input fields are: %s", qualifiedName, currentFields));
+              Locale.ROOT,
+              "field [%s] not found; input fields are: %s",
+              qualifiedName,
+              currentFields));
     }
   }
 

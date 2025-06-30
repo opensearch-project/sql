@@ -9,6 +9,7 @@ import static org.opensearch.sql.legacy.domain.IndexStatement.StatementType;
 
 import com.google.common.base.Strings;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.json.JSONArray;
@@ -109,6 +110,7 @@ public class Protocol {
 
     throw new UnsupportedOperationException(
         String.format(
+            Locale.ROOT,
             "The following instance of QueryStatement is not supported: %s",
             queryStatement.getClass().toString()));
   }
@@ -132,7 +134,7 @@ public class Protocol {
           return outputInRawFormat();
         default:
           throw new UnsupportedOperationException(
-              String.format("The following format is not supported: %s", formatType));
+              String.format(Locale.ROOT, "The following format is not supported: %s", formatType));
       }
     }
 
@@ -183,7 +185,9 @@ public class Protocol {
         default:
           throw new UnsupportedOperationException(
               String.format(
-                  "The following response format is not supported for cursor: [%s]", formatType));
+                  Locale.ROOT,
+                  "The following response format is not supported for cursor: [%s]",
+                  formatType));
       }
     }
     return error.toString();

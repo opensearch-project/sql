@@ -210,7 +210,7 @@ public class StateStore {
       }
     } catch (Exception e) {
       throw new RuntimeException(
-          String.format("Failed to delete index state doc %s in index %s", sid, indexName), e);
+          String.format(Locale.ROOT, "Failed to delete index state doc %s in index %s", sid, indexName), e);
     }
   }
 

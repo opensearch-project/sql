@@ -1106,7 +1106,8 @@ public class SQLFunctions {
 
   public String getCastScriptStatement(String name, String castType, List<KVValue> paramers)
       throws SqlParseException {
-    String castFieldName = String.format("doc['%s'].value", paramers.get(0).toString());
+    String castFieldName =
+        String.format(Locale.ROOT, "doc['%s'].value", paramers.get(0).toString());
     switch (StringUtils.toUpper(castType)) {
       case "INT":
       case "LONG":
@@ -1114,12 +1115,14 @@ public class SQLFunctions {
       case "DOUBLE":
         return getCastToNumericValueScript(name, castFieldName, StringUtils.toLower(castType));
       case "STRING":
-        return String.format("def %s = %s.toString()", name, castFieldName);
+        return String.format(Locale.ROOT, "def %s = %s.toString()", name, castFieldName);
       case "DATETIME":
         return String.format(
+            Locale.ROOT,
             "def %s = DateTimeFormatter.ofPattern(\"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'\").format("
                 + "DateTimeFormatter.ISO_DATE_TIME.parse(%s.toString()))",
-            name, castFieldName);
+            name,
+            castFieldName);
       default:
         throw new SqlParseException("Unsupported cast type " + castType);
     }
@@ -1203,6 +1206,8 @@ public class SQLFunctions {
 
     throw new UnsupportedOperationException(
         String.format(
-            "The following method is not supported in Schema for Order By: %s", functionName));
+            Locale.ROOT,
+            "The following method is not supported in Schema for Order By: %s",
+            functionName));
   }
 }

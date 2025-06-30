@@ -7,6 +7,7 @@ package org.opensearch.sql.data.type;
 
 import static org.opensearch.sql.data.type.ExprCoreType.UNKNOWN;
 
+import java.util.Locale;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 
@@ -70,7 +71,7 @@ public class WideningTypeRule {
 
     if (type1To2 == Integer.MAX_VALUE && type2To1 == Integer.MAX_VALUE) {
       throw new ExpressionEvaluationException(
-          String.format("no max type of %s and %s ", type1, type2));
+          String.format(Locale.ROOT, "no max type of %s and %s ", type1, type2));
     } else {
       return type1To2 == Integer.MAX_VALUE ? type1 : type2;
     }

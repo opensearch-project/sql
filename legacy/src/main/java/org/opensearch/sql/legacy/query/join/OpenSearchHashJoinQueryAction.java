@@ -8,6 +8,7 @@ package org.opensearch.sql.legacy.query.join;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.opensearch.sql.legacy.domain.Condition;
 import org.opensearch.sql.legacy.domain.Field;
@@ -75,8 +76,10 @@ public class OpenSearchHashJoinQueryAction extends OpenSearchJoinQueryAction {
       if (condition.getOPERATOR() != Condition.OPERATOR.EQ) {
         throw new SqlParseException(
             String.format(
+                Locale.ROOT,
                 "HashJoin should only be with EQ conditions, got:%s on condition:%s",
-                condition.getOPERATOR().name(), condition.toString()));
+                condition.getOPERATOR().name(),
+                condition.toString()));
       }
 
       String firstField = condition.getName();

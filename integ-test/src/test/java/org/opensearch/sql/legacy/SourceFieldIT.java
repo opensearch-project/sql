@@ -9,6 +9,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import java.io.IOException;
+import java.util.Locale;
 import java.util.Set;
 import org.json.JSONObject;
 import org.junit.Assert;
@@ -37,6 +38,7 @@ public class SourceFieldIT extends SQLIntegTestCase {
     SearchHits response =
         query(
             String.format(
+                Locale.ROOT,
                 "SELECT include('*name','*ge'),include('b*'),include('*ddre*'),include('gender')"
                     + " FROM %s LIMIT 1000",
                 TEST_INDEX_ACCOUNT));
@@ -59,6 +61,7 @@ public class SourceFieldIT extends SQLIntegTestCase {
     SearchHits response =
         query(
             String.format(
+                Locale.ROOT,
                 "SELECT exclude('*name','*ge'),exclude('b*'),exclude('*ddre*'),exclude('gender')"
                     + " FROM %s LIMIT 1000",
                 TEST_INDEX_ACCOUNT));
@@ -82,6 +85,7 @@ public class SourceFieldIT extends SQLIntegTestCase {
     SearchHits response =
         query(
             String.format(
+                Locale.ROOT,
                 "SELECT exclude('*name','*ge'),include('b*'),exclude('*ddre*'),include('gender')"
                     + " FROM %s LIMIT 1000",
                 TEST_INDEX_ACCOUNT));

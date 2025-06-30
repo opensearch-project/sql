@@ -34,7 +34,9 @@ public class MathematicalFunctionIT extends SQLIntegTestCase {
   @Test
   public void testPI() throws IOException {
     JSONObject result =
-        executeQuery(String.format("SELECT PI() FROM %s HAVING (COUNT(1) > 0)", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(
+                Locale.ROOT, "SELECT PI() FROM %s HAVING (COUNT(1) > 0)", TEST_INDEX_BANK));
     verifySchema(result, schema("PI()", null, "double"));
     verifyDataRows(result, rows(3.141592653589793));
   }
@@ -318,8 +320,9 @@ public class MathematicalFunctionIT extends SQLIntegTestCase {
     verifySchema(result, schema("truncate(33.33344, 4)", null, "double"));
     verifyDataRows(result, rows(33.3334));
 
-    result = executeQuery(String.format("select truncate(%s, 6)", Math.PI));
-    verifySchema(result, schema(String.format("truncate(%s, 6)", Math.PI), null, "double"));
+    result = executeQuery(String.format(Locale.ROOT, "select truncate(%s, 6)", Math.PI));
+    verifySchema(
+        result, schema(String.format(Locale.ROOT, "truncate(%s, 6)", Math.PI), null, "double"));
     verifyDataRows(result, rows(3.141592));
   }
 

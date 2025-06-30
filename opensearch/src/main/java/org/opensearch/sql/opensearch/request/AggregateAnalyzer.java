@@ -37,6 +37,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -190,7 +191,8 @@ public class AggregateAnalyzer {
       case COUNT -> Pair.of(
           AggregationBuilders.cardinality(aggField).field(argStr), new SingleValueParser(aggField));
       default -> throw new AggregateAnalyzer.AggregateAnalyzerException(
-          String.format("unsupported distinct aggregator %s", aggCall.getAggregation()));
+          String.format(
+              Locale.ROOT, "unsupported distinct aggregator %s", aggCall.getAggregation()));
     };
   }
 
@@ -226,7 +228,7 @@ public class AggregateAnalyzer {
         // case percentile
         // case percentile_approx
       default -> throw new AggregateAnalyzerException(
-          String.format("unsupported aggregator %s", aggCall.getAggregation()));
+          String.format(Locale.ROOT, "unsupported aggregator %s", aggCall.getAggregation()));
     };
   }
 

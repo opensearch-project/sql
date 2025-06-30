@@ -19,6 +19,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
@@ -35,7 +36,8 @@ public class DataTypeIT extends PPLIntegTestCase {
 
   @Test
   public void test_numeric_data_types() throws IOException {
-    JSONObject result = executeQuery(String.format("source=%s", TEST_INDEX_DATATYPE_NUMERIC));
+    JSONObject result =
+        executeQuery(String.format(Locale.ROOT, "source=%s", TEST_INDEX_DATATYPE_NUMERIC));
     verifySchema(
         result,
         schema("long_number", "bigint"),
@@ -50,7 +52,8 @@ public class DataTypeIT extends PPLIntegTestCase {
 
   @Test
   public void test_nonnumeric_data_types() throws IOException {
-    JSONObject result = executeQuery(String.format("source=%s", TEST_INDEX_DATATYPE_NONNUMERIC));
+    JSONObject result =
+        executeQuery(String.format(Locale.ROOT, "source=%s", TEST_INDEX_DATATYPE_NONNUMERIC));
     verifySchemaInOrder(
         result,
         schema("text_value", "string"),
@@ -85,6 +88,7 @@ public class DataTypeIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval "
                     + " int1 = 2147483647,"
                     + " int2 = -2147483648,"
@@ -105,6 +109,7 @@ public class DataTypeIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where alias_col > 1 | fields original_col, alias_col ",
                 TEST_INDEX_ALIAS));
     verifySchema(result, schema("original_col", "int"), schema("alias_col", "int"));

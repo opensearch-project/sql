@@ -12,6 +12,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.jupiter.api.Test;
@@ -32,7 +33,8 @@ public class RareCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testRareWithoutGroup() throws IOException {
-    JSONObject result = executeQuery(String.format("source=%s | rare gender", TEST_INDEX_ACCOUNT));
+    JSONObject result =
+        executeQuery(String.format(Locale.ROOT, "source=%s | rare gender", TEST_INDEX_ACCOUNT));
     if (isCalciteEnabled()) {
       verifySchemaInOrder(result, schema("gender", "string"), schema("count", "bigint"));
       verifyDataRows(result, rows("F", 493), rows("M", 507));
@@ -44,7 +46,8 @@ public class RareCommandIT extends PPLIntegTestCase {
   @Test
   public void testRareWithGroup() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | rare state by gender", TEST_INDEX_ACCOUNT));
+        executeQuery(
+            String.format(Locale.ROOT, "source=%s | rare state by gender", TEST_INDEX_ACCOUNT));
     if (isCalciteEnabled()) {
       verifySchemaInOrder(
           result, schema("gender", "string"), schema("state", "string"), schema("count", "bigint"));

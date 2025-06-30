@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -325,7 +326,8 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
         renameMapBuilder.put(originExpr, target);
       } else {
         throw new SemanticCheckException(
-            String.format("the target expected to be field, but is %s", renameMap.getTarget()));
+            String.format(
+                Locale.ROOT, "the target expected to be field, but is %s", renameMap.getTarget()));
       }
     }
 
@@ -656,6 +658,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
               default:
                 throw new SemanticCheckException(
                     String.format(
+                        Locale.ROOT,
                         "Invalid field used for trendline computation %s. Source field %s had type"
                             + " %s but must be a numerical or datetime field.",
                         computation.getAlias(),
@@ -730,7 +733,8 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
                   var analyzed = expressionAnalyzer.analyze(sortField.getField(), context);
                   if (analyzed == null) {
                     throw new UnsupportedOperationException(
-                        String.format("Invalid use of expression %s", sortField.getField()));
+                        String.format(
+                            Locale.ROOT, "Invalid use of expression %s", sortField.getField()));
                   }
                   Expression expression = optimizer.optimize(analyzed, context);
                   return ImmutablePair.of(analyzeSortOption(sortField.getFieldArgs()), expression);

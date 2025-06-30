@@ -23,6 +23,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import org.apache.lucene.search.join.ScoreMode;
@@ -204,7 +205,9 @@ public abstract class Maker {
           } else {
             throw new SqlParseException(
                 String.format(
-                    "Cannot recoginze Sql identifer %s", ((SQLIdentifierExpr) value).getName()));
+                    Locale.ROOT,
+                    "Cannot recoginze Sql identifer %s",
+                    ((SQLIdentifierExpr) value).getName()));
           }
           break;
         } else {

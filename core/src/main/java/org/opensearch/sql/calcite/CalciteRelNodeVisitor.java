@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -300,11 +301,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           newNames.set(ref.getIndex(), newName);
         } else {
           throw new SemanticCheckException(
-              String.format("the original field %s cannot be resolved", renameMap.getOrigin()));
+              String.format(
+                  Locale.ROOT, "the original field %s cannot be resolved", renameMap.getOrigin()));
         }
       } else {
         throw new SemanticCheckException(
-            String.format("the target expected to be field, but is %s", renameMap.getTarget()));
+            String.format(
+                Locale.ROOT, "the target expected to be field, but is %s", renameMap.getTarget()));
       }
     }
     context.relBuilder.rename(newNames);
@@ -1157,6 +1160,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       if (node.getAliases().size() != fieldsToExpand.size()) {
         throw new IllegalArgumentException(
             String.format(
+                Locale.ROOT,
                 "The number of aliases has to match the number of flattened fields. Expected %d"
                     + " (%s), got %d (%s)",
                 fieldsToExpand.size(),

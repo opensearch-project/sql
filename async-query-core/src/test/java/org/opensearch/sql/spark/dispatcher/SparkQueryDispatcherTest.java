@@ -48,6 +48,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -1003,7 +1004,7 @@ public class SparkQueryDispatcherTest {
 
   private String getConfParam(String... params) {
     return Arrays.stream(params)
-        .map(param -> String.format(" --conf %s ", param))
+        .map(param -> String.format(Locale.ROOT, " --conf %s ", param))
         .collect(Collectors.joining());
   }
 

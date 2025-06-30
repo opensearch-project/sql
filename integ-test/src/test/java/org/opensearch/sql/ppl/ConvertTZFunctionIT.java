@@ -12,6 +12,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import static org.opensearch.sql.util.MatcherUtils.verifySome;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Test;
 
@@ -28,6 +29,7 @@ public class ConvertTZFunctionIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval f = convert_tz('2008-05-15 12:00:00','+00:00','+10:00') | fields"
                     + " f",
                 TEST_INDEX_DATE));
@@ -40,6 +42,7 @@ public class ConvertTZFunctionIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval f = convert_tz('2021-05-12 00:00:00','-00:00','+00:00') | fields"
                     + " f",
                 TEST_INDEX_DATE));
@@ -52,6 +55,7 @@ public class ConvertTZFunctionIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval f = convert_tz('2021-05-12 00:00:00','+10:00','+11:00') | fields"
                     + " f",
                 TEST_INDEX_DATE));
@@ -64,6 +68,7 @@ public class ConvertTZFunctionIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval f = convert_tz('2021-05-12 11:34:50','-08:00','+09:00') | fields"
                     + " f",
                 TEST_INDEX_DATE));
@@ -76,6 +81,7 @@ public class ConvertTZFunctionIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval f = convert_tz('2021-05-12 11:34:50','+09:00','+09:00') | fields"
                     + " f",
                 TEST_INDEX_DATE));
@@ -88,6 +94,7 @@ public class ConvertTZFunctionIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval f = convert_tz('2021-05-12 11:34:50','-12:00','+12:00') | fields"
                     + " f",
                 TEST_INDEX_DATE));
@@ -100,6 +107,7 @@ public class ConvertTZFunctionIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval f = convert_tz('2021-05-12 13:00:00','+09:30','+05:45') | fields"
                     + " f",
                 TEST_INDEX_DATE));
@@ -112,6 +120,7 @@ public class ConvertTZFunctionIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval f = convert_tz('2021-05-30 11:34:50','-17:00','+08:00') | fields"
                     + " f",
                 TEST_INDEX_DATE));
@@ -124,6 +133,7 @@ public class ConvertTZFunctionIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval f = convert_tz('2021-05-12 11:34:50','-12:00','+15:00') | fields"
                     + " f",
                 TEST_INDEX_DATE));
@@ -136,6 +146,7 @@ public class ConvertTZFunctionIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval f = convert_tz('2021-05-12 11:34:50','-12:00','test') | fields f",
                 TEST_INDEX_DATE));
     verifySchema(result, schema("f", null, "timestamp"));
@@ -147,6 +158,7 @@ public class ConvertTZFunctionIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval f = convert_tz('2021test','-12:00','+00:00') | fields f",
                 TEST_INDEX_DATE));
     verifySchema(result, schema("f", null, "timestamp"));
@@ -158,6 +170,7 @@ public class ConvertTZFunctionIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval f = convert_tz('2021-02-30 10:00:00','+00:00','+00:00') | fields"
                     + " f",
                 TEST_INDEX_DATE));
@@ -170,6 +183,7 @@ public class ConvertTZFunctionIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval f = convert_tz('2021-04-31 10:00:00','+00:00','+00:00') | fields"
                     + " f",
                 TEST_INDEX_DATE));
@@ -182,6 +196,7 @@ public class ConvertTZFunctionIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval f = convert_tz('2021-13-03 10:00:00','+00:00','+00:00') | fields"
                     + " f",
                 TEST_INDEX_DATE));

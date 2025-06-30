@@ -16,6 +16,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
@@ -34,14 +35,17 @@ public class FieldsCommandIT extends PPLIntegTestCase {
   @Test
   public void testFieldsWithOneField() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | fields firstname", TEST_INDEX_ACCOUNT));
+        executeQuery(
+            String.format(Locale.ROOT, "source=%s | fields firstname", TEST_INDEX_ACCOUNT));
     verifyColumn(result, columnName("firstname"));
   }
 
   @Test
   public void testFieldsWithMultiFields() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | fields firstname, lastname", TEST_INDEX_ACCOUNT));
+        executeQuery(
+            String.format(
+                Locale.ROOT, "source=%s | fields firstname, lastname", TEST_INDEX_ACCOUNT));
     verifyColumn(result, columnName("firstname"), columnName("lastname"));
   }
 
@@ -51,14 +55,15 @@ public class FieldsCommandIT extends PPLIntegTestCase {
   @Test
   public void testFieldsWildCard() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | fields ", TEST_INDEX_ACCOUNT) + "firstnam%");
+        executeQuery(
+            String.format(Locale.ROOT, "source=%s | fields ", TEST_INDEX_ACCOUNT) + "firstnam%");
     verifyColumn(result, columnPattern("^firstnam.*"));
   }
 
   @Test
   public void testSelectDateTypeField() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | fields birthdate", TEST_INDEX_BANK));
+        executeQuery(String.format(Locale.ROOT, "source=%s | fields birthdate", TEST_INDEX_BANK));
     verifySchema(result, schema("birthdate", null, "timestamp"));
 
     verifyDataRows(
@@ -75,7 +80,8 @@ public class FieldsCommandIT extends PPLIntegTestCase {
   @Test
   public void testMetadataFields() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | fields firstname, _index", TEST_INDEX_ACCOUNT));
+        executeQuery(
+            String.format(Locale.ROOT, "source=%s | fields firstname, _index", TEST_INDEX_ACCOUNT));
     verifyColumn(result, columnName("firstname"), columnName("_index"));
   }
 
@@ -83,7 +89,8 @@ public class FieldsCommandIT extends PPLIntegTestCase {
   public void testDelimitedMetadataFields() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format("source=%s | fields firstname, `_id`, `_index`", TEST_INDEX_ACCOUNT));
+            String.format(
+                Locale.ROOT, "source=%s | fields firstname, `_id`, `_index`", TEST_INDEX_ACCOUNT));
     verifyColumn(result, columnName("firstname"), columnName("_id"), columnName("_index"));
   }
 
@@ -91,7 +98,10 @@ public class FieldsCommandIT extends PPLIntegTestCase {
   public void testMetadataFieldsWithEval() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format("source=%s | eval a = 1 | fields firstname, _index", TEST_INDEX_ACCOUNT));
+            String.format(
+                Locale.ROOT,
+                "source=%s | eval a = 1 | fields firstname, _index",
+                TEST_INDEX_ACCOUNT));
     verifyColumn(result, columnName("firstname"), columnName("_index"));
   }
 
@@ -103,7 +113,9 @@ public class FieldsCommandIT extends PPLIntegTestCase {
             () ->
                 executeQuery(
                     String.format(
-                        "source=%s | eval _id = 1 | fields firstname, _id", TEST_INDEX_ACCOUNT)));
+                        Locale.ROOT,
+                        "source=%s | eval _id = 1 | fields firstname, _id",
+                        TEST_INDEX_ACCOUNT)));
     verifyErrorMessageContains(e, "Cannot use metadata field [_id] as the eval field.");
   }
 
@@ -112,6 +124,7 @@ public class FieldsCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | fields machine.os1,  machine.os2, machine_array.os1, "
                     + " machine_array.os2, machine_deep.attr1, machine_deep.attr2,"
                     + " machine_deep.layer.os1, machine_deep.layer.os2",

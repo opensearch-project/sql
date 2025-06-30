@@ -14,6 +14,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import static org.opensearch.sql.util.MatcherUtils.verifySome;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Test;
 
@@ -31,6 +32,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval f = DATETIME('2008-12-25 05:30:00+00:00', 'America/Los_Angeles')"
                     + " | fields f",
                 TEST_INDEX_DATE));
@@ -43,6 +45,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval f = DATETIME('2008-12-25 05:30:00+00:00', '+01:00') | fields f",
                 TEST_INDEX_DATE));
     verifySchema(result, schema("f", null, "timestamp"));
@@ -54,6 +57,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval f = DATETIME('2008-12-25 05:30:00-05:00', '+05:00') | fields f",
                 TEST_INDEX_DATE));
     verifySchema(result, schema("f", null, "timestamp"));
@@ -65,6 +69,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval f = DATETIME('2004-02-28 23:00:00-10:00', '+10:00') | fields f",
                 TEST_INDEX_DATE));
     verifySchema(result, schema("f", null, "timestamp"));
@@ -76,6 +81,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval f = DATETIME('2008-01-01 02:00:00+10:00', '-10:00') | fields f",
                 TEST_INDEX_DATE));
     verifySchema(result, schema("f", null, "timestamp"));
@@ -87,6 +93,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval f = DATETIME('2008-12-25 05:30:00+00:00', '+14:00') | fields f",
                 TEST_INDEX_DATE));
     verifySchema(result, schema("f", null, "timestamp"));
@@ -98,6 +105,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval f = DATETIME('2008-01-01 02:00:00+10:00') | fields f",
                 TEST_INDEX_DATE));
     verifySchema(result, schema("f", null, "timestamp"));
@@ -109,6 +117,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval f = DATETIME('2008-01-01 02:00:00') | fields f",
                 TEST_INDEX_DATE));
     verifySchema(result, schema("f", null, "timestamp"));
@@ -120,6 +129,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval f = DATETIME('2008-01-01 02:00:00+15:00', '-12:00') | fields f",
                 TEST_INDEX_DATE));
     verifySchema(result, schema("f", null, "timestamp"));
@@ -131,6 +141,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval f = DATETIME('2008-01-01 02:00:00+10:00', '-14:00') | fields f",
                 TEST_INDEX_DATE));
     verifySchema(result, schema("f", null, "timestamp"));
@@ -142,6 +153,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval f = DATETIME('2008-01-01 02:00:00', '+15:00') | fields f",
                 TEST_INDEX_DATE));
     verifySchema(result, schema("f", null, "timestamp"));
@@ -153,6 +165,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval f = DATETIME('2021-02-30 10:00:00') | fields f",
                 TEST_INDEX_DATE));
     verifySchema(result, schema("f", null, "timestamp"));
@@ -164,6 +177,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval f = DATETIME('2021-04-31 10:00:00') | fields f",
                 TEST_INDEX_DATE));
     verifySchema(result, schema("f", null, "timestamp"));
@@ -175,6 +189,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval f = DATETIME('2021-13-03 10:00:00') | fields f",
                 TEST_INDEX_DATE));
     verifySchema(result, schema("f", null, "timestamp"));
@@ -186,6 +201,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = 1 | stats count() as cnt by span(yyyy-MM-dd, 1d) as span",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
@@ -200,6 +216,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = 1 | stats count() as cnt by span(epoch_millis, 1d) as span",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
@@ -214,6 +231,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval a = 1 | stats count() as cnt by span(yyyy-MM-dd_OR_epoch_millis,"
                     + " 1d) as span",
                 TEST_INDEX_DATE_FORMATS));

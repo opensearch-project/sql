@@ -12,6 +12,7 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.utils.DateTimeFormatters;
 
@@ -48,7 +49,8 @@ public interface DateTimeParser {
       } catch (Exception ignored) {
       }
     }
-    throw new SemanticCheckException(String.format("Unable to parse %s as datetime", input));
+    throw new SemanticCheckException(
+        String.format(Locale.ROOT, "Unable to parse %s as datetime", input));
   }
 
   static LocalDateTime parseTimeOrTimestamp(String input) {
@@ -67,7 +69,10 @@ public interface DateTimeParser {
     }
 
     throw new SemanticCheckException(
-        String.format("time:%s in unsupported format, please use 'HH:mm:ss[.SSSSSSSSS]'", input));
+        String.format(
+            Locale.ROOT,
+            "time:%s in unsupported format, please use 'HH:mm:ss[.SSSSSSSSS]'",
+            input));
   }
 
   static LocalDateTime parseDateOrTimestamp(String input) {
@@ -86,7 +91,8 @@ public interface DateTimeParser {
     }
 
     throw new SemanticCheckException(
-        String.format("date:%s in unsupported format, please use 'yyyy-MM-dd'", input));
+        String.format(
+            Locale.ROOT, "date:%s in unsupported format, please use 'yyyy-MM-dd'", input));
   }
 
   static LocalDateTime parseTimestamp(String input) {
@@ -101,6 +107,7 @@ public interface DateTimeParser {
     }
     throw new SemanticCheckException(
         String.format(
+            Locale.ROOT,
             "timestamp:%s in unsupported format, please use 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'",
             input));
   }
@@ -114,7 +121,10 @@ public interface DateTimeParser {
       }
     }
     throw new SemanticCheckException(
-        String.format("time:%s in unsupported format, please use 'HH:mm:ss[.SSSSSSSSS]'", input));
+        String.format(
+            Locale.ROOT,
+            "time:%s in unsupported format, please use 'HH:mm:ss[.SSSSSSSSS]'",
+            input));
   }
 
   static LocalDate parseDate(String input) {
@@ -126,6 +136,7 @@ public interface DateTimeParser {
       }
     }
     throw new SemanticCheckException(
-        String.format("date:%s in unsupported format, please use 'yyyy-MM-dd'", input));
+        String.format(
+            Locale.ROOT, "date:%s in unsupported format, please use 'yyyy-MM-dd'", input));
   }
 }

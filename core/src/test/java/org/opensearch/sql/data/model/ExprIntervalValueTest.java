@@ -12,6 +12,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.INTERVAL;
 
 import java.time.Duration;
 import java.time.Period;
+import java.util.Locale;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 
@@ -43,7 +44,11 @@ public class ExprIntervalValueTest {
     assertThrows(
         ExpressionEvaluationException.class,
         () -> v1.compare(v2),
-        String.format("invalid to compare intervals with units %s and %s", v1.unit(), v2.unit()));
+        String.format(
+            Locale.ROOT,
+            "invalid to compare intervals with units %s and %s",
+            v1.unit(),
+            v2.unit()));
   }
 
   @Test
@@ -52,7 +57,8 @@ public class ExprIntervalValueTest {
     assertThrows(
         ExpressionEvaluationException.class,
         value::intervalValue,
-        String.format("invalid to get intervalValue from value of type %s", value.type()));
+        String.format(
+            Locale.ROOT, "invalid to get intervalValue from value of type %s", value.type()));
   }
 
   @Test

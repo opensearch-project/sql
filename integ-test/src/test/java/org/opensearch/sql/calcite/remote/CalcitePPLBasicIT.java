@@ -13,6 +13,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
@@ -143,7 +144,9 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where gender = 'F' | fields firstname, lastname", TEST_INDEX_BANK));
+                Locale.ROOT,
+                "source=%s | where gender = 'F' | fields firstname, lastname",
+                TEST_INDEX_BANK));
     verifySchema(actual, schema("firstname", "string"), schema("lastname", "string"));
     verifyDataRows(
         actual, rows("Nanette", "Bates"), rows("Virginia", "Ayala"), rows("Dillard", "Mcpherson"));
@@ -154,7 +157,9 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where state = 'VA' | fields firstname, lastname", TEST_INDEX_BANK));
+                Locale.ROOT,
+                "source=%s | where state = 'VA' | fields firstname, lastname",
+                TEST_INDEX_BANK));
     verifySchema(actual, schema("firstname", "string"), schema("lastname", "string"));
     verifyDataRows(actual, rows("Nanette", "Bates"));
   }
@@ -164,6 +169,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where (account_number = 20 or city = 'Brogan') and balance > 10000 |"
                     + " fields firstname, lastname",
                 TEST_INDEX_BANK));
@@ -176,6 +182,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s (account_number = 20 or city = 'Brogan') and balance > 10000 |"
                     + " fields firstname, lastname",
                 TEST_INDEX_BANK));
@@ -187,7 +194,10 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   public void testQueryMinusFields() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format("source=%s | fields - firstname, lastname, birthdate", TEST_INDEX_BANK));
+            String.format(
+                Locale.ROOT,
+                "source=%s | fields - firstname, lastname, birthdate",
+                TEST_INDEX_BANK));
     verifySchema(
         actual,
         schema("account_number", "bigint"),
@@ -286,6 +296,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where (account_number = 20 or city = 'Brogan') and balance > 10000 |"
                     + " fields - firstname, lastname",
                 TEST_INDEX_BANK));
@@ -335,6 +346,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | fields + firstname, lastname, account_number | fields - firstname,"
                     + " lastname",
                 TEST_INDEX_BANK));
@@ -346,7 +358,11 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   public void testMultipleTables_SameTable() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format("source=%s, %s | stats count() as c", TEST_INDEX_BANK, TEST_INDEX_BANK));
+            String.format(
+                Locale.ROOT,
+                "source=%s, %s | stats count() as c",
+                TEST_INDEX_BANK,
+                TEST_INDEX_BANK));
     verifySchema(actual, schema("c", "bigint"));
     verifyDataRows(actual, rows(7));
   }
@@ -356,8 +372,10 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s, %s gender = 'F' | stats count() as c",
-                TEST_INDEX_BANK, TEST_INDEX_BANK));
+                TEST_INDEX_BANK,
+                TEST_INDEX_BANK));
     verifySchema(actual, schema("c", "bigint"));
     verifyDataRows(actual, rows(3));
   }
@@ -365,7 +383,8 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   @Test
   public void testMultipleTables_DifferentTables() throws IOException {
     JSONObject actual =
-        executeQuery(String.format("source=%s, test | stats count() as c", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(Locale.ROOT, "source=%s, test | stats count() as c", TEST_INDEX_BANK));
     verifySchema(actual, schema("c", "bigint"));
     verifyDataRows(actual, rows(9));
   }
@@ -373,7 +392,8 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   @Test
   public void testMultipleTables_WithIndexPattern() throws IOException {
     JSONObject actual =
-        executeQuery(String.format("source=%s, test* | stats count() as c", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(Locale.ROOT, "source=%s, test* | stats count() as c", TEST_INDEX_BANK));
     verifySchema(actual, schema("c", "bigint"));
     verifyDataRows(actual, rows(10));
   }
@@ -382,7 +402,10 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   public void testMultipleTablesAndFilters_WithIndexPattern() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format("source=%s, test* gender = 'F' | stats count() as c", TEST_INDEX_BANK));
+            String.format(
+                Locale.ROOT,
+                "source=%s, test* gender = 'F' | stats count() as c",
+                TEST_INDEX_BANK));
     verifySchema(actual, schema("c", "bigint"));
     verifyDataRows(actual, rows(3));
   }
@@ -390,7 +413,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   @Test
   public void testSelectDateTypeField() throws IOException {
     JSONObject actual =
-        executeQuery(String.format("source=%s | fields birthdate", TEST_INDEX_BANK));
+        executeQuery(String.format(Locale.ROOT, "source=%s | fields birthdate", TEST_INDEX_BANK));
     verifySchema(actual, schema("birthdate", "timestamp"));
     verifyDataRows(
         actual,
@@ -419,6 +442,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where age between 35 and 38 | fields firstname, age",
                 TEST_INDEX_BANK));
     verifySchema(actual, schema("firstname", "string"), schema("age", "int"));
@@ -430,6 +454,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where age between 36 - 1 and 37 + 1 | fields firstname, age",
                 TEST_INDEX_BANK));
     verifySchema(actual, schema("firstname", "string"), schema("age", "int"));
@@ -441,6 +466,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where age between 35.5 and 38.5 | fields firstname, age",
                 TEST_INDEX_BANK));
     verifySchema(actual, schema("firstname", "string"), schema("age", "int"));
@@ -452,6 +478,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where age between 35 and 38.5 | fields firstname, age",
                 TEST_INDEX_BANK));
     verifySchema(actual, schema("firstname", "string"), schema("age", "int"));
@@ -466,6 +493,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
             () ->
                 executeQuery(
                     String.format(
+                        Locale.ROOT,
                         "source=%s | where age between '35' and 38.5 | fields firstname, age",
                         TEST_INDEX_BANK)));
     verifyErrorMessageContains(e, "BETWEEN expression types are incompatible");
@@ -476,6 +504,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where age not between 30 and 39 | fields firstname, age",
                 TEST_INDEX_BANK));
     verifySchema(actual, schema("firstname", "string"), schema("age", "int"));
@@ -487,6 +516,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where not age between 30 and 39 | fields firstname, age",
                 TEST_INDEX_BANK));
     verifySchema(actual, schema("firstname", "string"), schema("age", "int"));
@@ -498,6 +528,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where not age not between 35 and 38 | fields firstname, age",
                 TEST_INDEX_BANK));
     verifySchema(actual, schema("firstname", "string"), schema("age", "int"));
@@ -508,6 +539,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where birthdate between date('2018-06-01') and date('2018-06-30') |"
                     + " fields firstname, birthdate",
                 TEST_INDEX_BANK));
@@ -521,6 +553,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where firstname='Hattie' xor age=36 | fields firstname, age",
                 TEST_INDEX_BANK));
     verifyDataRows(result, rows("Elinor", 36));
@@ -537,7 +570,8 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
                   IllegalArgumentException.class,
                   () ->
                       executeQuery(
-                          String.format("source=%s | fields firstname1, age", TEST_INDEX_BANK)));
+                          String.format(
+                              Locale.ROOT, "source=%s | fields firstname1, age", TEST_INDEX_BANK)));
           verifyErrorMessageContains(
               e,
               "field [firstname1] not found; input fields are: [account_number, firstname, address,"
@@ -552,6 +586,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where alias_col > 1 | fields original_col, alias_col ",
                 TEST_INDEX_ALIAS));
     verifySchema(result, schema("original_col", "int"), schema("alias_col", "int"));
@@ -565,7 +600,8 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
             Exception.class,
             () ->
                 executeQuery(
-                    String.format("source=%s | stats count() as _score", TEST_INDEX_ACCOUNT)));
+                    String.format(
+                        Locale.ROOT, "source=%s | stats count() as _score", TEST_INDEX_ACCOUNT)));
     verifyErrorMessageContains(e, "Cannot use metadata field [_score] as the alias.");
   }
 
@@ -574,6 +610,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | fields machine.os1,  machine.os2, machine_array.os1, "
                     + " machine_array.os2, machine_deep.attr1, machine_deep.attr2,"
                     + " machine_deep.layer.os1, machine_deep.layer.os2",

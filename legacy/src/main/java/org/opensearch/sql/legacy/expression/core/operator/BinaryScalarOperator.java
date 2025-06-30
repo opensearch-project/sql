@@ -16,6 +16,7 @@ import static org.opensearch.sql.legacy.expression.model.ExprValueUtils.getLongV
 
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.BiFunction;
 import lombok.RequiredArgsConstructor;
@@ -48,7 +49,12 @@ public class BinaryScalarOperator implements ScalarOperator {
     ExprValue v2 = valueList.get(1);
     if (!numberTypeOrder.containsKey(v1.kind()) || !numberTypeOrder.containsKey(v2.kind())) {
       throw new RuntimeException(
-          String.format("unexpected operation type: %s(%s, %s) ", op.name(), v1.kind(), v2.kind()));
+          String.format(
+              Locale.ROOT,
+              "unexpected operation type: %s(%s, %s) ",
+              op.name(),
+              v1.kind(),
+              v2.kind()));
     }
     ExprValue.ExprValueKind expectedType =
         numberTypeOrder.get(v1.kind()) > numberTypeOrder.get(v2.kind()) ? v1.kind() : v2.kind();
@@ -64,7 +70,11 @@ public class BinaryScalarOperator implements ScalarOperator {
       default:
         throw new RuntimeException(
             String.format(
-                "unexpected operation type: %s(%s, %s)", op.name(), v1.kind(), v2.kind()));
+                Locale.ROOT,
+                "unexpected operation type: %s(%s, %s)",
+                op.name(),
+                v1.kind(),
+                v2.kind()));
     }
   }
 

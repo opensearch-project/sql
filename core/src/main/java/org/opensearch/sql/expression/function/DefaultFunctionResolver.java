@@ -6,6 +6,7 @@
 package org.opensearch.sql.expression.function;
 
 import java.util.AbstractMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
@@ -54,13 +55,16 @@ public class DefaultFunctionResolver implements FunctionResolver {
             || unresolvedSignature.getParamTypeList().size() > 9)) {
       throw new ExpressionEvaluationException(
           String.format(
+              Locale.ROOT,
               "%s function expected 1-9 arguments, but got %d",
-              functionName, unresolvedSignature.getParamTypeList().size()));
+              functionName,
+              unresolvedSignature.getParamTypeList().size()));
     }
     if (FunctionSignature.NOT_MATCH.equals(bestMatchEntry.getKey())
         && !FunctionSignature.isVarArgFunction(bestMatchEntry.getValue().getParamTypeList())) {
       throw new ExpressionEvaluationException(
           String.format(
+              Locale.ROOT,
               "%s function expected %s, but got %s",
               functionName,
               formatFunctions(functionBundle.keySet()),

@@ -18,6 +18,7 @@ import com.google.common.io.Files;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -48,6 +49,7 @@ public class ExplainIT extends SQLIntegTestCase {
     String result =
         explainQuery(
             String.format(
+                Locale.ROOT,
                 "SELECT * FROM %s WHERE firstname LIKE 'A%%' AND age > 20 "
                     + "GROUP BY gender order by _score",
                 TEST_INDEX_ACCOUNT));
@@ -70,6 +72,7 @@ public class ExplainIT extends SQLIntegTestCase {
     String result =
         explainQuery(
             String.format(
+                Locale.ROOT,
                 "SELECT address, CASE WHEN gender='0' then 'aaa' else 'bbb'end a2345,count(age)"
                     + " FROM %s GROUP BY"
                     + " terms('field'='address','execution_hint'='global_ordinals'),a2345",
@@ -90,6 +93,7 @@ public class ExplainIT extends SQLIntegTestCase {
     String result =
         explainQuery(
             String.format(
+                Locale.ROOT,
                 "SELECT case when gender is null then 'aaa' "
                     + "else gender  end  test , account_number FROM %s",
                 TEST_INDEX_ACCOUNT));
@@ -109,6 +113,7 @@ public class ExplainIT extends SQLIntegTestCase {
     String result =
         explainQuery(
             String.format(
+                Locale.ROOT,
                 "SELECT  case when balance between 100 and 200 then 'aaa' "
                     + "else balance  end  test, account_number FROM %s",
                 TEST_INDEX_ACCOUNT));
@@ -129,6 +134,7 @@ public class ExplainIT extends SQLIntegTestCase {
     String result =
         explainQuery(
             String.format(
+                Locale.ROOT,
                 "SELECT * FROM %s WHERE firstname LIKE 'A%%' " + "AND age > 20 GROUP BY gender",
                 TEST_INDEX_ACCOUNT));
     Assert.assertThat(
@@ -149,6 +155,7 @@ public class ExplainIT extends SQLIntegTestCase {
     String result =
         explainQuery(
             String.format(
+                Locale.ROOT,
                 "SELECT * FROM %s WHERE GEO_INTERSECTS"
                     + "(place,'POLYGON ((102 2, 103 2, 103 3, 102 3, 102 2))')",
                 TEST_INDEX_LOCATION));
@@ -162,6 +169,7 @@ public class ExplainIT extends SQLIntegTestCase {
     String result =
         explainQuery(
             String.format(
+                Locale.ROOT,
                 "SELECT * FROM %s ORDER BY NESTED('message.info','message')",
                 TEST_INDEX_NESTED_TYPE));
     Assert.assertThat(
@@ -183,6 +191,7 @@ public class ExplainIT extends SQLIntegTestCase {
     String result =
         explainQuery(
             String.format(
+                Locale.ROOT,
                 "SELECT * FROM %s WHERE multimatch('query'='this is a test',"
                     + "'fields'='subject^3,message','analyzer'='standard','type'='best_fields','boost'=1.0,"
                     + "'slop'=0,'tie_breaker'=0.3,'operator'='and')",

@@ -33,6 +33,7 @@ import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -168,7 +169,8 @@ public class OpenSearchExprValueFactory {
           Optional.of(STRUCT),
           fieldTypeTolerance || supportArrays);
     } catch (JsonProcessingException e) {
-      throw new IllegalStateException(String.format("invalid json: %s.", jsonString), e);
+      throw new IllegalStateException(
+          String.format(Locale.ROOT, "invalid json: %s.", jsonString), e);
     }
   }
 
@@ -206,7 +208,10 @@ public class OpenSearchExprValueFactory {
     } else {
       throw new IllegalStateException(
           String.format(
-              "Unsupported type: %s for value: %s.", type.typeName(), content.objectValue()));
+              Locale.ROOT,
+              "Unsupported type: %s for value: %s.",
+              type.typeName(),
+              content.objectValue()));
     }
   }
 
@@ -268,7 +273,11 @@ public class OpenSearchExprValueFactory {
     }
 
     throw new IllegalArgumentException(
-        String.format("Construct %s from \"%s\" failed, unsupported format.", returnFormat, value));
+        String.format(
+            Locale.ROOT,
+            "Construct %s from \"%s\" failed, unsupported format.",
+            returnFormat,
+            value));
   }
 
   private static ExprValue createOpenSearchDateType(Content value, ExprType type) {

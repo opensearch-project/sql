@@ -4,6 +4,7 @@
  */
 package org.opensearch.sql.opensearch.planner.physical;
 
+import java.util.Locale;
 import java.util.function.Predicate;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
@@ -31,8 +32,10 @@ public class OpenSearchAggregateIndexScanRule
     } else {
       throw new AssertionError(
           String.format(
+              Locale.ROOT,
               "The length of rels should be %s but got %s",
-              this.operands.size(), call.rels.length));
+              this.operands.size(),
+              call.rels.length));
     }
   }
 

@@ -28,6 +28,7 @@ import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.sql.legacy.domain.Field;
 import org.opensearch.sql.legacy.domain.KVValue;
@@ -165,7 +166,8 @@ public class FieldMaker {
 
     Object left = getScriptValue(binaryExpr.getLeft());
     Object right = getScriptValue(binaryExpr.getRight());
-    String script = String.format("%s %s %s", left, binaryExpr.getOperator().getName(), right);
+    String script =
+        String.format(Locale.ROOT, "%s %s %s", left, binaryExpr.getOperator().getName(), right);
 
     params.add(new SQLCharExpr(script));
 

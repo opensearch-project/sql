@@ -14,6 +14,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
+import java.util.Locale;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -64,6 +65,7 @@ public class TimestampTest extends ExpressionTestBase {
             () -> DSL.timestamp(functionProperties, DSL.literal(value)).valueOf());
     assertEquals(
         String.format(
+            Locale.ROOT,
             "timestamp:%s in unsupported format, please " + "use 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'",
             value),
         exception.getMessage());

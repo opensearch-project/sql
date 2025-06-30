@@ -17,6 +17,7 @@ import java.io.StringWriter;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.UnaryOperator;
 import lombok.Getter;
 import org.apache.calcite.plan.Contexts;
@@ -144,6 +145,8 @@ public class CalcitePPLAbstractTest {
 
   public void verifyErrorMessageContains(Throwable t, String msg) {
     String stackTrace = getStackTrace(t);
-    assertThat(String.format("Actual stack trace was:\n%s", stackTrace), stackTrace.contains(msg));
+    assertThat(
+        String.format(Locale.ROOT, "Actual stack trace was:\n%s", stackTrace),
+        stackTrace.contains(msg));
   }
 }

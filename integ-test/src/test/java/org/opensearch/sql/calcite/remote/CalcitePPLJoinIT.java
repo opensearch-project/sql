@@ -16,6 +16,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -61,10 +62,12 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | inner join left=a, right=b ON a.name = b.name AND a.year = 2023"
                     + " AND a.month = 4 AND b.year = 2023 AND b.month = 4 %s | fields a.name,"
                     + " a.age, a.state, a.country, b.occupation, b.country, b.salary",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     verifySchema(
         actual,
         schema("name", "string"),
@@ -89,11 +92,13 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | inner join left=a, right=b ON a.name = b.name AND a.country ="
                     + " b.country AND a.year = 2023 AND a.month = 4 AND b.year = 2023 AND b.month ="
                     + " 4 %s | fields a.name, a.age, a.state, a.country, b.occupation, b.country,"
                     + " b.salary",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     verifySchema(
         actual,
         schema("name", "string"),
@@ -116,11 +121,13 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | inner join left=a, right=b ON a.name = b.name AND a.country ="
                     + " b.country AND a.year = 2023 AND a.month = 4 AND b.salary > 100000 %s |"
                     + " fields a.name, a.age, a.state, a.country, b.occupation, b.country,"
                     + " b.salary",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     verifySchema(
         actual,
         schema("name", "string"),
@@ -141,9 +148,11 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | inner join left=a, right=b ON a.name = b.name %s | stats avg(salary)"
                     + " by span(age, 10) as age_span",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     verifySchema(actual, schema("avg(salary)", "double"), schema("age_span", "int"));
     verifyDataRows(
         actual, rows(105000.0, 20), rows(70000.0, 30), rows(60000.0, 40), rows(100000.0, 70));
@@ -154,9 +163,11 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | inner join left=a, right=b ON a.name = b.name %s | stats avg(salary)"
                     + " by span(age, 10) as age_span, b.country",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     verifySchema(
         actual,
         schema("avg(salary)", "double"),
@@ -176,10 +187,12 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | where country = 'USA' OR country = 'England' | inner join left=a,"
                     + " right=b ON a.name = b.name %s | stats avg(salary) by span(age, 10) as"
                     + " age_span, b.country",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     verifySchema(
         actual,
         schema("avg(salary)", "double"),
@@ -198,10 +211,12 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | where country = 'Canada' OR country = 'England' | left join left=a,"
                     + " right=b ON a.name = b.name %s | sort a.age | fields a.name, a.age, a.state,"
                     + " a.country, b.occupation, b.country, b.salary",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     verifySchema(
         actual,
         schema("name", "string"),
@@ -225,10 +240,12 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | where country = 'Canada' OR country = 'England' | right join left=a,"
                     + " right=b ON a.name = b.name %s | sort a.age | fields a.name, a.age, a.state,"
                     + " a.country, b.occupation, b.country, b.salary",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     verifySchema(
         actual,
         schema("name", "string"),
@@ -253,9 +270,11 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | where country = 'Canada' OR country = 'England' | left semi join"
                     + " left=a, right=b ON a.name = b.name %s | sort a.age",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     verifySchema(
         actual,
         schema("name", "string"),
@@ -275,9 +294,11 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | where country = 'Canada' OR country = 'England' | left anti join"
                     + " left=a, right=b ON a.name = b.name %s | sort a.age",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     verifySchema(
         actual,
         schema("name", "string"),
@@ -298,9 +319,11 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | where country = 'Canada' OR country = 'England' | join left=a,"
                     + " right=b %s | sort a.age | stats count()",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     verifySchema(actual, schema("count()", "bigint"));
     verifyDataRowsInOrder(actual, rows(30));
   }
@@ -310,11 +333,13 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | where country = 'USA' OR country = 'England' | inner join left=a,"
                     + " right=b ON age < salary %s |  where occupation = 'Doctor' OR occupation ="
                     + " 'Engineer' | fields a.name, age, state, a.country, occupation, b.country,"
                     + " salary",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     verifySchema(
         actual,
         schema("name", "string"),
@@ -342,15 +367,19 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
     var cross =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | where country = 'USA' | cross join left=a, right=b ON a.name ="
                     + " b.name %s | sort a.age",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     var inner =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | where country = 'USA' | inner join left=a, right=b ON a.name ="
                     + " b.name %s | sort a.age",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     assertJsonEquals(cross.toString(), inner.toString());
   }
 
@@ -359,6 +388,7 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s| where country = 'Canada' OR country = 'England'| inner join left=a,"
                     + " right=b    ON a.name = b.name AND a.year = 2023 AND a.month = 4 AND b.year"
                     + " = 2023 AND b.month = 4    %s| eval a_name = a.name| eval a_country ="
@@ -384,6 +414,7 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s| where country = 'Canada' OR country = 'England'| inner join left=a,"
                     + " right=b    ON a.name = b.name AND a.year = 2023 AND a.month = 4 AND b.year"
                     + " = 2023 AND b.month = 4    [      source = %s    ]| eval a_name = a.name|"
@@ -410,6 +441,7 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | JOIN ON %s.name = %s.name %s | JOIN ON %s.name = %s.name %s | fields"
                     + " %s.name, %s.name, %s.name",
                 TEST_INDEX_STATE_COUNTRY,
@@ -442,9 +474,12 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | JOIN left = t1 right = t2 ON t1.name = t2.name %s | JOIN right = t3"
                     + " ON t1.name = t3.name %s | fields t1.name, t2.name, t3.name",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION, TEST_INDEX_HOBBIES));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION,
+                TEST_INDEX_HOBBIES));
     verifySchema(
         actual, schema("name", "string"), schema("t2.name", "string"), schema("t3.name", "string"));
     verifyDataRows(
@@ -462,6 +497,7 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | JOIN left = t1 right = t2 ON t1.name = t2.name %s | JOIN right = t3"
                     + " ON t1.name = t3.name %s | JOIN right = t4 ON t1.name = t4.name %s | fields"
                     + " t1.name, t2.name, t3.name, t4.name",
@@ -490,6 +526,7 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | JOIN left = t1 right = t2 ON t1.name = t2.name %s | JOIN right = t3"
                     + " ON t1.name = t3.name %s | JOIN ON t1.name = t4.name [ source = %s ] as t4 |"
                     + " fields t1.name, t2.name, t3.name, t4.name",
@@ -518,35 +555,45 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
     JSONObject res1 =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | JOIN left = t1 ON t1.name = t2.name %s as t2 | fields t1.name,"
                     + " t2.name",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     JSONObject res2 =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s as t1 | JOIN ON t1.name = t2.name %s as t2 | fields t1.name, t2.name",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     assertJsonEquals(
         res1.getJSONArray("datarows").toString(), res2.getJSONArray("datarows").toString());
 
     JSONObject res3 =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | JOIN left = t1 right = t2 ON t1.name = t2.name %s as tt | fields"
                     + " tt.name",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     JSONObject res4 =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s as tt | JOIN left = t1 right = t2 ON t1.name = t2.name %s | fields"
                     + " t1.name",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     JSONObject res5 =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s as tt | JOIN left = t1 ON t1.name = t2.name %s as t2 | fields"
                     + " t1.name",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     assertJsonEquals(
         res3.getJSONArray("datarows").toString(), res4.getJSONArray("datarows").toString());
     assertJsonEquals(
@@ -558,36 +605,46 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
     JSONObject res1 =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | JOIN left = t1 ON t1.name = t2.name [ source = %s ] as t2 | fields"
                     + " t1.name, t2.name",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     JSONObject res2 =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | JOIN left = t1 ON t1.name = t2.name [ source = %s as t2 ] | fields"
                     + " t1.name, t2.name",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     assertJsonEquals(
         res1.getJSONArray("datarows").toString(), res2.getJSONArray("datarows").toString());
 
     JSONObject res3 =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | JOIN left = t1 right = t2 ON t1.name = t2.name [ source = %s as"
                     + " tt ] | fields tt.name",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     JSONObject res4 =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | JOIN left = t1 ON t1.name = t2.name [ source = %s as tt ] as t2"
                     + " | fields tt.name",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     JSONObject res5 =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | JOIN left = t1 right = t2 ON t1.name = t2.name [ source = %s ]"
                     + " as tt | fields tt.name",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     assertJsonEquals(
         res3.getJSONArray("datarows").toString(), res4.getJSONArray("datarows").toString());
     assertJsonEquals(
@@ -599,21 +656,27 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
     JSONObject res1 =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | JOIN left = t1 right = t2 ON t1.name = t2.name %s as tt | fields"
                     + " tt.name",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     JSONObject res2 =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s as tt | JOIN left = t1 right = t2 ON t1.name = t2.name %s | fields"
                     + " t1.name",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     JSONObject res3 =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s as tt | JOIN left = t1 ON t1.name = t2.name %s as t2 | fields"
                     + " t1.name",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     assertJsonEquals(
         res1.getJSONArray("datarows").toString(), res2.getJSONArray("datarows").toString());
     assertJsonEquals(
@@ -625,21 +688,27 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
     JSONObject res1 =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | JOIN left = t1 right = t2 ON t1.name = t2.name [ source = %s as tt ]"
                     + " | fields tt.name",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     JSONObject res2 =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | JOIN left = t1 right = t2 ON t1.name = t2.name [ source = %s as tt ]"
                     + " as t2 | fields tt.name",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     JSONObject res3 =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | JOIN left = t1 right = t2 ON t1.name = t2.name [ source = %s ] as tt"
                     + " | fields tt.name",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     assertJsonEquals(
         res1.getJSONArray("datarows").toString(), res2.getJSONArray("datarows").toString());
     assertJsonEquals(
@@ -651,21 +720,27 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
     JSONObject res1 =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | JOIN left = t1 right = t2 ON t1.name = t2.name [ source = %s as tt ]"
                     + " | fields t2.name",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     JSONObject res2 =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | JOIN left = t1 right = t2 ON t1.name = t2.name [ source = %s as tt ]"
                     + " as t2 | fields t2.name",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     JSONObject res3 =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | JOIN left = t1 right = t2 ON t1.name = t2.name [ source = %s ] as tt"
                     + " | fields t2.name",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     assertJsonEquals(
         res1.getJSONArray("datarows").toString(), res2.getJSONArray("datarows").toString());
     assertJsonEquals(
@@ -677,6 +752,7 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s"
                     + "| where country = 'USA' OR country = 'England'"
                     + "| inner join left=a, right=b"
@@ -689,7 +765,8 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
                     + "      | head 3"
                     + "    ]"
                     + "| stats avg(salary) by span(age, 10) as age_span, b.country",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     verifySchema(
         actual,
         schema("avg(salary)", "double"),
@@ -703,6 +780,7 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s"
                     + "| where country = 'USA' OR country = 'England'"
                     + "| left join left=a, right=b"
@@ -715,7 +793,8 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
                     + "      | head 3"
                     + "    ]"
                     + "| stats avg(salary) by span(age, 10) as age_span, b.country",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION));
     verifySchema(
         actual,
         schema("b.country", "string"),

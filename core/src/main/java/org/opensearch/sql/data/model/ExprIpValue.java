@@ -6,6 +6,7 @@
 package org.opensearch.sql.data.model;
 
 import inet.ipaddr.IPAddress;
+import java.util.Locale;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.utils.IPUtils;
@@ -45,7 +46,7 @@ public class ExprIpValue extends AbstractExprValue {
 
   @Override
   public String toString() {
-    return String.format("IP %s", value());
+    return String.format(Locale.ROOT, "IP %s", value());
   }
 
   @Override

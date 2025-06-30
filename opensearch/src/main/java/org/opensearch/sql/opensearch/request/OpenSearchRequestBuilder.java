@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -229,8 +230,10 @@ public class OpenSearchRequestBuilder {
     if (newStartFrom >= maxResultWindow) {
       throw new PushDownUnSupportedException(
           String.format(
+              Locale.ROOT,
               "Requested offset %d should be less than the max result window %d",
-              newStartFrom, maxResultWindow));
+              newStartFrom,
+              maxResultWindow));
     }
 
     requestedTotalSize = newRequestedTotalSize;
@@ -257,7 +260,8 @@ public class OpenSearchRequestBuilder {
       // OS does not allow duplicates of highlight fields
       if (sourceBuilder.highlighter().fields().stream()
           .anyMatch(f -> f.name().equals(unquotedField))) {
-        throw new SemanticCheckException(String.format("Duplicate field %s in highlight", field));
+        throw new SemanticCheckException(
+            String.format(Locale.ROOT, "Duplicate field %s in highlight", field));
       }
 
       sourceBuilder.highlighter().field(unquotedField);

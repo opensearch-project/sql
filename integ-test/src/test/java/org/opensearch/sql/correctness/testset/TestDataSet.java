@@ -11,6 +11,7 @@ import static org.opensearch.sql.legacy.utils.StringUtils.unquoteSingleField;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.opensearch.sql.legacy.utils.StringUtils;
 
@@ -131,8 +132,11 @@ public class TestDataSet {
   public String toString() {
     int total = dataRows.size();
     return String.format(
+            Locale.ROOT,
             "Test data set:\n Table name: %s\n Schema: %s\n Data rows (first 5 in %d):",
-            tableName, schema, total)
+            tableName,
+            schema,
+            total)
         + dataRows.stream().limit(5).map(Arrays::toString).collect(joining("\n ", "\n ", "\n"));
   }
 }

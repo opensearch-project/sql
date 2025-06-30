@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.temporal.IsoFields;
+import java.util.Locale;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -83,7 +84,7 @@ class ExtractTest extends ExpressionTestBase {
     assertEquals(LONG, datetimeExpression.type());
     assertEquals(expected, eval(datetimeExpression).longValue());
     assertEquals(
-        String.format("extract(\"%s\", TIMESTAMP '2023-02-11 10:11:12.123')", part),
+        String.format(Locale.ROOT, "extract(\"%s\", TIMESTAMP '2023-02-11 10:11:12.123')", part),
         datetimeExpression.toString());
   }
 
@@ -159,7 +160,8 @@ class ExtractTest extends ExpressionTestBase {
     assertEquals(LONG, datetimeExpression.type());
     assertEquals(expected, eval(datetimeExpression).longValue());
     assertEquals(
-        String.format("extract(\"%s\", DATE '2023-02-11')", part), datetimeExpression.toString());
+        String.format(Locale.ROOT, "extract(\"%s\", DATE '2023-02-11')", part),
+        datetimeExpression.toString());
   }
 
   @ParameterizedTest(name = "{0}")
@@ -172,7 +174,8 @@ class ExtractTest extends ExpressionTestBase {
     assertEquals(LONG, datetimeExpression.type());
     assertEquals(expected, eval(datetimeExpression).longValue());
     assertEquals(
-        String.format("extract(\"%s\", TIME '10:11:12.123')", part), datetimeExpression.toString());
+        String.format(Locale.ROOT, "extract(\"%s\", TIME '10:11:12.123')", part),
+        datetimeExpression.toString());
   }
 
   private ExprValue eval(Expression expression) {

@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.legacy.expression.domain;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.Builder;
@@ -40,7 +41,7 @@ public class BindingTuple {
   @Override
   public String toString() {
     return bindingMap.entrySet().stream()
-        .map(entry -> String.format("%s:%s", entry.getKey(), entry.getValue()))
+        .map(entry -> String.format(Locale.ROOT, "%s:%s", entry.getKey(), entry.getValue()))
         .collect(Collectors.joining(",", "<", ">"));
   }
 

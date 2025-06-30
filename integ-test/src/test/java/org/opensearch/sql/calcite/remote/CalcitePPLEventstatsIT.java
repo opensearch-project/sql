@@ -10,6 +10,7 @@ import static org.opensearch.sql.util.MatcherUtils.*;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
                     + " as max",
                 TEST_INDEX_STATE_COUNTRY));
@@ -64,6 +66,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
                     + " as max",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
@@ -96,6 +99,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
                     + " as max by country",
                 TEST_INDEX_STATE_COUNTRY));
@@ -126,6 +130,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
                     + " as max by country",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
@@ -155,6 +160,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
                     + " as max by state",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
@@ -173,6 +179,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
                     + " as max by span(age, 10) as age_span",
                 TEST_INDEX_STATE_COUNTRY));
@@ -190,6 +197,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
                     + " as max by span(age, 10) as age_span",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
@@ -209,6 +217,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
                     + " as max by span(age, 10) as age_span, country",
                 TEST_INDEX_STATE_COUNTRY));
@@ -226,6 +235,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
                     + " as max by span(age, 10) as age_span, state",
                 TEST_INDEX_STATE_COUNTRY));
@@ -243,6 +253,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
                     + " as max by span(age, 10) as age_span, country",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
@@ -262,6 +273,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
                     + " as max by span(age, 10) as age_span, state",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
@@ -286,7 +298,10 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
               () ->
                   executeQuery(
                       String.format(
-                          "source=%s | eventstats %s(age)", TEST_INDEX_STATE_COUNTRY, u)));
+                          Locale.ROOT,
+                          "source=%s | eventstats %s(age)",
+                          TEST_INDEX_STATE_COUNTRY,
+                          u)));
       verifyErrorMessageContains(e, "Unexpected window function: " + u);
     }
   }
@@ -301,6 +316,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eventstats distinct_count(state) by country",
                 TEST_INDEX_STATE_COUNTRY));
 
@@ -318,6 +334,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eventstats avg(age) as avg_age by state, country | eventstats"
                     + " avg(avg_age) as avg_state_age by country",
                 TEST_INDEX_STATE_COUNTRY));
@@ -335,6 +352,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eventstats avg(age) as avg_age by state, country | eventstats"
                     + " avg(avg_age) as avg_state_age by country",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
@@ -354,6 +372,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eventstats avg(age) as avg_age by country, state, name | eval"
                     + " avg_age_divide_20 = avg_age - 20 | eventstats avg(avg_age_divide_20) as"
                     + " avg_state_age by country, state | where avg_state_age > 0 | eventstats"
@@ -372,6 +391,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where name = 'non-existed' | eventstats count(), avg(age), min(age),"
                     + " max(age), stddev_pop(age), stddev_samp(age), var_pop(age), var_samp(age)",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
@@ -380,6 +400,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual2 =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where name = 'non-existed' | eventstats count(), avg(age), min(age),"
                     + " max(age), stddev_pop(age), stddev_samp(age), var_pop(age), var_samp(age) by"
                     + " country",
@@ -392,6 +413,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eventstats stddev_pop(age), stddev_samp(age), var_pop(age),"
                     + " var_samp(age)",
                 TEST_INDEX_STATE_COUNTRY));
@@ -462,6 +484,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eventstats stddev_pop(age), stddev_samp(age), var_pop(age),"
                     + " var_samp(age)",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
@@ -525,6 +548,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eventstats stddev_pop(age), stddev_samp(age), var_pop(age),"
                     + " var_samp(age) by country",
                 TEST_INDEX_STATE_COUNTRY));
@@ -542,6 +566,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where country != 'USA' | eventstats stddev_samp(age) by span(age, 10)",
                 TEST_INDEX_STATE_COUNTRY));
 
@@ -556,6 +581,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eventstats stddev_pop(age), stddev_samp(age), var_pop(age),"
                     + " var_samp(age) by country",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
@@ -606,6 +632,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eventstats earliest(birthdate), latest(birthdate) | head 1",
                 TEST_INDEX_BANK_TWO));
     verifySchema(

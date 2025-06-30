@@ -7,6 +7,7 @@ package org.opensearch.sql.ast.expression;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -40,6 +41,7 @@ public class LambdaFunction extends UnresolvedExpression {
   @Override
   public String toString() {
     return String.format(
+        Locale.ROOT,
         "(%s) -> %s",
         funcArgs.stream().map(Object::toString).collect(Collectors.joining(", ")),
         function.toString());

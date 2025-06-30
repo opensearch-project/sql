@@ -21,6 +21,7 @@ import java.time.temporal.ChronoUnit;
 import java.time.temporal.Temporal;
 import java.time.temporal.TemporalUnit;
 import java.util.List;
+import java.util.Locale;
 import java.util.TimeZone;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -172,7 +173,7 @@ class NowLikeFunctionTest extends ExpressionTestBase {
                         .apply(functionProperties, new Expression[] {DSL.literal(wrongFspValue)})
                         .valueOf());
         assertEquals(
-            String.format("Invalid `fsp` value: %d, allowed 0 to 6", wrongFspValue),
+            String.format(Locale.ROOT, "Invalid `fsp` value: %d, allowed 0 to 6", wrongFspValue),
             exception.getMessage());
       }
     }
@@ -220,7 +221,7 @@ class NowLikeFunctionTest extends ExpressionTestBase {
     BiFunction<String, Function<FunctionProperties, FunctionExpression>, DynamicTest> buildTest =
         (name, action) ->
             DynamicTest.dynamicTest(
-                String.format("multiple_invocations_same_value_test[%s]", name),
+                String.format(Locale.ROOT, "multiple_invocations_same_value_test[%s]", name),
                 () -> {
                   var v1 = extractValue(action.apply(functionProperties));
                   Thread.sleep(1000);
@@ -255,7 +256,7 @@ class NowLikeFunctionTest extends ExpressionTestBase {
         return func.valueOf().timeValue();
         // unreachable code
       default:
-        throw new IllegalArgumentException(String.format("%s", func.type()));
+        throw new IllegalArgumentException(String.format(Locale.ROOT, "%s", func.type()));
     }
   }
 }

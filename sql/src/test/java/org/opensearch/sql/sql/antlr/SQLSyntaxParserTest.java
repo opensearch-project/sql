@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.stream.Stream;
@@ -201,7 +202,8 @@ class SQLSyntaxParserTest {
   @ParameterizedTest(name = "{0}")
   @MethodSource("getPartForExtractFunction")
   public void can_parse_extract_function(String part) {
-    assertNotNull(parser.parse(String.format("SELECT extract(%s FROM \"2023-02-06\")", part)));
+    assertNotNull(
+        parser.parse(String.format(Locale.ROOT, "SELECT extract(%s FROM \"2023-02-06\")", part)));
   }
 
   private static Stream<Arguments> getInvalidPartForExtractFunction() {
@@ -213,7 +215,9 @@ class SQLSyntaxParserTest {
   public void cannot_parse_extract_function_invalid_part(String part) {
     assertThrows(
         SyntaxCheckException.class,
-        () -> parser.parse(String.format("SELECT extract(%s FROM \"2023-02-06\")", part)));
+        () ->
+            parser.parse(
+                String.format(Locale.ROOT, "SELECT extract(%s FROM \"2023-02-06\")", part)));
   }
 
   @Test
@@ -261,7 +265,8 @@ class SQLSyntaxParserTest {
   @ParameterizedTest(name = "{0}")
   @MethodSource("get_format_arguments")
   public void can_parse_get_format_function(String type, String format) {
-    assertNotNull(parser.parse(String.format("SELECT GET_FORMAT(%s, %s)", type, format)));
+    assertNotNull(
+        parser.parse(String.format(Locale.ROOT, "SELECT GET_FORMAT(%s, %s)", type, format)));
   }
 
   @Test
@@ -815,8 +820,11 @@ class SQLSyntaxParserTest {
         StringBuilder query = new StringBuilder();
         query.append(
             String.format(
+                Locale.ROOT,
                 "SELECT * FROM test WHERE %s(%s, %s",
-                function, randomIdentifier(), randomIdentifier()));
+                function,
+                randomIdentifier(),
+                randomIdentifier()));
         var args = new ArrayList<String>();
         for (var pair : functionArgs.entrySet()) {
           if (rand.nextBoolean()) {

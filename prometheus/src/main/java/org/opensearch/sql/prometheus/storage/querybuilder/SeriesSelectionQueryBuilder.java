@@ -9,6 +9,7 @@ package org.opensearch.sql.prometheus.storage.querybuilder;
 
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.TIMESTAMP;
 
+import java.util.Locale;
 import java.util.stream.Collectors;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
@@ -60,7 +61,7 @@ public class SeriesSelectionQueryBuilder {
             + func.getArguments().get(1);
       } else {
         throw new RuntimeException(
-            String.format(
+            String.format(Locale.ROOT,
                 "Prometheus Datasource doesn't support %s " + "in where command.",
                 func.getFunctionName().getFunctionName()));
       }

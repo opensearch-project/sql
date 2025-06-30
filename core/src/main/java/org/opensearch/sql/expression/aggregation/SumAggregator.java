@@ -83,7 +83,7 @@ public class SumAggregator extends Aggregator<SumState> {
           break;
         default:
           throw new ExpressionEvaluationException(
-              String.format("unexpected type [%s] in sum aggregation", type));
+              String.format(Locale.ROOT, "unexpected type [%s] in sum aggregation", type));
       }
     }
 

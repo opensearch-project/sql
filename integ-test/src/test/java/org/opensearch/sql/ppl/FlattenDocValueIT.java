@@ -13,6 +13,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.hamcrest.TypeSafeMatcher;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -27,7 +28,8 @@ public class FlattenDocValueIT extends PPLIntegTestCase {
 
   @Test
   public void testFlattenDocValue() throws IOException {
-    JSONObject result = executeQuery(String.format("source=%s", TEST_INDEX_FLATTENED_VALUE));
+    JSONObject result =
+        executeQuery(String.format(Locale.ROOT, "source=%s", TEST_INDEX_FLATTENED_VALUE));
     verifySchema(result, schema("log", "struct"));
     TypeSafeMatcher<JSONArray> expectedRow =
         rows(new JSONObject("{ \"json\" : { \"status\": \"SUCCESS\", \"time\": 100} }"));
@@ -39,6 +41,7 @@ public class FlattenDocValueIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | fields log, log.json, log.json.status, log.json.time",
                 TEST_INDEX_FLATTENED_VALUE));
     verifySchema(

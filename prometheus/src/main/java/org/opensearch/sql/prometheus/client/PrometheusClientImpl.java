@@ -14,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import okhttp3.OkHttpClient;
@@ -43,7 +44,7 @@ public class PrometheusClientImpl implements PrometheusClient {
   @Override
   public JSONObject queryRange(String query, Long start, Long end, String step) throws IOException {
     String queryUrl =
-        String.format(
+        String.format(Locale.ROOT,
             "%s/api/v1/query_range?query=%s&start=%s&end=%s&step=%s",
             uri.toString().replaceAll("/$", ""),
             URLEncoder.encode(query, StandardCharsets.UTF_8),
@@ -60,7 +61,7 @@ public class PrometheusClientImpl implements PrometheusClient {
   @Override
   public List<String> getLabels(String metricName) throws IOException {
     String queryUrl =
-        String.format(
+        String.format(Locale.ROOT,
             "%s/api/v1/labels?%s=%s",
             uri.toString().replaceAll("/$", ""),
             URLEncoder.encode("match[]", StandardCharsets.UTF_8),
@@ -74,7 +75,7 @@ public class PrometheusClientImpl implements PrometheusClient {
 
   @Override
   public Map<String, List<MetricMetadata>> getAllMetrics() throws IOException {
-    String queryUrl = String.format("%s/api/v1/metadata", uri.toString().replaceAll("/$", ""));
+    String queryUrl = String.format(Locale.ROOT, "%s/api/v1/metadata", uri.toString().replaceAll("/$", ""));
     logger.debug("queryUrl: " + queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
     Response response = this.okHttpClient.newCall(request).execute();
@@ -86,7 +87,7 @@ public class PrometheusClientImpl implements PrometheusClient {
   @Override
   public JSONArray queryExemplars(String query, Long start, Long end) throws IOException {
     String queryUrl =
-        String.format(
+        String.format(Locale.ROOT,
             "%s/api/v1/query_exemplars?query=%s&start=%s&end=%s",
             uri.toString().replaceAll("/$", ""),
             URLEncoder.encode(query, StandardCharsets.UTF_8),
@@ -128,7 +129,7 @@ public class PrometheusClientImpl implements PrometheusClient {
       }
     } else {
       throw new PrometheusClientException(
-          String.format("Request to Prometheus is Unsuccessful with code : %s", response.code()));
+          String.format(Locale.ROOT, "Request to Prometheus is Unsuccessful with code : %s", response.code()));
     }
   }
 }

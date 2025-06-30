@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Ignore;
@@ -223,6 +224,7 @@ public class CursorIT extends SQLIntegTestCase {
     JSONObject response =
         executeJDBCRequest(
             String.format(
+                Locale.ROOT,
                 "{"
                     + "\"fetch_size\": 200,"
                     + "\"query\": \" SELECT age, state FROM %s WHERE age > ? OR state IN (?, ?)\","
@@ -524,7 +526,10 @@ public class CursorIT extends SQLIntegTestCase {
 
   private String makeRequest(String query, String fetch_size) {
     return String.format(
-        "{" + "  \"fetch_size\": \"%s\"," + "  \"query\": \"%s\"" + "}", fetch_size, query);
+        Locale.ROOT,
+        "{" + "  \"fetch_size\": \"%s\"," + "  \"query\": \"%s\"" + "}",
+        fetch_size,
+        query);
   }
 
   private JSONObject executeJDBCRequest(String requestBody) throws IOException {

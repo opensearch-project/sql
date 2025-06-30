@@ -81,7 +81,9 @@ public class MetricAggregationBuilder
         default:
           throw new IllegalStateException(
               String.format(
-                  "unsupported distinct aggregator %s", node.getFunctionName().getFunctionName()));
+                  Locale.ROOT,
+                  "unsupported distinct aggregator %s",
+                  node.getFunctionName().getFunctionName()));
       }
     }
 
@@ -169,7 +171,10 @@ public class MetricAggregationBuilder
             new SinglePercentileParser(name));
       default:
         throw new IllegalStateException(
-            String.format("unsupported aggregator %s", node.getFunctionName().getFunctionName()));
+            String.format(
+                Locale.ROOT,
+                "unsupported aggregator %s",
+                node.getFunctionName().getFunctionName()));
     }
   }
 

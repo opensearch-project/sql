@@ -27,6 +27,7 @@ import static org.opensearch.sql.expression.DSL.ref;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.json.JSONObject;
@@ -1584,6 +1585,7 @@ class FilterQueryBuilderTest {
   void cast_to_byte_in_filter(LiteralExpression expr) {
     assertJsonEquals(
         String.format(
+            Locale.ROOT,
             "{\n"
                 + "  \"term\" : {\n"
                 + "    \"byte_value\" : {\n"
@@ -1601,6 +1603,7 @@ class FilterQueryBuilderTest {
   void cast_to_short_in_filter(LiteralExpression expr) {
     assertJsonEquals(
         String.format(
+            Locale.ROOT,
             "{\n"
                 + "  \"term\" : {\n"
                 + "    \"short_value\" : {\n"
@@ -1618,6 +1621,7 @@ class FilterQueryBuilderTest {
   void cast_to_int_in_filter(LiteralExpression expr) {
     assertJsonEquals(
         String.format(
+            Locale.ROOT,
             "{\n"
                 + "  \"term\" : {\n"
                 + "    \"integer_value\" : {\n"
@@ -1635,6 +1639,7 @@ class FilterQueryBuilderTest {
   void cast_to_long_in_filter(LiteralExpression expr) {
     assertJsonEquals(
         String.format(
+            Locale.ROOT,
             "{\n"
                 + "  \"term\" : {\n"
                 + "    \"long_value\" : {\n"
@@ -1652,6 +1657,7 @@ class FilterQueryBuilderTest {
   void cast_to_float_in_filter(LiteralExpression expr) {
     assertJsonEquals(
         String.format(
+            Locale.ROOT,
             "{\n"
                 + "  \"term\" : {\n"
                 + "    \"float_value\" : {\n"
@@ -1674,6 +1680,7 @@ class FilterQueryBuilderTest {
 
     assertJsonEquals(
         String.format(
+            Locale.ROOT,
             "{\n"
                 + "  \"term\" : {\n"
                 + "    \"double_value\" : {\n"
@@ -1725,6 +1732,7 @@ class FilterQueryBuilderTest {
   void cast_to_ip_in_filter(LiteralExpression expr) {
     String json =
         String.format(
+            Locale.ROOT,
             """
             {
               "term" : {

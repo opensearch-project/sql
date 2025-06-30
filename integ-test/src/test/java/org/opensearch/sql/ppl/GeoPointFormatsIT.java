@@ -12,6 +12,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.Locale;
 import java.util.Map;
 import org.apache.commons.lang3.tuple.Pair;
 import org.json.JSONObject;
@@ -29,7 +30,8 @@ public class GeoPointFormatsIT extends PPLIntegTestCase {
   public void testReadingGeopoints() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format("search source=%s | head 5 | fields point ", TEST_INDEX_GEOPOINT));
+            String.format(
+                Locale.ROOT, "search source=%s | head 5 | fields point ", TEST_INDEX_GEOPOINT));
     verifySchema(result, schema("point", null, "geo_point"));
     verifyDataRows(
         result,
@@ -45,7 +47,9 @@ public class GeoPointFormatsIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s | where _id = '6' | fields point ", TEST_INDEX_GEOPOINT));
+                Locale.ROOT,
+                "search source=%s | where _id = '6' | fields point ",
+                TEST_INDEX_GEOPOINT));
     verifySchema(result, schema("point", null, "geo_point"));
     Pair<Double, Double> point = GeopointFormatsIT.getGeoValue(result);
     assertEquals(40.71, point.getLeft(), GeopointFormatsIT.TOLERANCE);

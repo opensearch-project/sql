@@ -7,6 +7,7 @@ package org.opensearch.sql.data.model;
 
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -59,7 +60,7 @@ public class ExprTupleValue extends AbstractExprValue {
   @Override
   public String toString() {
     return valueMap.entrySet().stream()
-        .map(entry -> String.format("%s:%s", entry.getKey(), entry.getValue()))
+        .map(entry -> String.format(Locale.ROOT, "%s:%s", entry.getKey(), entry.getValue()))
         .collect(Collectors.joining(",", "{", "}"));
   }
 
@@ -121,7 +122,8 @@ public class ExprTupleValue extends AbstractExprValue {
           .forEach((key, value) -> this.tupleValue().merge(key, value, ExprValue::mergeTo));
     } else {
       throw new IllegalArgumentException(
-          String.format("Cannot merge ExprTupleValue to %s", base.getClass().getSimpleName()));
+          String.format(
+              Locale.ROOT, "Cannot merge ExprTupleValue to %s", base.getClass().getSimpleName()));
     }
     return this;
   }

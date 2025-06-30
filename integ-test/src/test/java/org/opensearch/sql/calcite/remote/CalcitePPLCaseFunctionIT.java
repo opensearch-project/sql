@@ -12,6 +12,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
@@ -61,6 +62,7 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s| eval status =    case(        cast(response as int) >= 200 AND"
                     + " cast(response as int) < 300, 'Success',        cast(response as int) >= 300"
                     + " AND cast(response as int) < 400, 'Redirection',        cast(response as"
@@ -107,6 +109,7 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s| eval status =    case(        cast(response as int) >= 200 AND"
                     + " cast(response as int) < 300, 'Success',        cast(response as int) >= 300"
                     + " AND cast(response as int) < 400, 'Redirection',        cast(response as"
@@ -145,6 +148,7 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s   | eval status =       case(           response in ('200'), 'Success', "
                     + "          response in ('300', '301'), 'Redirection',           response in"
                     + " ('400', '403'), 'Client Error',           response in ('500', '505'),"
@@ -189,6 +193,7 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s"
                     + "| where not true ="
                     + "    case("
@@ -220,6 +225,7 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s"
                     + "| where response in ["
                     + "    source = %s"
@@ -232,7 +238,8 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
                     + "    | fields new_response"
                     + "  ]"
                     + "| fields host, method, message, bytes, response, url",
-                TEST_INDEX_WEBLOGS, TEST_INDEX_WEBLOGS));
+                TEST_INDEX_WEBLOGS,
+                TEST_INDEX_WEBLOGS));
     verifySchema(
         actual,
         schema("host", "ip"),

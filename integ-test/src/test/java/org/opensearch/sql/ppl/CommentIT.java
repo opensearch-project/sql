@@ -10,6 +10,7 @@ import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
@@ -28,6 +29,7 @@ public class CommentIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s \\n"
                     + "| fields firstname \\n"
                     + "| where firstname='Amber' \\n"
@@ -46,6 +48,7 @@ public class CommentIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "// line comment\\n"
                     + "source=%s | fields firstname // line comment\\n"
                     + "| where firstname='Amber' // line comment\\n"
@@ -74,6 +77,7 @@ public class CommentIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "/*\\n"
                     + "This is a\\n"
                     + "    multiple\\n"

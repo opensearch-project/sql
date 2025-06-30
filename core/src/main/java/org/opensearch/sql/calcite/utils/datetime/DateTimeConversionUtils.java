@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.utils.datetime;
 import java.time.Duration;
 import java.time.Period;
 import java.time.temporal.TemporalAmount;
+import java.util.Locale;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.opensearch.sql.data.model.*;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -38,6 +39,7 @@ public final class DateTimeConversionUtils {
           DateTimeParser.parse(stringValue.stringValue()));
       default -> throw new SemanticCheckException(
           String.format(
+              Locale.ROOT,
               "Cannot convert %s to timestamp, only STRING, DATE, TIME and TIMESTAMP are supported",
               value.type()));
     };
@@ -66,6 +68,7 @@ public final class DateTimeConversionUtils {
       } catch (SemanticCheckException e) {
         throw new SemanticCheckException(
             String.format(
+                Locale.ROOT,
                 "Cannot convert %s to timestamp, only STRING, DATE, TIME and TIMESTAMP are"
                     + " supported",
                 value.type()),
@@ -100,6 +103,7 @@ public final class DateTimeConversionUtils {
       default -> {
         throw new SemanticCheckException(
             String.format(
+                Locale.ROOT,
                 "Cannot convert %s to date, only STRING, DATE, TIME and TIMESTAMP are supported",
                 value.type()));
       }

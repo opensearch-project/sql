@@ -10,6 +10,7 @@ import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Test;
 
@@ -26,6 +27,7 @@ public class MatchBoolPrefixIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where match_bool_prefix(phrase, 'qui') | fields phrase",
                 TEST_INDEX_PHRASE));
 
@@ -37,6 +39,7 @@ public class MatchBoolPrefixIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where match_bool_prefix(phrase, '2 tes', minimum_should_match=1,"
                     + " fuzziness=2) | fields phrase",
                 TEST_INDEX_PHRASE));
@@ -49,6 +52,7 @@ public class MatchBoolPrefixIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where match_bool_prefix(phrase, 'rice') | fields phrase",
                 TEST_INDEX_PHRASE));
 

@@ -6,6 +6,7 @@
 package org.opensearch.sql.expression.function.udf;
 
 import java.util.List;
+import java.util.Locale;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -58,6 +59,7 @@ public abstract class CryptographicFunction extends ImplementorUDF {
         case 512 -> DigestUtils.sha512Hex(input);
         default -> throw new IllegalArgumentException(
             String.format(
+                Locale.ROOT,
                 "Unsupported SHA2 algorithm: %d. Only 224, 256, 384, and 512 are supported.",
                 algorithm));
       };

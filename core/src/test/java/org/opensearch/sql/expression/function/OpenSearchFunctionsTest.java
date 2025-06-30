@@ -12,6 +12,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprTupleValue;
@@ -262,7 +263,8 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
   void multi_match() {
     FunctionExpression expr = DSL.multi_match(fields, query);
     assertEquals(
-        String.format("multi_match(fields=%s, query=%s)", fields.getValue(), query.getValue()),
+        String.format(
+            Locale.ROOT, "multi_match(fields=%s, query=%s)", fields.getValue(), query.getValue()),
         expr.toString());
   }
 
@@ -271,21 +273,25 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
     FunctionExpression expr = DSL.simple_query_string(fields, query);
     assertEquals(
         String.format(
-            "simple_query_string(fields=%s, query=%s)", fields.getValue(), query.getValue()),
+            Locale.ROOT,
+            "simple_query_string(fields=%s, query=%s)",
+            fields.getValue(),
+            query.getValue()),
         expr.toString());
   }
 
   @Test
   void query() {
     FunctionExpression expr = DSL.query(query);
-    assertEquals(String.format("query(query=%s)", query.getValue()), expr.toString());
+    assertEquals(String.format(Locale.ROOT, "query(query=%s)", query.getValue()), expr.toString());
   }
 
   @Test
   void query_string() {
     FunctionExpression expr = DSL.query_string(fields, query);
     assertEquals(
-        String.format("query_string(fields=%s, query=%s)", fields.getValue(), query.getValue()),
+        String.format(
+            Locale.ROOT, "query_string(fields=%s, query=%s)", fields.getValue(), query.getValue()),
         expr.toString());
   }
 
@@ -293,7 +299,8 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
   void wildcard_query() {
     FunctionExpression expr = DSL.wildcard_query(field, query);
     assertEquals(
-        String.format("wildcard_query(field=%s, query=%s)", field.getValue(), query.getValue()),
+        String.format(
+            Locale.ROOT, "wildcard_query(field=%s, query=%s)", field.getValue(), query.getValue()),
         expr.toString());
   }
 
@@ -302,6 +309,7 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
     FunctionExpression expr = DSL.nested(DSL.ref("message.info", STRING));
     assertEquals(
         String.format(
+            Locale.ROOT,
             "FunctionExpression(functionName=%s, arguments=[message.info])",
             BuiltinFunctionName.NESTED.getName()),
         expr.toString());

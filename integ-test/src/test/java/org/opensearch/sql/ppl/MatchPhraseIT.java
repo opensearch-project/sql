@@ -10,6 +10,7 @@ import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
@@ -26,6 +27,7 @@ public class MatchPhraseIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where match_phrase(phrase, 'quick fox') | fields phrase",
                 TEST_INDEX_PHRASE));
     verifyDataRows(result, rows("quick fox"), rows("quick fox here"));
@@ -36,6 +38,7 @@ public class MatchPhraseIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where match_phrase(phrase, 'brown fox', slop = 2) | fields phrase",
                 TEST_INDEX_PHRASE));
     verifyDataRows(result, rows("brown fox"), rows("fox brown"));

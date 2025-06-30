@@ -8,6 +8,8 @@ package org.opensearch.sql.datasources.auth;
 import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
 
 import java.util.List;
+import java.util.Locale;
+
 import lombok.AllArgsConstructor;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.commons.ConfigConstants;
@@ -53,6 +55,7 @@ public class DataSourceUserAuthorizationHelperImpl implements DataSourceUserAuth
       if (!isAuthorized) {
         throw new OpenSearchSecurityException(
             String.format(
+                Locale.ROOT,
                 "User is not authorized to access datasource %s. "
                     + "User should be mapped to any of the roles in %s for access.",
                 dataSourceMetadata.getName(), dataSourceMetadata.getAllowedRoles().toString()),

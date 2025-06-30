@@ -13,6 +13,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
@@ -29,7 +30,8 @@ public class DedupCommandIT extends PPLIntegTestCase {
   @Test
   public void testDedup() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | dedup male | fields male", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(Locale.ROOT, "source=%s | dedup male | fields male", TEST_INDEX_BANK));
     verifyDataRows(result, rows(true), rows(false));
   }
 
@@ -38,7 +40,9 @@ public class DedupCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | dedup male consecutive=true | fields male", TEST_INDEX_BANK));
+                Locale.ROOT,
+                "source=%s | dedup male consecutive=true | fields male",
+                TEST_INDEX_BANK));
     List<Object[]> actualRows = extractActualRows(result);
     List<Object[]> expectedRows = getExpectedDedupRows(actualRows);
     assertTrue("Deduplication was not consecutive", expectedRows != null);
@@ -54,7 +58,8 @@ public class DedupCommandIT extends PPLIntegTestCase {
   @Test
   public void testAllowMoreDuplicates() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | dedup 2 male | fields male", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(Locale.ROOT, "source=%s | dedup 2 male | fields male", TEST_INDEX_BANK));
     verifyDataRows(result, rows(true), rows(true), rows(false), rows(false));
   }
 
@@ -63,6 +68,7 @@ public class DedupCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | dedup balance keepempty=true | fields firstname, balance",
                 TEST_INDEX_BANK_WITH_NULL_VALUES));
     verifyDataRows(

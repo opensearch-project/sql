@@ -10,6 +10,7 @@ import static org.opensearch.sql.util.MatcherUtils.columnName;
 import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.hamcrest.Matchers;
 import org.json.JSONObject;
 import org.junit.Test;
@@ -29,7 +30,7 @@ public class ResourceMonitorIT extends PPLIntegTestCase {
     // update plugins.ppl.query.memory_limit to 1%
     updateClusterSettings(
         new ClusterSetting("persistent", Settings.Key.QUERY_MEMORY_LIMIT.getKeyValue(), "1%"));
-    String query = String.format("search source=%s age=20", TEST_INDEX_DOG);
+    String query = String.format(Locale.ROOT, "search source=%s age=20", TEST_INDEX_DOG);
 
     ResponseException exception = expectThrows(ResponseException.class, () -> executeQuery(query));
     assertEquals(500, exception.getResponse().getStatusLine().getStatusCode());
@@ -40,7 +41,8 @@ public class ResourceMonitorIT extends PPLIntegTestCase {
     // update plugins.ppl.query.memory_limit to default value 85%
     updateClusterSettings(
         new ClusterSetting("persistent", Settings.Key.QUERY_MEMORY_LIMIT.getKeyValue(), "85%"));
-    JSONObject result = executeQuery(String.format("search source=%s", TEST_INDEX_DOG));
+    JSONObject result =
+        executeQuery(String.format(Locale.ROOT, "search source=%s", TEST_INDEX_DOG));
     verifyColumn(result, columnName("dog_name"), columnName("holdersName"), columnName("age"));
   }
 }

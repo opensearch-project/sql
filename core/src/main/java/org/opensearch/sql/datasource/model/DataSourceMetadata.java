@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 import lombok.EqualsAndHashCode;
@@ -60,7 +61,7 @@ public class DataSourceMetadata {
   @JsonProperty private final DataSourceStatus status;
 
   public static final Function<String, String> DATASOURCE_TO_RESULT_INDEX =
-      datasourceName -> String.format("%s_%s", DEFAULT_RESULT_INDEX, datasourceName);
+      datasourceName -> String.format(Locale.ROOT, "%s_%s", DEFAULT_RESULT_INDEX, datasourceName);
 
   private DataSourceMetadata(Builder builder) {
     this.name = builder.name;
@@ -179,6 +180,7 @@ public class DataSourceMetadata {
       if (!name.matches(DATASOURCE_NAME_REGEX)) {
         throw new IllegalArgumentException(
             String.format(
+                Locale.ROOT,
                 "DataSource Name: %s contains illegal characters. Allowed characters:"
                     + " a-zA-Z0-9_-*@.",
                 name));

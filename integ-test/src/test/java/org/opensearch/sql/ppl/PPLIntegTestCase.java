@@ -116,7 +116,8 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
 
     @Override
     public String toString() {
-      return String.format("ClusterSetting{type='%s', path='%s', value'%s'}", type, name, value);
+      return String.format(
+          Locale.ROOT, "ClusterSetting{type='%s', path='%s', value'%s'}", type, name, value);
     }
   }
 
@@ -124,7 +125,8 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     try {
       return new JSONObject(text);
     } catch (JSONException e) {
-      throw new IllegalStateException(String.format("Failed to transform %s to JSON format", text));
+      throw new IllegalStateException(
+          String.format(Locale.ROOT, "Failed to transform %s to JSON format", text));
     }
   }
 

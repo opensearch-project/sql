@@ -8,6 +8,7 @@ package org.opensearch.sql.prometheus.utils;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
@@ -75,7 +76,7 @@ public class TableFunctionUtils {
       List<Expression> arguments,
       List<String> argumentNames) {
     if (areArgumentsPassedByPosition) {
-      return String.format(
+      return String.format(Locale.ROOT,
           "Missing arguments:[%s]",
           String.join(",", argumentNames.subList(arguments.size(), argumentNames.size())));
     } else {
@@ -85,7 +86,7 @@ public class TableFunctionUtils {
               .map(expression -> ((NamedArgumentExpression) expression).getArgName())
               .collect(Collectors.toSet());
       requiredArguments.removeAll(providedArguments);
-      return String.format("Missing arguments:[%s]", String.join(",", requiredArguments));
+      return String.format(Locale.ROOT, "Missing arguments:[%s]", String.join(",", requiredArguments));
     }
   }
 }

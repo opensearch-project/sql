@@ -37,6 +37,7 @@ public class DateTimeFormatsIT extends SQLIntegTestCase {
   public void testReadingDateFormats() throws IOException {
     String query =
         String.format(
+            Locale.ROOT,
             "SELECT weekyear_week_day, hour_minute_second_millis,"
                 + " strict_ordinal_date_time FROM %s LIMIT 1",
             TEST_INDEX_DATE_FORMATS);
@@ -52,7 +53,8 @@ public class DateTimeFormatsIT extends SQLIntegTestCase {
   @Test
   public void testDateFormatsWithOr() throws IOException {
     String query =
-        String.format("SELECT yyyy-MM-dd_OR_epoch_millis FROM %s", TEST_INDEX_DATE_FORMATS);
+        String.format(
+            Locale.ROOT, "SELECT yyyy-MM-dd_OR_epoch_millis FROM %s", TEST_INDEX_DATE_FORMATS);
     JSONObject result = executeQuery(query);
     verifyDataRows(result, rows("1984-04-12 00:00:00"), rows("1984-04-12 09:07:42.000123456"));
   }
@@ -62,6 +64,7 @@ public class DateTimeFormatsIT extends SQLIntegTestCase {
   public void testCustomFormats() {
     String query =
         String.format(
+            Locale.ROOT,
             "SELECT custom_time, custom_timestamp, custom_date_or_date,"
                 + "custom_date_or_custom_time, custom_time_parser_check FROM %s",
             TEST_INDEX_DATE_FORMATS);
@@ -90,6 +93,7 @@ public class DateTimeFormatsIT extends SQLIntegTestCase {
   public void testCustomFormats2() {
     String query =
         String.format(
+            Locale.ROOT,
             "SELECT custom_no_delimiter_date, custom_no_delimiter_time,"
                 + "custom_no_delimiter_ts FROM %s",
             TEST_INDEX_DATE_FORMATS);
@@ -110,6 +114,7 @@ public class DateTimeFormatsIT extends SQLIntegTestCase {
   public void testIncompleteFormats() {
     String query =
         String.format(
+            Locale.ROOT,
             "SELECT incomplete_1, incomplete_2, incorrect,"
                 + "incomplete_custom_time, incomplete_custom_date FROM %s",
             TEST_INDEX_DATE_FORMATS);
@@ -131,7 +136,8 @@ public class DateTimeFormatsIT extends SQLIntegTestCase {
   @SneakyThrows
   public void testNumericFormats() {
     String query =
-        String.format("SELECT epoch_sec, epoch_milli" + " FROM %s", TEST_INDEX_DATE_FORMATS);
+        String.format(
+            Locale.ROOT, "SELECT epoch_sec, epoch_milli" + " FROM %s", TEST_INDEX_DATE_FORMATS);
     JSONObject result = executeQuery(query);
     verifySchema(
         result, schema("epoch_sec", null, "timestamp"), schema("epoch_milli", null, "timestamp"));
@@ -145,7 +151,10 @@ public class DateTimeFormatsIT extends SQLIntegTestCase {
   @SneakyThrows
   public void testDateNanosWithFormats() {
     String query =
-        String.format("SELECT hour_minute_second_OR_t_time" + " FROM %s", TEST_INDEX_DATE_FORMATS);
+        String.format(
+            Locale.ROOT,
+            "SELECT hour_minute_second_OR_t_time" + " FROM %s",
+            TEST_INDEX_DATE_FORMATS);
     JSONObject result = executeQuery(query);
     verifySchema(result, schema("hour_minute_second_OR_t_time", null, "time"));
     verifyDataRows(result, rows("09:07:42"), rows("07:07:42.123456789"));
@@ -157,6 +166,7 @@ public class DateTimeFormatsIT extends SQLIntegTestCase {
     // in memory funcs
     String query =
         String.format(
+            Locale.ROOT,
             "SELECT"
                 + " hour_minute_second_OR_t_time > TIME '08:07:00',"
                 + " hour_minute_second_OR_t_time < TIME '08:07:00',"
@@ -178,6 +188,7 @@ public class DateTimeFormatsIT extends SQLIntegTestCase {
     // push down
     query =
         String.format(
+            Locale.ROOT,
             "SELECT hour_minute_second_OR_t_time"
                 + " FROM %s WHERE hour_minute_second_OR_t_time > TIME '08:07:00'",
             TEST_INDEX_DATE_FORMATS);
@@ -186,6 +197,7 @@ public class DateTimeFormatsIT extends SQLIntegTestCase {
     verifyDataRows(result, rows("09:07:42"));
     query =
         String.format(
+            Locale.ROOT,
             "SELECT hour_minute_second_OR_t_time"
                 + " FROM %s WHERE hour_minute_second_OR_t_time < TIME '08:07:00'",
             TEST_INDEX_DATE_FORMATS);
@@ -199,6 +211,7 @@ public class DateTimeFormatsIT extends SQLIntegTestCase {
   public void testDateNanosOrderBy() {
     String query =
         String.format(
+            Locale.ROOT,
             "SELECT hour_minute_second_OR_t_time"
                 + " FROM %s ORDER BY hour_minute_second_OR_t_time ASC",
             TEST_INDEX_DATE_FORMATS);
@@ -212,6 +225,7 @@ public class DateTimeFormatsIT extends SQLIntegTestCase {
   public void testDateNanosGroupBy() {
     String query =
         String.format(
+            Locale.ROOT,
             "SELECT count(*)" + " FROM %s GROUP BY hour_minute_second_OR_t_time",
             TEST_INDEX_DATE_FORMATS);
     JSONObject result = executeQuery(query);
@@ -223,7 +237,8 @@ public class DateTimeFormatsIT extends SQLIntegTestCase {
   @SneakyThrows
   public void testDateNanosWithNanos() {
     String query =
-        String.format("SELECT date_nanos_value" + " FROM %s", TEST_INDEX_DATATYPE_NONNUMERIC);
+        String.format(
+            Locale.ROOT, "SELECT date_nanos_value" + " FROM %s", TEST_INDEX_DATATYPE_NONNUMERIC);
     JSONObject result = executeQuery(query);
     verifySchema(result, schema("date_nanos_value", null, "timestamp"));
     verifyDataRows(result, rows("2019-03-24 01:34:46.123456789"));

@@ -18,6 +18,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
@@ -40,6 +41,7 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where sqrt(pow(age, 2)) = 30.0 and cbrt(pow(month, 3)) = 4 | fields"
                     + " name, age, month",
                 TEST_INDEX_STATE_COUNTRY));
@@ -53,6 +55,7 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | head 1 | eval neg = sqrt(-1 * age) | fields neg",
                 TEST_INDEX_STATE_COUNTRY));
     verifyDataRows(actual, rows((Object) null));
@@ -63,6 +66,7 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where month = 4 | head 1 | eval res = acos(cos(asin(sin(month / 4))))"
                     + " | head 1 | fields res",
                 TEST_INDEX_STATE_COUNTRY));
@@ -76,6 +80,7 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where byte_number > 1 | head 1 | eval s = asin(byte_number), c ="
                     + " acos(-1 * byte_number) | fields s, c",
                 TEST_INDEX_DATATYPE_NUMERIC));
@@ -89,6 +94,7 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where month = atan(0) + 4 and age >= 30 + atan2(0, 1) | sort age |"
                     + " fields name, age, month",
                 TEST_INDEX_STATE_COUNTRY));
@@ -102,6 +108,7 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s| eval `typeof(1)` = typeof(1)| eval `typeof(true)` = typeof(true)| eval"
                     + " `typeof(2.0)` = typeof(2.0)| eval `typeof('2.0')` = typeof('2.0')| eval"
                     + " `typeof(name)` = typeof(name)| eval `typeof(country)` = typeof(country)|"
@@ -118,6 +125,7 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s"
                     + "| eval `typeof(date)` = typeof(DATE('2008-04-14'))"
                     + "| eval `typeof(now())` = typeof(now())"
@@ -130,6 +138,7 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where age = ceiling(29.7) and month = floor(4.9) | fields name, age",
                 TEST_INDEX_STATE_COUNTRY));
 
@@ -142,6 +151,7 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where lower(name) = conv('29234652', 10, 36) | fields name",
                 TEST_INDEX_STATE_COUNTRY));
 
@@ -154,6 +164,7 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where dog_name = conv('1732835878', 10, 36) | eval negate ="
                     + " conv('-1732835878', 10, 36), number = conv(dog_name, 36, 10) | fields"
                     + " dog_name, negate, number",
@@ -174,6 +185,7 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
             () ->
                 executeQuery(
                     String.format(
+                        Locale.ROOT,
                         "source=%s | eval invalid = conv('0000', 1, 36) | fields invalid",
                         TEST_INDEX_STATE_COUNTRY)));
     verifyErrorMessageContains(invalidRadixException, "radix 1 less than Character.MIN_RADIX");
@@ -184,6 +196,7 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval cot = cot(pi() / 4) | head 1 | fields cot",
                 TEST_INDEX_STATE_COUNTRY));
 
@@ -196,6 +209,7 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval crc_name = crc32('Jane') | where crc32(name) = abs(0 - crc_name)"
                     + " | fields crc_name, name",
                 TEST_INDEX_STATE_COUNTRY));
@@ -209,6 +223,7 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval ln_e = ln(e()) | head 1 | fields ln_e",
                 TEST_INDEX_STATE_COUNTRY));
 
@@ -221,6 +236,7 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where age = floor(exp(3.41)) | fields name, age",
                 TEST_INDEX_STATE_COUNTRY));
 
@@ -233,6 +249,7 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | head 1 | eval log =  log(30, 900), log2 = log2(4), log10 = log10(1000)"
                     + "  | fields log, log2, log10",
                 TEST_INDEX_STATE_COUNTRY));
@@ -247,6 +264,7 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where mod(age, 10) = 0 | sort -age | fields name, age",
                 TEST_INDEX_STATE_COUNTRY));
 
@@ -260,6 +278,7 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval f = mod(float_number, 2), n = -1 * short_number %% 2, nd = -1 *"
                     + " double_number %% 2 | fields f, n, nd",
                 TEST_INDEX_DATATYPE_NUMERIC));
@@ -272,6 +291,7 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval b = byte_number %% 2, i = mod(integer_number, 3), l ="
                     + " mod(long_number, 2), f = float_number %% 2, d = mod(double_number, 2), s ="
                     + " short_number %% byte_number | fields b, i, l, f, d, s",
@@ -292,7 +312,9 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | head 1 | eval z = mod(5, 0) | fields z", TEST_INDEX_STATE_COUNTRY));
+                Locale.ROOT,
+                "source=%s | head 1 | eval z = mod(5, 0) | fields z",
+                TEST_INDEX_STATE_COUNTRY));
     verifySchema(actual, schema("z", "int"));
     verifyDataRows(actual, rows((Object) null));
   }
@@ -302,6 +324,7 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | head 1 | eval r = radians(degrees(0.5)) | fields r",
                 TEST_INDEX_STATE_COUNTRY));
 
@@ -314,6 +337,7 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval rand = rand() | where rand > 0 | where rand < 1  | fields name",
                 TEST_INDEX_STATE_COUNTRY));
 
@@ -326,6 +350,7 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | head 1 | eval res = pow(-3, 0.5)  | fields res",
                 TEST_INDEX_STATE_COUNTRY));
 
@@ -338,6 +363,7 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval thirty_one = round(30.9) |  where age = sign(-3) + thirty_one | "
                     + "fields name, age, thirty_one",
                 TEST_INDEX_STATE_COUNTRY));
@@ -352,6 +378,7 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval r1 = 22 / 7, r2 = integer_number / 1, r3 = 21 / 7, r4 ="
                     + " byte_number / short_number, r5 = half_float_number / float_number, r6 ="
                     + " float_number / short_number, r7 = 22 / 7.0, r8 = 22.0 / 7, r9 = 21.0 / 7.0,"
@@ -392,6 +419,7 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where key = 'null' | head 1 | eval r2 = 4 / dbl, r3 = `int` / 5, r4 ="
                     + " 22 / 0, r5 = 22.0 / 0, r6 = 22.0 / 0.0 | fields r2, r3, r4, r5, r6",
                 TEST_INDEX_NULL_MISSING));

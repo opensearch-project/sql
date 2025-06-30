@@ -19,6 +19,8 @@ import org.opensearch.sql.spark.transport.model.CancelAsyncQueryActionResponse;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
+import java.util.Locale;
+
 public class TransportCancelAsyncQueryRequestAction
     extends HandledTransportAction<CancelAsyncQueryActionRequest, CancelAsyncQueryActionResponse> {
 
@@ -47,7 +49,7 @@ public class TransportCancelAsyncQueryRequestAction
               request.getQueryId(), new NullAsyncQueryRequestContext());
       listener.onResponse(
           new CancelAsyncQueryActionResponse(
-              String.format("Deleted async query with id: %s", jobId)));
+              String.format(Locale.ROOT, "Deleted async query with id: %s", jobId)));
     } catch (Exception e) {
       listener.onFailure(e);
     }

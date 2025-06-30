@@ -18,6 +18,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+
 import lombok.NonNull;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -77,7 +79,7 @@ public class PrometheusResponse implements Iterable<ExprValue> {
       }
     } else {
       throw new RuntimeException(
-          String.format(
+          String.format(Locale.ROOT,
               "Unexpected Result Type: %s during Prometheus "
                   + "Response Parsing. 'matrix' resultType is expected",
               responseObject.getString(RESULT_TYPE_KEY)));

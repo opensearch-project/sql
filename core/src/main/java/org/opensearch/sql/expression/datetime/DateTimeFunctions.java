@@ -1671,7 +1671,7 @@ public class DateTimeFunctions {
     var input = period.toString();
     // MySQL undocumented: if year is not specified or has 1 digit - 2000/200x is assumed
     if (input.length() <= 5) {
-      input = String.format("200%05d", period);
+      input = String.format(Locale.ROOT, "200%05d", period);
     }
     try {
       return LocalDate.parse(input, DATE_FORMATTER_SHORT_YEAR);
@@ -2026,7 +2026,7 @@ public class DateTimeFunctions {
    * @return is a DateTimeFormatter that can parse the input.
    */
   private DateTimeFormatter getFormatter(int dateAsInt) {
-    int length = String.format("%d", dateAsInt).length();
+    int length = String.format(Locale.ROOT, "%d", dateAsInt).length();
 
     if (length > 8) {
       throw new DateTimeException("Integer argument was out of range");
@@ -2266,7 +2266,7 @@ public class DateTimeFunctions {
     var defaultPrecision = 9; // There are 10^9 nanoseconds in one second
     if (fsp < 0 || fsp > 6) { // Check that the argument is in the allowed range [0, 6]
       throw new IllegalArgumentException(
-          String.format("Invalid `fsp` value: %d, allowed 0 to 6", fsp));
+          String.format(Locale.ROOT, "Invalid `fsp` value: %d, allowed 0 to 6", fsp));
     }
     var nano =
         new BigDecimal(res.getNano())

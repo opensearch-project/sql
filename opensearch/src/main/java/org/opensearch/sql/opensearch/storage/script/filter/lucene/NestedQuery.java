@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.opensearch.storage.script.filter.lucene;
 
+import java.util.Locale;
 import org.apache.lucene.search.join.ScoreMode;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
@@ -72,13 +73,14 @@ public class NestedQuery extends LuceneQuery {
     for (var arg : nestedFunc.getArguments()) {
       if (!(arg instanceof ReferenceExpression)) {
         throw new IllegalArgumentException(
-            String.format("Illegal nested field name: %s", arg.toString()));
+            String.format(Locale.ROOT, "Illegal nested field name: %s", arg.toString()));
       }
     }
 
     if (!(rightExpression instanceof LiteralExpression)) {
       throw new IllegalArgumentException(
           String.format(
+              Locale.ROOT,
               "Illegal argument on right side of predicate expression: %s",
               rightExpression.toString()));
     }

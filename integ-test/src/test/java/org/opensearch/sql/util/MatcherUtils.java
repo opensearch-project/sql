@@ -24,6 +24,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -140,7 +141,8 @@ public class MatcherUtils {
     try {
       verify(response.getJSONArray("schema"), matchers);
     } catch (Exception e) {
-      LOG.error(String.format("verify schema failed, response: %s", response.toString()), e);
+      LOG.error(
+          String.format(Locale.ROOT, "verify schema failed, response: %s", response.toString()), e);
       throw e;
     }
   }
@@ -150,7 +152,8 @@ public class MatcherUtils {
     try {
       verifyInOrder(response.getJSONArray("schema"), matchers);
     } catch (Exception e) {
-      LOG.error(String.format("verify schema failed, response: %s", response.toString()), e);
+      LOG.error(
+          String.format(Locale.ROOT, "verify schema failed, response: %s", response.toString()), e);
       throw e;
     }
   }
@@ -249,7 +252,8 @@ public class MatcherUtils {
 
   public static void verifyErrorMessageContains(Throwable t, String msg) {
     String stack = ExceptionUtils.getStackTrace(t);
-    assertThat(String.format("Actual stack trace was:\n%s", stack), stack.contains(msg));
+    assertThat(
+        String.format(Locale.ROOT, "Actual stack trace was:\n%s", stack), stack.contains(msg));
   }
 
   public static TypeSafeMatcher<JSONObject> schema(String expectedName, String expectedType) {
@@ -263,7 +267,11 @@ public class MatcherUtils {
       public void describeTo(Description description) {
         description.appendText(
             String.format(
-                "(name=%s, alias=%s, type=%s)", expectedName, expectedAlias, expectedType));
+                Locale.ROOT,
+                "(name=%s, alias=%s, type=%s)",
+                expectedName,
+                expectedAlias,
+                expectedType));
       }
 
       @Override
@@ -324,7 +332,7 @@ public class MatcherUtils {
 
       @Override
       public void describeTo(Description description) {
-        description.appendText(String.format("(column_pattern=%s)", regex));
+        description.appendText(String.format(Locale.ROOT, "(column_pattern=%s)", regex));
       }
     };
   }
@@ -338,7 +346,7 @@ public class MatcherUtils {
 
       @Override
       public void describeTo(Description description) {
-        description.appendText(String.format("(name=%s)", name));
+        description.appendText(String.format(Locale.ROOT, "(name=%s)", name));
       }
     };
   }

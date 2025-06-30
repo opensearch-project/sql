@@ -12,6 +12,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
@@ -28,15 +29,16 @@ public class SearchCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testSearchAllFields() throws IOException {
-    JSONObject result = executeQuery(String.format("search source=%s", TEST_INDEX_DOG));
+    JSONObject result =
+        executeQuery(String.format(Locale.ROOT, "search source=%s", TEST_INDEX_DOG));
     verifyColumn(result, columnName("dog_name"), columnName("holdersName"), columnName("age"));
   }
 
   @Test
   public void testSearchCommandWithoutSearchKeyword() throws IOException {
     assertEquals(
-        executeQueryToString(String.format("search source=%s", TEST_INDEX_BANK)),
-        executeQueryToString(String.format("source=%s", TEST_INDEX_BANK)));
+        executeQueryToString(String.format(Locale.ROOT, "search source=%s", TEST_INDEX_BANK)),
+        executeQueryToString(String.format(Locale.ROOT, "source=%s", TEST_INDEX_BANK)));
   }
 
   @Test
@@ -53,7 +55,9 @@ public class SearchCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s firstname='Hattie' | fields firstname", TEST_INDEX_BANK));
+                Locale.ROOT,
+                "search source=%s firstname='Hattie' | fields firstname",
+                TEST_INDEX_BANK));
     verifyDataRows(result, rows("Hattie"));
   }
 

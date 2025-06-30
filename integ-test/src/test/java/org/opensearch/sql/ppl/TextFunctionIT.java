@@ -12,6 +12,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
@@ -33,8 +34,12 @@ public class TextFunctionIT extends PPLIntegTestCase {
       throws IOException {
     String query =
         String.format(
+            Locale.ROOT,
             "source=%s | eval f=%s(%sname%s) | fields f",
-            TEST_INDEX_STRINGS, command, initialArgs, additionalArgs);
+            TEST_INDEX_STRINGS,
+            command,
+            initialArgs,
+            additionalArgs);
     JSONObject result = executeQuery(query);
     verifySchema(result, schema("f", null, "string"));
     verifyDataRows(result, rows(outputRow1), rows(outputRow2), rows(outputRow3));
@@ -50,8 +55,12 @@ public class TextFunctionIT extends PPLIntegTestCase {
       throws IOException {
     String query =
         String.format(
+            Locale.ROOT,
             "source=%s | eval f=%s(%sname%s) | fields f",
-            TEST_INDEX_STRINGS, command, initialArgs, additionalArgs);
+            TEST_INDEX_STRINGS,
+            command,
+            initialArgs,
+            additionalArgs);
     JSONObject result = executeQuery(query);
     verifySchema(result, schema("f", null, "int"));
     verifyDataRows(result, rows(outputRow1), rows(outputRow2), rows(outputRow3));
@@ -61,7 +70,10 @@ public class TextFunctionIT extends PPLIntegTestCase {
       throws IOException {
     String query =
         String.format(
-            "source=%s | eval f=name regexp '%s' | fields f", TEST_INDEX_STRINGS, pattern);
+            Locale.ROOT,
+            "source=%s | eval f=name regexp '%s' | fields f",
+            TEST_INDEX_STRINGS,
+            pattern);
     JSONObject result = executeQuery(query);
     verifySchema(result, schema("f", null, "int"));
     verifyDataRows(result, rows(outputRow1), rows(outputRow2), rows(outputRow3));
@@ -71,7 +83,10 @@ public class TextFunctionIT extends PPLIntegTestCase {
       throws IOException {
     String query =
         String.format(
-            "source=%s | eval f=name regexp '%s' | fields f", TEST_INDEX_STRINGS, pattern);
+            Locale.ROOT,
+            "source=%s | eval f=name regexp '%s' | fields f",
+            TEST_INDEX_STRINGS,
+            pattern);
     JSONObject result = executeQuery(query);
     verifySchema(result, schema("f", null, "boolean"));
     verifyDataRows(result, rows(outputRow1), rows(outputRow2), rows(outputRow3));

@@ -11,6 +11,7 @@ import static org.opensearch.sql.util.MatcherUtils.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
@@ -37,7 +38,9 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where ascii(name) = 69 | fields name, age", TEST_INDEX_STATE_COUNTRY));
+                Locale.ROOT,
+                "source=%s | where ascii(name) = 69 | fields name, age",
+                TEST_INDEX_STATE_COUNTRY));
 
     verifySchema(actual, schema("name", "string"), schema("age", "int"));
 
@@ -49,6 +52,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where name=concat('He', 'll', 'o') | fields name, age",
                 TEST_INDEX_STATE_COUNTRY));
 
@@ -67,6 +71,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where name=concat('Hello', state) | fields name, age",
                 TEST_INDEX_STATE_COUNTRY));
 
@@ -85,6 +90,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where name=concat_ws(',', 'John', state) | fields name, age",
                 TEST_INDEX_STATE_COUNTRY));
 
@@ -98,7 +104,9 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where length(name) = 5 | fields name, age", TEST_INDEX_STATE_COUNTRY));
+                Locale.ROOT,
+                "source=%s | where length(name) = 5 | fields name, age",
+                TEST_INDEX_STATE_COUNTRY));
 
     verifySchema(actual, schema("name", "string"), schema("age", "int"));
 
@@ -110,7 +118,9 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where leNgTh(name) = 5 | fields name, age", TEST_INDEX_STATE_COUNTRY));
+                Locale.ROOT,
+                "source=%s | where leNgTh(name) = 5 | fields name, age",
+                TEST_INDEX_STATE_COUNTRY));
 
     verifySchema(actual, schema("name", "string"), schema("age", "int"));
 
@@ -122,6 +132,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where lower(name) = 'hello' | fields name, age",
                 TEST_INDEX_STATE_COUNTRY));
 
@@ -135,6 +146,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where upper(name) = upper('hello') | fields name, age",
                 TEST_INDEX_STATE_COUNTRY));
 
@@ -148,6 +160,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where like(name, '_ello%%') | fields name, age",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
@@ -161,6 +174,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where locate('Ja', name)=1 | eval locate3 = LOCATE('lll', 'llllll', 2)"
                     + " | fields name, age, locate3",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
@@ -175,6 +189,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where substring(name, 3, 2) = 'hn' | fields name, age",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
@@ -188,6 +203,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where substr(name, 3, 2) = 'hn' | fields name, age",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
@@ -201,6 +217,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where position('ohn' in name) = 2 | fields name, age",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
@@ -215,6 +232,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where Trim(name) = 'Jim' | fields name, age",
                 TEST_INDEX_STATE_COUNTRY));
 
@@ -229,6 +247,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where RTrim(name) = 'Jim' | fields name, age",
                 TEST_INDEX_STATE_COUNTRY));
 
@@ -243,6 +262,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where LTrim(name) = 'Jim' | fields name, age",
                 TEST_INDEX_STATE_COUNTRY));
 
@@ -261,6 +281,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where Reverse(name) = name | fields name, age",
                 TEST_INDEX_STATE_COUNTRY));
 
@@ -279,6 +300,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where right(name, 2) = 'lo' | fields name, age",
                 TEST_INDEX_STATE_COUNTRY));
 
@@ -292,6 +314,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where replace(name, 'J', 'M')='Mane' | eval hello = replace('hello',"
                     + " 'l', 'L') | fields name, age, hello",
                 TEST_INDEX_STATE_COUNTRY));
@@ -306,6 +329,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where left(name, 2) = 'Ja' | fields name, age",
                 TEST_INDEX_STATE_COUNTRY));
 
@@ -319,6 +343,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where strcmp(name, 'Jane') = 0 | fields name, age",
                 TEST_INDEX_STATE_COUNTRY));
 

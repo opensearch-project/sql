@@ -17,6 +17,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 
+import java.util.Locale;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -138,7 +139,7 @@ public class MinAggregatorTest extends AggregationTest {
             DSL.add(
                 DSL.ref("integer_value", INTEGER), DSL.literal(ExprValueUtils.integerValue(10))));
     assertEquals(
-        String.format("min(+(%s, %d))", DSL.ref("integer_value", INTEGER), 10),
+        String.format(Locale.ROOT, "min(+(%s, %d))", DSL.ref("integer_value", INTEGER), 10),
         minAggregator.toString());
   }
 }

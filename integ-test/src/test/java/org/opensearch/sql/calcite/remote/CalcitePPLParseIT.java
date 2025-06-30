@@ -13,6 +13,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.client.Request;
@@ -34,6 +35,7 @@ public class CalcitePPLParseIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | parse email '.+@(?<host>.+)' | fields email, host",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("email", "string"), schema("host", "string"));
@@ -53,7 +55,9 @@ public class CalcitePPLParseIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source = %s | parse email '.+@(?<email>.+)' | fields email", TEST_INDEX_BANK));
+                Locale.ROOT,
+                "source = %s | parse email '.+@(?<email>.+)' | fields email",
+                TEST_INDEX_BANK));
     verifySchema(result, schema("email", "string"));
     verifyDataRows(
         result,
@@ -71,6 +75,7 @@ public class CalcitePPLParseIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | parse email '.+@(?<host>.+)' | stats count() by host",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("count()", "bigint"), schema("host", "string"));
@@ -90,6 +95,7 @@ public class CalcitePPLParseIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s | parse address '(?<streetNumber>\\\\d+)'"
                     + "| eval streetNumberInt = cast(streetNumber as integer)"
                     + "| where streetNumberInt > 500"
@@ -115,6 +121,7 @@ public class CalcitePPLParseIT extends PPLIntegTestCase {
             () ->
                 executeQuery(
                     String.format(
+                        Locale.ROOT,
                         "source = %s | parse address '(?<streetNumber>\\\\d+) (?<street>.+)'"
                             + "| fields streetNumber, street",
                         TEST_INDEX_BANK)));

@@ -10,6 +10,7 @@ import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import lombok.SneakyThrows;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -52,11 +53,13 @@ public class PaginationBlackboxIT extends SQLIntegTestCase {
   @Test
   @SneakyThrows
   public void test_pagination_blackbox() {
-    var response = executeJdbcRequest(String.format("select * from %s", index.getName()));
+    var response =
+        executeJdbcRequest(String.format(Locale.ROOT, "select * from %s", index.getName()));
     var indexSize = response.getInt("total");
     var rows = response.getJSONArray("datarows");
     var schema = response.getJSONArray("schema");
-    var testReportPrefix = String.format("index: %s, page size: %d || ", index.getName(), pageSize);
+    var testReportPrefix =
+        String.format(Locale.ROOT, "index: %s, page size: %d || ", index.getName(), pageSize);
     var rowsPaged = new JSONArray();
     var rowsReturned = 0;
 
@@ -65,14 +68,17 @@ public class PaginationBlackboxIT extends SQLIntegTestCase {
     response =
         new JSONObject(
             executeFetchQuery(
-                String.format("select * from %s", index.getName()), pageSize, "jdbc"));
+                String.format(Locale.ROOT, "select * from %s", index.getName()), pageSize, "jdbc"));
 
     var cursor = response.has("cursor") ? response.getString("cursor") : "";
     do {
       this.logger.info(
           testReportPrefix
               + String.format(
-                  "subsequent response %d/%d", responseCounter++, (indexSize / pageSize) + 1));
+                  Locale.ROOT,
+                  "subsequent response %d/%d",
+                  responseCounter++,
+                  (indexSize / pageSize) + 1));
       assertTrue(
           "Paged response schema doesn't match to non-paged",
           schema.similar(response.getJSONArray("schema")));

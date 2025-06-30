@@ -901,10 +901,12 @@ public class JoinIT extends SQLIntegTestCase {
     final String hint = useNestedLoops ? USE_NL_HINT : "";
     String query =
         String.format(
+            Locale.ROOT,
             "SELECT%s c.name.firstname, f.name.firstname,f.name.lastname "
                 + "FROM %2$s c LEFT JOIN %2$s f "
                 + "ON f.name.firstname = c.parents.father",
-            hint, TEST_INDEX_GAME_OF_THRONES);
+            hint,
+            TEST_INDEX_GAME_OF_THRONES);
 
     JSONObject result = executeQuery(query);
     JSONArray hits = getHits(result);

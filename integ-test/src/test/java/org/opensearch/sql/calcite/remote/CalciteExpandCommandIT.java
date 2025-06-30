@@ -15,6 +15,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
+import java.util.Locale;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Ignore;
@@ -35,7 +36,8 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
   @Test
   public void testExpandOnNested() throws Exception {
     JSONObject response =
-        executeQuery(String.format("source=%s | expand address", TEST_INDEX_NESTED_SIMPLE));
+        executeQuery(
+            String.format(Locale.ROOT, "source=%s | expand address", TEST_INDEX_NESTED_SIMPLE));
     verifySchema(
         response,
         schema("name", "string"),
@@ -148,7 +150,7 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
   @Test
   public void testExpandOnArray() throws Exception {
     JSONObject response =
-        executeQuery(String.format("source=%s | expand strings", TEST_INDEX_ARRAY));
+        executeQuery(String.format(Locale.ROOT, "source=%s | expand strings", TEST_INDEX_ARRAY));
     verifySchema(response, schema("numbers", "array"), schema("strings", "string"));
     verifyNumOfRows(response, 5);
   }
@@ -156,7 +158,9 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
   @Test
   public void testExpandWithAlias() throws Exception {
     JSONObject response =
-        executeQuery(String.format("source=%s | expand address as addr", TEST_INDEX_NESTED_SIMPLE));
+        executeQuery(
+            String.format(
+                Locale.ROOT, "source=%s | expand address as addr", TEST_INDEX_NESTED_SIMPLE));
     verifySchema(
         response,
         schema("name", "string"),
@@ -266,7 +270,10 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
   public void testExpandWithEval() throws Exception {
     JSONObject response =
         executeQuery(
-            String.format("source=%s | eval addr=address | expand addr", TEST_INDEX_NESTED_SIMPLE));
+            String.format(
+                Locale.ROOT,
+                "source=%s | eval addr=address | expand addr",
+                TEST_INDEX_NESTED_SIMPLE));
     verifySchema(
         response,
         schema("name", "string"),
@@ -282,14 +289,18 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
     final int docId = 6;
     Request insertRequest =
         new Request(
-            "PUT", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_NESTED_SIMPLE, docId));
+            "PUT",
+            String.format(
+                Locale.ROOT, "/%s/_doc/%d?refresh=true", TEST_INDEX_NESTED_SIMPLE, docId));
     insertRequest.setJsonEntity("{\"name\":\"ben\",\"age\":47, \"id\": 437821, \"address\":[]}\n");
     client().performRequest(insertRequest);
 
     JSONObject response =
         executeQuery(
             String.format(
-                "source=%s | where name='ben' | expand address", TEST_INDEX_NESTED_SIMPLE));
+                Locale.ROOT,
+                "source=%s | where name='ben' | expand address",
+                TEST_INDEX_NESTED_SIMPLE));
     verifySchema(
         response,
         schema("name", "string"),
@@ -302,7 +313,9 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
 
     Request deleteRequest =
         new Request(
-            "DELETE", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_NESTED_SIMPLE, docId));
+            "DELETE",
+            String.format(
+                Locale.ROOT, "/%s/_doc/%d?refresh=true", TEST_INDEX_NESTED_SIMPLE, docId));
     client().performRequest(deleteRequest);
   }
 
@@ -311,7 +324,9 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
     final int docId = 6;
     Request insertRequest =
         new Request(
-            "PUT", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_NESTED_SIMPLE, docId));
+            "PUT",
+            String.format(
+                Locale.ROOT, "/%s/_doc/%d?refresh=true", TEST_INDEX_NESTED_SIMPLE, docId));
     insertRequest.setJsonEntity(
         "{\"name\":\"ben\",\"age\":47, \"id\": 437821, \"address\":null}\n");
     client().performRequest(insertRequest);
@@ -319,7 +334,9 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
     JSONObject response =
         executeQuery(
             String.format(
-                "source=%s | where name='ben' | expand address", TEST_INDEX_NESTED_SIMPLE));
+                Locale.ROOT,
+                "source=%s | where name='ben' | expand address",
+                TEST_INDEX_NESTED_SIMPLE));
     verifySchema(
         response,
         schema("name", "string"),
@@ -330,7 +347,9 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
 
     Request deleteRequest =
         new Request(
-            "DELETE", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_NESTED_SIMPLE, docId));
+            "DELETE",
+            String.format(
+                Locale.ROOT, "/%s/_doc/%d?refresh=true", TEST_INDEX_NESTED_SIMPLE, docId));
     client().performRequest(deleteRequest);
   }
 }

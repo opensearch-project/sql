@@ -9,6 +9,7 @@ import com.alibaba.druid.sql.ast.SQLExpr;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 /** Created by Eliran on 1/8/2015. */
@@ -101,7 +102,8 @@ public class SpatialParamsFactory {
         boolean neighbors = Boolean.parseBoolean(params.get(4).toString());
         return new CellFilterParams(geoHashPoint, precision, neighbors);
       default:
-        throw new RuntimeException(String.format("Unknown method name: %s", methodName));
+        throw new RuntimeException(
+            String.format(Locale.ROOT, "Unknown method name: %s", methodName));
     }
   }
 }

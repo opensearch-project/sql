@@ -14,6 +14,7 @@ import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
+import java.util.Locale;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -33,7 +34,10 @@ public class ExprTimeValue extends AbstractExprValue {
       this.time = LocalTime.parse(time, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
     } catch (DateTimeParseException e) {
       throw new SemanticCheckException(
-          String.format("time:%s in unsupported format, please use 'HH:mm:ss[.SSSSSSSSS]'", time));
+          String.format(
+              Locale.ROOT,
+              "time:%s in unsupported format, please use 'HH:mm:ss[.SSSSSSSSS]'",
+              time));
     }
   }
 
@@ -67,7 +71,7 @@ public class ExprTimeValue extends AbstractExprValue {
 
   @Override
   public String toString() {
-    return String.format("TIME '%s'", value());
+    return String.format(Locale.ROOT, "TIME '%s'", value());
   }
 
   @Override

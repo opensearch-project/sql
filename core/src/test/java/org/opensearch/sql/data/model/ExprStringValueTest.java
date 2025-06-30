@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
+import java.util.Locale;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 
@@ -45,7 +46,8 @@ public class ExprStringValueTest {
     assertThrows(
         ExpressionEvaluationException.class,
         value::stringValue,
-        String.format("invalid to get intervalValue from value of type %s", value.type()));
+        String.format(
+            Locale.ROOT, "invalid to get intervalValue from value of type %s", value.type()));
   }
 
   @Test

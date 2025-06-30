@@ -12,6 +12,7 @@ import static org.opensearch.sql.data.model.ExprValueUtils.nullValue;
 import java.time.Duration;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
+import java.util.Locale;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -112,6 +113,9 @@ public class MakeTimeTest extends DateTimeTestBase {
             .withNano((int) ((second % 1) * 1E9));
     var delta = Duration.between(expected, maketime(hour, minute, second)).getNano();
     assertEquals(
-        0, delta, 1, String.format("hour = %f, minute = %f, second = %f", hour, minute, second));
+        0,
+        delta,
+        1,
+        String.format(Locale.ROOT, "hour = %f, minute = %f, second = %f", hour, minute, second));
   }
 }

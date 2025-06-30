@@ -18,6 +18,7 @@ import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHand
 
 import java.time.Duration;
 import java.time.Period;
+import java.util.Locale;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprIntervalValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -72,7 +73,7 @@ public class IntervalClause {
         return year(value);
       default:
         throw new ExpressionEvaluationException(
-            String.format("interval unit %s is not supported", getStringValue(unit)));
+            String.format(Locale.ROOT, "interval unit %s is not supported", getStringValue(unit)));
     }
   }
 

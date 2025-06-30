@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
@@ -76,7 +77,8 @@ public class IntervalTriggerExecutionTest {
       long took = Duration.between(start, end).toSeconds();
       assertTrue(
           took >= expected - 1 || took <= expected + 1,
-          String.format("task interval should around %d, but took :%d", expected, took));
+          String.format(
+              Locale.ROOT, "task interval should around %d, but took :%d", expected, took));
     }
 
     @SneakyThrows

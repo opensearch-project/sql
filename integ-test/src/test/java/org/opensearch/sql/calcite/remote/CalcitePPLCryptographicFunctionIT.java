@@ -13,6 +13,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
@@ -32,6 +33,7 @@ public class CalcitePPLCryptographicFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where name = 'Jake' | eval hello = MD5('hello'), california ="
                     + " md5(state) | fields hello, california",
                 TEST_INDEX_STATE_COUNTRY));
@@ -45,6 +47,7 @@ public class CalcitePPLCryptographicFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where name = 'John' | eval hello = SHA1('hello'), ontario ="
                     + " SHA1(state) | fields hello, ontario",
                 TEST_INDEX_STATE_COUNTRY));
@@ -61,6 +64,7 @@ public class CalcitePPLCryptographicFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where name = 'Jane' | eval sha256 = SHA2('hello',256), sha512 ="
                     + " SHA2('hello',512), sha224 = SHA2(country, 224), sha384 = SHA2(country, 384)"
                     + " | fields sha256, sha512, sha224, sha384",
@@ -88,6 +92,7 @@ public class CalcitePPLCryptographicFunctionIT extends PPLIntegTestCase {
             () ->
                 executeQuery(
                     String.format(
+                        Locale.ROOT,
                         "source=%s | head 1 | eval sha100 = SHA2('hello', 100) | fields sha100",
                         TEST_INDEX_STATE_COUNTRY)));
     verifyErrorMessageContains(e, "Unsupported SHA2 algorithm");

@@ -13,6 +13,7 @@ import static org.opensearch.sql.prometheus.functions.resolver.QueryRangeTableFu
 import static org.opensearch.sql.prometheus.functions.resolver.QueryRangeTableFunctionResolver.STEP;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -53,7 +54,7 @@ public class QueryRangeFunctionImplementation extends FunctionExpression
   @Override
   public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
     throw new UnsupportedOperationException(
-        String.format(
+        String.format(Locale.ROOT,
             "Prometheus defined function [%s] is only "
                 + "supported in SOURCE clause with prometheus connector catalog",
             functionName));
@@ -70,12 +71,12 @@ public class QueryRangeFunctionImplementation extends FunctionExpression
         arguments.stream()
             .map(
                 arg ->
-                    String.format(
+                    String.format(Locale.ROOT,
                         "%s=%s",
                         ((NamedArgumentExpression) arg).getArgName(),
                         ((NamedArgumentExpression) arg).getValue().toString()))
             .collect(Collectors.toList());
-    return String.format("%s(%s)", functionName, String.join(", ", args));
+    return String.format(Locale.ROOT, "%s(%s)", functionName, String.join(", ", args));
   }
 
   @Override
@@ -106,7 +107,7 @@ public class QueryRangeFunctionImplementation extends FunctionExpression
               break;
             default:
               throw new ExpressionEvaluationException(
-                  String.format("Invalid Function Argument:%s", argName));
+                  String.format(Locale.ROOT, "Invalid Function Argument:%s", argName));
           }
         });
     return prometheusQueryRequest;

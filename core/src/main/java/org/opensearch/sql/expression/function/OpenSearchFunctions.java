@@ -8,6 +8,7 @@ package org.opensearch.sql.expression.function;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.Setter;
@@ -150,6 +151,7 @@ public class OpenSearchFunctions {
     public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
       throw new UnsupportedOperationException(
           String.format(
+              Locale.ROOT,
               "OpenSearch defined function [%s] is only supported in WHERE and HAVING clause.",
               functionName));
     }
@@ -166,11 +168,12 @@ public class OpenSearchFunctions {
               .map(
                   arg ->
                       String.format(
+                          Locale.ROOT,
                           "%s=%s",
                           ((NamedArgumentExpression) arg).getArgName(),
                           ((NamedArgumentExpression) arg).getValue().toString()))
               .collect(Collectors.toList());
-      return String.format("%s(%s)", functionName, String.join(", ", args));
+      return String.format(Locale.ROOT, "%s(%s)", functionName, String.join(", ", args));
     }
   }
 
@@ -195,6 +198,7 @@ public class OpenSearchFunctions {
     public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
       throw new UnsupportedOperationException(
           String.format(
+              Locale.ROOT,
               "OpenSearch defined function [%s] is only supported in Eval operation.",
               functionName));
     }

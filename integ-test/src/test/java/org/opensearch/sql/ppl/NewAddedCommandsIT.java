@@ -12,6 +12,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
@@ -32,8 +33,10 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
       result =
           executeQuery(
               String.format(
+                  Locale.ROOT,
                   "search source=%s | join on firstname=holdersName %s",
-                  TEST_INDEX_BANK, TEST_INDEX_DOG));
+                  TEST_INDEX_BANK,
+                  TEST_INDEX_DOG));
     } catch (ResponseException e) {
       result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
       verifyQuery(result);
@@ -47,8 +50,10 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
       result =
           executeQuery(
               String.format(
+                  Locale.ROOT,
                   "search source=%s | lookup %s holdersName as firstname",
-                  TEST_INDEX_BANK, TEST_INDEX_DOG));
+                  TEST_INDEX_BANK,
+                  TEST_INDEX_DOG));
     } catch (ResponseException e) {
       result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
     }
@@ -62,7 +67,9 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
       result =
           executeQuery(
               String.format(
-                  "search source=[source=%s | where age>35 | fields age] as t", TEST_INDEX_BANK));
+                  Locale.ROOT,
+                  "search source=[source=%s | where age>35 | fields age] as t",
+                  TEST_INDEX_BANK));
     } catch (ResponseException e) {
       result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
     }
@@ -72,8 +79,10 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
       result =
           executeQuery(
               String.format(
+                  Locale.ROOT,
                   "search source=%s | where exists [ source=%s | where firstname=holdersName]",
-                  TEST_INDEX_BANK, TEST_INDEX_DOG));
+                  TEST_INDEX_BANK,
+                  TEST_INDEX_DOG));
     } catch (ResponseException e) {
       result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
     }
@@ -83,8 +92,10 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
       result =
           executeQuery(
               String.format(
+                  Locale.ROOT,
                   "search source=%s | where firstname in [ source=%s | fields holdersName]",
-                  TEST_INDEX_BANK, TEST_INDEX_DOG));
+                  TEST_INDEX_BANK,
+                  TEST_INDEX_DOG));
     } catch (ResponseException e) {
       result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
     }
@@ -94,9 +105,11 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
       result =
           executeQuery(
               String.format(
+                  Locale.ROOT,
                   "search source=%s | where firstname = [ source=%s | where holdersName='Hattie'"
                       + " | fields holdersName | head 1]",
-                  TEST_INDEX_BANK, TEST_INDEX_DOG));
+                  TEST_INDEX_BANK,
+                  TEST_INDEX_DOG));
     } catch (ResponseException e) {
       result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
     }
@@ -110,6 +123,7 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
       result =
           executeQuery(
               String.format(
+                  Locale.ROOT,
                   "search source=%s | stats count() by span(age, 10) | appendcol [ stats"
                       + " avg(balance) by span(age, 10) ]",
                   TEST_INDEX_BANK));

@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.data.type;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import org.opensearch.sql.data.type.ExprType;
@@ -27,10 +28,12 @@ public class OpenSearchAliasType extends OpenSearchDataType {
     super(type.getExprCoreType());
     if (type instanceof OpenSearchAliasType) {
       throw new IllegalStateException(
-          String.format("Alias field cannot refer to the path [%s] of alias type", path));
+          String.format(
+              Locale.ROOT, "Alias field cannot refer to the path [%s] of alias type", path));
     } else if (objectFieldTypes.contains(type.getMappingType())) {
       throw new IllegalStateException(
-          String.format("Alias field cannot refer to the path [%s] of object type", path));
+          String.format(
+              Locale.ROOT, "Alias field cannot refer to the path [%s] of object type", path));
     }
     this.path = path;
     this.originalType = type;

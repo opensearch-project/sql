@@ -14,6 +14,7 @@ import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -91,7 +92,7 @@ public class PrometheusStorageFactory implements DataSourceFactory {
                         getHttpClient(requiredConfig), new URI(requiredConfig.get(URI)));
                   } catch (URISyntaxException | UnknownHostException e) {
                     throw new IllegalArgumentException(
-                        String.format("Invalid URI in prometheus properties: %s", e.getMessage()));
+                        String.format(Locale.ROOT, "Invalid URI in prometheus properties: %s", e.getMessage()));
                   }
                 });
     return new PrometheusStorageEngine(prometheusClient);
@@ -119,7 +120,7 @@ public class PrometheusStorageFactory implements DataSourceFactory {
                 "aps"));
       } else {
         throw new IllegalArgumentException(
-            String.format(
+            String.format(Locale.ROOT,
                 "AUTH Type : %s is not supported with Prometheus Connector",
                 config.get(AUTH_TYPE)));
       }

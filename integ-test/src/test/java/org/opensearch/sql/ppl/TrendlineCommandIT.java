@@ -10,6 +10,7 @@ import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
@@ -26,6 +27,7 @@ public class TrendlineCommandIT extends PPLIntegTestCase {
     final JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where balance > 39000 | sort balance | trendline sma(2, balance) as"
                     + " balance_trend | fields balance_trend",
                 TEST_INDEX_BANK));
@@ -37,6 +39,7 @@ public class TrendlineCommandIT extends PPLIntegTestCase {
     final JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where balance > 39000 | sort balance | trendline sma(2, balance) as"
                     + " balance_trend sma(2, account_number) as account_number_trend | fields"
                     + " balance_trend, account_number_trend",
@@ -49,6 +52,7 @@ public class TrendlineCommandIT extends PPLIntegTestCase {
     final JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where balance > 39000 | sort balance | trendline sma(2, balance) as"
                     + " age | fields age",
                 TEST_INDEX_BANK));
@@ -60,6 +64,7 @@ public class TrendlineCommandIT extends PPLIntegTestCase {
     final JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where balance > 39000 | sort balance | trendline sma(2, balance) |"
                     + " fields balance_trendline",
                 TEST_INDEX_BANK));
@@ -71,6 +76,7 @@ public class TrendlineCommandIT extends PPLIntegTestCase {
     final JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where balance > 39000 | trendline sort balance sma(2, balance) |"
                     + " fields balance_trendline",
                 TEST_INDEX_BANK));

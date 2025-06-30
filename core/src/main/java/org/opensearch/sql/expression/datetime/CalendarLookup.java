@@ -9,6 +9,7 @@ import com.google.common.collect.ImmutableList;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Locale;
 import lombok.AllArgsConstructor;
 import org.opensearch.sql.exception.SemanticCheckException;
 
@@ -24,7 +25,8 @@ class CalendarLookup {
   private static Calendar getCalendar(int mode, LocalDate date) {
     if ((mode < 0) || (mode > 7)) {
       throw new SemanticCheckException(
-          String.format("mode:%s is invalid, please use mode value between 0-7", mode));
+          String.format(
+              Locale.ROOT, "mode:%s is invalid, please use mode value between 0-7", mode));
     }
     int day = (mode % 2 == 0) ? Calendar.SUNDAY : Calendar.MONDAY;
     if (ImmutableList.of(1, 3).contains(mode)) {

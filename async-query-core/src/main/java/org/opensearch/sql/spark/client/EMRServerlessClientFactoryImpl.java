@@ -12,6 +12,7 @@ import com.amazonaws.services.emrserverless.AWSEMRServerless;
 import com.amazonaws.services.emrserverless.AWSEMRServerlessClientBuilder;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.spark.asyncquery.model.NullAsyncQueryRequestContext;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
@@ -48,6 +49,7 @@ public class EMRServerlessClientFactoryImpl implements EMRServerlessClientFactor
     if (sparkExecutionEngineConfig == null || sparkExecutionEngineConfig.getRegion() == null) {
       throw new IllegalArgumentException(
           String.format(
+              Locale.ROOT,
               "Async Query APIs are disabled. Please configure %s in cluster settings to enable"
                   + " them.",
               SPARK_EXECUTION_ENGINE_CONFIG.getKeyValue()));

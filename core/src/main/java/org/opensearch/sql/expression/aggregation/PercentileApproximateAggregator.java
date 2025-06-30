@@ -10,6 +10,7 @@ import static org.opensearch.sql.utils.ExpressionUtils.format;
 
 import com.tdunning.math.stats.MergingDigest;
 import java.util.List;
+import java.util.Locale;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -29,7 +30,8 @@ public class PercentileApproximateAggregator
     super(BuiltinFunctionName.PERCENTILE_APPROX.getName(), arguments, returnType);
     if (!ExprCoreType.numberTypes().contains(returnType)) {
       throw new IllegalArgumentException(
-          String.format("percentile aggregation over %s type is not supported", returnType));
+          String.format(
+              Locale.ROOT, "percentile aggregation over %s type is not supported", returnType));
     }
   }
 

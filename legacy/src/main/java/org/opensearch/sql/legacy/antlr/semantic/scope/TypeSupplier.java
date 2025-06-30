@@ -6,6 +6,7 @@
 package org.opensearch.sql.legacy.antlr.semantic.scope;
 
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 import java.util.function.Supplier;
 import org.opensearch.sql.legacy.antlr.semantic.SemanticAnalysisException;
@@ -41,7 +42,7 @@ public class TypeSupplier implements Supplier<Type> {
   public Type get() {
     if (types.size() > 1) {
       throw new SemanticAnalysisException(
-          String.format("Field [%s] have conflict type [%s]", symbolName, types));
+          String.format(Locale.ROOT, "Field [%s] have conflict type [%s]", symbolName, types));
     } else {
       return symbolType;
     }

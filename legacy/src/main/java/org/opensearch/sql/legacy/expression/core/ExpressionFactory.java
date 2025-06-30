@@ -29,6 +29,7 @@ import static org.opensearch.sql.legacy.expression.core.operator.ScalarOperation
 
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.opensearch.sql.legacy.expression.core.builder.ArithmeticFunctionFactory;
 import org.opensearch.sql.legacy.expression.core.builder.ExpressionBuilder;
@@ -78,7 +79,7 @@ public class ExpressionFactory {
 
       @Override
       public String toString() {
-        return String.format("%s", bindingName);
+        return String.format(Locale.ROOT, "%s", bindingName);
       }
     };
   }
@@ -93,7 +94,7 @@ public class ExpressionFactory {
 
       @Override
       public String toString() {
-        return String.format("%s", value);
+        return String.format(Locale.ROOT, "%s", value);
       }
     };
   }
@@ -108,7 +109,7 @@ public class ExpressionFactory {
 
       @Override
       public String toString() {
-        return String.format("cast(%s)", expr);
+        return String.format(Locale.ROOT, "cast(%s)", expr);
       }
     };
   }

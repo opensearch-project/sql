@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.Getter;
@@ -198,7 +199,8 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
                   var ret = analyze(unresolvedExpression, context);
                   if (ret == null) {
                     throw new UnsupportedOperationException(
-                        String.format("Invalid use of expression %s", unresolvedExpression));
+                        String.format(
+                            Locale.ROOT, "Invalid use of expression %s", unresolvedExpression));
                   } else {
                     return ret;
                   }
@@ -239,8 +241,10 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
     if (!boostArg.getType().equals(DataType.DOUBLE)) {
       throw new SemanticCheckException(
           String.format(
+              Locale.ROOT,
               "Expected boost type '%s' but got '%s'",
-              DataType.DOUBLE.name(), boostArg.getType().name()));
+              DataType.DOUBLE.name(),
+              boostArg.getType().name()));
     }
     Double thisBoostValue = ((Double) boostArg.getValue());
 

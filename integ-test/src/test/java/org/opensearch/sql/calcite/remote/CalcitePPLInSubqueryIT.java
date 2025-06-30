@@ -16,6 +16,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -48,9 +49,11 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
     var result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s| where id in [source=%s | where country = 'USA' | fields id] | fields"
                     + " name, country, occupation, id, salary",
-                TEST_INDEX_WORKER, TEST_INDEX_WORKER));
+                TEST_INDEX_WORKER,
+                TEST_INDEX_WORKER));
     verifySchema(
         result,
         schema("name", "string"),
@@ -69,13 +72,15 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s"
                     + "| where id in ["
                     + "    source = %s | fields uid"
                     + "  ]"
                     + "| sort  - salary"
                     + "| fields id, name, salary",
-                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+                TEST_INDEX_WORKER,
+                TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
     verifyDataRowsInOrder(
         result,
@@ -91,12 +96,14 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s id in ["
                     + "    source = %s | fields uid"
                     + "  ]"
                     + "| sort  - salary"
                     + "| fields id, name, salary",
-                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+                TEST_INDEX_WORKER,
+                TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
     verifyDataRowsInOrder(
         result,
@@ -112,22 +119,26 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
     JSONObject result1 =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s"
                     + "| where (id) in ["
                     + "    source = %s | fields uid"
                     + "  ]"
                     + "| sort  - salary"
                     + "| fields id, name, salary",
-                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+                TEST_INDEX_WORKER,
+                TEST_INDEX_WORK_INFORMATION));
     JSONObject result2 =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s (id) in ["
                     + "    source = %s | fields uid"
                     + "  ]"
                     + "| sort  - salary"
                     + "| fields id, name, salary",
-                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+                TEST_INDEX_WORKER,
+                TEST_INDEX_WORK_INFORMATION));
     verifySchema(result1, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
     verifySchema(result2, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
     verifyDataRowsInOrder(
@@ -151,13 +162,15 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s"
                     + "| where (id, name) in ["
                     + "    source = %s | fields uid, name"
                     + "  ]"
                     + "| sort  - salary"
                     + "| fields id, name, salary",
-                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+                TEST_INDEX_WORKER,
+                TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
     verifyDataRowsInOrder(
         result,
@@ -172,13 +185,15 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s"
                     + "| where id not in ["
                     + "    source = %s | fields uid"
                     + "  ]"
                     + "| sort  - salary"
                     + "| fields id, name, salary",
-                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+                TEST_INDEX_WORKER,
+                TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
     verifyDataRowsInOrder(result, rows(1001, "Hello", 70000), rows(1004, "David", 0));
   }
@@ -188,12 +203,14 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s id not in ["
                     + "    source = %s | fields uid"
                     + "  ]"
                     + "| sort  - salary"
                     + "| fields id, name, salary",
-                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+                TEST_INDEX_WORKER,
+                TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
     verifyDataRowsInOrder(result, rows(1001, "Hello", 70000), rows(1004, "David", 0));
   }
@@ -203,13 +220,15 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s"
                     + "| where (id, name) not in ["
                     + "    source = %s | fields uid, name"
                     + "  ]"
                     + "| sort  - salary"
                     + "| fields id, name, salary",
-                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+                TEST_INDEX_WORKER,
+                TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
     verifyDataRowsInOrder(
         result, rows(1001, "Hello", 70000), rows(1006, "Tommy", 30000), rows(1004, "David", 0));
@@ -220,12 +239,14 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s id not in ["
                     + "    source = %s | where uid = 0000 | fields uid"
                     + "  ]"
                     + "| sort  - salary"
                     + "| fields id, name, salary",
-                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+                TEST_INDEX_WORKER,
+                TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
     verifyDataRowsInOrder(
         result,
@@ -243,6 +264,7 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s"
                     + "| where id in ["
                     + "    source = %s"
@@ -255,7 +277,9 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
                     + "  ]"
                     + "| sort  - salary"
                     + "| fields id, name, salary",
-                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_WORKER,
+                TEST_INDEX_WORK_INFORMATION,
+                TEST_INDEX_OCCUPATION));
     verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
     verifyDataRowsInOrder(
         result,
@@ -269,6 +293,7 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s"
                     + "| where id in ["
                     + "    source = %s"
@@ -280,7 +305,9 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
                     + "    | fields uid"
                     + "  ]"
                     + "| sort  - salary | fields name, country, occupation, id, salary",
-                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_WORKER,
+                TEST_INDEX_WORK_INFORMATION,
+                TEST_INDEX_OCCUPATION));
     verifySchema(
         result,
         schema("name", "string"),
@@ -300,6 +327,7 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s"
                     + "| inner join left=a, right=b"
                     + "    ON a.id = b.uid AND b.occupation in ["
@@ -307,7 +335,9 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
                     + "    ]"
                     + "    %s"
                     + "| fields a.id, a.name, a.salary, b.occupation",
-                TEST_INDEX_WORKER, TEST_INDEX_OCCUPATION, TEST_INDEX_WORK_INFORMATION));
+                TEST_INDEX_WORKER,
+                TEST_INDEX_OCCUPATION,
+                TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
     verifyDataRowsInOrder(
         result,
@@ -324,13 +354,15 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
             () ->
                 executeQuery(
                     String.format(
+                        Locale.ROOT,
                         "source = %s"
                             + "| where id in ["
                             + "    source = %s | fields uid, department"
                             + "  ]"
                             + "| sort  - salary"
                             + "| fields id, name, salary",
-                        TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION)));
+                        TEST_INDEX_WORKER,
+                        TEST_INDEX_WORK_INFORMATION)));
     verifyErrorMessageContains(
         e1,
         "The number of columns in the left hand side of an IN subquery does not match the number of"
@@ -342,13 +374,15 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
             () ->
                 executeQuery(
                     String.format(
+                        Locale.ROOT,
                         "source = %s"
                             + "| where (id, name, salary) in ["
                             + "    source = %s | fields uid, department"
                             + "  ]"
                             + "| sort  - salary"
                             + "| fields id, name, salary",
-                        TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION)));
+                        TEST_INDEX_WORKER,
+                        TEST_INDEX_WORK_INFORMATION)));
     verifyErrorMessageContains(
         e2,
         "The number of columns in the left hand side of an IN subquery does not match the number of"
@@ -360,6 +394,7 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source = %s as o"
                     + "| where id in ["
                     + "    source = %s as i"
@@ -368,7 +403,8 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
                     + "  ]"
                     + "| sort - o.salary"
                     + "| fields o.id, o.name, o.salary",
-                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+                TEST_INDEX_WORKER,
+                TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
     verifyDataRowsInOrder(result, rows(1002, "John", 120000), rows(1005, "Jane", 90000));
   }

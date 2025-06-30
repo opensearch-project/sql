@@ -6,6 +6,7 @@
 package org.opensearch.sql.planner.physical;
 
 import java.util.Iterator;
+import java.util.Locale;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.planner.PlanNode;
@@ -40,6 +41,7 @@ public abstract class PhysicalPlan
   public ExecutionEngine.Schema schema() {
     throw new IllegalStateException(
         String.format(
+            Locale.ROOT,
             "[BUG] schema can been only applied to " + "ProjectOperator, instead of %s",
             this.getClass().getSimpleName()));
   }

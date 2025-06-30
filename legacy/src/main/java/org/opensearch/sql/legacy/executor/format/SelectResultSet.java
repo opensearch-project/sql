@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -182,7 +183,7 @@ public class SelectResultSet extends ResultSet {
     Map<String, Map<String, FieldMappingMetadata>> mappings = response.mappings();
     if (mappings.isEmpty() || !mappings.containsKey(indexName)) {
       throw new IllegalArgumentException(
-          String.format("Index type %s does not exist", query.getFrom()));
+          String.format(Locale.ROOT, "Index type %s does not exist", query.getFrom()));
     }
     Map<String, FieldMappingMetadata> typeMappings = mappings.get(indexName);
 
@@ -364,7 +365,10 @@ public class SelectResultSet extends ResultSet {
         }
       default:
         throw new UnsupportedOperationException(
-            String.format("The following method is not supported in Schema: %s", field.getName()));
+            String.format(
+                Locale.ROOT,
+                "The following method is not supported in Schema: %s",
+                field.getName()));
     }
   }
 
@@ -472,7 +476,7 @@ public class SelectResultSet extends ResultSet {
                   isGroupKey));
         } else if (!isSelectAll()) {
           throw new IllegalArgumentException(
-              String.format("%s fieldName types are currently not supported.", type));
+              String.format(Locale.ROOT, "%s fieldName types are currently not supported.", type));
         }
       }
     }
@@ -717,7 +721,8 @@ public class SelectResultSet extends ResultSet {
                         Percentile::getValue,
                         (v1, v2) -> {
                           throw new IllegalArgumentException(
-                              String.format("Duplicate key for values %s and %s", v1, v2));
+                              String.format(
+                                  Locale.ROOT, "Duplicate key for values %s and %s", v1, v2));
                         },
                         TreeMap::new)));
       } else {

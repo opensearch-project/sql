@@ -218,7 +218,7 @@ public class DateTimeFormatterUtil {
     final Matcher m = CHARACTERS_WITH_NO_MOD_LITERAL_BEHIND_PATTERN.matcher(formatStr);
 
     while (m.find()) {
-      m.appendReplacement(cleanFormat, String.format("'%s'", m.group()));
+      m.appendReplacement(cleanFormat, String.format(Locale.ROOT, "'%s'", m.group()));
     }
     m.appendTail(cleanFormat);
 
@@ -246,7 +246,9 @@ public class DateTimeFormatterUtil {
             handler
                 .getOrDefault(
                     matcher.group(),
-                    (d) -> String.format("'%s'", matcher.group().replaceFirst(MOD_LITERAL, "")))
+                    (d) ->
+                        String.format(
+                            Locale.ROOT, "'%s'", matcher.group().replaceFirst(MOD_LITERAL, "")))
                 .getFormat(datetime));
       }
     } catch (Exception e) {
@@ -332,7 +334,7 @@ public class DateTimeFormatterUtil {
           format,
           STR_TO_DATE_FORMATS.getOrDefault(
               matcher.group(),
-              String.format("'%s'", matcher.group().replaceFirst(MOD_LITERAL, ""))));
+              String.format(Locale.ROOT, "'%s'", matcher.group().replaceFirst(MOD_LITERAL, ""))));
     }
     matcher.appendTail(format);
 

@@ -17,6 +17,7 @@ import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoField;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -111,7 +112,8 @@ public abstract class Rounding<T> {
     public ExprValue round(ExprValue var) {
       if (dateTimeUnit.id > 4) {
         throw new ExpressionEvaluationException(
-            String.format("Unable to set span unit %s for TIME type", dateTimeUnit.getName()));
+            String.format(
+                Locale.ROOT, "Unable to set span unit %s for TIME type", dateTimeUnit.getName()));
       }
 
       Instant instant =

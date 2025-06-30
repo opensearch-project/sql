@@ -12,6 +12,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
@@ -26,7 +27,8 @@ public class TopCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testTopWithoutGroup() throws IOException {
-    JSONObject result = executeQuery(String.format("source=%s | top gender", TEST_INDEX_ACCOUNT));
+    JSONObject result =
+        executeQuery(String.format(Locale.ROOT, "source=%s | top gender", TEST_INDEX_ACCOUNT));
     if (isCalciteEnabled()) {
       verifySchemaInOrder(result, schema("gender", "string"), schema("count", "bigint"));
       verifyDataRows(result, rows("M", 507), rows("F", 493));
@@ -37,7 +39,8 @@ public class TopCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testTopNWithoutGroup() throws IOException {
-    JSONObject result = executeQuery(String.format("source=%s | top 1 gender", TEST_INDEX_ACCOUNT));
+    JSONObject result =
+        executeQuery(String.format(Locale.ROOT, "source=%s | top 1 gender", TEST_INDEX_ACCOUNT));
     if (isCalciteEnabled()) {
       verifySchemaInOrder(result, schema("gender", "string"), schema("count", "bigint"));
       verifyDataRows(result, rows("M", 507));
@@ -49,7 +52,8 @@ public class TopCommandIT extends PPLIntegTestCase {
   @Test
   public void testTopNWithGroup() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | top 1 state by gender", TEST_INDEX_ACCOUNT));
+        executeQuery(
+            String.format(Locale.ROOT, "source=%s | top 1 state by gender", TEST_INDEX_ACCOUNT));
     if (isCalciteEnabled()) {
       verifySchemaInOrder(
           result, schema("gender", "string"), schema("state", "string"), schema("count", "bigint"));

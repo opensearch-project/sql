@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.spark.dispatcher;
 
+import java.util.Locale;
 import java.util.Map;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
@@ -63,7 +64,9 @@ public class RefreshQueryHandler extends BatchQueryHandler {
     if (!indexMetadataMap.containsKey(asyncQueryJobMetadata.getIndexName())) {
       throw new IllegalStateException(
           String.format(
-              "Couldn't fetch flint index: %s details", asyncQueryJobMetadata.getIndexName()));
+              Locale.ROOT,
+              "Couldn't fetch flint index: %s details",
+              asyncQueryJobMetadata.getIndexName()));
     }
     FlintIndexMetadata indexMetadata = indexMetadataMap.get(asyncQueryJobMetadata.getIndexName());
     FlintIndexOp jobCancelOp = flintIndexOpFactory.getCancel(datasourceName);

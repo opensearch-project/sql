@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.opensearch.index.query.QueryBuilder;
@@ -33,7 +34,11 @@ abstract class NoFieldQuery<T extends QueryBuilder> extends RelevanceQuery<T> {
   protected void checkValidArguments(String argNormalized, T queryBuilder) {
     if (!getQueryBuildActions().containsKey(argNormalized)) {
       throw new SemanticCheckException(
-          String.format("Parameter %s is invalid for %s function.", argNormalized, getQueryName()));
+          String.format(
+              Locale.ROOT,
+              "Parameter %s is invalid for %s function.",
+              argNormalized,
+              getQueryName()));
     }
   }
 
@@ -52,7 +57,7 @@ abstract class NoFieldQuery<T extends QueryBuilder> extends RelevanceQuery<T> {
             .collect(Collectors.toList());
     if (arguments.size() < 1) {
       throw new SyntaxCheckException(
-          String.format("%s requires at least one parameter", func.getFunctionName()));
+          String.format(Locale.ROOT, "%s requires at least one parameter", func.getFunctionName()));
     }
 
     return loadArguments(arguments);

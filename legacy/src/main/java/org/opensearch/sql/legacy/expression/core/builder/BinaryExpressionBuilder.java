@@ -7,6 +7,7 @@ package org.opensearch.sql.legacy.expression.core.builder;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.legacy.expression.core.Expression;
 import org.opensearch.sql.legacy.expression.core.operator.ScalarOperator;
@@ -37,7 +38,7 @@ public class BinaryExpressionBuilder implements ExpressionBuilder {
 
       @Override
       public String toString() {
-        return String.format("%s(%s,%s)", op.name(), e1, e2);
+        return String.format(Locale.ROOT, "%s(%s,%s)", op.name(), e1, e2);
       }
     };
   }

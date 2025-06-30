@@ -8,6 +8,7 @@
 package org.opensearch.sql.prometheus.storage.querybuilder;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.NoArgsConstructor;
@@ -49,7 +50,7 @@ public class AggregationQueryBuilder {
     if (!allowedStatsFunctions.contains(
         namedAggregatorList.get(0).getFunctionName().getFunctionName())) {
       throw new RuntimeException(
-          String.format(
+          String.format(Locale.ROOT,
               "Prometheus Catalog only supports %s aggregations.", allowedStatsFunctions));
     }
 

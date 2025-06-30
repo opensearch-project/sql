@@ -14,6 +14,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import com.google.gson.Gson;
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -35,6 +36,7 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
     result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where json_valid(json_string) | fields test_name",
                 TEST_INDEX_JSON_TEST));
     verifySchema(result, schema("test_name", null, "string"));
@@ -60,6 +62,7 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
     result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where not json_valid(json_string) | fields test_name",
                 TEST_INDEX_JSON_TEST));
     verifySchema(result, schema("test_name", null, "string"));
@@ -71,6 +74,7 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where json_valid(json_string) | eval casted=cast(json_string as json)"
                     + " | fields test_name, casted",
                 TEST_INDEX_JSON_TEST));
@@ -108,6 +112,7 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
     result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where json_valid(json_string) | eval casted=json(json_string) | fields"
                     + " test_name, casted",
                 TEST_INDEX_JSON_TEST));
@@ -153,6 +158,7 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
     result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | "
                     + "where test_name='json scalar int' | "
                     + "eval casted=cast(json(json_string) as int) | "
@@ -164,6 +170,7 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
     result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | "
                     + "where test_name='json scalar int' | "
                     + "eval casted=cast(json(json_string) as long) | "
@@ -175,6 +182,7 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
     result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | "
                     + "where test_name='json scalar float' | "
                     + "eval casted=cast(json(json_string) as float) | "
@@ -186,6 +194,7 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
     result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | "
                     + "where test_name='json scalar double' | "
                     + "eval casted=cast(json(json_string) as double) | "
@@ -197,6 +206,7 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
     result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where test_name='json scalar boolean true' OR test_name='json scalar"
                     + " boolean false' | eval casted=cast(json(json_string) as boolean) | fields"
                     + " test_name, casted",

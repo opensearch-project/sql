@@ -6,6 +6,7 @@
 package org.opensearch.sql.analysis;
 
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.analysis.symbol.Namespace;
@@ -65,9 +66,11 @@ public class QualifierAnalyzer {
       // Need change to semantic check exception in future.
       throw new SyntaxCheckException(
           String.format(
+              Locale.ROOT,
               "The qualifier [%s] of qualified name [%s] must be an field name, index name or its "
                   + "alias",
-              qualifier, fullName));
+              qualifier,
+              fullName));
     }
   }
 }

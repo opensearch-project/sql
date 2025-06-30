@@ -9,6 +9,7 @@ import com.google.common.annotations.VisibleForTesting;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -57,11 +58,15 @@ public class SearchAggregationResponseHelper {
                         Collectors.toMap(
                             (percentile) ->
                                 String.format(
-                                    "%s_%s", percentiles.getName(), percentile.getPercent()),
+                                    Locale.ROOT,
+                                    "%s_%s",
+                                    percentiles.getName(),
+                                    percentile.getPercent()),
                             Percentile::getValue,
                             (v1, v2) -> {
                               throw new IllegalArgumentException(
-                                  String.format("Duplicate key for values %s and %s", v1, v2));
+                                  String.format(
+                                      Locale.ROOT, "Duplicate key for values %s and %s", v1, v2));
                             },
                             HashMap::new)));
       } else if (aggregation instanceof Histogram) {

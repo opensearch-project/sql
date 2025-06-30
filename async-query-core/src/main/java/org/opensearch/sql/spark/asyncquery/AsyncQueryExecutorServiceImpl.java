@@ -11,6 +11,7 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.STATUS_FIEL
 import com.amazonaws.services.emrserverless.model.JobRunState;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import lombok.AllArgsConstructor;
 import org.json.JSONObject;
@@ -109,7 +110,8 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
             sessionId);
       }
     }
-    throw new AsyncQueryNotFoundException(String.format("QueryId: %s not found", queryId));
+    throw new AsyncQueryNotFoundException(
+        String.format(Locale.ROOT, "QueryId: %s not found", queryId));
   }
 
   @Override
@@ -123,6 +125,7 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
           asyncQueryJobMetadata.get(), QueryState.CANCELLED, asyncQueryRequestContext);
       return result;
     }
-    throw new AsyncQueryNotFoundException(String.format("QueryId: %s not found", queryId));
+    throw new AsyncQueryNotFoundException(
+        String.format(Locale.ROOT, "QueryId: %s not found", queryId));
   }
 }

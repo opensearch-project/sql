@@ -11,6 +11,7 @@ import java.lang.reflect.InaccessibleObjectException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
@@ -98,7 +99,8 @@ public interface PPLTypeChecker {
 
     @Override
     public String toString() {
-      return String.format("PPLFamilyTypeChecker[families=%s]", getAllowedSignatures());
+      return String.format(
+          Locale.ROOT, "PPLFamilyTypeChecker[families=%s]", getAllowedSignatures());
     }
   }
 
@@ -254,7 +256,7 @@ public interface PPLTypeChecker {
       final String typeName = "COMPARABLE_TYPE";
       if (min == -1 || max == -1) {
         // If the range is unbounded, we cannot provide a specific signature
-        return String.format("[%s...]", typeName);
+        return String.format(Locale.ROOT, "[%s...]", typeName);
       } else {
         // Generate a signature based on the min and max operand counts
         List<String> signatures = new ArrayList<>();
@@ -326,7 +328,7 @@ public interface PPLTypeChecker {
         }
       } catch (ReflectiveOperationException | InaccessibleObjectException | SecurityException e) {
         throw new UnsupportedOperationException(
-            String.format("Failed to check composition type of %s", typeChecker), e);
+            String.format(Locale.ROOT, "Failed to check composition type of %s", typeChecker), e);
       }
     }
 

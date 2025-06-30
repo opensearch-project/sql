@@ -51,6 +51,7 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_SQL_E
 import com.amazonaws.arn.Arn;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
@@ -172,6 +173,7 @@ public class S3GlueDataSourceSparkParameterComposer implements DataSourceSparkPa
     } catch (URISyntaxException e) {
       throw new IllegalArgumentException(
           String.format(
+              Locale.ROOT,
               "Bad URI in indexstore configuration of the : %s datasoure.", datasourceName));
     }
   }

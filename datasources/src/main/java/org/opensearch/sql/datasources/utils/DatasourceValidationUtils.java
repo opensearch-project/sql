@@ -5,6 +5,7 @@ import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import lombok.experimental.UtilityClass;
@@ -40,12 +41,12 @@ public class DatasourceValidationUtils {
     StringBuilder errorStringBuilder = new StringBuilder();
     if (missingFields.size() > 0) {
       errorStringBuilder.append(
-          String.format("Missing %s fields in the connector properties.", missingFields));
+          String.format(Locale.ROOT, "Missing %s fields in the connector properties.", missingFields));
     }
 
     if (invalidLengthFields.size() > 0) {
       errorStringBuilder.append(
-          String.format("Fields %s exceeds more than 1000 characters.", invalidLengthFields));
+          String.format(Locale.ROOT, "Fields %s exceeds more than 1000 characters.", invalidLengthFields));
     }
     if (errorStringBuilder.length() > 0) {
       throw new IllegalArgumentException(errorStringBuilder.toString());

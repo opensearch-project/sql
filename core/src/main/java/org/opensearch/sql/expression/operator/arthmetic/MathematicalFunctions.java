@@ -21,6 +21,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.zip.CRC32;
@@ -855,7 +856,8 @@ public class MathematicalFunctions {
                               Double value = v.doubleValue();
                               if (value == 0) {
                                 throw new ArithmeticException(
-                                    String.format("Out of range value for cot(%s)", value));
+                                    String.format(
+                                        Locale.ROOT, "Out of range value for cot(%s)", value));
                               }
                               return new ExprDoubleValue(1 / Math.tan(value));
                             }),

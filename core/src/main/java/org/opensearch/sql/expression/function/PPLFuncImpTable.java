@@ -211,6 +211,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -408,7 +409,8 @@ public class PPLFuncImpTable {
       handler = aggFunctionRegistry.get(functionName);
     }
     if (handler == null) {
-      throw new IllegalStateException(String.format("Cannot resolve function: %s", functionName));
+      throw new IllegalStateException(
+          String.format(Locale.ROOT, "Cannot resolve function: %s", functionName));
     }
     return handler.apply(distinct, field, argList, context);
   }
@@ -416,7 +418,8 @@ public class PPLFuncImpTable {
   public RexNode resolve(final RexBuilder builder, final String functionName, RexNode... args) {
     Optional<BuiltinFunctionName> funcNameOpt = BuiltinFunctionName.of(functionName);
     if (funcNameOpt.isEmpty()) {
-      throw new IllegalArgumentException(String.format("Unsupported function: %s", functionName));
+      throw new IllegalArgumentException(
+          String.format(Locale.ROOT, "Unsupported function: %s", functionName));
     }
     return resolve(builder, funcNameOpt.get(), args);
   }
@@ -432,7 +435,8 @@ public class PPLFuncImpTable {
       implementList = functionRegistry.get(functionName);
     }
     if (implementList == null || implementList.isEmpty()) {
-      throw new IllegalStateException(String.format("Cannot resolve function: %s", functionName));
+      throw new IllegalStateException(
+          String.format(Locale.ROOT, "Cannot resolve function: %s", functionName));
     }
     List<RelDataType> argTypes = Arrays.stream(args).map(RexNode::getType).toList();
     try {
@@ -444,8 +448,11 @@ public class PPLFuncImpTable {
     } catch (Exception e) {
       throw new ExpressionEvaluationException(
           String.format(
+              Locale.ROOT,
               "Cannot resolve function: %s, arguments: %s, caused by: %s",
-              functionName, getActualSignature(argTypes), e.getMessage()),
+              functionName,
+              getActualSignature(argTypes),
+              e.getMessage()),
           e);
     }
     StringJoiner allowedSignatures = new StringJoiner(",");
@@ -454,8 +461,11 @@ public class PPLFuncImpTable {
     }
     throw new ExpressionEvaluationException(
         String.format(
+            Locale.ROOT,
             "%s function expects {%s}, but got %s",
-            functionName, allowedSignatures, getActualSignature(argTypes)));
+            functionName,
+            allowedSignatures,
+            getActualSignature(argTypes)));
   }
 
   private static String getActualSignature(List<RelDataType> argTypes) {
@@ -543,6 +553,7 @@ public class PPLFuncImpTable {
           } catch (IllegalArgumentException | UnsupportedOperationException e) {
             logger.debug(
                 String.format(
+                    Locale.ROOT,
                     "Failed to create composite type checker for operator: %s. Will skip its type"
                         + " checking",
                     operator.getName()),

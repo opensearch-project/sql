@@ -11,6 +11,7 @@ import static org.opensearch.sql.util.MatcherUtils.columnPattern;
 import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,7 @@ public class RenameCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | fields firstname | rename firstname as first_name",
                 TEST_INDEX_ACCOUNT));
     verifyColumn(result, columnName("first_name"));
@@ -38,6 +40,7 @@ public class RenameCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | fields firstname, age | rename firstname as FIRSTNAME, age as AGE",
                 TEST_INDEX_ACCOUNT));
     verifyColumn(result, columnName("FIRSTNAME"), columnName("AGE"));

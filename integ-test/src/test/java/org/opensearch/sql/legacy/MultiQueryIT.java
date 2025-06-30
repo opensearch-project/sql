@@ -10,6 +10,7 @@ import static org.hamcrest.Matchers.hasItems;
 
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -39,6 +40,7 @@ public class MultiQueryIT extends SQLIntegTestCase {
   public void unionAllSameRequestOnlyOneRecordTwice() throws IOException {
     String query =
         String.format(
+            Locale.ROOT,
             "SELECT firstname "
                 + "FROM %s "
                 + "WHERE firstname = 'Amber' "
@@ -47,7 +49,8 @@ public class MultiQueryIT extends SQLIntegTestCase {
                 + "SELECT firstname "
                 + "FROM %s "
                 + "WHERE firstname = 'Amber'",
-            TestsConstants.TEST_INDEX_ACCOUNT, TestsConstants.TEST_INDEX_ACCOUNT);
+            TestsConstants.TEST_INDEX_ACCOUNT,
+            TestsConstants.TEST_INDEX_ACCOUNT);
 
     JSONObject response = executeQuery(query);
     JSONArray hits = getHits(response);
@@ -65,10 +68,12 @@ public class MultiQueryIT extends SQLIntegTestCase {
   public void unionAllOnlyOneRecordEachWithAlias() throws IOException {
     String query =
         String.format(
+            Locale.ROOT,
             "SELECT firstname FROM %s WHERE firstname = 'Amber' "
                 + "UNION ALL "
                 + "SELECT dog_name as firstname FROM %s WHERE dog_name = 'rex'",
-            TestsConstants.TEST_INDEX_ACCOUNT, TestsConstants.TEST_INDEX_DOG);
+            TestsConstants.TEST_INDEX_ACCOUNT,
+            TestsConstants.TEST_INDEX_DOG);
 
     JSONObject response = executeQuery(query);
     assertThat(getHits(response).length(), equalTo(2));
@@ -89,12 +94,14 @@ public class MultiQueryIT extends SQLIntegTestCase {
   public void unionAllOnlyOneRecordEachWithComplexAlias() throws IOException {
     String query =
         String.format(
+            Locale.ROOT,
             "SELECT firstname FROM %s WHERE firstname = 'Amber' "
                 + "UNION ALL "
                 + "SELECT name.firstname as firstname "
                 + "FROM %s "
                 + "WHERE name.firstname = 'daenerys'",
-            TestsConstants.TEST_INDEX_ACCOUNT, TestsConstants.TEST_INDEX_GAME_OF_THRONES);
+            TestsConstants.TEST_INDEX_ACCOUNT,
+            TestsConstants.TEST_INDEX_GAME_OF_THRONES);
 
     JSONObject response = executeQuery(query);
     assertThat(getHits(response).length(), equalTo(2));
@@ -155,10 +162,12 @@ public class MultiQueryIT extends SQLIntegTestCase {
   public void minusCMinusDTwoFieldsAliasOnBothSecondTableFields() throws IOException {
     String query =
         String.format(
+            Locale.ROOT,
             "SELECT pk, letter FROM %s WHERE system_name = 'C' "
                 + "MINUS "
                 + "SELECT myId as pk, myLetter as letter FROM %s WHERE system_name = 'E'",
-            TestsConstants.TEST_INDEX_SYSTEM, TestsConstants.TEST_INDEX_SYSTEM);
+            TestsConstants.TEST_INDEX_SYSTEM,
+            TestsConstants.TEST_INDEX_SYSTEM);
 
     JSONObject response = executeQuery(query);
     assertThat(getHits(response).length(), equalTo(1));
@@ -187,10 +196,12 @@ public class MultiQueryIT extends SQLIntegTestCase {
   public void minusCMinusCTwoFieldsOneAlias() throws IOException {
     String query =
         String.format(
+            Locale.ROOT,
             "SELECT pk as myId, letter FROM %s WHERE system_name = 'C' "
                 + "MINUS "
                 + "SELECT pk as myId, letter FROM %s WHERE system_name = 'C'",
-            TestsConstants.TEST_INDEX_SYSTEM, TestsConstants.TEST_INDEX_SYSTEM);
+            TestsConstants.TEST_INDEX_SYSTEM,
+            TestsConstants.TEST_INDEX_SYSTEM);
 
     JSONObject response = executeQuery(query);
     assertThat(getHits(response).length(), equalTo(0));
@@ -200,10 +211,12 @@ public class MultiQueryIT extends SQLIntegTestCase {
   public void minusCMinusTNonExistentFieldTwoFields() throws IOException {
     String query =
         String.format(
+            Locale.ROOT,
             "SELECT pk, letter FROM %s WHERE system_name = 'C' "
                 + "MINUS "
                 + "SELECT pk, letter FROM %s WHERE system_name = 'T' ",
-            TestsConstants.TEST_INDEX_SYSTEM, TestsConstants.TEST_INDEX_SYSTEM);
+            TestsConstants.TEST_INDEX_SYSTEM,
+            TestsConstants.TEST_INDEX_SYSTEM);
 
     JSONObject response = executeQuery(query);
     assertThat(getHits(response).length(), equalTo(3));
@@ -246,10 +259,13 @@ public class MultiQueryIT extends SQLIntegTestCase {
   private void innerMinusAMinusANoAlias(String hint) throws IOException {
     String query =
         String.format(
+            Locale.ROOT,
             "SELECT %s pk FROM %s WHERE system_name = 'A' "
                 + "MINUS "
                 + "SELECT pk FROM %s WHERE system_name = 'A'",
-            hint, TestsConstants.TEST_INDEX_SYSTEM, TestsConstants.TEST_INDEX_SYSTEM);
+            hint,
+            TestsConstants.TEST_INDEX_SYSTEM,
+            TestsConstants.TEST_INDEX_SYSTEM);
 
     JSONObject response = executeQuery(query);
     assertThat(getHits(response).length(), equalTo(0));
@@ -258,10 +274,13 @@ public class MultiQueryIT extends SQLIntegTestCase {
   private void innerMinusAMinusBNoAlias(String hint) throws IOException {
     String query =
         String.format(
+            Locale.ROOT,
             "SELECT %s pk FROM %s WHERE system_name = 'A' "
                 + "MINUS "
                 + "SELECT pk FROM %s WHERE system_name = 'B'",
-            hint, TestsConstants.TEST_INDEX_SYSTEM, TestsConstants.TEST_INDEX_SYSTEM);
+            hint,
+            TestsConstants.TEST_INDEX_SYSTEM,
+            TestsConstants.TEST_INDEX_SYSTEM);
 
     JSONObject response = executeQuery(query);
     assertThat(getHits(response).length(), equalTo(1));
@@ -276,10 +295,13 @@ public class MultiQueryIT extends SQLIntegTestCase {
   private void innerMinusCMinusDTwoFieldsNoAlias(String hint) throws IOException {
     String query =
         String.format(
+            Locale.ROOT,
             "SELECT %s pk, letter FROM %s WHERE system_name = 'C' "
                 + "MINUS "
                 + "SELECT pk, letter FROM %s WHERE system_name = 'D'",
-            hint, TestsConstants.TEST_INDEX_SYSTEM, TestsConstants.TEST_INDEX_SYSTEM);
+            hint,
+            TestsConstants.TEST_INDEX_SYSTEM,
+            TestsConstants.TEST_INDEX_SYSTEM);
 
     JSONObject response = executeQuery(query);
     assertThat(getHits(response).length(), equalTo(1));
@@ -297,10 +319,13 @@ public class MultiQueryIT extends SQLIntegTestCase {
   private void innerMinusCMinusDTwoFieldsAliasOnBothTables(String hint) throws IOException {
     String query =
         String.format(
+            Locale.ROOT,
             "SELECT %s pk as myId, letter FROM %s WHERE system_name = 'C' "
                 + "MINUS "
                 + "SELECT myId, myLetter as letter FROM %s WHERE system_name = 'E'",
-            hint, TestsConstants.TEST_INDEX_SYSTEM, TestsConstants.TEST_INDEX_SYSTEM);
+            hint,
+            TestsConstants.TEST_INDEX_SYSTEM,
+            TestsConstants.TEST_INDEX_SYSTEM);
 
     JSONObject response = executeQuery(query);
     assertThat(getHits(response).length(), equalTo(1));
@@ -318,10 +343,13 @@ public class MultiQueryIT extends SQLIntegTestCase {
   private void innerMinusCMinusTNonExistentFieldOneField(String hint) throws IOException {
     String query =
         String.format(
+            Locale.ROOT,
             "SELECT %s letter FROM %s WHERE system_name = 'C' "
                 + "MINUS "
                 + "SELECT letter FROM %s WHERE system_name = 'T'",
-            hint, TestsConstants.TEST_INDEX_SYSTEM, TestsConstants.TEST_INDEX_SYSTEM);
+            hint,
+            TestsConstants.TEST_INDEX_SYSTEM,
+            TestsConstants.TEST_INDEX_SYSTEM);
 
     JSONObject response = executeQuery(query);
     assertThat(getHits(response).length(), equalTo(3));
@@ -330,10 +358,13 @@ public class MultiQueryIT extends SQLIntegTestCase {
   private void innerMinusTMinusCNonExistentFieldFirstQuery(String hint) throws IOException {
     String query =
         String.format(
+            Locale.ROOT,
             "SELECT %s letter FROM %s WHERE system_name = 'T' "
                 + "MINUS "
                 + "SELECT letter FROM %s WHERE system_name = 'C'",
-            hint, TestsConstants.TEST_INDEX_SYSTEM, TestsConstants.TEST_INDEX_SYSTEM);
+            hint,
+            TestsConstants.TEST_INDEX_SYSTEM,
+            TestsConstants.TEST_INDEX_SYSTEM);
 
     JSONObject response = executeQuery(query);
     assertThat(getHits(response).length(), equalTo(0));

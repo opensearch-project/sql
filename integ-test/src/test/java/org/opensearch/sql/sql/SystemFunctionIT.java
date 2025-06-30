@@ -10,6 +10,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMER
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
@@ -44,6 +45,7 @@ public class SystemFunctionIT extends SQLIntegTestCase {
     JSONObject response =
         executeJdbcRequest(
             String.format(
+                Locale.ROOT,
                 "SELECT typeof(double_number),typeof(long_number), typeof(integer_number),"
                     + " typeof(byte_number), typeof(short_number),typeof(float_number),"
                     + " typeof(half_float_number), typeof(scaled_float_number) from %s;",
@@ -54,6 +56,7 @@ public class SystemFunctionIT extends SQLIntegTestCase {
     response =
         executeJdbcRequest(
             String.format(
+                Locale.ROOT,
                 "SELECT typeof(text_value),typeof(date_value), typeof(date_nanos_value),"
                     + " typeof(boolean_value), typeof(object_value),"
                     + " typeof(keyword_value),typeof(ip_value), typeof(binary_value),"

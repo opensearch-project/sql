@@ -16,6 +16,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.Locale;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -130,7 +131,7 @@ class SumAggregatorTest extends AggregationTest {
             DSL.multiply(
                 DSL.ref("integer_value", INTEGER), DSL.literal(ExprValueUtils.integerValue(10))));
     assertEquals(
-        String.format("sum(*(%s, %d))", DSL.ref("integer_value", INTEGER), 10),
+        String.format(Locale.ROOT, "sum(*(%s, %d))", DSL.ref("integer_value", INTEGER), 10),
         sumAggregator.toString());
   }
 }

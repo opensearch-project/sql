@@ -10,6 +10,7 @@ import static org.opensearch.sql.util.MatcherUtils.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
@@ -43,7 +44,9 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where isnull(name) | fields age", TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+                Locale.ROOT,
+                "source=%s | where isnull(name) | fields age",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchema(actual, schema("age", "int"));
 
@@ -55,6 +58,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where isnotnull(name) | fields name",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
@@ -76,6 +80,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval new_age = nullif(age, 20) | fields name, new_age",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
@@ -98,6 +103,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval new_name = Nullif(concat('H', name), 'HHello') | fields name,"
                     + " new_name",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
@@ -121,6 +127,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval new_name = ifnull(name, 'Unknown') | fields new_name, age",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
@@ -143,6 +150,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where age = 10 | eval new_country = coalesce(name, state, country),"
                     + " null = coalesce(name, state, name)  | fields name, state, country,"
                     + " new_country, null",
@@ -164,6 +172,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where isnotnull(age) | eval judge = if(age>50, 'old', 'young') |"
                     + " fields judge, age",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
@@ -186,6 +195,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval judge = if(Like(name, 'He%%'), 1.0, 0.0) | fields judge, name",
                 TEST_INDEX_STATE_COUNTRY));
 
@@ -200,6 +210,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where ispresent(name) | fields name, age",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
@@ -221,6 +232,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where isempty(name) | fields name, age",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
@@ -234,6 +246,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where isblank(name) | fields name, age",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
@@ -247,6 +260,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where earliest('07/28/2004:12:34:27', datetime0) | stats COUNT() as"
                     + " cnt",
                 TEST_INDEX_CALCS));
@@ -261,6 +275,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where latest('07/28/2004:12:34:27', datetime0) | stats COUNT() as cnt",
                 TEST_INDEX_CALCS));
 
@@ -274,6 +289,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval now=utc_timestamp() | eval a = earliest('now', now), b ="
                     + " earliest('-2d@d', now) | fields a,b | head 1",
                 TEST_INDEX_CALCS));

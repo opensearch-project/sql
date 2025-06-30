@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
 import org.json.JSONArray;
@@ -212,7 +213,8 @@ public class MetaDataQueriesIT extends SQLIntegTestCase {
   @Test
   public void showSingleIndex() throws IOException {
     JSONObject response =
-        executeQuery(String.format("SHOW TABLES LIKE %s", TestsConstants.TEST_INDEX_ACCOUNT));
+        executeQuery(
+            String.format(Locale.ROOT, "SHOW TABLES LIKE %s", TestsConstants.TEST_INDEX_ACCOUNT));
 
     String[] fields = {"TABLE_CAT", "TABLE_NAME", "TABLE_TYPE"};
     checkContainsColumns(getSchema(response), fields);
@@ -236,7 +238,8 @@ public class MetaDataQueriesIT extends SQLIntegTestCase {
   @Test
   public void showCaseSensitivityCheck() throws IOException {
     JSONObject response =
-        executeQuery(String.format("show tables like %s", TestsConstants.TEST_INDEX_ACCOUNT));
+        executeQuery(
+            String.format(Locale.ROOT, "show tables like %s", TestsConstants.TEST_INDEX_ACCOUNT));
 
     String[] fields = {"TABLE_CAT", "TABLE_NAME", "TABLE_TYPE"};
     checkContainsColumns(getSchema(response), fields);
@@ -254,9 +257,10 @@ public class MetaDataQueriesIT extends SQLIntegTestCase {
   @Test
   public void showWildcardIndex() throws IOException {
     JSONObject response =
-        executeQuery(String.format("SHOW TABLES LIKE %s%%", TestsConstants.TEST_INDEX));
+        executeQuery(
+            String.format(Locale.ROOT, "SHOW TABLES LIKE %s%%", TestsConstants.TEST_INDEX));
 
-    String pattern = String.format("%s.*", TestsConstants.TEST_INDEX);
+    String pattern = String.format(Locale.ROOT, "%s.*", TestsConstants.TEST_INDEX);
     JSONArray dataRows = getDataRows(response);
     assertThat(dataRows.length(), equalTo(3));
     for (int i = 0; i < dataRows.length(); i++) {
@@ -270,7 +274,9 @@ public class MetaDataQueriesIT extends SQLIntegTestCase {
   @Test
   public void describeSingleIndex() throws IOException {
     JSONObject response =
-        executeQuery(String.format("DESCRIBE TABLES LIKE %s", TestsConstants.TEST_INDEX_ACCOUNT));
+        executeQuery(
+            String.format(
+                Locale.ROOT, "DESCRIBE TABLES LIKE %s", TestsConstants.TEST_INDEX_ACCOUNT));
 
     // Schema for DESCRIBE is filled with a lot of fields that aren't used so only the important
     // ones are checked for here
@@ -344,7 +350,8 @@ public class MetaDataQueriesIT extends SQLIntegTestCase {
   @Test
   public void describeSingleIndexWithObjectFieldShouldPass() throws IOException {
     JSONObject response =
-        executeQuery(String.format("DESCRIBE TABLES LIKE %s", TEST_INDEX_GAME_OF_THRONES));
+        executeQuery(
+            String.format(Locale.ROOT, "DESCRIBE TABLES LIKE %s", TEST_INDEX_GAME_OF_THRONES));
 
     // Schema for DESCRIBE is filled with a lot of fields that aren't used so only the important
     // ones are checked for here
@@ -370,7 +377,9 @@ public class MetaDataQueriesIT extends SQLIntegTestCase {
   @Test
   public void describeCaseSensitivityCheck() throws IOException {
     JSONObject response =
-        executeQuery(String.format("describe tables like %s", TestsConstants.TEST_INDEX_ACCOUNT));
+        executeQuery(
+            String.format(
+                Locale.ROOT, "describe tables like %s", TestsConstants.TEST_INDEX_ACCOUNT));
 
     String[] fields = {"TABLE_NAME", "COLUMN_NAME", "TYPE_NAME"};
     checkContainsColumns(getSchema(response), fields);
@@ -388,9 +397,10 @@ public class MetaDataQueriesIT extends SQLIntegTestCase {
   @Test
   public void describeWildcardIndex() throws IOException {
     JSONObject response =
-        executeQuery(String.format("DESCRIBE TABLES LIKE %s%%", TestsConstants.TEST_INDEX));
+        executeQuery(
+            String.format(Locale.ROOT, "DESCRIBE TABLES LIKE %s%%", TestsConstants.TEST_INDEX));
 
-    String pattern = String.format("%s.*", TestsConstants.TEST_INDEX);
+    String pattern = String.format(Locale.ROOT, "%s.*", TestsConstants.TEST_INDEX);
     JSONArray dataRows = getDataRows(response);
     assertThat(dataRows.length(), greaterThan(0));
     for (int i = 0; i < dataRows.length(); i++) {
@@ -406,7 +416,9 @@ public class MetaDataQueriesIT extends SQLIntegTestCase {
     JSONObject response =
         executeQuery(
             String.format(
-                "DESCRIBE TABLES LIKE %s COLUMNS LIKE %%name", TestsConstants.TEST_INDEX_ACCOUNT));
+                Locale.ROOT,
+                "DESCRIBE TABLES LIKE %s COLUMNS LIKE %%name",
+                TestsConstants.TEST_INDEX_ACCOUNT));
 
     String pattern = ".*name";
     JSONArray dataRows = getDataRows(response);
@@ -424,7 +436,9 @@ public class MetaDataQueriesIT extends SQLIntegTestCase {
     JSONObject response =
         executeQuery(
             String.format(
-                "DESCRIBE TABLES LIKE %s COLUMNS LIKE %%na_e", TestsConstants.TEST_INDEX_ACCOUNT));
+                Locale.ROOT,
+                "DESCRIBE TABLES LIKE %s COLUMNS LIKE %%na_e",
+                TestsConstants.TEST_INDEX_ACCOUNT));
 
     String pattern = ".*na.e";
     JSONArray dataRows = getDataRows(response);

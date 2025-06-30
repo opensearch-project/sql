@@ -16,6 +16,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.hamcrest.Matcher;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -37,7 +38,8 @@ public class CalciteFlattenCommandIT extends PPLIntegTestCase {
   public void testFlattenNestedStruct() throws Exception {
     JSONObject result =
         executeQuery(
-            String.format("source=%s | flatten message", TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS));
+            String.format(
+                Locale.ROOT, "source=%s | flatten message", TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS));
     verifySchema(
         result,
         // Nested fields are retrieved as array of nested structs
@@ -59,6 +61,7 @@ public class CalciteFlattenCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | flatten message as (creator, dow, information)",
                 TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS));
     verifySchema(
@@ -81,6 +84,7 @@ public class CalciteFlattenCommandIT extends PPLIntegTestCase {
             () ->
                 executeQuery(
                     String.format(
+                        Locale.ROOT,
                         "source=%s | flatten message as a, b, c, d",
                         TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS)));
     verifyErrorMessageContains(
@@ -96,7 +100,10 @@ public class CalciteFlattenCommandIT extends PPLIntegTestCase {
         new Request(
             "PUT",
             String.format(
-                "/%s/_doc/%d?refresh=true", TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS, docId));
+                Locale.ROOT,
+                "/%s/_doc/%d?refresh=true",
+                TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS,
+                docId));
     insertRequest.setJsonEntity(
         "{\"message\": null,\"comment\":null,\"myNum\":0,\"someField\":\"\"}\n");
     client().performRequest(insertRequest);
@@ -104,6 +111,7 @@ public class CalciteFlattenCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where someField='' | flatten message as (creator, dow, information)",
                 TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS));
     verifySchema(
@@ -121,7 +129,10 @@ public class CalciteFlattenCommandIT extends PPLIntegTestCase {
         new Request(
             "DELETE",
             String.format(
-                "/%s/_doc/%d?refresh=true", TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS, docId));
+                Locale.ROOT,
+                "/%s/_doc/%d?refresh=true",
+                TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS,
+                docId));
     client().performRequest(deleteRequest);
   }
 
@@ -134,6 +145,7 @@ public class CalciteFlattenCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where myNum=1 | fields message | flatten message",
                 TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS));
     verifySchema(

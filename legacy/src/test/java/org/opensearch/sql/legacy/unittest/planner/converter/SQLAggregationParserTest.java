@@ -20,6 +20,7 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.util.JdbcConstants;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.Rule;
@@ -328,7 +329,7 @@ public class SQLAggregationParserTest {
       @Override
       public void describeTo(Description description) {
         description.appendText(
-            String.format("(name=%s,alias=%s,expression=%s)", name, alias, expr));
+            String.format(Locale.ROOT, "(name=%s,alias=%s,expression=%s)", name, alias, expr));
       }
 
       @Override
@@ -352,7 +353,8 @@ public class SQLAggregationParserTest {
       @Override
       public void describeTo(Description description) {
         description.appendText(
-            String.format("(methodName=%s, name=%s, alias=%s)", methodName, name, alias));
+            String.format(
+                Locale.ROOT, "(methodName=%s, name=%s, alias=%s)", methodName, name, alias));
       }
 
       @Override
@@ -377,7 +379,7 @@ public class SQLAggregationParserTest {
     return new TypeSafeMatcher<SQLSelectItem>() {
       @Override
       public void describeTo(Description description) {
-        description.appendText(String.format("(name=%s, alias=%s)", name, alias));
+        description.appendText(String.format(Locale.ROOT, "(name=%s, alias=%s)", name, alias));
       }
 
       @Override

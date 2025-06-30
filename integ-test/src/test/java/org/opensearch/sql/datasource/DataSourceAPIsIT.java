@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import lombok.SneakyThrows;
 import lombok.Value;
@@ -486,6 +487,7 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
 
       Assert.assertEquals(
           String.format(
+              Locale.ROOT,
               "Test for " + testCase + " failed. Expected response code of %s, but got %s",
               expectedResponseCode,
               response.getStatusLine().getStatusCode()),
@@ -498,6 +500,7 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
 
         Assert.assertTrue(
             String.format(
+                Locale.ROOT,
                 "Test for " + testCase + " failed. '%s' failed to contain '%s'",
                 responseBody,
                 expectedResponseBodyToContain),

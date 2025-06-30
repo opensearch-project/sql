@@ -13,6 +13,7 @@ import static org.opensearch.sql.utils.MLCommonsConstants.ITERATIONS;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -119,8 +120,10 @@ public class MLCommonsOperator extends MLCommonsOperatorActions {
         // TODO: update available algorithms in the message when adding a new case
         throw new IllegalArgumentException(
             String.format(
+                Locale.ROOT,
                 "unsupported algorithm: %s, available algorithms: %s.",
-                FunctionName.valueOf(algorithm.toUpperCase()), KMEANS));
+                FunctionName.valueOf(algorithm.toUpperCase()),
+                KMEANS));
     }
   }
 }

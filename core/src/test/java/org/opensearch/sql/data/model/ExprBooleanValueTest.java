@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 
+import java.util.Locale;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 
@@ -46,7 +47,8 @@ public class ExprBooleanValueTest {
     assertThrows(
         ExpressionEvaluationException.class,
         value::booleanValue,
-        String.format("invalid to get booleanValue from value of type %s", value.type()));
+        String.format(
+            Locale.ROOT, "invalid to get booleanValue from value of type %s", value.type()));
   }
 
   @Test

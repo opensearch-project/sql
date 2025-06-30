@@ -13,6 +13,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
@@ -34,6 +35,7 @@ public class CalcitePPLTrendlineIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where balance > 30000 | trendline sma(3, balance) as balance_trend |"
                     + " fields balance_trend",
                 TEST_INDEX_BANK));
@@ -47,6 +49,7 @@ public class CalcitePPLTrendlineIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where balance > 30000 | trendline wma(3, balance) as balance_trend |"
                     + " fields balance_trend",
                 TEST_INDEX_BANK));
@@ -60,6 +63,7 @@ public class CalcitePPLTrendlineIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where balance > 30000 | trendline sma(2, balance) as sma wma(3,"
                     + " balance) as wma | fields balance, sma, wma",
                 TEST_INDEX_BANK));
@@ -78,6 +82,7 @@ public class CalcitePPLTrendlineIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where balance > 30000 | trendline sma(2, balance) | fields"
                     + " balance, balance_trendline",
                 TEST_INDEX_BANK));
@@ -91,6 +96,7 @@ public class CalcitePPLTrendlineIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where balance > 30000 | trendline sma(2, balance) as balance | fields"
                     + " balance",
                 TEST_INDEX_BANK));
@@ -103,6 +109,7 @@ public class CalcitePPLTrendlineIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | where balance > 30000 | trendline sort - balance sma(2, balance) |"
                     + " fields balance, balance_trendline",
                 TEST_INDEX_BANK));
@@ -116,6 +123,7 @@ public class CalcitePPLTrendlineIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | trendline sma(2, balance) | fields" + " balance, balance_trendline",
                 TEST_INDEX_BANK_WITH_NULL_VALUES));
     verifySchema(result, schema("balance", "bigint"), schema("balance_trendline", "double"));

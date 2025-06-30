@@ -41,6 +41,7 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_LAUNC
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_SQL_EXTENSIONS_KEY;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_STANDALONE_PACKAGE;
 
+import java.util.Locale;
 import lombok.Getter;
 import org.apache.commons.text.StringEscapeUtils;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
@@ -125,7 +126,9 @@ public class SparkSubmitParametersBuilder {
     } else {
       throw new UnsupportedOperationException(
           String.format(
-              "UnSupported datasource type for async queries:: %s", metadata.getConnector()));
+              Locale.ROOT,
+              "UnSupported datasource type for async queries:: %s",
+              metadata.getConnector()));
     }
   }
 

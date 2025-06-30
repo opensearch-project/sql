@@ -6,6 +6,7 @@
 package org.opensearch.sql.ast.expression;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
@@ -31,7 +32,7 @@ public class RelevanceFieldList extends UnresolvedExpression {
   @Override
   public String toString() {
     return fieldList.entrySet().stream()
-        .map(e -> String.format("\"%s\" ^ %s", e.getKey(), e.getValue()))
+        .map(e -> String.format(Locale.ROOT, "\"%s\" ^ %s", e.getKey(), e.getValue()))
         .collect(Collectors.joining(", "));
   }
 }

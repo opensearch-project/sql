@@ -12,6 +12,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import org.json.JSONObject;
 import org.junit.Assert;
@@ -39,7 +40,9 @@ public class MetricsIT extends PPLIntegTestCase {
 
   private void multiQueries(int n) throws IOException {
     for (int i = 0; i < n; ++i) {
-      executeQuery(String.format("source=%s | where age = 31 + 1 | fields age", TEST_INDEX_BANK));
+      executeQuery(
+          String.format(
+              Locale.ROOT, "source=%s | where age = 31 + 1 | fields age", TEST_INDEX_BANK));
     }
   }
 

@@ -27,6 +27,7 @@ import static org.opensearch.sql.expression.DSL.ref;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -151,7 +152,7 @@ public class StdDevAggregatorTest extends AggregationTest {
             DSL.multiply(
                 ref("integer_value", INTEGER), DSL.literal(ExprValueUtils.integerValue(10))));
     assertEquals(
-        String.format("stddev_samp(*(%s, %d))", ref("integer_value", INTEGER), 10),
+        String.format(Locale.ROOT, "stddev_samp(*(%s, %d))", ref("integer_value", INTEGER), 10),
         avgAggregator.toString());
   }
 

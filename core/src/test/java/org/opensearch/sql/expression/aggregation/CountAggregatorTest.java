@@ -18,6 +18,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 
+import java.util.Locale;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -187,7 +188,7 @@ class CountAggregatorTest extends AggregationTest {
   public void test_nested_to_string() {
     Aggregator countAggregator = DSL.count(DSL.abs(DSL.ref("integer_value", INTEGER)));
     assertEquals(
-        String.format("count(abs(%s))", DSL.ref("integer_value", INTEGER)),
+        String.format(Locale.ROOT, "count(abs(%s))", DSL.ref("integer_value", INTEGER)),
         countAggregator.toString());
   }
 }

@@ -8,6 +8,7 @@ package org.opensearch.sql.analysis;
 import static org.opensearch.sql.analysis.symbol.Namespace.FIELD_NAME;
 
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import lombok.Getter;
@@ -60,7 +61,8 @@ public class TypeEnvironment implements Environment<Symbol, ExprType> {
         return typeOptional.get();
       }
     }
-    throw new SemanticCheckException(String.format("can't resolve %s in type env", symbol));
+    throw new SemanticCheckException(
+        String.format(Locale.ROOT, "can't resolve %s in type env", symbol));
   }
 
   /**

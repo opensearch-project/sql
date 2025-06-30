@@ -245,7 +245,8 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   }
 
   protected Request getSqlRequest(String request, boolean explain, String requestType) {
-    String queryEndpoint = String.format("%s?format=%s", QUERY_API_ENDPOINT, requestType);
+    String queryEndpoint =
+        String.format(Locale.ROOT, "%s?format=%s", QUERY_API_ENDPOINT, requestType);
     Request sqlRequest = new Request("POST", explain ? EXPLAIN_API_ENDPOINT : queryEndpoint);
     sqlRequest.setJsonEntity(request);
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
@@ -256,7 +257,8 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   }
 
   protected Request getSqlCursorCloseRequest(String cursorRequest) {
-    String queryEndpoint = String.format("%s?format=%s", CURSOR_CLOSE_ENDPOINT, "jdbc");
+    String queryEndpoint =
+        String.format(Locale.ROOT, "%s?format=%s", CURSOR_CLOSE_ENDPOINT, "jdbc");
     Request sqlRequest = new Request("POST", queryEndpoint);
     sqlRequest.setJsonEntity(cursorRequest);
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
@@ -477,7 +479,8 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
 
     @Override
     public String toString() {
-      return String.format("ClusterSetting{type='%s', path='%s', value='%s'}", type, name, value);
+      return String.format(
+          Locale.ROOT, "ClusterSetting{type='%s', path='%s', value='%s'}", type, name, value);
     }
   }
 
@@ -498,21 +501,25 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   }
 
   protected String makeRequest(String query, int fetch_size) {
-    return String.format("{ \"fetch_size\": \"%s\", \"query\": \"%s\" }", fetch_size, query);
+    return String.format(
+        Locale.ROOT, "{ \"fetch_size\": \"%s\", \"query\": \"%s\" }", fetch_size, query);
   }
 
   protected String makeRequest(String query, int fetch_size, String filterQuery) {
     return String.format(
+        Locale.ROOT,
         "{ \"fetch_size\": \"%s\", \"query\": \"%s\", \"filter\" :  %s }",
-        fetch_size, query, filterQuery);
+        fetch_size,
+        query,
+        filterQuery);
   }
 
   protected String makeFetchLessRequest(String query) {
-    return String.format("{\n" + "  \"query\": \"%s\"\n" + "}", query);
+    return String.format(Locale.ROOT, "{\n" + "  \"query\": \"%s\"\n" + "}", query);
   }
 
   protected String makeCursorRequest(String cursor) {
-    return String.format("{\"cursor\":\"%s\"}", cursor);
+    return String.format(Locale.ROOT, "{\"cursor\":\"%s\"}", cursor);
   }
 
   protected JSONArray getHits(JSONObject response) {

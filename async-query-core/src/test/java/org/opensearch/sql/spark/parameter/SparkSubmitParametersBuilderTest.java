@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.HADOOP_CATALOG_CREDENTIALS_PROVIDER_FACTORY_KEY;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_JARS_KEY;
 
+import java.util.Locale;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -95,7 +96,7 @@ public class SparkSubmitParametersBuilderTest {
     String result = params.toString();
 
     assertEquals("Overridden", params.getConfigItem(SPARK_JARS_KEY));
-    assertTrue(result.contains(String.format("%s=Overridden", SPARK_JARS_KEY)));
+    assertTrue(result.contains(String.format(Locale.ROOT, "%s=Overridden", SPARK_JARS_KEY)));
   }
 
   @Test

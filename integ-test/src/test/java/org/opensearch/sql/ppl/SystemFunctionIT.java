@@ -13,6 +13,7 @@ import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Test;
 
@@ -30,6 +31,7 @@ public class SystemFunctionIT extends PPLIntegTestCase {
     JSONObject response =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval `str` = typeof('pewpew'),"
                     + " `double` = typeof(1.0),"
                     + "`int` = typeof(12345),"
@@ -43,6 +45,7 @@ public class SystemFunctionIT extends PPLIntegTestCase {
     response =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval "
                     + "`timestamp` = typeof(CAST('1961-04-12 09:07:00' AS TIMESTAMP)),"
                     + "`time` = typeof(CAST('09:07:00' AS TIME)),"
@@ -57,6 +60,7 @@ public class SystemFunctionIT extends PPLIntegTestCase {
     JSONObject response =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval `double` = typeof(double_number), `long` ="
                     + " typeof(long_number),`integer` = typeof(integer_number), `byte` ="
                     + " typeof(byte_number),`short` = typeof(short_number), `float` ="
@@ -71,6 +75,7 @@ public class SystemFunctionIT extends PPLIntegTestCase {
     response =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | eval `text` = typeof(text_value), `date` = typeof(date_value),"
                     + " `date_nanos` = typeof(date_nanos_value),`boolean` = typeof(boolean_value),"
                     + " `object` = typeof(object_value),`keyword` = typeof(keyword_value), `ip` ="

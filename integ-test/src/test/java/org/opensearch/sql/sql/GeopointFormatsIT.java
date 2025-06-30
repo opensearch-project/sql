@@ -11,6 +11,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.Locale;
 import java.util.Map;
 import org.apache.commons.lang3.tuple.Pair;
 import org.json.JSONArray;
@@ -27,7 +28,8 @@ public class GeopointFormatsIT extends SQLIntegTestCase {
 
   @Test
   public void testReadingGeopoints() throws IOException {
-    String query = String.format("SELECT point FROM %s LIMIT 5", Index.GEOPOINTS.getName());
+    String query =
+        String.format(Locale.ROOT, "SELECT point FROM %s LIMIT 5", Index.GEOPOINTS.getName());
     JSONObject result = executeJdbcRequest(query);
     verifySchema(result, schema("point", null, "geo_point"));
     verifyDataRows(
@@ -42,7 +44,8 @@ public class GeopointFormatsIT extends SQLIntegTestCase {
   public static final double TOLERANCE = 1E-5;
 
   public void testReadingGeoHash() throws IOException {
-    String query = String.format("SELECT point FROM %s WHERE _id='6'", Index.GEOPOINTS.getName());
+    String query =
+        String.format(Locale.ROOT, "SELECT point FROM %s WHERE _id='6'", Index.GEOPOINTS.getName());
     JSONObject result = executeJdbcRequest(query);
     verifySchema(result, schema("point", null, "geo_point"));
     Pair<Double, Double> point = getGeoValue(result);

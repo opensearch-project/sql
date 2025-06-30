@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.data.model;
 
+import java.util.Locale;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 
 /** Abstract ExprValue. */
@@ -23,8 +24,10 @@ public abstract class AbstractExprValue implements ExprValue {
     } else {
       throw new ExpressionEvaluationException(
           String.format(
+              Locale.ROOT,
               "compare expected value have same type, but with [%s, %s]",
-              this.type(), other.type()));
+              this.type(),
+              other.type()));
     }
   }
 

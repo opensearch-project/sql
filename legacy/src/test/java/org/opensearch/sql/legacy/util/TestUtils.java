@@ -686,7 +686,8 @@ public class TestUtils {
 
   public static void loadBulk(Client client, String jsonPath, String defaultIndex)
       throws Exception {
-    System.out.println(String.format("Loading file %s into OpenSearch cluster", jsonPath));
+    System.out.println(
+        String.format(Locale.ROOT, "Loading file %s into OpenSearch cluster", jsonPath));
     String absJsonPath = getResourceFilePath(jsonPath);
 
     BulkRequest bulkRequest = new BulkRequest();

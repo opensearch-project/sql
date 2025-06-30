@@ -10,6 +10,7 @@ import static org.opensearch.sql.data.model.ExprValueUtils.nullValue;
 
 import java.time.LocalDate;
 import java.time.Year;
+import java.util.Locale;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -98,7 +99,8 @@ public class MakeDateTest extends DateTimeTestBase {
     LocalDate actual = makedate(year, dayOfYear);
     LocalDate expected = getReferenceValue(year, dayOfYear);
 
-    assertEquals(expected, actual, String.format("year = %f, dayOfYear = %f", year, dayOfYear));
+    assertEquals(
+        expected, actual, String.format(Locale.ROOT, "year = %f, dayOfYear = %f", year, dayOfYear));
   }
 
   /**

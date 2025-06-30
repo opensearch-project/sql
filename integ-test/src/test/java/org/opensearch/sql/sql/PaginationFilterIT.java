@@ -10,6 +10,7 @@ import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import lombok.SneakyThrows;
 import org.json.JSONArray;
@@ -109,8 +110,11 @@ public class PaginationFilterIT extends SQLIntegTestCase {
     JSONArray schema = nonPaginatedResponse.getJSONArray("schema");
     var testReportPrefix =
         String.format(
+            Locale.ROOT,
             "query: %s; total hits: %d; page size: %d || ",
-            sqlStatement, totalResultsCount, pageSize);
+            sqlStatement,
+            totalResultsCount,
+            pageSize);
     assertEquals(totalHits.intValue(), totalResultsCount);
 
     var rowsPaged = new JSONArray();
@@ -142,7 +146,10 @@ public class PaginationFilterIT extends SQLIntegTestCase {
         this.logger.info(
             testReportPrefix
                 + String.format(
-                    "response %d/%d", responseCounter++, (totalResultsCount / pageSize) + 1));
+                    Locale.ROOT,
+                    "response %d/%d",
+                    responseCounter++,
+                    (totalResultsCount / pageSize) + 1));
       } else {
         break;
       }

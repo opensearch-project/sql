@@ -24,6 +24,8 @@ import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
+import java.util.Locale;
+
 public class TransportCreateDataSourceAction
     extends HandledTransportAction<CreateDataSourceActionRequest, CreateDataSourceActionResponse> {
   public static final String NAME = "cluster:admin/opensearch/ql/datasources/create";
@@ -65,6 +67,7 @@ public class TransportCreateDataSourceAction
       actionListener.onFailure(
           new IllegalStateException(
               String.format(
+                  Locale.ROOT,
                   "domain concurrent datasources can not" + " exceed %d", dataSourceLimit)));
     } else {
       try {
