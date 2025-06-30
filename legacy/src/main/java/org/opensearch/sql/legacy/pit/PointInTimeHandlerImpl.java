@@ -89,7 +89,7 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
           keepAlive);
     } catch (InterruptedException | ExecutionException e) {
       throw new RuntimeException(
-          String.format("Error occurred while creating PIT with keepalive %s", keepAlive), e);
+              "Error occurred while creating PIT.", e);
     }
   }
 

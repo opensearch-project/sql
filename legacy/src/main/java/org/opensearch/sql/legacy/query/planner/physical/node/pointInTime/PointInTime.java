@@ -73,7 +73,7 @@ public class PointInTime extends Paginate {
     pit.create();
     pitId = pit.getPitId();
 
-    LOG.debug("Loading first batch of response using Point In Time");
+    LOG.info("Loading first batch of response using Point In Time");
     searchResponse =
         request
             .getRequestBuilder()
@@ -92,7 +92,7 @@ public class PointInTime extends Paginate {
     if (hits != null && hits.length > 0) {
       Object[] sortValues = hits[hits.length - 1].getSortValues();
 
-      LOG.debug("Loading next batch of response using Point In Time. - " + pitId);
+      LOG.info("Loading next batch of response using Point In Time. - " + pitId);
       searchResponse =
           request
               .getRequestBuilder()
