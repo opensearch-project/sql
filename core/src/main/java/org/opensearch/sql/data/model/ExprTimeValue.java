@@ -6,16 +6,15 @@
 package org.opensearch.sql.data.model;
 
 import static java.time.format.DateTimeFormatter.ISO_LOCAL_TIME;
-import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeParseException;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.calcite.utils.datetime.DateTimeParser;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -30,8 +29,8 @@ public class ExprTimeValue extends AbstractExprValue {
   /** Constructor of ExprTimeValue. */
   public ExprTimeValue(String time) {
     try {
-      this.time = LocalTime.parse(time, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
-    } catch (DateTimeParseException e) {
+      this.time = DateTimeParser.parseTimeOrTimestamp(time).toLocalTime();
+    } catch (SemanticCheckException e) {
       throw new SemanticCheckException(
           String.format("time:%s in unsupported format, please use 'HH:mm:ss[.SSSSSSSSS]'", time));
     }
