@@ -1,0 +1,52 @@
+setup:
+  - do:
+      indices.create:
+        index: test
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              profile:
+                type: object
+                dynamic: false
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+            plugins.calcite.fallback.allowed : false
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+            plugins.calcite.fallback.allowed : true
+
+---
+"Handle struct field with dynamic mapping disabled":
+  - skip:
+      features:
+        - headers
+  - do:
+      bulk:
+        index: test
+        refresh: true
+        body:
+          - '{ "index": { "_index": "test" } }'
+          - '{ "profile": { "age": 1 } }'
+          - '{ "index": { "_index": "test" } }'
+          - '{ "profile": { "address": "a" } }'
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=test'
+  - match: {"total": 2}
+  - match: {"schema": [{"name": "profile", "type": "struct"}]}
+  - match: {"datarows": [[{"age": 1}], [{"address": "a"}]]}
