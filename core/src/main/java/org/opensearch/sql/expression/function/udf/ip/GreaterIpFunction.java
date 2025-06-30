@@ -21,7 +21,7 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
 import org.opensearch.sql.utils.IPUtils;
 
 /**
- * {@code Greater(ip1, ip2)} checks if ip1 is greater than ip2.
+ * {@code greater(ip1, ip2)} checks if ip1 is greater than ip2.
  *
  * <p>Signature:
  *
@@ -54,10 +54,10 @@ public class GreaterIpFunction extends ImplementorUDF {
     @Override
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
-      return Expressions.call(GreaterImplementor.class, "Greater", translatedOperands);
+      return Expressions.call(GreaterImplementor.class, "greater", translatedOperands);
     }
 
-    public static boolean Greater(String ip1, String ip2) {
+    public static boolean greater(String ip1, String ip2) {
       try {
         IPAddress ipAddress1 = IPUtils.toAddress(ip1);
         IPAddress ipAddress2 = IPUtils.toAddress(ip2);
@@ -67,20 +67,20 @@ public class GreaterIpFunction extends ImplementorUDF {
       }
     }
 
-    public static boolean Greater(String ip1, ExprIpValue ip2) {
+    public static boolean greater(String ip1, ExprIpValue ip2) {
       String ipAddress2 = ip2.value();
-      return Greater(ip1, ipAddress2);
+      return greater(ip1, ipAddress2);
     }
 
-    public static boolean Greater(ExprIpValue ip1, String ip2) {
+    public static boolean greater(ExprIpValue ip1, String ip2) {
       String ipAddress1 = ip1.value();
-      return Greater(ipAddress1, ip2);
+      return greater(ipAddress1, ip2);
     }
 
-    public static boolean Greater(ExprIpValue ip1, ExprIpValue ip2) {
+    public static boolean greater(ExprIpValue ip1, ExprIpValue ip2) {
       String ipAddress1 = ip1.value();
       String ipAddress2 = ip2.value();
-      return Greater(ipAddress1, ipAddress2);
+      return greater(ipAddress1, ipAddress2);
     }
   }
 }

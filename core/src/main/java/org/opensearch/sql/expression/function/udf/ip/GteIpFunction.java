@@ -21,7 +21,7 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
 import org.opensearch.sql.utils.IPUtils;
 
 /**
- * {@code Gte(ip1, ip2)} checks if ip1 is greater than or equals ip2.
+ * {@code gte(ip1, ip2)} checks if ip1 is greater than or equals ip2.
  *
  * <p>Signature:
  *
@@ -54,10 +54,10 @@ public class GteIpFunction extends ImplementorUDF {
     @Override
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
-      return Expressions.call(GteImplementor.class, "Gte", translatedOperands);
+      return Expressions.call(GteImplementor.class, "gte", translatedOperands);
     }
 
-    public static boolean Gte(String ip1, String ip2) {
+    public static boolean gte(String ip1, String ip2) {
       try {
         IPAddress ipAddress1 = IPUtils.toAddress(ip1);
         IPAddress ipAddress2 = IPUtils.toAddress(ip2);
@@ -67,20 +67,20 @@ public class GteIpFunction extends ImplementorUDF {
       }
     }
 
-    public static boolean Gte(String ip1, ExprIpValue ip2) {
+    public static boolean gte(String ip1, ExprIpValue ip2) {
       String ipAddress2 = ip2.value();
-      return Gte(ip1, ipAddress2);
+      return gte(ip1, ipAddress2);
     }
 
-    public static boolean Gte(ExprIpValue ip1, String ip2) {
+    public static boolean gte(ExprIpValue ip1, String ip2) {
       String ipAddress1 = ip1.value();
-      return Gte(ipAddress1, ip2);
+      return gte(ipAddress1, ip2);
     }
 
-    public static boolean Gte(ExprIpValue ip1, ExprIpValue ip2) {
+    public static boolean gte(ExprIpValue ip1, ExprIpValue ip2) {
       String ipAddress1 = ip1.value();
       String ipAddress2 = ip2.value();
-      return Gte(ipAddress1, ipAddress2);
+      return gte(ipAddress1, ipAddress2);
     }
   }
 }

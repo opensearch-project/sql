@@ -21,7 +21,7 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
 import org.opensearch.sql.utils.IPUtils;
 
 /**
- * {@code Less(ip1, ip2)} checks if ip1 is less than ip2.
+ * {@code less(ip1, ip2)} checks if ip1 is less than ip2.
  *
  * <p>Signature:
  *
@@ -54,10 +54,10 @@ public class LessIpFunction extends ImplementorUDF {
     @Override
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
-      return Expressions.call(LessImplementor.class, "Less", translatedOperands);
+      return Expressions.call(LessImplementor.class, "less", translatedOperands);
     }
 
-    public static boolean Less(String ip1, String ip2) {
+    public static boolean less(String ip1, String ip2) {
       try {
         IPAddress ipAddress1 = IPUtils.toAddress(ip1);
         IPAddress ipAddress2 = IPUtils.toAddress(ip2);
@@ -67,20 +67,20 @@ public class LessIpFunction extends ImplementorUDF {
       }
     }
 
-    public static boolean Less(String ip1, ExprIpValue ip2) {
+    public static boolean less(String ip1, ExprIpValue ip2) {
       String ipAddress2 = ip2.value();
-      return Less(ip1, ipAddress2);
+      return less(ip1, ipAddress2);
     }
 
-    public static boolean Less(ExprIpValue ip1, String ip2) {
+    public static boolean less(ExprIpValue ip1, String ip2) {
       String ipAddress1 = ip1.value();
-      return Less(ipAddress1, ip2);
+      return less(ipAddress1, ip2);
     }
 
-    public static boolean Less(ExprIpValue ip1, ExprIpValue ip2) {
+    public static boolean less(ExprIpValue ip1, ExprIpValue ip2) {
       String ipAddress1 = ip1.value();
       String ipAddress2 = ip2.value();
-      return Less(ipAddress1, ipAddress2);
+      return less(ipAddress1, ipAddress2);
     }
   }
 }

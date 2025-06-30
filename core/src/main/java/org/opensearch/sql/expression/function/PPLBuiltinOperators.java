@@ -70,7 +70,13 @@ import org.opensearch.sql.expression.function.udf.datetime.UnixTimestampFunction
 import org.opensearch.sql.expression.function.udf.datetime.WeekFunction;
 import org.opensearch.sql.expression.function.udf.datetime.WeekdayFunction;
 import org.opensearch.sql.expression.function.udf.datetime.YearweekFunction;
-import org.opensearch.sql.expression.function.udf.ip.*;
+import org.opensearch.sql.expression.function.udf.ip.CidrMatchFunction;
+import org.opensearch.sql.expression.function.udf.ip.EqualsIpFunction;
+import org.opensearch.sql.expression.function.udf.ip.GreaterIpFunction;
+import org.opensearch.sql.expression.function.udf.ip.GteIpFunction;
+import org.opensearch.sql.expression.function.udf.ip.LessIpFunction;
+import org.opensearch.sql.expression.function.udf.ip.LteIpFunction;
+import org.opensearch.sql.expression.function.udf.ip.NotEqualsIpFunction;
 import org.opensearch.sql.expression.function.udf.math.CRC32Function;
 import org.opensearch.sql.expression.function.udf.math.ConvFunction;
 import org.opensearch.sql.expression.function.udf.math.DivideFunction;

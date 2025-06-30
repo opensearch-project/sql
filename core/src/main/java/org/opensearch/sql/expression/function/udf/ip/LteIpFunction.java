@@ -21,7 +21,7 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
 import org.opensearch.sql.utils.IPUtils;
 
 /**
- * {@code Lte(ip1, ip2)} checks if ip1 is less than or equals ip2.
+ * {@code lte(ip1, ip2)} checks if ip1 is less than or equals ip2.
  *
  * <p>Signature:
  *
@@ -54,10 +54,10 @@ public class LteIpFunction extends ImplementorUDF {
     @Override
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
-      return Expressions.call(LteImplementor.class, "Lte", translatedOperands);
+      return Expressions.call(LteImplementor.class, "lte", translatedOperands);
     }
 
-    public static boolean Lte(String ip1, String ip2) {
+    public static boolean lte(String ip1, String ip2) {
       try {
         IPAddress ipAddress1 = IPUtils.toAddress(ip1);
         IPAddress ipAddress2 = IPUtils.toAddress(ip2);
@@ -67,20 +67,20 @@ public class LteIpFunction extends ImplementorUDF {
       }
     }
 
-    public static boolean Lte(String ip1, ExprIpValue ip2) {
+    public static boolean lte(String ip1, ExprIpValue ip2) {
       String ipAddress2 = ip2.value();
-      return Lte(ip1, ipAddress2);
+      return lte(ip1, ipAddress2);
     }
 
-    public static boolean Lte(ExprIpValue ip1, String ip2) {
+    public static boolean lte(ExprIpValue ip1, String ip2) {
       String ipAddress1 = ip1.value();
-      return Lte(ipAddress1, ip2);
+      return lte(ipAddress1, ip2);
     }
 
-    public static boolean Lte(ExprIpValue ip1, ExprIpValue ip2) {
+    public static boolean lte(ExprIpValue ip1, ExprIpValue ip2) {
       String ipAddress1 = ip1.value();
       String ipAddress2 = ip2.value();
-      return Lte(ipAddress1, ipAddress2);
+      return lte(ipAddress1, ipAddress2);
     }
   }
 }

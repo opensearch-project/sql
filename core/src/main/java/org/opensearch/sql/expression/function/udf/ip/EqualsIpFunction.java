@@ -21,7 +21,7 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
 import org.opensearch.sql.utils.IPUtils;
 
 /**
- * {@code Equals(ip1, ip2)} checks if two IP addresses are equal.
+ * {@code equals(ip1, ip2)} checks if two IP addresses are equal.
  *
  * <p>Signature:
  *
@@ -54,10 +54,10 @@ public class EqualsIpFunction extends ImplementorUDF {
     @Override
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
-      return Expressions.call(EqualsImplementor.class, "Equals", translatedOperands);
+      return Expressions.call(EqualsImplementor.class, "equals", translatedOperands);
     }
 
-    public static boolean Equals(String ip1, String ip2) {
+    public static boolean equals(String ip1, String ip2) {
       try {
         IPAddress ipAddress1 = IPUtils.toAddress(ip1);
         IPAddress ipAddress2 = IPUtils.toAddress(ip2);
@@ -67,20 +67,20 @@ public class EqualsIpFunction extends ImplementorUDF {
       }
     }
 
-    public static boolean Equals(String ip1, ExprIpValue ip2) {
+    public static boolean equals(String ip1, ExprIpValue ip2) {
       String ipAddress2 = ip2.value();
-      return Equals(ip1, ipAddress2);
+      return equals(ip1, ipAddress2);
     }
 
-    public static boolean Equals(ExprIpValue ip1, String ip2) {
+    public static boolean equals(ExprIpValue ip1, String ip2) {
       String ipAddress1 = ip1.value();
-      return Equals(ipAddress1, ip2);
+      return equals(ipAddress1, ip2);
     }
 
-    public static boolean Equals(ExprIpValue ip1, ExprIpValue ip2) {
+    public static boolean equals(ExprIpValue ip1, ExprIpValue ip2) {
       String ipAddress1 = ip1.value();
       String ipAddress2 = ip2.value();
-      return Equals(ipAddress1, ipAddress2);
+      return equals(ipAddress1, ipAddress2);
     }
   }
 }
