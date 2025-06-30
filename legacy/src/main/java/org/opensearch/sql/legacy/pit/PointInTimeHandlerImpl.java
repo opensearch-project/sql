@@ -88,8 +88,7 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
           truncatePitId(pitId),
           keepAlive);
     } catch (InterruptedException | ExecutionException e) {
-      throw new RuntimeException(
-              "Error occurred while creating PIT.", e);
+      throw new RuntimeException("Error occurred while creating PIT.", e);
     }
   }
 
