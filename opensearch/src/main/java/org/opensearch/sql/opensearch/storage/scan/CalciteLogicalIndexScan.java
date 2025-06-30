@@ -7,7 +7,6 @@ package org.opensearch.sql.opensearch.storage.scan;
 
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -134,10 +133,10 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     }
     RelDataType newSchema = builder.build();
 
-    // Projection may alter the index of the collations.
-    // E.g. For sort age
-    // `Sort($1)\n TableScan(name, age)` may become
-    // `Sort($0)\n Project(age)\n  TableScan(name, age)` after projection.
+    // Projection may alter indicies in the collations.
+    // E.g. When sorting age
+    // `Project(age) - TableScan(schema=[name, age], collation=[$1 ASC])` should become
+    // `TableScan(schema=[age], collation=[$0 ASC])` after pushing down project.
     RelTraitSet traitSetWithReIndexedCollations = reIndexCollations(selectedColumns);
 
     CalciteLogicalIndexScan newScan =
@@ -256,15 +255,8 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         return null;
       }
 
-      // Merge with existing sort if any
-      RelCollation existingCollation = getTraitSet().getCollation();
-      List<RelFieldCollation> existingFieldCollations =
-          existingCollation == null ? List.of() : existingCollation.getFieldCollations();
-      List<RelFieldCollation> mergedCollations =
-          mergeCollations(existingFieldCollations, collations);
-
       // Propagate the sort to the new scan
-      RelTraitSet traitsWithCollations = getTraitSet().plus(RelCollations.of(mergedCollations));
+      RelTraitSet traitsWithCollations = getTraitSet().plus(RelCollations.of(collations));
       CalciteLogicalIndexScan newScan =
           new CalciteLogicalIndexScan(
               getCluster(),
@@ -273,10 +265,11 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               table,
               osIndex,
               getRowType(),
+              // Existing collations are overridden (discarded) by the new collations,
               cloneWithoutSort(pushDownContext));
 
       List<SortBuilder<?>> builders = new ArrayList<>();
-      for (RelFieldCollation collation : mergedCollations) {
+      for (RelFieldCollation collation : collations) {
         int index = collation.getFieldIndex();
         String fieldName = this.getRowType().getFieldNames().get(index);
         RelFieldCollation.Direction direction = collation.getDirection();
@@ -356,30 +349,6 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     return collations.stream()
         .map(fieldsWithoutGrouping::contains)
         .reduce(false, Boolean::logicalOr);
-  }
-
-  /**
-   * Merges existing and new collations, ensuring that the last occurrence of each field index takes
-   * precedence.
-   *
-   * @param existingCollations Existing collation list.
-   * @param newCollations New collation list to be merged.
-   * @return Merged list of collations.
-   */
-  private static List<RelFieldCollation> mergeCollations(
-      List<RelFieldCollation> existingCollations, List<RelFieldCollation> newCollations) {
-    Map<Integer, RelFieldCollation> mergedCollations = new LinkedHashMap<>();
-
-    for (RelFieldCollation collation : newCollations) {
-      mergedCollations.putIfAbsent(collation.getFieldIndex(), collation);
-    }
-
-    for (RelFieldCollation collation : existingCollations) {
-      // Existing collations will not replace the new one
-      // E.g. in `sort age | sort - age`, the first sort (existing one) will be ignored
-      mergedCollations.putIfAbsent(collation.getFieldIndex(), collation);
-    }
-    return new ArrayList<>(mergedCollations.values());
   }
 
   /**
