@@ -118,7 +118,7 @@ public abstract class ElasticJoinExecutor extends ElasticHitsExecutor {
         }
       } catch (RuntimeException e) {
         Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-        LOG.debug("Error deleting point in time {} ", pit);
+        LOG.info("Error deleting point in time {} ", pit);
       }
     }
   }

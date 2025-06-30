@@ -83,7 +83,7 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
     try {
       CreatePitResponse pitResponse = execute.get();
       pitId = pitResponse.getId();
-      LOG.debug(
+      LOG.info(
           "Created Point In Time {} with keepalive {} successfully.",
           truncatePitId(pitId),
           keepAlive);
@@ -100,7 +100,7 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
         client.execute(DeletePitAction.INSTANCE, deletePitRequest);
     try {
       DeletePitResponse deletePitResponse = execute.get();
-      LOG.debug(
+      LOG.info(
           "Delete Point In Time {} status: {}",
           truncatePitId(pitId),
           deletePitResponse.status().getStatus());
@@ -119,7 +119,7 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
     if (config.isPresent()) {
       Optional<TimeValue> customTimeout = config.get().getCustomPitKeepAlive();
       if (customTimeout.isPresent()) {
-        LOG.debug(
+        LOG.info(
             "Using custom PIT keepalive from config: {} ({}ms)",
             customTimeout.get(),
             customTimeout.get().getMillis());
@@ -129,7 +129,7 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
 
     // Fallback: use default
     TimeValue defaultKeepAlive = LocalClusterState.state().getSettingValue(SQL_CURSOR_KEEP_ALIVE);
-    LOG.debug(
+    LOG.info(
         "Using default PIT keepalive: {} ({}ms)", defaultKeepAlive, defaultKeepAlive.getMillis());
     return defaultKeepAlive;
   }

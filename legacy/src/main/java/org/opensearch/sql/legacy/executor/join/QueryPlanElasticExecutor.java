@@ -15,9 +15,6 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.search.SearchHit;
 import org.opensearch.sql.legacy.exception.SqlParseException;
-import org.opensearch.sql.legacy.metrics.MetricName;
-import org.opensearch.sql.legacy.metrics.Metrics;
-import org.opensearch.sql.legacy.pit.PointInTimeHandlerImpl;
 import org.opensearch.sql.legacy.query.planner.HashJoinQueryPlanRequestBuilder;
 import org.opensearch.sql.legacy.query.planner.core.QueryPlanner;
 import org.opensearch.sql.legacy.request.SqlRequest;
@@ -62,23 +59,12 @@ class QueryPlanElasticExecutor extends ElasticJoinExecutor {
 
       LOG.debug("QueryPlanElasticExecutor: Starting execution");
 
-      pit = new PointInTimeHandlerImpl(client, indices, planRequestBuilder.getConfig());
-      pit.create();
       results = innerRun();
       long joinTimeInMilli = System.currentTimeMillis() - timeBefore;
       this.metaResults.setTookImMilli(joinTimeInMilli);
     } catch (Exception e) {
       LOG.error("Failed during QueryPlan join query run.", e);
       throw new IllegalStateException("Error occurred during QueryPlan join query run", e);
-    } finally {
-      try {
-        if (pit != null) {
-          pit.delete();
-        }
-      } catch (RuntimeException e) {
-        Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-        LOG.debug("Error deleting point in time {}", pit);
-      }
     }
   }
 

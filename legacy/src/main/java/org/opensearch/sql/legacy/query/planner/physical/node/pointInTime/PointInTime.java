@@ -61,12 +61,12 @@ public class PointInTime extends Paginate {
   @Override
   protected void loadFirstBatch() {
     if (config.isPresent()) {
-      LOG.debug("PointInTime: Creating PIT with config support");
+      LOG.info("PointInTime: Creating PIT with config support");
       pit =
           new PointInTimeHandlerImpl(
               client, request.getOriginalSelect().getIndexArr(), config.get());
     } else {
-      LOG.debug("PointInTime: Creating PIT with default settings");
+      LOG.info("PointInTime: Creating PIT with default settings");
       pit = new PointInTimeHandlerImpl(client, request.getOriginalSelect().getIndexArr());
     }
 
