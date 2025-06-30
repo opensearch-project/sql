@@ -37,6 +37,7 @@ import org.opensearch.sql.plugin.transport.PPLQueryAction;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryRequest;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
 import org.opensearch.transport.client.node.NodeClient;
+import org.json.JSONException;
 
 public class RestPPLQueryAction extends BaseRestHandler {
   public static final String QUERY_API_ENDPOINT = "/_plugins/_ppl";
@@ -59,7 +60,8 @@ public class RestPPLQueryAction extends BaseRestHandler {
         || e instanceof QueryEngineException
         || e instanceof SyntaxCheckException
         || e instanceof DataSourceClientException
-        || e instanceof IllegalAccessException;
+        || e instanceof IllegalAccessException
+        || e instanceof JSONException;
   }
 
   @Override

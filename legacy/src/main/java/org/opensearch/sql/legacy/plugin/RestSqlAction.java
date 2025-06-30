@@ -23,6 +23,7 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONException;
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.inject.Injector;
 import org.opensearch.common.settings.Settings;
@@ -281,7 +282,8 @@ public class RestSqlAction extends BaseRestHandler {
         || e instanceof SqlAnalysisException
         || e instanceof SyntaxCheckException
         || e instanceof SemanticCheckException
-        || e instanceof ExpressionEvaluationException;
+        || e instanceof ExpressionEvaluationException
+        || e instanceof JSONException;
   }
 
   private void sendResponse(
