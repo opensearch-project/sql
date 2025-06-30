@@ -35,11 +35,33 @@ import org.opensearch.sql.utils.IPUtils;
  * </ul>
  */
 public class CompareIpFunction extends ImplementorUDF {
-  private final IpComparisonOperators.ComparisonOperator operator;
 
-  public CompareIpFunction(IpComparisonOperators.ComparisonOperator operator) {
-    super(new CompareImplementor(operator), NullPolicy.ANY);
-    this.operator = operator;
+  private CompareIpFunction(ComparisonType comparisonType) {
+    super(new CompareImplementor(comparisonType), NullPolicy.ANY);
+  }
+
+  public static CompareIpFunction less() {
+    return new CompareIpFunction(ComparisonType.LESS);
+  }
+
+  public static CompareIpFunction greater() {
+    return new CompareIpFunction(ComparisonType.GREATER);
+  }
+
+  public static CompareIpFunction lessOrEquals() {
+    return new CompareIpFunction(ComparisonType.LESS_OR_EQUAL);
+  }
+
+  public static CompareIpFunction greaterOrEquals() {
+    return new CompareIpFunction(ComparisonType.GREATER_OR_EQUAL);
+  }
+
+  public static CompareIpFunction equals() {
+    return new CompareIpFunction(ComparisonType.EQUALS);
+  }
+
+  public static CompareIpFunction notEquals() {
+    return new CompareIpFunction(ComparisonType.NOT_EQUALS);
   }
 
   @Override
@@ -57,10 +79,10 @@ public class CompareIpFunction extends ImplementorUDF {
   }
 
   public static class CompareImplementor implements NotNullImplementor {
-    private final IpComparisonOperators.ComparisonOperator operator;
+    private final ComparisonType comparisonType;
 
-    public CompareImplementor(IpComparisonOperators.ComparisonOperator operator) {
-      this.operator = operator;
+    public CompareImplementor(ComparisonType comparisonType) {
+      this.comparisonType = comparisonType;
     }
 
     @Override
@@ -71,35 +93,24 @@ public class CompareIpFunction extends ImplementorUDF {
           "compare",
           translatedOperands.get(0),
           translatedOperands.get(1),
-          Expressions.constant(operator.name()));
+          Expressions.constant(comparisonType));
     }
 
-    public static boolean compare(Object obj1, Object obj2, String opName) {
+    public static boolean compare(Object obj1, Object obj2, ComparisonType comparisonType) {
       try {
-        IpComparisonOperators.ComparisonOperator op =
-            IpComparisonOperators.ComparisonOperator.valueOf(opName);
         String ip1 = extractIpString(obj1);
         String ip2 = extractIpString(obj2);
         IPAddress addr1 = IPUtils.toAddress(ip1);
         IPAddress addr2 = IPUtils.toAddress(ip2);
         int result = IPUtils.compare(addr1, addr2);
-
-        switch (op) {
-          case EQUALS:
-            return result == 0;
-          case NOT_EQUALS:
-            return result != 0;
-          case LESS:
-            return result < 0;
-          case LESS_OR_EQUAL:
-            return result <= 0;
-          case GREATER:
-            return result > 0;
-          case GREATER_OR_EQUAL:
-            return result >= 0;
-          default:
-            return false;
-        }
+        return switch (comparisonType) {
+          case EQUALS -> result == 0;
+          case NOT_EQUALS -> result != 0;
+          case LESS -> result < 0;
+          case LESS_OR_EQUAL -> result <= 0;
+          case GREATER -> result > 0;
+          case GREATER_OR_EQUAL -> result >= 0;
+        };
       } catch (Exception e) {
         return false;
       }
@@ -110,5 +121,14 @@ public class CompareIpFunction extends ImplementorUDF {
       if (obj instanceof ExprIpValue) return ((ExprIpValue) obj).value();
       throw new IllegalArgumentException("Invalid IP type: " + obj);
     }
+  }
+
+  public enum ComparisonType {
+    EQUALS,
+    NOT_EQUALS,
+    LESS,
+    LESS_OR_EQUAL,
+    GREATER,
+    GREATER_OR_EQUAL
   }
 }
