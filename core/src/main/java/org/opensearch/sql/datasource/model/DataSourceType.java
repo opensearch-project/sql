@@ -6,6 +6,7 @@
 package org.opensearch.sql.datasource.model;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
@@ -39,9 +40,9 @@ public class DataSourceType {
   /** Register DataSourceType to be used in fromString method */
   public static void register(DataSourceType... dataSourceTypes) {
     for (DataSourceType type : dataSourceTypes) {
-      String upperCaseName = type.name().toUpperCase();
+      String upperCaseName = type.name().toUpperCase(Locale.ROOT);
       if (!knownValues.containsKey(upperCaseName)) {
-        knownValues.put(type.name().toUpperCase(), type);
+        knownValues.put(type.name().toUpperCase(Locale.ROOT), type);
       } else {
         throw new IllegalArgumentException(
             "DataSourceType with name " + type.name() + " already exists");
@@ -50,7 +51,7 @@ public class DataSourceType {
   }
 
   public static DataSourceType fromString(String name) {
-    String upperCaseName = name.toUpperCase();
+    String upperCaseName = name.toUpperCase(Locale.ROOT);
     if (knownValues.containsKey(upperCaseName)) {
       return knownValues.get(upperCaseName);
     } else {

@@ -125,7 +125,7 @@ public class IndexQueryDetails {
         }
         break;
     }
-    return percentEncode(indexName).toLowerCase();
+    return percentEncode(indexName).toLowerCase(Locale.ROOT);
   }
 
   /*

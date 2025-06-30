@@ -29,7 +29,7 @@ public enum StatementState {
 
   private static Map<String, StatementState> STATES =
       Arrays.stream(StatementState.values())
-          .collect(Collectors.toMap(t -> t.name().toLowerCase(), t -> t));
+          .collect(Collectors.toMap(t -> t.name().toLowerCase(Locale.ROOT), t -> t));
 
   public static StatementState fromString(String key) {
     for (StatementState ss : StatementState.values()) {

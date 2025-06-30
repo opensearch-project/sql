@@ -25,6 +25,7 @@ import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLLexer.TRUE;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLLexer.TWO_DECIMAL;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLLexer.ZERO_DECIMAL;
 
+import java.util.Locale;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ErrorNode;
 import org.antlr.v4.runtime.tree.ParseTreeListener;
@@ -93,7 +94,7 @@ public class AnonymizerListener implements ParseTreeListener {
         // end of file
         break;
       default:
-        anonymizedQueryString += node.getText().toUpperCase();
+        anonymizedQueryString += node.getText().toUpperCase(Locale.ROOT);
     }
     previousType = node.getSymbol().getType();
   }

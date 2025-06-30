@@ -492,7 +492,8 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
     if (widerType == value.type()) {
       return value.toString();
     }
-    return String.format(Locale.ROOT, "cast_to_%s(%s)", widerType.toString().toLowerCase(), value);
+    return String.format(
+        Locale.ROOT, "cast_to_%s(%s)", widerType.toString().toLowerCase(Locale.ROOT), value);
   }
 
   @ParameterizedTest(name = "equal({0}, {1})")

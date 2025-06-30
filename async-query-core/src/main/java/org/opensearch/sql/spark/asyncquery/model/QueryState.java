@@ -28,7 +28,7 @@ public enum QueryState {
 
   private static final Map<String, QueryState> STATES =
       Arrays.stream(QueryState.values())
-          .collect(Collectors.toMap(t -> t.name().toLowerCase(), t -> t));
+          .collect(Collectors.toMap(t -> t.name().toLowerCase(Locale.ROOT), t -> t));
 
   public static QueryState fromString(String key) {
     for (QueryState ss : QueryState.values()) {

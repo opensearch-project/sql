@@ -16,6 +16,7 @@ import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
 import com.alibaba.druid.sql.ast.expr.SQLValuableExpr;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -98,7 +99,7 @@ public class SQLExprToExpressionConverter {
 
   private Expression methodToExpression(
       SQLMethodInvokeExpr expr, Function<SQLExpr, Expression> converter) {
-    String methodName = expr.getMethodName().toLowerCase();
+    String methodName = expr.getMethodName().toLowerCase(Locale.ROOT);
     if (methodOperationMap.containsKey(methodName)) {
 
       return ExpressionFactory.of(

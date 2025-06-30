@@ -136,7 +136,7 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
   @Test
   public void caseChangeTestWithLocale() throws IOException {
     // Uses Turkish locale to check if we pass correct locale for case changing functions
-    // "IL".toLowerCase() in a Turkish locale returns "ıl"
+    // "IL".toLowerCase(Locale.ROOT) in a Turkish locale returns "ıl"
     // https://stackoverflow.com/questions/11063102/using-locales-with-javas-tolowercase-and-touppercase
 
     String query =

@@ -9,6 +9,7 @@ package org.opensearch.sql.datasources.auth;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 public enum AuthenticationType {
@@ -31,7 +32,7 @@ public enum AuthenticationType {
   static {
     Map<String, AuthenticationType> map = new HashMap<>();
     for (AuthenticationType instance : AuthenticationType.values()) {
-      map.put(instance.getName().toLowerCase(), instance);
+      map.put(instance.getName().toLowerCase(Locale.ROOT), instance);
     }
     ENUM_MAP = Collections.unmodifiableMap(map);
   }

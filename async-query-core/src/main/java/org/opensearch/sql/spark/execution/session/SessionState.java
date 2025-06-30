@@ -30,7 +30,7 @@ public enum SessionState {
 
   private static Map<String, SessionState> STATES =
       Arrays.stream(SessionState.values())
-          .collect(Collectors.toMap(t -> t.name().toLowerCase(), t -> t));
+          .collect(Collectors.toMap(t -> t.name().toLowerCase(Locale.ROOT), t -> t));
 
   public static SessionState fromString(String key) {
     for (SessionState ss : SessionState.values()) {

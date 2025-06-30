@@ -831,7 +831,9 @@ class SQLSyntaxParserTest {
             var arg = new StringBuilder();
             arg.append(rand.nextBoolean() ? "," : ", ");
             arg.append(
-                rand.nextBoolean() ? pair.getKey().toLowerCase() : pair.getKey().toUpperCase());
+                rand.nextBoolean()
+                    ? pair.getKey().toLowerCase(Locale.ROOT)
+                    : pair.getKey().toUpperCase());
             arg.append(rand.nextBoolean() ? "=" : " = ");
             if (pair.getValue() instanceof String[] || rand.nextBoolean()) {
               var quoteSymbol = rand.nextBoolean() ? '\'' : '"';

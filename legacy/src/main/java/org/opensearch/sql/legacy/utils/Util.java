@@ -26,6 +26,7 @@ import com.alibaba.druid.sql.parser.SQLExprParser;
 import com.alibaba.druid.sql.parser.Token;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -127,7 +128,7 @@ public class Util {
     } else if (expr instanceof SQLNumericLiteralExpr) {
       return ((SQLNumericLiteralExpr) expr).getNumber();
     } else if (expr instanceof SQLNullExpr) {
-      return ((SQLNullExpr) expr).toString().toLowerCase();
+      return ((SQLNullExpr) expr).toString().toLowerCase(Locale.ROOT);
     }
     throw new SqlParseException(
         "could not parse sqlBinaryOpExpr need to be identifier/valuable got"

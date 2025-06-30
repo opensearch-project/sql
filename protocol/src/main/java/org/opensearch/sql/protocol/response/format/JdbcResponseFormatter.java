@@ -6,6 +6,7 @@
 package org.opensearch.sql.protocol.response.format;
 
 import java.util.List;
+import java.util.Locale;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -64,7 +65,7 @@ public class JdbcResponseFormatter extends JsonResponseFormatter<QueryResult> {
    * name to avoid breaking impact on client-side.
    */
   private String convertToLegacyType(ExprType type) {
-    return type.legacyTypeName().toLowerCase();
+    return type.legacyTypeName().toLowerCase(Locale.ROOT);
   }
 
   private Object[][] fetchDataRows(QueryResult response) {

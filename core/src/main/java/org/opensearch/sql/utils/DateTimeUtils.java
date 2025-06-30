@@ -288,7 +288,7 @@ public class DateTimeUtils {
         return "q";
       }
       default -> {
-        String lower = rawUnit.toLowerCase();
+        String lower = rawUnit.toLowerCase(Locale.ROOT);
         if (lower.matches("w[0-7]")) return lower;
         throw new IllegalArgumentException("Unsupported unit alias: " + rawUnit);
       }

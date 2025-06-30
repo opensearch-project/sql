@@ -317,7 +317,7 @@ public class FieldMaker {
 
       } else if (object instanceof SQLMethodInvokeExpr) {
         SQLMethodInvokeExpr mExpr = (SQLMethodInvokeExpr) object;
-        String methodName = mExpr.getMethodName().toLowerCase();
+        String methodName = mExpr.getMethodName().toLowerCase(Locale.ROOT);
         if (methodName.equals("script")) {
           KVValue script =
               new KVValue(
@@ -404,7 +404,10 @@ public class FieldMaker {
       // should check if field and first .
       Tuple<String, String> newFunctions =
           sqlFunctions.function(
-              name.toLowerCase(), paramers, paramers.isEmpty() ? null : paramers.get(0).key, first);
+              name.toLowerCase(Locale.ROOT),
+              paramers,
+              paramers.isEmpty() ? null : paramers.get(0).key,
+              first);
       paramers.clear();
       if (!first) {
         // variance

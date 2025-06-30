@@ -11,6 +11,7 @@ import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
 import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
 import com.alibaba.druid.sql.ast.expr.SQLTextLiteralExpr;
 import java.util.List;
+import java.util.Locale;
 import org.opensearch.sql.legacy.domain.Where;
 import org.opensearch.sql.legacy.domain.bucketpath.BucketPath;
 import org.opensearch.sql.legacy.domain.bucketpath.Path;
@@ -31,7 +32,7 @@ public class NestedType {
       return false;
     }
     SQLMethodInvokeExpr method = (SQLMethodInvokeExpr) expr;
-    String methodNameLower = method.getMethodName().toLowerCase();
+    String methodNameLower = method.getMethodName().toLowerCase(Locale.ROOT);
     if (!(methodNameLower.equals("nested") || methodNameLower.equals("reverse_nested"))) {
       return false;
     }

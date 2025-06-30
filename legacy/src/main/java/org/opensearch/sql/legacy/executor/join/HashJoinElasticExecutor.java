@@ -14,6 +14,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import org.opensearch.action.search.SearchRequestBuilder;
@@ -391,7 +392,7 @@ public class HashJoinElasticExecutor extends ElasticJoinExecutor {
     }
     if (data instanceof String) {
       // todo: analyzed or not analyzed check..
-      data = ((String) data).toLowerCase();
+      data = ((String) data).toLowerCase(Locale.ROOT);
     }
     if (data != null) {
       values.add(data);

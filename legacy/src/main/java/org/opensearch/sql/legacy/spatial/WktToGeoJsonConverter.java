@@ -14,7 +14,7 @@ import org.opensearch.sql.legacy.utils.StringUtils;
 /** Created by Eliran on 4/8/2015. */
 public class WktToGeoJsonConverter {
   public static String toGeoJson(String wkt) {
-    wkt = wkt.toLowerCase();
+    wkt = wkt.toLowerCase(Locale.ROOT);
     int startOfCoordinates = wkt.indexOf("(");
     if (startOfCoordinates == -1) {
       throw new IllegalArgumentException(

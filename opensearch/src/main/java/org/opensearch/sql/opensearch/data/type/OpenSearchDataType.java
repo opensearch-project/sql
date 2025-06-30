@@ -260,7 +260,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
     if (mappingType.toString().equalsIgnoreCase("DATE")) {
       return exprCoreType.typeName();
     }
-    return mappingType.toString().toUpperCase();
+    return mappingType.toString().toUpperCase(Locale.ROOT);
   }
 
   /**

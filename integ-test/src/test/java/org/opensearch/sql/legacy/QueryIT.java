@@ -502,7 +502,8 @@ public class QueryIT extends SQLIntegTestCase {
     Assert.assertNotEquals(0, getTotalHits(response));
     for (int i = 0; i < hits.length(); i++) {
       JSONObject hit = hits.getJSONObject(i);
-      Assert.assertFalse(getSource(hit).getString("firstname").toLowerCase().startsWith("amb"));
+      Assert.assertFalse(
+          getSource(hit).getString("firstname").toLowerCase(Locale.ROOT).startsWith("amb"));
     }
   }
 
@@ -966,7 +967,7 @@ public class QueryIT extends SQLIntegTestCase {
       JSONObject hit = hits.getJSONObject(i);
       JSONObject source = getSource(hit);
 
-      String gender = source.getString("gender").toLowerCase();
+      String gender = source.getString("gender").toLowerCase(Locale.ROOT);
       int age = source.getInt("age");
       int accountNumber = source.getInt("account_number");
 
@@ -1000,7 +1001,7 @@ public class QueryIT extends SQLIntegTestCase {
       JSONObject hit = hits.getJSONObject(i);
       JSONObject source = getSource(hit);
 
-      String gender = source.getString("gender").toLowerCase();
+      String gender = source.getString("gender").toLowerCase(Locale.ROOT);
       int age = source.getInt("age");
       int accountNumber = source.getInt("account_number");
 

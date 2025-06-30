@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import org.apache.logging.log4j.LogManager;
@@ -113,6 +114,6 @@ public class DefaultHashTable<T> implements HashTable<T> {
   }
 
   private Object lowercaseIfStr(Object key) {
-    return key instanceof String ? ((String) key).toLowerCase() : key;
+    return key instanceof String ? ((String) key).toLowerCase(Locale.ROOT) : key;
   }
 }

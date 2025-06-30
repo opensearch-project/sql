@@ -49,7 +49,7 @@ public enum FlintIndexState {
 
   private static Map<String, FlintIndexState> STATES =
       Arrays.stream(FlintIndexState.values())
-          .collect(Collectors.toMap(t -> t.name().toLowerCase(), t -> t));
+          .collect(Collectors.toMap(t -> t.name().toLowerCase(Locale.ROOT), t -> t));
 
   public static FlintIndexState fromString(String key) {
     for (FlintIndexState ss : FlintIndexState.values()) {

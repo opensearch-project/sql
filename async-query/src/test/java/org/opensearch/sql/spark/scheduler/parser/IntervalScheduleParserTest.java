@@ -12,6 +12,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Locale;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.opensearch.jobscheduler.spi.schedule.IntervalSchedule;
@@ -67,7 +69,7 @@ public class IntervalScheduleParserTest {
             () -> IntervalScheduleParser.parse(scheduleStr, startTime),
             "Expected IllegalArgumentException but no exception was thrown");
 
-    assertEquals("Invalid interval format: " + scheduleStr.toLowerCase(), exception.getMessage());
+    assertEquals("Invalid interval format: " + scheduleStr.toLowerCase(Locale.ROOT), exception.getMessage());
   }
 
   @Test

@@ -456,7 +456,7 @@ public class SelectResultSet extends ResultSet {
          * 2. If Type doesn't exist and isSelectAll() is false, throw exception
          * 3. If Type doesn't exist and isSelectAll() is true, Column creation for fieldName is skipped
          */
-        String type = field.type().toUpperCase();
+        String type = field.type().toUpperCase(Locale.ROOT);
         if (Schema.hasType(type)) {
 
           // If the current field is a group key, we should use alias as the identifier

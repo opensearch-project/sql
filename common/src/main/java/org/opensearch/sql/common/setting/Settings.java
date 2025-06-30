@@ -8,6 +8,7 @@ package org.opensearch.sql.common.setting;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import lombok.Getter;
@@ -83,7 +84,7 @@ public abstract class Settings {
     }
 
     public static Optional<Key> of(String keyValue) {
-      String key = Strings.isNullOrEmpty(keyValue) ? "" : keyValue.toLowerCase();
+      String key = Strings.isNullOrEmpty(keyValue) ? "" : keyValue.toLowerCase(Locale.ROOT);
       return Optional.ofNullable(ALL_KEYS.getOrDefault(key, null));
     }
   }

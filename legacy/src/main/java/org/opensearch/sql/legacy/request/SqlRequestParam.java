@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.legacy.request;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import org.opensearch.sql.legacy.executor.Format;
@@ -43,7 +44,7 @@ public class SqlRequestParam {
   public static Format getFormat(Map<String, String> requestParams, String path) {
     String formatName =
         requestParams.containsKey(QUERY_PARAMS_FORMAT)
-            ? requestParams.get(QUERY_PARAMS_FORMAT).toLowerCase()
+            ? requestParams.get(QUERY_PARAMS_FORMAT).toLowerCase(Locale.ROOT)
             : isExplainRequest(path) ? DEFAULT_EXPLAIN_FORMAT : DEFAULT_RESPONSE_FORMAT;
     Optional<Format> optionalFormat =
         isExplainRequest(path) ? Format.ofExplain(formatName) : Format.of(formatName);

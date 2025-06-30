@@ -8,6 +8,7 @@ package org.opensearch.sql.spark.scheduler.parser;
 import com.google.common.annotations.VisibleForTesting;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.opensearch.jobscheduler.spi.schedule.IntervalSchedule;
@@ -33,7 +34,7 @@ public class IntervalScheduleParser {
       throw new IllegalArgumentException("Schedule must be a String object for parsing.");
     }
 
-    String intervalStr = ((String) schedule).trim().toLowerCase();
+    String intervalStr = ((String) schedule).trim().toLowerCase(Locale.ROOT);
 
     Matcher matcher = DURATION_PATTERN.matcher(intervalStr);
     if (!matcher.matches()) {
@@ -41,7 +42,7 @@ public class IntervalScheduleParser {
     }
 
     long value = Long.parseLong(matcher.group(1));
-    String unitStr = matcher.group(2).toLowerCase();
+    String unitStr = matcher.group(2).toLowerCase(Locale.ROOT);
 
     // Convert to a supported unit or directly return an IntervalSchedule
     long intervalInMinutes = convertToSupportedUnit(value, unitStr);

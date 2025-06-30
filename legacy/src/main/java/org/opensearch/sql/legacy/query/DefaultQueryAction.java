@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -151,7 +152,7 @@ public class DefaultQueryAction extends QueryAction {
       for (Field field : fields) {
         if (field instanceof MethodField) {
           MethodField method = (MethodField) field;
-          if (method.getName().toLowerCase().equals("script")) {
+          if (method.getName().toLowerCase(Locale.ROOT).equals("script")) {
             handleScriptField(method);
             if (method.getExpression() instanceof SQLCastExpr) {
               includeFields.add(method.getParams().get(0).toString());

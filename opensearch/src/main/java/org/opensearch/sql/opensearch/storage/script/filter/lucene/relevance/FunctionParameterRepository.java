@@ -292,7 +292,7 @@ public class FunctionParameterRepository {
   public static String checkRewrite(ExprValue value, String name) {
     try {
       QueryParsers.parseRewriteMethod(
-          value.stringValue().toLowerCase(), null, LoggingDeprecationHandler.INSTANCE);
+          value.stringValue().toLowerCase(Locale.ROOT), null, LoggingDeprecationHandler.INSTANCE);
       return value.stringValue();
     } catch (Exception e) {
       throw new RuntimeException(formatErrorMessage(name, value.stringValue(), "rewrite"));
@@ -307,7 +307,7 @@ public class FunctionParameterRepository {
    */
   public static SimpleQueryStringFlag[] convertFlags(ExprValue value) {
     try {
-      return Arrays.stream(value.stringValue().toUpperCase().split("\\|"))
+      return Arrays.stream(value.stringValue().toUpperCase(Locale.ROOT).split("\\|"))
           .map(SimpleQueryStringFlag::valueOf)
           .toArray(SimpleQueryStringFlag[]::new);
     } catch (Exception e) {
@@ -368,7 +368,7 @@ public class FunctionParameterRepository {
   public static MultiMatchQueryBuilder.Type convertType(ExprValue value) {
     try {
       return MultiMatchQueryBuilder.Type.parse(
-          value.stringValue().toLowerCase(), LoggingDeprecationHandler.INSTANCE);
+          value.stringValue().toLowerCase(Locale.ROOT), LoggingDeprecationHandler.INSTANCE);
     } catch (Exception e) {
       throw new RuntimeException(formatErrorMessage("type", value.stringValue()), e);
     }

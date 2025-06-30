@@ -18,6 +18,7 @@ import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.regex.Pattern;
@@ -49,7 +50,8 @@ public class Converter {
   private static final Pattern SPLITTER = Pattern.compile("[:;]");
 
   private static final Map<String, Type> TYPES =
-      Arrays.stream(Type.values()).collect(Collectors.toMap(t -> t.name().toLowerCase(), t -> t));
+      Arrays.stream(Type.values())
+          .collect(Collectors.toMap(t -> t.name().toLowerCase(Locale.ROOT), t -> t));
 
   private static final Map<String, Type> TYPE_ALIASES =
       Arrays.stream(Type.values())
@@ -59,7 +61,7 @@ public class Converter {
           .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
   private static Type getType(String key) {
-    key = key.toLowerCase();
+    key = key.toLowerCase(Locale.ROOT);
     Type type = TYPES.getOrDefault(key, TYPE_ALIASES.get(key));
     if (type == null) {
       throw new IllegalArgumentException("Invalid data type :" + key);

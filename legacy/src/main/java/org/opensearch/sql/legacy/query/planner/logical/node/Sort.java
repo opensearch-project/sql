@@ -6,6 +6,7 @@
 package org.opensearch.sql.legacy.query.planner.logical.node;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.opensearch.sql.legacy.query.planner.core.PlanNode;
 import org.opensearch.sql.legacy.query.planner.logical.LogicalOperator;
@@ -26,7 +27,7 @@ public class Sort implements LogicalOperator {
   public Sort(LogicalOperator next, List<String> orderByColNames, String orderByType) {
     this.next = next;
     this.orderByColNames = orderByColNames;
-    this.orderByType = orderByType.toUpperCase();
+    this.orderByType = orderByType.toUpperCase(Locale.ROOT);
   }
 
   @Override

@@ -7,6 +7,7 @@ package org.opensearch.sql.protocol.response.format;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import lombok.Getter;
@@ -48,12 +49,14 @@ public enum Format {
   }
 
   public static Optional<Format> of(String formatName) {
-    String format = Strings.isNullOrEmpty(formatName) ? "jdbc" : formatName.toLowerCase();
+    String format =
+        Strings.isNullOrEmpty(formatName) ? "jdbc" : formatName.toLowerCase(Locale.ROOT);
     return Optional.ofNullable(RESPONSE_FORMATS.getOrDefault(format, null));
   }
 
   public static Optional<Format> ofExplain(String formatName) {
-    String format = Strings.isNullOrEmpty(formatName) ? "standard" : formatName.toLowerCase();
+    String format =
+        Strings.isNullOrEmpty(formatName) ? "standard" : formatName.toLowerCase(Locale.ROOT);
     return Optional.ofNullable(EXPLAIN_FORMATS.getOrDefault(format, null));
   }
 }

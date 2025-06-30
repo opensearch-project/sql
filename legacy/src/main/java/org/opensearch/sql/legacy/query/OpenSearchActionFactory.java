@@ -140,7 +140,8 @@ public class OpenSearchActionFactory {
 
   private static String getFirstWord(String sql) {
     int endOfFirstWord = sql.indexOf(' ');
-    return sql.substring(0, endOfFirstWord > 0 ? endOfFirstWord : sql.length()).toUpperCase();
+    return sql.substring(0, endOfFirstWord > 0 ? endOfFirstWord : sql.length())
+        .toUpperCase(Locale.ROOT);
   }
 
   private static boolean isMulti(SQLQueryExpr sqlExpr) {

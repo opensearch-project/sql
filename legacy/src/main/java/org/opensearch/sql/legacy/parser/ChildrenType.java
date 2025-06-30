@@ -11,6 +11,7 @@ import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
 import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
 import com.alibaba.druid.sql.ast.expr.SQLTextLiteralExpr;
 import java.util.List;
+import java.util.Locale;
 import org.opensearch.sql.legacy.domain.Where;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.utils.Util;
@@ -30,7 +31,7 @@ public class ChildrenType {
 
     String methodName = method.getMethodName();
 
-    if (!methodName.toLowerCase().equals("children")) {
+    if (!methodName.toLowerCase(Locale.ROOT).equals("children")) {
       return false;
     }
 

@@ -269,7 +269,7 @@ public class SQLAggregationParser {
     }
 
     public static String nameOfExpr(SQLExpr expr) {
-      String exprName = expr.toString().toLowerCase();
+      String exprName = expr.toString().toLowerCase(Locale.ROOT);
       if (expr instanceof SQLAggregateExpr) {
         SQLAggregateExpr aggExpr = (SQLAggregateExpr) expr;
         SQLAggregateOption option = aggExpr.getOption();

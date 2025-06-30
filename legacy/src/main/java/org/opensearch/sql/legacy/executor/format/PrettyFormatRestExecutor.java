@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.legacy.executor.format;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import org.apache.logging.log4j.LogManager;
@@ -36,7 +37,7 @@ public class PrettyFormatRestExecutor implements RestExecutor {
   private final String format;
 
   public PrettyFormatRestExecutor(String format) {
-    this.format = format.toLowerCase();
+    this.format = format.toLowerCase(Locale.ROOT);
   }
 
   /** Execute the QueryAction and return the REST response using the channel. */

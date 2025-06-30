@@ -10,6 +10,7 @@ import static java.util.Collections.unmodifiableList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.opensearch.sql.legacy.domain.IndexStatement;
@@ -113,7 +114,7 @@ public class Schema implements Iterable<Schema.Column> {
     DATE_RANGE; // Range types
 
     public String nameLowerCase() {
-      return name().toLowerCase();
+      return name().toLowerCase(Locale.ROOT);
     }
   }
 

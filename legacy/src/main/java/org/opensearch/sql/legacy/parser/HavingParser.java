@@ -99,7 +99,7 @@ public class HavingParser {
     }
 
     private String methodAlias(String methodName) {
-      return String.format(Locale.ROOT, "%s_%d", methodName.toLowerCase(), nextAlias());
+      return String.format(Locale.ROOT, "%s_%d", methodName.toLowerCase(Locale.ROOT), nextAlias());
     }
 
     private Integer nextAlias() {

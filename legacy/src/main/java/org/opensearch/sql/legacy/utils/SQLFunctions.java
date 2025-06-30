@@ -261,7 +261,7 @@ public class SQLFunctions {
 
       case "e":
       case "pi":
-        methodName = methodName.toUpperCase();
+        methodName = methodName.toUpperCase(Locale.ROOT);
         functionStr = mathConstantTemplate("Math." + methodName, methodName);
         break;
 
@@ -1144,7 +1144,7 @@ public class SQLFunctions {
    */
   public static Schema.Type getScriptFunctionReturnType(
       MethodField field, Schema.Type resolvedType) {
-    String functionName = ((ScriptMethodField) field).getFunctionName().toLowerCase();
+    String functionName = ((ScriptMethodField) field).getFunctionName().toLowerCase(Locale.ROOT);
     if (functionName.equals("cast")) {
       String castType = ((SQLCastExpr) field.getExpression()).getDataType().getName();
       return getCastFunctionReturnType(castType);
@@ -1179,7 +1179,7 @@ public class SQLFunctions {
    *     function as opposed to the actual return type.
    */
   public static Schema.Type getOrderByFieldType(Field field) {
-    String functionName = ((ScriptMethodField) field).getFunctionName().toLowerCase();
+    String functionName = ((ScriptMethodField) field).getFunctionName().toLowerCase(Locale.ROOT);
     if (functionName.equals("cast")) {
       String castType = ((SQLCastExpr) field.getExpression()).getDataType().getName();
       return getCastFunctionReturnType(castType);

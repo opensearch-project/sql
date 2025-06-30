@@ -562,7 +562,7 @@ public class SQLQueryValidationVisitor extends SqlBaseParserBaseVisitor<Void> {
   }
 
   private void validateFunctionAllowed(String functionName) {
-    String lowerCaseFunctionName = functionName.toLowerCase();
+    String lowerCaseFunctionName = functionName.toLowerCase(Locale.ROOT);
     FunctionType type = FunctionType.fromFunctionName(lowerCaseFunctionName);
     switch (type) {
       case MAP:

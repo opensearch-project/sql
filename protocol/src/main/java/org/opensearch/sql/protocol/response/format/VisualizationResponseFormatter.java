@@ -9,6 +9,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import lombok.Builder;
 import lombok.Getter;
@@ -119,7 +120,7 @@ public class VisualizationResponseFormatter extends JsonResponseFormatter<QueryR
    * name to avoid breaking impact on client-side.
    */
   private String convertToLegacyType(ExprType type) {
-    return type.legacyTypeName().toLowerCase();
+    return type.legacyTypeName().toLowerCase(Locale.ROOT);
   }
 
   @RequiredArgsConstructor

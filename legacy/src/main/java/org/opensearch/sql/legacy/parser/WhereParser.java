@@ -201,8 +201,8 @@ public class WhereParser {
 
   private boolean isAllowedMethodOnConditionLeft(
       SQLMethodInvokeExpr method, SQLBinaryOperator operator) {
-    return (method.getMethodName().toLowerCase().equals("nested")
-            || method.getMethodName().toLowerCase().equals("children")
+    return (method.getMethodName().toLowerCase(Locale.ROOT).equals("nested")
+            || method.getMethodName().toLowerCase(Locale.ROOT).equals("children")
             || SQLFunctions.isFunctionTranslatedToScript(method.getMethodName()))
         && !operator.isLogical();
   }
@@ -250,7 +250,7 @@ public class WhereParser {
 
       if (soExpr.getRight() instanceof SQLMethodInvokeExpr) {
         SQLMethodInvokeExpr method = (SQLMethodInvokeExpr) soExpr.getRight();
-        String methodName = method.getMethodName().toLowerCase();
+        String methodName = method.getMethodName().toLowerCase(Locale.ROOT);
 
         if (Condition.OPERATOR.methodNameToOpear.containsKey(methodName)) {
           Object[] methodParametersValue = getMethodValuesWithSubQueries(method);
@@ -527,7 +527,7 @@ public class WhereParser {
         }
 
         where.addWhere(condition);
-      } else if (methodName.toLowerCase().equals("nested")) {
+      } else if (methodName.toLowerCase(Locale.ROOT).equals("nested")) {
         NestedType nestedType = new NestedType();
 
         if (!nestedType.tryFillFromExpr(expr)) {
@@ -539,12 +539,12 @@ public class WhereParser {
                 Where.CONN.valueOf(opear),
                 nestedType.path,
                 null,
-                methodName.toUpperCase(),
+                methodName.toUpperCase(Locale.ROOT),
                 nestedType.where,
                 null);
 
         where.addWhere(condition);
-      } else if (methodName.toLowerCase().equals("children")) {
+      } else if (methodName.toLowerCase(Locale.ROOT).equals("children")) {
         ChildrenType childrenType = new ChildrenType();
 
         if (!childrenType.tryFillFromExpr(expr)) {
@@ -556,12 +556,12 @@ public class WhereParser {
                 Where.CONN.valueOf(opear),
                 childrenType.childType,
                 null,
-                methodName.toUpperCase(),
+                methodName.toUpperCase(Locale.ROOT),
                 childrenType.where,
                 null);
 
         where.addWhere(condition);
-      } else if (methodName.toLowerCase().equals("script")) {
+      } else if (methodName.toLowerCase(Locale.ROOT).equals("script")) {
         ScriptFilter scriptFilter = new ScriptFilter();
         if (!scriptFilter.tryParseFromMethodExpr(methodExpr)) {
           throw new SqlParseException("could not parse script filter");

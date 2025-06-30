@@ -9,6 +9,7 @@ import static org.opensearch.core.rest.RestStatus.OK;
 import static org.opensearch.sql.common.setting.Settings.Key.SQL_CURSOR_KEEP_ALIVE;
 
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -175,7 +176,8 @@ public class CursorResultExecutor implements CursorRestExecutor {
             .getHits()
             .getAt(scrollResponse.getHits().getHits().length - 1)
             .getSortValues());
-    Protocol protocol = new Protocol(client, searchHits, format.name().toLowerCase(), cursor);
+    Protocol protocol =
+        new Protocol(client, searchHits, format.name().toLowerCase(Locale.ROOT), cursor);
     return protocol.cursorFormat();
   }
 }

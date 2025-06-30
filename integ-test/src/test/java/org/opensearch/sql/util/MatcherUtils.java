@@ -385,7 +385,7 @@ public class MatcherUtils {
     }
 
     public String ignoreCase(String toBeLower) {
-      return toBeLower.toLowerCase();
+      return toBeLower.toLowerCase(Locale.ROOT);
     }
 
     public static Matcher<String> equalToIgnoreCaseAndWhiteSpace(String expectedString) {

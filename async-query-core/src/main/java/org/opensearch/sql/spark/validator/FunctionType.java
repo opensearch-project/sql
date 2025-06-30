@@ -6,6 +6,7 @@
 package org.opensearch.sql.spark.validator;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -477,6 +478,7 @@ public enum FunctionType {
           .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
   public static FunctionType fromFunctionName(String functionName) {
-    return FUNCTION_NAME_TO_FUNCTION_TYPE_MAP.getOrDefault(functionName.toLowerCase(), UDF);
+    return FUNCTION_NAME_TO_FUNCTION_TYPE_MAP.getOrDefault(
+        functionName.toLowerCase(Locale.ROOT), UDF);
   }
 }

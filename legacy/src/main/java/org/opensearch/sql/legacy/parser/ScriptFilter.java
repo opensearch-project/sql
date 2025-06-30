@@ -10,6 +10,7 @@ import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
 import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.opensearch.script.ScriptType;
 import org.opensearch.sql.legacy.exception.SqlParseException;
@@ -34,7 +35,7 @@ public class ScriptFilter {
   }
 
   public boolean tryParseFromMethodExpr(SQLMethodInvokeExpr expr) throws SqlParseException {
-    if (!expr.getMethodName().toLowerCase().equals("script")) {
+    if (!expr.getMethodName().toLowerCase(Locale.ROOT).equals("script")) {
       return false;
     }
     List<SQLExpr> methodParameters = expr.getParameters();
@@ -72,7 +73,7 @@ public class ScriptFilter {
   }
 
   private void parseAndUpdateScriptType(String scriptType) {
-    String scriptTypeUpper = scriptType.toUpperCase();
+    String scriptTypeUpper = scriptType.toUpperCase(Locale.ROOT);
     switch (scriptTypeUpper) {
       case "INLINE":
         this.scriptType = ScriptType.INLINE;

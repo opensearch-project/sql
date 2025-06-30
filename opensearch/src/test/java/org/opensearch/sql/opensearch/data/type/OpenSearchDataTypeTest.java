@@ -31,6 +31,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.data.type.ExprCoreType.UNKNOWN;
 import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.reflect.FieldUtils;
@@ -135,8 +136,8 @@ class OpenSearchDataTypeTest {
     var type = OpenSearchDataType.of(mappingType);
     // For serialization of SQL and PPL different functions are used, and it was designed to return
     // different types. No clue why, but it should be fixed in #1296.
-    var nameForSQL = name.toUpperCase();
-    var nameForPPL = name.equals("text") ? "STRING" : name.toUpperCase();
+    var nameForSQL = name.toUpperCase(Locale.ROOT);
+    var nameForPPL = name.equals("text") ? "STRING" : name.toUpperCase(Locale.ROOT);
     assertAll(
         () -> assertEquals(nameForPPL, type.typeName()),
         () -> assertEquals(nameForSQL, type.legacyTypeName()),

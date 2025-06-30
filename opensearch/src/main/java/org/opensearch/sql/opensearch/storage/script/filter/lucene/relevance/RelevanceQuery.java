@@ -64,7 +64,7 @@ public abstract class RelevanceQuery<T extends QueryBuilder> extends LuceneQuery
     var iterator = arguments.listIterator();
     while (iterator.hasNext()) {
       NamedArgumentExpression arg = iterator.next();
-      String argNormalized = arg.getArgName().toLowerCase();
+      String argNormalized = arg.getArgName().toLowerCase(Locale.ROOT);
 
       checkValidArguments(argNormalized, queryBuilder);
 

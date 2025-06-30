@@ -9,6 +9,7 @@ import com.alibaba.druid.sql.ast.SQLExpr;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.opensearch.action.search.SearchAction;
 import org.opensearch.action.search.SearchRequestBuilder;
@@ -378,7 +379,7 @@ public class AggregationQueryAction extends QueryAction {
       return false;
     }
     MethodField methodField = (MethodField) filterFieldCandidate;
-    if (!methodField.getName().toLowerCase().equals("filter")) {
+    if (!methodField.getName().toLowerCase(Locale.ROOT).equals("filter")) {
       return false;
     }
     builder.subAggregation(aggMaker.makeGroupAgg(filterFieldCandidate).subAggregation(agg));

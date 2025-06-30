@@ -268,7 +268,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     return StringUtils.format(
         "%s | %s %d %s%s",
         child,
-        node.getCommandType().name().toLowerCase(),
+        node.getCommandType().name().toLowerCase(Locale.ROOT),
         noOfResults,
         options,
         String.join(" ", fields, groupBy(group)).trim());
