@@ -400,6 +400,10 @@ public interface PPLTypeChecker {
               OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER));
           case ANY, IGNORE -> List.of(
               OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.ANY));
+            // We borrow SqlTypeFamily.NULL to represent EXPR_IP. This is a workaround
+            // since there is no corresponding IP type family in Calcite.
+          case NULL -> List.of(
+              OpenSearchTypeFactory.TYPE_FACTORY.createUDT(OpenSearchTypeFactory.ExprUDT.EXPR_IP));
           default -> {
             RelDataType type = family.getDefaultConcreteType(OpenSearchTypeFactory.TYPE_FACTORY);
             if (type == null) {
