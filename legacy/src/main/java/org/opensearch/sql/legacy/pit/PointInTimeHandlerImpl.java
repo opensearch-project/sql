@@ -142,7 +142,7 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
    */
   private String truncatePitId(String pitId) {
     if (pitId == null) return "null";
-    if (pitId.length() <= 12) return pitId;
-    return pitId.substring(0, 12);
+    if (pitId.length() <= 20) return pitId;
+    return pitId.substring(0, 20);
   }
 }

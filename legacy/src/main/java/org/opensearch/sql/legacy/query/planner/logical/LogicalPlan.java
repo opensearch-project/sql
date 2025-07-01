@@ -171,7 +171,7 @@ public class LogicalPlan implements Plan {
   }
 
   private LogicalOperator group(TableInJoinRequestBuilder request, int pageSize) {
-    return new Group(new TableScan(request, pageSize, config));
+    return new Group(new TableScan(request, pageSize));
   }
 
   private List<TableInJoinRequestBuilder> getRequests() {

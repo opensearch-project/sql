@@ -5,14 +5,11 @@
 
 package org.opensearch.sql.legacy.query.planner.core;
 
-import static org.opensearch.sql.common.setting.Settings.Key.SQL_CURSOR_KEEP_ALIVE;
-
 import java.util.Optional;
 import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.unit.TimeValue;
-import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.query.planner.resource.blocksize.AdaptiveBlockSize;
 import org.opensearch.sql.legacy.query.planner.resource.blocksize.BlockSize;
 import org.opensearch.sql.legacy.query.planner.resource.blocksize.BlockSize.FixedBlockSize;
@@ -162,31 +159,6 @@ public class Config {
     LOG.info(
         "Config: Set custom PIT keepalive to: {}",
         customPitKeepAlive.map(t -> t + " (" + t.getMillis() + "ms)").orElse("default"));
-  }
-
-  /**
-   * Get the effective PIT keepalive timeout
-   *
-   * @return Custom timeout if set, otherwise default timeout
-   */
-  public TimeValue getEffectivePitKeepAlive() {
-    return customPitKeepAlive
-        .map(
-            timeout -> {
-              LOG.debug(
-                  "Config: Using custom PIT keepalive: {} ({}ms)", timeout, timeout.getMillis());
-              return timeout;
-            })
-        .orElseGet(
-            () -> {
-              TimeValue defaultKeepAlive =
-                  LocalClusterState.state().getSettingValue(SQL_CURSOR_KEEP_ALIVE);
-              LOG.debug(
-                  "Config: Using default PIT keepalive: {} ({}ms)",
-                  defaultKeepAlive,
-                  defaultKeepAlive.getMillis());
-              return defaultKeepAlive;
-            });
   }
 
   /**

@@ -2,12 +2,10 @@
  * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  */
-
 package org.opensearch.sql.legacy.query.planner.physical.node.pointInTime;
 
 import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
 
-import java.util.Optional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.unit.TimeValue;
@@ -22,28 +20,13 @@ import org.opensearch.sql.legacy.query.planner.physical.node.Paginate;
 
 /** OpenSearch Search API with Point in time as physical implementation of TableScan */
 public class PointInTime extends Paginate {
-
   private static final Logger LOG = LogManager.getLogger();
 
   private String pitId;
   private PointInTimeHandlerImpl pit;
-  private final Optional<Config> config;
 
   public PointInTime(TableInJoinRequestBuilder request, int pageSize) {
     super(request, pageSize);
-    this.config = Optional.empty();
-  }
-
-  /**
-   * Enhanced constructor with Config for custom timeout support
-   *
-   * @param request Table request builder
-   * @param pageSize Page size for pagination
-   * @param config Configuration object containing custom PIT settings
-   */
-  public PointInTime(TableInJoinRequestBuilder request, int pageSize, Config config) {
-    super(request, pageSize);
-    this.config = Optional.ofNullable(config);
   }
 
   @Override
@@ -60,11 +43,17 @@ public class PointInTime extends Paginate {
 
   @Override
   protected void loadFirstBatch() {
-    if (config.isPresent()) {
-      LOG.info("PointInTime: Creating PIT with config support");
+    // Check if this table has JOIN_TIME_OUT hint configured
+    if (request.hasJoinTimeoutHint()) {
+      Config hintConfig = request.getHintConfig();
+      LOG.info(
+          "PointInTime: Creating PIT with JOIN_TIME_OUT hint support: {} seconds",
+          hintConfig
+              .getCustomPitKeepAlive()
+              .map(t -> String.valueOf(t.getSeconds()))
+              .orElse("unknown"));
       pit =
-          new PointInTimeHandlerImpl(
-              client, request.getOriginalSelect().getIndexArr(), config.get());
+          new PointInTimeHandlerImpl(client, request.getOriginalSelect().getIndexArr(), hintConfig);
     } else {
       LOG.info("PointInTime: Creating PIT with default settings");
       pit = new PointInTimeHandlerImpl(client, request.getOriginalSelect().getIndexArr());
@@ -72,7 +61,6 @@ public class PointInTime extends Paginate {
 
     pit.create();
     pitId = pit.getPitId();
-
     LOG.info("Loading first batch of response using Point In Time");
     searchResponse =
         request
@@ -91,8 +79,7 @@ public class PointInTime extends Paginate {
     SearchHit[] hits = searchResponse.getHits().getHits();
     if (hits != null && hits.length > 0) {
       Object[] sortValues = hits[hits.length - 1].getSortValues();
-
-      LOG.info("Loading next batch of response using Point In Time. - " + pitId);
+      LOG.info("Loading next batch of response using Point In Time. - " + truncatePitId(pitId));
       searchResponse =
           request
               .getRequestBuilder()
@@ -102,5 +89,17 @@ public class PointInTime extends Paginate {
               .searchAfter(sortValues)
               .get();
     }
+  }
+
+  /**
+   * Truncate PIT ID for logging to improve readability
+   *
+   * @param pitId the PIT ID to truncate
+   * @return truncated PIT ID string
+   */
+  private String truncatePitId(String pitId) {
+    if (pitId == null) return "null";
+    if (pitId.length() <= 20) return pitId;
+    return pitId.substring(0, 20);
   }
 }
