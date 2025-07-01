@@ -130,3 +130,31 @@ The response in JSON format is::
       },
       "status": 400
     }
+
+Limitations on Calcite Engine
+=============================
+
+Since 3.0.0, we introduce Apache Calcite as an experimental query engine. Please see `introduce v3 engine <../../../dev/intro-v3-engine.md>`_.
+For the following functionalities, the query will be forwarded to the V2 query engine.
+
+* All SQL queries
+
+* ``dedup`` with ``consecutive=true``
+
+* Search relevant commands
+
+    * AD
+    * ML
+    * Kmeans
+
+* Commands with ``fetch_size`` parameter
+
+* Search relevant functions
+
+    * match
+    * match_phrase
+    * match_bool_prefix
+    * match_phrase_prefix
+    * simple_query_string
+    * query_string
+    * multi_match
