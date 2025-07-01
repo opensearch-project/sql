@@ -79,11 +79,7 @@ public class ExplainIT extends PPLIntegTestCase {
   @Test
   public void testSortWithAggregationExplain() throws IOException {
     // Sorts whose by fields are aggregators should not be pushed down
-    String expected =
-        isCalciteEnabled()
-            ? loadFromFile("expectedOutput/calcite/explain_sort_agg_push.json")
-            : loadFromFile("expectedOutput/ppl/explain_sort_agg_push.json");
-
+    String expected = loadExpectedPlan("explain_sort_agg_push.json");
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
@@ -99,11 +95,7 @@ public class ExplainIT extends PPLIntegTestCase {
   public void testMultiSortPushDownExplain() throws IOException {
     // TODO: Fix the expected output in expectedOutput/ppl/explain_multi_sort_push.json (v2)
     //  balance and gender should take precedence over account_number and firstname
-    String expected =
-        isCalciteEnabled()
-            ? loadFromFile("expectedOutput/calcite/explain_multi_sort_push.json")
-            : loadFromFile("expectedOutput/ppl/explain_multi_sort_push.json");
-
+    String expected = loadExpectedPlan("explain_multi_sort_push.json");
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
@@ -117,11 +109,7 @@ public class ExplainIT extends PPLIntegTestCase {
   public void testSortThenAggregatePushDownExplain() throws IOException {
     // TODO: Remove pushed-down sort in DSL in expectedOutput/ppl/explain_sort_then_agg_push.json
     //  existing collations should be eliminated when pushing down aggregations (v2)
-    String expected =
-        isCalciteEnabled()
-            ? loadFromFile("expectedOutput/calcite/explain_sort_then_agg_push.json")
-            : loadFromFile("expectedOutput/ppl/explain_sort_then_agg_push.json");
-
+    String expected = loadExpectedPlan("explain_sort_then_agg_push.json");
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
@@ -132,11 +120,7 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testSortWithRenameExplain() throws IOException {
-    String expected =
-        isCalciteEnabled()
-            ? loadFromFile("expectedOutput/calcite/explain_sort_rename_push.json")
-            : loadFromFile("expectedOutput/ppl/explain_sort_rename_push.json");
-
+    String expected = loadExpectedPlan("explain_sort_rename_push.json");
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
@@ -153,10 +137,7 @@ public class ExplainIT extends PPLIntegTestCase {
    */
   @Test
   public void testSortThenLimitExplain() throws IOException {
-    String expected =
-        isCalciteEnabled()
-            ? loadFromFile("expectedOutput/calcite/explain_sort_then_limit_push.json")
-            : loadFromFile("expectedOutput/ppl/explain_sort_then_limit_push.json");
+    String expected = loadExpectedPlan("explain_sort_then_limit_push.json");
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
@@ -174,10 +155,7 @@ public class ExplainIT extends PPLIntegTestCase {
   public void testLimitThenSortExplain() throws IOException {
     // TODO: Fix the expected output in expectedOutput/ppl/explain_limit_then_sort_push.json (v2)
     //  limit-then-sort should not be pushed down.
-    String expected =
-        isCalciteEnabled()
-            ? loadFromFile("expectedOutput/calcite/explain_limit_then_sort_push.json")
-            : loadFromFile("expectedOutput/ppl/explain_limit_then_sort_push.json");
+    String expected = loadExpectedPlan("explain_limit_then_sort_push.json");
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(

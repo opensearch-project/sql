@@ -1,0 +1,6 @@
+{
+  "calcite": {
+    "logical": "LogicalSort(sort0=[$0], dir0=[ASC])\n  LogicalProject(age=[$8])\n    LogicalSort(sort0=[$8], dir0=[ASC])\n      LogicalSort(fetch=[5])\n        CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
+    "physical": "EnumerableSort(sort0=[$0], dir0=[ASC])\n  EnumerableCalc(expr#0..16=[{inputs}], age=[$t8])\n    EnumerableLimit(fetch=[5])\n      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n"
+  }
+}
