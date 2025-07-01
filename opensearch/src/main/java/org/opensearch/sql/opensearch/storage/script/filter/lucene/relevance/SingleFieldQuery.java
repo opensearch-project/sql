@@ -46,6 +46,16 @@ abstract class SingleFieldQuery<T extends QueryBuilder> extends RelevanceQuery<T
 
   protected abstract T createBuilder(String field, String query);
 
+  /**
+   * Build single field relevance query builder based on Calcite function's operands. For
+   * SingleFieldQuery, field and query string parameter are required.
+   *
+   * @param field Target field name
+   * @param query String query to search
+   * @param mapRexCall Calcite MAP RexCall that wraps optional relevance query argument key value
+   *     pairs
+   * @return Final QueryBuilder
+   */
   public T build(String field, String query, RexCall mapRexCall) {
     T queryBuilder = createBuilder(field, query);
     return applyArguments(queryBuilder, mapRexCall);

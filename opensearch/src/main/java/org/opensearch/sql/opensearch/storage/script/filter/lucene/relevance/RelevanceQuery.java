@@ -8,6 +8,7 @@ package org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
@@ -94,6 +95,15 @@ public abstract class RelevanceQuery<T extends QueryBuilder> extends LuceneQuery
     return loadArguments(arguments);
   }
 
+  /**
+   * Enrich initially created opensearch index query builder with optional arguments that are
+   * wrapped in Calcite MAP RexCall.
+   *
+   * @param queryBuilder queryBuilder Initially created opensearch index relevance query builder
+   * @param mapRexCall Calcite MAP RexCall that wraps optional relevance query argument key value
+   *     pairs
+   * @return enriched QueryBuilder
+   */
   protected T applyArguments(T queryBuilder, RexCall mapRexCall) {
     if (mapRexCall != null) {
       List<RexNode> keyValueNodes = mapRexCall.getOperands();
@@ -108,14 +118,21 @@ public abstract class RelevanceQuery<T extends QueryBuilder> extends LuceneQuery
                     if (!SqlTypeUtil.isCharacter(keyLiteral.getType())
                         || !SqlTypeUtil.isCharacter(valueLiteral.getType())) {
                       throw new SemanticCheckException(
-                          "Relevance query key value must be string literal");
+                          String.format(
+                              Locale.ROOT,
+                              "Relevance query argument both key [%s] and value [%s] must be string"
+                                  + " literal",
+                              keyLiteral.getValue(),
+                              valueLiteral.getValue()));
                     }
+                    // Argument key should be always lower case
                     String key =
                         ((NlsString) Objects.requireNonNull(keyLiteral.getValue()))
                             .getValue()
                             .toLowerCase(Locale.ROOT);
                     checkValidArguments(key, queryBuilder);
 
+                    // Argument value is always string literal
                     String value =
                         ((NlsString) Objects.requireNonNull(valueLiteral.getValue())).getValue();
 
@@ -123,8 +140,7 @@ public abstract class RelevanceQuery<T extends QueryBuilder> extends LuceneQuery
                   })
               .collect(
                   Collectors.groupingBy(
-                      Map.Entry::getKey,
-                      Collectors.mapping(Map.Entry::getValue, Collectors.toList())));
+                      Entry::getKey, Collectors.mapping(Entry::getValue, Collectors.toList())));
 
       groupedArgs.forEach(
           (k, v) -> {

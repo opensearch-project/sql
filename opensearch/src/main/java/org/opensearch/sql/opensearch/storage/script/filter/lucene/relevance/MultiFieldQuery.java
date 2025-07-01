@@ -53,6 +53,16 @@ abstract class MultiFieldQuery<T extends QueryBuilder> extends RelevanceQuery<T>
 
   protected abstract T createBuilder(ImmutableMap<String, Float> fields, String query);
 
+  /**
+   * Build multi-fields relevance query builder based on Calcite function's operands. For
+   * MultiFieldQuery, fields with weights and query string parameter are required.
+   *
+   * @param fieldsRexCall Calcite MAP RexCall that wraps multi-fields and corresponding weights
+   * @param query String query to search
+   * @param mapRexCall Calcite MAP RexCall that wraps optional relevance query argument key value
+   *     pairs
+   * @return Final QueryBuilder
+   */
   public T build(RexCall fieldsRexCall, String query, RexCall mapRexCall) {
     List<RexNode> fieldAndWeightNodes = fieldsRexCall.getOperands();
     ImmutableMap<String, Float> fields =

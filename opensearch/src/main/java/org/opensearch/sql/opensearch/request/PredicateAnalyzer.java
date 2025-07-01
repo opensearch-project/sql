@@ -289,10 +289,10 @@ public class PredicateAnalyzer {
         case FUNCTION:
           String funcName = call.getOperator().getName().toLowerCase(Locale.ROOT);
           List<RexNode> ops = call.getOperands();
-          assert ops.size() == 2 || ops.size() == 3
-              : "Relevance query function should have 2 or 3 operands";
 
           if (SINGLE_FIELD_RELEVANCE_FUNCTION_SET.contains(funcName)) {
+            assert ops.size() == 2 || ops.size() == 3
+                : "Relevance query function should have 2 or 3 operands";
             List<Expression> fieldQueryOperands;
             RexCall mapRexCall;
             if (!(ops.get(ops.size() - 1) instanceof RexCall)) {
@@ -304,25 +304,32 @@ public class PredicateAnalyzer {
             }
             String queryLiteralOperand =
                 ((LiteralExpression) fieldQueryOperands.get(1)).stringValue();
+            NamedFieldExpression namedFieldExpression =
+                (NamedFieldExpression) fieldQueryOperands.get(0);
 
             switch (funcName) {
               case "match":
-                return QueryExpression.create((NamedFieldExpression) fieldQueryOperands.get(0))
+                return QueryExpression.create(namedFieldExpression)
                     .match(queryLiteralOperand, mapRexCall);
               case "match_phrase":
-                return QueryExpression.create((NamedFieldExpression) fieldQueryOperands.get(0))
+                return QueryExpression.create(namedFieldExpression)
                     .matchPhrase(queryLiteralOperand, mapRexCall);
               case "match_bool_prefix":
-                return QueryExpression.create((NamedFieldExpression) fieldQueryOperands.get(0))
+                return QueryExpression.create(namedFieldExpression)
                     .matchBoolPrefix(queryLiteralOperand, mapRexCall);
               case "match_phrase_prefix":
-                return QueryExpression.create((NamedFieldExpression) fieldQueryOperands.get(0))
+                return QueryExpression.create(namedFieldExpression)
                     .matchPhrasePrefix(queryLiteralOperand, mapRexCall);
               default:
                 throw new PredicateAnalyzerException(
-                    "Unsupported single field relevance query function");
+                    String.format(
+                        Locale.ROOT,
+                        "Unsupported single field relevance query function: %s",
+                        funcName));
             }
           } else if (MULTI_FIELDS_RELEVANCE_FUNCTION_SET.contains(funcName)) {
+            assert ops.size() == 2 || ops.size() == 3
+                : "Relevance query function should have 2 or 3 operands";
             RexCall fieldsRexCall = (RexCall) ops.get(0);
             String queryLiteralOperand =
                 ((LiteralExpression) visitList(List.of(ops.get(1))).get(0)).stringValue();
@@ -330,19 +337,24 @@ public class PredicateAnalyzer {
                 !(ops.get(ops.size() - 1) instanceof RexCall)
                     ? null
                     : (RexCall) call.getOperands().get(call.getOperands().size() - 1);
+            NamedFieldExpression namedFieldExpression = new NamedFieldExpression();
+
             switch (funcName) {
               case "simple_query_string":
-                return QueryExpression.create(new NamedFieldExpression())
+                return QueryExpression.create(namedFieldExpression)
                     .simpleQueryString(fieldsRexCall, queryLiteralOperand, mapRexCall);
               case "query_string":
-                return QueryExpression.create(new NamedFieldExpression())
+                return QueryExpression.create(namedFieldExpression)
                     .queryString(fieldsRexCall, queryLiteralOperand, mapRexCall);
               case "multi_match":
-                return QueryExpression.create(new NamedFieldExpression())
+                return QueryExpression.create(namedFieldExpression)
                     .multiMatch(fieldsRexCall, queryLiteralOperand, mapRexCall);
               default:
                 throw new PredicateAnalyzerException(
-                    "Unsupported multi fields relevance query function");
+                    String.format(
+                        Locale.ROOT,
+                        "Unsupported multi fields relevance query function: %s",
+                        funcName));
             }
           }
           // fall through

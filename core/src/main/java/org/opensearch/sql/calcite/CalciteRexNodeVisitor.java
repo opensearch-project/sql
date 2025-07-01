@@ -510,9 +510,9 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       for (UnresolvedExpression arg : args) {
         String unresolvedArgName = ((UnresolvedArgument) arg).getArgName();
         // Relevance function first two arguments are always "field", "query" or "fields", "query"
-        if ("field".equals(unresolvedArgName)
-            || "query".equals(unresolvedArgName)
-            || "fields".equals(unresolvedArgName)) {
+        if ("field".equalsIgnoreCase(unresolvedArgName)
+            || "query".equalsIgnoreCase(unresolvedArgName)
+            || "fields".equalsIgnoreCase(unresolvedArgName)) {
           arguments.add(analyze(arg, context));
         } else {
           varArgRexNodeList.add(
