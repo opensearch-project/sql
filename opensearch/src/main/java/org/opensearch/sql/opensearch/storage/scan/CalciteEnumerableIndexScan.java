@@ -23,6 +23,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
@@ -46,19 +47,13 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan impleme
    */
   public CalciteEnumerableIndexScan(
       RelOptCluster cluster,
+      RelTraitSet traitSet,
       List<RelHint> hints,
       RelOptTable table,
       OpenSearchIndex osIndex,
       RelDataType schema,
       PushDownContext pushDownContext) {
-    super(
-        cluster,
-        cluster.traitSetOf(EnumerableConvention.INSTANCE),
-        hints,
-        table,
-        osIndex,
-        schema,
-        pushDownContext);
+    super(cluster, traitSet, hints, table, osIndex, schema, pushDownContext);
   }
 
   @Override
