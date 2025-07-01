@@ -418,20 +418,35 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         schema("WEEK(DATE('2008-02-20'))", "int"),
         schema("WEEK(DATE('2008-02-20'), 1)", "int"));
 
-    verifyDataRows(actual, rows(15, 15, 15, 15, 7, 8));
+    int week19840412 = getYearWeek(LocalDate.of(1984, 4, 12), 0) % 100;
+    int week19840412Mode1 = getYearWeek(LocalDate.of(1984, 4, 12), 1) % 100;
+    int week20080220 = getYearWeek(LocalDate.of(2008, 2, 20), 0) % 100;
+    int week20080220Mode1 = getYearWeek(LocalDate.of(2008, 2, 20), 1) % 100;
+    verifyDataRows(
+        actual,
+        rows(
+            week19840412,
+            week19840412,
+            week19840412Mode1,
+            week19840412Mode1,
+            week20080220,
+            week20080220Mode1));
   }
 
   @Test
-  public void testWeekAndWeekOfYearWithFilter() throws IOException {
+  public void testWeekAndWeekOfYearWithFilter() {
+    int week19840412 = getYearWeek(LocalDate.of(1984, 4, 12), 0) % 100;
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | fields  strict_date_optional_time"
                     + "| where YEAR(strict_date_optional_time) < 2000"
-                    + "| where WEEK(DATE(strict_date_optional_time)) = 15"
+                    + "| where WEEK(DATE(strict_date_optional_time)) = %d"
                     + "| stats COUNT() AS CNT "
                     + "| head 1 ",
-                TEST_INDEX_DATE_FORMATS));
+                TEST_INDEX_DATE_FORMATS,
+                week19840412));
 
     verifySchema(actual, schema("CNT", "bigint"));
 
@@ -464,13 +479,14 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
-  public void testYearWeek() throws IOException {
+  public void testYearWeek() {
     int currentYearWeek =
-        exprYearweek(
-                new ExprDateValue(
-                    LocalDateTime.now(new FunctionProperties().getQueryStartClock()).toLocalDate()),
-                new ExprIntegerValue(0))
-            .integerValue();
+        getYearWeek(
+            LocalDateTime.now(new FunctionProperties().getQueryStartClock()).toLocalDate(), 0);
+    int yearWeek19840412 = getYearWeek(LocalDate.of(1984, 4, 12), 0);
+    int yearWeek20200826 = getYearWeek(LocalDate.of(2020, 8, 26), 0);
+    int yearWeek20190105 = getYearWeek(LocalDate.of(2019, 1, 5), 1);
+    // Write to a tmp file
     JSONObject actual =
         executeQuery(
             String.format(
@@ -491,7 +507,14 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         schema("YEARWEEK('2020-08-26')", "int"),
         schema("YEARWEEK('2019-01-05', 1)", "int"));
 
-    verifyDataRows(actual, rows(198415, currentYearWeek, 198415, 202034, 201901));
+    verifyDataRows(
+        actual,
+        rows(
+            yearWeek19840412,
+            currentYearWeek,
+            yearWeek19840412,
+            yearWeek20200826,
+            yearWeek20190105));
   }
 
   @Test
@@ -1004,6 +1027,8 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         offsetUTC.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
     String expectedDatetimeAtPlus8 =
         offsetPlus8.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+    int week19840412 = getYearWeek(LocalDate.of(1984, 4, 12), 0) % 100;
+    int week19840412Mode1 = getYearWeek(LocalDate.of(1984, 4, 12), 1) % 100;
 
     verifyDataRows(
         actual,
@@ -1016,8 +1041,8 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
             "2017-11-02",
             expectedDatetimeAtPlus8,
             expectedDatetimeAtUTC,
-            "15 1984 15",
-            "15 15 1984",
+            String.format(Locale.ROOT, "%d 1984 %d", week19840412, week19840412),
+            String.format(Locale.ROOT, "%d %d 1984", week19840412Mode1, week19840412Mode1),
             "09:07:42.000123"));
   }
 
@@ -1451,5 +1476,9 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         schema("m4", "int"),
         schema("m5", "int"));
     verifyDataRows(actual, rows(0, 0, 0, 123456, 123456));
+  }
+
+  private static int getYearWeek(LocalDate date, int mode) {
+    return exprYearweek(new ExprDateValue(date), new ExprIntegerValue(mode)).integerValue();
   }
 }
