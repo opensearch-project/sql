@@ -129,8 +129,6 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testSortThenAggregatePushDownExplain() throws IOException {
-    // TODO: Remove pushed-down sort in DSL in expectedOutput/ppl/explain_sort_then_agg_push.json
-    //  existing collations should be eliminated when pushing down aggregations (v2)
     String expected =
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_sort_then_agg_push.json")
