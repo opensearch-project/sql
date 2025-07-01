@@ -155,4 +155,11 @@ public class SortCommandIT extends PPLIntegTestCase {
             String.format("source=%s | sort dog_name, age | fields dog_name, age", TEST_INDEX_DOG));
     verifyOrder(result, rows("rex", 2), rows("snoopy", 4));
   }
+
+  @Test
+  public void testSortThenHead() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source=%s | sort age | head 2 | fields age", TEST_INDEX_BANK));
+    verifyOrder(result, rows(28), rows(32));
+  }
 }

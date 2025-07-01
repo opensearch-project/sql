@@ -89,6 +89,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                           estimated = mq.getRowCount((RelNode) action.digest);
                           break;
                         case PROJECT:
+                        case SORT:
                           estimated = rowCount;
                           break;
                         case FILTER:
@@ -111,7 +112,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
   public static class PushDownContext extends ArrayDeque<PushDownAction> {
 
     private boolean isAggregatePushed = false;
-    private boolean isLimitPushed = false;
+    @Getter private boolean isLimitPushed = false;
 
     @Override
     public PushDownContext clone() {
@@ -120,8 +121,6 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
 
     @Override
     public boolean add(PushDownAction pushDownAction) {
-      // Defense check. It should never do push down to this context after aggregate push-down.
-      assert !isAggregatePushed : "Aggregate has already been pushed!";
       if (pushDownAction.type == PushDownType.AGGREGATION) {
         isAggregatePushed = true;
       }
@@ -136,17 +135,13 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
       isAggregatePushed = !isEmpty() && super.peekLast().type == PushDownType.AGGREGATION;
       return isAggregatePushed;
     }
-
-    public boolean isLimitPushed() {
-      return isLimitPushed;
-    }
   }
 
   protected enum PushDownType {
     FILTER,
     PROJECT,
     AGGREGATION,
-    // SORT,
+    SORT,
     LIMIT,
     // HIGHLIGHT,
     // NESTED
