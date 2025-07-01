@@ -9,7 +9,9 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
 import static org.opensearch.sql.util.MatcherUtils.rows;
+import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
 import java.util.stream.Collectors;
@@ -203,5 +205,28 @@ public class WhereCommandIT extends PPLIntegTestCase {
             .map(type -> String.format("[%s,%s]", type.typeName(), type.typeName()))
             .collect(Collectors.joining(",", "{", "}")),
         "[LONG,STRING]");
+  }
+
+  @Test
+  public void testFilterScriptPushDown() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where firstname ='Amber' and age - 2.0 = 30 | fields firstname, age",
+                TEST_INDEX_ACCOUNT));
+    verifySchema(actual, schema("firstname", "string"), schema("age", "bigint"));
+    verifyDataRows(actual, rows("Amber", 32));
+  }
+
+  @Test
+  public void testFilterScriptPushDownWithFunction() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where length(firstname) = 5 and abs(age) = 32 and balance = 39225 |"
+                    + " fields firstname, age",
+                TEST_INDEX_ACCOUNT));
+    verifySchema(actual, schema("firstname", "string"), schema("age", "bigint"));
+    verifyDataRows(actual, rows("Amber", 32));
   }
 }
