@@ -5,8 +5,8 @@
 
 package org.opensearch.sql.calcite.utils.datetime;
 
-import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS;
 import static org.opensearch.sql.utils.DateTimeFormatters.STRICT_DATE_FORMATTER;
+import static org.opensearch.sql.utils.DateTimeFormatters.STRICT_TIMESTAMP_FORMATTER;
 import static org.opensearch.sql.utils.DateTimeFormatters.STRICT_TIME_FORMATTER;
 
 import com.google.common.collect.ImmutableList;
@@ -93,8 +93,7 @@ public interface DateTimeParser {
   }
 
   static LocalDateTime parseTimestamp(String input) {
-    List<DateTimeFormatter> dateTimeFormatters =
-        ImmutableList.of(DATE_TIME_FORMATTER_VARIABLE_NANOS);
+    List<DateTimeFormatter> dateTimeFormatters = ImmutableList.of(STRICT_TIMESTAMP_FORMATTER);
 
     for (DateTimeFormatter fmt : dateTimeFormatters) {
       try {

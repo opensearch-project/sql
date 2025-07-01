@@ -129,6 +129,14 @@ public class DateTimeFormatters {
           .toFormatter(Locale.ROOT)
           .withResolverStyle(ResolverStyle.STRICT);
 
+  public static final DateTimeFormatter STRICT_TIMESTAMP_FORMATTER =
+      new DateTimeFormatterBuilder()
+          .appendPattern("[uuuu-MM-dd HH:mm:ss][uuuu-MM-dd HH:mm]")
+          .appendFraction(
+              ChronoField.NANO_OF_SECOND, MIN_FRACTION_SECONDS, MAX_FRACTION_SECONDS, true)
+          .toFormatter(Locale.ROOT)
+          .withResolverStyle(ResolverStyle.STRICT);
+
   public static final DateTimeFormatter STRICT_DATE_FORMATTER =
       new DateTimeFormatterBuilder()
           .appendPattern("[uuuu-MM-dd]")
