@@ -1471,8 +1471,9 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     assertThrows(ResponseException.class, () -> executeQuery("select {t '2020-09-16'}"));
     assertThrows(ResponseException.class, () -> executeQuery("select {date '17:30:00'}"));
     assertThrows(ResponseException.class, () -> executeQuery("select {d '17:30:00'}"));
-    assertThrows(ResponseException.class, () -> executeQuery("select {timestamp '2020-09-16'}"));
-    assertThrows(ResponseException.class, () -> executeQuery("select {ts '2020-09-16'}"));
+    // The following test case is removed because they will be parsed to proper timestamps
+    // assertThrows(ResponseException.class, () -> executeQuery("select {timestamp '2020-09-16'}"));
+    // assertThrows(ResponseException.class, () -> executeQuery("select {ts '2020-09-16'}"));
     assertThrows(ResponseException.class, () -> executeQuery("select {timestamp '17:30:00'}"));
     assertThrows(ResponseException.class, () -> executeQuery("select {ts '17:30:00'}"));
   }
