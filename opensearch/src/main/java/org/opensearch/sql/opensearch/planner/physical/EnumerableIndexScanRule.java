@@ -43,6 +43,8 @@ public class EnumerableIndexScanRule extends ConverterRule {
     final CalciteLogicalIndexScan scan = (CalciteLogicalIndexScan) rel;
     return new CalciteEnumerableIndexScan(
         scan.getCluster(),
+        // Retains RelDistribution and RelCollation but replaces Convention
+        scan.getTraitSet().plus(EnumerableConvention.INSTANCE),
         scan.getHints(),
         scan.getTable(),
         scan.getOsIndex(),
