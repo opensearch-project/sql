@@ -27,7 +27,6 @@ dependencies {
         exclude group: 'org.bouncycastle', module: 'bcprov-ext-jdk18on'
     }
     implementation "org.bouncycastle:bc-fips:${versions.bouncycastle_jce}"
-    implementation group: 'commons-validator', name: 'commons-validator', version: '1.7'
 
     testImplementation group: 'junit', name: 'junit', version: '4.13.2'
     testImplementation('org.junit.jupiter:junit-jupiter:5.9.3')
