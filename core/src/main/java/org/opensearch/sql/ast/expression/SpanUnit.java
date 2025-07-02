@@ -44,8 +44,8 @@ public enum SpanUnit {
 
   /** Util method to get span unit given the unit name. */
   public static SpanUnit of(String unit) {
+    if (unit == null) return NONE;
     switch (unit) {
-      case null:
       case "":
         return NONE;
       case "M":
