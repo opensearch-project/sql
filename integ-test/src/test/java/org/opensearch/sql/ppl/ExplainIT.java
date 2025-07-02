@@ -6,6 +6,7 @@
 package org.opensearch.sql.ppl;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 
 import java.io.IOException;
@@ -122,7 +123,6 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testSortPushDownExplain() throws IOException {
-    // TODO fix after https://github.com/opensearch-project/sql/issues/3380
     String expected =
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_sort_push.json")
@@ -134,6 +134,115 @@ public class ExplainIT extends PPLIntegTestCase {
             "source=opensearch-sql_test_index_account"
                 + "| sort age "
                 + "| where age > 30"
+                + "| fields age"));
+  }
+
+  @Test
+  public void testSortWithAggregationExplain() throws IOException {
+    // Sorts whose by fields are aggregators should not be pushed down
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_sort_agg_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_sort_agg_push.json");
+
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| stats avg(age) AS avg_age by state, city "
+                + "| sort avg_age"));
+
+    // sorts whose by fields are not aggregators can be pushed down.
+    // This test is covered in testExplain
+  }
+
+  @Test
+  public void testMultiSortPushDownExplain() throws IOException {
+    // TODO: Fix the expected output in expectedOutput/ppl/explain_multi_sort_push.json (v2)
+    //  balance and gender should take precedence over account_number and firstname
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_multi_sort_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_multi_sort_push.json");
+
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account "
+                + "| sort account_number, firstname, address, balance "
+                + "| sort - balance, - gender, address "
+                + "| fields account_number, firstname, address, balance, gender"));
+  }
+
+  @Test
+  public void testSortThenAggregatePushDownExplain() throws IOException {
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_sort_then_agg_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_sort_then_agg_push.json");
+
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| sort balance, age "
+                + "| stats avg(balance) by state"));
+  }
+
+  @Test
+  public void testSortWithRenameExplain() throws IOException {
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_sort_rename_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_sort_rename_push.json");
+
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account "
+                + "| rename firstname as name "
+                + "| eval alias = name "
+                + "|  sort alias "
+                + "| fields alias"));
+  }
+
+  /**
+   * Pushdown SORT and LIMIT Sort should be pushed down since DSL process sort before limit when
+   * they coexist
+   */
+  @Test
+  public void testSortThenLimitExplain() throws IOException {
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_sort_then_limit_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_sort_then_limit_push.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| sort age "
+                + "| head 5 "
+                + "| fields age"));
+  }
+
+  /**
+   * Push down LIMIT only Sort should NOT be pushed down since DSL process limit before sort when
+   * they coexist
+   */
+  @Test
+  public void testLimitThenSortExplain() throws IOException {
+    // TODO: Fix the expected output in expectedOutput/ppl/explain_limit_then_sort_push.json (v2)
+    //  limit-then-sort should not be pushed down.
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_limit_then_sort_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_limit_then_sort_push.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| head 5 "
+                + "| sort age "
                 + "| fields age"));
   }
 
@@ -288,6 +397,7 @@ public class ExplainIT extends PPLIntegTestCase {
             ? loadFromFile("expectedOutput/calcite/explain_trendline_sort_push.json")
             : loadFromFile("expectedOutput/ppl/explain_trendline_sort_push.json");
 
+    // Sort will not be pushed down because there's a head before it.
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
@@ -349,5 +459,41 @@ public class ExplainIT extends PPLIntegTestCase {
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
                 + "| patterns email method=brain mode=aggregation"));
+  }
+
+  @Test
+  public void testStatsBySpan() throws IOException {
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_stats_by_span.json")
+            : loadFromFile("expectedOutput/ppl/explain_stats_by_span.json");
+
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format("source=%s | stats count() by span(age,10)", TEST_INDEX_BANK)));
+  }
+
+  @Test
+  public void testStatsByTimeSpan() throws IOException {
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_stats_by_timespan.json")
+            : loadFromFile("expectedOutput/ppl/explain_stats_by_timespan.json");
+
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format("source=%s | stats count() by span(birthdate,1m)", TEST_INDEX_BANK)));
+
+    expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_stats_by_timespan2.json")
+            : loadFromFile("expectedOutput/ppl/explain_stats_by_timespan2.json");
+
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format("source=%s | stats count() by span(birthdate,1M)", TEST_INDEX_BANK)));
   }
 }
