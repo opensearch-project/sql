@@ -39,6 +39,7 @@ import static org.opensearch.index.query.QueryBuilders.termQuery;
 import static org.opensearch.index.query.QueryBuilders.termsQuery;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.BoundType;
 import com.google.common.collect.Range;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -219,7 +220,7 @@ public class PredicateAnalyzer {
         case INTERNAL:
           switch (call.getKind()) {
             case SEARCH:
-              return canBeTranslatedToTermsQuery(call);
+              return true;
             default:
               return false;
           }
@@ -416,8 +417,20 @@ public class PredicateAnalyzer {
         case SEARCH:
           if (isSearchWithComplementedPoints(call)) {
             return QueryExpression.create(pair.getKey()).notIn(pair.getValue());
-          } else {
+          } else if (isSearchWithPoints(call)) {
             return QueryExpression.create(pair.getKey()).in(pair.getValue());
+          } else {
+            Sarg<?> sarg = pair.getValue().literal.getValueAs(Sarg.class);
+            Set<? extends Range<?>> rangeSet = sarg.rangeSet.asRanges();
+            List<QueryExpression> queryExpressions =
+                rangeSet.stream()
+                    .map(range -> QueryExpression.create(pair.getKey()).between(range))
+                    .toList();
+            if (queryExpressions.size() == 1) {
+              return queryExpressions.getFirst();
+            } else {
+              return CompoundQueryExpression.or(queryExpressions.toArray(new QueryExpression[0]));
+            }
           }
         default:
           break;
@@ -601,6 +614,11 @@ public class PredicateAnalyzer {
     public abstract QueryExpression in(LiteralExpression literal);
 
     public abstract QueryExpression notIn(LiteralExpression literal);
+
+    public QueryExpression between(Range<?> literal) {
+      throw new PredicateAnalyzer.PredicateAnalyzerException(
+          "between cannot be applied to " + this.getClass());
+    }
 
     public abstract QueryExpression notEquals(LiteralExpression literal);
 
@@ -791,6 +809,11 @@ public class PredicateAnalyzer {
       this.rel = rel;
     }
 
+    public SimpleQueryExpression(QueryBuilder builder) {
+      this.builder = builder;
+      this.rel = null;
+    }
+
     @Override
     public QueryBuilder builder() {
       if (builder == null) {
@@ -924,6 +947,35 @@ public class PredicateAnalyzer {
       Collection<?> collection = (Collection<?>) literal.value();
       builder = boolQuery().mustNot(termsQuery(getFieldReferenceForTermQuery(), collection));
       return this;
+    }
+
+    @Override
+    public QueryExpression between(Range<?> range) {
+      Object lowerBound =
+          range.hasLowerBound() ? convertEndpointValue(range.lowerEndpoint()) : null;
+      Object upperBound =
+          range.hasUpperBound() ? convertEndpointValue(range.upperEndpoint()) : null;
+      if (range.lowerBoundType() == BoundType.CLOSED
+          && range.upperBoundType() == BoundType.CLOSED) {
+        builder = rangeQuery(getFieldReference()).gte(lowerBound).lte(upperBound);
+      } else if (range.lowerBoundType() == BoundType.OPEN
+          && range.upperBoundType() == BoundType.OPEN) {
+        builder = rangeQuery(getFieldReference()).gt(lowerBound).lt(upperBound);
+      } else if (range.lowerBoundType() == BoundType.CLOSED
+          && range.upperBoundType() == BoundType.OPEN) {
+        builder = rangeQuery(getFieldReference()).gte(lowerBound).lt(upperBound);
+      } else if (range.lowerBoundType() == BoundType.OPEN
+          && range.upperBoundType() == BoundType.CLOSED) {
+        builder = rangeQuery(getFieldReference()).gt(lowerBound).lte(upperBound);
+      }
+      return this;
+    }
+
+    private Object convertEndpointValue(Object value) {
+      if (value instanceof NlsString nls) {
+        return nls.getValue();
+      }
+      return value;
     }
   }
 
@@ -1176,7 +1228,7 @@ public class PredicateAnalyzer {
         || (SqlTypeFamily.TIMESTAMP.contains(op2) && !SqlTypeFamily.TIMESTAMP.contains(op1))
         || (SqlTypeFamily.TIME.contains(op1) && !SqlTypeFamily.TIME.contains(op2))
         || (SqlTypeFamily.TIME.contains(op2) && !SqlTypeFamily.TIME.contains(op1))) {
-      throw new PredicateAnalyzerException(
+      throw new PredicateAnalyzer.PredicateAnalyzerException(
           "Cannot handle " + call.getKind() + " expression for _id field, " + call);
     }
   }
