@@ -6,24 +6,23 @@
 package org.opensearch.sql.opensearch.monitor;
 
 import com.google.common.annotations.VisibleForTesting;
-import java.util.concurrent.ThreadLocalRandom;
 import lombok.NoArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
 /** OpenSearch Memory Monitor. */
 @Log4j2
 public class OpenSearchMemoryHealthy {
-  private final RandomFail randomFail;
+  private final FastFail fastFail;
   private final MemoryUsage memoryUsage;
 
   public OpenSearchMemoryHealthy() {
-    randomFail = new RandomFail();
+    fastFail = new FastFail();
     memoryUsage = new MemoryUsage();
   }
 
   @VisibleForTesting
-  public OpenSearchMemoryHealthy(RandomFail randomFail, MemoryUsage memoryUsage) {
-    this.randomFail = randomFail;
+  public OpenSearchMemoryHealthy(FastFail fastFail, MemoryUsage memoryUsage) {
+    this.fastFail = fastFail;
     this.memoryUsage = memoryUsage;
   }
 
@@ -35,7 +34,8 @@ public class OpenSearchMemoryHealthy {
       return true;
     } else {
       log.warn("Memory usage:{} exceed limit:{}", memoryUsage, limitBytes);
-      if (randomFail.shouldFail()) {
+      // always return false in prod, only can be true in testing
+      if (fastFail.shouldFail()) {
         log.warn("Fast failing the current request");
         throw new MemoryUsageExceedFastFailureException();
       } else {
@@ -44,9 +44,9 @@ public class OpenSearchMemoryHealthy {
     }
   }
 
-  static class RandomFail {
+  static class FastFail {
     public boolean shouldFail() {
-      return ThreadLocalRandom.current().nextBoolean();
+      return false;
     }
   }
 
