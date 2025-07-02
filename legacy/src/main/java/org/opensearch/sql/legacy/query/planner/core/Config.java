@@ -5,16 +5,12 @@
 
 package org.opensearch.sql.legacy.query.planner.core;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.legacy.query.planner.resource.blocksize.AdaptiveBlockSize;
 import org.opensearch.sql.legacy.query.planner.resource.blocksize.BlockSize;
 import org.opensearch.sql.legacy.query.planner.resource.blocksize.BlockSize.FixedBlockSize;
 
 /** Query planner configuration */
 public class Config {
-
-  private static final Logger LOG = LogManager.getLogger();
 
   public static final int DEFAULT_BLOCK_SIZE = 10000;
   public static final int DEFAULT_SCROLL_PAGE_SIZE = 10000;

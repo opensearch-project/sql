@@ -17,6 +17,7 @@ import org.opensearch.transport.client.Client;
  * response sent back or other post-processing logic to ElasticDefaultRestExecutor.
  */
 class QueryPlanElasticExecutor extends ElasticJoinExecutor {
+
   private final QueryPlanner queryPlanner;
 
   QueryPlanElasticExecutor(Client client, HashJoinQueryPlanRequestBuilder request) {

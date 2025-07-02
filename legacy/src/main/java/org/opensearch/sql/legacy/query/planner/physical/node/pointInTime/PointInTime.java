@@ -58,6 +58,7 @@ public class PointInTime extends Paginate {
 
     pit.create();
     pitId = pit.getPitId();
+
     LOG.info("Loading first batch of response using Point In Time");
     searchResponse =
         request
@@ -76,7 +77,8 @@ public class PointInTime extends Paginate {
     SearchHit[] hits = searchResponse.getHits().getHits();
     if (hits != null && hits.length > 0) {
       Object[] sortValues = hits[hits.length - 1].getSortValues();
-      LOG.info("Loading next batch of response using Point In Time. - " + pitId);
+
+      LOG.info("Loading next batch of response using Point In Time. - " + truncatePitId(pitId));
       searchResponse =
           request
               .getRequestBuilder()
@@ -86,5 +88,11 @@ public class PointInTime extends Paginate {
               .searchAfter(sortValues)
               .get();
     }
+  }
+
+  private String truncatePitId(String pitId) {
+    if (pitId == null) return "null";
+    if (pitId.length() <= 20) return pitId;
+    return pitId.substring(0, 20);
   }
 }

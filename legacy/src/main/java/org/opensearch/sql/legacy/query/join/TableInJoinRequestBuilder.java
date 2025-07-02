@@ -18,7 +18,7 @@ public class TableInJoinRequestBuilder {
   private List<Field> returnedFields;
   private Select originalSelect;
   private Integer hintLimit;
-  private TimeValue hintJoinTimeout; // NEW: Similar to hintLimit pattern
+  private TimeValue hintJoinTimeout;
 
   public TableInJoinRequestBuilder() {}
 

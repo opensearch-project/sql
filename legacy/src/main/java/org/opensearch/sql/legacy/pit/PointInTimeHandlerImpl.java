@@ -129,15 +129,9 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
     return defaultKeepAlive;
   }
 
-  /**
-   * Truncate PIT ID for logging to improve readability
-   *
-   * @param pitId the PIT ID to truncate
-   * @return truncated PIT ID string
-   */
   private String truncatePitId(String pitId) {
     if (pitId == null) return "null";
-    if (pitId.length() <= 12) return pitId;
-    return pitId.substring(0, 12);
+    if (pitId.length() <= 20) return pitId;
+    return pitId.substring(0, 20);
   }
 }
