@@ -210,13 +210,13 @@ public class CalcitePPLSortIT extends PPLIntegTestCase {
                 TEST_INDEX_BANK_WITH_NULL_VALUES));
     verifyDataRowsInOrder(
         result,
+        rows("Hattie", null),
+        rows("Elinor", null),
+        rows("Virginia", null),
         rows("Dale", 4180),
         rows("Nanette", 32838),
         rows("Amber JOHnny", 39225),
-        rows("Dillard", 48086),
-        rows("Hattie", null),
-        rows("Elinor", null),
-        rows("Virginia", null));
+        rows("Dillard", 48086));
   }
 
   @Test
