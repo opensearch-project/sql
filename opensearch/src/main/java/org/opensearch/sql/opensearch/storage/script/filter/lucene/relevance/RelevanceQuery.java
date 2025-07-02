@@ -6,20 +6,12 @@
 package org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexLiteral;
-import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.type.SqlTypeUtil;
-import org.apache.calcite.util.NlsString;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprStringValue;
@@ -100,60 +92,17 @@ public abstract class RelevanceQuery<T extends QueryBuilder> extends LuceneQuery
    * wrapped in Calcite MAP RexCall.
    *
    * @param queryBuilder queryBuilder Initially created opensearch index relevance query builder
-   * @param mapRexCall Calcite MAP RexCall that wraps optional relevance query argument key value
-   *     pairs
+   * @param optionalArguments Map contains optional relevance query argument key value pairs
    * @return enriched QueryBuilder
    */
-  protected T applyArguments(T queryBuilder, RexCall mapRexCall) {
-    if (mapRexCall != null) {
-      List<RexNode> keyValueNodes = mapRexCall.getOperands();
-
-      Map<String, List<String>> groupedArgs =
-          IntStream.range(0, keyValueNodes.size() / 2)
-              .map(i -> i * 2)
-              .mapToObj(
-                  i -> {
-                    RexLiteral keyLiteral = (RexLiteral) keyValueNodes.get(i);
-                    RexLiteral valueLiteral = (RexLiteral) keyValueNodes.get(i + 1);
-                    if (!SqlTypeUtil.isCharacter(keyLiteral.getType())
-                        || !SqlTypeUtil.isCharacter(valueLiteral.getType())) {
-                      throw new SemanticCheckException(
-                          String.format(
-                              Locale.ROOT,
-                              "Relevance query argument both key [%s] and value [%s] must be string"
-                                  + " literal",
-                              keyLiteral.getValue(),
-                              valueLiteral.getValue()));
-                    }
-                    // Argument key should be always lower case
-                    String key =
-                        ((NlsString) Objects.requireNonNull(keyLiteral.getValue()))
-                            .getValue()
-                            .toLowerCase(Locale.ROOT);
-                    checkValidArguments(key, queryBuilder);
-
-                    // Argument value is always string literal
-                    String value =
-                        ((NlsString) Objects.requireNonNull(valueLiteral.getValue())).getValue();
-
-                    return Map.entry(key, value);
-                  })
-              .collect(
-                  Collectors.groupingBy(
-                      Entry::getKey, Collectors.mapping(Entry::getValue, Collectors.toList())));
-
-      groupedArgs.forEach(
+  protected T applyArguments(T queryBuilder, Map<String, String> optionalArguments) {
+    if (optionalArguments != null && !optionalArguments.isEmpty()) {
+      optionalArguments.forEach(
           (k, v) -> {
-            if (v.size() > 1) {
-              throw new SemanticCheckException(
-                  String.format(Locale.ROOT, "Parameter '%s' can only be specified once.", k));
-            }
+            checkValidArguments(k, queryBuilder);
+            (Objects.requireNonNull(getQueryBuildActions().get(k)))
+                .apply(queryBuilder, new ExprStringValue(v));
           });
-
-      groupedArgs.forEach(
-          (k, v) ->
-              (Objects.requireNonNull(getQueryBuildActions().get(k)))
-                  .apply(queryBuilder, new ExprStringValue(v.get(0))));
     }
 
     return queryBuilder;

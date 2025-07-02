@@ -328,16 +328,21 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator TRANSFORM = new TransformFunctionImpl().toUDF("transform");
   public static final SqlOperator REDUCE = new ReduceFunctionImpl().toUDF("reduce");
 
-  public static final SqlOperator MATCH = new RelevanceQueryFunction().toUDF("match");
-  public static final SqlOperator MATCH_PHRASE = new RelevanceQueryFunction().toUDF("match_phrase");
+  private static final RelevanceQueryFunction RELEVANCE_QUERY_FUNCTION_INSTANCE =
+      new RelevanceQueryFunction();
+  public static final SqlOperator MATCH = RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("match");
+  public static final SqlOperator MATCH_PHRASE =
+      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("match_phrase");
   public static final SqlOperator MATCH_BOOL_PREFIX =
-      new RelevanceQueryFunction().toUDF("match_bool_prefix");
+      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("match_bool_prefix");
   public static final SqlOperator MATCH_PHRASE_PREFIX =
-      new RelevanceQueryFunction().toUDF("match_phrase_prefix");
+      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("match_phrase_prefix");
   public static final SqlOperator SIMPLE_QUERY_STRING =
-      new RelevanceQueryFunction().toUDF("simple_query_string");
-  public static final SqlOperator QUERY_STRING = new RelevanceQueryFunction().toUDF("query_string");
-  public static final SqlOperator MULTI_MATCH = new RelevanceQueryFunction().toUDF("multi_match");
+      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("simple_query_string");
+  public static final SqlOperator QUERY_STRING =
+      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("query_string");
+  public static final SqlOperator MULTI_MATCH =
+      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("multi_match");
 
   /**
    * Invoking an implementor registered in {@link RexImpTable}, need to use reflection since they're

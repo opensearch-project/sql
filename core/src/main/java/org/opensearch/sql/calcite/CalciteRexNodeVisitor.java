@@ -11,8 +11,6 @@ import static org.apache.commons.lang3.StringUtils.substringAfterLast;
 import static org.opensearch.sql.ast.expression.SpanUnit.NONE;
 import static org.opensearch.sql.ast.expression.SpanUnit.UNKNOWN;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.MULTI_FIELDS_RELEVANCE_FUNCTION_SET;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.SINGLE_FIELD_RELEVANCE_FUNCTION_SET;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -503,56 +501,29 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   public RexNode visitFunction(Function node, CalcitePlanContext context) {
     List<UnresolvedExpression> args = node.getFuncArgs();
     List<RexNode> arguments = new ArrayList<>();
-
-    if (SINGLE_FIELD_RELEVANCE_FUNCTION_SET.contains(node.getFuncName())
-        || MULTI_FIELDS_RELEVANCE_FUNCTION_SET.contains(node.getFuncName())) {
-      List<RexNode> varArgRexNodeList = new ArrayList<>();
-      for (UnresolvedExpression arg : args) {
-        String unresolvedArgName = ((UnresolvedArgument) arg).getArgName();
-        // Relevance function first two arguments are always "field", "query" or "fields", "query"
-        if ("field".equalsIgnoreCase(unresolvedArgName)
-            || "query".equalsIgnoreCase(unresolvedArgName)
-            || "fields".equalsIgnoreCase(unresolvedArgName)) {
-          arguments.add(analyze(arg, context));
-        } else {
-          varArgRexNodeList.add(
-              context.rexBuilder.makeLiteral(
-                  unresolvedArgName,
-                  context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
-                  true));
-          varArgRexNodeList.add(analyze(arg, context));
-        }
-      }
-      if (!varArgRexNodeList.isEmpty()) {
-        arguments.add(
-            context.rexBuilder.makeCall(
-                SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR, varArgRexNodeList));
-      }
-    } else {
-      for (UnresolvedExpression arg : args) {
-        if (arg instanceof LambdaFunction) {
-          CalcitePlanContext lambdaContext =
+    for (UnresolvedExpression arg : args) {
+      if (arg instanceof LambdaFunction) {
+        CalcitePlanContext lambdaContext =
+            prepareLambdaContext(
+                context, (LambdaFunction) arg, arguments, node.getFuncName(), null);
+        RexNode lambdaNode = analyze(arg, lambdaContext);
+        if (node.getFuncName().equalsIgnoreCase("reduce")) { // analyze again with calculate type
+          lambdaContext =
               prepareLambdaContext(
-                  context, (LambdaFunction) arg, arguments, node.getFuncName(), null);
-          RexNode lambdaNode = analyze(arg, lambdaContext);
-          if (node.getFuncName().equalsIgnoreCase("reduce")) { // analyze again with calculate type
-            lambdaContext =
-                prepareLambdaContext(
-                    context,
-                    (LambdaFunction) arg,
-                    arguments,
-                    node.getFuncName(),
-                    lambdaNode.getType());
-            lambdaNode = analyze(arg, lambdaContext);
-          }
-          arguments.add(lambdaNode);
-        } else {
-          arguments.add(analyze(arg, context));
+                  context,
+                  (LambdaFunction) arg,
+                  arguments,
+                  node.getFuncName(),
+                  lambdaNode.getType());
+          lambdaNode = analyze(arg, lambdaContext);
         }
+        arguments.add(lambdaNode);
+      } else {
+        arguments.add(analyze(arg, context));
       }
-
-      arguments = castArgument(arguments, node.getFuncName(), context.rexBuilder);
     }
+
+    arguments = castArgument(arguments, node.getFuncName(), context.rexBuilder);
 
     RexNode resolvedNode =
         PPLFuncImpTable.INSTANCE.resolve(
@@ -716,5 +687,11 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
             });
     return context.rexBuilder.makeCall(
         SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR, varArgRexNodeList);
+  }
+
+  @Override
+  public RexNode visitUnresolvedArgument(UnresolvedArgument node, CalcitePlanContext context) {
+    RexNode value = analyze(node.getValue(), context);
+    return context.relBuilder.alias(value, node.getArgName());
   }
 }

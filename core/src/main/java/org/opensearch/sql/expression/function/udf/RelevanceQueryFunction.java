@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.expression.function.udf;
 
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
@@ -30,18 +31,60 @@ public class RelevanceQueryFunction extends ImplementorUDF {
     return ReturnTypes.BOOLEAN;
   }
 
+  /*
+   * Starting from the 3rd parameter, they are optional parameters for relevance queries.
+   * Different query has different parameter set, which will be validated in dedicated query builder
+   */
   @Override
   public UDFOperandMetadata getOperandMetadata() {
     return UDFOperandMetadata.wrap(
         (CompositeOperandTypeChecker)
-            OperandTypes.STRING_STRING
+            OperandTypes.family(
+                    ImmutableList.of(
+                        SqlTypeFamily.STRING,
+                        SqlTypeFamily.STRING,
+                        SqlTypeFamily.STRING,
+                        SqlTypeFamily.STRING,
+                        SqlTypeFamily.STRING,
+                        SqlTypeFamily.STRING,
+                        SqlTypeFamily.STRING,
+                        SqlTypeFamily.STRING,
+                        SqlTypeFamily.STRING,
+                        SqlTypeFamily.STRING,
+                        SqlTypeFamily.STRING,
+                        SqlTypeFamily.STRING,
+                        SqlTypeFamily.STRING,
+                        SqlTypeFamily.STRING),
+                    i -> i > 1 && i < 14) // Parameters 3-14 are optional
                 .or(
                     OperandTypes.family(
-                        SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.MAP))
-                .or(OperandTypes.family(SqlTypeFamily.MAP, SqlTypeFamily.STRING))
-                .or(
-                    OperandTypes.family(
-                        SqlTypeFamily.MAP, SqlTypeFamily.STRING, SqlTypeFamily.MAP)));
+                        ImmutableList.of(
+                            SqlTypeFamily.MAP,
+                            SqlTypeFamily.STRING,
+                            SqlTypeFamily.STRING,
+                            SqlTypeFamily.STRING,
+                            SqlTypeFamily.STRING,
+                            SqlTypeFamily.STRING,
+                            SqlTypeFamily.STRING,
+                            SqlTypeFamily.STRING,
+                            SqlTypeFamily.STRING,
+                            SqlTypeFamily.STRING,
+                            SqlTypeFamily.STRING,
+                            SqlTypeFamily.STRING,
+                            SqlTypeFamily.STRING,
+                            SqlTypeFamily.STRING,
+                            SqlTypeFamily.STRING,
+                            SqlTypeFamily.STRING,
+                            SqlTypeFamily.STRING,
+                            SqlTypeFamily.STRING,
+                            SqlTypeFamily.STRING,
+                            SqlTypeFamily.STRING,
+                            SqlTypeFamily.STRING,
+                            SqlTypeFamily.STRING,
+                            SqlTypeFamily.STRING,
+                            SqlTypeFamily.STRING,
+                            SqlTypeFamily.STRING),
+                        i -> i > 1 && i < 25))); // Parameters 3-25 are optional
   }
 
   public static class RelevanceQueryImplementor implements NotNullImplementor {
