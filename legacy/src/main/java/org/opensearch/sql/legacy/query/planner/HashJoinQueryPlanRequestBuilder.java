@@ -4,9 +4,6 @@
  */
 package org.opensearch.sql.legacy.query.planner;
 
-import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.unit.TimeValue;
@@ -38,17 +35,6 @@ public class HashJoinQueryPlanRequestBuilder extends HashJoinElasticRequestBuild
     this.client = client;
     this.request = request;
     this.config = new Config();
-
-    // Parse JOIN_TIME_OUT hint and configure immediately
-    parseJoinTimeoutFromSql(request.getSql())
-        .ifPresent(
-            timeout -> {
-              LOG.info(
-                  "HashJoinQueryPlanRequestBuilder: Found JOIN_TIME_OUT hint: {} seconds,"
-                      + " configuring PIT keepalive",
-                  timeout.getSeconds());
-              config.setCustomPitKeepAlive(timeout);
-            });
   }
 
   @Override
@@ -66,12 +52,13 @@ public class HashJoinQueryPlanRequestBuilder extends HashJoinElasticRequestBuild
         getTotalLimit(), getFirstTable().getHintLimit(), getSecondTable().getHintLimit());
     config.configureTermsFilterOptimization(isUseTermFiltersOptimization());
 
-    // Set the hint config on both table builders so they can access JOIN_TIME_OUT
-    // Note: JOIN_TIME_OUT is a query-level hint that affects all PIT operations in the join
-    if (config.hasCustomPitKeepAlive()) {
-      LOG.debug("Setting hint config on both table builders for JOIN_TIME_OUT propagation");
-      getFirstTable().setHintConfig(config);
-      getSecondTable().setHintConfig(config);
+    if (config.timeout() != Config.DEFAULT_TIME_OUT) {
+      TimeValue joinTimeout = TimeValue.timeValueSeconds(config.timeout());
+      LOG.info(
+          "HashJoinQueryPlanRequestBuilder: Using JOIN_TIME_OUT hint: {} seconds",
+          config.timeout());
+      getFirstTable().setHintJoinTimeout(joinTimeout);
+      getSecondTable().setHintJoinTimeout(joinTimeout);
     }
 
     return new QueryPlanner(
@@ -83,52 +70,5 @@ public class HashJoinQueryPlanRequestBuilder extends HashJoinElasticRequestBuild
 
   public Config getConfig() {
     return config;
-  }
-
-  /**
-   * Parse JOIN_TIME_OUT(number) hint from SQL string using regex
-   *
-   * @param sql SQL string to parse
-   * @return Optional containing TimeValue if hint found, otherwise empty
-   */
-  private Optional<TimeValue> parseJoinTimeoutFromSql(String sql) {
-    if (sql == null || sql.trim().isEmpty()) {
-      LOG.debug("SQL string is null or empty, no JOIN_TIME_OUT hint to parse");
-      return Optional.empty();
-    }
-
-    try {
-      // Regex pattern to match /*! JOIN_TIME_OUT(number) */
-      Pattern pattern =
-          Pattern.compile(
-              "/\\*!\\s*JOIN_TIME_OUT\\s*\\(\\s*(\\d+)\\s*\\)\\s*\\*/", Pattern.CASE_INSENSITIVE);
-      Matcher matcher = pattern.matcher(sql);
-
-      if (matcher.find()) {
-        String timeoutStr = matcher.group(1);
-        int timeoutSeconds = Integer.parseInt(timeoutStr);
-
-        if (timeoutSeconds <= 0) {
-          LOG.warn(
-              "JOIN_TIME_OUT hint has invalid value: {} seconds. Must be positive integer.",
-              timeoutSeconds);
-          return Optional.empty();
-        }
-
-        LOG.debug("Successfully parsed JOIN_TIME_OUT hint: {} seconds", timeoutSeconds);
-        return Optional.of(TimeValue.timeValueSeconds(timeoutSeconds));
-      } else {
-        LOG.debug(
-            "No JOIN_TIME_OUT hint found in SQL: {}",
-            sql.substring(0, Math.min(sql.length(), 100)) + "...");
-      }
-
-    } catch (NumberFormatException e) {
-      LOG.error("Error parsing JOIN_TIME_OUT hint - invalid number format: {}", e.getMessage());
-    } catch (Exception e) {
-      LOG.error("Unexpected error parsing JOIN_TIME_OUT hint from SQL: {}", e.getMessage());
-    }
-
-    return Optional.empty();
   }
 }

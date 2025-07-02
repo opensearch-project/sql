@@ -5,12 +5,10 @@
 
 package org.opensearch.sql.legacy.executor.join;
 
-import java.io.IOException;
 import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.search.SearchHit;
-import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.query.planner.HashJoinQueryPlanRequestBuilder;
 import org.opensearch.sql.legacy.query.planner.core.QueryPlanner;
 import org.opensearch.transport.client.Client;
@@ -29,41 +27,15 @@ class QueryPlanElasticExecutor extends ElasticJoinExecutor {
   QueryPlanElasticExecutor(Client client, HashJoinQueryPlanRequestBuilder request) {
     super(client, request);
 
-    // Log the timeout configuration that was already parsed in the request builder
-    if (request.getConfig().hasCustomPitKeepAlive()) {
-      LOG.info(
-          "QueryPlanElasticExecutor: Using custom PIT keepalive from JOIN_TIME_OUT hint: {}"
-              + " seconds",
-          request
-              .getConfig()
-              .getCustomPitKeepAlive()
-              .map(timeout -> String.valueOf(timeout.getSeconds()))
-              .orElse("unknown"));
+    if (request.getFirstTable().hasJoinTimeoutHint()
+        || request.getSecondTable().hasJoinTimeoutHint()) {
+      LOG.info("QueryPlanElasticExecutor: Using custom PIT keepalive from JOIN_TIME_OUT hint");
     } else {
       LOG.info(
           "QueryPlanElasticExecutor: No JOIN_TIME_OUT hint found, using default PIT keepalive");
     }
 
-    // Create the query planner (this will also set hint configs on table builders)
     this.queryPlanner = request.plan();
-  }
-
-  @Override
-  public void run() throws IOException, SqlParseException {
-    try {
-      long timeBefore = System.currentTimeMillis();
-
-      LOG.debug("QueryPlanElasticExecutor: Starting execution");
-
-      results = innerRun();
-      long joinTimeInMilli = System.currentTimeMillis() - timeBefore;
-      this.metaResults.setTookImMilli(joinTimeInMilli);
-
-      LOG.debug("QueryPlanElasticExecutor: Completed execution in {} ms", joinTimeInMilli);
-    } catch (Exception e) {
-      LOG.error("Failed during QueryPlan join query run.", e);
-      throw new IllegalStateException("Error occurred during QueryPlan join query run", e);
-    }
   }
 
   @Override

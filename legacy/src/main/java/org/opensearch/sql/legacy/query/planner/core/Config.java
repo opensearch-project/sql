@@ -5,11 +5,8 @@
 
 package org.opensearch.sql.legacy.query.planner.core;
 
-import java.util.Optional;
-import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.legacy.query.planner.resource.blocksize.AdaptiveBlockSize;
 import org.opensearch.sql.legacy.query.planner.resource.blocksize.BlockSize;
 import org.opensearch.sql.legacy.query.planner.resource.blocksize.BlockSize.FixedBlockSize;
@@ -50,14 +47,6 @@ public class Config {
 
   /** Total time out (seconds) for the execution */
   private int timeout = DEFAULT_TIME_OUT;
-
-  /**
-   * Custom PIT keepalive timeout from JOIN_TIME_OUT hint -- GETTER -- Get custom PIT keepalive
-   * timeout if set
-   *
-   * @return Optional containing custom timeout, or empty if not set
-   */
-  @Getter private Optional<TimeValue> customPitKeepAlive = Optional.empty();
 
   public BlockSize blockSize() {
     return blockSize;
@@ -147,26 +136,5 @@ public class Config {
 
   public int timeout() {
     return timeout;
-  }
-
-  /**
-   * Set custom PIT keepalive timeout from JOIN_TIME_OUT hint
-   *
-   * @param timeout Custom timeout value (can be null)
-   */
-  public void setCustomPitKeepAlive(TimeValue timeout) {
-    this.customPitKeepAlive = Optional.ofNullable(timeout);
-    LOG.info(
-        "Config: Set custom PIT keepalive to: {}",
-        customPitKeepAlive.map(t -> t + " (" + t.getMillis() + "ms)").orElse("default"));
-  }
-
-  /**
-   * Check if custom PIT keepalive is set
-   *
-   * @return true if custom timeout is configured
-   */
-  public boolean hasCustomPitKeepAlive() {
-    return customPitKeepAlive.isPresent();
   }
 }

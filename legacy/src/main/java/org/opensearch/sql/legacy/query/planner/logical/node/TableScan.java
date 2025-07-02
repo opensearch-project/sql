@@ -2,6 +2,7 @@
  * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+
 package org.opensearch.sql.legacy.query.planner.logical.node;
 
 import java.util.Map;
@@ -13,6 +14,7 @@ import org.opensearch.sql.legacy.query.planner.physical.node.pointInTime.PointIn
 
 /** Table scan */
 public class TableScan implements LogicalOperator {
+
   /** Request builder for the table */
   private final TableInJoinRequestBuilder request;
 
@@ -42,6 +44,7 @@ public class TableScan implements LogicalOperator {
   /*********************************************
    *          Getters for Explain
    *********************************************/
+
   public String getTableAlias() {
     return request.getAlias();
   }

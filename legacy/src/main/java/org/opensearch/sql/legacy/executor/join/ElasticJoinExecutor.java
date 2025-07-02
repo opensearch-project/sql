@@ -11,7 +11,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.apache.lucene.search.TotalHits;
@@ -28,16 +27,12 @@ import org.opensearch.search.SearchHits;
 import org.opensearch.sql.legacy.domain.Field;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.executor.ElasticHitsExecutor;
-import org.opensearch.sql.legacy.metrics.MetricName;
-import org.opensearch.sql.legacy.metrics.Metrics;
-import org.opensearch.sql.legacy.pit.PointInTimeHandlerImpl;
 import org.opensearch.sql.legacy.query.SqlElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.join.HashJoinElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.join.JoinRequestBuilder;
 import org.opensearch.sql.legacy.query.join.NestedLoopsElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.join.TableInJoinRequestBuilder;
 import org.opensearch.sql.legacy.query.planner.HashJoinQueryPlanRequestBuilder;
-import org.opensearch.sql.legacy.query.planner.core.Config;
 import org.opensearch.transport.client.Client;
 
 /** Created by Eliran on 15/9/2015. */
@@ -94,47 +89,13 @@ public abstract class ElasticJoinExecutor extends ElasticHitsExecutor {
 
       LOG.info("ElasticJoinExecutor: Starting join execution");
 
-      Optional<Config> config = getConfigFromRequestBuilder();
-
-      if (config.isPresent()) {
-        LOG.info("ElasticJoinExecutor: Creating PIT with config support");
-        pit = new PointInTimeHandlerImpl(client, indices, config.get());
-      } else {
-        LOG.info("ElasticJoinExecutor: Creating PIT with default settings");
-        pit = new PointInTimeHandlerImpl(client, indices);
-      }
-
-      pit.create();
       results = innerRun();
       long joinTimeInMilli = System.currentTimeMillis() - timeBefore;
       this.metaResults.setTookImMilli(joinTimeInMilli);
     } catch (Exception e) {
       LOG.error("Failed during join query run.", e);
       throw new IllegalStateException("Error occurred during join query run", e);
-    } finally {
-      try {
-        if (pit != null) {
-          pit.delete();
-        }
-      } catch (RuntimeException e) {
-        Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-        LOG.info("Error deleting point in time {} ", pit);
-      }
     }
-  }
-
-  /**
-   * Try to get Config from request builder if available
-   *
-   * @return Optional containing Config if this is a QueryPlan execution, otherwise empty
-   */
-  private Optional<Config> getConfigFromRequestBuilder() {
-    if (requestBuilder instanceof HashJoinQueryPlanRequestBuilder) {
-      HashJoinQueryPlanRequestBuilder queryPlanBuilder =
-          (HashJoinQueryPlanRequestBuilder) requestBuilder;
-      return Optional.of(queryPlanBuilder.getConfig());
-    }
-    return Optional.empty();
   }
 
   protected abstract List<SearchHit> innerRun() throws IOException, SqlParseException;

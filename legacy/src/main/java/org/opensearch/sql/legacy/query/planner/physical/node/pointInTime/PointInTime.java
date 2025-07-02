@@ -15,7 +15,6 @@ import org.opensearch.search.sort.FieldSortBuilder;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.legacy.pit.PointInTimeHandlerImpl;
 import org.opensearch.sql.legacy.query.join.TableInJoinRequestBuilder;
-import org.opensearch.sql.legacy.query.planner.core.Config;
 import org.opensearch.sql.legacy.query.planner.physical.node.Paginate;
 
 /** OpenSearch Search API with Point in time as physical implementation of TableScan */
@@ -45,15 +44,13 @@ public class PointInTime extends Paginate {
   protected void loadFirstBatch() {
     // Check if this table has JOIN_TIME_OUT hint configured
     if (request.hasJoinTimeoutHint()) {
-      Config hintConfig = request.getHintConfig();
+      TimeValue customTimeout = request.getHintJoinTimeout();
       LOG.info(
-          "PointInTime: Creating PIT with JOIN_TIME_OUT hint support: {} seconds",
-          hintConfig
-              .getCustomPitKeepAlive()
-              .map(t -> String.valueOf(t.getSeconds()))
-              .orElse("unknown"));
+          "PointInTime: Creating PIT with JOIN_TIME_OUT hint: {} seconds",
+          customTimeout.getSeconds());
       pit =
-          new PointInTimeHandlerImpl(client, request.getOriginalSelect().getIndexArr(), hintConfig);
+          new PointInTimeHandlerImpl(
+              client, request.getOriginalSelect().getIndexArr(), customTimeout);
     } else {
       LOG.info("PointInTime: Creating PIT with default settings");
       pit = new PointInTimeHandlerImpl(client, request.getOriginalSelect().getIndexArr());
@@ -79,7 +76,7 @@ public class PointInTime extends Paginate {
     SearchHit[] hits = searchResponse.getHits().getHits();
     if (hits != null && hits.length > 0) {
       Object[] sortValues = hits[hits.length - 1].getSortValues();
-      LOG.info("Loading next batch of response using Point In Time. - " + truncatePitId(pitId));
+      LOG.info("Loading next batch of response using Point In Time. - " + pitId);
       searchResponse =
           request
               .getRequestBuilder()
@@ -89,17 +86,5 @@ public class PointInTime extends Paginate {
               .searchAfter(sortValues)
               .get();
     }
-  }
-
-  /**
-   * Truncate PIT ID for logging to improve readability
-   *
-   * @param pitId the PIT ID to truncate
-   * @return truncated PIT ID string
-   */
-  private String truncatePitId(String pitId) {
-    if (pitId == null) return "null";
-    if (pitId.length() <= 20) return pitId;
-    return pitId.substring(0, 20);
   }
 }

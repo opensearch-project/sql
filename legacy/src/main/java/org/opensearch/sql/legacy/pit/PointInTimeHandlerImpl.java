@@ -22,14 +22,13 @@ import org.opensearch.action.search.DeletePitResponse;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
-import org.opensearch.sql.legacy.query.planner.core.Config;
 import org.opensearch.transport.client.Client;
 
 /** Handler for Point In Time */
 public class PointInTimeHandlerImpl implements PointInTimeHandler {
   private final Client client;
   private String[] indices;
-  private final Optional<Config> config;
+  private final Optional<TimeValue> customKeepAlive; // Reduced scope - only TimeValue
   @Getter @Setter private String pitId;
   private static final Logger LOG = LogManager.getLogger();
 
@@ -42,20 +41,20 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
   public PointInTimeHandlerImpl(Client client, String[] indices) {
     this.client = client;
     this.indices = indices;
-    this.config = Optional.empty();
+    this.customKeepAlive = Optional.empty();
   }
 
   /**
-   * Enhanced constructor with Config for custom timeout support
+   * Constructor with custom keepalive timeout from JOIN_TIME_OUT hint
    *
    * @param client OpenSearch client
    * @param indices list of indices
-   * @param config Configuration object containing custom PIT settings
+   * @param customKeepAlive Custom keepalive timeout (from JOIN_TIME_OUT hint)
    */
-  public PointInTimeHandlerImpl(Client client, String[] indices, Config config) {
+  public PointInTimeHandlerImpl(Client client, String[] indices, TimeValue customKeepAlive) {
     this.client = client;
     this.indices = indices;
-    this.config = Optional.ofNullable(config);
+    this.customKeepAlive = Optional.ofNullable(customKeepAlive);
   }
 
   /**
@@ -67,7 +66,7 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
   public PointInTimeHandlerImpl(Client client, String pitId) {
     this.client = client;
     this.pitId = pitId;
-    this.config = Optional.empty();
+    this.customKeepAlive = Optional.empty();
   }
 
   /** Create PIT for given indices */
@@ -110,21 +109,17 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
   }
 
   /**
-   * Get effective keepalive value by checking config first, then falling back to default
+   * Get effective keepalive value by checking custom timeout first, then falling back to default
    *
    * @return TimeValue for PIT keepalive
    */
   private TimeValue getEffectiveKeepAlive() {
-    // First: try to get from config if available
-    if (config.isPresent()) {
-      Optional<TimeValue> customTimeout = config.get().getCustomPitKeepAlive();
-      if (customTimeout.isPresent()) {
-        LOG.info(
-            "Using custom PIT keepalive from config: {} ({}ms)",
-            customTimeout.get(),
-            customTimeout.get().getMillis());
-        return customTimeout.get();
-      }
+    if (customKeepAlive.isPresent()) {
+      LOG.info(
+          "Using custom PIT keepalive from JOIN_TIME_OUT hint: {} ({}ms)",
+          customKeepAlive.get(),
+          customKeepAlive.get().getMillis());
+      return customKeepAlive.get();
     }
 
     // Fallback: use default
@@ -142,7 +137,7 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
    */
   private String truncatePitId(String pitId) {
     if (pitId == null) return "null";
-    if (pitId.length() <= 20) return pitId;
-    return pitId.substring(0, 20);
+    if (pitId.length() <= 12) return pitId;
+    return pitId.substring(0, 12);
   }
 }
