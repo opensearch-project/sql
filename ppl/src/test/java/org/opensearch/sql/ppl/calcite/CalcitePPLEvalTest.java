@@ -104,7 +104,7 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(a=[$8])\n"
-            + "  LogicalSort(sort0=[$8], dir0=[DESC])\n"
+            + "  LogicalSort(sort0=[$8], dir0=[DESC-nulls-last])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], a=[$0])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
@@ -128,7 +128,7 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "" + "SELECT `EMPNO` `a`\n" + "FROM `scott`.`EMP`\n" + "ORDER BY `EMPNO` DESC NULLS FIRST";
+        "" + "SELECT `EMPNO` `a`\n" + "FROM `scott`.`EMP`\n" + "ORDER BY `EMPNO` DESC";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -140,7 +140,7 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(EMPNO=[$0], EMPNO_PLUS=[$8])\n"
-            + "  LogicalSort(sort0=[$8], dir0=[DESC], fetch=[3])\n"
+            + "  LogicalSort(sort0=[$8], dir0=[DESC-nulls-last], fetch=[3])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], EMPNO_PLUS=[+($0, 1)])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
@@ -157,7 +157,7 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
             + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
             + " `EMPNO` + 1 `EMPNO_PLUS`\n"
             + "FROM `scott`.`EMP`\n"
-            + "ORDER BY 9 DESC NULLS FIRST\n"
+            + "ORDER BY 9 DESC\n"
             + "LIMIT 3) `t0`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -169,7 +169,7 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(EMPNO=[$0], SAL=[$7])\n"
-            + "  LogicalSort(sort0=[$0], dir0=[DESC], fetch=[3])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last], fetch=[3])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " COMM=[$6], DEPTNO=[$7], SAL=[+($7, 10000)])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
@@ -182,7 +182,7 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
         ""
             + "SELECT `EMPNO`, `DEPTNO` + 10000 `SAL`\n"
             + "FROM `scott`.`EMP`\n"
-            + "ORDER BY `EMPNO` DESC NULLS FIRST\n"
+            + "ORDER BY `EMPNO` DESC\n"
             + "LIMIT 3";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -204,10 +204,10 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
             + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, 1"
             + " `col1`, 2 `col2`\n"
             + "FROM `scott`.`EMP`\n"
-            + "ORDER BY '1' NULLS LAST\n"
+            + "ORDER BY '1'\n"
             + "LIMIT 4) `t1`\n"
-            + "ORDER BY `col2` DESC NULLS FIRST) `t2`\n"
-            + "ORDER BY `EMPNO` NULLS LAST\n"
+            + "ORDER BY `col2` DESC) `t2`\n"
+            + "ORDER BY `EMPNO`\n"
             + "LIMIT 2";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -226,9 +226,9 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
             + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
             + " `SAL` `col1`, `SAL` `col2`\n"
             + "FROM `scott`.`EMP`\n"
-            + "ORDER BY `SAL` DESC NULLS FIRST\n"
+            + "ORDER BY `SAL` DESC\n"
             + "LIMIT 3) `t1`\n"
-            + "ORDER BY `col2` NULLS LAST\n"
+            + "ORDER BY `col2`\n"
             + "LIMIT 2";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -242,9 +242,9 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(ENAME=[$0], col3=[$2])\n"
-            + "  LogicalSort(sort0=[$2], dir0=[ASC], fetch=[2])\n"
+            + "  LogicalSort(sort0=[$2], dir0=[ASC-nulls-first], fetch=[2])\n"
             + "    LogicalProject(ENAME=[$1], col1=[$8], col2=[$8])\n"
-            + "      LogicalSort(sort0=[$8], dir0=[DESC], fetch=[3])\n"
+            + "      LogicalSort(sort0=[$8], dir0=[DESC-nulls-last], fetch=[3])\n"
             + "        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], col1=[$5])\n"
             + "          LogicalTableScan(table=[[scott, EMP]])\n";
@@ -257,9 +257,9 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
             + "SELECT `ENAME`, `col2` `col3`\n"
             + "FROM (SELECT `ENAME`, `SAL` `col1`, `SAL` `col2`\n"
             + "FROM `scott`.`EMP`\n"
-            + "ORDER BY `SAL` DESC NULLS FIRST\n"
+            + "ORDER BY `SAL` DESC\n"
             + "LIMIT 3) `t1`\n"
-            + "ORDER BY `col2` NULLS LAST\n"
+            + "ORDER BY `col2`\n"
             + "LIMIT 2";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }

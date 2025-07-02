@@ -320,11 +320,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 expr -> {
                   RexNode sortField = rexVisitor.analyze(expr, context);
                   SortOption sortOption = analyzeSortOption(expr.getFieldArgs());
-                  if (sortOption == DEFAULT_DESC) {
-                    return context.relBuilder.desc(sortField);
-                  } else {
-                    return sortField;
+                  // Default is ASC
+                  if (sortOption.getSortOrder() == DESC) {
+                    sortField = context.relBuilder.desc(sortField);
                   }
+                  if (sortOption.getNullOrder() == NULL_LAST) {
+                    sortField = context.relBuilder.nullsLast(sortField);
+                  } else {
+                    sortField = context.relBuilder.nullsFirst(sortField);
+                  }
+                  return sortField;
                 })
             .collect(Collectors.toList());
     context.relBuilder.sort(sortList);
