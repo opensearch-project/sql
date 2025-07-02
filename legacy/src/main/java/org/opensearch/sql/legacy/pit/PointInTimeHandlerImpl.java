@@ -28,7 +28,7 @@ import org.opensearch.transport.client.Client;
 public class PointInTimeHandlerImpl implements PointInTimeHandler {
   private final Client client;
   private String[] indices;
-  private final Optional<TimeValue> customKeepAlive; // Reduced scope - only TimeValue
+  private final Optional<TimeValue> customKeepAlive;
   @Getter @Setter private String pitId;
   private static final Logger LOG = LogManager.getLogger();
 

@@ -44,7 +44,6 @@ public abstract class ElasticJoinExecutor extends ElasticHitsExecutor {
   private final Set<String> aliasesOnReturn;
   private final boolean allFieldsReturn;
   protected final String[] indices;
-  protected final JoinRequestBuilder requestBuilder;
 
   protected ElasticJoinExecutor(Client client, JoinRequestBuilder requestBuilder) {
     metaResults = new MetaSearchResult();
@@ -56,7 +55,6 @@ public abstract class ElasticJoinExecutor extends ElasticHitsExecutor {
             && (secondTableReturnedField == null || secondTableReturnedField.size() == 0);
     indices = getIndices(requestBuilder);
     this.client = client;
-    this.requestBuilder = requestBuilder;
   }
 
   public void sendResponse(RestChannel channel) throws IOException {
@@ -86,9 +84,6 @@ public abstract class ElasticJoinExecutor extends ElasticHitsExecutor {
   public void run() throws IOException, SqlParseException {
     try {
       long timeBefore = System.currentTimeMillis();
-
-      LOG.info("ElasticJoinExecutor: Starting join execution");
-
       results = innerRun();
       long joinTimeInMilli = System.currentTimeMillis() - timeBefore;
       this.metaResults.setTookImMilli(joinTimeInMilli);
