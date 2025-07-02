@@ -61,14 +61,10 @@ public class PredicateAnalyzerTest {
       builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.VARCHAR), 1);
   final RexLiteral numericLiteral = builder.makeExactLiteral(new BigDecimal(12));
   final RexLiteral stringLiteral = builder.makeLiteral("Hi");
-  final RexNode aliasedField2 = builder.makeCall(
-      SqlStdOperatorTable.AS,
-      field2,
-      builder.makeLiteral("field"));
-  final RexNode aliasedStringLiteral =  builder.makeCall(
-      SqlStdOperatorTable.AS,
-      stringLiteral,
-      builder.makeLiteral("query"));
+  final RexNode aliasedField2 =
+      builder.makeCall(SqlStdOperatorTable.AS, field2, builder.makeLiteral("field"));
+  final RexNode aliasedStringLiteral =
+      builder.makeCall(SqlStdOperatorTable.AS, stringLiteral, builder.makeLiteral("query"));
 
   @Test
   void equals_generatesTermQuery() throws ExpressionNotAnalyzableException {
@@ -443,8 +439,7 @@ public class PredicateAnalyzerTest {
                     builder.makeLiteral("c"),
                     builder.makeLiteral(
                         2.5, builder.getTypeFactory().createSqlType(SqlTypeName.DOUBLE), true)),
-                builder.makeLiteral("fields")
-            ),
+                builder.makeLiteral("fields")),
             aliasedStringLiteral,
             builder.makeCall(
                 SqlStdOperatorTable.AS,
@@ -493,8 +488,7 @@ public class PredicateAnalyzerTest {
                     builder.makeLiteral("b*"),
                     builder.makeLiteral(
                         1.0, builder.getTypeFactory().createSqlType(SqlTypeName.DOUBLE), true)),
-                builder.makeLiteral("fields")
-            ),
+                builder.makeLiteral("fields")),
             aliasedStringLiteral);
     RexNode call =
         PPLFuncImpTable.INSTANCE.resolve(
@@ -534,8 +528,7 @@ public class PredicateAnalyzerTest {
                     builder.makeLiteral("b*"),
                     builder.makeLiteral(
                         1.0, builder.getTypeFactory().createSqlType(SqlTypeName.DOUBLE), true)),
-                builder.makeLiteral("fields")
-            ),
+                builder.makeLiteral("fields")),
             aliasedStringLiteral,
             builder.makeCall(
                 SqlStdOperatorTable.AS,
