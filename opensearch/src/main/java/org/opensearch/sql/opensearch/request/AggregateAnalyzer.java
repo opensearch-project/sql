@@ -186,7 +186,7 @@ public class AggregateAnalyzer {
 
   private static RexInputRef convertAggArgThroughProject(AggregateCall aggCall, Project project) {
     RexNode argRex = project.getProjects().get(aggCall.getArgList().get(0));
-    if (argRex instanceof RexInputRef rexInputRef) return rexInputRef;
+    if (argRex instanceof RexInputRef) return (RexInputRef)argRex;
     else throw new IllegalArgumentException("Unsupported aggregate argument: " + argRex);
   }
 
@@ -276,22 +276,22 @@ public class AggregateAnalyzer {
       Project project,
       AggregateAnalyzer.FieldExpressionCreator fieldExpressionCreator) {
     RexNode rex = project.getProjects().get(groupIndex);
-    if (rex instanceof RexInputRef rexInputRef) {
-      NamedFieldExpression groupExpr = fieldExpressionCreator.create(rexInputRef.getIndex());
+    if (rex instanceof RexInputRef) {
+      NamedFieldExpression groupExpr = fieldExpressionCreator.create(((RexInputRef)rex).getIndex());
       return createTermsSourceBuilder(groupExpr);
-    } else if (rex instanceof RexCall rexCall
-        && rexCall.getKind() == SqlKind.OTHER_FUNCTION
-        && rexCall.getOperator().getName().equalsIgnoreCase(BuiltinFunctionName.SPAN.name())
-        && rexCall.getOperands().size() == 3
-        && rexCall.getOperands().getFirst() instanceof RexInputRef rexInputRef
-        && rexCall.getOperands().get(1) instanceof RexLiteral valueLiteral
-        && rexCall.getOperands().get(2) instanceof RexLiteral unitLiteral) {
-      NamedFieldExpression fieldName = fieldExpressionCreator.create(rexInputRef.getIndex());
+    } else if (rex instanceof RexCall
+        && rex.getKind() == SqlKind.OTHER_FUNCTION
+        && ((RexCall) rex).getOperator().getName().equalsIgnoreCase(BuiltinFunctionName.SPAN.name())
+        && ((RexCall) rex).getOperands().size() == 3
+        && ((RexCall) rex).getOperands().get(0) instanceof RexInputRef
+        && ((RexCall) rex).getOperands().get(1) instanceof RexLiteral
+        && ((RexCall) rex).getOperands().get(2) instanceof RexLiteral) {
+      NamedFieldExpression fieldName = fieldExpressionCreator.create(((RexInputRef)((RexCall) rex).getOperands().get(0)).getIndex());
       return BucketAggregationBuilder.buildHistogram(
           project.getRowType().getFieldList().get(groupIndex).getName(),
           fieldName.getReferenceForTermQuery(),
-          valueLiteral.getValueAs(Double.class),
-          SpanUnit.of(unitLiteral.getValueAs(String.class)),
+          ((RexLiteral)((RexCall) rex).getOperands().get(1)).getValueAs(Double.class),
+          SpanUnit.of(((RexLiteral)((RexCall) rex).getOperands().get(1)).getValueAs(String.class)),
           MissingOrder.FIRST);
     } else {
       throw new AggregateAnalyzer.AggregateAnalyzerException(
