@@ -71,7 +71,9 @@ import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.type.ExprSqlType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.model.ExprTimestampValue;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 
@@ -229,20 +231,6 @@ public class PredicateAnalyzer {
         default:
           return false;
       }
-    }
-
-    /**
-     * There are three types of the Sarg included in SEARCH RexCall: 1) Sarg is points (In ('a',
-     * 'b', 'c' ...)). In this case the search call can be translated to terms Query 2) Sarg is
-     * complementedPoints (Not in ('a', 'b')). In this case the search call can be translated to
-     * MustNot terms Query 3) Sarg is real Range( > 1 and <= 10). In this case the search call
-     * should be translated to rang Query Currently only the 1) and 2) cases are supported.
-     *
-     * @param search SEARCH RexCall
-     * @return true if it isSearchWithPoints or isSearchWithComplementedPoints, other false
-     */
-    static boolean canBeTranslatedToTermsQuery(RexCall search) {
-      return isSearchWithPoints(search) || isSearchWithComplementedPoints(search);
     }
 
     static boolean isSearchWithPoints(RexCall search) {
@@ -421,10 +409,16 @@ public class PredicateAnalyzer {
             return QueryExpression.create(pair.getKey()).in(pair.getValue());
           } else {
             Sarg<?> sarg = pair.getValue().literal.getValueAs(Sarg.class);
-            Set<? extends Range<?>> rangeSet = sarg.rangeSet.asRanges();
+            Set<? extends Range<?>> rangeSet = requireNonNull(sarg).rangeSet.asRanges();
+            boolean isTimeStamp =
+                (pair.getKey() instanceof NamedFieldExpression namedField)
+                    && ExprCoreType.TIMESTAMP.equals(
+                        namedField.getExprType() instanceof OpenSearchDataType osType
+                            ? osType.getExprCoreType()
+                            : namedField.getExprType());
             List<QueryExpression> queryExpressions =
                 rangeSet.stream()
-                    .map(range -> QueryExpression.create(pair.getKey()).between(range))
+                    .map(range -> QueryExpression.create(pair.getKey()).between(range, isTimeStamp))
                     .toList();
             if (queryExpressions.size() == 1) {
               return queryExpressions.getFirst();
@@ -615,7 +609,7 @@ public class PredicateAnalyzer {
 
     public abstract QueryExpression notIn(LiteralExpression literal);
 
-    public QueryExpression between(Range<?> literal) {
+    public QueryExpression between(Range<?> literal, boolean isTimeStamp) {
       throw new PredicateAnalyzer.PredicateAnalyzerException(
           "between cannot be applied to " + this.getClass());
     }
@@ -950,33 +944,35 @@ public class PredicateAnalyzer {
     }
 
     @Override
-    public QueryExpression between(Range<?> range) {
+    public QueryExpression between(Range<?> range, boolean isTimeStamp) {
       Object lowerBound =
-          range.hasLowerBound() ? convertEndpointValue(range.lowerEndpoint()) : null;
+          range.hasLowerBound() ? convertEndpointValue(range.lowerEndpoint(), isTimeStamp) : null;
       Object upperBound =
-          range.hasUpperBound() ? convertEndpointValue(range.upperEndpoint()) : null;
-      if (range.lowerBoundType() == BoundType.CLOSED
-          && range.upperBoundType() == BoundType.CLOSED) {
-        builder = rangeQuery(getFieldReference()).gte(lowerBound).lte(upperBound);
-      } else if (range.lowerBoundType() == BoundType.OPEN
-          && range.upperBoundType() == BoundType.OPEN) {
-        builder = rangeQuery(getFieldReference()).gt(lowerBound).lt(upperBound);
-      } else if (range.lowerBoundType() == BoundType.CLOSED
-          && range.upperBoundType() == BoundType.OPEN) {
-        builder = rangeQuery(getFieldReference()).gte(lowerBound).lt(upperBound);
-      } else if (range.lowerBoundType() == BoundType.OPEN
-          && range.upperBoundType() == BoundType.CLOSED) {
-        builder = rangeQuery(getFieldReference()).gt(lowerBound).lte(upperBound);
-      }
+          range.hasUpperBound() ? convertEndpointValue(range.upperEndpoint(), isTimeStamp) : null;
+      RangeQueryBuilder rangeQueryBuilder = rangeQuery(getFieldReference());
+      rangeQueryBuilder =
+          range.lowerBoundType() == BoundType.CLOSED
+              ? rangeQueryBuilder.gte(lowerBound)
+              : rangeQueryBuilder.gt(lowerBound);
+      rangeQueryBuilder =
+          range.upperBoundType() == BoundType.CLOSED
+              ? rangeQueryBuilder.lte(upperBound)
+              : rangeQueryBuilder.lt(upperBound);
+      builder = rangeQueryBuilder;
       return this;
     }
 
-    private Object convertEndpointValue(Object value) {
-      if (value instanceof NlsString nls) {
-        return nls.getValue();
-      }
-      return value;
+    private Object convertEndpointValue(Object value, boolean isTimeStamp) {
+      value = (value instanceof NlsString nls) ? nls.getValue() : value;
+      return isTimeStamp ? timestampValueForPushDown(value.toString()) : value;
     }
+  }
+
+  private static String timestampValueForPushDown(String value) {
+    ExprTimestampValue exprTimestampValue = new ExprTimestampValue(value);
+    return DateFieldMapper.getDefaultDateTimeFormatter()
+        .format(exprTimestampValue.timestampValue());
+    // https://github.com/opensearch-project/sql/pull/3442
   }
 
   /**
@@ -1119,7 +1115,7 @@ public class PredicateAnalyzer {
       } else if (isBoolean()) {
         return booleanValue();
       } else if (isTimestamp()) {
-        return timestampValueForPushDown();
+        return timestampValueForPushDown(RexLiteral.stringValue(literal));
       } else if (isString()) {
         return RexLiteral.stringValue(literal);
       } else {
@@ -1168,15 +1164,6 @@ public class PredicateAnalyzer {
 
     String stringValue() {
       return RexLiteral.stringValue(literal);
-    }
-
-    String timestampValueForPushDown() {
-      ExprTimestampValue exprTimestampValue =
-          new ExprTimestampValue(RexLiteral.stringValue(literal));
-      return DateFieldMapper.getDefaultDateTimeFormatter()
-          .format(
-              exprTimestampValue.timestampValue()); // format using opensearch default formatter as
-      // https://github.com/opensearch-project/sql/pull/3442
     }
 
     List<Object> sargValue() {
