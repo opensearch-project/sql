@@ -77,7 +77,7 @@ public class BucketAggregationBuilder {
     }
   }
 
-  private CompositeValuesSourceBuilder<?> buildHistogram(
+  public static CompositeValuesSourceBuilder<?> buildHistogram(
       String name, String field, Double value, SpanUnit unit, MissingOrder missingOrder) {
     switch (unit) {
       case NONE:
@@ -93,7 +93,7 @@ public class BucketAggregationBuilder {
     }
   }
 
-  private CompositeValuesSourceBuilder<?> buildDateHistogram(
+  public static CompositeValuesSourceBuilder<?> buildDateHistogram(
       String name, String field, Integer value, SpanUnit unit, MissingOrder missingOrder) {
     String spanValue = value + unit.getName();
     switch (unit) {
