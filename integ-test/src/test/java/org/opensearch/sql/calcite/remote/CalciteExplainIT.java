@@ -20,4 +20,9 @@ public class CalciteExplainIT extends ExplainIT {
   @Override
   @Ignore("test only in v2")
   public void testExplainModeUnsupportedInV2() throws IOException {}
+
+  @Override
+  public void testExplain() throws IOException {
+    super.testExplain();
+  }
 }
