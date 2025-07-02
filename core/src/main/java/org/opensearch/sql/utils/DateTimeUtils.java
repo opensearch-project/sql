@@ -306,6 +306,14 @@ public class DateTimeUtils {
     }
   }
 
+  /**
+   * The function add cast for date-related target node
+   *
+   * @param candidate The candidate node
+   * @param context calcite context
+   * @param castTarget the target cast type
+   * @return the rexnode after casting
+   */
   public static RexNode transferCompareForDateRelated(
       RexNode candidate, CalcitePlanContext context, SqlTypeName castTarget) {
     if (!(Objects.isNull(castTarget))) {
@@ -335,15 +343,30 @@ public class DateTimeUtils {
     return candidate;
   }
 
+  /**
+   * The function find the target cast type according to the left and right node. When the two node
+   * are both related to date with different type, cast to timestamp
+   *
+   * @param left
+   * @param right
+   * @return
+   */
   public static SqlTypeName findCastType(RexNode left, RexNode right) {
     SqlTypeName leftType = returnCorrespondingSqlType(left);
     SqlTypeName rightType = returnCorrespondingSqlType(right);
-    if (leftType != null && rightType != null) {
+    if (leftType != null && rightType != null && rightType != leftType) {
       return SqlTypeName.TIMESTAMP;
     }
     return leftType == null ? rightType : leftType;
   }
 
+  /**
+   * Find corresponding cast type according to the node's type. If they're not related to the date,
+   * return null
+   *
+   * @param node the candidate node
+   * @return the sql type name
+   */
   public static SqlTypeName returnCorrespondingSqlType(RexNode node) {
     if (node.getType() instanceof ExprSqlType) {
       OpenSearchTypeFactory.ExprUDT udt = ((ExprSqlType) node.getType()).getUdt();
