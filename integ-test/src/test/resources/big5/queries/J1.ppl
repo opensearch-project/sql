@@ -1,1 +1,0 @@
-source = big5 | head 5000000 | left join on @timestamp = @timestamp [source = big5 | where `aws.cloudwatch.log_stream` = 'indigodagger' | stats count() by span(@timestamp, 1h)]

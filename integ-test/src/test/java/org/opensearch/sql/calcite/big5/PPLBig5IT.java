@@ -10,10 +10,13 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import org.junit.AfterClass;
+import org.junit.FixMethodOrder;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.runners.MethodSorters;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
+@FixMethodOrder(MethodSorters.JVM)
 public class PPLBig5IT extends PPLIntegTestCase {
   private boolean initialized = false;
   private static final Map<String, Long> summary = new LinkedHashMap<>();
@@ -25,6 +28,8 @@ public class PPLBig5IT extends PPLIntegTestCase {
     disableCalcite();
     // warm-up
     if (!initialized) {
+      executeQuery("source=big5");
+      executeQuery("source=big5 | eval a = 1"); // trigger non-pushdown
       executeQuery("source=big5");
       initialized = true;
     }
@@ -57,229 +62,258 @@ public class PPLBig5IT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testTQ1() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/TQ1.ppl"));
-    timing("TQ1", ppl);
+  public void asc_sort_timestamp() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/asc_sort_timestamp.ppl"));
+    timing("asc_sort_timestamp", ppl);
   }
 
   @Test
-  public void testTQ2() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/TQ2.ppl"));
-    timing("TQ2", ppl);
+  public void asc_sort_timestamp_can_match_shortcut() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/asc_sort_timestamp_can_match_shortcut.ppl"));
+    timing("asc_sort_timestamp_can_match_shortcut", ppl);
   }
 
   @Test
-  public void testTQ3() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/TQ3.ppl"));
-    timing("TQ3", ppl);
+  public void asc_sort_timestamp_no_can_match_shortcut() throws IOException {
+    String ppl =
+        sanitize(loadFromFile("big5/queries/asc_sort_timestamp_no_can_match_shortcut.ppl"));
+    timing("asc_sort_timestamp_no_can_match_shortcut", ppl);
   }
 
   @Test
-  public void testTQ4() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/TQ4.ppl"));
-    timing("TQ4", ppl);
+  public void asc_sort_with_after_timestamp() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/asc_sort_with_after_timestamp.ppl"));
+    timing("asc_sort_with_after_timestamp", ppl);
   }
 
   @Test
-  public void testTQ5() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/TQ5.ppl"));
-    timing("TQ5", ppl);
+  public void composite_date_histogram_daily() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/composite_date_histogram_daily.ppl"));
+    timing("composite_date_histogram_daily", ppl);
   }
 
   @Test
-  public void testS1() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/S1.ppl"));
-    timing("S1", ppl);
+  public void composite_terms_keyword() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/composite_terms_keyword.ppl"));
+    timing("composite_terms_keyword", ppl);
   }
 
   @Test
-  public void testS2() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/S2.ppl"));
-    timing("S2", ppl);
+  public void composite_terms() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/composite_terms.ppl"));
+    timing("composite_terms", ppl);
   }
 
   @Test
-  public void testS3() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/S3.ppl"));
-    timing("S3", ppl);
+  public void date_histogram_hourly_agg() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/date_histogram_hourly_agg.ppl"));
+    timing("date_histogram_hourly_agg", ppl);
   }
 
   @Test
-  public void testS4() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/S4.ppl"));
-    timing("S4", ppl);
+  public void date_histogram_minute_agg() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/date_histogram_minute_agg.ppl"));
+    timing("date_histogram_minute_agg", ppl);
   }
 
   @Test
-  public void testS5() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/S5.ppl"));
-    timing("S5", ppl);
+  public void test_default() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/default.ppl"));
+    timing("default", ppl);
   }
 
   @Test
-  public void testS6() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/S6.ppl"));
-    timing("S6", ppl);
+  public void desc_sort_timestamp() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/desc_sort_timestamp.ppl"));
+    timing("desc_sort_timestamp", ppl);
   }
 
   @Test
-  public void testS7() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/S7.ppl"));
-    timing("S7", ppl);
+  public void desc_sort_timestamp_can_match_shortcut() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/desc_sort_timestamp_can_match_shortcut.ppl"));
+    timing("desc_sort_timestamp_can_match_shortcut", ppl);
   }
 
   @Test
-  public void testS8() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/S8.ppl"));
-    timing("S8", ppl);
+  public void desc_sort_timestamp_no_can_match_shortcut() throws IOException {
+    String ppl =
+        sanitize(loadFromFile("big5/queries/desc_sort_timestamp_no_can_match_shortcut.ppl"));
+    timing("desc_sort_timestamp_no_can_match_shortcut", ppl);
   }
 
   @Test
-  public void testS9() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/S9.ppl"));
-    timing("S9", ppl);
+  public void desc_sort_with_after_timestamp() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/desc_sort_with_after_timestamp.ppl"));
+    timing("desc_sort_with_after_timestamp", ppl);
   }
 
   @Test
-  public void testS10() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/S10.ppl"));
-    timing("S10", ppl);
+  public void keyword_in_range() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/keyword_in_range.ppl"));
+    timing("keyword_in_range", ppl);
   }
 
   @Test
-  public void testS11() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/S11.ppl"));
+  public void keyword_terms() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/keyword_terms.ppl"));
+    timing("keyword_terms", ppl);
   }
 
   @Test
-  public void testS12() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/S12.ppl"));
-    timing("S12", ppl);
+  public void keyword_terms_low_cardinality() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/keyword_terms_low_cardinality.ppl"));
+    timing("keyword_terms_low_cardinality", ppl);
   }
 
   @Test
-  public void testS13() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/S13.ppl"));
-    timing("S13", ppl);
+  public void multi_terms_keyword() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/multi_terms_keyword.ppl"));
+    timing("multi_terms_keyword", ppl);
   }
 
   @Test
-  public void testDH1() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/DH1.ppl"));
-    timing("DH1", ppl);
+  public void query_string_on_message() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/query_string_on_message.ppl"));
+    timing("query_string_on_message", ppl);
   }
 
   @Test
-  public void testDH2() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/DH2.ppl"));
-    timing("DH2", ppl);
+  public void query_string_on_message_filtered() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/query_string_on_message_filtered.ppl"));
+    timing("query_string_on_message_filtered", ppl);
   }
 
   @Test
-  public void testDH3() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/DH3.ppl"));
-    timing("DH3", ppl);
-  }
-
-  @Ignore("DH4 fail in client")
-  public void testDH4() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/DH4.ppl"));
-    timing("DH4", ppl);
-  }
-
-  @Ignore("DH5 fail in client")
-  public void testDH5() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/DH5.ppl"));
-    timing("DH5", ppl);
+  public void query_string_on_message_filtered_sorted_num() throws IOException {
+    String ppl =
+        sanitize(loadFromFile("big5/queries/query_string_on_message_filtered_sorted_num.ppl"));
+    timing("query_string_on_message_filtered_sorted_num", ppl);
   }
 
   @Test
-  public void testR1() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/R1.ppl"));
-    timing("R1", ppl);
+  public void range() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/range.ppl"));
+    timing("range", ppl);
+  }
+
+  @Ignore("Failed to parse request payload")
+  public void range_auto_date_histo() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/range_auto_date_histo.ppl"));
+    timing("range_auto_date_histo", ppl);
+  }
+
+  @Ignore("Failed to parse request payload")
+  public void range_auto_date_histo_with_metrics() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/range_auto_date_histo_with_metrics.ppl"));
+    timing("range_auto_date_histo_with_metrics", ppl);
   }
 
   @Test
-  public void testR2() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/R2.ppl"));
-    timing("R2", ppl);
+  public void range_numeric() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/range_numeric.ppl"));
+    timing("range_numeric", ppl);
   }
 
   @Test
-  public void testR3() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/R3.ppl"));
-    timing("R3", ppl);
+  public void range_field_conjunction_big_range_big_term_query() throws IOException {
+    String ppl =
+        sanitize(loadFromFile("big5/queries/range_field_conjunction_big_range_big_term_query.ppl"));
+    timing("range_field_conjunction_big_range_big_term_query", ppl);
   }
 
   @Test
-  public void testR4() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/R4.ppl"));
-    timing("R4", ppl);
+  public void range_field_conjunction_small_range_big_term_query() throws IOException {
+    String ppl =
+        sanitize(
+            loadFromFile("big5/queries/range_field_conjunction_small_range_big_term_query.ppl"));
+    timing("range_field_conjunction_small_range_big_term_query", ppl);
   }
 
   @Test
-  public void testR5() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/R5.ppl"));
-    timing("R5", ppl);
+  public void range_field_conjunction_small_range_small_term_query() throws IOException {
+    String ppl =
+        sanitize(
+            loadFromFile("big5/queries/range_field_conjunction_small_range_small_term_query.ppl"));
+    timing("range_field_conjunction_small_range_small_term_query", ppl);
   }
 
   @Test
-  public void testR6() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/R6.ppl"));
-    timing("R6", ppl);
+  public void range_field_disjunction_big_range_small_term_query() throws IOException {
+    String ppl =
+        sanitize(
+            loadFromFile("big5/queries/range_field_disjunction_big_range_small_term_query.ppl"));
+    timing("range_field_disjunction_big_range_small_term_query", ppl);
   }
 
   @Test
-  public void testR7() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/R7.ppl"));
-    timing("R7", ppl);
+  public void range_with_asc_sort() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/range_with_asc_sort.ppl"));
+    timing("range_with_asc_sort", ppl);
   }
 
   @Test
-  public void testTA1() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/TA1.ppl"));
-    timing("TA1", ppl);
+  public void range_with_desc_sort() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/range_with_desc_sort.ppl"));
+    timing("range_with_desc_sort", ppl);
   }
 
   @Test
-  public void testTA2() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/TA2.ppl"));
-    timing("TA2", ppl);
+  public void scroll() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/scroll.ppl"));
+    timing("scroll", ppl);
   }
 
   @Test
-  public void testTA3() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/TA3.ppl"));
-    timing("TA3", ppl);
+  public void sort_keyword_can_match_shortcut() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/sort_keyword_can_match_shortcut.ppl"));
+    timing("sort_keyword_can_match_shortcut", ppl);
   }
 
   @Test
-  public void testTA4() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/TA4.ppl"));
-    timing("TA4", ppl);
+  public void sort_keyword_no_can_match_shortcut() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/sort_keyword_no_can_match_shortcut.ppl"));
+    timing("sort_keyword_no_can_match_shortcut", ppl);
   }
 
   @Test
-  public void testTA5() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/TA5.ppl"));
-    timing("TA5", ppl);
+  public void sort_numeric_asc() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/sort_numeric_asc.ppl"));
+    timing("sort_numeric_asc", ppl);
   }
 
-  @Ignore("v2 is unsupported")
-  public void testSQ1() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/SQ1.ppl"));
-    timing("SQ1", ppl);
+  @Test
+  public void sort_numeric_asc_with_match() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/sort_numeric_asc_with_match.ppl"));
+    timing("sort_numeric_asc_with_match", ppl);
   }
 
-  @Ignore("v2 is unsupported")
-  public void testJ1() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/J1.ppl"));
-    timing("J1", ppl);
+  @Test
+  public void sort_numeric_desc() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/sort_numeric_desc.ppl"));
+    timing("sort_numeric_desc", ppl);
   }
 
-  @Ignore("v2 is unsupported")
-  public void testJ2() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/J2.ppl"));
-    timing("J2", ppl);
+  @Test
+  public void sort_numeric_desc_with_match() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/sort_numeric_desc_with_match.ppl"));
+    timing("sort_numeric_desc_with_match", ppl);
+  }
+
+  @Test
+  public void term() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/term.ppl"));
+    timing("term", ppl);
+  }
+
+  @Test
+  public void terms_significant_1() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/terms_significant_1.ppl"));
+    timing("terms_significant_1", ppl);
+  }
+
+  @Test
+  public void terms_significant_2() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/terms_significant_2.ppl"));
+    timing("terms_significant_2", ppl);
   }
 }

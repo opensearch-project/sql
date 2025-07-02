@@ -1,0 +1,4 @@
+source = big5
+| where `@timestamp` >= '2022-12-30 00:00:00' and `@timestamp` < '2023-01-01 03:00:00'
+| stats count() by `process.name`, `event.id`, `cloud.region`
+| sort - `count()`

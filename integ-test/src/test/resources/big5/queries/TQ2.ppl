@@ -1,1 +1,0 @@
-source=big5 | where query_string(['message'], 'shield AND carp AND shark')

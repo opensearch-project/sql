@@ -1,1 +1,0 @@
-source = big5 | where `metrics.size` >= 1 and `metrics.size` <= 1000

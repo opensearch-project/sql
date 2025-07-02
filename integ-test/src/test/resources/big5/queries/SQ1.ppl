@@ -1,1 +1,0 @@
-source = big5 | where `process.name` in [ source = big5 | stats count() by `process.name` | fields `process.name` ]
