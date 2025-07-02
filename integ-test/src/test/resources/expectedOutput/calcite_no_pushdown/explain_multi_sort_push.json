@@ -1,6 +1,6 @@
 {
   "calcite": {
-    "logical": "LogicalSort(sort0=[$3], sort1=[$4], sort2=[$2], dir0=[DESC], dir1=[DESC], dir2=[ASC])\n  LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4])\n    LogicalSort(sort0=[$3], sort1=[$4], sort2=[$2], dir0=[DESC], dir1=[DESC], dir2=[ASC])\n      LogicalSort(sort0=[$0], sort1=[$1], sort2=[$2], sort3=[$3], dir0=[ASC], dir1=[ASC], dir2=[ASC], dir3=[ASC])\n        CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
-    "physical": "EnumerableSort(sort0=[$3], sort1=[$4], sort2=[$2], dir0=[DESC], dir1=[DESC], dir2=[ASC])\n  EnumerableCalc(expr#0..16=[{inputs}], proj#0..4=[{exprs}])\n    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n"
+    "logical": "LogicalSort(sort0=[$3], sort1=[$4], sort2=[$2], dir0=[DESC-nulls-last], dir1=[DESC-nulls-last], dir2=[ASC-nulls-first])\n  LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4])\n    LogicalSort(sort0=[$3], sort1=[$4], sort2=[$2], dir0=[DESC-nulls-last], dir1=[DESC-nulls-last], dir2=[ASC-nulls-first])\n      LogicalSort(sort0=[$0], sort1=[$1], sort2=[$2], sort3=[$3], dir0=[ASC-nulls-first], dir1=[ASC-nulls-first], dir2=[ASC-nulls-first], dir3=[ASC-nulls-first])\n        CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
+    "physical": "EnumerableSort(sort0=[$3], sort1=[$4], sort2=[$2], dir0=[DESC-nulls-last], dir1=[DESC-nulls-last], dir2=[ASC-nulls-first])\n  EnumerableCalc(expr#0..16=[{inputs}], proj#0..4=[{exprs}])\n    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n"
   }
 }

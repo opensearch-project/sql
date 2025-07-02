@@ -1,6 +1,6 @@
 {
   "calcite": {
-    "logical": "LogicalSort(sort0=[$0], dir0=[ASC])\n  LogicalProject(age=[$8])\n    LogicalSort(sort0=[$8], dir0=[ASC], fetch=[5])\n      CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
-    "physical": "EnumerableCalc(expr#0..16=[{inputs}], age=[$t8])\n  EnumerableLimit(fetch=[5])\n    EnumerableSort(sort0=[$8], dir0=[ASC])\n      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n"
+    "logical": "LogicalSort(sort0=[$0], dir0=[ASC-nulls-first])\n  LogicalProject(age=[$8])\n    LogicalSort(sort0=[$8], dir0=[ASC-nulls-first], fetch=[5])\n      CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
+    "physical": "EnumerableCalc(expr#0..16=[{inputs}], age=[$t8])\n  EnumerableLimit(fetch=[5])\n    EnumerableSort(sort0=[$8], dir0=[ASC-nulls-first])\n      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n"
   }
 }

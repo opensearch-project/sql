@@ -43,7 +43,6 @@ public class ExplainIT extends PPLIntegTestCase {
   @Test
   public void testFilterPushDownExplain() throws IOException {
     String expected = loadExpectedPlan("explain_filter_push.json");
-
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
@@ -56,12 +55,7 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testFilterByCompareStringTimestampPushDownExplain() throws IOException {
-    String expected =
-        isCalciteEnabled()
-            ? loadFromFile(
-                "expectedOutput/calcite/explain_filter_push_compare_timestamp_string.json")
-            : loadFromFile("expectedOutput/ppl/explain_filter_push_compare_timestamp_string.json");
-
+    String expected = loadExpectedPlan("explain_filter_push_compare_timestamp_string.json");
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
@@ -72,11 +66,7 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testFilterByCompareStringDatePushDownExplain() throws IOException {
-    String expected =
-        isCalciteEnabled()
-            ? loadFromFile("expectedOutput/calcite/explain_filter_push_compare_date_string.json")
-            : loadFromFile("expectedOutput/ppl/explain_filter_push_compare_date_string.json");
-
+    String expected = loadExpectedPlan("explain_filter_push_compare_date_string.json");
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
@@ -87,11 +77,7 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testFilterByCompareStringTimePushDownExplain() throws IOException {
-    String expected =
-        isCalciteEnabled()
-            ? loadFromFile("expectedOutput/calcite/explain_filter_push_compare_time_string.json")
-            : loadFromFile("expectedOutput/ppl/explain_filter_push_compare_time_string.json");
-
+    String expected = loadExpectedPlan("explain_filter_push_compare_time_string.json");
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
@@ -103,7 +89,6 @@ public class ExplainIT extends PPLIntegTestCase {
   @Test
   public void testFilterAndAggPushDownExplain() throws IOException {
     String expected = loadExpectedPlan("explain_filter_agg_push.json");
-
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
@@ -115,7 +100,6 @@ public class ExplainIT extends PPLIntegTestCase {
   @Test
   public void testSortPushDownExplain() throws IOException {
     String expected = loadExpectedPlan("explain_sort_push.json");
-
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
@@ -217,7 +201,6 @@ public class ExplainIT extends PPLIntegTestCase {
   @Test
   public void testLimitPushDownExplain() throws IOException {
     String expected = loadExpectedPlan("explain_limit_push.json");
-
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
@@ -294,7 +277,6 @@ public class ExplainIT extends PPLIntegTestCase {
   @Test
   public void testLimitWithMultipleOffsetPushdownExplain() throws IOException {
     String expected = loadExpectedPlan("explain_limit_offsets_push.json");
-
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
@@ -307,7 +289,6 @@ public class ExplainIT extends PPLIntegTestCase {
   @Test
   public void testFillNullPushDownExplain() throws IOException {
     String expected = loadExpectedPlan("explain_fillnull_push.json");
-
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
@@ -318,7 +299,6 @@ public class ExplainIT extends PPLIntegTestCase {
   @Test
   public void testTrendlinePushDownExplain() throws IOException {
     String expected = loadExpectedPlan("explain_trendline_push.json");
-
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
@@ -331,7 +311,6 @@ public class ExplainIT extends PPLIntegTestCase {
   @Test
   public void testTrendlineWithSortPushDownExplain() throws IOException {
     String expected = loadExpectedPlan("explain_trendline_sort_push.json");
-
     // Sort will not be pushed down because there's a head before it.
     assertJsonEqualsIgnoreId(
         expected,
@@ -358,7 +337,6 @@ public class ExplainIT extends PPLIntegTestCase {
   public void testPatternsSimplePatternMethodWithoutAggExplain() throws IOException {
     // TODO: Correct calcite expected result once pushdown is supported
     String expected = loadExpectedPlan("explain_patterns_simple_pattern.json");
-
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString("source=opensearch-sql_test_index_account | patterns email"));
@@ -368,7 +346,6 @@ public class ExplainIT extends PPLIntegTestCase {
   public void testPatternsSimplePatternMethodWithAggPushDownExplain() throws IOException {
     // TODO: Correct calcite expected result once pushdown is supported
     String expected = loadExpectedPlan("explain_patterns_simple_pattern_agg_push.json");
-
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
@@ -379,7 +356,6 @@ public class ExplainIT extends PPLIntegTestCase {
   public void testPatternsBrainMethodWithAggPushDownExplain() throws IOException {
     // TODO: Correct calcite expected result once pushdown is supported
     String expected = loadExpectedPlan("explain_patterns_brain_agg_push.json");
-
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
@@ -389,11 +365,7 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testStatsBySpan() throws IOException {
-    String expected =
-        isCalciteEnabled()
-            ? loadFromFile("expectedOutput/calcite/explain_stats_by_span.json")
-            : loadFromFile("expectedOutput/ppl/explain_stats_by_span.json");
-
+    String expected = loadExpectedPlan("explain_stats_by_span.json");
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
@@ -402,21 +374,13 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testStatsByTimeSpan() throws IOException {
-    String expected =
-        isCalciteEnabled()
-            ? loadFromFile("expectedOutput/calcite/explain_stats_by_timespan.json")
-            : loadFromFile("expectedOutput/ppl/explain_stats_by_timespan.json");
-
+    String expected = loadExpectedPlan("explain_stats_by_timespan.json");
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
             String.format("source=%s | stats count() by span(birthdate,1m)", TEST_INDEX_BANK)));
 
-    expected =
-        isCalciteEnabled()
-            ? loadFromFile("expectedOutput/calcite/explain_stats_by_timespan2.json")
-            : loadFromFile("expectedOutput/ppl/explain_stats_by_timespan2.json");
-
+    expected = loadExpectedPlan("explain_stats_by_timespan2.json");
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
