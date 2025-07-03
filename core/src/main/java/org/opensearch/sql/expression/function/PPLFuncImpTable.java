@@ -473,40 +473,45 @@ public class PPLFuncImpTable {
     /** Maps an operator to an implementation. */
     abstract void register(BuiltinFunctionName functionName, FunctionImp functionImp);
 
-    void registerOperator(BuiltinFunctionName functionName, SqlOperator operator) {
-      SqlOperandTypeChecker typeChecker;
-      if (operator instanceof SqlUserDefinedFunction udfOperator) {
-        typeChecker = extractTypeCheckerFromUDF(udfOperator);
-      } else {
-        typeChecker = operator.getOperandTypeChecker();
-      }
+    public void registerOperator(BuiltinFunctionName functionName, SqlOperator... operators) {
+      for (SqlOperator operator : operators) {
+        SqlOperandTypeChecker typeChecker;
+        if (operator instanceof SqlUserDefinedFunction udfOperator) {
+          typeChecker = extractTypeCheckerFromUDF(udfOperator);
+        } else {
+          typeChecker = operator.getOperandTypeChecker();
+        }
 
-      // Only the composite operand type checker for UDFs are concerned here.
-      if (operator instanceof SqlUserDefinedFunction
-          && typeChecker instanceof CompositeOperandTypeChecker compositeTypeChecker) {
-        // UDFs implement their own composite type checkers, which always use OR logic for argument
-        // types. Verifying the composition type would require accessing a protected field in
-        // CompositeOperandTypeChecker. If access to this field is not allowed, type checking will
-        // be skipped, so we avoid checking the composition type here.
-        register(functionName, wrapWithCompositeTypeChecker(operator, compositeTypeChecker, false));
-      } else if (typeChecker instanceof ImplicitCastOperandTypeChecker implicitCastTypeChecker) {
-        register(functionName, wrapWithImplicitCastTypeChecker(operator, implicitCastTypeChecker));
-      } else if (typeChecker instanceof CompositeOperandTypeChecker compositeTypeChecker) {
-        // If compositeTypeChecker contains operand checkers other than family type checkers or
-        // other than OR compositions, the function with be registered with a null type checker,
-        // which means the function will not be type checked.
-        register(functionName, wrapWithCompositeTypeChecker(operator, compositeTypeChecker, true));
-      } else if (typeChecker instanceof SameOperandTypeChecker comparableTypeChecker) {
-        // Comparison operators like EQUAL, GREATER_THAN, LESS_THAN, etc.
-        // SameOperandTypeCheckers like COALESCE, IFNULL, etc.
-        register(functionName, wrapWithComparableTypeChecker(operator, comparableTypeChecker));
-      } else {
-        logger.info(
-            "Cannot create type checker for function: {}. Will skip its type checking",
-            functionName);
-        register(
-            functionName,
-            (RexBuilder builder, RexNode... node) -> builder.makeCall(operator, node));
+        if (operator instanceof SqlUserDefinedFunction
+            && typeChecker instanceof CompositeOperandTypeChecker compositeTypeChecker) {
+          // UDFs implement their own composite type checkers, which always use OR logic for
+          // argument
+          // types. Verifying the composition type would require accessing a protected field in
+          // CompositeOperandTypeChecker. If access to this field is not allowed, type checking will
+          // be skipped, so we avoid checking the composition type here.
+          register(
+              functionName, wrapWithCompositeTypeChecker(operator, compositeTypeChecker, false));
+        } else if (typeChecker instanceof ImplicitCastOperandTypeChecker implicitCastTypeChecker) {
+          register(
+              functionName, wrapWithImplicitCastTypeChecker(operator, implicitCastTypeChecker));
+        } else if (typeChecker instanceof CompositeOperandTypeChecker compositeTypeChecker) {
+          // If compositeTypeChecker contains operand checkers other than family type checkers or
+          // other than OR compositions, the function with be registered with a null type checker,
+          // which means the function will not be type checked.
+          register(
+              functionName, wrapWithCompositeTypeChecker(operator, compositeTypeChecker, true));
+        } else if (typeChecker instanceof SameOperandTypeChecker comparableTypeChecker) {
+          // Comparison operators like EQUAL, GREATER_THAN, LESS_THAN, etc.
+          // SameOperandTypeCheckers like COALESCE, IFNULL, etc.
+          register(functionName, wrapWithComparableTypeChecker(operator, comparableTypeChecker));
+        } else {
+          logger.info(
+              "Cannot create type checker for function: {}. Will skip its type checking",
+              functionName);
+          register(
+              functionName,
+              (RexBuilder builder, RexNode... node) -> builder.makeCall(operator, node));
+        }
       }
     }
 
@@ -614,24 +619,18 @@ public class PPLFuncImpTable {
     }
 
     void populate() {
-      // register operators for IP comparing
-      registerOperator(NOTEQUAL, PPLBuiltinOperators.NOT_EQUALS_IP);
-      registerOperator(EQUAL, PPLBuiltinOperators.EQUALS_IP);
-      registerOperator(GREATER, PPLBuiltinOperators.GREATER_IP);
-      registerOperator(GTE, PPLBuiltinOperators.GTE_IP);
-      registerOperator(LESS, PPLBuiltinOperators.LESS_IP);
-      registerOperator(LTE, PPLBuiltinOperators.LTE_IP);
+      // register operators for comparison
+      registerOperator(NOTEQUAL, PPLBuiltinOperators.NOT_EQUALS_IP, SqlStdOperatorTable.NOT_EQUALS);
+      registerOperator(EQUAL, PPLBuiltinOperators.EQUALS_IP, SqlStdOperatorTable.EQUALS);
+      registerOperator(GREATER, PPLBuiltinOperators.GREATER_IP, SqlStdOperatorTable.GREATER_THAN);
+      registerOperator(GTE, PPLBuiltinOperators.GTE_IP, SqlStdOperatorTable.GREATER_THAN_OR_EQUAL);
+      registerOperator(LESS, PPLBuiltinOperators.LESS_IP, SqlStdOperatorTable.LESS_THAN);
+      registerOperator(LTE, PPLBuiltinOperators.LTE_IP, SqlStdOperatorTable.LESS_THAN_OR_EQUAL);
 
       // Register std operator
       registerOperator(AND, SqlStdOperatorTable.AND);
       registerOperator(OR, SqlStdOperatorTable.OR);
       registerOperator(NOT, SqlStdOperatorTable.NOT);
-      registerOperator(NOTEQUAL, SqlStdOperatorTable.NOT_EQUALS);
-      registerOperator(EQUAL, SqlStdOperatorTable.EQUALS);
-      registerOperator(GREATER, SqlStdOperatorTable.GREATER_THAN);
-      registerOperator(GTE, SqlStdOperatorTable.GREATER_THAN_OR_EQUAL);
-      registerOperator(LESS, SqlStdOperatorTable.LESS_THAN);
-      registerOperator(LTE, SqlStdOperatorTable.LESS_THAN_OR_EQUAL);
       registerOperator(ADD, SqlStdOperatorTable.PLUS);
       registerOperator(SUBTRACT, SqlStdOperatorTable.MINUS);
       registerOperator(MULTIPLY, SqlStdOperatorTable.MULTIPLY);
