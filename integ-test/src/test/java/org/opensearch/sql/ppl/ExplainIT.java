@@ -21,6 +21,7 @@ public class ExplainIT extends PPLIntegTestCase {
     super.init();
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK);
+    loadIndex(Index.DATE_FORMATS);
   }
 
   @Test
@@ -57,6 +58,52 @@ public class ExplainIT extends PPLIntegTestCase {
                 + "| where age < 40 "
                 + "| where balance > 10000 "
                 + "| fields age"));
+  }
+
+  @Test
+  public void testFilterByCompareStringTimestampPushDownExplain() throws IOException {
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile(
+                "expectedOutput/calcite/explain_filter_push_compare_timestamp_string.json")
+            : loadFromFile("expectedOutput/ppl/explain_filter_push_compare_timestamp_string.json");
+
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_bank"
+                + "| where birthdate > '2016-12-08 00:00:00.000000000' "
+                + "| where birthdate < '2018-11-09 00:00:00.000000000' "));
+  }
+
+  @Test
+  public void testFilterByCompareStringDatePushDownExplain() throws IOException {
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_filter_push_compare_date_string.json")
+            : loadFromFile("expectedOutput/ppl/explain_filter_push_compare_date_string.json");
+
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_date_formats | fields yyyy-MM-dd"
+                + "| where yyyy-MM-dd > '2016-12-08 00:00:00.123456789' "
+                + "| where yyyy-MM-dd < '2018-11-09 00:00:00.000000000' "));
+  }
+
+  @Test
+  public void testFilterByCompareStringTimePushDownExplain() throws IOException {
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_filter_push_compare_time_string.json")
+            : loadFromFile("expectedOutput/ppl/explain_filter_push_compare_time_string.json");
+
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_date_formats | fields custom_time"
+                + "| where custom_time > '2016-12-08 12:00:00.123456789' "
+                + "| where custom_time < '2018-11-09 19:00:00.123456789' "));
   }
 
   @Test
@@ -448,5 +495,34 @@ public class ExplainIT extends PPLIntegTestCase {
         expected,
         explainQueryToString(
             String.format("source=%s | stats count() by span(birthdate,1M)", TEST_INDEX_BANK)));
+  }
+
+  @Test
+  public void testSingleFieldRelevanceQueryFunctionExplain() throws IOException {
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_single_field_relevance_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_single_field_relevance_push.json");
+
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| where match(email, '*@gmail.com', boost=1.0)"));
+  }
+
+  @Test
+  public void testMultiFieldsRelevanceQueryFunctionExplain() throws IOException {
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_multi_fields_relevance_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_multi_fields_relevance_push.json");
+
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| where simple_query_string(['email', name 4.0], 'gmail',"
+                + " default_operator='or', analyzer=english)"));
   }
 }

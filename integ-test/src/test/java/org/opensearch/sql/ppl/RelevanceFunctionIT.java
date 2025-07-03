@@ -128,4 +128,29 @@ public class RelevanceFunctionIT extends PPLIntegTestCase {
     assertEquals(16, result1.getInt("total"));
     assertEquals(4, result2.getInt("total"));
   }
+
+  @Test
+  public void test_mixed_relevance_function_and_normal_filter() throws IOException {
+    String query1 =
+        "SOURCE="
+            + TEST_INDEX_BEER
+            + " | WHERE simple_query_string(['Tags'], 'taste') and AcceptedAnswerId > 200 | fields"
+            + " Id";
+    var result1 = executeQuery(query1);
+    String query2 =
+        "SOURCE=" + TEST_INDEX_BEER + " | WHERE simple_query_string(['Tags'], 'taste') | fields Id";
+    var result2 = executeQuery(query2);
+    assertEquals(5, result1.getInt("total"));
+    assertEquals(8, result2.getInt("total"));
+  }
+
+  @Test
+  public void not_pushdown_throws_exception() throws IOException {
+    String query1 =
+        "SOURCE="
+            + TEST_INDEX_BEER
+            + " | STATS count(AcceptedAnswerId) as idCount"
+            + " | WHERE simple_query_string(['Tags'], 'taste') and idCount > 200";
+    assertThrows(Exception.class, () -> executeQuery(query1));
+  }
 }
