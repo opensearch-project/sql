@@ -39,8 +39,8 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void supportSearchSargPushDown_multiRange() throws IOException {
     String query =
-        "source=opensearch-sql_test_index_account | where (age > 20 and age < 30) or (age >= 1 and"
-            + " age <= 10)  | fields age";
+        "source=opensearch-sql_test_index_account | where (age > 20 and age < 28) or (age > 25 and"
+            + " age < 30) or (age >= 1 and age <= 10) or age = 0  | fields age";
     var result = explainQueryToString(query);
     String expected =
         loadFromFile("expectedOutput/calcite/explain_sarg_filter_push_multi_range.json");

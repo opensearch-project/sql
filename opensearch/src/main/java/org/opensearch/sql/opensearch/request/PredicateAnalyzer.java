@@ -62,6 +62,7 @@ import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.NlsString;
+import org.apache.calcite.util.RangeSets;
 import org.apache.calcite.util.Sarg;
 import org.opensearch.index.mapper.DateFieldMapper;
 import org.opensearch.index.query.BoolQueryBuilder;
@@ -412,13 +413,15 @@ public class PredicateAnalyzer {
             Set<? extends Range<?>> rangeSet = requireNonNull(sarg).rangeSet.asRanges();
             boolean isTimeStamp =
                 (pair.getKey() instanceof NamedFieldExpression namedField)
-                    && ExprCoreType.TIMESTAMP.equals(
-                        namedField.getExprType() instanceof OpenSearchDataType osType
-                            ? osType.getExprCoreType()
-                            : namedField.getExprType());
+                    && namedField.isTimeStampType();
             List<QueryExpression> queryExpressions =
                 rangeSet.stream()
-                    .map(range -> QueryExpression.create(pair.getKey()).between(range, isTimeStamp))
+                    .map(
+                        range ->
+                            RangeSets.isPoint(range)
+                                ? QueryExpression.create(pair.getKey())
+                                    .equals(range.lowerEndpoint(), isTimeStamp)
+                                : QueryExpression.create(pair.getKey()).between(range, isTimeStamp))
                     .toList();
             if (queryExpressions.size() == 1) {
               return queryExpressions.getFirst();
@@ -612,6 +615,11 @@ public class PredicateAnalyzer {
     public QueryExpression between(Range<?> literal, boolean isTimeStamp) {
       throw new PredicateAnalyzer.PredicateAnalyzerException(
           "between cannot be applied to " + this.getClass());
+    }
+
+    public QueryExpression equals(Object point, boolean isTimeStamp) {
+      throw new PredicateAnalyzer.PredicateAnalyzerException(
+          "equals cannot be applied to " + this.getClass());
     }
 
     public abstract QueryExpression notEquals(LiteralExpression literal);
@@ -944,6 +952,13 @@ public class PredicateAnalyzer {
     }
 
     @Override
+    public QueryExpression equals(Object point, boolean isTimeStamp) {
+      builder =
+          termQuery(getFieldReferenceForTermQuery(), convertEndpointValue(point, isTimeStamp));
+      return this;
+    }
+
+    @Override
     public QueryExpression between(Range<?> range, boolean isTimeStamp) {
       Object lowerBound =
           range.hasLowerBound() ? convertEndpointValue(range.lowerEndpoint(), isTimeStamp) : null;
@@ -1056,6 +1071,14 @@ public class PredicateAnalyzer {
 
     ExprType getExprType() {
       return type;
+    }
+
+    boolean isTimeStampType() {
+      return type != null
+          && ExprCoreType.TIMESTAMP.equals(
+              type.getOriginalExprType() instanceof OpenSearchDataType osType
+                  ? osType.getExprCoreType()
+                  : type.getOriginalExprType());
     }
 
     boolean isTextType() {
