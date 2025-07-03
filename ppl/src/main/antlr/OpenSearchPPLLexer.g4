@@ -469,6 +469,8 @@ Y:                                  'Y';
 // LITERALS AND VALUES
 //STRING_LITERAL:                     DQUOTA_STRING | SQUOTA_STRING | BQUOTA_STRING;
 ID:                                 ID_LITERAL;
+// Don't allow ID starts with * unless it's wrapped with backticks.
+STAR_ID:                            (BACKTICK STAR_ID_LITERAL BACKTICK);
 CLUSTER:                            CLUSTER_PREFIX_LITERAL;
 INTEGER_LITERAL:                    DEC_DIGIT+;
 DECIMAL_LITERAL:                    (DEC_DIGIT+)? '.' DEC_DIGIT+;
@@ -485,7 +487,8 @@ fragment DEC_DIGIT:                 [0-9];
 
 // Identifiers cannot start with a single '_' since this an OpenSearch reserved
 // metadata field.  Two underscores (or more) is acceptable, such as '__field'.
-fragment ID_LITERAL:                ([@*A-Z_])+?[*A-Z_\-0-9]*;
+fragment ID_LITERAL:                ([@A-Z_])+?[A-Z_\-0-9]*;
+fragment STAR_ID_LITERAL:           ([@*A-Z_])+?[*A-Z_\-0-9]*;
 
 LINE_COMMENT:                       '//' ('\\\n' | ~[\r\n])* '\r'? '\n'? -> channel(HIDDEN);
 BLOCK_COMMENT:                      '/*' .*? '*/' -> channel(HIDDEN);
