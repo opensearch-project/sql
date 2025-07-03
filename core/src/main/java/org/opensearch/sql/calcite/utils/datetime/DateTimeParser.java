@@ -5,6 +5,10 @@
 
 package org.opensearch.sql.calcite.utils.datetime;
 
+import static org.opensearch.sql.utils.DateTimeFormatters.STRICT_DATE_FORMATTER;
+import static org.opensearch.sql.utils.DateTimeFormatters.STRICT_TIMESTAMP_FORMATTER;
+import static org.opensearch.sql.utils.DateTimeFormatters.STRICT_TIME_FORMATTER;
+
 import com.google.common.collect.ImmutableList;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -13,7 +17,6 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import org.opensearch.sql.exception.SemanticCheckException;
-import org.opensearch.sql.utils.DateTimeFormatters;
 
 public interface DateTimeParser {
   /**
@@ -90,8 +93,7 @@ public interface DateTimeParser {
   }
 
   static LocalDateTime parseTimestamp(String input) {
-    List<DateTimeFormatter> dateTimeFormatters =
-        ImmutableList.of(DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
+    List<DateTimeFormatter> dateTimeFormatters = ImmutableList.of(STRICT_TIMESTAMP_FORMATTER);
 
     for (DateTimeFormatter fmt : dateTimeFormatters) {
       try {
@@ -106,7 +108,7 @@ public interface DateTimeParser {
   }
 
   static LocalTime parseTime(String input) {
-    List<DateTimeFormatter> timeFormatters = ImmutableList.of(DateTimeFormatter.ISO_TIME);
+    List<DateTimeFormatter> timeFormatters = ImmutableList.of(STRICT_TIME_FORMATTER);
     for (DateTimeFormatter fmt : timeFormatters) {
       try {
         return LocalTime.parse(input, fmt);
@@ -118,7 +120,7 @@ public interface DateTimeParser {
   }
 
   static LocalDate parseDate(String input) {
-    List<DateTimeFormatter> dateFormatters = ImmutableList.of(DateTimeFormatter.ISO_DATE);
+    List<DateTimeFormatter> dateFormatters = ImmutableList.of(STRICT_DATE_FORMATTER);
     for (DateTimeFormatter fmt : dateFormatters) {
       try {
         return LocalDate.parse(input, fmt);

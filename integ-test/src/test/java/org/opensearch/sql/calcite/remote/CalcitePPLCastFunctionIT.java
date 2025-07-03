@@ -7,18 +7,20 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NONNUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY_WITH_NULL;
-import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
@@ -32,6 +34,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
     loadIndex(Index.STATE_COUNTRY_WITH_NULL);
     loadIndex(Index.DATA_TYPE_NUMERIC);
     loadIndex(Index.DATA_TYPE_NONNUMERIC);
+    loadIndex(Index.DATE_FORMATS);
   }
 
   @Test
@@ -92,38 +95,15 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
                 "source=%s | eval a = cast(state as string) | fields a",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
-    assertJsonEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"a\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"California\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"New York\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Ontario\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Quebec\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      null\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      null\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 6,\n"
-            + "  \"size\": 6\n"
-            + "}",
-        actual.toString());
+    verifySchema(actual, schema("a", "string"));
+    verifyDataRows(
+        actual,
+        rows("California"),
+        rows("New York"),
+        rows("Ontario"),
+        rows("Quebec"),
+        rows((Object) null),
+        rows((Object) null));
   }
 
   @Test
@@ -133,32 +113,9 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval a = cast(name as boolean) | fields a", TEST_INDEX_STATE_COUNTRY));
 
-    assertJsonEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"a\",\n"
-            + "      \"type\": \"boolean\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      null\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      null\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      null\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      null\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 4,\n"
-            + "  \"size\": 4\n"
-            + "}",
-        actual.toString());
+    verifySchema(actual, schema("a", "boolean"));
+    verifyDataRows(
+        actual, rows((Object) null), rows((Object) null), rows((Object) null), rows((Object) null));
   }
 
   @Test
@@ -220,24 +177,8 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval a = cast('2' as boolean) | fields a | head 1",
                 TEST_INDEX_DATATYPE_NUMERIC));
-    assertJsonEquals(
-        ""
-            + "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"a\",\n"
-            + "      \"type\": \"boolean\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      null\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 1,\n"
-            + "  \"size\": 1\n"
-            + "}",
-        actual.toString());
+    verifySchema(actual, schema("a", "boolean"));
+    verifyDataRows(actual, rows((Object) null));
 
     actual =
         executeQuery(
@@ -251,24 +192,8 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval a = cast('aa' as boolean) | fields a | head 1",
                 TEST_INDEX_DATATYPE_NUMERIC));
-    assertJsonEquals(
-        ""
-            + "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"a\",\n"
-            + "      \"type\": \"boolean\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      null\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 1,\n"
-            + "  \"size\": 1\n"
-            + "}",
-        actual.toString());
+    verifySchema(actual, schema("a", "boolean"));
+    verifyDataRows(actual, rows((Object) null));
   }
 
   @Test
@@ -484,5 +409,115 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
                 "source=%s | eval a = cast(cast(boolean_value as STRING) as BOOLEAN)| fields a",
                 TEST_INDEX_DATATYPE_NONNUMERIC));
     verifyDataRows(actual, rows(true));
+  }
+
+  @Test
+  public void testCastDate() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval a = cast('1984-04-12' as DATE) | fields a",
+                TEST_INDEX_DATE_FORMATS));
+    verifySchema(actual, schema("a", "date"));
+    verifyDataRows(actual, rows("1984-04-12"), rows("1984-04-12"));
+
+    actual =
+        executeQuery(
+            String.format(
+                "source=%s | head 1 | eval a = cast('2023-10-01 12:00:00' as date) | fields a",
+                TEST_INDEX_DATE_FORMATS));
+    verifySchema(actual, schema("a", "date"));
+    verifyDataRows(actual, rows("2023-10-01"));
+
+    Throwable t =
+        assertThrowsWithReplace(
+            SemanticCheckException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | eval a = cast('09:07:42' as DATE) | fields a",
+                        TEST_INDEX_DATE_FORMATS)));
+
+    verifyErrorMessageContains(t, "date:09:07:42 in unsupported format, please use 'yyyy-MM-dd'");
+  }
+
+  @Test
+  public void testCastTime() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval a = cast('09:07:42' as TIME) | fields a",
+                TEST_INDEX_DATE_FORMATS));
+    verifySchema(actual, schema("a", "time"));
+    verifyDataRows(actual, rows("09:07:42"), rows("09:07:42"));
+
+    actual =
+        executeQuery(
+            String.format(
+                "source=%s | head 1 | eval a = cast('09:07:42.12345' as TIME) | fields a",
+                TEST_INDEX_DATE_FORMATS));
+    verifySchema(actual, schema("a", "time"));
+    verifyDataRows(actual, rows("09:07:42.12345"));
+
+    actual =
+        executeQuery(
+            String.format(
+                "source=%s | head 1 | eval a = cast('1985-10-09 12:00:00' as time) | fields a",
+                TEST_INDEX_DATE_FORMATS));
+    verifySchema(actual, schema("a", "time"));
+    verifyDataRows(actual, rows("12:00:00"));
+
+    Throwable t =
+        assertThrowsWithReplace(
+            SemanticCheckException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | eval a = cast('1984-04-12' as TIME) | fields a",
+                        TEST_INDEX_DATE_FORMATS)));
+
+    verifyErrorMessageContains(
+        t, "time:1984-04-12 in unsupported format, please use 'HH:mm:ss[.SSSSSSSSS]'");
+  }
+
+  @Test
+  public void testCastTimestamp() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval a = cast('1984-04-12 09:07:42' as TIMESTAMP) | fields a",
+                TEST_INDEX_DATE_FORMATS));
+    verifySchema(actual, schema("a", "timestamp"));
+    verifyDataRows(actual, rows("1984-04-12 09:07:42"), rows("1984-04-12 09:07:42"));
+
+    actual =
+        executeQuery(
+            String.format(
+                "source=%s | head 1 | eval a = cast('2023-10-01 12:00:00.123456' as timestamp) |"
+                    + " fields a",
+                TEST_INDEX_DATE_FORMATS));
+    verifySchema(actual, schema("a", "timestamp"));
+    verifyDataRows(actual, rows("2023-10-01 12:00:00.123456"));
+
+    actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval a = cast('1984-04-12' as TIMESTAMP) | fields a",
+                TEST_INDEX_DATE_FORMATS));
+    verifySchema(actual, schema("a", "timestamp"));
+    verifyDataRows(actual, rows("1984-04-12 00:00:00"), rows("1984-04-12 00:00:00"));
+
+    Throwable t =
+        assertThrowsWithReplace(
+            SemanticCheckException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | eval a = cast('09:07:42' as TIMESTAMP) | fields a",
+                        TEST_INDEX_DATE_FORMATS)));
+
+    verifyErrorMessageContains(
+        t,
+        "timestamp:09:07:42 in unsupported format, please use 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'");
   }
 }

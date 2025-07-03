@@ -5,9 +5,14 @@
 
 package org.opensearch.sql.calcite;
 
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_DATE;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIME;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIMESTAMP;
+
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
@@ -19,6 +24,8 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.opensearch.sql.ast.expression.SpanUnit;
+import org.opensearch.sql.calcite.type.ExprSqlType;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
 public class ExtendedRexBuilder extends RexBuilder {
 
@@ -116,6 +123,16 @@ public class ExtendedRexBuilder extends RexBuilder {
         //        return makeCall(type,
         //            SqlStdOperatorTable.NOT_EQUALS,
         //            ImmutableList.of(exp, makeZeroLiteral(exp.getType())));
+      }
+    } else if (type instanceof ExprSqlType exprSqlType
+        && Set.of(EXPR_DATE, EXPR_TIME, EXPR_TIMESTAMP).contains(exprSqlType.getUdt())) {
+      switch (exprSqlType.getUdt()) {
+        case EXPR_DATE:
+          return makeCall(type, PPLBuiltinOperators.DATE, List.of(exp));
+        case EXPR_TIME:
+          return makeCall(type, PPLBuiltinOperators.TIME, List.of(exp));
+        case EXPR_TIMESTAMP:
+          return makeCall(type, PPLBuiltinOperators.TIMESTAMP, List.of(exp));
       }
     }
     return super.makeCast(pos, type, exp, matchNullability, safe, format);
