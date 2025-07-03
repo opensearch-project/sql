@@ -209,8 +209,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
             + " empno_span";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        ""
-            + "LogicalSort(sort0=[$2], sort1=[$1], dir0=[ASC], dir1=[ASC])\n"
+        "LogicalSort(sort0=[$2], sort1=[$1], dir0=[ASC-nulls-first], dir1=[ASC-nulls-first])\n"
             + "  LogicalProject(avg(SAL)=[$2], empno_span=[$1], DEPTNO=[$0])\n"
             + "    LogicalAggregate(group=[{0, 2}], avg(SAL)=[AVG($1)])\n"
             + "      LogicalProject(DEPTNO=[$7], SAL=[$5], empno_span=[SPAN($0, 500, null:NULL)])\n"
@@ -230,7 +229,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
             + "SELECT AVG(`SAL`) `avg(SAL)`, `SPAN`(`EMPNO`, 500, NULL) `empno_span`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `DEPTNO`, `SPAN`(`EMPNO`, 500, NULL)\n"
-            + "ORDER BY `DEPTNO` NULLS LAST, 2 NULLS LAST";
+            + "ORDER BY `DEPTNO`, 2";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -241,7 +240,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
             + " DEPTNO, hiredate_span";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalSort(sort0=[$2], sort1=[$1], dir0=[ASC], dir1=[ASC])\n"
+        "LogicalSort(sort0=[$2], sort1=[$1], dir0=[ASC-nulls-first], dir1=[ASC-nulls-first])\n"
             + "  LogicalProject(avg(SAL)=[$2], hiredate_span=[$1], DEPTNO=[$0])\n"
             + "    LogicalAggregate(group=[{0, 2}], avg(SAL)=[AVG($1)])\n"
             + "      LogicalProject(DEPTNO=[$7], SAL=[$5], hiredate_span=[SPAN($4, 1, 'y')])\n"
@@ -252,7 +251,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
         "SELECT AVG(`SAL`) `avg(SAL)`, `SPAN`(`HIREDATE`, 1, 'y') `hiredate_span`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `DEPTNO`, `SPAN`(`HIREDATE`, 1, 'y')\n"
-            + "ORDER BY `DEPTNO` NULLS LAST, 2 NULLS LAST";
+            + "ORDER BY `DEPTNO`, 2";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 

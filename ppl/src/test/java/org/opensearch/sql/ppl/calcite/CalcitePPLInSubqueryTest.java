@@ -27,7 +27,7 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
-            + "  LogicalSort(sort0=[$0], dir0=[DESC])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
             + "    LogicalFilter(condition=[IN($7, {\n"
             + "LogicalProject(DEPTNO=[$0])\n"
             + "  LogicalTableScan(table=[[scott, DEPT]])\n"
@@ -41,7 +41,7 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`\n"
             + "WHERE `DEPTNO` IN (SELECT `DEPTNO`\n"
             + "FROM `scott`.`DEPT`)\n"
-            + "ORDER BY `EMPNO` DESC NULLS FIRST";
+            + "ORDER BY `EMPNO` DESC";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -85,7 +85,7 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
-            + "  LogicalSort(sort0=[$0], dir0=[DESC])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
             + "    LogicalFilter(condition=[IN($7, $1, {\n"
             + "LogicalProject(DEPTNO=[$0], DNAME=[$1])\n"
             + "  LogicalTableScan(table=[[scott, DEPT]])\n"
@@ -99,7 +99,7 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`\n"
             + "WHERE (`DEPTNO`, `ENAME`) IN (SELECT `DEPTNO`, `DNAME`\n"
             + "FROM `scott`.`DEPT`)\n"
-            + "ORDER BY `EMPNO` DESC NULLS FIRST";
+            + "ORDER BY `EMPNO` DESC";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -112,7 +112,7 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
-            + "  LogicalSort(sort0=[$0], dir0=[DESC])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
             + "    LogicalFilter(condition=[IN($7, $1, {\n"
             + "LogicalProject(DEPTNO=[$0], DNAME=[$1])\n"
             + "  LogicalTableScan(table=[[scott, DEPT]])\n"
@@ -126,7 +126,7 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`\n"
             + "WHERE (`DEPTNO`, `ENAME`) IN (SELECT `DEPTNO`, `DNAME`\n"
             + "FROM `scott`.`DEPT`)\n"
-            + "ORDER BY `EMPNO` DESC NULLS FIRST";
+            + "ORDER BY `EMPNO` DESC";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -139,7 +139,7 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
-            + "  LogicalSort(sort0=[$0], dir0=[DESC])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
             + "    LogicalFilter(condition=[NOT(IN($7, $1, {\n"
             + "LogicalProject(DEPTNO=[$0], DNAME=[$1])\n"
             + "  LogicalTableScan(table=[[scott, DEPT]])\n"
@@ -153,7 +153,7 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`\n"
             + "WHERE (`DEPTNO`, `ENAME`) NOT IN (SELECT `DEPTNO`, `DNAME`\n"
             + "FROM `scott`.`DEPT`)\n"
-            + "ORDER BY `EMPNO` DESC NULLS FIRST";
+            + "ORDER BY `EMPNO` DESC";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -167,7 +167,7 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalProject(DNAME=[$1], LOC=[$2])\n"
-            + "  LogicalSort(sort0=[$0], dir0=[DESC])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
             + "    LogicalFilter(condition=[IN($0, {\n"
             + "LogicalProject(DEPTNO=[$7])\n"
             + "  LogicalFilter(condition=[IN($1, {\n"
@@ -187,7 +187,7 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`\n"
             + "WHERE `ENAME` IN (SELECT `ENAME`\n"
             + "FROM `scott`.`BONUS`))\n"
-            + "ORDER BY `DEPTNO` DESC NULLS FIRST";
+            + "ORDER BY `DEPTNO` DESC";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -203,7 +203,7 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
-            + "  LogicalSort(sort0=[$0], dir0=[DESC])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], d.DEPTNO=[$8], DNAME=[$9], LOC=[$10])\n"
             + "      LogicalJoin(condition=[AND(=($7, $8), IN($1, {\n"
@@ -222,7 +222,7 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
             + " (SELECT `ENAME`\n"
             + "FROM `scott`.`BONUS`\n"
             + "WHERE `SAL` > 1000)\n"
-            + "ORDER BY `EMP`.`EMPNO` DESC NULLS FIRST";
+            + "ORDER BY `EMP`.`EMPNO` DESC";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
