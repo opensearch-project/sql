@@ -482,6 +482,7 @@ public class PPLFuncImpTable {
           typeChecker = operator.getOperandTypeChecker();
         }
 
+        // Only the composite operand type checker for UDFs are concerned here.
         if (operator instanceof SqlUserDefinedFunction
             && typeChecker instanceof CompositeOperandTypeChecker compositeTypeChecker) {
           // UDFs implement their own composite type checkers, which always use OR logic for
