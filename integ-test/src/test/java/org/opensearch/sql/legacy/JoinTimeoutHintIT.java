@@ -15,10 +15,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
 
-/**
- * Integration tests for JOIN_TIME_OUT hint functionality.
- *
- */
+/** Integration tests for JOIN_TIME_OUT hint functionality. */
 public class JoinTimeoutHintIT extends SQLIntegTestCase {
 
   @Override
