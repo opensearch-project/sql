@@ -93,6 +93,11 @@ public class OpenSearchJsonContent implements Content {
   }
 
   @Override
+  public boolean isInt() {
+    return value.isInt();
+  }
+
+  @Override
   public boolean isLong() {
     return value().isLong();
   }
