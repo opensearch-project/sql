@@ -23,7 +23,6 @@ public class ErrorFormatter {
                   SerializeUtils.getGsonBuilder()
                       .setPrettyPrinting()
                       .disableHtmlEscaping()
-                      // .serializeNulls()
                       .create());
   private static final Gson GSON =
       AccessController.doPrivileged(
