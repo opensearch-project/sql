@@ -28,9 +28,7 @@ public class PPLBig5IT extends PPLIntegTestCase {
     disableCalcite();
     // warm-up
     if (!initialized) {
-      executeQuery("source=big5");
       executeQuery("source=big5 | eval a = 1"); // trigger non-pushdown
-      executeQuery("source=big5");
       initialized = true;
     }
   }

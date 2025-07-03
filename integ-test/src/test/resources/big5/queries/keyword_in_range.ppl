@@ -1,5 +1,4 @@
-source = big5
+source = big5 match(`process.name`, 'kernel')
 | where `@timestamp` >= '2023-01-01 00:00:00'
   and `@timestamp` < '2023-01-03 00:00:00'
-  and match(`process.name`, 'kernel')
 | head 10

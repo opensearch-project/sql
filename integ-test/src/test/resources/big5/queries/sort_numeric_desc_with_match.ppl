@@ -1,4 +1,3 @@
-source = big5
-| where match(`log.file.path`, '/var/log/messages/solarshark')
+source = big5 match(`log.file.path`, '/var/log/messages/solarshark')
 | sort - `metrics.size`
 | head 10

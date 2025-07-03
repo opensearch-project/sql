@@ -1,4 +1,3 @@
-source = big5
-| where match(`process.name`, 'kernel')
+source = big5 match(`process.name`, 'kernel')
 | sort + `@timestamp`
 | head 10
