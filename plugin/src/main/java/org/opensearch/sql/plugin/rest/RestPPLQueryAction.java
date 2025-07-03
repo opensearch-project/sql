@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONException;
 import org.opensearch.OpenSearchException;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
@@ -60,8 +59,7 @@ public class RestPPLQueryAction extends BaseRestHandler {
         || e instanceof QueryEngineException
         || e instanceof SyntaxCheckException
         || e instanceof DataSourceClientException
-        || e instanceof IllegalAccessException
-        || e instanceof JSONException;
+        || e instanceof IllegalAccessException;
   }
 
   @Override
