@@ -53,19 +53,19 @@ public class SqlRequestFactory {
       if (jsonContent.has(SQL_CURSOR_FIELD_NAME)) {
         return new SqlRequest(jsonContent.getString(SQL_CURSOR_FIELD_NAME));
       }
+      String sql = jsonContent.getString(SQL_FIELD_NAME);
+
+      if (jsonContent.has(PARAM_FIELD_NAME)) { // is a PreparedStatement
+        JSONArray paramArray = jsonContent.getJSONArray(PARAM_FIELD_NAME);
+        List<PreparedStatementRequest.PreparedStatementParameter> parameters =
+            parseParameters(paramArray);
+        return new PreparedStatementRequest(
+            sql, validateAndGetFetchSize(jsonContent), jsonContent, parameters);
+      }
+      return new SqlRequest(sql, validateAndGetFetchSize(jsonContent), jsonContent);
     } catch (JSONException e) {
       throw new IllegalArgumentException("Failed to parse request payload", e);
     }
-    String sql = jsonContent.getString(SQL_FIELD_NAME);
-
-    if (jsonContent.has(PARAM_FIELD_NAME)) { // is a PreparedStatement
-      JSONArray paramArray = jsonContent.getJSONArray(PARAM_FIELD_NAME);
-      List<PreparedStatementRequest.PreparedStatementParameter> parameters =
-          parseParameters(paramArray);
-      return new PreparedStatementRequest(
-          sql, validateAndGetFetchSize(jsonContent), jsonContent, parameters);
-    }
-    return new SqlRequest(sql, validateAndGetFetchSize(jsonContent), jsonContent);
   }
 
   private static Integer validateAndGetFetchSize(JSONObject jsonContent) {
