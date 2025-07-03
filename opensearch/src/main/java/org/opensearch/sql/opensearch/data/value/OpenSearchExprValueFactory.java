@@ -191,6 +191,8 @@ public class OpenSearchExprValueFactory {
       return ExprNullValue.of();
     }
 
+    // Field type may be not defined in mapping if users have disabled dynamic mapping.
+    // Then try to parse content directly based on the value itself
     if (fieldType.isEmpty()) {
       return parseContent(content);
     }

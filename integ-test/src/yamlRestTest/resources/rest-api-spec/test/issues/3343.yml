@@ -32,6 +32,7 @@ teardown:
   - skip:
       features:
         - headers
+        - allowed_warnings
   - do:
       bulk:
         index: test
@@ -41,12 +42,16 @@ teardown:
           - '{ "profile": { "age": 1 } }'
           - '{ "index": { "_index": "test" } }'
           - '{ "profile": { "address": "a" } }'
+          - '{ "index": { "_index": "test" } }'
+          - '{ "profile": { "name": null } }'
   - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
       headers:
         Content-Type: 'application/json'
       ppl:
         body:
           query: 'source=test'
-  - match: {"total": 2}
+  - match: {"total": 3}
   - match: {"schema": [{"name": "profile", "type": "struct"}]}
-  - match: {"datarows": [[{"age": 1}], [{"address": "a"}]]}
+  - match: {"datarows": [[{"age": 1}], [{"address": "a"}], [{"name": null}]]}

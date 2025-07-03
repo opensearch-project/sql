@@ -23,11 +23,13 @@ public class ErrorFormatter {
                   SerializeUtils.getGsonBuilder()
                       .setPrettyPrinting()
                       .disableHtmlEscaping()
+                      .serializeNulls()
                       .create());
   private static final Gson GSON =
       AccessController.doPrivileged(
           (PrivilegedAction<Gson>)
-              () -> SerializeUtils.getGsonBuilder().disableHtmlEscaping().create());
+              () ->
+                  SerializeUtils.getGsonBuilder().disableHtmlEscaping().serializeNulls().create());
 
   /** Util method to format {@link Throwable} response to JSON string in compact printing. */
   public static String compactFormat(Throwable t) {
