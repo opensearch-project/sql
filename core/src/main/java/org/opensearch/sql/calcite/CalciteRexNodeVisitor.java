@@ -61,6 +61,7 @@ import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.RelevanceFieldList;
 import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.SpanUnit;
+import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.When;
 import org.opensearch.sql.ast.expression.WindowFunction;
@@ -653,6 +654,28 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
 
   @Override
   public RexNode visitRelevanceFieldList(RelevanceFieldList node, CalcitePlanContext context) {
-    throw new CalciteUnsupportedException("Relevance fields expression is unsupported in Calcite");
+    List<RexNode> varArgRexNodeList = new ArrayList<>();
+    node.getFieldList()
+        .forEach(
+            (k, v) -> {
+              varArgRexNodeList.add(
+                  context.rexBuilder.makeLiteral(
+                      k,
+                      context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
+                      true));
+              varArgRexNodeList.add(
+                  context.rexBuilder.makeLiteral(
+                      v,
+                      context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.DOUBLE),
+                      true));
+            });
+    return context.rexBuilder.makeCall(
+        SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR, varArgRexNodeList);
+  }
+
+  @Override
+  public RexNode visitUnresolvedArgument(UnresolvedArgument node, CalcitePlanContext context) {
+    RexNode value = analyze(node.getValue(), context);
+    return context.relBuilder.alias(value, node.getArgName());
   }
 }
