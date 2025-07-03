@@ -2,6 +2,7 @@ setup:
   - skip:
       features:
         - headers
+        - allowed_warnings
   - do:
       indices.create:
         index: test
@@ -23,6 +24,8 @@ setup:
 ---
 "Prevent push down limit if the offset reach max_result_window":
   - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
       headers:
         Content-Type: 'application/json'
       ppl:
@@ -33,6 +36,8 @@ setup:
   - match: {"datarows": [[2]]}
 
   - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
       headers:
         Content-Type: 'application/json'
       ppl:
