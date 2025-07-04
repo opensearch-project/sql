@@ -50,8 +50,7 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
     Throwable t = Assert.assertThrows(ExpressionEvaluationException.class, () -> getRelNode(ppl));
     verifyErrorMessageContains(
         t,
-        "LESS function expects {[STRING,IP],[IP,STRING],[IP,IP],[COMPARABLE_TYPE,COMPARABLE_TYPE]},"
-            + " but got [STRING,INTEGER]");
+        "LESS function expects {[COMPARABLE_TYPE,COMPARABLE_TYPE]}," + " but got [STRING,INTEGER]");
   }
 
   @Test
