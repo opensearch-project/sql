@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite.pushdown;
+package org.opensearch.sql.calcite;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -30,8 +30,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalciteDedupCommandIT.class,
   CalciteDescribeCommandIT.class,
   CalciteExpandCommandIT.class,
-  // TODO: Add expected plans for CalciteExplainIT without pushdown
-  //  CalciteExplainIT.class,
+  CalciteExplainIT.class,
   CalciteFieldsCommandIT.class,
   CalciteFillNullCommandIT.class,
   CalciteFlattenCommandIT.class,

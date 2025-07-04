@@ -1,0 +1,6 @@
+{
+  "calcite": {
+    "logical": "LogicalProject(count()=[$1], span(birthdate,1m)=[$0])\n  LogicalAggregate(group=[{0}], count()=[COUNT()])\n    LogicalProject(span(birthdate,1m)=[SPAN($3, 1, 'm')])\n      CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])\n",
+    "physical": "EnumerableCalc(expr#0..1=[{inputs}], count()=[$t1], span(birthdate,1m)=[$t0])\n  EnumerableAggregate(group=[{0}], count()=[COUNT()])\n    EnumerableCalc(expr#0..18=[{inputs}], expr#19=[1], expr#20=['m'], expr#21=[SPAN($t3, $t19, $t20)], span(birthdate,1m)=[$t21])\n      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])\n"
+  }
+}
