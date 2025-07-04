@@ -50,6 +50,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
@@ -430,7 +431,7 @@ public class PredicateAnalyzer {
                                 ? QueryExpression.create(pair.getKey())
                                     .equals(range.lowerEndpoint(), isTimeStamp)
                                 : QueryExpression.create(pair.getKey()).between(range, isTimeStamp))
-                    .toList();
+                    .collect(Collectors.toList());
             if (queryExpressions.size() == 1) {
               return queryExpressions.get(0);
             } else {
