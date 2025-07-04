@@ -144,17 +144,15 @@ public class PredicateAnalyzer {
   public static QueryBuilder analyze(
       RexNode expression, List<String> schema, Map<String, ExprType> filedTypes)
       throws ExpressionNotAnalyzableException {
+    return analyze_(expression, schema, filedTypes).builder();
+  }
+
+  public static QueryExpression analyze_(
+      RexNode expression, List<String> schema, Map<String, ExprType> filedTypes)
+      throws ExpressionNotAnalyzableException {
     requireNonNull(expression, "expression");
     try {
-      // visits expression tree
-      QueryExpression queryExpression =
-          (QueryExpression) expression.accept(new Visitor(schema, filedTypes));
-
-      if (queryExpression != null && queryExpression.isPartial()) {
-        throw new UnsupportedOperationException(
-            "Can't handle partial QueryExpression: " + queryExpression);
-      }
-      return queryExpression != null ? queryExpression.builder() : null;
+      return (QueryExpression) expression.accept(new Visitor(schema, filedTypes));
     } catch (Throwable e) {
       Throwables.throwIfInstanceOf(e, UnsupportedOperationException.class);
       throw new ExpressionNotAnalyzableException("Can't convert " + expression, e);
@@ -689,7 +687,7 @@ public class PredicateAnalyzer {
   interface Expression {}
 
   /** Main expression operators (like {@code equals}, {@code gt}, {@code exists} etc.) */
-  abstract static class QueryExpression implements Expression {
+  public abstract static class QueryExpression implements Expression {
 
     public abstract QueryBuilder builder();
 
@@ -964,7 +962,13 @@ public class PredicateAnalyzer {
     }
 
     private String getFieldReferenceForTermQuery() {
-      return rel.getReferenceForTermQuery();
+      String reference = rel.getReferenceForTermQuery();
+      // Throw exception in advance of method builder() to trigger partial push down.
+      if (reference == null) {
+        throw new PredicateAnalyzerException(
+            "Field reference for term query cannot be null for " + rel.getRootName());
+      }
+      return reference;
     }
 
     private SimpleQueryExpression(NamedFieldExpression rel) {

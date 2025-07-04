@@ -7,9 +7,11 @@ package org.opensearch.sql.opensearch.planner.physical;
 import java.util.function.Predicate;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.immutables.value.Value;
+import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan.PushDownType;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
 /** Planner rule that push a {@link LogicalFilter} down to {@link CalciteLogicalIndexScan} */
@@ -27,7 +29,10 @@ public class OpenSearchFilterIndexScanRule extends RelRule<OpenSearchFilterIndex
       // the ordinary variant
       final LogicalFilter filter = call.rel(0);
       final CalciteLogicalIndexScan scan = call.rel(1);
-      apply(call, filter, scan);
+      // If the same filter has already been pushed down, skip it.
+      if (!scan.getPushDownContext().containsDigest(PushDownType.FILTER, filter.getCondition())) {
+        apply(call, filter, scan);
+      }
     } else {
       throw new AssertionError(
           String.format(
@@ -37,9 +42,9 @@ public class OpenSearchFilterIndexScanRule extends RelRule<OpenSearchFilterIndex
   }
 
   protected void apply(RelOptRuleCall call, Filter filter, CalciteLogicalIndexScan scan) {
-    CalciteLogicalIndexScan newScan = scan.pushDownFilter(filter);
-    if (newScan != null) {
-      call.transformTo(newScan);
+    AbstractRelNode newRel = scan.pushDownFilter(filter);
+    if (newRel != null) {
+      call.transformTo(newRel);
     }
   }
 

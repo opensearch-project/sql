@@ -59,4 +59,16 @@ public class CalciteExplainIT extends ExplainIT {
                 + "| where birthdate >= '2016-12-08 00:00:00.000000000' "
                 + "and birthdate < '2018-11-09 00:00:00.000000000' "));
   }
+
+  // Only for Calcite
+  @Test
+  public void supportPartialPushDown() throws IOException {
+    // field `address` is text type without keyword subfield, so we cannot push it down.
+    String query =
+        "source=opensearch-sql_test_index_account | where age >= 1 and address = '880 Holmes Lane'"
+            + " | fields age, address";
+    var result = explainQueryToString(query);
+    String expected = loadFromFile("expectedOutput/calcite/explain_partial_filter_push.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
 }

@@ -19,6 +19,7 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -48,6 +49,7 @@ import org.opensearch.sql.opensearch.planner.physical.EnumerableIndexScanRule;
 import org.opensearch.sql.opensearch.planner.physical.OpenSearchIndexRules;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
+import org.opensearch.sql.opensearch.request.PredicateAnalyzer.QueryExpression;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 
@@ -97,20 +99,30 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     }
   }
 
-  public CalciteLogicalIndexScan pushDownFilter(Filter filter) {
+  public AbstractRelNode pushDownFilter(Filter filter) {
     try {
-      CalciteLogicalIndexScan newScan = this.copyWithNewSchema(filter.getRowType());
       List<String> schema = this.getRowType().getFieldNames();
       Map<String, ExprType> filedTypes = this.osIndex.getFieldTypes();
-      QueryBuilder filterBuilder =
-          PredicateAnalyzer.analyze(filter.getCondition(), schema, filedTypes);
+      QueryExpression queryExpression =
+          PredicateAnalyzer.analyze_(filter.getCondition(), schema, filedTypes);
+      QueryBuilder queryBuilder = queryExpression.builder();
+      // If the same QueryBuilder has already been pushed down, skip it.
+      if (this.pushDownContext.containsArg(PushDownType.FILTER, queryBuilder)) return null;
+      CalciteLogicalIndexScan newScan = this.copyWithNewSchema(filter.getRowType());
+      // TODO: handle the case where condition contains a score function
       newScan.pushDownContext.add(
           PushDownAction.of(
               PushDownType.FILTER,
               filter.getCondition(),
-              requestBuilder -> requestBuilder.pushDownFilter(filterBuilder)));
+              requestBuilder -> requestBuilder.pushDownFilter(queryBuilder),
+              queryBuilder));
 
-      // TODO: handle the case where condition contains a score function
+      // If the query expression is partial, we need to replace the input of the filter with the
+      // partial pushed scan and then return the original filter itself.
+      if (queryExpression.isPartial()) {
+        filter.replaceInput(0, newScan);
+        return filter;
+      }
       return newScan;
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
@@ -161,7 +173,8 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         PushDownAction.of(
             PushDownType.PROJECT,
             newSchema.getFieldNames(),
-            requestBuilder -> requestBuilder.pushDownProjectStream(projectedFields.stream())));
+            requestBuilder -> requestBuilder.pushDownProjectStream(projectedFields.stream()),
+            projectedFields));
     return newScan;
   }
 
@@ -216,7 +229,8 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               requestBuilder -> {
                 requestBuilder.pushDownAggregation(aggregationBuilder);
                 requestBuilder.pushTypeMapping(extendedTypeMapping);
-              }));
+              },
+              aggregationBuilder));
       return newScan;
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
@@ -235,7 +249,8 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
           PushDownAction.of(
               PushDownType.LIMIT,
               limit,
-              requestBuilder -> requestBuilder.pushDownLimit(limit, offset)));
+              requestBuilder -> requestBuilder.pushDownLimit(limit, offset),
+              Pair.of(limit, offset)));
       return newScan;
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
@@ -303,7 +318,8 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
           PushDownAction.of(
               PushDownType.SORT,
               builders.toString(),
-              requestBuilder -> requestBuilder.pushDownSort(builders)));
+              requestBuilder -> requestBuilder.pushDownSort(builders),
+              builders));
       return newScan;
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {

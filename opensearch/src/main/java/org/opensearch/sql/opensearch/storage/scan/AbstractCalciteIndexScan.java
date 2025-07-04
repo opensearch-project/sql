@@ -121,9 +121,17 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
       isAggregatePushed = !isEmpty() && super.peekLast().type == PushDownType.AGGREGATION;
       return isAggregatePushed;
     }
+
+    public boolean containsDigest(PushDownType type, Object digest) {
+      return stream().anyMatch(action -> action.type == type && action.digest.equals(digest));
+    }
+
+    public boolean containsArg(PushDownType type, Object arg) {
+      return stream().anyMatch(action -> action.type == type && action.arg.equals(arg));
+    }
   }
 
-  protected enum PushDownType {
+  public enum PushDownType {
     FILTER,
     PROJECT,
     AGGREGATION,
@@ -133,9 +141,10 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     // NESTED
   }
 
-  public record PushDownAction(PushDownType type, Object digest, AbstractAction action) {
-    static PushDownAction of(PushDownType type, Object digest, AbstractAction action) {
-      return new PushDownAction(type, digest, action);
+  public record PushDownAction(
+      PushDownType type, Object digest, AbstractAction action, Object arg) {
+    static PushDownAction of(PushDownType type, Object digest, AbstractAction action, Object arg) {
+      return new PushDownAction(type, digest, action, arg);
     }
 
     public String toString() {
