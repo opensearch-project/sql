@@ -450,7 +450,10 @@ public class PPLFuncImpTable {
     }
     StringJoiner allowedSignatures = new StringJoiner(",");
     for (var implement : implementList) {
-      allowedSignatures.add(implement.getKey().typeChecker().getAllowedSignatures());
+      String signature = implement.getKey().typeChecker().getAllowedSignatures();
+      if (!signature.isEmpty()) {
+        allowedSignatures.add(signature);
+      }
     }
     throw new ExpressionEvaluationException(
         String.format(
@@ -505,6 +508,18 @@ public class PPLFuncImpTable {
           // Comparison operators like EQUAL, GREATER_THAN, LESS_THAN, etc.
           // SameOperandTypeCheckers like COALESCE, IFNULL, etc.
           register(functionName, wrapWithComparableTypeChecker(operator, comparableTypeChecker));
+        } else if (typeChecker instanceof UDFOperandMetadata.IPOperandMetadata) {
+          register(
+              functionName,
+              createFunctionImpWithTypeChecker(
+                  (builder, arg1, arg2) -> builder.makeCall(operator, arg1, arg2),
+                  new PPLTypeChecker.PPLIPCompareTypeChecker()));
+        } else if (typeChecker instanceof UDFOperandMetadata.CidrOperandMetadata) {
+          register(
+              functionName,
+              createFunctionImpWithTypeChecker(
+                  (builder, arg1, arg2) -> builder.makeCall(operator, arg1, arg2),
+                  new PPLTypeChecker.PPLCidrTypeChecker()));
         } else {
           logger.info(
               "Cannot create type checker for function: {}. Will skip its type checking",
