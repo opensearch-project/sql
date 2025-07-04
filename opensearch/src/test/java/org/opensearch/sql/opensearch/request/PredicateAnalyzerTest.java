@@ -299,22 +299,21 @@ public class PredicateAnalyzerTest {
     QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
     assertInstanceOf(MatchQueryBuilder.class, result);
     assertEquals(
-        """
-            {
-              "match" : {
-                "b" : {
-                  "query" : "Hi",
-                  "operator" : "OR",
-                  "prefix_length" : 0,
-                  "max_expansions" : 50,
-                  "fuzzy_transpositions" : true,
-                  "lenient" : false,
-                  "zero_terms_query" : "NONE",
-                  "auto_generate_synonyms_phrase_query" : true,
-                  "boost" : 1.0
-                }
-              }
-            }""",
+        "{\n" +
+            "  \"match\" : {\n" +
+            "    \"b\" : {\n" +
+            "      \"query\" : \"Hi\",\n" +
+            "      \"operator\" : \"OR\",\n" +
+            "      \"prefix_length\" : 0,\n" +
+            "      \"max_expansions\" : 50,\n" +
+            "      \"fuzzy_transpositions\" : true,\n" +
+            "      \"lenient\" : false,\n" +
+            "      \"zero_terms_query\" : \"NONE\",\n" +
+            "      \"auto_generate_synonyms_phrase_query\" : true,\n" +
+            "      \"boost\" : 1.0\n" +
+            "    }\n" +
+            "  }\n" +
+            "}",
         result.toString());
   }
 
@@ -333,17 +332,16 @@ public class PredicateAnalyzerTest {
     QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
     assertInstanceOf(MatchPhraseQueryBuilder.class, result);
     assertEquals(
-        """
-            {
-              "match_phrase" : {
-                "b" : {
-                  "query" : "Hi",
-                  "slop" : 2,
-                  "zero_terms_query" : "NONE",
-                  "boost" : 1.0
-                }
-              }
-            }""",
+        "{\n" +
+            "  \"match_phrase\" : {\n" +
+            "    \"b\" : {\n" +
+            "      \"query\" : \"Hi\",\n" +
+            "      \"slop\" : 2,\n" +
+            "      \"zero_terms_query\" : \"NONE\",\n" +
+            "      \"boost\" : 1.0\n" +
+            "    }\n" +
+            "  }\n" +
+            "}",
         result.toString());
   }
 
@@ -364,20 +362,19 @@ public class PredicateAnalyzerTest {
     QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
     assertInstanceOf(MatchBoolPrefixQueryBuilder.class, result);
     assertEquals(
-        """
-            {
-              "match_bool_prefix" : {
-                "b" : {
-                  "query" : "Hi",
-                  "operator" : "OR",
-                  "minimum_should_match" : "1",
-                  "prefix_length" : 0,
-                  "max_expansions" : 50,
-                  "fuzzy_transpositions" : true,
-                  "boost" : 1.0
-                }
-              }
-            }""",
+        "{\n" +
+            "  \"match_bool_prefix\" : {\n" +
+            "    \"b\" : {\n" +
+            "      \"query\" : \"Hi\",\n" +
+            "      \"operator\" : \"OR\",\n" +
+            "      \"minimum_should_match\" : \"1\",\n" +
+            "      \"prefix_length\" : 0,\n" +
+            "      \"max_expansions\" : 50,\n" +
+            "      \"fuzzy_transpositions\" : true,\n" +
+            "      \"boost\" : 1.0\n" +
+            "    }\n" +
+            "  }\n" +
+            "}",
         result.toString());
   }
 
@@ -398,19 +395,18 @@ public class PredicateAnalyzerTest {
     QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
     assertInstanceOf(MatchPhrasePrefixQueryBuilder.class, result);
     assertEquals(
-        """
-            {
-              "match_phrase_prefix" : {
-                "b" : {
-                  "query" : "Hi",
-                  "analyzer" : "standard",
-                  "slop" : 0,
-                  "max_expansions" : 50,
-                  "zero_terms_query" : "NONE",
-                  "boost" : 1.0
-                }
-              }
-            }""",
+        "{\n" +
+            "  \"match_phrase_prefix\" : {\n" +
+            "    \"b\" : {\n" +
+            "      \"query\" : \"Hi\",\n" +
+            "      \"analyzer\" : \"standard\",\n" +
+            "      \"slop\" : 0,\n" +
+            "      \"max_expansions\" : 50,\n" +
+            "      \"zero_terms_query\" : \"NONE\",\n" +
+            "      \"boost\" : 1.0\n" +
+            "    }\n" +
+            "  }\n" +
+            "}",
         result.toString());
   }
 
@@ -441,28 +437,27 @@ public class PredicateAnalyzerTest {
     QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
     assertInstanceOf(QueryStringQueryBuilder.class, result);
     assertEquals(
-        """
-            {
-              "query_string" : {
-                "query" : "Hi",
-                "fields" : [
-                  "b^1.0",
-                  "c^2.5"
-                ],
-                "type" : "best_fields",
-                "default_operator" : "or",
-                "max_determinized_states" : 10000,
-                "enable_position_increments" : true,
-                "fuzziness" : "1",
-                "fuzzy_prefix_length" : 0,
-                "fuzzy_max_expansions" : 50,
-                "phrase_slop" : 0,
-                "escape" : false,
-                "auto_generate_synonyms_phrase_query" : true,
-                "fuzzy_transpositions" : true,
-                "boost" : 1.0
-              }
-            }""",
+        "{\n" +
+            "  \"query_string\" : {\n" +
+            "    \"query\" : \"Hi\",\n" +
+            "    \"fields\" : [\n" +
+            "      \"b^1.0\",\n" +
+            "      \"c^2.5\"\n" +
+            "    ],\n" +
+            "    \"type\" : \"best_fields\",\n" +
+            "    \"default_operator\" : \"or\",\n" +
+            "    \"max_determinized_states\" : 10000,\n" +
+            "    \"enable_position_increments\" : true,\n" +
+            "    \"fuzziness\" : \"1\",\n" +
+            "    \"fuzzy_prefix_length\" : 0,\n" +
+            "    \"fuzzy_max_expansions\" : 50,\n" +
+            "    \"phrase_slop\" : 0,\n" +
+            "    \"escape\" : false,\n" +
+            "    \"auto_generate_synonyms_phrase_query\" : true,\n" +
+            "    \"fuzzy_transpositions\" : true,\n" +
+            "    \"boost\" : 1.0\n" +
+            "  }\n" +
+            "}",
         result.toString());
   }
 
@@ -486,23 +481,22 @@ public class PredicateAnalyzerTest {
     QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
     assertInstanceOf(SimpleQueryStringBuilder.class, result);
     assertEquals(
-        """
-            {
-              "simple_query_string" : {
-                "query" : "Hi",
-                "fields" : [
-                  "b*^1.0"
-                ],
-                "flags" : -1,
-                "default_operator" : "or",
-                "analyze_wildcard" : false,
-                "auto_generate_synonyms_phrase_query" : true,
-                "fuzzy_prefix_length" : 0,
-                "fuzzy_max_expansions" : 50,
-                "fuzzy_transpositions" : true,
-                "boost" : 1.0
-              }
-            }""",
+        "{\n" +
+            "  \"simple_query_string\" : {\n" +
+            "    \"query\" : \"Hi\",\n" +
+            "    \"fields\" : [\n" +
+            "      \"b*^1.0\"\n" +
+            "    ],\n" +
+            "    \"flags\" : -1,\n" +
+            "    \"default_operator\" : \"or\",\n" +
+            "    \"analyze_wildcard\" : false,\n" +
+            "    \"auto_generate_synonyms_phrase_query\" : true,\n" +
+            "    \"fuzzy_prefix_length\" : 0,\n" +
+            "    \"fuzzy_max_expansions\" : 50,\n" +
+            "    \"fuzzy_transpositions\" : true,\n" +
+            "    \"boost\" : 1.0\n" +
+            "  }\n" +
+            "}",
         result.toString());
   }
 
@@ -529,24 +523,23 @@ public class PredicateAnalyzerTest {
     QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
     assertInstanceOf(MultiMatchQueryBuilder.class, result);
     assertEquals(
-        """
-            {
-              "multi_match" : {
-                "query" : "Hi",
-                "fields" : [
-                  "b*^1.0"
-                ],
-                "type" : "best_fields",
-                "operator" : "OR",
-                "slop" : 0,
-                "prefix_length" : 0,
-                "max_expansions" : 25,
-                "zero_terms_query" : "NONE",
-                "auto_generate_synonyms_phrase_query" : true,
-                "fuzzy_transpositions" : true,
-                "boost" : 1.0
-              }
-            }""",
+        "{\n" +
+            "  \"multi_match\" : {\n" +
+            "    \"query\" : \"Hi\",\n" +
+            "    \"fields\" : [\n" +
+            "      \"b*^1.0\"\n" +
+            "    ],\n" +
+            "    \"type\" : \"best_fields\",\n" +
+            "    \"operator\" : \"OR\",\n" +
+            "    \"slop\" : 0,\n" +
+            "    \"prefix_length\" : 0,\n" +
+            "    \"max_expansions\" : 25,\n" +
+            "    \"zero_terms_query\" : \"NONE\",\n" +
+            "    \"auto_generate_synonyms_phrase_query\" : true,\n" +
+            "    \"fuzzy_transpositions\" : true,\n" +
+            "    \"boost\" : 1.0\n" +
+            "  }\n" +
+            "}",
         result.toString());
   }
 
