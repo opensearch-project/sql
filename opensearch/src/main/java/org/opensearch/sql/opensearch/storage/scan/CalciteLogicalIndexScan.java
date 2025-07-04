@@ -120,8 +120,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       // If the query expression is partial, we need to replace the input of the filter with the
       // partial pushed scan and then return the original filter itself.
       if (queryExpression.isPartial()) {
-        filter.replaceInput(0, newScan);
-        return filter;
+        return filter.copy(filter.getTraitSet(), newScan, filter.getCondition());
       }
       return newScan;
     } catch (Exception e) {
