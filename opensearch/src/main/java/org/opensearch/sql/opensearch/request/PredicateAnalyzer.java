@@ -420,8 +420,8 @@ public class PredicateAnalyzer {
             Sarg<?> sarg = pair.getValue().literal.getValueAs(Sarg.class);
             Set<? extends Range<?>> rangeSet = requireNonNull(sarg).rangeSet.asRanges();
             boolean isTimeStamp =
-                (pair.getKey() instanceof NamedFieldExpression namedField)
-                    && namedField.isTimeStampType();
+                (pair.getKey() instanceof NamedFieldExpression)
+                    && ((NamedFieldExpression)pair.getKey()).isTimeStampType();
             List<QueryExpression> queryExpressions =
                 rangeSet.stream()
                     .map(
@@ -432,7 +432,7 @@ public class PredicateAnalyzer {
                                 : QueryExpression.create(pair.getKey()).between(range, isTimeStamp))
                     .toList();
             if (queryExpressions.size() == 1) {
-              return queryExpressions.getFirst();
+              return queryExpressions.get(0);
             } else {
               return CompoundQueryExpression.or(queryExpressions.toArray(new QueryExpression[0]));
             }
@@ -986,7 +986,7 @@ public class PredicateAnalyzer {
     }
 
     private Object convertEndpointValue(Object value, boolean isTimeStamp) {
-      value = (value instanceof NlsString nls) ? nls.getValue() : value;
+      value = (value instanceof NlsString) ? ((NlsString)value).getValue() : value;
       return isTimeStamp ? timestampValueForPushDown(value.toString()) : value;
     }
   }
@@ -1084,8 +1084,8 @@ public class PredicateAnalyzer {
     boolean isTimeStampType() {
       return type != null
           && ExprCoreType.TIMESTAMP.equals(
-              type.getOriginalExprType() instanceof OpenSearchDataType osType
-                  ? osType.getExprCoreType()
+              type.getOriginalExprType() instanceof OpenSearchDataType
+                  ? ((OpenSearchDataType)type.getOriginalExprType()).getExprCoreType()
                   : type.getOriginalExprType());
     }
 
