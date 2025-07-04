@@ -121,9 +121,17 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
       isAggregatePushed = !isEmpty() && super.peekLast().type == PushDownType.AGGREGATION;
       return isAggregatePushed;
     }
+
+    public boolean containsDigest(PushDownType type, Object digest) {
+      return stream().anyMatch(action -> action.type == type && action.digest.equals(digest));
+    }
+
+    public boolean containsArg(PushDownType type, Object arg) {
+      return stream().anyMatch(action -> action.type == type && action.arg.equals(arg));
+    }
   }
 
-  protected enum PushDownType {
+  public enum PushDownType {
     FILTER,
     PROJECT,
     AGGREGATION,
@@ -133,9 +141,19 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     // NESTED
   }
 
-  public record PushDownAction(PushDownType type, Object digest, AbstractAction action) {
-    static PushDownAction of(PushDownType type, Object digest, AbstractAction action) {
-      return new PushDownAction(type, digest, action);
+  /**
+   * Represents a push down action that can be applied to an OpenSearchRequestBuilder.
+   *
+   * @param type PushDownType enum
+   * @param digest the digest of the pushed down operator
+   * @param action the lambda action to apply on the OpenSearchRequestBuilder
+   * @param arg the argument for the action, which can be null if not needed, currently only used
+   *     for identifying whether the same QueryBuilder is ever pushed down
+   */
+  public record PushDownAction(
+      PushDownType type, Object digest, AbstractAction action, Object arg) {
+    static PushDownAction of(PushDownType type, Object digest, AbstractAction action, Object arg) {
+      return new PushDownAction(type, digest, action, arg);
     }
 
     public String toString() {
