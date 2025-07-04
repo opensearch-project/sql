@@ -5,9 +5,9 @@
 
 package org.opensearch.sql.calcite.remote;
 
-import org.opensearch.sql.ppl.RelevanceFunctionIT;
+import org.opensearch.sql.ppl.MatchPhrasePrefixIT;
 
-public class CalciteRelevanceFunctionIT extends RelevanceFunctionIT {
+public class CalciteMatchPhrasePrefixIT extends MatchPhrasePrefixIT {
   @Override
   public void init() throws Exception {
     super.init();

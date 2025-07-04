@@ -39,7 +39,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalAggregate(group=[{}], c=[TAKE($0, $1)])\n"
-            + "  LogicalProject(JOB=[$2], $f1=[2])\n"
+            + "  LogicalProject(JOB=[$2], size=[2])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult = "c=[CLERK, SALESMAN]\n";

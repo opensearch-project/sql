@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -26,12 +27,19 @@ import org.apache.calcite.util.DateString;
 import org.junit.jupiter.api.Test;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.ExistsQueryBuilder;
+import org.opensearch.index.query.MatchBoolPrefixQueryBuilder;
+import org.opensearch.index.query.MatchPhrasePrefixQueryBuilder;
+import org.opensearch.index.query.MatchPhraseQueryBuilder;
 import org.opensearch.index.query.MatchQueryBuilder;
+import org.opensearch.index.query.MultiMatchQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.index.query.QueryStringQueryBuilder;
 import org.opensearch.index.query.RangeQueryBuilder;
+import org.opensearch.index.query.SimpleQueryStringBuilder;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.index.query.TermsQueryBuilder;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.ExpressionNotAnalyzableException;
@@ -53,6 +61,10 @@ public class PredicateAnalyzerTest {
       builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.VARCHAR), 1);
   final RexLiteral numericLiteral = builder.makeExactLiteral(new BigDecimal(12));
   final RexLiteral stringLiteral = builder.makeLiteral("Hi");
+  final RexNode aliasedField2 =
+      builder.makeCall(SqlStdOperatorTable.AS, field2, builder.makeLiteral("field"));
+  final RexNode aliasedStringLiteral =
+      builder.makeCall(SqlStdOperatorTable.AS, stringLiteral, builder.makeLiteral("query"));
 
   @Test
   void equals_generatesTermQuery() throws ExpressionNotAnalyzableException {
@@ -274,6 +286,258 @@ public class PredicateAnalyzerTest {
             "      \"auto_generate_synonyms_phrase_query\" : true,\n" +
             "      \"boost\" : 1.0\n" +
             "    }\n" +
+            "  }\n" +
+            "}",
+        result.toString());
+  }
+
+  @Test
+  void matchRelevanceQueryFunction_generatesMatchQuery() throws ExpressionNotAnalyzableException {
+    List<RexNode> arguments = Arrays.asList(aliasedField2, aliasedStringLiteral);
+    RexNode call =
+        PPLFuncImpTable.INSTANCE.resolve(builder, "match", arguments.toArray(new RexNode[0]));
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
+    assertInstanceOf(MatchQueryBuilder.class, result);
+    assertEquals(
+        "{\n" +
+            "  \"match\" : {\n" +
+            "    \"b\" : {\n" +
+            "      \"query\" : \"Hi\",\n" +
+            "      \"operator\" : \"OR\",\n" +
+            "      \"prefix_length\" : 0,\n" +
+            "      \"max_expansions\" : 50,\n" +
+            "      \"fuzzy_transpositions\" : true,\n" +
+            "      \"lenient\" : false,\n" +
+            "      \"zero_terms_query\" : \"NONE\",\n" +
+            "      \"auto_generate_synonyms_phrase_query\" : true,\n" +
+            "      \"boost\" : 1.0\n" +
+            "    }\n" +
+            "  }\n" +
+            "}",
+        result.toString());
+  }
+
+  @Test
+  void matchPhraseRelevanceQueryFunction_generatesMatchPhraseQuery()
+      throws ExpressionNotAnalyzableException {
+    List<RexNode> arguments =
+        Arrays.asList(
+            aliasedField2,
+            aliasedStringLiteral,
+            builder.makeCall(
+                SqlStdOperatorTable.AS, builder.makeLiteral("2"), builder.makeLiteral("slop")));
+    RexNode call =
+        PPLFuncImpTable.INSTANCE.resolve(
+            builder, "match_phrase", arguments.toArray(new RexNode[0]));
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
+    assertInstanceOf(MatchPhraseQueryBuilder.class, result);
+    assertEquals(
+        "{\n" +
+            "  \"match_phrase\" : {\n" +
+            "    \"b\" : {\n" +
+            "      \"query\" : \"Hi\",\n" +
+            "      \"slop\" : 2,\n" +
+            "      \"zero_terms_query\" : \"NONE\",\n" +
+            "      \"boost\" : 1.0\n" +
+            "    }\n" +
+            "  }\n" +
+            "}",
+        result.toString());
+  }
+
+  @Test
+  void matchBoolPrefixRelevanceQueryFunction_generatesMatchBoolPrefixQuery()
+      throws ExpressionNotAnalyzableException {
+    List<RexNode> arguments =
+        Arrays.asList(
+            aliasedField2,
+            aliasedStringLiteral,
+            builder.makeCall(
+                SqlStdOperatorTable.AS,
+                builder.makeLiteral("1"),
+                builder.makeLiteral("minimum_should_match")));
+    RexNode call =
+        PPLFuncImpTable.INSTANCE.resolve(
+            builder, "match_bool_prefix", arguments.toArray(new RexNode[0]));
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
+    assertInstanceOf(MatchBoolPrefixQueryBuilder.class, result);
+    assertEquals(
+        "{\n" +
+            "  \"match_bool_prefix\" : {\n" +
+            "    \"b\" : {\n" +
+            "      \"query\" : \"Hi\",\n" +
+            "      \"operator\" : \"OR\",\n" +
+            "      \"minimum_should_match\" : \"1\",\n" +
+            "      \"prefix_length\" : 0,\n" +
+            "      \"max_expansions\" : 50,\n" +
+            "      \"fuzzy_transpositions\" : true,\n" +
+            "      \"boost\" : 1.0\n" +
+            "    }\n" +
+            "  }\n" +
+            "}",
+        result.toString());
+  }
+
+  @Test
+  void matchPhrasePrefixRelevanceQueryFunction_generatesMatchPhrasePrefixQuery()
+      throws ExpressionNotAnalyzableException {
+    List<RexNode> arguments =
+        Arrays.asList(
+            aliasedField2,
+            aliasedStringLiteral,
+            builder.makeCall(
+                SqlStdOperatorTable.AS,
+                builder.makeLiteral("standard"),
+                builder.makeLiteral("analyzer")));
+    RexNode call =
+        PPLFuncImpTable.INSTANCE.resolve(
+            builder, "match_phrase_prefix", arguments.toArray(new RexNode[0]));
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
+    assertInstanceOf(MatchPhrasePrefixQueryBuilder.class, result);
+    assertEquals(
+        "{\n" +
+            "  \"match_phrase_prefix\" : {\n" +
+            "    \"b\" : {\n" +
+            "      \"query\" : \"Hi\",\n" +
+            "      \"analyzer\" : \"standard\",\n" +
+            "      \"slop\" : 0,\n" +
+            "      \"max_expansions\" : 50,\n" +
+            "      \"zero_terms_query\" : \"NONE\",\n" +
+            "      \"boost\" : 1.0\n" +
+            "    }\n" +
+            "  }\n" +
+            "}",
+        result.toString());
+  }
+
+  @Test
+  void queryStringRelevanceQueryFunction_generatesQueryStringQuery()
+      throws ExpressionNotAnalyzableException {
+    List<RexNode> arguments =
+        Arrays.asList(
+            builder.makeCall(
+                SqlStdOperatorTable.AS,
+                builder.makeCall(
+                    SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
+                    builder.makeLiteral("b"),
+                    builder.makeLiteral(
+                        1.0, builder.getTypeFactory().createSqlType(SqlTypeName.DOUBLE), true),
+                    builder.makeLiteral("c"),
+                    builder.makeLiteral(
+                        2.5, builder.getTypeFactory().createSqlType(SqlTypeName.DOUBLE), true)),
+                builder.makeLiteral("fields")),
+            aliasedStringLiteral,
+            builder.makeCall(
+                SqlStdOperatorTable.AS,
+                builder.makeLiteral("1"),
+                builder.makeLiteral("fuzziness")));
+    RexNode call =
+        PPLFuncImpTable.INSTANCE.resolve(
+            builder, "query_string", arguments.toArray(new RexNode[0]));
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
+    assertInstanceOf(QueryStringQueryBuilder.class, result);
+    assertEquals(
+        "{\n" +
+            "  \"query_string\" : {\n" +
+            "    \"query\" : \"Hi\",\n" +
+            "    \"fields\" : [\n" +
+            "      \"b^1.0\",\n" +
+            "      \"c^2.5\"\n" +
+            "    ],\n" +
+            "    \"type\" : \"best_fields\",\n" +
+            "    \"default_operator\" : \"or\",\n" +
+            "    \"max_determinized_states\" : 10000,\n" +
+            "    \"enable_position_increments\" : true,\n" +
+            "    \"fuzziness\" : \"1\",\n" +
+            "    \"fuzzy_prefix_length\" : 0,\n" +
+            "    \"fuzzy_max_expansions\" : 50,\n" +
+            "    \"phrase_slop\" : 0,\n" +
+            "    \"escape\" : false,\n" +
+            "    \"auto_generate_synonyms_phrase_query\" : true,\n" +
+            "    \"fuzzy_transpositions\" : true,\n" +
+            "    \"boost\" : 1.0\n" +
+            "  }\n" +
+            "}",
+        result.toString());
+  }
+
+  @Test
+  void simpleQueryStringRelevanceQueryFunction_generatesSimpleQueryStringQuery()
+      throws ExpressionNotAnalyzableException {
+    List<RexNode> arguments =
+        Arrays.asList(
+            builder.makeCall(
+                SqlStdOperatorTable.AS,
+                builder.makeCall(
+                    SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
+                    builder.makeLiteral("b*"),
+                    builder.makeLiteral(
+                        1.0, builder.getTypeFactory().createSqlType(SqlTypeName.DOUBLE), true)),
+                builder.makeLiteral("fields")),
+            aliasedStringLiteral);
+    RexNode call =
+        PPLFuncImpTable.INSTANCE.resolve(
+            builder, "simple_query_string", arguments.toArray(new RexNode[0]));
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
+    assertInstanceOf(SimpleQueryStringBuilder.class, result);
+    assertEquals(
+        "{\n" +
+            "  \"simple_query_string\" : {\n" +
+            "    \"query\" : \"Hi\",\n" +
+            "    \"fields\" : [\n" +
+            "      \"b*^1.0\"\n" +
+            "    ],\n" +
+            "    \"flags\" : -1,\n" +
+            "    \"default_operator\" : \"or\",\n" +
+            "    \"analyze_wildcard\" : false,\n" +
+            "    \"auto_generate_synonyms_phrase_query\" : true,\n" +
+            "    \"fuzzy_prefix_length\" : 0,\n" +
+            "    \"fuzzy_max_expansions\" : 50,\n" +
+            "    \"fuzzy_transpositions\" : true,\n" +
+            "    \"boost\" : 1.0\n" +
+            "  }\n" +
+            "}",
+        result.toString());
+  }
+
+  @Test
+  void multiMatchRelevanceQueryFunction_generatesMultiMatchQuery()
+      throws ExpressionNotAnalyzableException {
+    List<RexNode> arguments =
+        Arrays.asList(
+            builder.makeCall(
+                SqlStdOperatorTable.AS,
+                builder.makeCall(
+                    SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
+                    builder.makeLiteral("b*"),
+                    builder.makeLiteral(
+                        1.0, builder.getTypeFactory().createSqlType(SqlTypeName.DOUBLE), true)),
+                builder.makeLiteral("fields")),
+            aliasedStringLiteral,
+            builder.makeCall(
+                SqlStdOperatorTable.AS,
+                builder.makeLiteral("25"),
+                builder.makeLiteral("max_expansions")));
+    RexNode call =
+        PPLFuncImpTable.INSTANCE.resolve(builder, "multi_match", arguments.toArray(new RexNode[0]));
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
+    assertInstanceOf(MultiMatchQueryBuilder.class, result);
+    assertEquals(
+        "{\n" +
+            "  \"multi_match\" : {\n" +
+            "    \"query\" : \"Hi\",\n" +
+            "    \"fields\" : [\n" +
+            "      \"b*^1.0\"\n" +
+            "    ],\n" +
+            "    \"type\" : \"best_fields\",\n" +
+            "    \"operator\" : \"OR\",\n" +
+            "    \"slop\" : 0,\n" +
+            "    \"prefix_length\" : 0,\n" +
+            "    \"max_expansions\" : 25,\n" +
+            "    \"zero_terms_query\" : \"NONE\",\n" +
+            "    \"auto_generate_synonyms_phrase_query\" : true,\n" +
+            "    \"fuzzy_transpositions\" : true,\n" +
+            "    \"boost\" : 1.0\n" +
             "  }\n" +
             "}",
         result.toString());
