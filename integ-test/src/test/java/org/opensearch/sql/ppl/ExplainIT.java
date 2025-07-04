@@ -387,6 +387,45 @@ public class ExplainIT extends PPLIntegTestCase {
             String.format("source=%s | stats count() by span(birthdate,1M)", TEST_INDEX_BANK)));
   }
 
+  @Test
+  public void testSingleFieldRelevanceQueryFunctionExplain() throws IOException {
+    // This test is only applicable if pushdown is enabled
+    if (!isPushdownEnabled()) {
+      return;
+    }
+
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_single_field_relevance_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_single_field_relevance_push.json");
+
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| where match(email, '*@gmail.com', boost=1.0)"));
+  }
+
+  @Test
+  public void testMultiFieldsRelevanceQueryFunctionExplain() throws IOException {
+    // This test is only applicable if pushdown is enabled
+    if (!isPushdownEnabled()) {
+      return;
+    }
+
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_multi_fields_relevance_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_multi_fields_relevance_push.json");
+
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| where simple_query_string(['email', name 4.0], 'gmail',"
+                + " default_operator='or', analyzer=english)"));
+  }
+
   private String loadExpectedPlan(String fileName) throws IOException {
     String prefix;
     if (isCalciteEnabled()) {
