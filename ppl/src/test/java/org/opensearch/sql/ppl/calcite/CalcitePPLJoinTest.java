@@ -481,7 +481,7 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
             + "    LogicalProject(JOB=[$2], MGR=[$3])\n"
             + "      LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
             + "        LogicalTableScan(table=[[scott, EMP]])\n"
-            + "        LogicalSort(sort0=[$0], dir0=[DESC], fetch=[10])\n"
+            + "        LogicalSort(sort0=[$0], dir0=[DESC-nulls-last], fetch=[10])\n"
             + "          LogicalProject(DEPTNO=[$0], DNAME=[$1])\n"
             + "            LogicalFilter(condition=[AND(>($0, 10), =($2, 'CHICAGO':VARCHAR))])\n"
             + "              LogicalTableScan(table=[[scott, DEPT]])\n";
@@ -496,7 +496,7 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
             + "INNER JOIN (SELECT `DEPTNO`, `DNAME`\n"
             + "FROM `scott`.`DEPT`\n"
             + "WHERE `DEPTNO` > 10 AND `LOC` = 'CHICAGO'\n"
-            + "ORDER BY `DEPTNO` DESC NULLS FIRST\n"
+            + "ORDER BY `DEPTNO` DESC\n"
             + "LIMIT 10) `t1` ON `EMP`.`DEPTNO` = `t1`.`DEPTNO`\n"
             + "GROUP BY `EMP`.`JOB`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -541,7 +541,7 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
             + "            LogicalTableScan(table=[[scott, DEPT]])\n"
             + "      LogicalFilter(condition=[=($1, 'SALESMAN':VARCHAR)])\n"
             + "        LogicalTableScan(table=[[scott, BONUS]])\n"
-            + "  LogicalSort(sort0=[$0], dir0=[DESC])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
             + "    LogicalFilter(condition=[<=($1, 1500)])\n"
             + "      LogicalTableScan(table=[[scott, SALGRADE]])\n";
     verifyLogical(root, expectedLogical);
@@ -569,7 +569,7 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
             + "CROSS JOIN (SELECT `GRADE`, `LOSAL`, `HISAL`\n"
             + "FROM `scott`.`SALGRADE`\n"
             + "WHERE `LOSAL` <= 1500\n"
-            + "ORDER BY `GRADE` DESC NULLS FIRST) `t5`";
+            + "ORDER BY `GRADE` DESC) `t5`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -614,7 +614,7 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
             + "            LogicalTableScan(table=[[scott, DEPT]])\n"
             + "      LogicalFilter(condition=[=($1, 'SALESMAN':VARCHAR)])\n"
             + "        LogicalTableScan(table=[[scott, BONUS]])\n"
-            + "  LogicalSort(sort0=[$0], dir0=[DESC])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
             + "    LogicalFilter(condition=[<=($1, 1500)])\n"
             + "      LogicalTableScan(table=[[scott, SALGRADE]])\n";
     verifyLogical(root, expectedLogical);
@@ -643,7 +643,7 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
             + "CROSS JOIN (SELECT `GRADE`, `LOSAL`, `HISAL`\n"
             + "FROM `scott`.`SALGRADE`\n"
             + "WHERE `LOSAL` <= 1500\n"
-            + "ORDER BY `GRADE` DESC NULLS FIRST) `t5`";
+            + "ORDER BY `GRADE` DESC) `t5`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -686,7 +686,7 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
             + "            LogicalTableScan(table=[[scott, DEPT]])\n"
             + "      LogicalFilter(condition=[=($1, 'SALESMAN':VARCHAR)])\n"
             + "        LogicalTableScan(table=[[scott, BONUS]])\n"
-            + "  LogicalSort(sort0=[$0], dir0=[DESC])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
             + "    LogicalFilter(condition=[<=($1, 1500)])\n"
             + "      LogicalTableScan(table=[[scott, SALGRADE]])\n";
     verifyLogical(root, expectedLogical);
@@ -715,7 +715,7 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
             + "CROSS JOIN (SELECT `GRADE`, `LOSAL`, `HISAL`\n"
             + "FROM `scott`.`SALGRADE`\n"
             + "WHERE `LOSAL` <= 1500\n"
-            + "ORDER BY `GRADE` DESC NULLS FIRST) `t5`";
+            + "ORDER BY `GRADE` DESC) `t5`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }
