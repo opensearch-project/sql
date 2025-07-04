@@ -401,15 +401,28 @@ public class PredicateAnalyzer {
     }
 
     private static RexCall expectCall(RexNode node, SqlOperator op, String funcName) {
-      if (!(node instanceof RexCall call) || call.getOperator() != op) {
+      if (!(node instanceof RexCall)) {
         throw new IllegalArgumentException(
             String.format(
                 Locale.ROOT,
                 "Expect [%s] RexCall but get [%s] for function [%s]",
                 op.getName(),
-                node.toString(),
+                node,
                 funcName));
       }
+
+      RexCall call = (RexCall) node;
+
+      if (call.getOperator() != op) {
+        throw new IllegalArgumentException(
+            String.format(
+                Locale.ROOT,
+                "Expect [%s] RexCall but get [%s] for function [%s]",
+                op.getName(),
+                node,
+                funcName));
+      }
+
       return call;
     }
 
