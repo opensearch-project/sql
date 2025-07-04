@@ -12,7 +12,6 @@ import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.data.model.ExprIpValue;
@@ -44,9 +43,10 @@ public class CidrMatchFunction extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    // EXPR_IP is mapped to SqlTypeFamily.VARCHAR in
+    // EXPR_IP is mapped to SqlTypeFamily.OTHER in
     // UserDefinedFunctionUtils.convertRelDataTypeToSqlTypeName
-    return UDFOperandMetadata.wrap(OperandTypes.STRING_STRING);
+    // We use a specific type checker to serve
+    return new UDFOperandMetadata.CidrOperandMetadata();
   }
 
   public static class CidrMatchImplementor implements NotNullImplementor {

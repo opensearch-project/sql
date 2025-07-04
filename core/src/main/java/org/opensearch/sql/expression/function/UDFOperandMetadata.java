@@ -14,10 +14,8 @@ import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
 import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
-import org.apache.calcite.sql.type.ImplicitCastOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandMetadata;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
-import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 
 /**
@@ -25,7 +23,7 @@ import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
  * creating UDFs, so that a type checker can be passed to the constructor of {@link
  * SqlUserDefinedFunction} as a {@link SqlOperandMetadata}.
  */
-public interface UDFOperandMetadata extends SqlOperandMetadata, ImplicitCastOperandTypeChecker {
+public interface UDFOperandMetadata extends SqlOperandMetadata {
   SqlOperandTypeChecker getInnerTypeChecker();
 
   static UDFOperandMetadata wrap(FamilyOperandTypeChecker typeChecker) {
@@ -33,17 +31,6 @@ public interface UDFOperandMetadata extends SqlOperandMetadata, ImplicitCastOper
       @Override
       public SqlOperandTypeChecker getInnerTypeChecker() {
         return typeChecker;
-      }
-
-      @Override
-      public boolean checkOperandTypesWithoutTypeCoercion(
-          SqlCallBinding callBinding, boolean throwOnFailure) {
-        return typeChecker.checkOperandTypesWithoutTypeCoercion(callBinding, throwOnFailure);
-      }
-
-      @Override
-      public SqlTypeFamily getOperandSqlTypeFamily(int iFormalOperand) {
-        return typeChecker.getOperandSqlTypeFamily(iFormalOperand);
       }
 
       @Override
@@ -90,18 +77,6 @@ public interface UDFOperandMetadata extends SqlOperandMetadata, ImplicitCastOper
       }
 
       @Override
-      public boolean checkOperandTypesWithoutTypeCoercion(
-          SqlCallBinding callBinding, boolean throwOnFailure) {
-        return typeChecker.checkOperandTypes(callBinding, throwOnFailure);
-      }
-
-      @Override
-      public SqlTypeFamily getOperandSqlTypeFamily(int iFormalOperand) {
-        throw new IllegalStateException(
-            "getOperandSqlTypeFamily is not supported for CompositeOperandTypeChecker");
-      }
-
-      @Override
       public List<RelDataType> paramTypes(RelDataTypeFactory typeFactory) {
         // This function is not used in the current context, so we return an empty list.
         return Collections.emptyList();
@@ -128,5 +103,77 @@ public interface UDFOperandMetadata extends SqlOperandMetadata, ImplicitCastOper
         return typeChecker.getAllowedSignatures(op, opName);
       }
     };
+  }
+
+  /**
+   * A named class that serves as an identifier for IP comparator's operand metadata. It does not
+   * implement any actual type checking logic.
+   */
+  class IPOperandMetadata implements UDFOperandMetadata {
+    @Override
+    public SqlOperandTypeChecker getInnerTypeChecker() {
+      return this;
+    }
+
+    @Override
+    public List<RelDataType> paramTypes(RelDataTypeFactory typeFactory) {
+      return List.of();
+    }
+
+    @Override
+    public List<String> paramNames() {
+      return List.of();
+    }
+
+    @Override
+    public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
+      return false;
+    }
+
+    @Override
+    public SqlOperandCountRange getOperandCountRange() {
+      return null;
+    }
+
+    @Override
+    public String getAllowedSignatures(SqlOperator op, String opName) {
+      return "";
+    }
+  }
+
+  /**
+   * A named class that serves as an identifier for cidr's operand metadata. It does not implement
+   * any actual type checking logic.
+   */
+  class CidrOperandMetadata implements UDFOperandMetadata {
+    @Override
+    public SqlOperandTypeChecker getInnerTypeChecker() {
+      return this;
+    }
+
+    @Override
+    public List<RelDataType> paramTypes(RelDataTypeFactory typeFactory) {
+      return List.of();
+    }
+
+    @Override
+    public List<String> paramNames() {
+      return List.of();
+    }
+
+    @Override
+    public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
+      return false;
+    }
+
+    @Override
+    public SqlOperandCountRange getOperandCountRange() {
+      return null;
+    }
+
+    @Override
+    public String getAllowedSignatures(SqlOperator op, String opName) {
+      return "";
+    }
   }
 }
