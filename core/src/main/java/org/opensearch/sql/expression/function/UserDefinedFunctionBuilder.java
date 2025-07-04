@@ -43,4 +43,30 @@ public interface UserDefinedFunctionBuilder {
         getOperandMetadata(),
         getFunction());
   }
+
+  /**
+   * In some rare cases, we need to call out the UDF to be not deterministic to avoid Volcano
+   * planner over-optimization. For example, we don't need ReduceExpressionsRule to optimize
+   * relevance query UDF.
+   *
+   * @param functionName UDF name to be registered
+   * @param isDeterministic Specified isDeterministic flag
+   * @return Calcite SqlUserDefinedFunction
+   */
+  default SqlUserDefinedFunction toUDF(String functionName, boolean isDeterministic) {
+    SqlIdentifier udfLtrimIdentifier =
+        new SqlIdentifier(Collections.singletonList(functionName), null, SqlParserPos.ZERO, null);
+    return new SqlUserDefinedFunction(
+        udfLtrimIdentifier,
+        SqlKind.OTHER_FUNCTION,
+        getReturnTypeInference(),
+        InferTypes.ANY_NULLABLE,
+        getOperandMetadata(),
+        getFunction()) {
+      @Override
+      public boolean isDeterministic() {
+        return isDeterministic;
+      }
+    };
+  }
 }

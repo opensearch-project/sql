@@ -228,6 +228,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -1033,19 +1034,23 @@ public class PPLFuncImpTable {
 
       register(
           TAKE,
-          (distinct, field, argList, ctx) ->
-              TransferUserDefinedAggFunction(
-                  TakeAggFunction.class,
-                  "TAKE",
-                  UserDefinedFunctionUtils.getReturnTypeInferenceForArray(),
-                  List.of(field),
-                  argList,
-                  ctx.relBuilder));
+          (distinct, field, argList, ctx) -> {
+            List<RexNode> newArgList =
+                argList.stream().map(PPLFuncImpTable::derefMapCall).collect(Collectors.toList());
+            return TransferUserDefinedAggFunction(
+                TakeAggFunction.class,
+                "TAKE",
+                UserDefinedFunctionUtils.getReturnTypeInferenceForArray(),
+                List.of(field),
+                newArgList,
+                ctx.relBuilder);
+          });
 
       register(
           PERCENTILE_APPROX,
           (distinct, field, argList, ctx) -> {
-            List<RexNode> newArgList = new ArrayList<>(argList);
+            List<RexNode> newArgList =
+                argList.stream().map(PPLFuncImpTable::derefMapCall).collect(Collectors.toList());
             newArgList.add(ctx.rexBuilder.makeFlag(field.getType().getSqlTypeName()));
             return TransferUserDefinedAggFunction(
                 PercentileApproxFunction.class,
@@ -1067,5 +1072,15 @@ public class PPLFuncImpTable {
                   argList,
                   ctx.relBuilder));
     }
+  }
+
+  private static RexNode derefMapCall(RexNode rexNode) {
+    if (rexNode instanceof RexCall) {
+      RexCall call = (RexCall) rexNode;
+      if (call.getOperator() == SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR) {
+        return call.getOperands().get(1);
+      }
+    }
+    return rexNode;
   }
 }
