@@ -6,7 +6,6 @@
 package org.opensearch.sql.legacy;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_GAME_OF_THRONES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_PEOPLE;
 
 import java.io.IOException;
@@ -52,10 +51,6 @@ public class JoinTimeoutHintIT extends SQLIntegTestCase {
     assertTrue("Should respect LIMIT", resultsCount <= 10);
   }
 
-
-
-
-
   /**
    * Regression test: Verify queries without JOIN_TIME_OUT hint still work to ensure implementation
    * doesn't break existing functionality
@@ -78,8 +73,6 @@ public class JoinTimeoutHintIT extends SQLIntegTestCase {
     assertTrue("Should work without timeout hint", resultsCount >= 0);
     assertTrue("Should respect LIMIT", resultsCount <= 5);
   }
-
-
 
   private JSONObject executeQuerySafely(String query) throws IOException {
     JSONObject result = executeQuery(query);
