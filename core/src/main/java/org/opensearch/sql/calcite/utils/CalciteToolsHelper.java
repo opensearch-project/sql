@@ -37,7 +37,6 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.util.Properties;
 import java.util.function.Consumer;
-import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
@@ -53,7 +52,6 @@ import org.apache.calcite.jdbc.CalciteJdbc41Factory;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.Driver;
-import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
@@ -75,10 +73,8 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.runtime.ArrayBindable;
 import org.apache.calcite.runtime.Bindable;
 import org.apache.calcite.runtime.Hook;
-import org.apache.calcite.runtime.Typed;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlAggFunction;
@@ -91,7 +87,6 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Util;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.plan.Scannable;
 import org.opensearch.sql.calcite.udf.udaf.NullableSqlAvgAggFunction;
@@ -307,18 +302,7 @@ public class CalciteToolsHelper {
       RelDataType resultType = root.rel.getRowType();
       boolean isDml = root.kind.belongsTo(SqlKind.DML);
       if (root.rel instanceof Scannable scannable) {
-        final Bindable bindable =
-            new ArrayBindable() {
-              @Override
-              public Enumerable<@Nullable Object[]> bind(DataContext dataContext) {
-                return scannable.scan();
-              }
-
-              @Override
-              public Class<Object[]> getElementType() {
-                return Object[].class;
-              }
-            };
+        final Bindable bindable = dataContext -> scannable.scan();
 
         return new PreparedResultImpl(
             resultType,
@@ -342,7 +326,7 @@ public class CalciteToolsHelper {
 
           @Override
           public Type getElementType() {
-            return ((Typed) bindable).getElementType();
+            return Object.class;
           }
         };
       }

@@ -10,5 +10,5 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 public interface Scannable {
 
-  public Enumerable<@Nullable Object[]> scan();
+  public Enumerable<@Nullable Object> scan();
 }

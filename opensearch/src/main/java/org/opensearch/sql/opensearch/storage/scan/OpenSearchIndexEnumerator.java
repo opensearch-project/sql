@@ -26,7 +26,7 @@ import org.opensearch.sql.opensearch.response.OpenSearchResponse;
  * has been modified it is only optional that an implementation of the Enumerator interface detects
  * it and throws a {@link java.util.ConcurrentModificationException}.
  */
-public class OpenSearchIndexEnumerator implements Enumerator<Object[]> {
+public class OpenSearchIndexEnumerator implements Enumerator<Object> {
 
   /** OpenSearch client. */
   private final OpenSearchClient client;
@@ -81,14 +81,12 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object[]> {
   }
 
   @Override
-  public Object[] current() {
+  public Object current() {
     /* In Calcite enumerable operators, row of single column will be optimized to a scalar value.
      * See {@link PhysTypeImpl}
      */
     if (fields.size() == 1) {
-      Object[] arr = new Object[1];
-      arr[0] = resolveForCalcite(current, fields.getFirst());
-      return arr;
+      return resolveForCalcite(current, fields.getFirst());
     }
     return fields.stream().map(field -> resolveForCalcite(current, field)).toArray();
   }

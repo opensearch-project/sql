@@ -88,10 +88,10 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
    * or SearchAfter recorded during previous search.
    */
   @Override
-  public Enumerable<@Nullable Object[]> scan() {
+  public Enumerable<@Nullable Object> scan() {
     return new AbstractEnumerable<>() {
       @Override
-      public Enumerator<Object[]> enumerator() {
+      public Enumerator<Object> enumerator() {
         OpenSearchRequestBuilder requestBuilder = osIndex.createRequestBuilder();
         pushDownContext.forEach(action -> action.apply(requestBuilder));
         return new OpenSearchIndexEnumerator(
