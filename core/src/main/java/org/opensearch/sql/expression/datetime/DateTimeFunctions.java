@@ -55,7 +55,6 @@ import java.time.temporal.IsoFields;
 import java.time.temporal.TemporalAmount;
 import java.util.Locale;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import lombok.experimental.UtilityClass;
@@ -71,6 +70,7 @@ import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.DefaultFunctionResolver;
@@ -265,11 +265,13 @@ public class DateTimeFunctions {
     return define(
         BuiltinFunctionName.SYSDATE.getName(),
         implWithProperties(
-            functionProperties -> new ExprTimestampValue(formatNow(Clock.systemDefaultZone())),
+            functionProperties ->
+                new ExprTimestampValue(formatNow(functionProperties.getSystemClock())),
             TIMESTAMP),
         FunctionDSL.implWithProperties(
             (functionProperties, v) ->
-                new ExprTimestampValue(formatNow(Clock.systemDefaultZone(), v.integerValue())),
+                new ExprTimestampValue(
+                    formatNow(functionProperties.getSystemClock(), v.integerValue())),
             TIMESTAMP,
             INTEGER));
   }
@@ -493,8 +495,15 @@ public class DateTimeFunctions {
   private FunctionResolver datetime() {
     return define(
         BuiltinFunctionName.DATETIME.getName(),
-        impl(nullMissingHandling(DateTimeFunctions::exprDateTime), TIMESTAMP, STRING, STRING),
-        impl(nullMissingHandling(DateTimeFunctions::exprDateTimeNoTimezone), TIMESTAMP, STRING));
+        implWithProperties(
+            nullMissingHandlingWithProperties(DateTimeFunctions::exprDateTime),
+            TIMESTAMP,
+            STRING,
+            STRING),
+        implWithProperties(
+            nullMissingHandlingWithProperties(DateTimeFunctions::exprDateTimeNoTimezone),
+            TIMESTAMP,
+            STRING));
   }
 
   private DefaultFunctionResolver date_add() {
@@ -1271,7 +1280,11 @@ public class DateTimeFunctions {
   public static ExprValue exprConvertTZ(
       ExprValue startingDateTime, ExprValue fromTz, ExprValue toTz) {
     if (startingDateTime.type() == ExprCoreType.STRING) {
-      startingDateTime = exprDateTimeNoTimezone(startingDateTime);
+      try {
+        startingDateTime = new ExprTimestampValue(startingDateTime.stringValue());
+      } catch (SemanticCheckException e) {
+        return ExprNullValue.of();
+      }
     }
     try {
       ZoneId convertedFromTz = ZoneId.of(fromTz.stringValue());
@@ -1333,8 +1346,10 @@ public class DateTimeFunctions {
    * @param timeZone ExprValue of String type (or null).
    * @return ExprValue of date type.
    */
-  public static ExprValue exprDateTime(ExprValue timestamp, ExprValue timeZone) {
-    String defaultTimeZone = TimeZone.getDefault().toZoneId().toString();
+  public static ExprValue exprDateTime(
+      FunctionProperties properties, ExprValue timestamp, ExprValue timeZone) {
+    // Get default time zone from function properties instead of ZoneId.systemDefault()
+    String defaultTimeZone = properties.getSystemClock().getZone().toString();
 
     try {
       LocalDateTime ldtFormatted =
@@ -1374,8 +1389,9 @@ public class DateTimeFunctions {
    * @param dateTime ExprValue of String type.
    * @return ExprValue of date type.
    */
-  public static ExprValue exprDateTimeNoTimezone(ExprValue dateTime) {
-    return exprDateTime(dateTime, ExprNullValue.of());
+  public static ExprValue exprDateTimeNoTimezone(
+      FunctionProperties properties, ExprValue dateTime) {
+    return exprDateTime(properties, dateTime, ExprNullValue.of());
   }
 
   /**

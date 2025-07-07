@@ -11,7 +11,6 @@ import static org.opensearch.sql.utils.DateTimeUtils.getRelativeZonedDateTime;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.TimeUnit;
@@ -22,13 +21,13 @@ public class DateTimeUtilsTest {
   void round() {
     long actual =
         LocalDateTime.parse("2021-09-28T23:40:00")
-            .atZone(ZoneId.systemDefault())
+            .atZone(ZoneOffset.UTC)
             .toInstant()
             .toEpochMilli();
     long rounded = DateTimeUtils.roundFloor(actual, TimeUnit.HOURS.toMillis(1));
     assertEquals(
         LocalDateTime.parse("2021-09-28T23:00:00")
-            .atZone(ZoneId.systemDefault())
+            .atZone(ZoneOffset.UTC)
             .toInstant()
             .toEpochMilli(),
         Instant.ofEpochMilli(rounded).toEpochMilli());
@@ -36,7 +35,7 @@ public class DateTimeUtilsTest {
 
   @Test
   void testRelativeZonedDateTimeWithNow() {
-    ZonedDateTime now = ZonedDateTime.ofInstant(Instant.now(), ZoneId.systemDefault());
+    ZonedDateTime now = ZonedDateTime.ofInstant(Instant.now(), ZoneOffset.UTC);
     assertEquals(getRelativeZonedDateTime("now", now), now);
     assertEquals(getRelativeZonedDateTime("now()", now), now);
   }
@@ -47,7 +46,7 @@ public class DateTimeUtilsTest {
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     LocalDateTime localDateTime = LocalDateTime.parse(dateTimeString, formatter);
-    ZonedDateTime zonedDateTime = localDateTime.atZone(ZoneId.systemDefault());
+    ZonedDateTime zonedDateTime = localDateTime.atZone(ZoneOffset.UTC);
     ZonedDateTime snap1 = getRelativeZonedDateTime("-1d@d", zonedDateTime);
     ZonedDateTime snap2 = getRelativeZonedDateTime("-3d-2h@h", zonedDateTime);
     assertEquals(snap1.toLocalDateTime().toString(), "2025-10-21T00:00");
@@ -60,7 +59,7 @@ public class DateTimeUtilsTest {
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     LocalDateTime localDateTime = LocalDateTime.parse(dateTimeString, formatter);
-    ZonedDateTime zonedDateTime = localDateTime.atZone(ZoneId.systemDefault());
+    ZonedDateTime zonedDateTime = localDateTime.atZone(ZoneOffset.UTC);
     ZonedDateTime snap1 = getRelativeZonedDateTime("-1d+1y@mon", zonedDateTime);
     ZonedDateTime snap2 = getRelativeZonedDateTime("-3d@d-2h+10m@h", zonedDateTime);
     assertEquals(snap1.toLocalDateTime().toString(), "2026-10-01T00:00");
@@ -73,7 +72,7 @@ public class DateTimeUtilsTest {
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     LocalDateTime localDateTime = LocalDateTime.parse(dateTimeString, formatter);
-    ZonedDateTime zonedDateTime = localDateTime.atZone(ZoneId.systemDefault());
+    ZonedDateTime zonedDateTime = localDateTime.atZone(ZoneOffset.UTC);
     ZonedDateTime snap1 = getRelativeZonedDateTime("-1d+1y@Month", zonedDateTime);
     ZonedDateTime snap2 = getRelativeZonedDateTime("-3d@d-2h+10m@hours", zonedDateTime);
     assertEquals(snap1.toLocalDateTime().toString(), "2026-10-01T00:00");
@@ -86,7 +85,7 @@ public class DateTimeUtilsTest {
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     LocalDateTime localDateTime = LocalDateTime.parse(dateTimeString, formatter);
-    ZonedDateTime zonedDateTime = localDateTime.atZone(ZoneId.systemDefault());
+    ZonedDateTime zonedDateTime = localDateTime.atZone(ZoneOffset.UTC);
     ZonedDateTime snap1 = getRelativeZonedDateTime("-1d+1y@W5", zonedDateTime);
     ZonedDateTime snap2 = getRelativeZonedDateTime("-3d@d-2q+10m@quarter", zonedDateTime);
     assertEquals(snap1.toLocalDateTime().toString(), "2026-10-16T00:00");
@@ -99,7 +98,7 @@ public class DateTimeUtilsTest {
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     LocalDateTime localDateTime = LocalDateTime.parse(dateTimeString, formatter);
-    ZonedDateTime zonedDateTime = localDateTime.atZone(ZoneId.systemDefault());
+    ZonedDateTime zonedDateTime = localDateTime.atZone(ZoneOffset.UTC);
     IllegalArgumentException e =
         assertThrows(
             IllegalArgumentException.class, () -> getRelativeZonedDateTime("1d+1y", zonedDateTime));

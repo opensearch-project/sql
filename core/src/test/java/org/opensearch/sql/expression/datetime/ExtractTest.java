@@ -137,7 +137,7 @@ class ExtractTest extends ExpressionTestBase {
   public void testExtractWeekPartWithTimeType(String arg) {
 
     // setup default date/time properties for the extract function
-    ZoneId currentZoneId = ZoneId.systemDefault();
+    ZoneId currentZoneId = ZoneOffset.UTC;
     Instant nowInstant =
         LocalDate.parse(arg).atTime(LocalTime.parse(timeInput)).atZone(currentZoneId).toInstant();
     FunctionProperties properties = new FunctionProperties(nowInstant, currentZoneId);
