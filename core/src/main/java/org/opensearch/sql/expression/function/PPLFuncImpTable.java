@@ -476,6 +476,18 @@ public class PPLFuncImpTable {
     /** Maps an operator to an implementation. */
     abstract void register(BuiltinFunctionName functionName, FunctionImp functionImp);
 
+    /**
+     * Register one or multiple operators under a single function name. This allows function
+     * overloading based on operand types.
+     *
+     * <p>When a function is called, the system will try each registered operator in sequence,
+     * checking if the provided arguments match the operator's type requirements. The first operator
+     * whose type checker accepts the arguments will be used to execute the function.
+     *
+     * @param functionName the built-in function name under which to register the operators
+     * @param operators the operators to associate with this function name, tried in sequence until
+     *     one matches the argument types during resolution
+     */
     public void registerOperator(BuiltinFunctionName functionName, SqlOperator... operators) {
       for (SqlOperator operator : operators) {
         SqlOperandTypeChecker typeChecker;
