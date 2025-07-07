@@ -165,13 +165,21 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   /** Value Expression. */
   @Override
   public UnresolvedExpression visitBinaryArithmetic(BinaryArithmeticContext ctx) {
-    return new Function(
-        ctx.binaryOperator.getText(), Arrays.asList(visit(ctx.left), visit(ctx.right)));
+    return new Function(ctx.binaryOperator.getText(), buildArguments(ctx.left, ctx.right));
+  }
+
+  private List<UnresolvedExpression> buildArguments(
+      OpenSearchPPLParser.ValueExpressionContext... ctx) {
+    ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
+    for (OpenSearchPPLParser.ValueExpressionContext value : ctx) {
+      UnresolvedExpression unresolvedExpression = visit(value);
+      if (unresolvedExpression != null) builder.add(unresolvedExpression);
+    }
+    return builder.build();
   }
 
   @Override
-  public UnresolvedExpression visitNestedLogicalExpr(
-      OpenSearchPPLParser.NestedLogicalExprContext ctx) {
+  public UnresolvedExpression visitNestedValueExpr(OpenSearchPPLParser.NestedValueExprContext ctx) {
     return visit(ctx.logicalExpression()); // Discard parenthesis around
   }
 

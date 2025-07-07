@@ -449,8 +449,7 @@ numericLiteral
 
 // predicates
 logicalExpression
-   : LT_PRTHS logicalExpression RT_PRTHS                        # nestedLogicalExpr
-   | NOT logicalExpression                                      # logicalNot
+   : NOT logicalExpression                                      # logicalNot
    | left = logicalExpression AND right = logicalExpression     # logicalAnd
    | left = logicalExpression XOR right = logicalExpression     # logicalXor
    | left = logicalExpression OR right = logicalExpression      # logicalOr
