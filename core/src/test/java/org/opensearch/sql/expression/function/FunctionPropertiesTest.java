@@ -50,7 +50,7 @@ class FunctionPropertiesTest {
 
   @Test
   void getSystemClock_is_systemClock() {
-    assertEquals(Clock.systemDefaultZone(), functionProperties.getSystemClock());
+    assertEquals(Clock.system(ZoneOffset.UTC), functionProperties.getSystemClock());
   }
 
   @Test

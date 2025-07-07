@@ -11,6 +11,7 @@ import static org.opensearch.sql.utils.DateTimeUtils.getRelativeZonedDateTime;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.TimeUnit;

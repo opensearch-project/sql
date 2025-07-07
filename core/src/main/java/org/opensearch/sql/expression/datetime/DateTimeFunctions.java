@@ -1349,7 +1349,7 @@ public class DateTimeFunctions {
   public static ExprValue exprDateTime(
       FunctionProperties properties, ExprValue timestamp, ExprValue timeZone) {
     // Get default time zone from function properties instead of ZoneId.systemDefault()
-    String defaultTimeZone = properties.getSystemClock().getZone().toString();
+    String defaultTimeZone = properties.getCurrentZoneId().toString();
 
     try {
       LocalDateTime ldtFormatted =
