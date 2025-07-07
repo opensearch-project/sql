@@ -11,7 +11,6 @@ import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.immutables.value.Value;
-import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan.PushDownType;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
 /** Planner rule that push a {@link LogicalFilter} down to {@link CalciteLogicalIndexScan} */
@@ -29,10 +28,7 @@ public class OpenSearchFilterIndexScanRule extends RelRule<OpenSearchFilterIndex
       // the ordinary variant
       final LogicalFilter filter = call.rel(0);
       final CalciteLogicalIndexScan scan = call.rel(1);
-      // If the same filter has already been pushed down, skip it.
-      if (!scan.getPushDownContext().containsDigest(PushDownType.FILTER, filter.getCondition())) {
-        apply(call, filter, scan);
-      }
+      apply(call, filter, scan);
     } else {
       throw new AssertionError(
           String.format(

@@ -31,6 +31,8 @@ import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -49,6 +51,7 @@ import org.opensearch.sql.opensearch.planner.physical.EnumerableIndexScanRule;
 import org.opensearch.sql.opensearch.planner.physical.OpenSearchIndexRules;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
+import org.opensearch.sql.opensearch.request.PredicateAnalyzer.CompoundQueryExpression;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.QueryExpression;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
@@ -106,8 +109,6 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       QueryExpression queryExpression =
           PredicateAnalyzer.analyze_(filter.getCondition(), schema, filedTypes);
       QueryBuilder queryBuilder = queryExpression.builder();
-      // If the same QueryBuilder has already been pushed down, skip it.
-      if (this.pushDownContext.containsArg(PushDownType.FILTER, queryBuilder)) return null;
       CalciteLogicalIndexScan newScan = this.copyWithNewSchema(filter.getRowType());
       // TODO: handle the case where condition contains a score function
       newScan.pushDownContext.add(
@@ -118,9 +119,16 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               queryBuilder));
 
       // If the query expression is partial, we need to replace the input of the filter with the
-      // partial pushed scan and then return the original filter itself.
+      // partial pushed scan and the filter condition with non-pushed-down conditions.
       if (queryExpression.isPartial()) {
-        return filter.copy(filter.getTraitSet(), newScan, filter.getCondition());
+        // Only CompoundQueryExpression could be partial.
+        List<RexNode> conditions =
+            ((CompoundQueryExpression) queryExpression).getUnAnalyzableNodes();
+        RexNode newCondition =
+            conditions.size() > 1
+                ? getCluster().getRexBuilder().makeCall(SqlStdOperatorTable.AND, conditions)
+                : conditions.get(0);
+        return filter.copy(filter.getTraitSet(), newScan, newCondition);
       }
       return newScan;
     } catch (Exception e) {
