@@ -326,7 +326,7 @@ public class CalciteToolsHelper {
 
           @Override
           public Type getElementType() {
-            return Object.class;
+            return resultType.getFieldList().size() == 1 ? Object.class : Object[].class;
           }
         };
       }
