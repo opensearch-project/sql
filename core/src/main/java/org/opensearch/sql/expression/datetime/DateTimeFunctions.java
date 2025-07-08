@@ -2005,10 +2005,8 @@ public class DateTimeFunctions {
    * @return ExprValue.
    */
   public static ExprValue exprUtcTimestamp(FunctionProperties functionProperties) {
-    var zdt =
-        ZonedDateTime.now(functionProperties.getQueryStartClock())
-            .withZoneSameInstant(ZoneOffset.UTC);
-    return new ExprTimestampValue(zdt.toLocalDateTime());
+    var dt = formatNow(functionProperties.getQueryStartClock());
+    return new ExprTimestampValue(dt);
   }
 
   /**
