@@ -59,10 +59,17 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
   public void testExplainCommandExtendedWithoutCodegen() throws IOException {
     var result =
         executeWithReplace("explain extended source=test | where age = 20 | fields name, age");
-    assertFalse(
-        result.contains(
-            "public org.apache.calcite.linq4j.Enumerable bind(final"
-                + " org.apache.calcite.DataContext root)"));
+    if (isPushdownEnabled()) {
+      assertFalse(
+          result.contains(
+              "public org.apache.calcite.linq4j.Enumerable bind(final"
+                  + " org.apache.calcite.DataContext root)"));
+    } else {
+      assertTrue(
+          result.contains(
+              "public org.apache.calcite.linq4j.Enumerable bind(final"
+                  + " org.apache.calcite.DataContext root)"));
+    }
   }
 
   @Test
