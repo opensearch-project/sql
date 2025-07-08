@@ -244,8 +244,9 @@ CURDATE
 Description
 >>>>>>>>>>>
 
-Returns the current time as a value in 'YYYY-MM-DD'.
-CURDATE() returns the time at which it executes as `SYSDATE() <#sysdate>`_ does.
+Returns the current date as a value in 'YYYY-MM-DD' format.
+CURDATE() returns the current UTC date at the time the statement is executed.
+
 
 Return type: DATE
 
@@ -268,7 +269,7 @@ CURRENT_DATE
 Description
 >>>>>>>>>>>
 
-`CURRENT_DATE()` are synonyms for `CURDATE() <#curdate>`_.
+`CURRENT_DATE()` is a synonym for `CURDATE() <#curdate>`_.
 
 Example::
 
@@ -287,7 +288,7 @@ CURRENT_TIME
 Description
 >>>>>>>>>>>
 
-`CURRENT_TIME()` are synonyms for `CURTIME() <#curtime>`_.
+`CURRENT_TIME()` is a synonym for `CURTIME() <#curtime>`_.
 
 Example::
 
@@ -306,7 +307,7 @@ CURRENT_TIMESTAMP
 Description
 >>>>>>>>>>>
 
-`CURRENT_TIMESTAMP()` are synonyms for `NOW() <#now>`_.
+`CURRENT_TIMESTAMP()` is a synonym for `NOW() <#now>`_.
 
 Example::
 
@@ -325,7 +326,7 @@ CURTIME
 Description
 >>>>>>>>>>>
 
-Returns the current time as a value in 'hh:mm:ss'.
+Returns the current time as a value in 'hh:mm:ss' format in the UTC time zone.
 CURTIME() returns the time at which the statement began to execute as `NOW() <#now>`_ does.
 
 Return type: TIME
@@ -1594,7 +1595,7 @@ Description
 >>>>>>>>>>>
 
 Returns the current date and time as a value in 'YYYY-MM-DD hh:mm:ss[.nnnnnn]'.
-SYSDATE() returns the time at which it executes. This differs from the behavior for `NOW() <#now>`_, which returns a constant time that indicates the time at which the statement began to execute.
+SYSDATE() returns the time at which it executes in the cluster's time zone. This differs from the behavior for `NOW() <#now>`_, which returns a constant time that indicates the time at which the statement began to execute in the UTC time zone.
 If the argument is given, it specifies a fractional seconds precision from 0 to 6, the return value includes a fractional seconds part of that many digits.
 
 Optional argument type: INTEGER
