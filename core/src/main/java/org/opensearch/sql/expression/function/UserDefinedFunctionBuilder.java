@@ -33,15 +33,7 @@ public interface UserDefinedFunctionBuilder {
   UDFOperandMetadata getOperandMetadata();
 
   default SqlUserDefinedFunction toUDF(String functionName) {
-    SqlIdentifier udfLtrimIdentifier =
-        new SqlIdentifier(Collections.singletonList(functionName), null, SqlParserPos.ZERO, null);
-    return new SqlUserDefinedFunction(
-        udfLtrimIdentifier,
-        SqlKind.OTHER_FUNCTION,
-        getReturnTypeInference(),
-        InferTypes.ANY_NULLABLE,
-        getOperandMetadata(),
-        getFunction());
+    return toUDF(functionName, true);
   }
 
   /**

@@ -253,6 +253,7 @@ import org.opensearch.sql.calcite.udf.udaf.LogPatternAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.PercentileApproxFunction;
 import org.opensearch.sql.calcite.udf.udaf.TakeAggFunction;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.executor.QueryType;
@@ -1036,7 +1037,7 @@ public class PPLFuncImpTable {
           TAKE,
           (distinct, field, argList, ctx) -> {
             List<RexNode> newArgList =
-                argList.stream().map(PPLFuncImpTable::derefMapCall).collect(Collectors.toList());
+                argList.stream().map(PlanUtils::derefMapCall).collect(Collectors.toList());
             return TransferUserDefinedAggFunction(
                 TakeAggFunction.class,
                 "TAKE",
@@ -1050,7 +1051,7 @@ public class PPLFuncImpTable {
           PERCENTILE_APPROX,
           (distinct, field, argList, ctx) -> {
             List<RexNode> newArgList =
-                argList.stream().map(PPLFuncImpTable::derefMapCall).collect(Collectors.toList());
+                argList.stream().map(PlanUtils::derefMapCall).collect(Collectors.toList());
             newArgList.add(ctx.rexBuilder.makeFlag(field.getType().getSqlTypeName()));
             return TransferUserDefinedAggFunction(
                 PercentileApproxFunction.class,
@@ -1072,15 +1073,5 @@ public class PPLFuncImpTable {
                   argList,
                   ctx.relBuilder));
     }
-  }
-
-  private static RexNode derefMapCall(RexNode rexNode) {
-    if (rexNode instanceof RexCall) {
-      RexCall call = (RexCall) rexNode;
-      if (call.getOperator() == SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR) {
-        return call.getOperands().get(1);
-      }
-    }
-    return rexNode;
   }
 }
