@@ -962,7 +962,7 @@ class OpenSearchExprValueFactoryTest {
   public void noTypeFoundForMapping() {
     assertEquals(nullValue(), tupleValue("{\"not_exist\":[]}").get("not_exist"));
     // Only for test coverage, It is impossible in OpenSearch.
-    assertEquals(nullValue(), tupleValue("{\"not_exist\":1}").get("not_exist"));
+    assertEquals(ExprValueUtils.integerValue(1), tupleValue("{\"not_exist\":1}").get("not_exist"));
   }
 
   @Test
