@@ -201,6 +201,22 @@ public class CalcitePPLReverseTest extends CalcitePPLAbstractTest {
                 """;
         verifyResult(root, expectedResult);
     }
+    @Test
+    public void testReverseMultipleSortsSplEquivalent() {
+        // Composite sort: DEPT ASC, LEVEL ASC, NAME ASC — all in one 'sort' clause.
+        String ppl = "source=EMPLOYEES | sort DEPT, LEVEL, NAME | reverse";
+        RelNode root = getRelNode(ppl);
+
+        String expectedResult = """
+            ID=6; DEPT=Sales; LEVEL=Junior; NAME=Frank
+            ID=3; DEPT=Marketing; LEVEL=Senior; NAME=Charlie
+            ID=4; DEPT=Marketing; LEVEL=Junior; NAME=Diana
+            ID=5; DEPT=Engineering; LEVEL=Senior; NAME=Eve
+            ID=1; DEPT=Engineering; LEVEL=Senior; NAME=Alice
+            ID=2; DEPT=Engineering; LEVEL=Junior; NAME=Bob
+            """;
+        verifyResult(root, expectedResult);
+    }
 
     @RequiredArgsConstructor
     public static class EmployeeTable implements ScannableTable {

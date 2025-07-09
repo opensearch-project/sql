@@ -11,7 +11,7 @@ reverse
 
 Description
 ============
-| Using ``reverse`` command to reverse the order of search results. The reverse command returns results in the opposite order from how they would normally be displayed, but does not affect which results are returned by the search.
+| Using ``reverse`` command to reverse the display order of search results. The same results are returned, but in reverse order.
 
 
 Syntax
