@@ -338,11 +338,11 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator MATCH_PHRASE_PREFIX =
       RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("match_phrase_prefix");
   public static final SqlOperator SIMPLE_QUERY_STRING =
-      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("simple_query_string");
+      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("simple_query_string", false);
   public static final SqlOperator QUERY_STRING =
-      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("query_string");
+      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("query_string", false);
   public static final SqlOperator MULTI_MATCH =
-      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("multi_match");
+      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("multi_match", false);
 
   /**
    * Invoking an implementor registered in {@link RexImpTable}, need to use reflection since they're

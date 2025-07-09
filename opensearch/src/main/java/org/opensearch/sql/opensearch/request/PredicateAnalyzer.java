@@ -422,8 +422,8 @@ public class PredicateAnalyzer {
       final RexNode alias;
 
       static AliasPair from(RexNode node, String funcName) {
-        RexCall as = expectCall(node, SqlStdOperatorTable.AS, funcName);
-        return new AliasPair(as.getOperands().get(0), as.getOperands().get(1));
+        RexCall mapCall = expectCall(node, SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR, funcName);
+        return new AliasPair(mapCall.getOperands().get(1), mapCall.getOperands().get(0));
       }
 
       private AliasPair(RexNode value, RexNode alias) {
