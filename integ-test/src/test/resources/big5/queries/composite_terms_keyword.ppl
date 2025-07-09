@@ -1,0 +1,4 @@
+source = big5
+| where `@timestamp` >= '2023-01-02 00:00:00' and `@timestamp` < '2023-01-03 00:00:00'
+| stats count() by `process.name`, `cloud.region`, `aws.cloudwatch.log_stream`
+| sort - `process.name`, + `cloud.region`, + `aws.cloudwatch.log_stream`

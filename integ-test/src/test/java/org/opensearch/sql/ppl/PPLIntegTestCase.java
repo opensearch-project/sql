@@ -264,6 +264,17 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     }
   }
 
+  /**
+   * Sanitizes the PPL query by removing block comments and replacing new lines with spaces.
+   *
+   * @param ppl the PPL query string
+   * @return the sanitized PPL query string
+   */
+  protected static String sanitize(String ppl) {
+    String withoutComments = ppl.replaceAll("(?s)/\\*.*?\\*/", "");
+    return withoutComments.replaceAll("\\r\\n", " ").replaceAll("\\n", " ").trim();
+  }
+
   // Utility methods
 
   /**
