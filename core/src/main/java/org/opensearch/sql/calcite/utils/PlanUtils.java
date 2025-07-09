@@ -21,6 +21,7 @@ import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexVisitorImpl;
@@ -357,5 +358,21 @@ public interface PlanUtils {
           }
         };
     node.accept(leafVisitor, null);
+  }
+
+  /**
+   * Return the first value RexNode of the valid map RexCall structure
+   *
+   * @param rexNode RexNode that expects type of MAP_VALUE_CONSTRUCTOR RexCall
+   * @return first value of the valid map RexCall
+   */
+  static RexNode derefMapCall(RexNode rexNode) {
+    if (rexNode instanceof RexCall) {
+      RexCall call = (RexCall) rexNode;
+      if (call.getOperator() == SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR) {
+        return call.getOperands().get(1);
+      }
+    }
+    return rexNode;
   }
 }
