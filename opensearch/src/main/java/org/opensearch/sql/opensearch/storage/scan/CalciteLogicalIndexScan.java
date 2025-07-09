@@ -115,8 +115,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
           PushDownAction.of(
               PushDownType.FILTER,
               filter.getCondition(),
-              requestBuilder -> requestBuilder.pushDownFilter(queryBuilder),
-              queryBuilder));
+              requestBuilder -> requestBuilder.pushDownFilter(queryBuilder)));
 
       // If the query expression is partial, we need to replace the input of the filter with the
       // partial pushed scan and the filter condition with non-pushed-down conditions.
@@ -180,8 +179,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         PushDownAction.of(
             PushDownType.PROJECT,
             newSchema.getFieldNames(),
-            requestBuilder -> requestBuilder.pushDownProjectStream(projectedFields.stream()),
-            projectedFields));
+            requestBuilder -> requestBuilder.pushDownProjectStream(projectedFields.stream())));
     return newScan;
   }
 
@@ -236,8 +234,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               requestBuilder -> {
                 requestBuilder.pushDownAggregation(aggregationBuilder);
                 requestBuilder.pushTypeMapping(extendedTypeMapping);
-              },
-              aggregationBuilder));
+              }));
       return newScan;
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
@@ -256,8 +253,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
           PushDownAction.of(
               PushDownType.LIMIT,
               limit,
-              requestBuilder -> requestBuilder.pushDownLimit(limit, offset),
-              Pair.of(limit, offset)));
+              requestBuilder -> requestBuilder.pushDownLimit(limit, offset)));
       return newScan;
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
@@ -325,8 +321,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
           PushDownAction.of(
               PushDownType.SORT,
               builders.toString(),
-              requestBuilder -> requestBuilder.pushDownSort(builders),
-              builders));
+              requestBuilder -> requestBuilder.pushDownSort(builders)));
       return newScan;
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
