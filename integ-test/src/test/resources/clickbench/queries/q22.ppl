@@ -1,0 +1,5 @@
+source=hits
+| where like(URL, '%google%') and SearchPhrase != ''
+| stats /* min(URL), */ count() as c by SearchPhrase
+| sort - c
+| head 10

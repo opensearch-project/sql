@@ -1,0 +1,5 @@
+source=hits
+| where SearchPhrase != ''
+| sort EventTime, SearchPhrase
+| fields SearchPhrase
+| head 10

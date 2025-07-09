@@ -1,0 +1,1 @@
+source=hits | stats dc(SearchPhrase)

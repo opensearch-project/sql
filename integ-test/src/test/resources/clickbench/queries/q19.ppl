@@ -1,0 +1,5 @@
+source=hits
+| eval m = extract(minute from EventTime)
+| stats count() by UserID, m, SearchPhrase
+| sort - `count()`
+| head 10

@@ -1,0 +1,5 @@
+source=hits
+| where MobilePhoneModel != ''
+| stats dc(UserID) as u by MobilePhoneModel
+| sort - u
+| head 10

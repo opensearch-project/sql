@@ -1,0 +1,3 @@
+source=hits
+| where UserID = 435090932899640449
+| fields UserID

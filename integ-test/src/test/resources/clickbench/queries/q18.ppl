@@ -1,0 +1,3 @@
+source=hits
+| stats count() by UserID, SearchPhrase
+| head 10

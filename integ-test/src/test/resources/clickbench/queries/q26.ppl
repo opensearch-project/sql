@@ -1,0 +1,5 @@
+source=hits
+| where SearchPhrase != ''
+| fields SearchPhrase
+| sort SearchPhrase
+| head 10

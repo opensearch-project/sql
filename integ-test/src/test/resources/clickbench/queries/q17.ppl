@@ -1,0 +1,4 @@
+source=hits
+| stats count() by UserID, SearchPhrase
+| sort - `count()`
+| head 10

@@ -1,0 +1,3 @@
+source=hits
+| where like(URL, '%google%')
+| stats count()
