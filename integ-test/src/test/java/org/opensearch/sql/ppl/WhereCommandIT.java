@@ -8,6 +8,7 @@ package org.opensearch.sql.ppl;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_TIME;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -28,6 +29,7 @@ public class WhereCommandIT extends PPLIntegTestCase {
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
     loadIndex(Index.GAME_OF_THRONES);
+    loadIndex(Index.DATETIME);
   }
 
   @Test
@@ -219,7 +221,7 @@ public class WhereCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testFilterScriptPushDownWithFunction() throws IOException {
+  public void testFilterScriptPushDownWithCalciteStdFunction() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -228,5 +230,29 @@ public class WhereCommandIT extends PPLIntegTestCase {
                 TEST_INDEX_ACCOUNT));
     verifySchema(actual, schema("firstname", "string"), schema("age", "bigint"));
     verifyDataRows(actual, rows("Amber", 32));
+  }
+
+  @Test
+  public void testFilterScriptPushDownWithPPLBuiltInFunction() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format("source=%s | where month(login_time) = 1", TEST_INDEX_DATE_TIME));
+    verifySchema(actual, schema("birthday", "timestamp"), schema("login_time", "timestamp"));
+    verifyDataRows(
+        actual,
+        rows(null, "2015-01-01 00:00:00"),
+        rows(null, "2015-01-01 12:10:30"),
+        rows(null, "1970-01-19 08:31:22.955"));
+  }
+
+  @Test
+  public void testFilterScriptPushDownWithCalciteStdLibraryFunction() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where left(firstname, 3) = 'Ama' | fields firstname",
+                TEST_INDEX_ACCOUNT));
+    verifySchema(actual, schema("firstname", "string"));
+    verifyDataRows(actual, rows("Amalia"), rows("Amanda"));
   }
 }

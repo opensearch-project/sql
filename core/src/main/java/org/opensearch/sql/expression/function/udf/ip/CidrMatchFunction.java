@@ -56,9 +56,16 @@ public class CidrMatchFunction extends ImplementorUDF {
       return Expressions.call(CidrMatchImplementor.class, "cidrMatch", translatedOperands);
     }
 
-    public static boolean cidrMatch(ExprIpValue ip, String cidr) {
+    public static boolean cidrMatch(Object ip, String cidr) {
+      ExprValue ipValue;
+      if (ip instanceof ExprIpValue) {
+        ipValue = (ExprIpValue) ip;
+      } else {
+        // Deserialization workaround
+        ipValue = new ExprIpValue((String) ip);
+      }
       ExprValue cidrValue = ExprValueUtils.stringValue(cidr);
-      return (boolean) IPFunctions.exprCidrMatch(ip, cidrValue).valueForCalcite();
+      return (boolean) IPFunctions.exprCidrMatch(ipValue, cidrValue).valueForCalcite();
     }
 
     public static boolean cidrMatch(String ip, String cidr) {
