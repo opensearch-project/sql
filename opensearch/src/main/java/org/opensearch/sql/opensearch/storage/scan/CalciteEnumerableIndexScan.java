@@ -54,6 +54,19 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan impleme
   }
 
   @Override
+  protected AbstractCalciteIndexScan buildScan(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      List<RelHint> hints,
+      RelOptTable table,
+      OpenSearchIndex osIndex,
+      RelDataType schema,
+      PushDownContext pushDownContext) {
+    return new CalciteEnumerableIndexScan(
+        cluster, traitSet, hints, table, osIndex, schema, pushDownContext);
+  }
+
+  @Override
   public void register(RelOptPlanner planner) {
     for (RelOptRule rule : OpenSearchRules.OPEN_SEARCH_OPT_RULES) {
       planner.addRule(rule);

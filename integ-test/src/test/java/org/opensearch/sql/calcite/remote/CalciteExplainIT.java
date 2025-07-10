@@ -59,4 +59,15 @@ public class CalciteExplainIT extends ExplainIT {
                 + "| where birthdate >= '2016-12-08 00:00:00.000000000' "
                 + "and birthdate < '2018-11-09 00:00:00.000000000' "));
   }
+
+  // Only for Calcite
+  @Test
+  public void supportPushDownSortMergeJoin() throws IOException {
+    String expected = loadFromFile("expectedOutput/calcite/explain_merge_join_sort_push.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_bank| join left=l right=r on"
+                + " l.account_number=r.account_number opensearch-sql_test_index_bank"));
+  }
 }
