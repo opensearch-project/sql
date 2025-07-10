@@ -676,6 +676,13 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   @Override
   public RexNode visitUnresolvedArgument(UnresolvedArgument node, CalcitePlanContext context) {
     RexNode value = analyze(node.getValue(), context);
-    return context.relBuilder.alias(value, node.getArgName());
+    /*
+     * Calcite SqlStdOperatorTable.AS doesn't have implementor registration in RexImpTable.
+     * To not block ReduceExpressionsRule constants reduction optimization, use MAP_VALUE_CONSTRUCTOR instead to achieve the same effect.
+     */
+    return context.rexBuilder.makeCall(
+        SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
+        context.rexBuilder.makeLiteral(node.getArgName()),
+        value);
   }
 }
