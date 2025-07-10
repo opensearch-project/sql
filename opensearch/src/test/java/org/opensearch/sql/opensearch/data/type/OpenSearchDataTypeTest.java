@@ -201,7 +201,7 @@ class OpenSearchDataTypeTest {
         () -> assertNotSame(typeWithProperties, typeWithProperties.cloneEmpty()),
         () -> assertNotSame(typeWithFields, typeWithFields.cloneEmpty()),
         () -> assertNotSame(dateType, dateType.cloneEmpty()),
-        () -> assertSame(OpenSearchDataType.of(MappingType.Text), OpenSearchTextType.of()),
+        () -> assertNotSame(OpenSearchDataType.of(MappingType.Text), OpenSearchTextType.of()),
         () -> assertSame(OpenSearchDataType.of(MappingType.Binary), OpenSearchBinaryType.of()),
         () -> assertSame(OpenSearchDataType.of(MappingType.GeoPoint), OpenSearchGeoPointType.of()),
         () ->
