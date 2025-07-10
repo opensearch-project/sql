@@ -16,7 +16,7 @@ import java.time.format.DateTimeParseException;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
-import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.utils.DateTimeFormatters;
 
 /** Expression Date Value. */
@@ -34,7 +34,7 @@ public class ExprDateValue extends AbstractExprValue {
     try {
       this.date = LocalDate.parse(date, DateTimeFormatters.DATE_TIMESTAMP_FORMATTER);
     } catch (DateTimeParseException e) {
-      throw new SemanticCheckException(
+      throw new ExpressionEvaluationException(
           String.format("date:%s in unsupported format, please use 'yyyy-MM-dd'", date));
     }
   }

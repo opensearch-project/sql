@@ -20,7 +20,7 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
-import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
@@ -431,7 +431,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
 
     Throwable t =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -469,7 +469,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
 
     Throwable t =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -509,7 +509,7 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
 
     Throwable t =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(

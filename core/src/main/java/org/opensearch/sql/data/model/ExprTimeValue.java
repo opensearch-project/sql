@@ -17,7 +17,7 @@ import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
-import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.utils.DateTimeFormatters;
 
@@ -36,7 +36,7 @@ public class ExprTimeValue extends AbstractExprValue {
     try {
       this.time = LocalTime.parse(time, DateTimeFormatters.TIME_TIMESTAMP_FORMATTER);
     } catch (DateTimeParseException e) {
-      throw new SemanticCheckException(
+      throw new ExpressionEvaluationException(
           String.format("time:%s in unsupported format, please use 'HH:mm:ss[.SSSSSSSSS]'", time));
     }
   }

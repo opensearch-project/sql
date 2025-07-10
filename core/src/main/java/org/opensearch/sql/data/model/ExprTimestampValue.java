@@ -19,7 +19,7 @@ import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
-import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.utils.DateTimeFormatters;
 
 /** Expression Timestamp Value. */
@@ -39,7 +39,7 @@ public class ExprTimestampValue extends AbstractExprValue {
           LocalDateTime.parse(timestamp, DateTimeFormatters.DATE_TIMESTAMP_FORMATTER)
               .toInstant(ZoneOffset.UTC);
     } catch (DateTimeParseException e) {
-      throw new SemanticCheckException(
+      throw new ExpressionEvaluationException(
           String.format(
               "timestamp:%s in unsupported format, please use 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'",
               timestamp));
