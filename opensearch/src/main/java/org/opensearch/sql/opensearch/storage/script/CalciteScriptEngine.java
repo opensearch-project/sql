@@ -62,15 +62,18 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexExecutable;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Util;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.index.fielddata.ScriptDocValues;
 import org.opensearch.script.FilterScript;
@@ -177,28 +180,19 @@ public class CalciteScriptEngine implements ScriptEngine {
     @Override
     public org.apache.calcite.linq4j.tree.Expression field(
         BlockBuilder list, int index, @Nullable Type storageType) {
-      String fieldName = rowType.getFieldList().get(index).getName();
-      ExprType exprType = fieldTypes.get(fieldName);
-      if (exprType == ExprCoreType.STRUCT) {
-        throw new UnsupportedScriptException(
-            "Script query does not support fields of struct type: " + fieldName);
-      }
-      NamedFieldExpression expression = new NamedFieldExpression(fieldName, exprType);
-      String referenceField = expression.getReferenceForTermQuery();
-      if (StringUtils.isEmpty(referenceField)) {
-        throw new UnsupportedScriptException(
-            "Field name cannot be empty for expression: " + expression);
-      }
+      Pair<String, ExprType> refTypePair =
+          getValidatedReferenceNameAndType(rowType, index, fieldTypes);
       MethodCallExpression fieldValueExpr =
           Expressions.call(
               DataContext.ROOT,
               BuiltInMethod.DATA_CONTEXT_GET.method,
-              Expressions.constant(expression.getReferenceForTermQuery()));
+              Expressions.constant(refTypePair.getKey()));
       if (storageType == null) {
         final RelDataType fieldType = rowType.getFieldList().get(index).getType();
         storageType = ((JavaTypeFactory) typeFactory).getJavaClass(fieldType);
       }
-      return EnumUtils.convert(tryConvertDocValue(fieldValueExpr, exprType), storageType);
+      return EnumUtils.convert(
+          tryConvertDocValue(fieldValueExpr, refTypePair.getValue()), storageType);
     }
 
     /**
@@ -210,6 +204,24 @@ public class CalciteScriptEngine implements ScriptEngine {
         case FLOAT -> EnumUtils.convert(docValueExpr, Double.class);
         default -> docValueExpr;
       };
+    }
+  }
+
+  public static class ReferenceFieldVisitor extends RexVisitorImpl<Pair<String, ExprType>> {
+
+    private final RelDataType rowType;
+    private final Map<String, ExprType> fieldTypes;
+
+    public ReferenceFieldVisitor(
+        RelDataType rowType, Map<String, ExprType> fieldTypes, boolean deep) {
+      super(deep);
+      this.rowType = rowType;
+      this.fieldTypes = fieldTypes;
+    }
+
+    @Override
+    public Pair<String, ExprType> visitInputRef(RexInputRef inputRef) {
+      return getValidatedReferenceNameAndType(rowType, inputRef.getIndex(), fieldTypes);
     }
   }
 
@@ -317,5 +329,22 @@ public class CalciteScriptEngine implements ScriptEngine {
     }
 
     return code;
+  }
+
+  private static Pair<String, ExprType> getValidatedReferenceNameAndType(
+      RelDataType rowType, int index, Map<String, ExprType> fieldTypes) {
+    String fieldName = rowType.getFieldList().get(index).getName();
+    ExprType exprType = fieldTypes.get(fieldName);
+    if (exprType == ExprCoreType.STRUCT) {
+      throw new UnsupportedScriptException(
+          "Script query does not support fields of struct type: " + fieldName);
+    }
+    NamedFieldExpression expression = new NamedFieldExpression(fieldName, exprType);
+    String referenceField = expression.getReferenceForTermQuery();
+    if (StringUtils.isEmpty(referenceField)) {
+      throw new UnsupportedScriptException(
+          "Field name cannot be empty for expression: " + expression);
+    }
+    return Pair.of(referenceField, exprType);
   }
 }

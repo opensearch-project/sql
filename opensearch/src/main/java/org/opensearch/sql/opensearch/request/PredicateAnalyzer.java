@@ -77,6 +77,7 @@ import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
+import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.ReferenceFieldVisitor;
 import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.UnsupportedScriptException;
 import org.opensearch.sql.opensearch.storage.serialization.RelJsonSerializer;
 
@@ -964,6 +965,10 @@ public class PredicateAnalyzer {
         RelDataType rowType,
         Map<String, ExprType> fieldTypes,
         RelOptCluster cluster) {
+      ReferenceFieldVisitor validator = new ReferenceFieldVisitor(rowType, fieldTypes, true);
+      // Dry run visitInputRef to make sure the input reference ExprType is valid for script
+      // pushdown
+      validator.visitEach(List.of(rexNode));
       RelJsonSerializer serializer = new RelJsonSerializer(cluster);
       this.code = serializer.serialize(rexNode, rowType, fieldTypes);
     }
