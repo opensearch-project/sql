@@ -12,13 +12,14 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
-import org.opensearch.sql.calcite.utils.datetime.DateTimeParser;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.FunctionProperties;
+import org.opensearch.sql.utils.DateTimeFormatters;
 
 /** Expression Time Value. */
 @RequiredArgsConstructor
@@ -26,11 +27,15 @@ public class ExprTimeValue extends AbstractExprValue {
 
   private final LocalTime time;
 
-  /** Constructor of ExprTimeValue. */
+  /**
+   * Constructor with time string.
+   *
+   * @param time a time or timestamp string (does not accept date string)
+   */
   public ExprTimeValue(String time) {
     try {
-      this.time = DateTimeParser.parseTimeOrTimestamp(time).toLocalTime();
-    } catch (SemanticCheckException e) {
+      this.time = LocalTime.parse(time, DateTimeFormatters.TIME_TIMESTAMP_FORMATTER);
+    } catch (DateTimeParseException e) {
       throw new SemanticCheckException(
           String.format("time:%s in unsupported format, please use 'HH:mm:ss[.SSSSSSSSS]'", time));
     }

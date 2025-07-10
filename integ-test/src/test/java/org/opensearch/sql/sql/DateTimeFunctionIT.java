@@ -1397,6 +1397,13 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testDateStringAsTimestamp() throws IOException {
+    JSONObject result = executeQuery("select {timestamp '2025-07-10'} as t");
+    verifySchema(result, schema("{timestamp '2025-07-10'}", "t", "timestamp"));
+    verifyDataRows(result, rows("2025-07-10 00:00:00"));
+  }
+
+  @Test
   public void testTimestampBracket() throws IOException {
     JSONObject result = executeQuery("select {timestamp '2020-09-16 17:30:00'}");
     verifySchema(result, schema("{timestamp '2020-09-16 17:30:00'}", null, "timestamp"));
@@ -1471,9 +1478,6 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     assertThrows(ResponseException.class, () -> executeQuery("select {t '2020-09-16'}"));
     assertThrows(ResponseException.class, () -> executeQuery("select {date '17:30:00'}"));
     assertThrows(ResponseException.class, () -> executeQuery("select {d '17:30:00'}"));
-    // The following test case is removed because they will be parsed to proper timestamps
-    // assertThrows(ResponseException.class, () -> executeQuery("select {timestamp '2020-09-16'}"));
-    // assertThrows(ResponseException.class, () -> executeQuery("select {ts '2020-09-16'}"));
     assertThrows(ResponseException.class, () -> executeQuery("select {timestamp '17:30:00'}"));
     assertThrows(ResponseException.class, () -> executeQuery("select {ts '17:30:00'}"));
   }

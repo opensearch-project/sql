@@ -12,11 +12,12 @@ import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import lombok.RequiredArgsConstructor;
-import org.opensearch.sql.calcite.utils.datetime.DateTimeParser;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.utils.DateTimeFormatters;
 
 /** Expression Date Value. */
 @RequiredArgsConstructor
@@ -24,11 +25,15 @@ public class ExprDateValue extends AbstractExprValue {
 
   private final LocalDate date;
 
-  /** Constructor of ExprDateValue. */
+  /**
+   * Constructor with date string.
+   *
+   * @param date a date or timestamp string (does not accept time string)
+   */
   public ExprDateValue(String date) {
     try {
-      this.date = DateTimeParser.parseDateOrTimestamp(date).toLocalDate();
-    } catch (SemanticCheckException e) {
+      this.date = LocalDate.parse(date, DateTimeFormatters.DATE_TIMESTAMP_FORMATTER);
+    } catch (DateTimeParseException e) {
       throw new SemanticCheckException(
           String.format("date:%s in unsupported format, please use 'yyyy-MM-dd'", date));
     }
