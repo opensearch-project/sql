@@ -37,14 +37,13 @@ import static org.opensearch.index.query.QueryBuilders.rangeQuery;
 import static org.opensearch.index.query.QueryBuilders.regexpQuery;
 import static org.opensearch.index.query.QueryBuilders.termQuery;
 import static org.opensearch.index.query.QueryBuilders.termsQuery;
+import static org.opensearch.script.Script.DEFAULT_SCRIPT_TYPE;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.MULTI_FIELDS_RELEVANCE_FUNCTION_SET;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.SINGLE_FIELD_RELEVANCE_FUNCTION_SET;
-import static org.opensearch.script.Script.DEFAULT_SCRIPT_TYPE;
 import static org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.CALCITE_ENGINE_TYPE;
 import static org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.COMPOUNDED_LANG_NAME;
 import static org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.ENGINE_TYPE;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.Range;
 import java.math.BigDecimal;
@@ -90,6 +89,8 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
+import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.ReferenceFieldVisitor;
+import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.UnsupportedScriptException;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchBoolPrefixQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchPhrasePrefixQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchPhraseQuery;
@@ -97,8 +98,6 @@ import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.Matc
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MultiMatchQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.QueryStringQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.SimpleQueryStringQuery;
-import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.ReferenceFieldVisitor;
-import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.UnsupportedScriptException;
 import org.opensearch.sql.opensearch.storage.serialization.RelJsonSerializer;
 
 /**
@@ -1330,9 +1329,48 @@ public class PredicateAnalyzer {
     }
 
     @Override
-    public QueryExpression queryString(String query) {
+    public QueryExpression match(String query, Map<String, String> optionalArguments) {
       throw new PredicateAnalyzerException(
-          "QueryString " + "cannot be applied to a script expression");
+          "Match query " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression matchPhrase(String query, Map<String, String> optionalArguments) {
+      throw new PredicateAnalyzerException(
+          "MatchPhrase query " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression matchBoolPrefix(String query, Map<String, String> optionalArguments) {
+      throw new PredicateAnalyzerException(
+          "MatchBoolPrefix query " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression matchPhrasePrefix(String query, Map<String, String> optionalArguments) {
+      throw new PredicateAnalyzerException(
+          "MatchPhrasePrefix query " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression simpleQueryString(
+        RexCall fieldsRexCall, String query, Map<String, String> optionalArguments) {
+      throw new PredicateAnalyzerException(
+          "SimpleQueryString query " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression queryString(
+        RexCall fieldsRexCall, String query, Map<String, String> optionalArguments) {
+      throw new PredicateAnalyzerException(
+          "QueryString query " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression multiMatch(
+        RexCall fieldsRexCall, String query, Map<String, String> optionalArguments) {
+      throw new PredicateAnalyzerException(
+          "MultiMatch query " + "cannot be applied to a script expression");
     }
 
     @Override
