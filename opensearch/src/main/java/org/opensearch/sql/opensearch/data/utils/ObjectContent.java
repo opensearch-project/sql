@@ -105,6 +105,11 @@ public class ObjectContent implements Content {
   }
 
   @Override
+  public boolean isInt() {
+    return value instanceof Integer;
+  }
+
+  @Override
   public boolean isFloat() {
     return value instanceof Float;
   }

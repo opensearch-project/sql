@@ -29,6 +29,9 @@ public interface Content {
   /** Is double value. */
   boolean isDouble();
 
+  /** Is int value. */
+  boolean isInt();
+
   /** Is long value. */
   boolean isLong();
 
