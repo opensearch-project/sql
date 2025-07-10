@@ -36,6 +36,7 @@ import org.opensearch.search.sort.ScoreSortBuilder;
 import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.search.sort.SortOrder;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
@@ -250,9 +251,17 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                 default -> null;
               };
           // Keyword field is optimized for sorting in OpenSearch
-          String fieldNameKeyword =
-              OpenSearchTextType.convertTextToKeyword(
-                  fieldName, osIndex.getFieldTypes().get(fieldName));
+          ExprType fieldType = osIndex.getFieldTypes().get(fieldName);
+          String fieldNameKeyword;
+          if (fieldType instanceof OpenSearchTextType textType) {
+            fieldNameKeyword = OpenSearchTextType.convertTextToKeyword(fieldName, fieldType);
+            if (fieldName.equals(fieldNameKeyword) && !textType.isFieldData()) {
+              // can not convert text to keyword, skip pushdown
+              return null;
+            }
+          } else {
+            fieldNameKeyword = fieldName;
+          }
           sortBuilder = SortBuilders.fieldSort(fieldNameKeyword).missing(missing);
         }
         builders.add(sortBuilder.order(order));

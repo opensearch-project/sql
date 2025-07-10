@@ -25,6 +25,7 @@ public class OpenSearchTextType extends OpenSearchDataType {
   // text could have fields
   // a read-only collection
   @EqualsAndHashCode.Exclude Map<String, OpenSearchDataType> fields = ImmutableMap.of();
+  @EqualsAndHashCode.Exclude private boolean fielddata = false;
 
   private OpenSearchTextType() {
     super(MappingType.Text);
@@ -32,15 +33,22 @@ public class OpenSearchTextType extends OpenSearchDataType {
   }
 
   /**
-   * Constructs a Text Type using the passed in fields argument.
+   * Constructs a Text Type using the passed in fields and fielddata argument.
    *
    * @param fields The fields to be used to construct the text type.
+   * @param fielddata Whether to enable fielddata for this text type
    * @return A new OpenSeachTextTypeObject
    */
-  public static OpenSearchTextType of(Map<String, OpenSearchDataType> fields) {
+  public static OpenSearchTextType of(Map<String, OpenSearchDataType> fields, boolean fielddata) {
     var res = new OpenSearchTextType();
     res.fields = fields;
+    res.fielddata = fielddata;
     return res;
+  }
+
+  /** For test only */
+  public static OpenSearchTextType of(Map<String, OpenSearchDataType> fields) {
+    return of(fields, false);
   }
 
   public static OpenSearchTextType of() {
@@ -63,7 +71,7 @@ public class OpenSearchTextType extends OpenSearchDataType {
 
   @Override
   protected OpenSearchDataType cloneEmpty() {
-    return OpenSearchTextType.of(Map.copyOf(this.fields));
+    return OpenSearchTextType.of(Map.copyOf(this.fields), this.fielddata);
   }
 
   /**
@@ -76,5 +84,9 @@ public class OpenSearchTextType extends OpenSearchDataType {
       return fieldName + ".keyword";
     }
     return fieldName;
+  }
+
+  public boolean isFieldData() {
+    return this.fielddata;
   }
 }
