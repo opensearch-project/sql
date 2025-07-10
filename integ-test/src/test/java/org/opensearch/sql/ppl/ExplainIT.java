@@ -426,7 +426,7 @@ public class ExplainIT extends PPLIntegTestCase {
                 + " default_operator='or', analyzer=english)"));
   }
 
-  private String loadExpectedPlan(String fileName) throws IOException {
+  protected String loadExpectedPlan(String fileName) throws IOException {
     String prefix;
     if (isCalciteEnabled()) {
       if (isPushdownEnabled()) {
