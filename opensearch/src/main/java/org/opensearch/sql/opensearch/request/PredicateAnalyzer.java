@@ -322,7 +322,10 @@ public class PredicateAnalyzer {
     private QueryExpression visitRelevanceFunc(RexCall call) {
       String funcName = call.getOperator().getName().toLowerCase(Locale.ROOT);
       List<RexNode> ops = call.getOperands();
-      assert ops.size() >= 2 : "Relevance query function should at least have 2 operands";
+      if (ops.size() < 2) {
+        throw new PredicateAnalyzerException(
+            "Relevance query function should at least have 2 operands");
+      }
 
       if (SINGLE_FIELD_RELEVANCE_FUNCTION_SET.contains(funcName)) {
         List<Expression> fieldQueryOperands =

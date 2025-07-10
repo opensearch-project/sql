@@ -34,10 +34,6 @@ public class OpenSearchRelInputTranslator implements RelJson.InputTranslator {
     final RelOptCluster cluster = relInput.getCluster();
     final RexBuilder rexBuilder = cluster.getRexBuilder();
 
-    // Check if it is a local ref.
-    if (map.containsKey("type")) {
-      return rexBuilder.makeLocalRef(rowType, input);
-    }
     if (input < rowType.getFieldCount()) {
       final RelDataTypeField field = rowType.getFieldList().get(input);
       return rexBuilder.makeInputRef(field.getType(), input);
