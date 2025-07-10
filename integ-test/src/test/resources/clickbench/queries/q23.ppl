@@ -1,3 +1,8 @@
+/*
+SELECT SearchPhrase, MIN(URL), MIN(Title), COUNT(*) AS c, COUNT(DISTINCT UserID)
+FROM hits WHERE Title LIKE '%Google%' AND URL NOT LIKE '%.google.%' AND SearchPhrase <> ''
+GROUP BY SearchPhrase ORDER BY c DESC LIMIT 10;
+*/
 source=hits
 | where like(Title, '%Google%') and not like(URL, '%.google.%') and SearchPhrase != ''
 | stats /* min(URL), min(Title), */ count() as c, dc(UserID) by SearchPhrase

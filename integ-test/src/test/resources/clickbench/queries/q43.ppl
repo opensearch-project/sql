@@ -1,7 +1,14 @@
-// EventDate >= '2013-07-01' should work in v3
+/*
+SELECT DATE_FORMAT(EventTime, '%Y-%m-%d %H:00:00') AS M, COUNT(*) AS PageViews
+FROM hits WHERE CounterID = 62 AND EventDate >= '2013-07-14' AND EventDate <= '2013-07-15'
+AND IsRefresh = 0 AND DontCountHits = 0
+GROUP BY DATE_FORMAT(EventTime, '%Y-%m-%d %H:00:00')
+ORDER BY DATE_FORMAT(EventTime, '%Y-%m-%d %H:00:00')
+LIMIT 10 OFFSET 1000;
+*/
 source=hits
-| where EventDate >= '2013-07-01 00:00:00' and EventDate <= '2013-07-15 00:00:00' and CounterID = 62 and IsRefresh = 0 and DontCountHits = 0
-| eval M = date_trunc('minute', EventTime)
+| where CounterID = 62 and EventDate >= '2013-07-01 00:00:00' and EventDate <= '2013-07-15 00:00:00' and IsRefresh = 0 and DontCountHits = 0
+| eval M = date_format(EventTime, '%Y-%m-%d %H:00:00')
 | stats count() as PageViews by M
 | sort M
 | head 10 from 1000

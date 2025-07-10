@@ -1,3 +1,6 @@
+/*
+SELECT SUM(ResolutionWidth), SUM(ResolutionWidth + 1), ... SUM(ResolutionWidth + 89) FROM hits;
+*/
 source=hits
 | stats
     sum(ResolutionWidth),
