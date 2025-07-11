@@ -28,11 +28,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.calcite.plan.OpenSearchRules;
+import org.opensearch.sql.calcite.plan.Scannable;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 
 /** The physical relational operator representing a scan of an OpenSearchIndex type. */
-public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan implements EnumerableRel {
+public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
+    implements Scannable, EnumerableRel {
   private static final Logger LOG = LogManager.getLogger(CalciteEnumerableIndexScan.class);
 
   /**
@@ -98,6 +100,7 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan impleme
    * each time to avoid reusing source builder. That's because the source builder has stats like PIT
    * or SearchAfter recorded during previous search.
    */
+  @Override
   public Enumerable<@Nullable Object> scan() {
     return new AbstractEnumerable<>() {
       @Override
