@@ -7,7 +7,7 @@ package org.opensearch.sql.opensearch.storage.script.filter;
 
 import static java.util.Collections.emptyMap;
 import static org.opensearch.script.Script.DEFAULT_SCRIPT_TYPE;
-import static org.opensearch.sql.opensearch.storage.script.ExpressionScriptEngine.EXPRESSION_LANG_NAME;
+import static org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.COMPOUNDED_LANG_NAME;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
@@ -146,6 +146,6 @@ public class FilterQueryBuilder extends ExpressionNodeVisitor<QueryBuilder, Obje
     }
     return new ScriptQueryBuilder(
         new Script(
-            DEFAULT_SCRIPT_TYPE, EXPRESSION_LANG_NAME, serializer.serialize(node), emptyMap()));
+            DEFAULT_SCRIPT_TYPE, COMPOUNDED_LANG_NAME, serializer.serialize(node), emptyMap()));
   }
 }

@@ -1,0 +1,6 @@
+{
+  "calcite": {
+    "logical": "LogicalProject(firstname=[$1], age=[$8])\n  LogicalFilter(condition=[AND(=(CHAR_LENGTH($1), 5), =(ABS($8), 32), =($3, 39225))])\n    CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
+    "physical": "EnumerableCalc(expr#0..16=[{inputs}], expr#17=[CHAR_LENGTH($t1)], expr#18=[5], expr#19=[=($t17, $t18)], expr#20=[ABS($t8)], expr#21=[32], expr#22=[=($t20, $t21)], expr#23=[39225], expr#24=[=($t3, $t23)], expr#25=[AND($t19, $t22, $t24)], firstname=[$t1], age=[$t8], $condition=[$t25])\n  CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n"
+  }
+}

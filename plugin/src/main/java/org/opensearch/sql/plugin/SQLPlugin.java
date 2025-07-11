@@ -18,6 +18,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.volcano.VolcanoPlanner;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -53,13 +56,18 @@ import org.opensearch.rest.RestHandler;
 import org.opensearch.script.ScriptContext;
 import org.opensearch.script.ScriptEngine;
 import org.opensearch.script.ScriptService;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelper;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelperImpl;
 import org.opensearch.sql.datasources.encryptor.EncryptorImpl;
 import org.opensearch.sql.datasources.glue.GlueDataSourceFactory;
 import org.opensearch.sql.datasources.glue.SecurityLakeDataSourceFactory;
-import org.opensearch.sql.datasources.model.transport.*;
+import org.opensearch.sql.datasources.model.transport.CreateDataSourceActionResponse;
+import org.opensearch.sql.datasources.model.transport.DeleteDataSourceActionResponse;
+import org.opensearch.sql.datasources.model.transport.GetDataSourceActionResponse;
+import org.opensearch.sql.datasources.model.transport.PatchDataSourceActionResponse;
+import org.opensearch.sql.datasources.model.transport.UpdateDataSourceActionResponse;
 import org.opensearch.sql.datasources.rest.RestDataSourceQueryAction;
 import org.opensearch.sql.datasources.service.DataSourceMetadataStorage;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
@@ -77,8 +85,7 @@ import org.opensearch.sql.legacy.plugin.RestSqlStatsAction;
 import org.opensearch.sql.opensearch.client.OpenSearchNodeClient;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
-import org.opensearch.sql.opensearch.storage.script.ExpressionScriptEngine;
-import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
+import org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine;
 import org.opensearch.sql.plugin.config.OpenSearchPluginModule;
 import org.opensearch.sql.plugin.rest.RestPPLQueryAction;
 import org.opensearch.sql.plugin.rest.RestPPLStatsAction;
@@ -293,7 +300,9 @@ public class SQLPlugin extends Plugin
 
   @Override
   public ScriptEngine getScriptEngine(Settings settings, Collection<ScriptContext<?>> contexts) {
-    return new ExpressionScriptEngine(new DefaultExpressionSerializer());
+    RexBuilder rexBuilder = new RexBuilder(OpenSearchTypeFactory.TYPE_FACTORY);
+    RelOptCluster cluster = RelOptCluster.create(new VolcanoPlanner(), rexBuilder);
+    return new CompoundedScriptEngine(cluster);
   }
 
   private DataSourceServiceImpl createDataSourceService() {

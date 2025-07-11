@@ -56,4 +56,16 @@ public class CalciteExplainIT extends ExplainIT {
                 + "| where birthdate >= '2016-12-08 00:00:00.000000000' "
                 + "and birthdate < '2018-11-09 00:00:00.000000000' "));
   }
+
+  // Only for Calcite, as v2 gets unstable serialized string for function
+  @Test
+  public void testFilterScriptPushDownExplain() throws Exception {
+    super.testFilterScriptPushDownExplain();
+  }
+
+  // Only for Calcite, as v2 gets unstable serialized string for function
+  @Test
+  public void testFilterFunctionScriptPushDownExplain() throws Exception {
+    super.testFilterFunctionScriptPushDownExplain();
+  }
 }
