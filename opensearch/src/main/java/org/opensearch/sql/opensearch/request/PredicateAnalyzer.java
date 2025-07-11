@@ -55,6 +55,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import lombok.Setter;
 import org.apache.calcite.DataContext.Variable;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.RelNode;
@@ -165,19 +166,27 @@ public class PredicateAnalyzer {
       RelDataType rowType,
       RelOptCluster cluster)
       throws ExpressionNotAnalyzableException {
+    return analyze_(expression, schema, fieldTypes, rowType, cluster).builder();
+  }
+
+  public static QueryExpression analyze_(
+      RexNode expression,
+      List<String> schema,
+      Map<String, ExprType> fieldTypes,
+      RelDataType rowType,
+      RelOptCluster cluster) {
     requireNonNull(expression, "expression");
     try {
       // visits expression tree
       QueryExpression queryExpression =
           (QueryExpression) expression.accept(new Visitor(schema, fieldTypes, rowType, cluster));
-
-      if (queryExpression != null && queryExpression.isPartial()) {
+      if (queryExpression.isPartial()) {
         throw new UnsupportedOperationException(
             "Can't handle partial QueryExpression: " + queryExpression);
       }
-      return queryExpression != null ? queryExpression.builder() : null;
+      return queryExpression;
     } catch (PredicateAnalyzerException | UnsupportedOperationException e) {
-      return new ScriptQueryExpression(expression, rowType, fieldTypes, cluster).builder();
+      return new ScriptQueryExpression(expression, rowType, fieldTypes, cluster);
     }
   }
 
@@ -726,7 +735,7 @@ public class PredicateAnalyzer {
   interface Expression {}
 
   /** Main expression operators (like {@code equals}, {@code gt}, {@code exists} etc.) */
-  abstract static class QueryExpression implements Expression {
+  public abstract static class QueryExpression implements Expression {
 
     public abstract QueryBuilder builder();
 
@@ -807,18 +816,28 @@ public class PredicateAnalyzer {
         throw new PredicateAnalyzer.PredicateAnalyzerException(message);
       }
     }
+
+    public static boolean containsScript(QueryExpression expression) {
+      return expression instanceof ScriptQueryExpression
+          || (expression instanceof CompoundQueryExpression
+              && ((CompoundQueryExpression) expression).containsScript());
+    }
   }
 
   /** Builds conjunctions / disjunctions based on existing expressions. */
-  static class CompoundQueryExpression extends QueryExpression {
+  public static class CompoundQueryExpression extends QueryExpression {
 
     private final boolean partial;
     private final BoolQueryBuilder builder;
+    @Setter private boolean containsScript;
 
     public static CompoundQueryExpression or(QueryExpression... expressions) {
       CompoundQueryExpression bqe = new CompoundQueryExpression(false);
       for (QueryExpression expression : expressions) {
         bqe.builder.should(expression.builder());
+        if (QueryExpression.containsScript(expression)) {
+          bqe.setContainsScript(true);
+        }
       }
       return bqe;
     }
@@ -835,23 +854,36 @@ public class PredicateAnalyzer {
       for (QueryExpression expression : expressions) {
         if (expression != null) { // partial expressions have nulls for missing nodes
           bqe.builder.must(expression.builder());
+          if (QueryExpression.containsScript(expression)) {
+            bqe.setContainsScript(true);
+          }
         }
       }
       return bqe;
     }
 
     private CompoundQueryExpression(boolean partial) {
-      this(partial, boolQuery());
+      this(partial, boolQuery(), false);
     }
 
     private CompoundQueryExpression(boolean partial, BoolQueryBuilder builder) {
+      this(partial, builder, false);
+    }
+
+    private CompoundQueryExpression(
+        boolean partial, BoolQueryBuilder builder, boolean containsScript) {
       this.partial = partial;
       this.builder = requireNonNull(builder, "builder");
+      this.containsScript = containsScript;
     }
 
     @Override
     public boolean isPartial() {
       return partial;
+    }
+
+    public boolean containsScript() {
+      return containsScript;
     }
 
     @Override
@@ -1227,7 +1259,7 @@ public class PredicateAnalyzer {
     // https://github.com/opensearch-project/sql/pull/3442
   }
 
-  static class ScriptQueryExpression extends QueryExpression {
+  public static class ScriptQueryExpression extends QueryExpression {
     private final String code;
 
     public ScriptQueryExpression(
