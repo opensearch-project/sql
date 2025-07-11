@@ -24,6 +24,7 @@ import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
+import org.opensearch.common.collect.MapBuilder;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
@@ -67,6 +68,15 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
 
   protected String executeCsvQuery(String query) throws IOException {
     return executeCsvQuery(query, true);
+  }
+
+  protected void timing(MapBuilder<String, Long> builder, String query, String ppl)
+      throws IOException {
+    executeQuery(ppl); // warm-up
+    long start = System.currentTimeMillis();
+    executeQuery(ppl);
+    long duration = System.currentTimeMillis() - start;
+    builder.put(query, duration);
   }
 
   protected void failWithMessage(String query, String message) {

@@ -484,4 +484,12 @@ public class TestUtils {
       return null;
     }
   }
+
+  public static String getClickBenchMappingFile(String fileName) {
+    try {
+      return TestUtils.fileToString("src/test/resources/clickbench/mappings/" + fileName, false);
+    } catch (IOException e) {
+      return null;
+    }
+  }
 }

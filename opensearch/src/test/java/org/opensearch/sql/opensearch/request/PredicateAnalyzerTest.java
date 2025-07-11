@@ -258,9 +258,9 @@ public class PredicateAnalyzerTest {
             "{\n" +
             "  \"terms\" : {\n" +
             "    \"a\" : [\n" +
-            "      12,\n" +
-            "      13,\n" +
-            "      14\n" +
+            "      12.0,\n" +
+            "      13.0,\n" +
+            "      14.0\n" +
             "    ],\n" +
             "    \"boost\" : 1.0\n" +
             "  }\n" +
