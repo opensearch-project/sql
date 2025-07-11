@@ -8,6 +8,7 @@ package org.opensearch.sql.ppl;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG4;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyOrder;
@@ -31,6 +32,7 @@ public class SortCommandIT extends PPLIntegTestCase {
     loadIndex(Index.BANK_WITH_NULL_VALUES);
     loadIndex(Index.DOG);
     loadIndex(Index.WEBLOG);
+    loadIndex(Index.DOG4);
   }
 
   @Test
@@ -160,5 +162,24 @@ public class SortCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(String.format("source=%s | sort age | head 2 | fields age", TEST_INDEX_BANK));
     verifyOrder(result, rows(28), rows(32));
+  }
+
+  @Test
+  public void testSortFielddata() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | sort dog_name | fields dog_name, age", TEST_INDEX_DOG4));
+    verifyOrder(result, rows("M 1", 2), rows("M 2", 4));
+    // Even sort with DESC on dog_name, the order is no diff with ASC for fielddata field
+    // since the field is tokenized. And the behaviour in v3 should be same with v2.
+    // But the behaviours between pushdown enable and disable are different.
+    result =
+        executeQuery(
+            String.format("source=%s | sort - dog_name | fields dog_name, age", TEST_INDEX_DOG4));
+    if (isPushdownEnabled()) {
+      verifyOrder(result, rows("M 1", 2), rows("M 2", 4));
+    } else {
+      verifyOrder(result, rows("M 2", 2), rows("M 1", 4));
+    }
   }
 }
