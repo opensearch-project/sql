@@ -255,8 +255,10 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
           String fieldNameKeyword;
           if (fieldType instanceof OpenSearchTextType textType) {
             fieldNameKeyword = OpenSearchTextType.toKeywordSubField(fieldName, fieldType);
-            if (fieldNameKeyword == null && textType.isFieldData()) {
-              // sort by fieldName if the field is fielddata
+            if (fieldNameKeyword == null && textType.isFieldData() && order == SortOrder.ASC) {
+              // match-only text does not support sorting.
+              // But a text enabling fielddata can be sorted.
+              // By testing, only ASC order works. TODO why?
               fieldNameKeyword = fieldName;
             }
           } else {

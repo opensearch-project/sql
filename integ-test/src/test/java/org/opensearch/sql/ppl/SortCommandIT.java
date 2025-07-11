@@ -172,10 +172,10 @@ public class SortCommandIT extends PPLIntegTestCase {
     // 'M 1', 'M 2', 'M 3'
     // Sorting DESC will return origin data (equal to no sorting):
     // 'M 2', 'M 1', 'M 3'
-    // when the pushdown is disabled:
+    // When the pushdown is disabled, we could get correct order:
     // 'M 3', 'M 2', 'M 1'
-    // This test makes sure the behaviour that sorting ASC in v2 and v3 are same.
-    // But sorting DESC only works without pushdown.
+    // In v3 (calcite enabled), we won't push down sort when order is DESC.
+    // But in v2, it sort will be pushed down, TODO bug in v2.
     JSONObject result =
         executeQuery(
             String.format("source=%s | sort dog_name | fields dog_name, age", TEST_INDEX_DOG4));
@@ -183,10 +183,14 @@ public class SortCommandIT extends PPLIntegTestCase {
     result =
         executeQuery(
             String.format("source=%s | sort - dog_name | fields dog_name, age", TEST_INDEX_DOG4));
-    if (isPushdownEnabled()) {
-      verifyOrder(result, rows("M 2", 2), rows("M 1", 4), rows("M 3", 6));
-    } else {
+    if (isCalciteEnabled()) {
       verifyOrder(result, rows("M 3", 6), rows("M 2", 2), rows("M 1", 4));
+    } else {
+      if (isPushdownEnabled()) {
+        verifyOrder(result, rows("M 2", 2), rows("M 1", 4), rows("M 3", 6));
+      } else {
+        verifyOrder(result, rows("M 3", 6), rows("M 2", 2), rows("M 1", 4));
+      }
     }
   }
 }
