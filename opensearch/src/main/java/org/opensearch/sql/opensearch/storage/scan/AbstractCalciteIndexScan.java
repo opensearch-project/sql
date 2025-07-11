@@ -256,6 +256,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
           if (fieldType instanceof OpenSearchTextType textType) {
             fieldNameKeyword = OpenSearchTextType.toKeywordSubField(fieldName, fieldType);
             if (fieldNameKeyword == null && textType.isFieldData()) {
+              // sort by fieldName if the field is fielddata
               fieldNameKeyword = fieldName;
             }
           } else {

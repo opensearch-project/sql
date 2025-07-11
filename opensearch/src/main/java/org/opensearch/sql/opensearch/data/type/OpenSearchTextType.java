@@ -92,6 +92,8 @@ public class OpenSearchTextType extends OpenSearchDataType {
   /**
    * Get the keyword subfield of the text field. Alternative of {@code
    * convertTextToKeyword(fieldName, fieldType)} in v3.
+   *
+   * @return the Keyword subfield if exists, or null.
    */
   public static String toKeywordSubField(String fieldName, ExprType exprType) {
     ExprType type = exprType.getOriginalExprType();

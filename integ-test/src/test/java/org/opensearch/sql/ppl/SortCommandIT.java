@@ -166,20 +166,27 @@ public class SortCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testSortFielddata() throws IOException {
+    // The original dog_name order is 'M 2', 'M 1', 'M 3':
+    // For fielddata text type field, when the pushdown is enabled,
+    // the actual sorting ASC equals to sorting on its keyword:
+    // 'M 1', 'M 2', 'M 3'
+    // Sorting DESC will return origin data (equal to no sorting):
+    // 'M 2', 'M 1', 'M 3'
+    // when the pushdown is disabled:
+    // 'M 3', 'M 2', 'M 1'
+    // This test makes sure the behaviour that sorting ASC in v2 and v3 are same.
+    // But sorting DESC only works without pushdown.
     JSONObject result =
         executeQuery(
             String.format("source=%s | sort dog_name | fields dog_name, age", TEST_INDEX_DOG4));
-    verifyOrder(result, rows("M 1", 2), rows("M 2", 4));
-    // Even sort with DESC on dog_name, the order is no diff with ASC for fielddata field
-    // since the field is tokenized. And the behaviour in v3 should be same with v2.
-    // But the behaviours between pushdown enable and disable are different.
+    verifyOrder(result, rows("M 1", 4), rows("M 2", 2), rows("M 3", 6));
     result =
         executeQuery(
             String.format("source=%s | sort - dog_name | fields dog_name, age", TEST_INDEX_DOG4));
     if (isPushdownEnabled()) {
-      verifyOrder(result, rows("M 1", 2), rows("M 2", 4));
+      verifyOrder(result, rows("M 2", 2), rows("M 1", 4), rows("M 3", 6));
     } else {
-      verifyOrder(result, rows("M 2", 2), rows("M 1", 4));
+      verifyOrder(result, rows("M 3", 6), rows("M 2", 2), rows("M 1", 4));
     }
   }
 }
