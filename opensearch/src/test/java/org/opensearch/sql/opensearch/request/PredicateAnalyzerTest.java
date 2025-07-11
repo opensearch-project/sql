@@ -267,9 +267,9 @@ public class PredicateAnalyzerTest {
             {
               "terms" : {
                 "a" : [
-                  12,
-                  13,
-                  14
+                  12.0,
+                  13.0,
+                  14.0
                 ],
                 "boost" : 1.0
               }

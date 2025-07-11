@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite.big5;
+package org.opensearch.sql.calcite.clickbench;
 
 import org.junit.FixMethodOrder;
 import org.junit.runners.MethodSorters;
 
 @FixMethodOrder(MethodSorters.JVM)
-public class CalcitePPLBig5IT extends PPLBig5IT {
+public class CalcitePPLClickBenchIT extends PPLClickBenchIT {
 
   @Override
   public void init() throws Exception {
