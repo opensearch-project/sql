@@ -12,7 +12,6 @@ public class CalciteRelevanceFunctionIT extends RelevanceFunctionIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    // TODO: "https://github.com/opensearch-project/sql/issues/3462"
-    // disallowCalciteFallback();
+    disallowCalciteFallback();
   }
 }

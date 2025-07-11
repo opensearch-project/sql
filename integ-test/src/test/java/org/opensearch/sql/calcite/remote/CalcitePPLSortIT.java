@@ -209,12 +209,30 @@ public class CalcitePPLSortIT extends PPLIntegTestCase {
                 TEST_INDEX_BANK_WITH_NULL_VALUES));
     verifyDataRowsInOrder(
         result,
+        rows("Hattie", null),
+        rows("Elinor", null),
+        rows("Virginia", null),
         rows("Dale", 4180),
         rows("Nanette", 32838),
         rows("Amber JOHnny", 39225),
-        rows("Dillard", 48086),
-        rows("Hattie", null),
-        rows("Elinor", null),
-        rows("Virginia", null));
+        rows("Dillard", 48086));
+  }
+
+  @Test
+  public void testSortDate() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | sort birthdate | fields firstname, birthdate", TEST_INDEX_BANK));
+    verifySchema(result, schema("firstname", "string"), schema("birthdate", "timestamp"));
+    verifyDataRowsInOrder(
+        result,
+        rows("Amber JOHnny", "2017-10-23 00:00:00"),
+        rows("Hattie", "2017-11-20 00:00:00"),
+        rows("Nanette", "2018-06-23 00:00:00"),
+        rows("Elinor", "2018-06-27 00:00:00"),
+        rows("Dillard", "2018-08-11 00:00:00"),
+        rows("Virginia", "2018-08-19 00:00:00"),
+        rows("Dale", "2018-11-13 23:33:20"));
   }
 }

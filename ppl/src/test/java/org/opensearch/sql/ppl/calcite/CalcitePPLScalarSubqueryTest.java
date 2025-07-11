@@ -253,12 +253,12 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
         "LogicalFilter(condition=[OR(=($5, $SCALAR_QUERY({\n"
             + "LogicalAggregate(group=[{}], max(HISAL)=[MAX($0)])\n"
             + "  LogicalProject(HISAL=[$2])\n"
-            + "    LogicalSort(sort0=[$1], dir0=[ASC])\n"
+            + "    LogicalSort(sort0=[$1], dir0=[ASC-nulls-first])\n"
             + "      LogicalTableScan(table=[[scott, SALGRADE]])\n"
             + "})), =($5, $SCALAR_QUERY({\n"
             + "LogicalAggregate(group=[{}], min(HISAL)=[MIN($0)])\n"
             + "  LogicalProject(HISAL=[$2])\n"
-            + "    LogicalSort(sort0=[$2], dir0=[DESC])\n"
+            + "    LogicalSort(sort0=[$2], dir0=[DESC-nulls-last])\n"
             + "      LogicalFilter(condition=[>($1, 1000.0:DECIMAL(5, 1))])\n"
             + "        LogicalTableScan(table=[[scott, SALGRADE]])\n"
             + "})))], variablesSet=[[$cor0]])\n"
@@ -270,10 +270,10 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`\n"
             + "WHERE `SAL` = (((SELECT MAX(`HISAL`) `max(HISAL)`\n"
             + "FROM `scott`.`SALGRADE`\n"
-            + "ORDER BY `LOSAL` NULLS LAST))) OR `SAL` = (((SELECT MIN(`HISAL`) `min(HISAL)`\n"
+            + "ORDER BY `LOSAL`))) OR `SAL` = (((SELECT MIN(`HISAL`) `min(HISAL)`\n"
             + "FROM `scott`.`SALGRADE`\n"
             + "WHERE `LOSAL` > 1000.0\n"
-            + "ORDER BY `HISAL` DESC NULLS FIRST)))";
+            + "ORDER BY `HISAL` DESC)))";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
