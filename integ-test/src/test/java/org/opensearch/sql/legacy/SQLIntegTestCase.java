@@ -604,6 +604,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "dog",
         getDogs3IndexMapping(),
         "src/test/resources/dogs3.json"),
+    DOG4(
+        TestsConstants.TEST_INDEX_DOG4,
+        "dog",
+        getDogIndexMapping(),
+        "src/test/resources/dogs4.json"),
     DOGSSUBQUERY(
         TestsConstants.TEST_INDEX_DOGSUBQUERY,
         "dog",

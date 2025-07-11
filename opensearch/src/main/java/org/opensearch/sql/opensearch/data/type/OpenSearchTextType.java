@@ -25,6 +25,7 @@ public class OpenSearchTextType extends OpenSearchDataType {
   // text could have fields
   // a read-only collection
   @EqualsAndHashCode.Exclude Map<String, OpenSearchDataType> fields = ImmutableMap.of();
+  @EqualsAndHashCode.Exclude private boolean fielddata = false;
 
   private OpenSearchTextType() {
     super(MappingType.Text);
@@ -32,15 +33,22 @@ public class OpenSearchTextType extends OpenSearchDataType {
   }
 
   /**
-   * Constructs a Text Type using the passed in fields argument.
+   * Constructs a Text Type using the passed in fields and fielddata argument.
    *
    * @param fields The fields to be used to construct the text type.
+   * @param fielddata Whether to enable fielddata for this text type
    * @return A new OpenSeachTextTypeObject
    */
-  public static OpenSearchTextType of(Map<String, OpenSearchDataType> fields) {
+  public static OpenSearchTextType of(Map<String, OpenSearchDataType> fields, boolean fielddata) {
     var res = new OpenSearchTextType();
     res.fields = fields;
+    res.fielddata = fielddata;
     return res;
+  }
+
+  /** For test only */
+  public static OpenSearchTextType of(Map<String, OpenSearchDataType> fields) {
+    return of(fields, false);
   }
 
   public static OpenSearchTextType of() {
@@ -63,18 +71,48 @@ public class OpenSearchTextType extends OpenSearchDataType {
 
   @Override
   protected OpenSearchDataType cloneEmpty() {
-    return OpenSearchTextType.of(Map.copyOf(this.fields));
+    return OpenSearchTextType.of(Map.copyOf(this.fields), this.fielddata);
   }
 
   /**
    * Text field doesn't have doc value (exception thrown even when you call "get")<br>
    * Limitation: assume inner field name is always "keyword".
+   *
+   * @deprecated Use {@code toKeywordSubField(fieldName, fieldType)}
    */
+  @Deprecated
   public static String convertTextToKeyword(String fieldName, ExprType fieldType) {
     if (fieldType instanceof OpenSearchTextType
         && ((OpenSearchTextType) fieldType).getFields().size() > 0) {
       return fieldName + ".keyword";
     }
     return fieldName;
+  }
+
+  /**
+   * Get the keyword subfield of the text field. Alternative of {@code
+   * convertTextToKeyword(fieldName, fieldType)} in v3.
+   *
+   * @return the Keyword subfield if exists, or null.
+   */
+  public static String toKeywordSubField(String fieldName, ExprType exprType) {
+    ExprType type = exprType.getOriginalExprType();
+    if (type instanceof OpenSearchTextType) {
+      OpenSearchTextType textType = (OpenSearchTextType) type;
+      // For OpenSearch Alias type which maps to the field of text type,
+      // we have to use its original path
+      String path = exprType.getOriginalPath().orElse(fieldName);
+      // Find the first subfield with type keyword, return null if non-exist.
+      return textType.getFields().entrySet().stream()
+          .filter(e -> e.getValue().getMappingType() == OpenSearchDataType.MappingType.Keyword)
+          .findFirst()
+          .map(e -> path + "." + e.getKey())
+          .orElse(null);
+    }
+    return null;
+  }
+
+  public boolean isFieldData() {
+    return this.fielddata;
   }
 }
