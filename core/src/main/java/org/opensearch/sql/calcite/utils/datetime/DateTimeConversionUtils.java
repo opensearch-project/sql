@@ -11,7 +11,7 @@ import java.time.temporal.TemporalAmount;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.opensearch.sql.data.model.*;
 import org.opensearch.sql.data.type.ExprCoreType;
-import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.function.FunctionProperties;
 
 public final class DateTimeConversionUtils {
@@ -36,7 +36,7 @@ public final class DateTimeConversionUtils {
           ExprValueUtils.timestampValue(timeValue.timestampValue(properties));
       case ExprStringValue stringValue -> new ExprTimestampValue(
           DateTimeParser.parse(stringValue.stringValue()));
-      default -> throw new SemanticCheckException(
+      default -> throw new ExpressionEvaluationException(
           String.format(
               "Cannot convert %s to timestamp, only STRING, DATE, TIME and TIMESTAMP are supported",
               value.type()));
@@ -63,8 +63,8 @@ public final class DateTimeConversionUtils {
     } else {
       try {
         return new ExprTimestampValue(value.timestampValue());
-      } catch (SemanticCheckException e) {
-        throw new SemanticCheckException(
+      } catch (ExpressionEvaluationException e) {
+        throw new ExpressionEvaluationException(
             String.format(
                 "Cannot convert %s to timestamp, only STRING, DATE, TIME and TIMESTAMP are"
                     + " supported",
@@ -98,7 +98,7 @@ public final class DateTimeConversionUtils {
         return new ExprDateValue(value.stringValue());
       }
       default -> {
-        throw new SemanticCheckException(
+        throw new ExpressionEvaluationException(
             String.format(
                 "Cannot convert %s to date, only STRING, DATE, TIME and TIMESTAMP are supported",
                 value.type()));

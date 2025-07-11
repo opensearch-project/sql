@@ -24,7 +24,7 @@ import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionTestBase;
@@ -207,7 +207,7 @@ class TimeStampAddTest extends ExpressionTestBase {
   @MethodSource("getInvalidTestDataForTimestampAdd")
   public void testInvalidArguments(String interval, int amount, ExprValue datetimeExpr) {
     FunctionExpression expr = timestampaddQuery(interval, amount, datetimeExpr);
-    assertThrows(SemanticCheckException.class, () -> eval(expr));
+    assertThrows(ExpressionEvaluationException.class, () -> eval(expr));
   }
 
   @Test
