@@ -99,6 +99,7 @@ import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
+import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
@@ -352,6 +353,20 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitHead(Head node, CalcitePlanContext context) {
     visitChildren(node, context);
     context.relBuilder.limit(node.getFrom(), node.getSize());
+    return context.relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitReverse(org.opensearch.sql.ast.tree.Reverse node, CalcitePlanContext context) {
+    visitChildren(node, context);
+    // Add ROW_NUMBER() column
+    RexNode rowNumber = context.relBuilder.aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+        .over().rowsTo(RexWindowBounds.CURRENT_ROW).as("__reverse_row_num__");
+    context.relBuilder.projectPlus(rowNumber);
+    // Sort by row number descending
+    context.relBuilder.sort(context.relBuilder.desc(context.relBuilder.field("__reverse_row_num__")));
+    // Remove row number column
+    context.relBuilder.projectExcept(context.relBuilder.field("__reverse_row_num__"));
     return context.relBuilder.peek();
   }
 
