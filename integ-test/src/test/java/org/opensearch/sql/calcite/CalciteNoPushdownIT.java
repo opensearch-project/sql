@@ -39,9 +39,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalciteGeoPointFormatsIT.class,
   CalciteHeadCommandIT.class,
   CalciteInformationSchemaCommandIT.class,
-  // TODO: Enable after implementing comparison for IP addresses with Calcite
-  //  https://github.com/opensearch-project/sql/issues/3776
-  // CalciteIPComparisonIT.class,
+  CalciteIPComparisonIT.class,
   CalciteIPFunctionsIT.class,
   CalciteJsonFunctionsIT.class,
   CalciteLegacyAPICompatibilityIT.class,
