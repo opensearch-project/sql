@@ -42,6 +42,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
+import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
@@ -144,7 +145,11 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   @Override
   public UnresolvedPlan visitSearchFromFilter(SearchFromFilterContext ctx) {
-    return new Filter(internalVisitExpression(ctx.logicalExpression()))
+    return new Filter(
+            ctx.logicalExpression().stream()
+                .map(this::internalVisitExpression)
+                .reduce(And::new)
+                .get())
         .attach(visit(ctx.fromClause()));
   }
 

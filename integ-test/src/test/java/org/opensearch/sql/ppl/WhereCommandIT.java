@@ -44,7 +44,7 @@ public class WhereCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s "
-                    + "| where firstname='Amber' lastname='Duke' age=32 "
+                    + "| where firstname='Amber' and lastname='Duke' and age=32 "
                     + "| fields firstname, lastname, age",
                 TEST_INDEX_ACCOUNT));
     verifyDataRows(result, rows("Amber", "Duke", 32));
