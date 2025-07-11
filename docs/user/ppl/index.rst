@@ -114,6 +114,12 @@ The query start with search command and then flowing a set of command delimited 
 
   - `IP Address Functions <functions/ip.rst>`_
 
+  - `Collection Functions <functions/collection.rst>`_
+
+  - `Cryptographic Functions <functions/cryptographic.rst>`_
+
+  - `JSON Functions <functions/json.rst>`_
+
 * **Optimization**
 
   - `Optimization <../../user/optimization/optimization.rst>`_
