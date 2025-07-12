@@ -6,6 +6,7 @@
 package org.opensearch.sql.plugin.config;
 
 import lombok.RequiredArgsConstructor;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.AbstractModule;
 import org.opensearch.common.inject.Provides;
 import org.opensearch.common.inject.Singleton;
@@ -53,8 +54,10 @@ public class OpenSearchPluginModule extends AbstractModule {
   }
 
   @Provides
-  public StorageEngine storageEngine(OpenSearchClient client, Settings settings) {
-    return new OpenSearchStorageEngine(client, settings);
+  @Singleton
+  public StorageEngine storageEngine(
+      OpenSearchClient client, Settings settings, ClusterService clusterService) {
+    return new OpenSearchStorageEngine(client, settings, clusterService);
   }
 
   @Provides
@@ -64,8 +67,9 @@ public class OpenSearchPluginModule extends AbstractModule {
   }
 
   @Provides
-  public ResourceMonitor resourceMonitor(Settings settings) {
-    return new OpenSearchResourceMonitor(settings, new OpenSearchMemoryHealthy());
+  @Singleton
+  public ResourceMonitor resourceMonitor(Settings settings, ClusterService clusterService) {
+    return new OpenSearchResourceMonitor(settings, new OpenSearchMemoryHealthy(), clusterService);
   }
 
   @Provides

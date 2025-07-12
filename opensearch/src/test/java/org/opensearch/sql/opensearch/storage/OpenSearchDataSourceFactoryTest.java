@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
@@ -28,11 +29,13 @@ class OpenSearchDataSourceFactoryTest {
 
   @Mock private DataSourceMetadata dataSourceMetadata;
 
+  @Mock private ClusterService clusterService;
+
   private OpenSearchDataSourceFactory factory;
 
   @BeforeEach
   public void setup() {
-    factory = new OpenSearchDataSourceFactory(client, settings);
+    factory = new OpenSearchDataSourceFactory(client, settings, clusterService);
   }
 
   @Test
