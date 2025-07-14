@@ -221,6 +221,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
+
 import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
@@ -241,6 +243,7 @@ import org.apache.calcite.sql.type.SameOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.commons.lang3.function.TriFunction;
@@ -255,6 +258,7 @@ import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.executor.QueryType;
 
 public class PPLFuncImpTable {
@@ -340,14 +344,6 @@ public class PPLFuncImpTable {
       functionRegistry;
 
   /**
-   * The external function registry. Functions whose implementations depend on a specific data
-   * engine should be registered here. This reduces coupling between the core module and particular
-   * storage backends.
-   */
-  private final Map<BuiltinFunctionName, List<Pair<CalciteFuncSignature, FunctionImp>>>
-      externalFunctionRegistry;
-
-  /**
    * The registry for built-in agg functions. Agg Functions defined by the PPL specification, whose
    * implementations are independent of any specific data storage, should be registered here
    * internally.
@@ -360,6 +356,15 @@ public class PPLFuncImpTable {
    * particular storage backends.
    */
   private final Map<BuiltinFunctionName, AggHandler> aggExternalFunctionRegistry;
+
+
+  /**
+   * The external function registry. Functions whose implementations depend on a specific data
+   * engine should be registered here. This reduces coupling between the core module and particular
+   * storage backends.
+   */
+  private final Map<BuiltinFunctionName, List<Pair<CalciteFuncSignature, FunctionImp>>>
+      externalFunctionRegistry;
 
   private PPLFuncImpTable(Builder builder, AggBuilder aggBuilder) {
     final ImmutableMap.Builder<BuiltinFunctionName, List<Pair<CalciteFuncSignature, FunctionImp>>>
@@ -421,6 +426,8 @@ public class PPLFuncImpTable {
     return handler.apply(distinct, field, argList, context);
   }
 
+
+
   public RexNode resolve(final RexBuilder builder, final String functionName, RexNode... args) {
     Optional<BuiltinFunctionName> funcNameOpt = BuiltinFunctionName.of(functionName);
     if (funcNameOpt.isEmpty()) {
@@ -442,7 +449,7 @@ public class PPLFuncImpTable {
     if (implementList == null || implementList.isEmpty()) {
       throw new IllegalStateException(String.format("Cannot resolve function: %s", functionName));
     }
-    List<RelDataType> argTypes = Arrays.stream(args).map(RexNode::getType).toList();
+    List<RelDataType> argTypes = Arrays.stream(args).map(RexNode::getType).collect(Collectors.toList());
     try {
       for (Map.Entry<CalciteFuncSignature, FunctionImp> implement : implementList) {
         if (implement.getKey().match(functionName.getName(), argTypes)) {
@@ -458,7 +465,7 @@ public class PPLFuncImpTable {
     }
     StringJoiner allowedSignatures = new StringJoiner(",");
     for (var implement : implementList) {
-      String signature = implement.getKey().typeChecker().getAllowedSignatures();
+      String signature = implement.getKey().getTypeChecker().getAllowedSignatures();
       if (!signature.isEmpty()) {
         allowedSignatures.add(signature);
       }
@@ -496,10 +503,11 @@ public class PPLFuncImpTable {
      * @param operators the operators to associate with this function name, tried in sequence until
      *     one matches the argument types during resolution
      */
-    public void registerOperator(BuiltinFunctionName functionName, SqlOperator... operators) {
+    void registerOperator(BuiltinFunctionName functionName, SqlOperator... operators) {
       for (SqlOperator operator : operators) {
         SqlOperandTypeChecker typeChecker;
-        if (operator instanceof SqlUserDefinedFunction udfOperator) {
+        if (operator instanceof SqlUserDefinedFunction) {
+          SqlUserDefinedFunction udfOperator = (SqlUserDefinedFunction) operator;
           typeChecker = extractTypeCheckerFromUDF(udfOperator);
         } else {
           typeChecker = operator.getOperandTypeChecker();
@@ -507,24 +515,24 @@ public class PPLFuncImpTable {
 
         // Only the composite operand type checker for UDFs are concerned here.
         if (operator instanceof SqlUserDefinedFunction
-            && typeChecker instanceof CompositeOperandTypeChecker compositeTypeChecker) {
-          // UDFs implement their own composite type checkers, which always use OR logic for
-          // argument
+            && typeChecker instanceof CompositeOperandTypeChecker) {
+          CompositeOperandTypeChecker compositeTypeChecker = (CompositeOperandTypeChecker) typeChecker;
+          // UDFs implement their own composite type checkers, which always use OR logic for argument
           // types. Verifying the composition type would require accessing a protected field in
           // CompositeOperandTypeChecker. If access to this field is not allowed, type checking will
           // be skipped, so we avoid checking the composition type here.
-          register(
-              functionName, wrapWithCompositeTypeChecker(operator, compositeTypeChecker, false));
-        } else if (typeChecker instanceof ImplicitCastOperandTypeChecker implicitCastTypeChecker) {
-          register(
-              functionName, wrapWithImplicitCastTypeChecker(operator, implicitCastTypeChecker));
-        } else if (typeChecker instanceof CompositeOperandTypeChecker compositeTypeChecker) {
+          register(functionName, wrapWithCompositeTypeChecker(operator, compositeTypeChecker, false));
+        } else if (typeChecker instanceof ImplicitCastOperandTypeChecker) {
+          ImplicitCastOperandTypeChecker implicitCastTypeChecker = (ImplicitCastOperandTypeChecker) typeChecker;
+          register(functionName, wrapWithImplicitCastTypeChecker(operator, implicitCastTypeChecker));
+        } else if (typeChecker instanceof CompositeOperandTypeChecker) {
+          CompositeOperandTypeChecker compositeTypeChecker = (CompositeOperandTypeChecker) typeChecker;
           // If compositeTypeChecker contains operand checkers other than family type checkers or
           // other than OR compositions, the function with be registered with a null type checker,
           // which means the function will not be type checked.
-          register(
-              functionName, wrapWithCompositeTypeChecker(operator, compositeTypeChecker, true));
-        } else if (typeChecker instanceof SameOperandTypeChecker comparableTypeChecker) {
+          register(functionName, wrapWithCompositeTypeChecker(operator, compositeTypeChecker, true));
+        } else if (typeChecker instanceof SameOperandTypeChecker) {
+          SameOperandTypeChecker comparableTypeChecker = (SameOperandTypeChecker) typeChecker;
           // Comparison operators like EQUAL, GREATER_THAN, LESS_THAN, etc.
           // SameOperandTypeCheckers like COALESCE, IFNULL, etc.
           register(functionName, wrapWithComparableTypeChecker(operator, comparableTypeChecker));
@@ -655,16 +663,18 @@ public class PPLFuncImpTable {
     }
 
     void populate() {
+      // register operators for comparison
+      registerOperator(NOTEQUAL, PPLBuiltinOperators.NOT_EQUALS_IP, SqlStdOperatorTable.NOT_EQUALS);
+      registerOperator(EQUAL, PPLBuiltinOperators.EQUALS_IP, SqlStdOperatorTable.EQUALS);
+      registerOperator(GREATER, PPLBuiltinOperators.GREATER_IP, SqlStdOperatorTable.GREATER_THAN);
+      registerOperator(GTE, PPLBuiltinOperators.GTE_IP, SqlStdOperatorTable.GREATER_THAN_OR_EQUAL);
+      registerOperator(LESS, PPLBuiltinOperators.LESS_IP, SqlStdOperatorTable.LESS_THAN);
+      registerOperator(LTE, PPLBuiltinOperators.LTE_IP, SqlStdOperatorTable.LESS_THAN_OR_EQUAL);
+
       // Register std operator
       registerOperator(AND, SqlStdOperatorTable.AND);
       registerOperator(OR, SqlStdOperatorTable.OR);
       registerOperator(NOT, SqlStdOperatorTable.NOT);
-      registerOperator(NOTEQUAL, SqlStdOperatorTable.NOT_EQUALS);
-      registerOperator(EQUAL, SqlStdOperatorTable.EQUALS);
-      registerOperator(GREATER, SqlStdOperatorTable.GREATER_THAN);
-      registerOperator(GTE, SqlStdOperatorTable.GREATER_THAN_OR_EQUAL);
-      registerOperator(LESS, SqlStdOperatorTable.LESS_THAN);
-      registerOperator(LTE, SqlStdOperatorTable.LESS_THAN_OR_EQUAL);
       registerOperator(ADD, SqlStdOperatorTable.PLUS);
       registerOperator(SUBTRACT, SqlStdOperatorTable.MINUS);
       registerOperator(MULTIPLY, SqlStdOperatorTable.MULTIPLY);

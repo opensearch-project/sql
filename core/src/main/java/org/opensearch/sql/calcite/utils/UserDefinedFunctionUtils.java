@@ -18,6 +18,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.stream.Collectors;
+
 import javax.annotation.Nullable;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
@@ -110,23 +112,30 @@ public class UserDefinedFunctionUtils {
       if (argTypes.isEmpty()) {
         throw new IllegalArgumentException("Function requires at least one argument.");
       }
-      RelDataType firstArgType = argTypes.getFirst();
+      RelDataType firstArgType = argTypes.get(0);
       return createArrayType(typeFactory, firstArgType, true);
     };
   }
 
   public static SqlTypeName convertRelDataTypeToSqlTypeName(RelDataType type) {
-    if (type instanceof AbstractExprRelDataType<?> exprType) {
-      return switch (exprType.getUdt()) {
-        case EXPR_DATE -> SqlTypeName.DATE;
-        case EXPR_TIME -> SqlTypeName.TIME;
-        case EXPR_TIMESTAMP -> SqlTypeName.TIMESTAMP;
-          // EXPR_IP is mapped to SqlTypeName.OTHER since there is no
-          // corresponding SqlTypeName in Calcite.
-        case EXPR_IP -> SqlTypeName.OTHER;
-        case EXPR_BINARY -> SqlTypeName.VARBINARY;
-        default -> type.getSqlTypeName();
-      };
+    if (type instanceof AbstractExprRelDataType) {
+      AbstractExprRelDataType<?> exprType = (AbstractExprRelDataType<?>) type;
+      switch (exprType.getUdt()) {
+        case EXPR_DATE:
+          return SqlTypeName.DATE;
+        case EXPR_TIME:
+          return SqlTypeName.TIME;
+        case EXPR_TIMESTAMP:
+          return SqlTypeName.TIMESTAMP;
+        // EXPR_IP is mapped to SqlTypeName.OTHER since there is no
+        // corresponding SqlTypeName in Calcite.
+        case EXPR_IP:
+          return SqlTypeName.OTHER;
+        case EXPR_BINARY:
+          return SqlTypeName.VARBINARY;
+        default:
+          return type.getSqlTypeName();
+      }
     }
     return type.getSqlTypeName();
   }
@@ -151,7 +160,7 @@ public class UserDefinedFunctionUtils {
    * @return the converted operands
    */
   public static List<Expression> convertToExprValues(List<Expression> operands, RexCall rexCall) {
-    List<RelDataType> types = rexCall.getOperands().stream().map(RexNode::getType).toList();
+    List<RelDataType> types = rexCall.getOperands().stream().map(RexNode::getType).collect(Collectors.toList());
     return convertToExprValues(operands, types);
   }
 
@@ -166,7 +175,7 @@ public class UserDefinedFunctionUtils {
   public static List<Expression> convertToExprValues(
       List<Expression> operands, List<RelDataType> types) {
     List<ExprType> exprTypes =
-        types.stream().map(OpenSearchTypeFactory::convertRelDataTypeToExprType).toList();
+        types.stream().map(OpenSearchTypeFactory::convertRelDataTypeToExprType).collect(Collectors.toList());
     List<Expression> exprValues = new ArrayList<>();
     for (int i = 0; i < operands.size(); i++) {
       Expression operand = Expressions.convert_(operands.get(i), Object.class);
@@ -203,7 +212,7 @@ public class UserDefinedFunctionUtils {
         (translator, call, translatedOperands) -> {
           List<Expression> operands =
               convertToExprValues(
-                  translatedOperands, call.getOperands().stream().map(RexNode::getType).toList());
+                  translatedOperands, call.getOperands().stream().map(RexNode::getType).collect(Collectors.toList()));
           Expression exprResult = Expressions.call(type, methodName, operands);
           return Expressions.call(exprResult, "valueForCalcite");
         };
@@ -226,7 +235,7 @@ public class UserDefinedFunctionUtils {
     Expression properties =
         Expressions.call(
             UserDefinedFunctionUtils.class, "restoreFunctionProperties", translator.getRoot());
-    operandsWithProperties.addFirst(properties);
+    operandsWithProperties.add(0, properties);
     return Collections.unmodifiableList(operandsWithProperties);
   }
 
@@ -240,7 +249,7 @@ public class UserDefinedFunctionUtils {
         (translator, call, translatedOperands) -> {
           List<Expression> operands =
               convertToExprValues(
-                  translatedOperands, call.getOperands().stream().map(RexNode::getType).toList());
+                  translatedOperands, call.getOperands().stream().map(RexNode::getType).collect(Collectors.toList()));
           List<Expression> operandsWithProperties = prependFunctionProperties(operands, translator);
           Expression exprResult = Expressions.call(type, methodName, operandsWithProperties);
           return Expressions.call(exprResult, "valueForCalcite");

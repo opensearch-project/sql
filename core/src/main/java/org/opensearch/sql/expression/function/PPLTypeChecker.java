@@ -23,7 +23,7 @@ import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
+import org.opensearch.sql.calcite.type.ExprIPType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -119,8 +119,12 @@ public interface PPLTypeChecker {
 
     @Override
     public boolean checkOperandTypes(List<RelDataType> types) {
-      if (innerTypeChecker instanceof SqlOperandTypeChecker sqlOperandTypeChecker
-          && !sqlOperandTypeChecker.getOperandCountRange().isValidCount(types.size())) return false;
+      if (innerTypeChecker instanceof SqlOperandTypeChecker) {
+        SqlOperandTypeChecker sqlOperandTypeChecker = (SqlOperandTypeChecker) innerTypeChecker;
+        if (!sqlOperandTypeChecker.getOperandCountRange().isValidCount(types.size())) {
+          return false;
+        }
+      }
       List<SqlTypeFamily> families =
           IntStream.range(0, types.size())
               .mapToObj(innerTypeChecker::getOperandSqlTypeFamily)
@@ -130,7 +134,8 @@ public interface PPLTypeChecker {
 
     @Override
     public String getAllowedSignatures() {
-      if (innerTypeChecker instanceof FamilyOperandTypeChecker familyOperandTypeChecker) {
+      if (innerTypeChecker instanceof FamilyOperandTypeChecker) {
+        FamilyOperandTypeChecker familyOperandTypeChecker = (FamilyOperandTypeChecker) innerTypeChecker;
         var allowedSignatures = PPLTypeChecker.getFamilySignatures(familyOperandTypeChecker);
         return String.join(",", allowedSignatures);
       } else {
@@ -161,11 +166,12 @@ public interface PPLTypeChecker {
       if (!checker.getOperandCountRange().isValidCount(types.size())) {
         return false;
       }
-      if (checker instanceof ImplicitCastOperandTypeChecker implicitCastOperandTypeChecker) {
+      if (checker instanceof ImplicitCastOperandTypeChecker) {
+        ImplicitCastOperandTypeChecker implicitCastOperandTypeChecker = (ImplicitCastOperandTypeChecker) checker;
         List<SqlTypeFamily> families =
             IntStream.range(0, types.size())
                 .mapToObj(implicitCastOperandTypeChecker::getOperandSqlTypeFamily)
-                .toList();
+                .collect(Collectors.toList());
         return validateOperands(families, types);
       }
       throw new IllegalArgumentException(
@@ -187,7 +193,8 @@ public interface PPLTypeChecker {
     public String getAllowedSignatures() {
       List<String> allowedSignatures = new ArrayList<>();
       for (SqlOperandTypeChecker rule : allowedRules) {
-        if (rule instanceof FamilyOperandTypeChecker familyOperandTypeChecker) {
+        if (rule instanceof FamilyOperandTypeChecker) {
+          FamilyOperandTypeChecker familyOperandTypeChecker = (FamilyOperandTypeChecker) rule;
           allowedSignatures.addAll(PPLTypeChecker.getFamilySignatures(familyOperandTypeChecker));
         } else {
           throw new IllegalArgumentException(
@@ -215,10 +222,6 @@ public interface PPLTypeChecker {
         RelDataType type_l = types.get(i);
         RelDataType type_r = types.get(i + 1);
         if (!SqlTypeUtil.isComparable(type_l, type_r)) {
-          if (areIpAndStringTypes(type_l, type_r) || areIpAndStringTypes(type_r, type_l)) {
-            // Allow IP and string comparison
-            continue;
-          }
           return false;
         }
         // Disallow coercing between strings and numeric, boolean
@@ -233,18 +236,16 @@ public interface PPLTypeChecker {
     }
 
     private static boolean cannotConvertStringInCompare(SqlTypeFamily typeFamily) {
-      return switch (typeFamily) {
-        case BOOLEAN, INTEGER, NUMERIC, EXACT_NUMERIC, APPROXIMATE_NUMERIC -> true;
-        default -> false;
-      };
-    }
-
-    private static boolean areIpAndStringTypes(RelDataType typeIp, RelDataType typeString) {
-      if (typeIp instanceof AbstractExprRelDataType<?> exprRelDataType) {
-        return exprRelDataType.getExprType() == ExprCoreType.IP
-            && typeString.getFamily() == SqlTypeFamily.CHARACTER;
+      switch (typeFamily) {
+        case BOOLEAN:
+        case INTEGER:
+        case NUMERIC:
+        case EXACT_NUMERIC:
+        case APPROXIMATE_NUMERIC:
+          return true;
+        default:
+          return false;
       }
-      return false;
     }
 
     @Override
@@ -433,28 +434,38 @@ public interface PPLTypeChecker {
    * @return a list of {@link ExprType} corresponding to the concrete types of the family
    */
   private static List<ExprType> getExprTypes(SqlTypeFamily family) {
-    List<RelDataType> concreteTypes =
-        switch (family) {
-          case DATETIME -> List.of(
-              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.DATE),
-              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.TIME),
-              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.TIMESTAMP));
-          case NUMERIC -> List.of(
-              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER),
-              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE));
-            // Integer is mapped to BIGINT in family.getDefaultConcreteType
-          case INTEGER -> List.of(
-              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER));
-          case ANY, IGNORE -> List.of(
-              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.ANY));
-          default -> {
-            RelDataType type = family.getDefaultConcreteType(OpenSearchTypeFactory.TYPE_FACTORY);
-            if (type == null) {
-              yield List.of(OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.OTHER));
-            }
-            yield List.of(type);
-          }
-        };
+    List<RelDataType> concreteTypes;
+    switch (family) {
+      case DATETIME:
+        concreteTypes = List.of(
+            OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.DATE),
+            OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.TIME),
+            OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.TIMESTAMP));
+        break;
+      case NUMERIC:
+        concreteTypes = List.of(
+            OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER),
+            OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE));
+        break;
+      case INTEGER:
+        concreteTypes = List.of(
+            OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER));
+        break;
+      case ANY:
+      case IGNORE:
+        concreteTypes = List.of(
+            OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.ANY));
+        break;
+      default:
+        RelDataType type = family.getDefaultConcreteType(OpenSearchTypeFactory.TYPE_FACTORY);
+        if (type == null) {
+          concreteTypes = List.of(
+              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.OTHER));
+        } else {
+          concreteTypes = List.of(type);
+        }
+        break;
+    }
     return concreteTypes.stream()
         .map(OpenSearchTypeFactory::convertRelDataTypeToExprType)
         .collect(Collectors.toList());
