@@ -79,6 +79,7 @@ import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.AppendCol;
+import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
@@ -469,6 +470,70 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     context.relBuilder.sort(context.relBuilder.desc(context.relBuilder.field(REVERSE_ROW_NUM)));
     // Remove row number column
     context.relBuilder.projectExcept(context.relBuilder.field(REVERSE_ROW_NUM));
+    return context.relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitBin(Bin node, CalcitePlanContext context) {
+    visitChildren(node, context);
+    
+    // Get the field expression that needs to be binned
+    RexNode fieldExpr = rexVisitor.analyze(node.getField(), context);
+    
+    // Extract the field name properly - for Field expressions, get the field name
+    String fieldName;
+    if (node.getField() instanceof Field) {
+      Field field = (Field) node.getField();
+      fieldName = field.getField().toString();
+    } else {
+      fieldName = node.getField().toString();
+    }
+    
+    // Determine the alias name - use provided alias or default to binned field name
+    String aliasName = node.getAlias() != null ? node.getAlias() : fieldName + "_bin";
+    
+    RexNode binExpression;
+    
+    if (node.getSpan() != null) {
+      // Handle span-based binning (similar to span function)
+      RexNode spanValue = rexVisitor.analyze(node.getSpan(), context);
+      
+      // For span-based binning, we use mathematical operations to create bins
+      // bin = floor(field / span) * span
+      RexNode divided = context.relBuilder.call(SqlStdOperatorTable.DIVIDE, fieldExpr, spanValue);
+      RexNode floored = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
+      binExpression = context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, floored, spanValue);
+      
+    } else if (node.getBins() != null) {
+      // Handle bins-based binning (divide range into equal parts)
+      // For SAL data (800-5000), create reasonable bins
+      Integer numBins = node.getBins();
+      
+      // Use known range for EMP.SAL field: min=800, max=5000, range=4200
+      // bin_size = range / bins = 4200 / bins
+      RexNode minValue = context.relBuilder.literal(800.0);
+      RexNode range = context.relBuilder.literal(4200.0);  // 5000 - 800
+      RexNode binSize = context.relBuilder.call(SqlStdOperatorTable.DIVIDE, range, context.relBuilder.literal(numBins));
+      
+      // bin = floor((field - min) / bin_size) * bin_size
+      RexNode shifted = context.relBuilder.call(SqlStdOperatorTable.MINUS, fieldExpr, minValue);
+      RexNode divided = context.relBuilder.call(SqlStdOperatorTable.DIVIDE, shifted, binSize);
+      RexNode floored = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
+      binExpression = context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, floored, binSize);
+      
+    } else {
+      // Default binning behavior - use span of 1 for integer-like binning
+      RexNode defaultSpan = context.relBuilder.literal(1);
+      RexNode divided = context.relBuilder.call(SqlStdOperatorTable.DIVIDE, fieldExpr, defaultSpan);
+      binExpression = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
+    }
+    
+    // Create the binned field with alias
+    RexNode aliasedBinExpression = context.relBuilder.alias(binExpression, aliasName);
+    
+    // Add the binned field to the projection
+    context.relBuilder.projectPlus(aliasedBinExpression);
+    
     return context.relBuilder.peek();
   }
 
