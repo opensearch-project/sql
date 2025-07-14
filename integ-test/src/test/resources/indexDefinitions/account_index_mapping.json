@@ -2,10 +2,22 @@
   "mappings": {
     "properties": {
       "gender": {
-        "type": "text"
+        "type": "text",
+        "fields": {
+          "subfield1": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
       },
       "address": {
-        "type": "text"
+        "type": "text",
+        "fields": {
+          "subfield2": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
       },
       "firstname": {
         "type": "text",
