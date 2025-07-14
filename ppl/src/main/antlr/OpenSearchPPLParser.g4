@@ -59,6 +59,7 @@ commands
    | sortCommand
    | evalCommand
    | headCommand
+   | binCommand
    | topCommand
    | rareCommand
    | grokCommand
@@ -153,6 +154,10 @@ evalCommand
 
 headCommand
    : HEAD (number = integerLiteral)? (FROM from = integerLiteral)?
+   ;
+
+binCommand
+   : BIN fieldExpression (SPAN EQUAL span = literalValue (spanUnit = timespanUnit)?)? (BINS EQUAL bins = integerLiteral)? (START EQUAL start = numericLiteral)? (END EQUAL end = numericLiteral)? (AS alias = qualifiedName)?
    ;
 
 topCommand
