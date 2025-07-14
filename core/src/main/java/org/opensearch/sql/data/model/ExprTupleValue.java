@@ -7,10 +7,13 @@ package org.opensearch.sql.data.model;
 
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
+import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -19,18 +22,26 @@ import org.opensearch.sql.storage.bindingtuple.LazyBindingTuple;
 
 /** Expression Tuple Value. */
 @RequiredArgsConstructor
+@AllArgsConstructor
 public class ExprTupleValue extends AbstractExprValue {
+  // Only used for Calcite to keep the field names in the same order as the schema.
+  @Nullable private List<String> fieldNames;
 
   private final LinkedHashMap<String, ExprValue> valueMap;
 
   public static ExprTupleValue fromExprValueMap(Map<String, ExprValue> map) {
-    LinkedHashMap<String, ExprValue> linkedHashMap = new LinkedHashMap<>(map);
-    return new ExprTupleValue(linkedHashMap);
+    return fromExprValueMap(null, map);
   }
 
-  public static ExprTupleValue empty() {
+  public static ExprTupleValue fromExprValueMap(
+      List<String> fieldNames, Map<String, ExprValue> map) {
+    LinkedHashMap<String, ExprValue> linkedHashMap = new LinkedHashMap<>(map);
+    return new ExprTupleValue(fieldNames, linkedHashMap);
+  }
+
+  public static ExprTupleValue empty(List<String> fieldNames) {
     LinkedHashMap<String, ExprValue> linkedHashMap = new LinkedHashMap<>();
-    return new ExprTupleValue(linkedHashMap);
+    return new ExprTupleValue(fieldNames, linkedHashMap);
   }
 
   @Override
@@ -44,11 +55,10 @@ public class ExprTupleValue extends AbstractExprValue {
 
   @Override
   public Object valueForCalcite() {
-    LinkedHashMap<String, Object> resultMap = new LinkedHashMap<>();
-    for (Entry<String, ExprValue> entry : valueMap.entrySet()) {
-      resultMap.put(entry.getKey(), entry.getValue().valueForCalcite());
-    }
-    return resultMap;
+    // Needs to keep the value the same sequence as the schema, and fill up missing values
+    return fieldNames.stream()
+        .map(fieldName -> valueMap.getOrDefault(fieldName, ExprMissingValue.of()).valueForCalcite())
+        .toArray();
   }
 
   @Override
