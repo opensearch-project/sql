@@ -37,8 +37,14 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.DecimalNode;
+import com.fasterxml.jackson.databind.node.FloatNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -179,6 +185,7 @@ class OpenSearchExprValueFactoryTest {
     assertAll(
         () -> assertEquals(integerValue(1), tupleValue("{\"intV\":1}").get("intV")),
         () -> assertEquals(integerValue(1), constructFromObject("intV", 1)),
+        () -> assertEquals(integerValue(1), constructFromObject("noType", 1)),
         () -> assertEquals(integerValue(1), constructFromObject("intV", "1.0")));
   }
 
@@ -961,8 +968,31 @@ class OpenSearchExprValueFactoryTest {
   @Test
   public void noTypeFoundForMapping() {
     assertEquals(nullValue(), tupleValue("{\"not_exist\":[]}").get("not_exist"));
-    // Only for test coverage, It is impossible in OpenSearch.
     assertEquals(integerValue(1), tupleValue("{\"not_exist\":1}").get("not_exist"));
+    assertEquals(
+        longValue(1234567890123456789L),
+        tupleValue("{\"not_exist\":1234567890123456789}").get("not_exist"));
+    assertEquals(doubleValue(1.1), tupleValue("{\"not_exist\":1.1}").get("not_exist"));
+    assertEquals(stringValue("1"), tupleValue("{\"not_exist\":\"1\"}").get("not_exist"));
+    assertEquals(booleanValue(true), tupleValue("{\"not_exist\":true}").get("not_exist"));
+
+    // construct from JsonNode directly
+    JsonNode jsonNode = new FloatNode(1.0f);
+    assertEquals(
+        floatValue(1.0f),
+        OpenSearchExprValueFactory.parseContent(new OpenSearchJsonContent(jsonNode)));
+    jsonNode = new DecimalNode(new BigDecimal("1.0"));
+    assertEquals(
+        doubleValue(1.0),
+        OpenSearchExprValueFactory.parseContent(new OpenSearchJsonContent(jsonNode)));
+    jsonNode = new DecimalNode(new BigDecimal("1.0"));
+    assertEquals(
+        doubleValue(1.0),
+        OpenSearchExprValueFactory.parseContent(new OpenSearchJsonContent(jsonNode)));
+    jsonNode = new ObjectNode(new JsonNodeFactory(false), Map.of("key", jsonNode));
+    assertEquals(
+        stringValue("{\"key\":1.0}"),
+        OpenSearchExprValueFactory.parseContent(new OpenSearchJsonContent(jsonNode)));
   }
 
   @Test

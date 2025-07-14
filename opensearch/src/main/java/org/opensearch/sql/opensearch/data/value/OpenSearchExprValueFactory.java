@@ -217,7 +217,7 @@ public class OpenSearchExprValueFactory {
     }
   }
 
-  private ExprValue parseContent(Content content) {
+  static ExprValue parseContent(Content content) {
     if (content.isNumber()) {
       if (content.isInt()) {
         return new ExprIntegerValue(content.intValue());
@@ -235,8 +235,6 @@ public class OpenSearchExprValueFactory {
       return new ExprStringValue(content.stringValue());
     } else if (content.isBoolean()) {
       return ExprBooleanValue.of(content.booleanValue());
-    } else if (content.isNull()) {
-      return ExprNullValue.of();
     }
     // Default case, treat as a string value
     return new ExprStringValue(content.objectValue().toString());
