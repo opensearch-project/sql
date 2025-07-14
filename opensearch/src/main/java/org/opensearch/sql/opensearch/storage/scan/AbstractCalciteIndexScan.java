@@ -252,19 +252,8 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
               };
           // Keyword field is optimized for sorting in OpenSearch
           ExprType fieldType = osIndex.getFieldTypes().get(fieldName);
-          String fieldNameKeyword;
-          if (fieldType instanceof OpenSearchTextType textType) {
-            fieldNameKeyword = OpenSearchTextType.toKeywordSubField(fieldName, fieldType);
-            if (fieldNameKeyword == null && textType.isFieldData() && order == SortOrder.ASC) {
-              // match-only text does not support sorting.
-              // But a text enabling fielddata can be sorted.
-              // By testing, only ASC order works. TODO why?
-              fieldNameKeyword = fieldName;
-            }
-          } else {
-            fieldNameKeyword = fieldName;
-          }
-          sortBuilder = SortBuilders.fieldSort(fieldNameKeyword).missing(missing);
+          String field = OpenSearchTextType.toKeywordSubField(fieldName, fieldType);
+          sortBuilder = SortBuilders.fieldSort(field).missing(missing);
         }
         builders.add(sortBuilder.order(order));
       }

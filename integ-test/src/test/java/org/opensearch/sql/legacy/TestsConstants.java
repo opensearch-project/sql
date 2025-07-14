@@ -19,7 +19,6 @@ public class TestsConstants {
   public static final String TEST_INDEX_DOG = TEST_INDEX + "_dog";
   public static final String TEST_INDEX_DOG2 = TEST_INDEX + "_dog2";
   public static final String TEST_INDEX_DOG3 = TEST_INDEX + "_dog3";
-  public static final String TEST_INDEX_DOG4 = TEST_INDEX + "_dog4";
   public static final String TEST_INDEX_DOGSUBQUERY = TEST_INDEX + "_subquery";
   public static final String TEST_INDEX_PEOPLE = TEST_INDEX + "_people";
   public static final String TEST_INDEX_PEOPLE2 = TEST_INDEX + "_people2";

@@ -8,7 +8,6 @@ package org.opensearch.sql.ppl;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG4;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyOrder;
@@ -32,7 +31,6 @@ public class SortCommandIT extends PPLIntegTestCase {
     loadIndex(Index.BANK_WITH_NULL_VALUES);
     loadIndex(Index.DOG);
     loadIndex(Index.WEBLOG);
-    loadIndex(Index.DOG4);
   }
 
   @Test
@@ -162,35 +160,5 @@ public class SortCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(String.format("source=%s | sort age | head 2 | fields age", TEST_INDEX_BANK));
     verifyOrder(result, rows(28), rows(32));
-  }
-
-  @Test
-  public void testSortFielddata() throws IOException {
-    // The original dog_name order is 'M 2', 'M 1', 'M 3':
-    // For fielddata text type field, when the pushdown is enabled,
-    // the actual sorting ASC equals to sorting on its keyword:
-    // 'M 1', 'M 2', 'M 3'
-    // Sorting DESC will return origin data (equal to no sorting):
-    // 'M 2', 'M 1', 'M 3'
-    // When the pushdown is disabled, we could get correct order:
-    // 'M 3', 'M 2', 'M 1'
-    // In v3 (calcite enabled), we won't push down sort when order is DESC.
-    // But in v2, it sort will be pushed down, TODO bug in v2.
-    JSONObject result =
-        executeQuery(
-            String.format("source=%s | sort dog_name | fields dog_name, age", TEST_INDEX_DOG4));
-    verifyOrder(result, rows("M 1", 4), rows("M 2", 2), rows("M 3", 6));
-    result =
-        executeQuery(
-            String.format("source=%s | sort - dog_name | fields dog_name, age", TEST_INDEX_DOG4));
-    if (isCalciteEnabled()) {
-      verifyOrder(result, rows("M 3", 6), rows("M 2", 2), rows("M 1", 4));
-    } else {
-      if (isPushdownEnabled()) {
-        verifyOrder(result, rows("M 2", 2), rows("M 1", 4), rows("M 3", 6));
-      } else {
-        verifyOrder(result, rows("M 3", 6), rows("M 2", 2), rows("M 1", 4));
-      }
-    }
   }
 }

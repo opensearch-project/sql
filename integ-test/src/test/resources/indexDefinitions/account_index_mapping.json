@@ -2,12 +2,10 @@
   "mappings": {
     "properties": {
       "gender": {
-        "type": "text",
-        "fielddata": true
+        "type": "text"
       },
       "address": {
-        "type": "text",
-        "fielddata": true
+        "type": "text"
       },
       "firstname": {
         "type": "text",

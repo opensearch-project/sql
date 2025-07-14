@@ -134,7 +134,7 @@ public class ExplainIT extends PPLIntegTestCase {
         explainQueryToString(
             "source=opensearch-sql_test_index_account "
                 + "| sort account_number, firstname, address, balance "
-                + "| sort - balance, gender, address "
+                + "| sort - balance, - gender, address "
                 + "| fields account_number, firstname, address, balance, gender"));
   }
 

@@ -1293,10 +1293,7 @@ public class PredicateAnalyzer {
     }
 
     String getReferenceForTermQuery() {
-      if (isTextType()) {
-        return OpenSearchTextType.toKeywordSubField(this.name, this.type);
-      }
-      return getRootName();
+      return OpenSearchTextType.toKeywordSubField(getRootName(), this.type);
     }
   }
 
