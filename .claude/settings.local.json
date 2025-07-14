@@ -4,7 +4,8 @@
       "Bash(find:*)",
       "Bash(./gradlew:*)",
       "Bash(grep:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }
