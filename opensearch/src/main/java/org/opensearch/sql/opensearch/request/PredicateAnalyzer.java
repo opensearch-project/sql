@@ -400,8 +400,8 @@ public class PredicateAnalyzer {
       final RexNode alias;
 
       static AliasPair from(RexNode node, String funcName) {
-        RexCall as = expectCall(node, SqlStdOperatorTable.AS, funcName);
-        return new AliasPair(as.getOperands().get(0), as.getOperands().get(1));
+        RexCall mapCall = expectCall(node, SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR, funcName);
+        return new AliasPair(mapCall.getOperands().get(1), mapCall.getOperands().get(0));
       }
 
       private AliasPair(RexNode value, RexNode alias) {
@@ -523,7 +523,7 @@ public class PredicateAnalyzer {
                         range ->
                             RangeSets.isPoint(range)
                                 ? QueryExpression.create(pair.getKey())
-                                    .equals(range.lowerEndpoint(), isTimeStamp)
+                                    .equals(sargPointValue(range.lowerEndpoint()), isTimeStamp)
                                 : QueryExpression.create(pair.getKey()).between(range, isTimeStamp))
                     .toList();
             if (queryExpressions.size() == 1) {
@@ -1190,7 +1190,7 @@ public class PredicateAnalyzer {
     }
 
     private Object convertEndpointValue(Object value, boolean isTimeStamp) {
-      value = (value instanceof NlsString nls) ? nls.getValue() : value;
+      value = sargPointValue(value);
       return isTimeStamp ? timestampValueForPushDown(value.toString()) : value;
     }
   }
@@ -1403,33 +1403,34 @@ public class PredicateAnalyzer {
 
     List<Object> sargValue() {
       final Sarg sarg = requireNonNull(literal.getValueAs(Sarg.class), "Sarg");
-      final RelDataType type = literal.getType();
       List<Object> values = new ArrayList<>();
-      final SqlTypeName sqlTypeName = type.getSqlTypeName();
       if (sarg.isPoints()) {
         Set<Range> ranges = sarg.rangeSet.asRanges();
-        ranges.forEach(range -> values.add(sargPointValue(range.lowerEndpoint(), sqlTypeName)));
+        ranges.forEach(range -> values.add(sargPointValue(range.lowerEndpoint())));
       } else if (sarg.isComplementedPoints()) {
         Set<Range> ranges = sarg.negate().rangeSet.asRanges();
-        ranges.forEach(range -> values.add(sargPointValue(range.lowerEndpoint(), sqlTypeName)));
+        ranges.forEach(range -> values.add(sargPointValue(range.lowerEndpoint())));
       }
       return values;
     }
 
-    Object sargPointValue(Object point, SqlTypeName sqlTypeName) {
-      switch (sqlTypeName) {
-        case CHAR:
-        case VARCHAR:
-          return ((NlsString) point).getValue();
-        case DECIMAL:
-          return ((BigDecimal) point).doubleValue();
-        default:
-          return point;
-      }
-    }
-
     Object rawValue() {
       return literal.getValue();
+    }
+  }
+
+  /**
+   * If the sarg point is a NlsString, we should get the value from it. For BigDecimal type, we
+   * should get the double value from the literal. That's because there is no decimal type in
+   * OpenSearch.
+   */
+  public static Object sargPointValue(Object point) {
+    if (point instanceof NlsString) {
+      return ((NlsString) point).getValue();
+    } else if (point instanceof BigDecimal) {
+      return ((BigDecimal) point).doubleValue();
+    } else {
+      return point;
     }
   }
 

@@ -72,6 +72,7 @@ import org.opensearch.sql.expression.function.udf.datetime.WeekFunction;
 import org.opensearch.sql.expression.function.udf.datetime.WeekdayFunction;
 import org.opensearch.sql.expression.function.udf.datetime.YearweekFunction;
 import org.opensearch.sql.expression.function.udf.ip.CidrMatchFunction;
+import org.opensearch.sql.expression.function.udf.ip.CompareIpFunction;
 import org.opensearch.sql.expression.function.udf.math.CRC32Function;
 import org.opensearch.sql.expression.function.udf.math.ConvFunction;
 import org.opensearch.sql.expression.function.udf.math.DivideFunction;
@@ -102,6 +103,15 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator DIVIDE = new DivideFunction().toUDF("DIVIDE");
   public static final SqlOperator SHA2 = CryptographicFunction.sha2().toUDF("SHA2");
   public static final SqlOperator CIDRMATCH = new CidrMatchFunction().toUDF("CIDRMATCH");
+
+  // IP comparing functions
+  public static final SqlOperator NOT_EQUALS_IP =
+      CompareIpFunction.notEquals().toUDF("NOT_EQUALS_IP");
+  public static final SqlOperator EQUALS_IP = CompareIpFunction.equals().toUDF("EQUALS_IP");
+  public static final SqlOperator GREATER_IP = CompareIpFunction.greater().toUDF("GREATER_IP");
+  public static final SqlOperator GTE_IP = CompareIpFunction.greaterOrEquals().toUDF("GTE_IP");
+  public static final SqlOperator LESS_IP = CompareIpFunction.less().toUDF("LESS_IP");
+  public static final SqlOperator LTE_IP = CompareIpFunction.lessOrEquals().toUDF("LTE_IP");
 
   // Condition function
   public static final SqlOperator EARLIEST = new EarliestFunction().toUDF("EARLIEST");
@@ -338,11 +348,11 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator MATCH_PHRASE_PREFIX =
       RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("match_phrase_prefix");
   public static final SqlOperator SIMPLE_QUERY_STRING =
-      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("simple_query_string");
+      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("simple_query_string", false);
   public static final SqlOperator QUERY_STRING =
-      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("query_string");
+      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("query_string", false);
   public static final SqlOperator MULTI_MATCH =
-      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("multi_match");
+      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("multi_match", false);
 
   /**
    * Invoking an implementor registered in {@link RexImpTable}, need to use reflection since they're
