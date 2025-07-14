@@ -171,7 +171,7 @@ public interface PPLTypeChecker {
         List<SqlTypeFamily> families =
             IntStream.range(0, types.size())
                 .mapToObj(implicitCastOperandTypeChecker::getOperandSqlTypeFamily)
-                .collect(Collectors.toList());
+                    .collect(Collectors.toList());
         return validateOperands(families, types);
       }
       throw new IllegalArgumentException(
@@ -438,29 +438,29 @@ public interface PPLTypeChecker {
     switch (family) {
       case DATETIME:
         concreteTypes = List.of(
-            OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.DATE),
-            OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.TIME),
-            OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.TIMESTAMP));
+                OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.DATE),
+                OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.TIME),
+                OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.TIMESTAMP));
         break;
       case NUMERIC:
         concreteTypes = List.of(
-            OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER),
-            OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE));
+                OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER),
+                OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE));
         break;
       case INTEGER:
         concreteTypes = List.of(
-            OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER));
+                OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER));
         break;
       case ANY:
       case IGNORE:
         concreteTypes = List.of(
-            OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.ANY));
+                OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.ANY));
         break;
       default:
         RelDataType type = family.getDefaultConcreteType(OpenSearchTypeFactory.TYPE_FACTORY);
         if (type == null) {
           concreteTypes = List.of(
-              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.OTHER));
+                  OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.OTHER));
         } else {
           concreteTypes = List.of(type);
         }

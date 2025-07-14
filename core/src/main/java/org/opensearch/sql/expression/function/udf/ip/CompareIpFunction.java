@@ -91,16 +91,24 @@ public class CompareIpFunction extends ImplementorUDF {
 
     private static Expression generateComparisonExpression(
         Expression compareResult, ComparisonType comparisonType) {
-      return switch (comparisonType) {
-        case EQUALS -> Expressions.equal(compareResult, Expressions.constant(0));
-        case NOT_EQUALS -> Expressions.notEqual(compareResult, Expressions.constant(0));
-        case LESS -> Expressions.lessThan(compareResult, Expressions.constant(0));
-        case LESS_OR_EQUAL -> Expressions.lessThanOrEqual(compareResult, Expressions.constant(0));
-        case GREATER -> Expressions.greaterThan(compareResult, Expressions.constant(0));
-        case GREATER_OR_EQUAL -> Expressions.greaterThanOrEqual(
-            compareResult, Expressions.constant(0));
-      };
+      switch (comparisonType) {
+        case EQUALS:
+          return Expressions.equal(compareResult, Expressions.constant(0));
+        case NOT_EQUALS:
+          return Expressions.notEqual(compareResult, Expressions.constant(0));
+        case LESS:
+          return Expressions.lessThan(compareResult, Expressions.constant(0));
+        case LESS_OR_EQUAL:
+          return Expressions.lessThanOrEqual(compareResult, Expressions.constant(0));
+        case GREATER:
+          return Expressions.greaterThan(compareResult, Expressions.constant(0));
+        case GREATER_OR_EQUAL:
+          return Expressions.greaterThanOrEqual(compareResult, Expressions.constant(0));
+        default:
+          throw new IllegalArgumentException("Unexpected comparison type: " + comparisonType);
+      }
     }
+
 
     public static int compareTo(Object obj1, Object obj2) {
       ExprIpValue v1 = toExprIpValue(obj1);

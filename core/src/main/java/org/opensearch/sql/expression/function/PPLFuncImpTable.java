@@ -341,7 +341,7 @@ public class PPLFuncImpTable {
    * internally.
    */
   private final ImmutableMap<BuiltinFunctionName, List<Pair<CalciteFuncSignature, FunctionImp>>>
-      functionRegistry;
+          functionRegistry;
 
   /**
    * The registry for built-in agg functions. Agg Functions defined by the PPL specification, whose
@@ -368,13 +368,13 @@ public class PPLFuncImpTable {
 
   private PPLFuncImpTable(Builder builder, AggBuilder aggBuilder) {
     final ImmutableMap.Builder<BuiltinFunctionName, List<Pair<CalciteFuncSignature, FunctionImp>>>
-        mapBuilder = ImmutableMap.builder();
+            mapBuilder = ImmutableMap.builder();
     builder.map.forEach((k, v) -> mapBuilder.put(k, List.copyOf(v)));
     this.functionRegistry = ImmutableMap.copyOf(mapBuilder.build());
     this.externalFunctionRegistry = new ConcurrentHashMap<>();
 
     final ImmutableMap.Builder<BuiltinFunctionName, AggHandler> aggMapBuilder =
-        ImmutableMap.builder();
+            ImmutableMap.builder();
     aggBuilder.map.forEach(aggMapBuilder::put);
     this.aggFunctionRegistry = ImmutableMap.copyOf(aggMapBuilder.build());
     this.aggExternalFunctionRegistry = new ConcurrentHashMap<>();
@@ -388,15 +388,15 @@ public class PPLFuncImpTable {
    */
   public void registerExternalFunction(BuiltinFunctionName functionName, FunctionImp functionImp) {
     CalciteFuncSignature signature =
-        new CalciteFuncSignature(functionName.getName(), functionImp.getTypeChecker());
+            new CalciteFuncSignature(functionName.getName(), functionImp.getTypeChecker());
     externalFunctionRegistry.compute(
-        functionName,
-        (name, existingList) -> {
-          List<Pair<CalciteFuncSignature, FunctionImp>> list =
-              existingList == null ? new ArrayList<>() : new ArrayList<>(existingList);
-          list.add(Pair.of(signature, functionImp));
-          return list;
-        });
+            functionName,
+            (name, existingList) -> {
+              List<Pair<CalciteFuncSignature, FunctionImp>> list =
+                      existingList == null ? new ArrayList<>() : new ArrayList<>(existingList);
+              list.add(Pair.of(signature, functionImp));
+              return list;
+            });
   }
 
   /**
@@ -411,11 +411,11 @@ public class PPLFuncImpTable {
   }
 
   public RelBuilder.AggCall resolveAgg(
-      BuiltinFunctionName functionName,
-      boolean distinct,
-      RexNode field,
-      List<RexNode> argList,
-      CalcitePlanContext context) {
+          BuiltinFunctionName functionName,
+          boolean distinct,
+          RexNode field,
+          List<RexNode> argList,
+          CalcitePlanContext context) {
     AggHandler handler = aggExternalFunctionRegistry.get(functionName);
     if (handler == null) {
       handler = aggFunctionRegistry.get(functionName);
@@ -437,11 +437,11 @@ public class PPLFuncImpTable {
   }
 
   public RexNode resolve(
-      final RexBuilder builder, final BuiltinFunctionName functionName, RexNode... args) {
+          final RexBuilder builder, final BuiltinFunctionName functionName, RexNode... args) {
     // Check the external function registry first. This allows the data-storage-dependent
     // function implementations to override the internal ones with the same name.
     List<Pair<CalciteFuncSignature, FunctionImp>> implementList =
-        externalFunctionRegistry.get(functionName);
+            externalFunctionRegistry.get(functionName);
     // If the function is not part of the external registry, check the internal registry.
     if (implementList == null) {
       implementList = functionRegistry.get(functionName);
@@ -458,10 +458,10 @@ public class PPLFuncImpTable {
       }
     } catch (Exception e) {
       throw new ExpressionEvaluationException(
-          String.format(
-              "Cannot resolve function: %s, arguments: %s, caused by: %s",
-              functionName, getActualSignature(argTypes), e.getMessage()),
-          e);
+              String.format(
+                      "Cannot resolve function: %s, arguments: %s, caused by: %s",
+                      functionName, getActualSignature(argTypes), e.getMessage()),
+              e);
     }
     StringJoiner allowedSignatures = new StringJoiner(",");
     for (var implement : implementList) {
@@ -471,9 +471,9 @@ public class PPLFuncImpTable {
       }
     }
     throw new ExpressionEvaluationException(
-        String.format(
-            "%s function expects {%s}, but got %s",
-            functionName, allowedSignatures, getActualSignature(argTypes)));
+            String.format(
+                    "%s function expects {%s}, but got %s",
+                    functionName, allowedSignatures, getActualSignature(argTypes)));
   }
 
   private static String getActualSignature(List<RelDataType> argTypes) {
@@ -1005,12 +1005,12 @@ public class PPLFuncImpTable {
 
   private static class Builder extends AbstractBuilder {
     private final Map<BuiltinFunctionName, List<Pair<CalciteFuncSignature, FunctionImp>>> map =
-        new HashMap<>();
+            new HashMap<>();
 
     @Override
     void register(BuiltinFunctionName functionName, FunctionImp implement) {
       CalciteFuncSignature signature =
-          new CalciteFuncSignature(functionName.getName(), implement.getTypeChecker());
+              new CalciteFuncSignature(functionName.getName(), implement.getTypeChecker());
       if (map.containsKey(functionName)) {
         map.get(functionName).add(Pair.of(signature, implement));
       } else {
