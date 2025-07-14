@@ -59,7 +59,7 @@ public class RareCommandIT extends PPLIntegTestCase {
           rows("F", "OK", 7),
           rows("F", "KS", 7),
           rows("F", "CO", 7),
-          rows("F", "NV", 8),
+          rows("F", "AR", 8),
           rows("M", "NE", 5),
           rows("M", "RI", 5),
           rows("M", "NV", 5),

@@ -3,8 +3,9 @@
     "properties": {
       "gender": {
         "type": "text",
+        "fielddata": true,
         "fields": {
-          "subfield1": {
+          "keyword": {
             "type": "keyword",
             "ignore_above": 256
           }
@@ -12,12 +13,7 @@
       },
       "address": {
         "type": "text",
-        "fields": {
-          "subfield2": {
-            "type": "keyword",
-            "ignore_above": 256
-          }
-        }
+        "fielddata": true
       },
       "firstname": {
         "type": "text",
