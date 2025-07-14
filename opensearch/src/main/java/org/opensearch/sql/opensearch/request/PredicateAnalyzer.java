@@ -551,6 +551,9 @@ public class PredicateAnalyzer {
             // nop currently
           } else {
             expressions[i] = (QueryExpression) call.getOperands().get(i).accept(this);
+            // Update or simplify the analyzed node list if it is not partial.
+            if (!expressions[i].isPartial())
+              expressions[i].updateAnalyzedNodes(call.getOperands().get(i));
           }
           partial |= expressions[i].isPartial();
         } catch (PredicateAnalyzerException e) {
@@ -702,6 +705,12 @@ public class PredicateAnalyzer {
 
     public abstract QueryBuilder builder();
 
+    public abstract List<RexNode> getAnalyzedNodes();
+
+    public abstract void updateAnalyzedNodes(RexNode rexNode);
+
+    public abstract List<RexNode> getUnAnalyzableNodes();
+
     public boolean isPartial() {
       return false;
     }
@@ -841,15 +850,31 @@ public class PredicateAnalyzer {
 
   @Getter
   static class UnAnalyzableQueryExpression extends QueryExpression {
-    RexNode rexNode;
+    final RexNode unAnalyzableRexNode;
 
     public UnAnalyzableQueryExpression(RexNode rexNode) {
-      this.rexNode = requireNonNull(rexNode, "rexNode");
+      this.unAnalyzableRexNode = requireNonNull(rexNode, "rexNode");
     }
 
     @Override
     public QueryBuilder builder() {
       return null;
+    }
+
+    @Override
+    public List<RexNode> getUnAnalyzableNodes() {
+      return List.of(unAnalyzableRexNode);
+    }
+
+    @Override
+    public List<RexNode> getAnalyzedNodes() {
+      return List.of();
+    }
+
+    @Override
+    public void updateAnalyzedNodes(RexNode rexNode) {
+      throw new IllegalStateException(
+          "UnAnalyzableQueryExpression does not support unAnalyzableNodes");
     }
   }
 
@@ -858,6 +883,7 @@ public class PredicateAnalyzer {
 
     private final boolean partial;
     private final BoolQueryBuilder builder;
+    @Getter private List<RexNode> analyzedNodes = new ArrayList<>();
     @Getter private final List<RexNode> unAnalyzableNodes = new ArrayList<>();
 
     public static CompoundQueryExpression or(QueryExpression... expressions) {
@@ -878,9 +904,9 @@ public class PredicateAnalyzer {
     public static CompoundQueryExpression and(boolean partial, QueryExpression... expressions) {
       CompoundQueryExpression bqe = new CompoundQueryExpression(partial);
       for (QueryExpression expression : expressions) {
-        if (expression instanceof UnAnalyzableQueryExpression unAnalyzableQueryExpression) {
-          bqe.unAnalyzableNodes.add(unAnalyzableQueryExpression.rexNode);
-        } else {
+        bqe.analyzedNodes.addAll(expression.getAnalyzedNodes());
+        bqe.unAnalyzableNodes.addAll(expression.getUnAnalyzableNodes());
+        if (!(expression instanceof UnAnalyzableQueryExpression)) {
           bqe.builder.must(expression.builder());
         }
       }
@@ -907,6 +933,11 @@ public class PredicateAnalyzer {
     }
 
     @Override
+    public void updateAnalyzedNodes(RexNode rexNode) {
+      this.analyzedNodes = List.of(rexNode);
+    }
+
+    @Override
     public QueryExpression not() {
       return new CompoundQueryExpression(partial, boolQuery().mustNot(builder()));
     }
@@ -915,6 +946,7 @@ public class PredicateAnalyzer {
   /** Usually basic expression of type {@code a = 'val'} or {@code b > 42}. */
   static class SimpleQueryExpression extends QueryExpression {
 
+    private RexNode analyzedRexNode;
     private final NamedFieldExpression rel;
     private QueryBuilder builder;
 
@@ -947,6 +979,21 @@ public class PredicateAnalyzer {
         throw new IllegalStateException("Builder was not initialized");
       }
       return builder;
+    }
+
+    @Override
+    public List<RexNode> getUnAnalyzableNodes() {
+      return List.of();
+    }
+
+    @Override
+    public List<RexNode> getAnalyzedNodes() {
+      return List.of(analyzedRexNode);
+    }
+
+    @Override
+    public void updateAnalyzedNodes(RexNode rexNode) {
+      this.analyzedRexNode = rexNode;
     }
 
     @Override

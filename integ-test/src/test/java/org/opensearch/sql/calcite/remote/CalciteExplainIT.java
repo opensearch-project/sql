@@ -65,10 +65,23 @@ public class CalciteExplainIT extends ExplainIT {
   public void supportPartialPushDown() throws IOException {
     // field `address` is text type without keyword subfield, so we cannot push it down.
     String query =
-        "source=opensearch-sql_test_index_account | where age >= 1 and address = '880 Holmes Lane'"
-            + " | fields age, address";
+        "source=opensearch-sql_test_index_account | where (state = 'Seattle' or age < 10) and (age"
+            + " >= 1 and address = '880 Holmes Lane') | fields age, address";
     var result = explainQueryToString(query);
     String expected = loadFromFile("expectedOutput/calcite/explain_partial_filter_push.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  // Only for Calcite
+  @Test
+  public void supportPartialPushDown2() throws IOException {
+    // field `gender` and `address` are both text type without keyword subfield, so we cannot push
+    // them down.
+    String query =
+        "source=opensearch-sql_test_index_account | where (gender = 'M' or age < 10) and (age >= 1"
+            + " and address = '880 Holmes Lane') | fields age, address";
+    var result = explainQueryToString(query);
+    String expected = loadFromFile("expectedOutput/calcite/explain_partial_filter_push2.json");
     assertJsonEqualsIgnoreId(expected, result);
   }
 }

@@ -31,6 +31,7 @@ import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.commons.lang3.tuple.Pair;
@@ -51,7 +52,6 @@ import org.opensearch.sql.opensearch.planner.physical.EnumerableIndexScanRule;
 import org.opensearch.sql.opensearch.planner.physical.OpenSearchIndexRules;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
-import org.opensearch.sql.opensearch.request.PredicateAnalyzer.CompoundQueryExpression;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.QueryExpression;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
@@ -114,19 +114,18 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       newScan.pushDownContext.add(
           PushDownAction.of(
               PushDownType.FILTER,
-              filter.getCondition(),
+              queryExpression.isPartial()
+                  ? constructCondition(
+                      queryExpression.getAnalyzedNodes(), getCluster().getRexBuilder())
+                  : filter.getCondition(),
               requestBuilder -> requestBuilder.pushDownFilter(queryBuilder)));
 
       // If the query expression is partial, we need to replace the input of the filter with the
       // partial pushed scan and the filter condition with non-pushed-down conditions.
       if (queryExpression.isPartial()) {
         // Only CompoundQueryExpression could be partial.
-        List<RexNode> conditions =
-            ((CompoundQueryExpression) queryExpression).getUnAnalyzableNodes();
-        RexNode newCondition =
-            conditions.size() > 1
-                ? getCluster().getRexBuilder().makeCall(SqlStdOperatorTable.AND, conditions)
-                : conditions.get(0);
+        List<RexNode> conditions = queryExpression.getUnAnalyzableNodes();
+        RexNode newCondition = constructCondition(conditions, getCluster().getRexBuilder());
         return filter.copy(filter.getTraitSet(), newScan, newCondition);
       }
       return newScan;
@@ -138,6 +137,12 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       }
     }
     return null;
+  }
+
+  private static RexNode constructCondition(List<RexNode> conditions, RexBuilder rexBuilder) {
+    return conditions.size() > 1
+        ? rexBuilder.makeCall(SqlStdOperatorTable.AND, conditions)
+        : conditions.get(0);
   }
 
   /**
