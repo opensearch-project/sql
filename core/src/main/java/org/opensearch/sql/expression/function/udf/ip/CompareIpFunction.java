@@ -23,6 +23,7 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
  *
  * <p>Signature:
  *
+ *
  * <ul>
  *   <li>(IP, STRING) -> BOOLEAN
  *   <li>(STRING, IP) -> BOOLEAN
