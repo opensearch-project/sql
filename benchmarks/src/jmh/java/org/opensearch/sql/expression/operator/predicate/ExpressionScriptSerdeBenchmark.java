@@ -57,13 +57,21 @@ public class ExpressionScriptSerdeBenchmark {
     RexBuilder rexBuilder = new RexBuilder(OpenSearchTypeFactory.TYPE_FACTORY);
     RelOptCluster cluster = RelOptCluster.create(new VolcanoPlanner(), rexBuilder);
     RelJsonSerializer relJsonSerializer = new RelJsonSerializer(cluster);
-    RelDataType rowType = rexBuilder.getTypeFactory().builder()
-        .kind(StructKind.FULLY_QUALIFIED)
-        .add("Referer", rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR))
-        .build();
-    RexNode rexUpper = PPLFuncImpTable.INSTANCE.resolve(rexBuilder,
-        BuiltinFunctionName.UPPER, rexBuilder.makeInputRef(rowType.getFieldList().get(0).getType(), 0));
-    RexNode rexNotEquals = rexBuilder.makeCall(SqlStdOperatorTable.NOT_EQUALS, rexUpper, rexBuilder.makeLiteral("ABOUT"));
+    RelDataType rowType =
+        rexBuilder
+            .getTypeFactory()
+            .builder()
+            .kind(StructKind.FULLY_QUALIFIED)
+            .add("Referer", rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR))
+            .build();
+    RexNode rexUpper =
+        PPLFuncImpTable.INSTANCE.resolve(
+            rexBuilder,
+            BuiltinFunctionName.UPPER,
+            rexBuilder.makeInputRef(rowType.getFieldList().get(0).getType(), 0));
+    RexNode rexNotEquals =
+        rexBuilder.makeCall(
+            SqlStdOperatorTable.NOT_EQUALS, rexUpper, rexBuilder.makeLiteral("ABOUT"));
     Map<String, ExprType> fieldTypes = Map.of("Referer", ExprCoreType.STRING);
 
     String serializedStr = relJsonSerializer.serialize(rexNotEquals, rowType, fieldTypes);
