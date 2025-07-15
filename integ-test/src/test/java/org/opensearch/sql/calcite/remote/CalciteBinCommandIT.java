@@ -9,6 +9,7 @@ import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.MatcherUtils.*;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
@@ -448,9 +449,11 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | bin epoch_millis span=3600000 aligntime=%d AS hour_bucket | fields"
                     + " epoch_millis, hour_bucket | head 3",
-                TEST_INDEX_DATE_FORMATS, aligntime));
+                TEST_INDEX_DATE_FORMATS,
+                aligntime));
 
     verifySchema(actual, schema("epoch_millis", "timestamp"), schema("hour_bucket", "timestamp"));
 
@@ -483,9 +486,11 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | bin epoch_second span=3600 aligntime=%d AS hour_bucket | fields"
                     + " epoch_second, hour_bucket | head 2",
-                TEST_INDEX_DATE_FORMATS, aligntime));
+                TEST_INDEX_DATE_FORMATS,
+                aligntime));
 
     verifySchema(actual, schema("epoch_second", "timestamp"), schema("hour_bucket", "timestamp"));
 
@@ -558,9 +563,12 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 "source=%s | bin epoch_millis span=%d aligntime=%d AS aligned_bucket | fields"
                     + " epoch_millis, aligned_bucket | head 3",
-                TEST_INDEX_DATE_FORMATS, span, aligntime));
+                TEST_INDEX_DATE_FORMATS,
+                span,
+                aligntime));
 
     verifySchema(
         actual, schema("epoch_millis", "timestamp"), schema("aligned_bucket", "timestamp"));
