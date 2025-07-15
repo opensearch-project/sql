@@ -127,8 +127,10 @@ public class UserDefinedFunctionUtils {
           return SqlTypeName.TIME;
         case EXPR_TIMESTAMP:
           return SqlTypeName.TIMESTAMP;
+        // EXPR_IP is mapped to SqlTypeName.OTHER since there is no
+        // corresponding SqlTypeName in Calcite.
         case EXPR_IP:
-          return SqlTypeName.VARCHAR;
+          return SqlTypeName.OTHER;
         case EXPR_BINARY:
           return SqlTypeName.VARBINARY;
         default:
