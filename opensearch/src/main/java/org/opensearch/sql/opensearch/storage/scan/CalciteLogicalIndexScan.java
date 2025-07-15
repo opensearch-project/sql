@@ -256,6 +256,14 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         return null;
       }
 
+      // Check if any sort field is a calculated field (not in the original index schema)
+      for (String fieldName : collationNames) {
+        if (isCalculatedField(fieldName)) {
+          // Cannot push down sort for calculated fields - let Calcite handle it
+          return null;
+        }
+      }
+
       // Propagate the sort to the new scan
       RelTraitSet traitsWithCollations = getTraitSet().plus(RelCollations.of(collations));
       CalciteLogicalIndexScan newScan =
@@ -319,6 +327,18 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     return collations.stream()
         .map(collation -> getRowType().getFieldNames().get(collation.getFieldIndex()))
         .toList();
+  }
+
+  /**
+   * Check if a field is a calculated field (not in the original index schema). Calculated fields
+   * are created by operations like bin, eval, etc. and don't exist in the OpenSearch index mapping.
+   *
+   * @param fieldName The field name to check.
+   * @return true if the field is calculated, false if it exists in the index schema.
+   */
+  private boolean isCalculatedField(String fieldName) {
+    return !osIndex.getFieldTypes().containsKey(fieldName)
+        && !ScoreSortBuilder.NAME.equals(fieldName);
   }
 
   /**

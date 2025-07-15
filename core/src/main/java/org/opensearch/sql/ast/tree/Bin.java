@@ -29,6 +29,7 @@ public class Bin extends UnresolvedPlan {
   private final UnresolvedExpression field;
   private final UnresolvedExpression span;
   private final Integer bins;
+  private final UnresolvedExpression minspan;
   private final UnresolvedExpression start;
   private final UnresolvedExpression end;
   private final String alias;

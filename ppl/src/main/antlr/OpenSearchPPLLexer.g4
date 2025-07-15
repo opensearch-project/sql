@@ -459,6 +459,7 @@ ZERO_TERMS_QUERY:                   'ZERO_TERMS_QUERY';
 // SPAN KEYWORDS
 SPAN:                               'SPAN';
 BINS:                               'BINS';
+MINSPAN:                            'MINSPAN';
 START:                              'START';
 END:                                'END';
 MS:                                 'MS';
