@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite;
 
 import static org.apache.calcite.sql.SqlKind.AS;
+import static org.apache.calcite.sql.SqlKind.LITERAL;
 import static org.opensearch.sql.ast.tree.Join.JoinType.ANTI;
 import static org.opensearch.sql.ast.tree.Join.JoinType.SEMI;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_FIRST;
@@ -499,15 +500,31 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       // Handle span-based binning using the existing SPAN function
       // The SPAN function already handles timestamps correctly
       RexNode spanValue = rexVisitor.analyze(node.getSpan(), context);
-      RexNode unitNode = context.relBuilder.literal(""); // Empty unit for numeric spans
-
-      // Ensure span value is INTEGER for numeric fields (SPAN function requirement)
       RelDataType fieldType = fieldExpr.getType();
+      
+      // Determine the unit parameter based on field type
+      RexNode unitNode;
       if (fieldType.getSqlTypeName() == SqlTypeName.BIGINT
           || fieldType.getSqlTypeName() == SqlTypeName.INTEGER
           || fieldType.getSqlTypeName() == SqlTypeName.SMALLINT
-          || fieldType.getSqlTypeName() == SqlTypeName.TINYINT) {
-        // For integer-like fields, ensure span is also INTEGER
+          || fieldType.getSqlTypeName() == SqlTypeName.TINYINT
+          || fieldType.getSqlTypeName() == SqlTypeName.DOUBLE
+          || fieldType.getSqlTypeName() == SqlTypeName.FLOAT
+          || fieldType.getSqlTypeName() == SqlTypeName.DECIMAL) {
+        // For numeric fields, pass null to use simple division/multiplication logic
+        unitNode = context.relBuilder.literal(null);
+      } else {
+        // For datetime fields, use empty string unit (will be handled by datetime logic)
+        unitNode = context.relBuilder.literal("");
+      }
+
+      // Ensure span value is INTEGER for integer numeric fields (SPAN function requirement)
+      if ((fieldType.getSqlTypeName() == SqlTypeName.BIGINT
+          || fieldType.getSqlTypeName() == SqlTypeName.INTEGER
+          || fieldType.getSqlTypeName() == SqlTypeName.SMALLINT
+          || fieldType.getSqlTypeName() == SqlTypeName.TINYINT)
+          && unitNode.isA(LITERAL) && ((RexLiteral) unitNode).getValue() == null) {
+        // For integer-like fields with null unit, ensure span is also INTEGER
         spanValue = context.relBuilder.cast(spanValue, SqlTypeName.INTEGER);
       }
 
