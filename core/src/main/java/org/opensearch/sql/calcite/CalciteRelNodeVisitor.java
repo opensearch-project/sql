@@ -40,6 +40,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.logical.LogicalValues;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
@@ -476,10 +477,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitBin(Bin node, CalcitePlanContext context) {
     visitChildren(node, context);
-    
+
     // Get the field expression that needs to be binned
     RexNode fieldExpr = rexVisitor.analyze(node.getField(), context);
-    
+
     // Extract the field name properly - for Field expressions, get the field name
     String fieldName;
     if (node.getField() instanceof Field) {
@@ -488,52 +489,89 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     } else {
       fieldName = node.getField().toString();
     }
-    
+
     // Determine the alias name - use provided alias or default to binned field name
     String aliasName = node.getAlias() != null ? node.getAlias() : fieldName + "_bin";
-    
+
     RexNode binExpression;
-    
+
     if (node.getSpan() != null) {
-      // Handle span-based binning (similar to span function)
+      // Handle span-based binning using the existing SPAN function
+      // The SPAN function already handles timestamps correctly
       RexNode spanValue = rexVisitor.analyze(node.getSpan(), context);
-      
-      // For span-based binning, we use mathematical operations to create bins
-      // bin = floor(field / span) * span
-      RexNode divided = context.relBuilder.call(SqlStdOperatorTable.DIVIDE, fieldExpr, spanValue);
-      RexNode floored = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
-      binExpression = context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, floored, spanValue);
-      
+      RexNode unitNode = context.relBuilder.literal(""); // Empty unit for numeric spans
+
+      // Ensure span value is INTEGER for numeric fields (SPAN function requirement)
+      RelDataType fieldType = fieldExpr.getType();
+      if (fieldType.getSqlTypeName() == SqlTypeName.BIGINT
+          || fieldType.getSqlTypeName() == SqlTypeName.INTEGER
+          || fieldType.getSqlTypeName() == SqlTypeName.SMALLINT
+          || fieldType.getSqlTypeName() == SqlTypeName.TINYINT) {
+        // For integer-like fields, ensure span is also INTEGER
+        spanValue = context.relBuilder.cast(spanValue, SqlTypeName.INTEGER);
+      }
+
+      // Use the SPAN function directly - it handles timestamp conversion internally
+      binExpression =
+          PPLFuncImpTable.INSTANCE.resolve(
+              context.rexBuilder, BuiltinFunctionName.SPAN, fieldExpr, spanValue, unitNode);
+
     } else if (node.getBins() != null) {
       // Handle bins-based binning (divide range into equal parts)
-      // For SAL data (800-5000), create reasonable bins
+      // This is a simplified implementation - in production, you'd want to calculate
+      // the actual range from the data or use aggregation functions
       Integer numBins = node.getBins();
-      
-      // Use known range for EMP.SAL field: min=800, max=5000, range=4200
-      // bin_size = range / bins = 4200 / bins
-      RexNode minValue = context.relBuilder.literal(800.0);
-      RexNode range = context.relBuilder.literal(4200.0);  // 5000 - 800
-      RexNode binSize = context.relBuilder.call(SqlStdOperatorTable.DIVIDE, range, context.relBuilder.literal(numBins));
-      
-      // bin = floor((field - min) / bin_size) * bin_size
-      RexNode shifted = context.relBuilder.call(SqlStdOperatorTable.MINUS, fieldExpr, minValue);
-      RexNode divided = context.relBuilder.call(SqlStdOperatorTable.DIVIDE, shifted, binSize);
+
+      // Use a default range - this should be improved to calculate actual data range
+      RexNode minValue = context.relBuilder.literal(0.0);
+      RexNode range = context.relBuilder.literal(1000.0); // Default range
+      RexNode binSize =
+          context.relBuilder.call(
+              SqlStdOperatorTable.DIVIDE, range, context.relBuilder.literal(numBins));
+
+      // Check field type for proper casting
+      RelDataType fieldType = fieldExpr.getType();
+      RexNode workingFieldExpr = fieldExpr;
+
+      if (fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP
+          || fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
+        // For timestamp fields, cast directly to BIGINT (milliseconds since epoch)
+        workingFieldExpr = context.relBuilder.cast(fieldExpr, SqlTypeName.BIGINT);
+      }
+
+      // bin = floor((field - min) / bin_size) * bin_size + min
+      RexNode shifted =
+          context.relBuilder.call(SqlStdOperatorTable.MINUS, workingFieldExpr, minValue);
+      RexNode divided =
+          PPLFuncImpTable.INSTANCE.resolve(
+              context.rexBuilder, BuiltinFunctionName.DIVIDE, shifted, binSize);
       RexNode floored = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
-      binExpression = context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, floored, binSize);
-      
+      RexNode multiplied = context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, floored, binSize);
+      binExpression = context.relBuilder.call(SqlStdOperatorTable.PLUS, multiplied, minValue);
+
     } else {
       // Default binning behavior - use span of 1 for integer-like binning
+      RelDataType fieldType = fieldExpr.getType();
       RexNode defaultSpan = context.relBuilder.literal(1);
-      RexNode divided = context.relBuilder.call(SqlStdOperatorTable.DIVIDE, fieldExpr, defaultSpan);
+      RexNode workingFieldExpr = fieldExpr;
+
+      if (fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP
+          || fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
+        // For timestamp fields, cast to BIGINT first
+        workingFieldExpr = context.relBuilder.cast(fieldExpr, SqlTypeName.BIGINT);
+      }
+
+      RexNode divided =
+          context.relBuilder.call(SqlStdOperatorTable.DIVIDE, workingFieldExpr, defaultSpan);
       binExpression = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
     }
-    
+
     // Create the binned field with alias
     RexNode aliasedBinExpression = context.relBuilder.alias(binExpression, aliasName);
-    
+
     // Add the binned field to the projection
     context.relBuilder.projectPlus(aliasedBinExpression);
-    
+
     return context.relBuilder.peek();
   }
 
