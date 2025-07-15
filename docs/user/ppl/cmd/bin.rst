@@ -15,12 +15,16 @@ Description
 
 Syntax
 ============
-bin <field> [span=<interval>] [minspan=<interval>] [bins=<count>] [start=<value>] [end=<value>] [AS <alias>]
+bin <field> [span=<interval>] [minspan=<interval>] [bins=<count>] [aligntime=(earliest | latest | <time-specifier>)] [start=<value>] [end=<value>] [AS <alias>]
 
 * field: mandatory. The numeric field to bin.
 * span: optional. The interval size for each bin. Cannot be used with bins or minspan parameters.
 * minspan: optional. The minimum interval size for automatic span calculation. Cannot be used with span or bins parameters.
 * bins: optional. The number of equal-width bins to create. Cannot be used with span or minspan parameters.
+* aligntime: optional. Align the bin times for time-based fields. Valid only for time-based discretization. Options:
+  - earliest: Align bins to the earliest timestamp in the data
+  - latest: Align bins to the latest timestamp in the data  
+  - <time-specifier>: Align bins to a specific epoch time value
 * start: optional. The starting value for binning range. If not specified, uses the minimum field value.
 * end: optional. The ending value for binning range. If not specified, uses the maximum field value.
 * alias: optional. Custom name for the binned field. **Default:** <field>_bin
@@ -35,6 +39,16 @@ Specifies the width of each bin interval. The bin value will be calculated as ``
 minspan Parameter
 -----------------
 Specifies the minimum allowed interval size. The actual span will be at least this value or larger depending on the data range to create a reasonable number of bins.
+
+aligntime Parameter
+-------------------
+For time-based fields, aligntime allows you to specify how bins should be aligned:
+
+* ``earliest``: Aligns bins to the earliest timestamp in the dataset
+* ``latest``: Aligns bins to the latest timestamp in the dataset
+* ``<time-value>``: Aligns bins to a specific epoch timestamp
+
+The aligntime parameter modifies the binning calculation from ``floor(timestamp / span) * span`` to ``floor((timestamp - aligntime) / span) * span + aligntime``.
 
 bins Parameter
 --------------
@@ -171,7 +185,41 @@ PPL query::
     | 13             | 28  | 28      |
     +----------------+-----+---------+
 
-Example 8: Binning with range specification
+Example 8: Binning with aligntime parameter
+==========================================
+
+The example shows time-based binning with alignment to earliest timestamp.
+
+PPL query::
+
+    os> source=logs | bin timestamp span=3600 aligntime=earliest AS hour_bucket | fields timestamp, hour_bucket | head 3;
+    fetched rows / total rows = 3/3
+    +---------------------+---------------------+
+    | timestamp           | hour_bucket         |
+    |---------------------|---------------------|
+    | 2024-01-01 14:30:00 | 2024-01-01 14:00:00 |
+    | 2024-01-01 15:15:00 | 2024-01-01 15:00:00 |
+    | 2024-01-01 15:45:00 | 2024-01-01 15:00:00 |
+    +---------------------+---------------------+
+
+Example 9: Binning with specific aligntime value
+==============================================
+
+The example shows aligning bins to a specific timestamp (midnight UTC).
+
+PPL query::
+
+    os> source=logs | bin timestamp span=86400 aligntime=1640995200 AS day_bucket | fields timestamp, day_bucket | head 3;
+    fetched rows / total rows = 3/3
+    +---------------------+---------------------+
+    | timestamp           | day_bucket          |
+    |---------------------|---------------------|
+    | 2024-01-01 14:30:00 | 2024-01-01 00:00:00 |
+    | 2024-01-01 22:15:00 | 2024-01-01 00:00:00 |
+    | 2024-01-02 08:45:00 | 2024-01-02 00:00:00 |
+    +---------------------+---------------------+
+
+Example 10: Binning with range specification
 ============================================
 
 The example shows binning with start and end parameters to focus on a specific range.
@@ -197,6 +245,7 @@ Choosing Bin Parameters
 * Use ``span`` when you know the exact desired interval size (e.g., $1000 for financial data)
 * Use ``minspan`` when you want to ensure bins are at least a certain size but allow automatic optimization
 * Use ``bins`` when you want a specific number of buckets for visualization
+* Use ``aligntime`` for time-based data when you need bins aligned to specific boundaries (e.g., hour/day boundaries)
 * Consider your data range when choosing span values to avoid too many or too few bins
 
 Performance Considerations
@@ -234,6 +283,8 @@ Both approaches create similar results, but ``bin`` provides more flexibility fo
 Limitations
 ===========
 * The ``span``, ``minspan``, and ``bins`` parameters are mutually exclusive
-* Only numeric fields can be binned
+* The ``aligntime`` parameter is only valid for time-based fields (timestamp, datetime)
+* For non-time fields, ``aligntime`` is ignored
+* Only numeric and time fields can be binned
 * The ``start`` and ``end`` parameters are currently not fully implemented
 * Requires Calcite engine (not supported in legacy engine)

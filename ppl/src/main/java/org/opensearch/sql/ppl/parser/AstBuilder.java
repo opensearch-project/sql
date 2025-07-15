@@ -433,10 +433,14 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     Integer bins = ctx.bins != null ? Integer.parseInt(ctx.bins.getText()) : null;
     UnresolvedExpression minspan =
         ctx.minspan != null ? internalVisitExpression(ctx.minspan) : null;
+    UnresolvedExpression aligntime = null;
+    if (ctx.aligntime != null) {
+      aligntime = internalVisitExpression(ctx.aligntime);
+    }
     UnresolvedExpression start = ctx.start != null ? internalVisitExpression(ctx.start) : null;
     UnresolvedExpression end = ctx.end != null ? internalVisitExpression(ctx.end) : null;
     String alias = ctx.alias != null ? StringUtils.unquoteIdentifier(ctx.alias.getText()) : null;
-    return new Bin(field, span, bins, minspan, start, end, alias);
+    return new Bin(field, span, bins, minspan, aligntime, start, end, alias);
   }
 
   /** Sort command. */

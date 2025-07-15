@@ -473,6 +473,7 @@ BINS:                               'BINS';
 MINSPAN:                            'MINSPAN';
 START:                              'START';
 END:                                'END';
+ALIGNTIME:                          'ALIGNTIME';
 MS:                                 'MS';
 S:                                  'S';
 M:                                  'M';
