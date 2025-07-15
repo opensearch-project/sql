@@ -6,7 +6,6 @@
 package org.opensearch.sql.ppl;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
 import static org.opensearch.sql.ast.dsl.AstDSL.decimalLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
@@ -53,14 +52,16 @@ public class BinCommandTest {
   public void testBinCommandWithStartAndEnd() {
     assertEqual(
         "source=t | bin value span=5 start=0 end=100",
-        new Bin(field("value"), intLiteral(5), null, intLiteral(0), intLiteral(100), null).attach(relation("t")));
+        new Bin(field("value"), intLiteral(5), null, intLiteral(0), intLiteral(100), null)
+            .attach(relation("t")));
   }
 
   @Test
   public void testBinCommandWithAllParameters() {
     assertEqual(
         "source=t | bin price bins=10 start=0 end=1000 AS price_range",
-        new Bin(field("price"), null, 10, intLiteral(0), intLiteral(1000), "price_range").attach(relation("t")));
+        new Bin(field("price"), null, 10, intLiteral(0), intLiteral(1000), "price_range")
+            .attach(relation("t")));
   }
 
   @Test
@@ -74,14 +75,22 @@ public class BinCommandTest {
   public void testBinCommandWithStringSpan() {
     assertEqual(
         "source=t | bin timestamp span=\"1h\"",
-        new Bin(field("timestamp"), stringLiteral("1h"), null, null, null, null).attach(relation("t")));
+        new Bin(field("timestamp"), stringLiteral("1h"), null, null, null, null)
+            .attach(relation("t")));
   }
 
   @Test
   public void testBinCommandWithDecimalValues() {
     assertEqual(
         "source=t | bin amount span=2.5 start=0.0 end=100.0",
-        new Bin(field("amount"), decimalLiteral(2.5), null, decimalLiteral(0.0), decimalLiteral(100.0), null).attach(relation("t")));
+        new Bin(
+                field("amount"),
+                decimalLiteral(2.5),
+                null,
+                decimalLiteral(0.0),
+                decimalLiteral(100.0),
+                null)
+            .attach(relation("t")));
   }
 
   @Test
@@ -119,10 +128,10 @@ public class BinCommandTest {
   @Test
   public void testBinCommandASTNodeCreation() {
     Node actualPlan = plan("source=t | bin age span=10 AS age_group");
-    
+
     // Verify that the AST structure is correct
     assertEquals(true, actualPlan instanceof Bin);
-    
+
     Bin binNode = (Bin) actualPlan;
     assertEquals(field("age"), binNode.getField());
     assertEquals(intLiteral(10), binNode.getSpan());
@@ -130,7 +139,7 @@ public class BinCommandTest {
     assertEquals(null, binNode.getStart());
     assertEquals(null, binNode.getEnd());
     assertEquals("age_group", binNode.getAlias());
-    
+
     // Verify that it has a child (the relation)
     assertEquals(1, binNode.getChild().size());
   }
@@ -140,13 +149,14 @@ public class BinCommandTest {
     // Test with backticks for field names with dots
     assertEqual(
         "source=logs | bin `nested.field.value` span=100",
-        new Bin(field("nested.field.value"), intLiteral(100), null, null, null, null).attach(relation("logs")));
+        new Bin(field("nested.field.value"), intLiteral(100), null, null, null, null)
+            .attach(relation("logs")));
   }
 
   @Test
   public void testBinCommandParameterParsing() {
     Node actualPlan = plan("source=t | bin score bins=5 start=0 end=100");
-    
+
     Bin binNode = (Bin) actualPlan;
     assertEquals(field("score"), binNode.getField());
     assertEquals(null, binNode.getSpan());

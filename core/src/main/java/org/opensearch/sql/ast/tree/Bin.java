@@ -16,9 +16,7 @@ import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
-/**
- * AST node represent Bin operation.
- */
+/** AST node represent Bin operation. */
 @Getter
 @Setter
 @ToString

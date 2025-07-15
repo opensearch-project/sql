@@ -54,8 +54,9 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | bin SAL bins=5";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], "
-            + "COMM=[$6], DEPTNO=[$7], SAL_bin=[*(FLOOR(/(-($5, 800.0E0:DOUBLE), /(4200.0E0:DOUBLE, 5))), /(4200.0E0:DOUBLE, 5))])\n"
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], SAL_bin=[*(FLOOR(/(-($5, 800.0E0:DOUBLE),"
+            + " /(4200.0E0:DOUBLE, 5))), /(4200.0E0:DOUBLE, 5))])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
@@ -86,7 +87,8 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testBinWithStatsAndAverage() {
-    String ppl = "source=EMP | bin SAL span=1000 AS salary_bin | stats avg(SAL) as avg_salary by salary_bin";
+    String ppl =
+        "source=EMP | bin SAL span=1000 AS salary_bin | stats avg(SAL) as avg_salary by salary_bin";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(avg_salary=[$1], salary_bin=[$0])\n"
