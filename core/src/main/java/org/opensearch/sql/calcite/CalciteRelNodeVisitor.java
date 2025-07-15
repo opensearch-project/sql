@@ -1429,6 +1429,80 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     projectPlusOverriding(fattenedNodes, projectNames, context);
   }
 
+  /**
+   * Builds a projection for the table command by processing the projection list from the AST node.
+   *
+   * <p>This method handles field projections including wildcard patterns (e.g., "log.*") by: 1.
+   * Processing each expression in the projection list 2. Expanding wildcard patterns to match
+   * available fields 3. Building explicit field references for each matched field 4. Creating a
+   * projection with the collected field references and names
+   *
+   * @param node The Table AST node containing the projection list
+   * @param context The CalcitePlanContext containing the RelBuilder and other context information
+   * @return RelNode representing the table projection operation
+   */
+  @Override
+  public RelNode visitTable(org.opensearch.sql.ast.tree.Table node, CalcitePlanContext context) {
+    // First visit child nodes to build the input relation
+    visitChildren(node, context);
+
+    // Get all available field names from the input relation
+    List<String> availableFields = context.relBuilder.peek().getRowType().getFieldNames();
+    List<RexNode> projectList = new ArrayList<>(); // List to store field references
+    List<String> explicitFieldNames = new ArrayList<>(); // List to store output field names
+
+    // Process each expression in the projection list
+    for (UnresolvedExpression expr : node.getProjectList()) {
+      if (expr instanceof Field field) {
+        String fieldName = field.getField().toString();
+        if (fieldName.contains("*")) {
+          // Handle wildcard patterns (e.g., "log.*" or "*")
+          List<String> matchedFields = expandWildcard(fieldName, availableFields);
+          for (String matchedField : matchedFields) {
+            // Add each matched field to the projection list
+            projectList.add(context.relBuilder.field(matchedField));
+            explicitFieldNames.add(matchedField);
+          }
+        } else {
+          // Handle regular field reference
+          projectList.add(rexVisitor.analyze(expr, context));
+          explicitFieldNames.add(fieldName);
+        }
+      } else {
+        // Handle non-field expressions (functions, literals, etc.)
+        projectList.add(rexVisitor.analyze(expr, context));
+        // Generate a default name for expressions without explicit names
+        explicitFieldNames.add("expr" + projectList.size());
+      }
+    }
+
+    // Create the projection with explicit field names, allowing duplicates in the output
+    context.relBuilder.project(projectList, explicitFieldNames, true);
+    return context.relBuilder.peek();
+  }
+
+  /**
+   * Expands a wildcard pattern to match available field names.
+   *
+   * <p>This method converts SQL-like wildcard patterns (using '*') to regex patterns and returns
+   * all field names that match the pattern in sorted order. For example, "log.*" would match fields
+   * like "log.level", "log.message", etc.
+   *
+   * @param pattern The wildcard pattern to expand (e.g., "log.*" or "*")
+   * @param availableFields List of all available field names in the input relation
+   * @return List of field names that match the wildcard pattern, sorted alphabetically
+   */
+  private List<String> expandWildcard(String pattern, List<String> availableFields) {
+    // Convert SQL wildcard pattern to regex pattern (e.g., "log.*" -> "^log\..*$")
+    String regex = "^" + pattern.replace("*", ".*") + "$";
+
+    // Filter fields that match the regex pattern and return them in sorted order
+    return availableFields.stream()
+        .filter(field -> field.matches(regex))
+        .sorted()
+        .collect(Collectors.toList());
+  }
+
   private void buildExpandRelNode(
       RexInputRef arrayFieldRex, String arrayFieldName, String alias, CalcitePlanContext context) {
     // 3. Capture the outer row in a CorrelationId

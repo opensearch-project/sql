@@ -72,6 +72,7 @@ import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
+import org.opensearch.sql.ast.tree.Table;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
@@ -442,6 +443,31 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
               .map(n -> StringUtils.format("%s = %s", visitExpression(n.getLeft()), MASK_LITERAL))
               .collect(Collectors.joining(", ")));
     }
+  }
+
+  /**
+   * Processes a Table node in the PPL query and anonymizes its data.
+   *
+   * <p>This method handles the 'table' command which is used to select specific fields from the
+   * input data. It processes both standalone table commands and table commands that are part of a
+   * pipeline.
+   *
+   * @param node The Table node to process, containing the field projections
+   * @param context The context information passed through the visitor pattern
+   * @return A string representation of the anonymized table command
+   */
+  @Override
+  public String visitTable(Table node, String context) {
+    // Process the child node if it exists (for piped commands)
+    String child = node.getChild().isEmpty() ? "" : node.getChild().get(0).accept(this, context);
+
+    // Get the list of fields to project, anonymizing any expressions
+    String fields = visitExpressionList(node.getProjectList());
+
+    // Format differently based on whether this is a standalone table command or part of a pipeline
+    return child.isEmpty()
+        ? StringUtils.format("table %s", fields) // Standalone table command
+        : StringUtils.format("%s | table %s", child, fields); // Table command in a pipeline
   }
 
   @Override

@@ -13,6 +13,7 @@ options { caseInsensitive = true; }
 SEARCH:                             'SEARCH';
 DESCRIBE:                           'DESCRIBE';
 SHOW:                               'SHOW';
+TABLE:                              'TABLE';
 EXPLAIN:                            'EXPLAIN';
 FROM:                               'FROM';
 WHERE:                              'WHERE';
