@@ -234,4 +234,51 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  @Test
+  public void testBinWithAligntimeEarliest() {
+    String ppl = "source=EMP | bin HIREDATE span=86400 aligntime=earliest AS date_bucket";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], "
+            + "COMM=[$6], DEPTNO=[$7], date_bucket=[SPAN($4, 86400, '')])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  @Test
+  public void testBinWithAligntimeNumericValue() {
+    String ppl = "source=EMP | bin HIREDATE span=3600 aligntime=1640995200 AS hour_bucket";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], hour_bucket=[+(SPAN(-($4, 1640995200), 3600, ''),"
+            + " 1640995200)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, "
+            + "`SPAN`(`HIREDATE` - 1640995200, 3600, '') + 1640995200 `hour_bucket`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testBinWithAligntimeIgnoredForNonTimeFields() {
+    // Aligntime should be ignored for non-time fields like SAL
+    String ppl = "source=EMP | bin SAL span=1000 aligntime=earliest AS sal_bucket";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], "
+            + "COMM=[$6], DEPTNO=[$7], sal_bucket=[*(FLOOR(/($5, 1000)), 1000)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, "
+            + "FLOOR(`SAL` / 1000) * 1000 `sal_bucket`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
 }
