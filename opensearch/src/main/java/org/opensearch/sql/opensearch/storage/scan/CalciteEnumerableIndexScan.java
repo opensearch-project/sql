@@ -88,12 +88,16 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
    * or SearchAfter recorded during previous search.
    */
   @Override
-  public Enumerable<@Nullable Object> scan() {
+  public Enumerable<@Nullable Object> scan(Integer querySizeLimit) {
     return new AbstractEnumerable<>() {
       @Override
       public Enumerator<Object> enumerator() {
         OpenSearchRequestBuilder requestBuilder = osIndex.createRequestBuilder();
         pushDownContext.forEach(action -> action.apply(requestBuilder));
+        // For the simple plan with only scan, try to push down querySizeLimit to avoid PIT search
+        if (querySizeLimit != null && querySizeLimit > 0 && !pushDownContext.isAggregatePushed()) {
+          requestBuilder.pushDownLimit(querySizeLimit, 0);
+        }
         return new OpenSearchIndexEnumerator(
             osIndex.getClient(),
             getFieldPath(),
@@ -102,6 +106,10 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
             osIndex.createOpenSearchResourceMonitor());
       }
     };
+  }
+
+  public Enumerable<@Nullable Object> scan() {
+    return scan(null);
   }
 
   private List<String> getFieldPath() {
