@@ -173,7 +173,7 @@ headCommand
    ;
 
 binCommand
-   : BIN fieldExpression (SPAN EQUAL span = literalValue (spanUnit = timespanUnit)?)? (BINS EQUAL bins = integerLiteral)? (START EQUAL start = numericLiteral)? (END EQUAL end = numericLiteral)? (AS alias = qualifiedName)?
+   : BIN fieldExpression (SPAN EQUAL span = literalValue (spanUnit = timespanUnit)?)? (BINS EQUAL bins = integerLiteral)? (MINSPAN EQUAL minspan = literalValue (minspanUnit = timespanUnit)?)? (START EQUAL start = numericLiteral)? (END EQUAL end = numericLiteral)? (AS alias = qualifiedName)?
    ;
 
 topCommand

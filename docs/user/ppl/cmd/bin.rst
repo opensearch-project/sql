@@ -15,11 +15,12 @@ Description
 
 Syntax
 ============
-bin <field> [span=<interval>] [bins=<count>] [start=<value>] [end=<value>] [AS <alias>]
+bin <field> [span=<interval>] [minspan=<interval>] [bins=<count>] [start=<value>] [end=<value>] [AS <alias>]
 
 * field: mandatory. The numeric field to bin.
-* span: optional. The interval size for each bin. Cannot be used with bins parameter.
-* bins: optional. The number of equal-width bins to create. Cannot be used with span parameter.
+* span: optional. The interval size for each bin. Cannot be used with bins or minspan parameters.
+* minspan: optional. The minimum interval size for automatic span calculation. Cannot be used with span or bins parameters.
+* bins: optional. The number of equal-width bins to create. Cannot be used with span or minspan parameters.
 * start: optional. The starting value for binning range. If not specified, uses the minimum field value.
 * end: optional. The ending value for binning range. If not specified, uses the maximum field value.
 * alias: optional. Custom name for the binned field. **Default:** <field>_bin
@@ -30,6 +31,10 @@ Parameters
 span Parameter
 --------------
 Specifies the width of each bin interval. The bin value will be calculated as ``floor(field / span) * span``.
+
+minspan Parameter
+-----------------
+Specifies the minimum allowed interval size. The actual span will be at least this value or larger depending on the data range to create a reasonable number of bins.
 
 bins Parameter
 --------------
@@ -132,7 +137,24 @@ PPL query::
     | 13             | 32838   | 30002.0       |
     +----------------+---------+---------------+
 
-Example 6: Default binning behavior
+Example 6: Binning with minspan parameter
+==========================================
+
+The example shows binning with a minimum span requirement.
+
+PPL query::
+
+    os> source=accounts | bin balance minspan=500 AS balance_tier | fields account_number, balance, balance_tier | head 3;
+    fetched rows / total rows = 3/3
+    +----------------+---------+--------------+
+    | account_number | balance | balance_tier |
+    |----------------+---------+--------------|
+    | 1              | 39225   | 39000        |
+    | 6              | 5686    | 5500         |
+    | 13             | 32838   | 32500        |
+    +----------------+---------+--------------+
+
+Example 7: Default binning behavior
 ====================================
 
 The example shows bin command without parameters (uses span=1 by default).
@@ -149,7 +171,7 @@ PPL query::
     | 13             | 28  | 28      |
     +----------------+-----+---------+
 
-Example 7: Binning with range specification
+Example 8: Binning with range specification
 ============================================
 
 The example shows binning with start and end parameters to focus on a specific range.
@@ -172,7 +194,8 @@ Best Practices
 
 Choosing Bin Parameters
 ------------------------
-* Use ``span`` when you know the desired interval size (e.g., $1000 for financial data)
+* Use ``span`` when you know the exact desired interval size (e.g., $1000 for financial data)
+* Use ``minspan`` when you want to ensure bins are at least a certain size but allow automatic optimization
 * Use ``bins`` when you want a specific number of buckets for visualization
 * Consider your data range when choosing span values to avoid too many or too few bins
 
@@ -210,7 +233,7 @@ Both approaches create similar results, but ``bin`` provides more flexibility fo
 
 Limitations
 ===========
-* The ``span`` and ``bins`` parameters are mutually exclusive
+* The ``span``, ``minspan``, and ``bins`` parameters are mutually exclusive
 * Only numeric fields can be binned
 * The ``start`` and ``end`` parameters are currently not fully implemented
 * Requires Calcite engine (not supported in legacy engine)

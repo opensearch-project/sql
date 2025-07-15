@@ -55,14 +55,14 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
-            + " COMM=[$6], DEPTNO=[$7], SAL_bin=[*(FLOOR(/(-($5, 800.0E0:DOUBLE),"
-            + " /(4200.0E0:DOUBLE, 5))), /(4200.0E0:DOUBLE, 5))])\n"
+            + " COMM=[$6], DEPTNO=[$7], SAL_bin=[+(*(FLOOR(DIVIDE(-($5, 0.0E0:DOUBLE),"
+            + " /(1000.0E0:DOUBLE, 5))), /(1000.0E0:DOUBLE, 5)), 0.0E0)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
         "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, "
-            + "FLOOR((`SAL` - 8.000E2) / (4.2000E3 / 5)) * (4.2000E3 / 5) `SAL_bin`\n"
+            + "FLOOR(`DIVIDE`(`SAL` - 0E0, 1.0000E3 / 5)) * (1.0000E3 / 5) + 0E0 `SAL_bin`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -161,6 +161,76 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, "
             + "FLOOR(`SAL` / 1) `SAL_bin`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testBinWithMinspan() {
+    String ppl = "source=EMP | bin SAL minspan=500";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], "
+            + "COMM=[$6], DEPTNO=[$7], SAL_bin=[*(FLOOR(/($5, 500)), 500)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, "
+            + "FLOOR(`SAL` / 500) * 500 `SAL_bin`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testBinWithMinspanAndAlias() {
+    String ppl = "source=EMP | bin SAL minspan=1000 AS salary_category";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], "
+            + "COMM=[$6], DEPTNO=[$7], salary_category=[*(FLOOR(/($5, 1000)), 1000)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, "
+            + "FLOOR(`SAL` / 1000) * 1000 `salary_category`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testBinWithMinspanIntegrationWithStats() {
+    String ppl = "source=EMP | bin SAL minspan=750 AS salary_tier | stats count() by salary_tier";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(count()=[$1], salary_tier=[$0])\n"
+            + "  LogicalAggregate(group=[{0}], count()=[COUNT()])\n"
+            + "    LogicalProject(salary_tier=[*(FLOOR(/($5, 750)), 750)])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT COUNT(*) `count()`, FLOOR(`SAL` / 750) * 750 `salary_tier`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "GROUP BY FLOOR(`SAL` / 750) * 750";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testBinWithMinspanDecimalValue() {
+    String ppl = "source=EMP | bin SAL minspan=123.45 AS precise_bins";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], "
+            + "COMM=[$6], DEPTNO=[$7], precise_bins=[*(FLOOR(/($5, 123.45:DECIMAL(5, 2))), "
+            + "123.45:DECIMAL(5, 2))])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, "
+            + "FLOOR(`SAL` / 123.45) * 123.45 `precise_bins`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }

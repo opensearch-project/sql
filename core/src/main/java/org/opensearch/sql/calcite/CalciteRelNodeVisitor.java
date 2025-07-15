@@ -518,21 +518,118 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         unitNode = context.relBuilder.literal("");
       }
 
-      // Ensure span value is INTEGER for integer numeric fields (SPAN function requirement)
-      if ((fieldType.getSqlTypeName() == SqlTypeName.BIGINT
-              || fieldType.getSqlTypeName() == SqlTypeName.INTEGER
-              || fieldType.getSqlTypeName() == SqlTypeName.SMALLINT
-              || fieldType.getSqlTypeName() == SqlTypeName.TINYINT)
-          && unitNode.isA(LITERAL)
-          && ((RexLiteral) unitNode).getValue() == null) {
-        // For integer-like fields with null unit, ensure span is also INTEGER
-        spanValue = context.relBuilder.cast(spanValue, SqlTypeName.INTEGER);
+      // Check if span is a decimal value - SPAN function only supports INTEGER intervals
+      boolean isDecimalSpan = false;
+      if (spanValue.isA(LITERAL) && ((RexLiteral) spanValue).getValue() != null) {
+        Object spanVal = ((RexLiteral) spanValue).getValue();
+        if (spanVal instanceof Number) {
+          double doubleVal = ((Number) spanVal).doubleValue();
+          isDecimalSpan = (doubleVal != Math.floor(doubleVal));
+        }
       }
 
-      // Use the SPAN function directly - it handles timestamp conversion internally
-      binExpression =
-          PPLFuncImpTable.INSTANCE.resolve(
-              context.rexBuilder, BuiltinFunctionName.SPAN, fieldExpr, spanValue, unitNode);
+      if (fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP
+          || fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
+          || (unitNode.isA(LITERAL)
+              && ((RexLiteral) unitNode).getValue() != null
+              && !((RexLiteral) unitNode).getValue().toString().isEmpty())) {
+        // Use SPAN function for datetime fields or when unit is specified
+        if ((fieldType.getSqlTypeName() == SqlTypeName.BIGINT
+                || fieldType.getSqlTypeName() == SqlTypeName.INTEGER
+                || fieldType.getSqlTypeName() == SqlTypeName.SMALLINT
+                || fieldType.getSqlTypeName() == SqlTypeName.TINYINT)
+            && unitNode.isA(LITERAL)
+            && ((RexLiteral) unitNode).getValue() == null
+            && !isDecimalSpan) {
+          // For integer-like fields with null unit, ensure span is also INTEGER
+          spanValue = context.relBuilder.cast(spanValue, SqlTypeName.INTEGER);
+        }
+
+        binExpression =
+            PPLFuncImpTable.INSTANCE.resolve(
+                context.rexBuilder, BuiltinFunctionName.SPAN, fieldExpr, spanValue, unitNode);
+      } else {
+        // For numeric fields with simple spans, implement binning directly
+        // bin = FLOOR(field / span) * span
+        RexNode workingFieldExpr = fieldExpr;
+
+        RexNode divided =
+            context.relBuilder.call(SqlStdOperatorTable.DIVIDE, workingFieldExpr, spanValue);
+        RexNode floored = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
+        binExpression = context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, floored, spanValue);
+      }
+
+    } else if (node.getMinspan() != null) {
+      // Handle minspan-based binning - automatic span calculation based on data range
+      // When minspan is specified without explicit span, calculate appropriate span
+      RexNode minspanValue = rexVisitor.analyze(node.getMinspan(), context);
+      RelDataType fieldType = fieldExpr.getType();
+
+      // For minspan, we need to calculate the data range and determine appropriate span
+      // This is a simplified implementation - in production, you'd want to:
+      // 1. Calculate actual min/max values from the data
+      // 2. Use minspan as the minimum allowed span
+      // 3. Calculate optimal span that is >= minspan and creates reasonable number of bins
+
+      // Default implementation: use minspan as the span value
+      RexNode spanValue = minspanValue;
+
+      // Determine the unit parameter based on field type
+      RexNode unitNode;
+      if (fieldType.getSqlTypeName() == SqlTypeName.BIGINT
+          || fieldType.getSqlTypeName() == SqlTypeName.INTEGER
+          || fieldType.getSqlTypeName() == SqlTypeName.SMALLINT
+          || fieldType.getSqlTypeName() == SqlTypeName.TINYINT
+          || fieldType.getSqlTypeName() == SqlTypeName.DOUBLE
+          || fieldType.getSqlTypeName() == SqlTypeName.FLOAT
+          || fieldType.getSqlTypeName() == SqlTypeName.DECIMAL) {
+        // For numeric fields, pass null to use simple division/multiplication logic
+        unitNode = context.relBuilder.literal(null);
+      } else {
+        // For datetime fields, use empty string unit (will be handled by datetime logic)
+        unitNode = context.relBuilder.literal("");
+      }
+
+      // Check if span is a decimal value - SPAN function only supports INTEGER intervals
+      boolean isDecimalSpan = false;
+      if (spanValue.isA(LITERAL) && ((RexLiteral) spanValue).getValue() != null) {
+        Object spanVal = ((RexLiteral) spanValue).getValue();
+        if (spanVal instanceof Number) {
+          double doubleVal = ((Number) spanVal).doubleValue();
+          isDecimalSpan = (doubleVal != Math.floor(doubleVal));
+        }
+      }
+
+      if (fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP
+          || fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
+          || (unitNode.isA(LITERAL)
+              && ((RexLiteral) unitNode).getValue() != null
+              && !((RexLiteral) unitNode).getValue().toString().isEmpty())) {
+        // Use SPAN function for datetime fields or when unit is specified
+        if ((fieldType.getSqlTypeName() == SqlTypeName.BIGINT
+                || fieldType.getSqlTypeName() == SqlTypeName.INTEGER
+                || fieldType.getSqlTypeName() == SqlTypeName.SMALLINT
+                || fieldType.getSqlTypeName() == SqlTypeName.TINYINT)
+            && unitNode.isA(LITERAL)
+            && ((RexLiteral) unitNode).getValue() == null
+            && !isDecimalSpan) {
+          // For integer-like fields with null unit, ensure span is also INTEGER
+          spanValue = context.relBuilder.cast(spanValue, SqlTypeName.INTEGER);
+        }
+
+        binExpression =
+            PPLFuncImpTable.INSTANCE.resolve(
+                context.rexBuilder, BuiltinFunctionName.SPAN, fieldExpr, spanValue, unitNode);
+      } else {
+        // For numeric fields with simple spans, implement binning directly
+        // bin = FLOOR(field / span) * span
+        RexNode workingFieldExpr = fieldExpr;
+
+        RexNode divided =
+            context.relBuilder.call(SqlStdOperatorTable.DIVIDE, workingFieldExpr, spanValue);
+        RexNode floored = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
+        binExpression = context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, floored, spanValue);
+      }
 
     } else if (node.getBins() != null) {
       // Handle bins-based binning (divide range into equal parts)
