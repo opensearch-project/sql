@@ -62,7 +62,7 @@ public class CalciteRexNodeVisitorTest {
     when(relBuilder.getRexBuilder()).thenReturn(rexBuilder);
     when(rexBuilder.getTypeFactory()).thenReturn(TYPE_FACTORY);
     mockedStatic = Mockito.mockStatic(CalciteToolsHelper.class);
-    mockedStatic.when(() -> CalciteToolsHelper.connect(any(), any())).thenReturn(connection);
+    mockedStatic.when(() -> CalciteToolsHelper.connect(any(), any(), any())).thenReturn(connection);
 
     mockedStatic.when(() -> CalciteToolsHelper.create(any(), any(), any())).thenReturn(relBuilder);
 
