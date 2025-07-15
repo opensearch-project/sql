@@ -501,7 +501,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       // The SPAN function already handles timestamps correctly
       RexNode spanValue = rexVisitor.analyze(node.getSpan(), context);
       RelDataType fieldType = fieldExpr.getType();
-      
+
       // Determine the unit parameter based on field type
       RexNode unitNode;
       if (fieldType.getSqlTypeName() == SqlTypeName.BIGINT
@@ -520,10 +520,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
       // Ensure span value is INTEGER for integer numeric fields (SPAN function requirement)
       if ((fieldType.getSqlTypeName() == SqlTypeName.BIGINT
-          || fieldType.getSqlTypeName() == SqlTypeName.INTEGER
-          || fieldType.getSqlTypeName() == SqlTypeName.SMALLINT
-          || fieldType.getSqlTypeName() == SqlTypeName.TINYINT)
-          && unitNode.isA(LITERAL) && ((RexLiteral) unitNode).getValue() == null) {
+              || fieldType.getSqlTypeName() == SqlTypeName.INTEGER
+              || fieldType.getSqlTypeName() == SqlTypeName.SMALLINT
+              || fieldType.getSqlTypeName() == SqlTypeName.TINYINT)
+          && unitNode.isA(LITERAL)
+          && ((RexLiteral) unitNode).getValue() == null) {
         // For integer-like fields with null unit, ensure span is also INTEGER
         spanValue = context.relBuilder.cast(spanValue, SqlTypeName.INTEGER);
       }
