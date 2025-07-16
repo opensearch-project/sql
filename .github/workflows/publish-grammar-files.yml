@@ -7,7 +7,6 @@ on:
       - main
       - 1.*
       - 2.*
-      - poc/commit-metadata
     paths:
       - 'language-grammar/src/main/antlr4/**'
       - 'language-grammar/build.gradle'
@@ -21,7 +20,7 @@ concurrency:
 
 env:
   SNAPSHOT_REPO_URL: https://central.sonatype.com/repository/maven-snapshots/
-  # Commit history is now embedded in maven-metadata.xml instead of JSON files
+  COMMIT_MAP_FILENAME: commit-history-language-grammar.json
 
 jobs:
   publish-grammar-files:
@@ -71,7 +70,7 @@ jobs:
 
       - uses: actions/checkout@v4
         with:
-          repository: 'opensearch-project/opensearch-build'
+          repository: 'opensearch-project/opensearch-build-libraries'
           path: 'build'
 
       - name: Install required tools
