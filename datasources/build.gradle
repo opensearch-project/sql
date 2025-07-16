@@ -28,7 +28,6 @@ dependencies {
     }
     // Use OpenSearch bouncycastle version. https://github.com/opensearch-project/OpenSearch/blob/main/buildSrc/version.properties
     implementation "org.bouncycastle:bcprov-jdk18on:${versions.bouncycastle}"
-    implementation group: 'commons-validator', name: 'commons-validator', version: '1.7'
 
     testImplementation group: 'junit', name: 'junit', version: '4.13.2'
     testImplementation('org.junit.jupiter:junit-jupiter:5.9.3')
