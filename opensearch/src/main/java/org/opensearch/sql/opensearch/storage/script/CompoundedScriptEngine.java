@@ -51,7 +51,7 @@ public class CompoundedScriptEngine implements ScriptEngine {
   @Override
   public <T> T compile(
       String scriptName, String scriptCode, ScriptContext<T> context, Map<String, String> options) {
-    return switch (options.getOrDefault(ENGINE_TYPE, CALCITE_ENGINE_TYPE)) {
+    return switch (options.getOrDefault(ENGINE_TYPE, V2_ENGINE_TYPE)) {
       case CALCITE_ENGINE_TYPE -> calciteScriptEngine.compile(
           scriptName, scriptCode, context, options);
       case V2_ENGINE_TYPE -> v2ExpressionScriptEngine.compile(

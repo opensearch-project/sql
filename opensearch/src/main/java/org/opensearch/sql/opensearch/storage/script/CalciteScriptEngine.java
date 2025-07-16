@@ -100,7 +100,7 @@ public class CalciteScriptEngine implements ScriptEngine {
   }
 
   /** Expression script language name. */
-  public static final String CALCITE_LANG_NAME = "opensearch_calcite";
+  public static final String EXPRESSION_LANG_NAME = "opensearch_calcite_expression";
 
   /** All supported script contexts and function to create factory from expression. */
   private static final Map<ScriptContext<?>, Function<Function1<DataContext, Object[]>, Object>>
@@ -112,7 +112,7 @@ public class CalciteScriptEngine implements ScriptEngine {
 
   @Override
   public String getType() {
-    return CALCITE_LANG_NAME;
+    return EXPRESSION_LANG_NAME;
   }
 
   @Override

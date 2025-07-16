@@ -449,6 +449,21 @@ public class ExplainIT extends PPLIntegTestCase {
                 + " 32 and balance = 39225 | fields firstname, age"));
   }
 
+  @Test
+  public void testDifferentFilterScriptPushDownBehaviorExplain() throws Exception {
+    String explainedPlan =
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account |  where firstname != '' | fields firstname");
+    if (isCalciteEnabled()) {
+      // Calcite pushdown as pure filter query
+      String expected = loadExpectedPlan("explain_filter_script_push_diff.json");
+      assertJsonEqualsIgnoreId(expected, explainedPlan);
+    } else {
+      // V2 pushdown as script
+      assertTrue(explainedPlan.contains("{\\\"script\\\":"));
+    }
+  }
+
   protected String loadExpectedPlan(String fileName) throws IOException {
     String prefix;
     if (isCalciteEnabled()) {
