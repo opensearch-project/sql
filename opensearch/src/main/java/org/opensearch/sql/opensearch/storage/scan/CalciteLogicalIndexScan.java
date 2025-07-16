@@ -102,9 +102,12 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       RelDataType rowType = filter.getRowType();
       CalciteLogicalIndexScan newScan = this.copyWithNewSchema(filter.getRowType());
       List<String> schema = this.getRowType().getFieldNames();
-      Map<String, ExprType> fieldTypes = this.osIndex.getFieldTypes();
+      Map<String, ExprType> fieldTypes =
+          this.osIndex.getFieldTypes().entrySet().stream()
+              .filter(entry -> schema.contains(entry.getKey()))
+              .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
       QueryExpression queryExpression =
-          PredicateAnalyzer.analyze_(
+          PredicateAnalyzer.analyzeExpression(
               filter.getCondition(), schema, fieldTypes, rowType, getCluster());
 
       newScan.pushDownContext.add(

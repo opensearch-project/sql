@@ -99,7 +99,7 @@ import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.Matc
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MultiMatchQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.QueryStringQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.SimpleQueryStringQuery;
-import org.opensearch.sql.opensearch.storage.serialization.RelJsonSerializer;
+import org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer;
 
 /**
  * Query predicate analyzer. Uses visitor pattern to traverse existing expression and convert it to
@@ -166,10 +166,10 @@ public class PredicateAnalyzer {
       RelDataType rowType,
       RelOptCluster cluster)
       throws ExpressionNotAnalyzableException {
-    return analyze_(expression, schema, fieldTypes, rowType, cluster).builder();
+    return analyzeExpression(expression, schema, fieldTypes, rowType, cluster).builder();
   }
 
-  public static QueryExpression analyze_(
+  public static QueryExpression analyzeExpression(
       RexNode expression,
       List<String> schema,
       Map<String, ExprType> fieldTypes,

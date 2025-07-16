@@ -31,8 +31,8 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
-import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
-import org.opensearch.sql.opensearch.storage.serialization.RelJsonSerializer;
+import org.opensearch.sql.opensearch.storage.serde.DefaultExpressionSerializer;
+import org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer;
 
 @Warmup(iterations = 1)
 @Measurement(iterations = 10)

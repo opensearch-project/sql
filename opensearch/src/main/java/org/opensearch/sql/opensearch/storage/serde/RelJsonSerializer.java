@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.opensearch.storage.serialization;
+package org.opensearch.sql.opensearch.storage.serde;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -29,6 +29,14 @@ import org.apache.calcite.util.JsonBuilder;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
+/**
+ * A serializer that (de-)serializes Calcite RexNode, RelDataType and OpenSearch field mapping.
+ *
+ * <p>This serializer:
+ * <li>Uses Calcite's RelJson class to convert RexNode and RelDataType to/from JSON string
+ * <li>Manages required OpenSearch field mapping information Note: OpenSearch ExprType subclasses
+ *     implement {@link java.io.Serializable} and are handled through standard Java serialization.
+ */
 @Getter
 public class RelJsonSerializer {
 
@@ -56,6 +64,19 @@ public class RelJsonSerializer {
     this.cluster = cluster;
   }
 
+  /**
+   * Serializes Calcite expressions and field types into a map object string.
+   *
+   * <p>This method:
+   * <li>Convert RexNode and RelDataType objects to JSON strings.
+   * <li>Combines these JSON strings with OpenSearch field mappings into a map
+   * <li>Encodes the resulting map into a final object string
+   *
+   * @param rexNode pushed down RexNode
+   * @param relDataType row type of RexNode input
+   * @param fieldTypes input field and ExprType mapping
+   * @return serialized string of map structure for inputs
+   */
   public String serialize(
       RexNode rexNode, RelDataType relDataType, Map<String, ExprType> fieldTypes) {
     try {
@@ -79,6 +100,13 @@ public class RelJsonSerializer {
     }
   }
 
+  /**
+   * Deserialize serialized map structure string into a map of RexNode, RelDataType and OpenSearch
+   * field types.
+   *
+   * @param struct input serialized map structure string
+   * @return map of RexNode, RelDataType and OpenSearch field types
+   */
   public Map<String, Object> deserialize(String struct) {
     try {
       // Recover Map object from bytes

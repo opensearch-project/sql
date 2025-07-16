@@ -84,7 +84,7 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
 import org.opensearch.sql.opensearch.storage.script.filter.CalciteFilterScriptFactory;
-import org.opensearch.sql.opensearch.storage.serialization.RelJsonSerializer;
+import org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer;
 
 /**
  * Custom expression script engine that supports using core engine expression code in DSL as a new

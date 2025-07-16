@@ -9,11 +9,14 @@ import java.util.Map;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.volcano.VolcanoPlanner;
+import org.apache.calcite.rex.RexBuilder;
 import org.opensearch.script.AggregationScript;
 import org.opensearch.script.FilterScript;
 import org.opensearch.script.ScriptContext;
 import org.opensearch.script.ScriptEngine;
-import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.opensearch.storage.serde.DefaultExpressionSerializer;
 
 /**
  * Custom expression script engine that supports using core engine expression code in DSL as a new
@@ -34,8 +37,10 @@ public class CompoundedScriptEngine implements ScriptEngine {
 
   private final CalciteScriptEngine calciteScriptEngine;
 
-  public CompoundedScriptEngine(RelOptCluster relOptCluster) {
-    this.calciteScriptEngine = new CalciteScriptEngine(relOptCluster);
+  public CompoundedScriptEngine() {
+    RexBuilder rexBuilder = new RexBuilder(OpenSearchTypeFactory.TYPE_FACTORY);
+    RelOptCluster cluster = RelOptCluster.create(new VolcanoPlanner(), rexBuilder);
+    this.calciteScriptEngine = new CalciteScriptEngine(cluster);
   }
 
   @Override
@@ -46,7 +51,7 @@ public class CompoundedScriptEngine implements ScriptEngine {
   @Override
   public <T> T compile(
       String scriptName, String scriptCode, ScriptContext<T> context, Map<String, String> options) {
-    return switch (options.getOrDefault(ENGINE_TYPE, V2_ENGINE_TYPE)) {
+    return switch (options.getOrDefault(ENGINE_TYPE, CALCITE_ENGINE_TYPE)) {
       case CALCITE_ENGINE_TYPE -> calciteScriptEngine.compile(
           scriptName, scriptCode, context, options);
       case V2_ENGINE_TYPE -> v2ExpressionScriptEngine.compile(

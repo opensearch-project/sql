@@ -14,8 +14,12 @@ import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.volcano.VolcanoPlanner;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.StructKind;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -38,14 +42,17 @@ import org.opensearch.index.query.SimpleQueryStringBuilder;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.index.query.TermsQueryBuilder;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.ExpressionNotAnalyzableException;
+import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.UnsupportedScriptException;
 
 public class PredicateAnalyzerTest {
   final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
   final RexBuilder builder = new RexBuilder(typeFactory);
+  final RelOptCluster cluster = RelOptCluster.create(new VolcanoPlanner(), builder);
   final List<String> schema = List.of("a", "b", "c");
   final Map<String, ExprType> fieldTypes =
       Map.of(
@@ -658,5 +665,26 @@ public class PredicateAnalyzerTest {
             IllegalArgumentException.class,
             () -> PredicateAnalyzer.analyze(call, schema, fieldTypes));
     assertEquals("field name is null or empty", exception.getMessage());
+  }
+
+  @Test
+  void isNullOr_throwException() {
+    final RelDataType rowType =
+        builder
+            .getTypeFactory()
+            .builder()
+            .kind(StructKind.FULLY_QUALIFIED)
+            .add("a", builder.getTypeFactory().createSqlType(SqlTypeName.BIGINT))
+            .add("b", builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR))
+            .build();
+    // PPL IS_EMPTY is translated to OR(IS_NULL(arg), IS_EMPTY(arg))
+    RexNode call = PPLFuncImpTable.INSTANCE.resolve(builder, BuiltinFunctionName.IS_EMPTY, field2);
+    UnsupportedScriptException exception =
+        assertThrows(
+            UnsupportedScriptException.class,
+            () -> PredicateAnalyzer.analyzeExpression(call, schema, fieldTypes, rowType, cluster));
+    assertEquals(
+        "DSL will evaluate both branches of OR with isNUll, prevent push-down to avoid NPE",
+        exception.getMessage());
   }
 }
