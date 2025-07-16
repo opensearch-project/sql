@@ -241,7 +241,7 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], "
-            + "COMM=[$6], DEPTNO=[$7], date_bucket=[SPAN($4, 86400, '')])\n"
+            + "COMM=[$6], DEPTNO=[$7], date_bucket=[SPAN($4, 86400, 'ms')])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
   }
@@ -252,14 +252,14 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
-            + " COMM=[$6], DEPTNO=[$7], hour_bucket=[+(SPAN(-($4, 1640995200), 3600, ''),"
+            + " COMM=[$6], DEPTNO=[$7], hour_bucket=[+(SPAN(-($4, 1640995200), 3600, 'ms'),"
             + " 1640995200)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
         "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, "
-            + "`SPAN`(`HIREDATE` - 1640995200, 3600, '') + 1640995200 `hour_bucket`\n"
+            + "`SPAN`(`HIREDATE` - 1640995200, 3600, 'ms') + 1640995200 `hour_bucket`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
