@@ -16,7 +16,7 @@ teardown:
             plugins.calcite.fallback.allowed : true
 
 ---
-"Handle flattened document value":
+"Handle sag with nullAs":
   - skip:
       features:
         - headers
