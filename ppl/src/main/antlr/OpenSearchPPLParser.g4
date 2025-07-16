@@ -123,6 +123,11 @@ showDataSourcesCommand
 
 tableCommand
    : TABLE wcFieldList
+   | TABLE wcFieldExpressionList
+   ;
+
+wcFieldExpressionList
+   : wcFieldExpression (wcFieldExpression)+
    ;
 
 whereCommand

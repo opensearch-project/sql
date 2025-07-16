@@ -40,6 +40,12 @@ public class CalcitePPLTableTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql = "SELECT `EMPNO`, `ENAME`\n" + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
+
+    // Test comma-delimited syntax
+    ppl = "source=EMP | table EMPNO,ENAME";
+    root = getRelNode(ppl);
+    verifyLogical(root, expectedLogical);
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   /**
@@ -157,11 +163,11 @@ public class CalcitePPLTableTest extends CalcitePPLAbstractTest {
   }
 
   /**
-   * Tests basic field selection with multiple columns. Similar to testTableBasicFields but with an
-   * additional column.
+   * Tests basic field selection with multiple columns. Extends testTableBasicFields with an
+   * additional column to verify handling of more fields.
    */
   @Test
-  public void testTableBasicFieldSelection() {
+  public void testTableMultipleFields() {
     String ppl = "source=EMP | table EMPNO, ENAME, JOB";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
@@ -325,6 +331,191 @@ public class CalcitePPLTableTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql =
         "SELECT `ENAME`, `DEPTNO`, `EMPNO`, `ENAME` `ENAME0`, `HIREDATE`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  /**
+   * Tests wildcard pattern matching for fields with a specific prefix, similar to the RFC example:
+   * source=access_logs | table host, action, date_m* This extends testTableWildcardFieldsStarting
+   * by combining explicit fields with wildcard patterns.
+   */
+  @Test
+  public void testTableWithSpecificPrefixWildcard() {
+    String ppl = "source=EMP | table ENAME, JOB, DEPT*";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(ENAME=[$1], JOB=[$2], DEPTNO=[$7])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql = "SELECT `ENAME`, `JOB`, `DEPTNO`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  /**
+   * Tests mixed field specification with regular fields and wildcards, similar to the RFC example:
+   * source=data | table timestamp, value*, status, response_time This test specifically focuses on
+   * interspersing wildcards between regular fields in a specific order.
+   */
+  @Test
+  public void testTableWithMixedFieldSpecification() {
+    String ppl = "source=EMP | table ENAME, SAL*, JOB, HIREDATE";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(ENAME=[$1], SAL=[$5], JOB=[$2], HIREDATE=[$4])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql = "SELECT `ENAME`, `SAL`, `JOB`, `HIREDATE`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  /**
+   * Tests multiple wildcard patterns in field selection, similar to the RFC example: source=logs |
+   * table time, host*, error_* This test specifically focuses on using multiple different wildcard
+   * patterns in a single query.
+   */
+  @Test
+  public void testTableWithMultipleWildcardPatterns() {
+    String ppl = "source=EMP | table ENAME, E*, D*";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(ENAME=[$1], EMPNO=[$0], ENAME0=[$1], DEPTNO=[$7])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `ENAME`, `EMPNO`, `ENAME` `ENAME0`, `DEPTNO`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  /**
+   * Tests space-delimited only syntax without commas. Verifies that fields can be specified with
+   * spaces only, without requiring commas as separators.
+   */
+  @Test
+  public void testTableSpaceDelimitedOnly() {
+    String ppl = "source=EMP | table ENAME JOB DEPTNO";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(ENAME=[$1], JOB=[$2], DEPTNO=[$7])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql = "SELECT `ENAME`, `JOB`, `DEPTNO`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  /**
+   * Tests space-delimited syntax with wildcard field selection. Verifies that fields starting with
+   * 'EMP' are correctly selected using space-delimited syntax.
+   */
+  @Test
+  public void testTableSpaceDelimitedWildcardFieldsStarting() {
+    String ppl = "source=EMP | table EMP*";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0])\n" + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql = "SELECT `EMPNO`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  /**
+   * Tests space-delimited syntax with multiple wildcard patterns. Verifies that multiple wildcard
+   * patterns work correctly with space-delimited syntax.
+   */
+  @Test
+  public void testTableSpaceDelimitedMultipleWildcards() {
+    String ppl = "source=EMP | table ENAME E* D*";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(ENAME=[$1], EMPNO=[$0], ENAME0=[$1], DEPTNO=[$7])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `ENAME`, `EMPNO`, `ENAME` `ENAME0`, `DEPTNO`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  /**
+   * Tests space-delimited syntax with a filter operation. Verifies that filtering works correctly
+   * before field selection with space-delimited syntax.
+   */
+  @Test
+  public void testTableSpaceDelimitedWithFilter() {
+    String ppl = "source=EMP | where DEPTNO = 20 | table EMPNO ENAME SAL";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], SAL=[$5])\n"
+            + "  LogicalFilter(condition=[=($7, 20)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`, `SAL`\n" + "FROM `scott`.`EMP`\n" + "WHERE `DEPTNO` = 20";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  /**
+   * Tests space-delimited syntax with a sort operation. Verifies that sorting is applied before
+   * field selection with space-delimited syntax.
+   */
+  @Test
+  public void testTableSpaceDelimitedWithSort() {
+    String ppl = "source=EMP | sort EMPNO | table EMPNO ENAME";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[ASC-nulls-first])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`\n" + "FROM `scott`.`EMP`\n" + "ORDER BY `EMPNO`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  /**
+   * Tests space-delimited syntax with a complex query. Verifies that multiple operations work
+   * correctly with space-delimited field selection.
+   */
+  @Test
+  public void testTableSpaceDelimitedWithComplexQuery() {
+    String ppl = "source=EMP | where SAL > 1000 | sort - SAL | table ENAME SAL DEPTNO | head 3";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(ENAME=[$1], SAL=[$5], DEPTNO=[$7])\n"
+            + "  LogicalSort(sort0=[$5], dir0=[DESC-nulls-last], fetch=[3])\n"
+            + "    LogicalFilter(condition=[>($5, 1000)])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `ENAME`, `SAL`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE `SAL` > 1000\n"
+            + "ORDER BY `SAL` DESC\n"
+            + "LIMIT 3";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  /**
+   * Tests that field ordering in the space-delimited table command is preserved in the output.
+   * Verifies that fields appear in the result in the same order as specified.
+   */
+  @Test
+  public void testTableSpaceDelimitedFieldOrdering() {
+    String ppl = "source=EMP | table JOB ENAME EMPNO";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(JOB=[$2], ENAME=[$1], EMPNO=[$0])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql = "SELECT `JOB`, `ENAME`, `EMPNO`\n" + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }

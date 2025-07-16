@@ -667,7 +667,8 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
    * results. It's similar to the SELECT clause in SQL, allowing users to choose specific fields
    * rather than returning all fields from the data source.
    *
-   * <p>Example PPL query: "source=index | table field1, field2, field3"
+   * <p>Example PPL query: "source=index | table field1, field2, field3" or "source=index | table
+   * field1 field2 field3"
    *
    * @param ctx The parse tree context for the table command containing field expressions to be
    *     displayed
@@ -677,11 +678,26 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   public UnresolvedPlan visitTableCommand(OpenSearchPPLParser.TableCommandContext ctx) {
     // Extract all field expressions from the command context
     // and transform them into UnresolvedExpressions
-    return new Table(
-        ctx.wcFieldList().wcFieldExpression().stream()
-            .map(this::internalVisitExpression) // Convert each field expression to an
-            // UnresolvedExpression
-            .collect(Collectors.toList())); // Collect all field expressions into a list
+    List<UnresolvedExpression> fields;
+
+    if (ctx.wcFieldList() != null) {
+      // Handle comma-separated fields: table field1, field2, field3
+      fields =
+          ctx.wcFieldList().wcFieldExpression().stream()
+              .map(this::internalVisitExpression)
+              .collect(Collectors.toList());
+    } else if (ctx.wcFieldExpressionList() != null) {
+      // Handle space-delimited fields: table field1 field2 field3
+      fields =
+          ctx.wcFieldExpressionList().wcFieldExpression().stream()
+              .map(this::internalVisitExpression)
+              .collect(Collectors.toList());
+    } else {
+      // Fallback to empty list if neither is present (shouldn't happen with valid syntax)
+      fields = Collections.emptyList();
+    }
+
+    return new Table(fields);
   }
 
   /** trendline command. */

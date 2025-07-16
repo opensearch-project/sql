@@ -55,8 +55,8 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
   }
 
   /**
-   * Tests the table command with multiple fields. Verifies that the table command correctly selects
-   * multiple fields and returns the expected schema and data rows with all specified fields.
+   * Tests the table command with multiple fields using comma-delimited syntax. Verifies that the
+   * table command correctly selects multiple fields and returns the expected schema and data rows.
    *
    * @throws IOException if query execution fails
    */
@@ -66,6 +66,29 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | table account_number, firstname, age | head 3", TEST_INDEX_ACCOUNT));
+
+    verifySchema(
+        actual,
+        schema("account_number", "bigint"),
+        schema("firstname", "string"),
+        schema("age", "bigint"));
+
+    verifyDataRows(actual, rows(1, "Amber", 32), rows(6, "Hattie", 36), rows(13, "Nanette", 28));
+  }
+
+  /**
+   * Tests the table command with multiple fields using space-delimited syntax. Verifies that the
+   * table command correctly selects multiple fields without commas and returns the expected schema
+   * and data.
+   *
+   * @throws IOException if query execution fails
+   */
+  @Test
+  public void testTableWithSpaceDelimitedFields() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | table account_number firstname age | head 3", TEST_INDEX_ACCOUNT));
 
     verifySchema(
         actual,
@@ -161,8 +184,8 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
   }
 
   /**
-   * Tests that the table command preserves field order. Verifies that fields appear in the result
-   * schema in the same order as specified in the table command.
+   * Tests that the table command preserves field order with comma-delimited syntax. Verifies that
+   * fields appear in the result schema in the same order as specified in the table command.
    *
    * @throws IOException if query execution fails
    */
@@ -172,6 +195,30 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | table firstname, account_number, age | head 1", TEST_INDEX_ACCOUNT));
+
+    JSONArray schema = actual.getJSONArray("schema");
+    assertEquals(
+        "First field should be firstname", "firstname", schema.getJSONObject(0).getString("name"));
+    assertEquals(
+        "Second field should be account_number",
+        "account_number",
+        schema.getJSONObject(1).getString("name"));
+    assertEquals("Third field should be age", "age", schema.getJSONObject(2).getString("name"));
+  }
+
+  /**
+   * Tests that the table command preserves field order with space-delimited syntax. Verifies that
+   * fields appear in the result schema in the same order as specified in the table command without
+   * commas.
+   *
+   * @throws IOException if query execution fails
+   */
+  @Test
+  public void testTableSpaceDelimitedFieldOrder() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | table firstname account_number age | head 1", TEST_INDEX_ACCOUNT));
 
     JSONArray schema = actual.getJSONArray("schema");
     assertEquals(
@@ -219,7 +266,7 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
   /**
    * Tests the table command in a complex query with multiple operations. Verifies that the table
    * command works correctly in a pipeline with filtering, sorting in descending order, and field
-   * selection.
+   * selection using comma-delimited syntax.
    *
    * @throws IOException if query execution fails
    */
@@ -230,6 +277,38 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | where balance > 30000 | sort - balance | table account_number,"
                     + " firstname, balance | head 2",
+                TEST_INDEX_ACCOUNT));
+
+    verifySchema(
+        actual,
+        schema("account_number", "bigint"),
+        schema("firstname", "string"),
+        schema("balance", "bigint"));
+
+    JSONArray datarows = actual.getJSONArray("datarows");
+    long prevBalance = Long.MAX_VALUE;
+    for (int i = 0; i < datarows.length(); i++) {
+      long balance = datarows.getJSONArray(i).getLong(2);
+      assertTrue("All balances should be greater than 30000", balance > 30000);
+      assertTrue("Balances should be in descending order", balance <= prevBalance);
+      prevBalance = balance;
+    }
+  }
+
+  /**
+   * Tests the table command in a complex query with multiple operations using space-delimited
+   * syntax. Verifies that the table command works correctly in a pipeline with filtering, sorting
+   * in descending order, and field selection without commas.
+   *
+   * @throws IOException if query execution fails
+   */
+  @Test
+  public void testTableWithSpaceDelimitedComplexQuery() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where balance > 30000 | sort - balance | table account_number"
+                    + " firstname balance | head 2",
                 TEST_INDEX_ACCOUNT));
 
     verifySchema(
@@ -355,6 +434,36 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
       }
     }
     assertTrue("Schema should contain at least one field starting with 'account'", hasAccountField);
+
+    JSONArray datarows = actual.getJSONArray("datarows");
+    assertTrue("Should return at least one row", datarows.length() > 0);
+  }
+
+  /**
+   * Tests the table command with multiple wildcard patterns using space-delimited syntax. Verifies
+   * that the table command correctly selects fields matching multiple wildcard patterns.
+   *
+   * @throws IOException if query execution fails
+   */
+  @Test
+  public void testTableWithSpaceDelimitedWildcards() throws IOException {
+    JSONObject actual =
+        executeQuery(String.format("source=%s | table account* age* | head 3", TEST_INDEX_ACCOUNT));
+
+    JSONArray schema = actual.getJSONArray("schema");
+    boolean hasAccountField = false;
+    boolean hasAgeField = false;
+    for (int i = 0; i < schema.length(); i++) {
+      String fieldName = schema.getJSONObject(i).getString("name");
+      if (fieldName.startsWith("account")) {
+        hasAccountField = true;
+      }
+      if (fieldName.startsWith("age")) {
+        hasAgeField = true;
+      }
+    }
+    assertTrue("Schema should contain at least one field starting with 'account'", hasAccountField);
+    assertTrue("Schema should contain at least one field starting with 'age'", hasAgeField);
 
     JSONArray datarows = actual.getJSONArray("datarows");
     assertTrue("Should return at least one row", datarows.length() > 0);
