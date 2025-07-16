@@ -23,6 +23,7 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.NumberUtil;
+import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 
@@ -66,6 +67,10 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     String explainString = pushDownContext + ", " + requestBuilder;
     return super.explainTerms(pw)
         .itemIf("PushDownContext", explainString, !pushDownContext.isEmpty());
+  }
+
+  protected Integer getQuerySizeLimit() {
+    return osIndex.getSettings().getSettingValue(Key.QUERY_SIZE_LIMIT);
   }
 
   @Override

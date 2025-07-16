@@ -37,10 +37,8 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.util.Properties;
 import java.util.function.Consumer;
-import lombok.RequiredArgsConstructor;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
-import org.apache.calcite.adapter.enumerable.EnumerableRel.Prefer;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.avatica.AvaticaFactory;
@@ -115,8 +113,7 @@ public class CalciteToolsHelper {
             new OpenSearchRelBuilder(config.getContext(), cluster, relOptSchema));
   }
 
-  public static Connection connect(
-      FrameworkConfig config, JavaTypeFactory typeFactory, Integer querySizeLimit) {
+  public static Connection connect(FrameworkConfig config, JavaTypeFactory typeFactory) {
     final Properties info = new Properties();
     if (config.getTypeSystem() != RelDataTypeSystem.DEFAULT) {
       info.setProperty(
@@ -124,7 +121,7 @@ public class CalciteToolsHelper {
           config.getTypeSystem().getClass().getName());
     }
     try {
-      return new OpenSearchDriver(querySizeLimit).connect("jdbc:calcite:", info, null, typeFactory);
+      return new OpenSearchDriver().connect("jdbc:calcite:", info, null, typeFactory);
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
@@ -150,16 +147,13 @@ public class CalciteToolsHelper {
       }
       final CalciteServerStatement statement =
           connection.createStatement().unwrap(CalciteServerStatement.class);
-      // QUERY_SIZE_LIMIT only takes effect in execution, not in planning.
-      return new OpenSearchPrepareImpl(null).perform(statement, config, typeFactory, action);
+      return new OpenSearchPrepareImpl().perform(statement, config, typeFactory, action);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
   }
 
-  @RequiredArgsConstructor
   public static class OpenSearchDriver extends Driver {
-    private final Integer querySizeLimit;
 
     public Connection connect(
         String url, Properties info, CalciteSchema rootSchema, JavaTypeFactory typeFactory)
@@ -177,7 +171,7 @@ public class CalciteToolsHelper {
 
     @Override
     protected Function0<CalcitePrepare> createPrepareFactory() {
-      return () -> new OpenSearchPrepareImpl(querySizeLimit);
+      return OpenSearchPrepareImpl::new;
     }
   }
 
@@ -214,10 +208,7 @@ public class CalciteToolsHelper {
   public static final SqlAggFunction VAR_SAMP_NULLABLE =
       new NullableSqlAvgAggFunction(SqlKind.VAR_SAMP);
 
-  @RequiredArgsConstructor
   public static class OpenSearchPrepareImpl extends CalcitePrepareImpl {
-    private final Integer QUERY_SIZE_LIMIT;
-
     /**
      * Similar to {@link CalcitePrepareImpl#perform(CalciteServerStatement, FrameworkConfig,
      * Frameworks.BasePrepareAction)}, but with a custom typeFactory.
@@ -272,8 +263,7 @@ public class CalciteToolsHelper {
           prefer,
           createCluster(planner, new RexBuilder(typeFactory)),
           resultConvention,
-          createConvertletTable(),
-          QUERY_SIZE_LIMIT);
+          createConvertletTable());
     }
   }
 
@@ -283,7 +273,6 @@ public class CalciteToolsHelper {
    */
   public static class OpenSearchCalcitePreparingStmt
       extends CalcitePrepareImpl.CalcitePreparingStmt {
-    private final Integer QUERY_SIZE_LIMIT;
 
     public OpenSearchCalcitePreparingStmt(
         CalcitePrepareImpl prepare,
@@ -291,11 +280,10 @@ public class CalciteToolsHelper {
         CatalogReader catalogReader,
         RelDataTypeFactory typeFactory,
         CalciteSchema schema,
-        Prefer prefer,
+        EnumerableRel.Prefer prefer,
         RelOptCluster cluster,
         Convention resultConvention,
-        SqlRexConvertletTable convertletTable,
-        Integer querySizeLimit) {
+        SqlRexConvertletTable convertletTable) {
       super(
           prepare,
           context,
@@ -306,7 +294,6 @@ public class CalciteToolsHelper {
           cluster,
           resultConvention,
           convertletTable);
-      this.QUERY_SIZE_LIMIT = querySizeLimit;
     }
 
     @Override
@@ -315,7 +302,7 @@ public class CalciteToolsHelper {
       RelDataType resultType = root.rel.getRowType();
       boolean isDml = root.kind.belongsTo(SqlKind.DML);
       if (root.rel instanceof Scannable scannable) {
-        final Bindable bindable = dataContext -> scannable.scan(QUERY_SIZE_LIMIT);
+        final Bindable bindable = dataContext -> scannable.scanWithLimit();
 
         return new PreparedResultImpl(
             resultType,

@@ -56,7 +56,7 @@ public class CalcitePlanContext {
     this.config = config;
     this.querySizeLimit = querySizeLimit;
     this.queryType = queryType;
-    this.connection = CalciteToolsHelper.connect(config, TYPE_FACTORY, querySizeLimit);
+    this.connection = CalciteToolsHelper.connect(config, TYPE_FACTORY);
     this.relBuilder = CalciteToolsHelper.create(config, TYPE_FACTORY, connection);
     this.rexBuilder = new ExtendedRexBuilder(relBuilder.getRexBuilder());
     this.functionProperties = new FunctionProperties(QueryType.PPL);
