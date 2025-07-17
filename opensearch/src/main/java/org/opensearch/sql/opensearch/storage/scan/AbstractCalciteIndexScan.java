@@ -36,9 +36,9 @@ import org.opensearch.search.sort.ScoreSortBuilder;
 import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.search.sort.SortOrder;
+import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
-import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 
