@@ -23,7 +23,7 @@ import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
+import org.opensearch.sql.calcite.type.ExprIPType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -215,10 +215,6 @@ public interface PPLTypeChecker {
         RelDataType type_l = types.get(i);
         RelDataType type_r = types.get(i + 1);
         if (!SqlTypeUtil.isComparable(type_l, type_r)) {
-          if (areIpAndStringTypes(type_l, type_r) || areIpAndStringTypes(type_r, type_l)) {
-            // Allow IP and string comparison
-            continue;
-          }
           return false;
         }
         // Disallow coercing between strings and numeric, boolean
@@ -237,14 +233,6 @@ public interface PPLTypeChecker {
         case BOOLEAN, INTEGER, NUMERIC, EXACT_NUMERIC, APPROXIMATE_NUMERIC -> true;
         default -> false;
       };
-    }
-
-    private static boolean areIpAndStringTypes(RelDataType typeIp, RelDataType typeString) {
-      if (typeIp instanceof AbstractExprRelDataType<?> exprRelDataType) {
-        return exprRelDataType.getExprType() == ExprCoreType.IP
-            && typeString.getFamily() == SqlTypeFamily.CHARACTER;
-      }
-      return false;
     }
 
     @Override
@@ -266,6 +254,53 @@ public interface PPLTypeChecker {
         }
         return String.join(",", signatures);
       }
+    }
+  }
+
+  class PPLIPCompareTypeChecker implements PPLTypeChecker {
+    @Override
+    public boolean checkOperandTypes(List<RelDataType> types) {
+      if (types.size() != 2) {
+        return false;
+      }
+      RelDataType type1 = types.get(0);
+      RelDataType type2 = types.get(1);
+      return areIpAndStringTypes(type1, type2)
+          || areIpAndStringTypes(type2, type1)
+          || (type1 instanceof ExprIPType && type2 instanceof ExprIPType);
+    }
+
+    @Override
+    public String getAllowedSignatures() {
+      // Will be merged with the allowed signatures of comparable type checker,
+      // shown as [COMPARABLE_TYPE,COMPARABLE_TYPE]
+      return "";
+    }
+
+    private static boolean areIpAndStringTypes(RelDataType typeIp, RelDataType typeString) {
+      return typeIp instanceof ExprIPType && typeString.getFamily() == SqlTypeFamily.CHARACTER;
+    }
+  }
+
+  class PPLCidrTypeChecker implements PPLTypeChecker {
+    @Override
+    public boolean checkOperandTypes(List<RelDataType> types) {
+      if (types.size() != 2) {
+        return false;
+      }
+      RelDataType type1 = types.get(0);
+      RelDataType type2 = types.get(1);
+
+      // accept (STRING, STRING) or (IP, STRING)
+      if (type2.getFamily() != SqlTypeFamily.CHARACTER) {
+        return false;
+      }
+      return type1 instanceof ExprIPType || type1.getFamily() == SqlTypeFamily.CHARACTER;
+    }
+
+    @Override
+    public String getAllowedSignatures() {
+      return "[STRING,STRING],[IP,STRING]";
     }
   }
 
