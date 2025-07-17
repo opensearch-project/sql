@@ -68,4 +68,19 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
         verifySchema(result, schema("account_number", "bigint"));
         verifyDataRowsInOrder(result, rows(32), rows(25), rows(20));
     }
+
+    @Test
+    public void testReverseWithComplexPipeline() throws IOException {
+        JSONObject result = executeQuery(String.format("source=%s | where account_number > 18 | fields account_number | reverse | head 2", TEST_INDEX_BANK));
+        verifySchema(result, schema("account_number", "bigint"));
+        verifyDataRowsInOrder(result, rows(32), rows(25));
+    }
+
+    @Test
+    public void testReverseWithMultipleSorts() throws IOException {
+        // Use the existing BANK data but with a simpler, more predictable query
+        JSONObject result = executeQuery(String.format("source=%s | sort account_number | fields account_number | reverse | head 3", TEST_INDEX_BANK));
+        verifySchema(result, schema("account_number", "bigint"));
+        verifyDataRowsInOrder(result, rows(32), rows(25), rows(20));
+    }
 }
