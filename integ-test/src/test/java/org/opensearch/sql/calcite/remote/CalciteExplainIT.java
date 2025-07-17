@@ -48,13 +48,24 @@ public class CalciteExplainIT extends ExplainIT {
   // Only for Calcite
   @Test
   public void supportSearchSargPushDown_timeRange() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_bank"
+            + "| where birthdate >= '2016-12-08 00:00:00.000000000' "
+            + "and birthdate < '2018-11-09 00:00:00.000000000'";
+    var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_sarg_filter_push_time_range.json");
-    assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString(
-            "source=opensearch-sql_test_index_bank"
-                + "| where birthdate >= '2016-12-08 00:00:00.000000000' "
-                + "and birthdate < '2018-11-09 00:00:00.000000000' "));
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  // Only for Calcite
+  @Test
+  public void supportPushDownSortMergeJoin() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_bank| join left=l right=r on"
+            + " l.account_number=r.account_number opensearch-sql_test_index_bank";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_merge_join_sort_push.json");
+    assertJsonEqualsIgnoreId(expected, result);
   }
 
   // Only for Calcite, as v2 gets unstable serialized string for function

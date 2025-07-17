@@ -9,26 +9,42 @@ import static java.util.Objects.requireNonNull;
 import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 import lombok.Getter;
+import org.apache.calcite.adapter.enumerable.EnumerableMergeJoin;
+import org.apache.calcite.adapter.enumerable.EnumerableSort;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.NumberUtil;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.search.sort.ScoreSortBuilder;
+import org.opensearch.search.sort.SortBuilder;
+import org.opensearch.search.sort.SortBuilders;
+import org.opensearch.search.sort.SortOrder;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 
 /** An abstract relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
 public abstract class AbstractCalciteIndexScan extends TableScan {
+  private static final Logger LOG = LogManager.getLogger(AbstractCalciteIndexScan.class);
   public final OpenSearchIndex osIndex;
   // The schema of this scan operator, it's initialized with the row type of the table, but may be
   // changed by push down operations.
@@ -124,6 +140,140 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
       isAggregatePushed = !isEmpty() && super.peekLast().type == PushDownType.AGGREGATION;
       return isAggregatePushed;
     }
+  }
+
+  protected abstract AbstractCalciteIndexScan buildScan(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      List<RelHint> hints,
+      RelOptTable table,
+      OpenSearchIndex osIndex,
+      RelDataType schema,
+      PushDownContext pushDownContext);
+
+  private List<String> getCollationNames(List<RelFieldCollation> collations) {
+    return collations.stream()
+        .map(collation -> getRowType().getFieldNames().get(collation.getFieldIndex()))
+        .toList();
+  }
+
+  /**
+   * Check if the sort by collations contains any aggregators that are pushed down. E.g. In `stats
+   * avg(age) as avg_age by state | sort avg_age`, the sort clause has `avg_age` which is an
+   * aggregator. The function will return true in this case.
+   *
+   * @param collations List of collation names to check against aggregators.
+   * @return True if any collation name matches an aggregator output, false otherwise.
+   */
+  private boolean hasAggregatorInSortBy(List<String> collations) {
+    Stream<LogicalAggregate> aggregates =
+        pushDownContext.stream()
+            .filter(action -> action.type() == PushDownType.AGGREGATION)
+            .map(action -> ((LogicalAggregate) action.digest()));
+    return aggregates
+        .map(aggregate -> isAnyCollationNameInAggregateOutput(aggregate, collations))
+        .reduce(false, Boolean::logicalOr);
+  }
+
+  private static boolean isAnyCollationNameInAggregateOutput(
+      LogicalAggregate aggregate, List<String> collations) {
+    List<String> fieldNames = aggregate.getRowType().getFieldNames();
+    // The output fields of the aggregate are in the format of
+    // [...grouping fields, ...aggregator fields], so we set an offset to skip
+    // the grouping fields.
+    int groupOffset = aggregate.getGroupSet().cardinality();
+    List<String> fieldsWithoutGrouping = fieldNames.subList(groupOffset, fieldNames.size());
+    return collations.stream()
+        .map(fieldsWithoutGrouping::contains)
+        .reduce(false, Boolean::logicalOr);
+  }
+
+  /**
+   * Create a new {@link PushDownContext} without the collation action.
+   *
+   * @param pushDownContext The original push-down context.
+   * @return A new push-down context without the collation action.
+   */
+  protected PushDownContext cloneWithoutSort(PushDownContext pushDownContext) {
+    PushDownContext newContext = new PushDownContext();
+    for (PushDownAction action : pushDownContext) {
+      if (action.type() != PushDownType.SORT) {
+        newContext.add(action);
+      }
+    }
+    return newContext;
+  }
+
+  /**
+   * The sort pushdown is not only applied in logical plan side, but also should be applied in
+   * physical plan side. Because we could push down the {@link EnumerableSort} of {@link
+   * EnumerableMergeJoin} to OpenSearch.
+   */
+  public AbstractCalciteIndexScan pushDownSort(List<RelFieldCollation> collations) {
+    try {
+      List<String> collationNames = getCollationNames(collations);
+      if (getPushDownContext().isAggregatePushed() && hasAggregatorInSortBy(collationNames)) {
+        // If aggregation is pushed down, we cannot push down sorts where its by fields contain
+        // aggregators.
+        return null;
+      }
+
+      // Propagate the sort to the new scan
+      RelTraitSet traitsWithCollations = getTraitSet().plus(RelCollations.of(collations));
+      AbstractCalciteIndexScan newScan =
+          buildScan(
+              getCluster(),
+              traitsWithCollations,
+              hints,
+              table,
+              osIndex,
+              getRowType(),
+              // Existing collations are overridden (discarded) by the new collations,
+              cloneWithoutSort(pushDownContext));
+
+      List<SortBuilder<?>> builders = new ArrayList<>();
+      for (RelFieldCollation collation : collations) {
+        int index = collation.getFieldIndex();
+        String fieldName = this.getRowType().getFieldNames().get(index);
+        RelFieldCollation.Direction direction = collation.getDirection();
+        RelFieldCollation.NullDirection nullDirection = collation.nullDirection;
+        // Default sort order is ASCENDING
+        SortOrder order =
+            RelFieldCollation.Direction.DESCENDING.equals(direction)
+                ? SortOrder.DESC
+                : SortOrder.ASC;
+        // TODO: support script sort and distance sort
+        SortBuilder<?> sortBuilder;
+        if (ScoreSortBuilder.NAME.equals(fieldName)) {
+          sortBuilder = SortBuilders.scoreSort();
+        } else {
+          String missing =
+              switch (nullDirection) {
+                case FIRST -> "_first";
+                case LAST -> "_last";
+                default -> null;
+              };
+          // Keyword field is optimized for sorting in OpenSearch
+          ExprType fieldType = osIndex.getFieldTypes().get(fieldName);
+          String field = OpenSearchTextType.toKeywordSubField(fieldName, fieldType);
+          sortBuilder = SortBuilders.fieldSort(field).missing(missing);
+        }
+        builders.add(sortBuilder.order(order));
+      }
+      newScan.pushDownContext.add(
+          PushDownAction.of(
+              PushDownType.SORT,
+              builders.toString(),
+              requestBuilder -> requestBuilder.pushDownSort(builders)));
+      return newScan;
+    } catch (Exception e) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Cannot pushdown the sort {}", getCollationNames(collations), e);
+      } else {
+        LOG.info("Cannot pushdown the sort {}, ", getCollationNames(collations));
+      }
+    }
+    return null;
   }
 
   protected enum PushDownType {
