@@ -253,36 +253,18 @@ class AggregationQueryBuilderTest {
         .serialize(any());
     assertEquals(
         format(
-            "{%n"
-                + "  \"composite_buckets\" : {%n"
-                + "    \"composite\" : {%n"
-                + "      \"size\" : 1000,%n"
-                + "      \"sources\" : [ {%n"
-                + "        \"age\" : {%n"
-                + "          \"terms\" : {%n"
-                + "            \"script\" : {%n"
-                + "              \"source\" : \"asin(age)\",%n"
-                + "              \"lang\" : \"opensearch_compounded_script\"%n"
-                + "            },%n"
-                + "            \"missing_bucket\" : true,%n"
-                + "            \"missing_order\" : \"first\",%n"
-                + "            \"order\" : \"asc\"%n"
-                + "          }%n"
-                + "        }%n"
-                + "      } ]%n"
-                + "    },%n"
-                + "    \"aggregations\" : {%n"
-                + "      \"avg(balance)\" : {%n"
-                + "        \"avg\" : {%n"
-                + "          \"script\" : {%n"
-                + "            \"source\" : \"abs(balance)\",%n"
-                + "            \"lang\" : \"opensearch_compounded_script\"%n"
-                + "          }%n"
-                + "        }%n"
-                + "      }%n"
-                + "    }%n"
-                + "  }%n"
-                + "}"),
+            "{%n  \"composite_buckets\" : {%n    \"composite\" : {%n      \"size\" : 1000,%n     "
+                + " \"sources\" : [ {%n        \"age\" : {%n          \"terms\" : {%n           "
+                + " \"script\" : {%n              \"source\" :"
+                + " \"{\\\"langType\\\":\\\"v2\\\",\\\"script\\\":\\\"asin(age)\\\"}\",%n          "
+                + "    \"lang\" : \"opensearch_compounded_script\"%n            },%n           "
+                + " \"missing_bucket\" : true,%n            \"missing_order\" : \"first\",%n       "
+                + "     \"order\" : \"asc\"%n          }%n        }%n      } ]%n    },%n   "
+                + " \"aggregations\" : {%n      \"avg(balance)\" : {%n        \"avg\" : {%n        "
+                + "  \"script\" : {%n            \"source\" :"
+                + " \"{\\\"langType\\\":\\\"v2\\\",\\\"script\\\":\\\"abs(balance)\\\"}\",%n       "
+                + "     \"lang\" : \"opensearch_compounded_script\"%n          }%n        }%n     "
+                + " }%n    }%n  }%n}"),
         buildQuery(
             Arrays.asList(
                 named(

@@ -17,7 +17,9 @@ import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
+import org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.ScriptEngineType;
 import org.opensearch.sql.opensearch.storage.serde.ExpressionSerializer;
+import org.opensearch.sql.opensearch.storage.serde.SerializationWrapper;
 
 /** Abstract Aggregation Builder. */
 @RequiredArgsConstructor
@@ -43,7 +45,8 @@ public class AggregationBuilderHelper {
           new Script(
               DEFAULT_SCRIPT_TYPE,
               COMPOUNDED_LANG_NAME,
-              serializer.serialize(expression),
+              SerializationWrapper.wrapWithLangType(
+                  ScriptEngineType.V2, serializer.serialize(expression)),
               emptyMap()));
     } else {
       throw new IllegalStateException(

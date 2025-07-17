@@ -40,15 +40,14 @@ import static org.opensearch.index.query.QueryBuilders.termsQuery;
 import static org.opensearch.script.Script.DEFAULT_SCRIPT_TYPE;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.MULTI_FIELDS_RELEVANCE_FUNCTION_SET;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.SINGLE_FIELD_RELEVANCE_FUNCTION_SET;
-import static org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.CALCITE_ENGINE_TYPE;
 import static org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.COMPOUNDED_LANG_NAME;
-import static org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.ENGINE_TYPE;
 
 import com.google.common.collect.BoundType;
 import com.google.common.collect.Range;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.List;
@@ -1287,7 +1286,7 @@ public class PredicateAnalyzer {
               DEFAULT_SCRIPT_TYPE,
               COMPOUNDED_LANG_NAME,
               code,
-              Map.of(ENGINE_TYPE, CALCITE_ENGINE_TYPE),
+              Collections.emptyMap(),
               Map.of(Variable.UTC_TIMESTAMP.camelName, currentTime)));
     }
 
