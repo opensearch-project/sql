@@ -21,9 +21,11 @@ import org.json.JSONObject;
 import org.junit.Test;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
+import org.mockito.Mock;
 import org.opensearch.client.Request;
 import org.opensearch.client.ResponseException;
 import org.opensearch.client.RestHighLevelClient;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Injector;
 import org.opensearch.common.inject.ModulesBuilder;
 import org.opensearch.common.unit.TimeValue;
@@ -62,6 +64,8 @@ public class StandalonePaginationIT extends SQLIntegTestCase {
 
   private OpenSearchClient client;
 
+  @Mock private ClusterService clusterService;
+
   @Override
   @SneakyThrows
   public void init() {
@@ -70,7 +74,7 @@ public class StandalonePaginationIT extends SQLIntegTestCase {
     DataSourceService dataSourceService =
         new DataSourceServiceImpl(
             new ImmutableSet.Builder<DataSourceFactory>()
-                .add(new OpenSearchDataSourceFactory(client, defaultSettings()))
+                .add(new OpenSearchDataSourceFactory(client, defaultSettings(), clusterService))
                 .build(),
             getDataSourceMetadataStorage(),
             getDataSourceUserRoleHelper());
@@ -114,7 +118,7 @@ public class StandalonePaginationIT extends SQLIntegTestCase {
     }
 
     // act 1, asserts in firstResponder
-    var t = new OpenSearchIndex(client, defaultSettings(), "test");
+    var t = new OpenSearchIndex(client, defaultSettings(), "test", clusterService);
     LogicalPlan p =
         new LogicalPaginate(
             1,

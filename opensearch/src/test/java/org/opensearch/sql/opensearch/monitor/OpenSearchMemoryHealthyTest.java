@@ -19,7 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class OpenSearchMemoryHealthyTest {
 
-  @Mock private OpenSearchMemoryHealthy.RandomFail randomFail;
+  @Mock private OpenSearchMemoryHealthy.FastFail fastFail;
 
   @Mock private OpenSearchMemoryHealthy.MemoryUsage memoryUsage;
 
@@ -27,7 +27,7 @@ class OpenSearchMemoryHealthyTest {
 
   @BeforeEach
   public void setup() {
-    monitor = new OpenSearchMemoryHealthy(randomFail, memoryUsage);
+    monitor = new OpenSearchMemoryHealthy(fastFail, memoryUsage);
   }
 
   @Test
@@ -40,7 +40,7 @@ class OpenSearchMemoryHealthyTest {
   @Test
   void memoryUsageExceedLimitFastFailure() {
     when(memoryUsage.usage()).thenReturn(10L);
-    when(randomFail.shouldFail()).thenReturn(true);
+    when(fastFail.shouldFail()).thenReturn(true);
 
     assertThrows(
         OpenSearchMemoryHealthy.MemoryUsageExceedFastFailureException.class,
@@ -50,7 +50,7 @@ class OpenSearchMemoryHealthyTest {
   @Test
   void memoryUsageExceedLimitWithoutFastFailure() {
     when(memoryUsage.usage()).thenReturn(10L);
-    when(randomFail.shouldFail()).thenReturn(false);
+    when(fastFail.shouldFail()).thenReturn(false);
 
     assertThrows(
         OpenSearchMemoryHealthy.MemoryUsageExceedException.class,
@@ -65,8 +65,8 @@ class OpenSearchMemoryHealthyTest {
 
   @Test
   void randomFail() {
-    OpenSearchMemoryHealthy.RandomFail randomFail = new OpenSearchMemoryHealthy.RandomFail();
-    assertNotNull(randomFail.shouldFail());
+    OpenSearchMemoryHealthy.FastFail fastFail = new OpenSearchMemoryHealthy.FastFail();
+    assertNotNull(fastFail.shouldFail());
   }
 
   @Test
