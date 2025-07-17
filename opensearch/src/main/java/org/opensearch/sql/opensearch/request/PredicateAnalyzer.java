@@ -80,7 +80,6 @@ import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
-import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchBoolPrefixQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchPhrasePrefixQuery;
@@ -1307,23 +1306,6 @@ public class PredicateAnalyzer {
       return type != null && type.getOriginalExprType() instanceof OpenSearchTextType;
     }
 
-    String toKeywordSubField() {
-      ExprType type = this.type.getOriginalExprType();
-      if (type instanceof OpenSearchTextType) {
-        OpenSearchTextType textType = (OpenSearchTextType) type;
-        // For OpenSearch Alias type which maps to the field of text type,
-        // we have to use its original path
-        String path = this.type.getOriginalPath().orElse(this.name);
-        // Find the first subfield with type keyword, return null if non-exist.
-        return textType.getFields().entrySet().stream()
-            .filter(e -> e.getValue().getMappingType() == MappingType.Keyword)
-            .findFirst()
-            .map(e -> path + "." + e.getKey())
-            .orElse(null);
-      }
-      return null;
-    }
-
     boolean isMetaField() {
       return OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(getRootName());
     }
@@ -1333,10 +1315,7 @@ public class PredicateAnalyzer {
     }
 
     String getReferenceForTermQuery() {
-      if (isTextType()) {
-        return toKeywordSubField();
-      }
-      return getRootName();
+      return OpenSearchTextType.toKeywordSubField(getRootName(), this.type);
     }
   }
 
