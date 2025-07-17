@@ -5,6 +5,9 @@
 
 package org.opensearch.sql.legacy.query.planner;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.legacy.query.join.HashJoinElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.planner.core.Config;
 import org.opensearch.sql.legacy.query.planner.core.QueryParams;
@@ -18,6 +21,7 @@ import org.opensearch.transport.client.Client;
  * how it is assembled.
  */
 public class HashJoinQueryPlanRequestBuilder extends HashJoinElasticRequestBuilder {
+  private static final Logger LOG = LogManager.getLogger();
 
   /** Client connection to OpenSearch cluster */
   private final Client client;
@@ -48,6 +52,15 @@ public class HashJoinQueryPlanRequestBuilder extends HashJoinElasticRequestBuild
     config.configureLimit(
         getTotalLimit(), getFirstTable().getHintLimit(), getSecondTable().getHintLimit());
     config.configureTermsFilterOptimization(isUseTermFiltersOptimization());
+
+    if (config.timeout() != Config.DEFAULT_TIME_OUT) {
+      TimeValue joinTimeout = TimeValue.timeValueSeconds(config.timeout());
+      LOG.info(
+          "HashJoinQueryPlanRequestBuilder: Using JOIN_TIME_OUT hint: {} seconds",
+          config.timeout());
+      getFirstTable().setHintJoinTimeout(joinTimeout);
+      getSecondTable().setHintJoinTimeout(joinTimeout);
+    }
 
     return new QueryPlanner(
         client,
