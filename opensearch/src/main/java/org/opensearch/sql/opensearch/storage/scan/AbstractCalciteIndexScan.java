@@ -36,6 +36,7 @@ import org.opensearch.search.sort.ScoreSortBuilder;
 import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.search.sort.SortOrder;
+import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
@@ -84,6 +85,10 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
         .itemIf("PushDownContext", explainString, !pushDownContext.isEmpty());
   }
 
+  protected Integer getQuerySizeLimit() {
+    return osIndex.getSettings().getSettingValue(Key.QUERY_SIZE_LIMIT);
+  }
+
   @Override
   public double estimateRowCount(RelMetadataQuery mq) {
     /*
@@ -104,7 +109,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                       case PROJECT, SORT -> rowCount;
                       case FILTER -> NumberUtil.multiply(
                           rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest));
-                      case LIMIT -> (Integer) action.digest;
+                      case LIMIT -> Math.min(rowCount, (Integer) action.digest);
                     }
                     * estimateRowCountFactor,
             (a, b) -> null);
