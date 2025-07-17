@@ -32,12 +32,28 @@ public class OpenSearchLimitIndexScanRule extends RelRule<OpenSearchLimitIndexSc
 
     Integer limitValue = extractLimitValue(sort.fetch);
     Integer offsetValue = extractOffsetValue(sort.offset);
+    // Skip this rule if this is a reverse operation (indicated by row_number)
+    if (hasRowNumberFunction(sort)) {
+      return;
+    }
     if (limitValue != null && offsetValue != null) {
       CalciteLogicalIndexScan newScan = scan.pushDownLimit(limitValue, offsetValue);
       if (newScan != null) {
         call.transformTo(newScan);
       }
     }
+  }
+
+  /**
+   * Check if the LogicalSort contains a row_number function, which indicates a reverse operation.
+   *
+   * @param sort The LogicalSort to check
+   * @return True if a row_number function is found, false otherwise
+   */
+  private boolean hasRowNumberFunction(LogicalSort sort) {
+    // Check if the sort has a row_number function in its digest
+    String digest = sort.getDigest();
+    return digest != null && digest.contains("row_number");
   }
 
   private static Integer extractLimitValue(RexNode fetch) {
