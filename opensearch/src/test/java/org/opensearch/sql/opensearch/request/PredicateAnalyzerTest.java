@@ -62,9 +62,11 @@ public class PredicateAnalyzerTest {
   final RexLiteral numericLiteral = builder.makeExactLiteral(new BigDecimal(12));
   final RexLiteral stringLiteral = builder.makeLiteral("Hi");
   final RexNode aliasedField2 =
-      builder.makeCall(SqlStdOperatorTable.AS, field2, builder.makeLiteral("field"));
+      builder.makeCall(
+          SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR, builder.makeLiteral("field"), field2);
   final RexNode aliasedStringLiteral =
-      builder.makeCall(SqlStdOperatorTable.AS, stringLiteral, builder.makeLiteral("query"));
+      builder.makeCall(
+          SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR, builder.makeLiteral("query"), stringLiteral);
 
   @Test
   void equals_generatesTermQuery() throws ExpressionNotAnalyzableException {
@@ -265,9 +267,9 @@ public class PredicateAnalyzerTest {
             {
               "terms" : {
                 "a" : [
-                  12,
-                  13,
-                  14
+                  12.0,
+                  13.0,
+                  14.0
                 ],
                 "boost" : 1.0
               }
@@ -336,7 +338,9 @@ public class PredicateAnalyzerTest {
             aliasedField2,
             aliasedStringLiteral,
             builder.makeCall(
-                SqlStdOperatorTable.AS, builder.makeLiteral("2"), builder.makeLiteral("slop")));
+                SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
+                builder.makeLiteral("slop"),
+                builder.makeLiteral("2")));
     RexNode call =
         PPLFuncImpTable.INSTANCE.resolve(
             builder, "match_phrase", arguments.toArray(new RexNode[0]));
@@ -365,9 +369,9 @@ public class PredicateAnalyzerTest {
             aliasedField2,
             aliasedStringLiteral,
             builder.makeCall(
-                SqlStdOperatorTable.AS,
-                builder.makeLiteral("1"),
-                builder.makeLiteral("minimum_should_match")));
+                SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
+                builder.makeLiteral("minimum_should_match"),
+                builder.makeLiteral("1")));
     RexNode call =
         PPLFuncImpTable.INSTANCE.resolve(
             builder, "match_bool_prefix", arguments.toArray(new RexNode[0]));
@@ -399,9 +403,9 @@ public class PredicateAnalyzerTest {
             aliasedField2,
             aliasedStringLiteral,
             builder.makeCall(
-                SqlStdOperatorTable.AS,
-                builder.makeLiteral("standard"),
-                builder.makeLiteral("analyzer")));
+                SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
+                builder.makeLiteral("analyzer"),
+                builder.makeLiteral("standard")));
     RexNode call =
         PPLFuncImpTable.INSTANCE.resolve(
             builder, "match_phrase_prefix", arguments.toArray(new RexNode[0]));
@@ -430,7 +434,8 @@ public class PredicateAnalyzerTest {
     List<RexNode> arguments =
         Arrays.asList(
             builder.makeCall(
-                SqlStdOperatorTable.AS,
+                SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
+                builder.makeLiteral("fields"),
                 builder.makeCall(
                     SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
                     builder.makeLiteral("b"),
@@ -438,13 +443,12 @@ public class PredicateAnalyzerTest {
                         1.0, builder.getTypeFactory().createSqlType(SqlTypeName.DOUBLE), true),
                     builder.makeLiteral("c"),
                     builder.makeLiteral(
-                        2.5, builder.getTypeFactory().createSqlType(SqlTypeName.DOUBLE), true)),
-                builder.makeLiteral("fields")),
+                        2.5, builder.getTypeFactory().createSqlType(SqlTypeName.DOUBLE), true))),
             aliasedStringLiteral,
             builder.makeCall(
-                SqlStdOperatorTable.AS,
-                builder.makeLiteral("1"),
-                builder.makeLiteral("fuzziness")));
+                SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
+                builder.makeLiteral("fuzziness"),
+                builder.makeLiteral("1")));
     RexNode call =
         PPLFuncImpTable.INSTANCE.resolve(
             builder, "query_string", arguments.toArray(new RexNode[0]));
@@ -482,13 +486,13 @@ public class PredicateAnalyzerTest {
     List<RexNode> arguments =
         Arrays.asList(
             builder.makeCall(
-                SqlStdOperatorTable.AS,
+                SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
+                builder.makeLiteral("fields"),
                 builder.makeCall(
                     SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
                     builder.makeLiteral("b*"),
                     builder.makeLiteral(
-                        1.0, builder.getTypeFactory().createSqlType(SqlTypeName.DOUBLE), true)),
-                builder.makeLiteral("fields")),
+                        1.0, builder.getTypeFactory().createSqlType(SqlTypeName.DOUBLE), true))),
             aliasedStringLiteral);
     RexNode call =
         PPLFuncImpTable.INSTANCE.resolve(
@@ -522,18 +526,18 @@ public class PredicateAnalyzerTest {
     List<RexNode> arguments =
         Arrays.asList(
             builder.makeCall(
-                SqlStdOperatorTable.AS,
+                SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
+                builder.makeLiteral("fields"),
                 builder.makeCall(
                     SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
                     builder.makeLiteral("b*"),
                     builder.makeLiteral(
-                        1.0, builder.getTypeFactory().createSqlType(SqlTypeName.DOUBLE), true)),
-                builder.makeLiteral("fields")),
+                        1.0, builder.getTypeFactory().createSqlType(SqlTypeName.DOUBLE), true))),
             aliasedStringLiteral,
             builder.makeCall(
-                SqlStdOperatorTable.AS,
-                builder.makeLiteral("25"),
-                builder.makeLiteral("max_expansions")));
+                SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
+                builder.makeLiteral("max_expansions"),
+                builder.makeLiteral("25")));
     RexNode call =
         PPLFuncImpTable.INSTANCE.resolve(builder, "multi_match", arguments.toArray(new RexNode[0]));
     QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);

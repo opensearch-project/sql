@@ -145,12 +145,37 @@ public class RelevanceFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void test_single_field_relevance_function_and_implicit_timestamp_filter()
+      throws IOException {
+    String query1 =
+        "SOURCE="
+            + TEST_INDEX_BEER
+            + " | WHERE match('Tags', 'brewing taste', operator='AND') and CreationDate >"
+            + " '2014-01-20 00:00:00.000' and CreationDate < '2018-01-20 00:00:00.000' | fields"
+            + " Tags";
+    var result1 = executeQuery(query1);
+    assertEquals(2, result1.getInt("total"));
+  }
+
+  @Test
+  public void test_multi_fields_relevance_function_and_implicit_timestamp_filter()
+      throws IOException {
+    String query1 =
+        "SOURCE="
+            + TEST_INDEX_BEER
+            + " | WHERE query_string(['Tags'], 'brewing AND taste') and CreationDate > '2014-01-20"
+            + " 00:00:00.000' and CreationDate < '2018-01-20 00:00:00.000' | fields Tags";
+    var result1 = executeQuery(query1);
+    assertEquals(2, result1.getInt("total"));
+  }
+
+  @Test
   public void not_pushdown_throws_exception() throws IOException {
     String query1 =
         "SOURCE="
             + TEST_INDEX_BEER
-            + " | STATS count(AcceptedAnswerId) as idCount"
-            + " | WHERE simple_query_string(['Tags'], 'taste') and idCount > 200";
+            + " | EVAL answerId = AcceptedAnswerId + 1"
+            + " | WHERE simple_query_string(['Tags'], 'taste') and answerId > 200";
     assertThrows(Exception.class, () -> executeQuery(query1));
   }
 }

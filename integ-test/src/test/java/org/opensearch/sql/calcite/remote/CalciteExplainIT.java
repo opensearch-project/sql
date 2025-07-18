@@ -30,8 +30,7 @@ public class CalciteExplainIT extends ExplainIT {
     String query =
         "source=opensearch-sql_test_index_account | where age >= 1.0 and age < 10 | fields age";
     var result = explainQueryToString(query);
-    String expected =
-        loadFromFile("expectedOutput/calcite/explain_sarg_filter_push_single_range.json");
+    String expected = loadExpectedPlan("explain_sarg_filter_push_single_range.json");
     assertJsonEqualsIgnoreId(expected, result);
   }
 
@@ -42,21 +41,30 @@ public class CalciteExplainIT extends ExplainIT {
         "source=opensearch-sql_test_index_account | where (age > 20 and age < 28) or (age > 25 and"
             + " age < 30) or (age >= 1 and age <= 10) or age = 0  | fields age";
     var result = explainQueryToString(query);
-    String expected =
-        loadFromFile("expectedOutput/calcite/explain_sarg_filter_push_multi_range.json");
+    String expected = loadExpectedPlan("explain_sarg_filter_push_multi_range.json");
     assertJsonEqualsIgnoreId(expected, result);
   }
 
   // Only for Calcite
   @Test
   public void supportSearchSargPushDown_timeRange() throws IOException {
-    String expected =
-        loadFromFile("expectedOutput/calcite/explain_sarg_filter_push_time_range.json");
-    assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString(
-            "source=opensearch-sql_test_index_bank"
-                + "| where birthdate >= '2016-12-08 00:00:00.000000000' "
-                + "and birthdate < '2018-11-09 00:00:00.000000000' "));
+    String query =
+        "source=opensearch-sql_test_index_bank"
+            + "| where birthdate >= '2016-12-08 00:00:00.000000000' "
+            + "and birthdate < '2018-11-09 00:00:00.000000000'";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_sarg_filter_push_time_range.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  // Only for Calcite
+  @Test
+  public void supportPushDownSortMergeJoin() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_bank| join left=l right=r on"
+            + " l.account_number=r.account_number opensearch-sql_test_index_bank";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_merge_join_sort_push.json");
+    assertJsonEqualsIgnoreId(expected, result);
   }
 }

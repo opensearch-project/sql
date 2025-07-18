@@ -1,0 +1,6 @@
+{
+  "calcite": {
+    "logical": "LogicalSort(sort0=[$0], dir0=[ASC-nulls-first])\n  LogicalProject(avg_age=[$2], state=[$0], city=[$1])\n    LogicalAggregate(group=[{0, 1}], avg_age=[AVG($2)])\n      LogicalProject(state=[$7], city=[$5], age=[$8])\n        CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
+    "physical": "EnumerableSort(sort0=[$0], dir0=[ASC-nulls-first])\n  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[0], expr#5=[=($t3, $t4)], expr#6=[null:BIGINT], expr#7=[CASE($t5, $t6, $t2)], expr#8=[CAST($t7):DOUBLE], expr#9=[/($t8, $t3)], avg_age=[$t9], state=[$t1], city=[$t0])\n    EnumerableAggregate(group=[{5, 7}], agg#0=[$SUM0($8)], agg#1=[COUNT($8)])\n      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n"
+  }
+}

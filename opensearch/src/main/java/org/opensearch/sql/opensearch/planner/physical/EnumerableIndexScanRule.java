@@ -27,7 +27,7 @@ public class EnumerableIndexScanRule extends ConverterRule {
               "EnumerableIndexScanRule")
           .withRuleFactory(EnumerableIndexScanRule::new);
 
-  /** Creates an EnumerableProjectRule. */
+  /** Creates an EnumerableIndexScanRule. */
   protected EnumerableIndexScanRule(Config config) {
     super(config);
   }

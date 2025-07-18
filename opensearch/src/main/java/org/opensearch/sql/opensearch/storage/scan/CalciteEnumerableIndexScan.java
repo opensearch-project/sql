@@ -28,11 +28,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.calcite.plan.OpenSearchRules;
+import org.opensearch.sql.calcite.plan.Scannable;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 
 /** The physical relational operator representing a scan of an OpenSearchIndex type. */
-public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan implements EnumerableRel {
+public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
+    implements Scannable, EnumerableRel {
   private static final Logger LOG = LogManager.getLogger(CalciteEnumerableIndexScan.class);
 
   /**
@@ -51,6 +53,19 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan impleme
       RelDataType schema,
       PushDownContext pushDownContext) {
     super(cluster, traitSet, hints, table, osIndex, schema, pushDownContext);
+  }
+
+  @Override
+  protected AbstractCalciteIndexScan buildScan(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      List<RelHint> hints,
+      RelOptTable table,
+      OpenSearchIndex osIndex,
+      RelDataType schema,
+      PushDownContext pushDownContext) {
+    return new CalciteEnumerableIndexScan(
+        cluster, traitSet, hints, table, osIndex, schema, pushDownContext);
   }
 
   @Override
@@ -80,17 +95,29 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan impleme
     return implementor.result(physType, Blocks.toBlock(Expressions.call(scanOperator, "scan")));
   }
 
+  @Override
+  public Enumerable<@Nullable Object> scanWithLimit() {
+    return executeScan(getQuerySizeLimit());
+  }
+
+  public Enumerable<@Nullable Object> scan() {
+    return executeScan(null);
+  }
+
   /**
    * This Enumerator may be iterated for multiple times, so we need to create opensearch request for
    * each time to avoid reusing source builder. That's because the source builder has stats like PIT
    * or SearchAfter recorded during previous search.
    */
-  public Enumerable<@Nullable Object> scan() {
+  private Enumerable<@Nullable Object> executeScan(Integer querySizeLimit) {
     return new AbstractEnumerable<>() {
       @Override
       public Enumerator<Object> enumerator() {
         OpenSearchRequestBuilder requestBuilder = osIndex.createRequestBuilder();
         pushDownContext.forEach(action -> action.apply(requestBuilder));
+        if (querySizeLimit != null && querySizeLimit > 0 && !pushDownContext.isAggregatePushed()) {
+          requestBuilder.pushDownLimit(querySizeLimit, 0);
+        }
         return new OpenSearchIndexEnumerator(
             osIndex.getClient(),
             getFieldPath(),

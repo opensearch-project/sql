@@ -4,14 +4,12 @@
     "description": {
       "fields": "[account_number, firstname, address, balance, gender]"
     },
-    "children": [
-      {
-        "name": "OpenSearchIndexScan",
-        "description": {
-          "request": "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account, sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"_source\":{\"includes\":[\"account_number\",\"firstname\",\"address\",\"balance\",\"gender\"],\"excludes\":[]},\"sort\":[{\"account_number\":{\"order\":\"asc\",\"missing\":\"_first\"}},{\"firstname.keyword\":{\"order\":\"asc\",\"missing\":\"_first\"}},{\"address\":{\"order\":\"asc\",\"missing\":\"_first\"}},{\"balance\":{\"order\":\"asc\",\"missing\":\"_first\"}},{\"balance\":{\"order\":\"desc\",\"missing\":\"_last\"}},{\"gender\":{\"order\":\"desc\",\"missing\":\"_last\"}},{\"address\":{\"order\":\"asc\",\"missing\":\"_first\"}}]}, needClean=true, searchDone=false, pitId=s9y3QQEhb3BlbnNlYXJjaC1zcWxfdGVzdF9pbmRleF9hY2NvdW50Fndla1VpMi1kVHh5Qi1lYnhPQnlSbXcAFkU4Qm9UVURIUWI2a3pjNkhmQkxvc2cAAAAAAAAAAAEWdTZkUG5oYkZTWWl2UnpFVXlhNmhXZwEWd2VrVWkyLWRUeHlCLWVieE9CeVJtdwAA, cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
-        },
-        "children": []
-      }
-    ]
+    "children": [{
+      "name": "OpenSearchIndexScan",
+      "description": {
+        "request": "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account, sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"_source\":{\"includes\":[\"account_number\",\"firstname\",\"address\",\"balance\",\"gender\"],\"excludes\":[]},\"sort\":[{\"account_number\":{\"order\":\"asc\",\"missing\":\"_first\"}},{\"firstname.keyword\":{\"order\":\"asc\",\"missing\":\"_first\"}},{\"address\":{\"order\":\"asc\",\"missing\":\"_first\"}},{\"balance\":{\"order\":\"asc\",\"missing\":\"_first\"}},{\"balance\":{\"order\":\"desc\",\"missing\":\"_last\"}},{\"gender.keyword\":{\"order\":\"desc\",\"missing\":\"_last\"}},{\"account_number\":{\"order\":\"asc\",\"missing\":\"_first\"}}]}, needClean=true, searchDone=false, pitId=*, cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
+      },
+      "children": []
+    }]
   }
 }

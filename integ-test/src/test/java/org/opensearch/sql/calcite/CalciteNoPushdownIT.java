@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite.pushdown;
+package org.opensearch.sql.calcite;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -30,8 +30,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalciteDedupCommandIT.class,
   CalciteDescribeCommandIT.class,
   CalciteExpandCommandIT.class,
-  // TODO: Add expected plans for CalciteExplainIT without pushdown
-  //  CalciteExplainIT.class,
+  CalciteExplainIT.class,
   CalciteFieldsCommandIT.class,
   CalciteFillNullCommandIT.class,
   CalciteFlattenCommandIT.class,
@@ -40,9 +39,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalciteGeoPointFormatsIT.class,
   CalciteHeadCommandIT.class,
   CalciteInformationSchemaCommandIT.class,
-  // TODO: Enable after implementing comparison for IP addresses with Calcite
-  //  https://github.com/opensearch-project/sql/issues/3776
-  // CalciteIPComparisonIT.class,
+  CalciteIPComparisonIT.class,
   CalciteIPFunctionsIT.class,
   CalciteJsonFunctionsIT.class,
   CalciteLegacyAPICompatibilityIT.class,
