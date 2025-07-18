@@ -59,6 +59,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
@@ -75,12 +76,11 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.RangeQueryBuilder;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.type.ExprSqlType;
-import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
-import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchBoolPrefixQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchPhrasePrefixQuery;
@@ -256,6 +256,12 @@ public class PredicateAnalyzer {
       return sarg.isComplementedPoints();
     }
 
+    static RexUnknownAs getNullAsForSearch(RexCall search) {
+      RexLiteral literal = (RexLiteral) search.getOperands().get(1);
+      final Sarg<?> sarg = requireNonNull(literal.getValueAs(Sarg.class), "Sarg");
+      return sarg.nullAs;
+    }
+
     @Override
     public Expression visitCall(RexCall call) {
 
@@ -325,7 +331,7 @@ public class PredicateAnalyzer {
       }
 
       throw new PredicateAnalyzerException(
-          String.format(Locale.ROOT, "Unsupported search relevance function: [%s]", funcName));
+          format(Locale.ROOT, "Unsupported search relevance function: [%s]", funcName));
     }
 
     @FunctionalInterface
@@ -370,7 +376,7 @@ public class PredicateAnalyzer {
         String key = ((RexLiteral) aliasPair.alias).getValueAs(String.class);
         if (optionalArguments.containsKey(key)) {
           throw new PredicateAnalyzerException(
-              String.format(
+              format(
                   Locale.ROOT,
                   "Parameter '%s' can only be specified once for function [%s].",
                   key,
@@ -385,7 +391,7 @@ public class PredicateAnalyzer {
     private static RexCall expectCall(RexNode node, SqlOperator op, String funcName) {
       if (!(node instanceof RexCall call) || call.getOperator() != op) {
         throw new IllegalArgumentException(
-            String.format(
+            format(
                 Locale.ROOT,
                 "Expect [%s] RexCall but get [%s] for function [%s]",
                 op.getName(),
@@ -507,36 +513,53 @@ public class PredicateAnalyzer {
           }
           return QueryExpression.create(pair.getKey()).lte(pair.getValue());
         case SEARCH:
-          if (isSearchWithComplementedPoints(call)) {
-            return QueryExpression.create(pair.getKey()).notIn(pair.getValue());
-          } else if (isSearchWithPoints(call)) {
-            return QueryExpression.create(pair.getKey()).in(pair.getValue());
-          } else {
-            Sarg<?> sarg = pair.getValue().literal.getValueAs(Sarg.class);
-            Set<? extends Range<?>> rangeSet = requireNonNull(sarg).rangeSet.asRanges();
-            boolean isTimeStamp =
-                (pair.getKey() instanceof NamedFieldExpression namedField)
-                    && namedField.isTimeStampType();
-            List<QueryExpression> queryExpressions =
-                rangeSet.stream()
-                    .map(
-                        range ->
-                            RangeSets.isPoint(range)
-                                ? QueryExpression.create(pair.getKey())
-                                    .equals(sargPointValue(range.lowerEndpoint()), isTimeStamp)
-                                : QueryExpression.create(pair.getKey()).between(range, isTimeStamp))
-                    .toList();
-            if (queryExpressions.size() == 1) {
-              return queryExpressions.getFirst();
-            } else {
-              return CompoundQueryExpression.or(queryExpressions.toArray(new QueryExpression[0]));
-            }
-          }
+          QueryExpression expression = constructQueryExpressionForSearch(call, pair);
+          RexUnknownAs nullAs = getNullAsForSearch(call);
+          return switch (nullAs) {
+              // e.g. where isNotNull(a) and (a = 1 or a = 2)
+              // TODO: For this case, seems return `expression` should be equivalent
+            case FALSE -> CompoundQueryExpression.and(
+                false, expression, QueryExpression.create(pair.getKey()).exists());
+              // e.g. where isNull(a) or a = 1 or a = 2
+            case TRUE -> CompoundQueryExpression.or(
+                expression, QueryExpression.create(pair.getKey()).notExists());
+              // e.g. where a = 1 or a = 2
+            case UNKNOWN -> expression;
+          };
         default:
           break;
       }
       String message = format(Locale.ROOT, "Unable to handle call: [%s]", call);
       throw new PredicateAnalyzerException(message);
+    }
+
+    private static QueryExpression constructQueryExpressionForSearch(
+        RexCall call, SwapResult pair) {
+      if (isSearchWithComplementedPoints(call)) {
+        return QueryExpression.create(pair.getKey()).notIn(pair.getValue());
+      } else if (isSearchWithPoints(call)) {
+        return QueryExpression.create(pair.getKey()).in(pair.getValue());
+      } else {
+        Sarg<?> sarg = pair.getValue().literal.getValueAs(Sarg.class);
+        Set<? extends Range<?>> rangeSet = requireNonNull(sarg).rangeSet.asRanges();
+        boolean isTimeStamp =
+            (pair.getKey() instanceof NamedFieldExpression namedField)
+                && namedField.isTimeStampType();
+        List<QueryExpression> queryExpressions =
+            rangeSet.stream()
+                .map(
+                    range ->
+                        RangeSets.isPoint(range)
+                            ? QueryExpression.create(pair.getKey())
+                                .equals(sargPointValue(range.lowerEndpoint()), isTimeStamp)
+                            : QueryExpression.create(pair.getKey()).between(range, isTimeStamp))
+                .toList();
+        if (queryExpressions.size() == 1) {
+          return queryExpressions.getFirst();
+        } else {
+          return CompoundQueryExpression.or(queryExpressions.toArray(new QueryExpression[0]));
+        }
+      }
     }
 
     private QueryExpression andOr(RexCall call) {
@@ -736,8 +759,7 @@ public class PredicateAnalyzer {
     }
 
     QueryExpression between(Range<?> literal, boolean isTimeStamp) {
-      throw new PredicateAnalyzer.PredicateAnalyzerException(
-          "between cannot be applied to " + this.getClass());
+      throw new PredicateAnalyzerException("between cannot be applied to " + this.getClass());
     }
 
     QueryExpression like(LiteralExpression literal) {
@@ -756,8 +778,7 @@ public class PredicateAnalyzer {
     }
 
     QueryExpression equals(Object point, boolean isTimeStamp) {
-      throw new PredicateAnalyzer.PredicateAnalyzerException(
-          "equals cannot be applied to " + this.getClass());
+      throw new PredicateAnalyzerException("equals cannot be applied to " + this.getClass());
     }
 
     QueryExpression notEquals(LiteralExpression literal) {
@@ -843,7 +864,7 @@ public class PredicateAnalyzer {
         return new SimpleQueryExpression((NamedFieldExpression) expression);
       } else {
         String message = format(Locale.ROOT, "Unsupported expression: [%s]", expression);
-        throw new PredicateAnalyzer.PredicateAnalyzerException(message);
+        throw new PredicateAnalyzerException(message);
       }
     }
   }
@@ -1297,23 +1318,6 @@ public class PredicateAnalyzer {
       return type != null && type.getOriginalExprType() instanceof OpenSearchTextType;
     }
 
-    String toKeywordSubField() {
-      ExprType type = this.type.getOriginalExprType();
-      if (type instanceof OpenSearchTextType) {
-        OpenSearchTextType textType = (OpenSearchTextType) type;
-        // For OpenSearch Alias type which maps to the field of text type,
-        // we have to use its original path
-        String path = this.type.getOriginalPath().orElse(this.name);
-        // Find the first subfield with type keyword, return null if non-exist.
-        return textType.getFields().entrySet().stream()
-            .filter(e -> e.getValue().getMappingType() == MappingType.Keyword)
-            .findFirst()
-            .map(e -> path + "." + e.getKey())
-            .orElse(null);
-      }
-      return null;
-    }
-
     boolean isMetaField() {
       return OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(getRootName());
     }
@@ -1323,10 +1327,7 @@ public class PredicateAnalyzer {
     }
 
     String getReferenceForTermQuery() {
-      if (isTextType()) {
-        return toKeywordSubField();
-      }
-      return getRootName();
+      return OpenSearchTextType.toKeywordSubField(getRootName(), this.type);
     }
   }
 
@@ -1380,7 +1381,7 @@ public class PredicateAnalyzer {
 
     public boolean isTimestamp() {
       if (literal.getType() instanceof ExprSqlType exprSqlType) {
-        return exprSqlType.getUdt() == OpenSearchTypeFactory.ExprUDT.EXPR_TIMESTAMP;
+        return exprSqlType.getUdt() == ExprUDT.EXPR_TIMESTAMP;
       }
       return false;
     }
@@ -1451,7 +1452,7 @@ public class PredicateAnalyzer {
         || (SqlTypeFamily.TIMESTAMP.contains(op2) && !SqlTypeFamily.TIMESTAMP.contains(op1))
         || (SqlTypeFamily.TIME.contains(op1) && !SqlTypeFamily.TIME.contains(op2))
         || (SqlTypeFamily.TIME.contains(op2) && !SqlTypeFamily.TIME.contains(op1))) {
-      throw new PredicateAnalyzer.PredicateAnalyzerException(
+      throw new PredicateAnalyzerException(
           "Cannot handle " + call.getKind() + " expression for _id field, " + call);
     }
   }
