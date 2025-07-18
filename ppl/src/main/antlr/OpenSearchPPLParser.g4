@@ -14,10 +14,6 @@ root
 
 // statement
 pplStatement
-   : dmlStatement
-   ;
-
-dmlStatement
    : explainStatement
    | queryStatement
    ;
@@ -106,9 +102,7 @@ commandName
    ;
 
 searchCommand
-   : (SEARCH)? fromClause                                           # searchFrom
-   | (SEARCH)? fromClause logicalExpression (logicalExpression)*    # searchFromFilter
-   | SEARCH logicalExpression fromClause                            # searchFilterFrom
+   : (SEARCH)? (logicalExpression)* fromClause (logicalExpression)*     # searchFrom
    ;
 
 describeCommand

@@ -336,17 +336,6 @@ public class PPLSyntaxParserTest {
   }
 
   @Test
-  public void testDescribeCommandWithSourceShouldFail() {
-    exceptionRule.expect(RuntimeException.class);
-    exceptionRule.expectMessage(
-        StringContainsInOrder.stringContainsInOrder(
-            "[=] is not a valid term at this part of the query: 'describe source=' <-- HERE.",
-            "Expecting tokens:"));
-
-    new PPLSyntaxParser().parse("describe source=t");
-  }
-
-  @Test
   public void testInvalidOperatorCombinationShouldFail() {
     exceptionRule.expect(RuntimeException.class);
     exceptionRule.expectMessage(
