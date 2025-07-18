@@ -84,13 +84,12 @@ public class CalciteExplainIT extends ExplainIT {
 
   // Only for Calcite
   @Test
-  public void supportPartialPushDown2() throws IOException {
+  public void supportPartialPushDown_NoPushIfAllFailed() throws IOException {
     Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
-    // field `gender` and `address` are both text type without keyword subfield, so we cannot push
-    // them down.
+    // field `address` is text type without keyword subfield, so we cannot push it down.
     String query =
-        "source=opensearch-sql_test_index_account | where (gender = 'M' or age < 10) and (age >= 1"
-            + " and address = '880 Holmes Lane') | fields age, address";
+        "source=opensearch-sql_test_index_account | where (address = '671 Bristol Street' or age <"
+            + " 10) and (age >= 10 or address = '880 Holmes Lane') | fields age, address";
     var result = explainQueryToString(query);
     String expected = loadFromFile("expectedOutput/calcite/explain_partial_filter_push2.json");
     assertJsonEqualsIgnoreId(expected, result);
