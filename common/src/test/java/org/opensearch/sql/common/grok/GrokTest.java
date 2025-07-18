@@ -680,8 +680,7 @@ public class GrokTest {
     DateTimeFormatter dtf = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss");
     Grok grok = compiler.compile("%{DATESTAMP:timestamp;date;MM/dd/yyyy HH:mm:ss}", true);
     Instant instant = (Instant) grok.match(date).capture().get("timestamp");
-    assertEquals(
-        ZonedDateTime.parse(date, dtf.withZone(ZoneOffset.systemDefault())).toInstant(), instant);
+    assertEquals(ZonedDateTime.parse(date, dtf.withZone(ZoneOffset.UTC)).toInstant(), instant);
 
     // set default timezone to PST
     ZoneId pst = ZoneId.of("PST", ZoneId.SHORT_IDS);

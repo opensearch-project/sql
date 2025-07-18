@@ -11,9 +11,9 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.TimeZone;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.expression.DSL;
@@ -53,9 +53,7 @@ class DateTimeTest extends ExpressionTestBase {
     String timeZone = "America/Los_Angeles";
     LocalDateTime timeConverted = LocalDateTime.parse(dt, formatter);
     ZonedDateTime timeZoneLocal =
-        timeConverted
-            .atZone(ZoneId.of(TimeZone.getDefault().getID()))
-            .withZoneSameInstant(ZoneId.of(timeZone));
+        timeConverted.atZone(ZoneOffset.UTC).withZoneSameInstant(ZoneId.of(timeZone));
     FunctionExpression expr = DSL.datetime(DSL.literal(dt), DSL.literal(timeZone));
     assertEquals(TIMESTAMP, expr.type());
     assertEquals(new ExprTimestampValue(timeZoneLocal.toLocalDateTime()), expr.valueOf());

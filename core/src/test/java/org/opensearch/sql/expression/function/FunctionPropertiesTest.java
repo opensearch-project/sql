@@ -16,7 +16,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,7 +33,7 @@ class FunctionPropertiesTest {
   @BeforeEach
   void init() {
     startTime = Instant.now();
-    functionProperties = new FunctionProperties(startTime, ZoneId.systemDefault());
+    functionProperties = new FunctionProperties(startTime, ZoneOffset.UTC);
   }
 
   @Test
@@ -50,7 +50,7 @@ class FunctionPropertiesTest {
 
   @Test
   void getSystemClock_is_systemClock() {
-    assertEquals(Clock.systemDefaultZone(), functionProperties.getSystemClock());
+    assertEquals(Clock.system(ZoneOffset.UTC), functionProperties.getSystemClock());
   }
 
   @Test
