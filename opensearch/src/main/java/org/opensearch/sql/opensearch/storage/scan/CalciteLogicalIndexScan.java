@@ -30,7 +30,6 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.common.setting.Settings;
@@ -40,6 +39,7 @@ import org.opensearch.sql.opensearch.planner.physical.EnumerableIndexScanRule;
 import org.opensearch.sql.opensearch.planner.physical.OpenSearchIndexRules;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
+import org.opensearch.sql.opensearch.request.PredicateAnalyzer.QueryExpression;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 
@@ -104,16 +104,24 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
 
   public CalciteLogicalIndexScan pushDownFilter(Filter filter) {
     try {
+      RelDataType rowType = filter.getRowType();
       CalciteLogicalIndexScan newScan = this.copyWithNewSchema(filter.getRowType());
       List<String> schema = this.getRowType().getFieldNames();
-      Map<String, ExprType> filedTypes = this.osIndex.getFieldTypes();
-      QueryBuilder filterBuilder =
-          PredicateAnalyzer.analyze(filter.getCondition(), schema, filedTypes);
+      Map<String, ExprType> fieldTypes =
+          this.osIndex.getFieldTypes().entrySet().stream()
+              .filter(entry -> schema.contains(entry.getKey()))
+              .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+      QueryExpression queryExpression =
+          PredicateAnalyzer.analyzeExpression(
+              filter.getCondition(), schema, fieldTypes, rowType, getCluster());
+
       newScan.pushDownContext.add(
           PushDownAction.of(
-              PushDownType.FILTER,
+              QueryExpression.containsScript(queryExpression)
+                  ? PushDownType.SCRIPT
+                  : PushDownType.FILTER,
               filter.getCondition(),
-              requestBuilder -> requestBuilder.pushDownFilter(filterBuilder)));
+              requestBuilder -> requestBuilder.pushDownFilter(queryExpression.builder())));
 
       // TODO: handle the case where condition contains a score function
       return newScan;

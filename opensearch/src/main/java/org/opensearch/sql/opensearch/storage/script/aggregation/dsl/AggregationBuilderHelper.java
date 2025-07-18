@@ -7,7 +7,7 @@ package org.opensearch.sql.opensearch.storage.script.aggregation.dsl;
 
 import static java.util.Collections.emptyMap;
 import static org.opensearch.script.Script.DEFAULT_SCRIPT_TYPE;
-import static org.opensearch.sql.opensearch.storage.script.ExpressionScriptEngine.EXPRESSION_LANG_NAME;
+import static org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.COMPOUNDED_LANG_NAME;
 
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +17,9 @@ import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
-import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
+import org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.ScriptEngineType;
+import org.opensearch.sql.opensearch.storage.serde.ExpressionSerializer;
+import org.opensearch.sql.opensearch.storage.serde.SerializationWrapper;
 
 /** Abstract Aggregation Builder. */
 @RequiredArgsConstructor
@@ -42,8 +44,9 @@ public class AggregationBuilderHelper {
       return scriptBuilder.apply(
           new Script(
               DEFAULT_SCRIPT_TYPE,
-              EXPRESSION_LANG_NAME,
-              serializer.serialize(expression),
+              COMPOUNDED_LANG_NAME,
+              SerializationWrapper.wrapWithLangType(
+                  ScriptEngineType.V2, serializer.serialize(expression)),
               emptyMap()));
     } else {
       throw new IllegalStateException(

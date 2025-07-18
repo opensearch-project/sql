@@ -10,6 +10,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 
 import java.io.IOException;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.legacy.TestUtils;
@@ -432,6 +433,43 @@ public class ExplainIT extends PPLIntegTestCase {
             "source=opensearch-sql_test_index_account"
                 + "| where simple_query_string(['email', name 4.0], 'gmail',"
                 + " default_operator='or', analyzer=english)"));
+  }
+
+  @Ignore("The serialized string is unstable because of function properties")
+  @Test
+  public void testFilterScriptPushDownExplain() throws Exception {
+    String expected = loadExpectedPlan("explain_filter_script_push.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | where firstname ='Amber' and age - 2 = 30 |"
+                + " fields firstname, age"));
+  }
+
+  @Ignore("The serialized string is unstable because of function properties")
+  @Test
+  public void testFilterFunctionScriptPushDownExplain() throws Exception {
+    String expected = loadExpectedPlan("explain_filter_function_script_push.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account |  where length(firstname) = 5 and abs(age) ="
+                + " 32 and balance = 39225 | fields firstname, age"));
+  }
+
+  @Test
+  public void testDifferentFilterScriptPushDownBehaviorExplain() throws Exception {
+    String explainedPlan =
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account |  where firstname != '' | fields firstname");
+    if (isCalciteEnabled()) {
+      // Calcite pushdown as pure filter query
+      String expected = loadExpectedPlan("explain_filter_script_push_diff.json");
+      assertJsonEqualsIgnoreId(expected, explainedPlan);
+    } else {
+      // V2 pushdown as script
+      assertTrue(explainedPlan.contains("{\\\"script\\\":"));
+    }
   }
 
   protected String loadExpectedPlan(String fileName) throws IOException {

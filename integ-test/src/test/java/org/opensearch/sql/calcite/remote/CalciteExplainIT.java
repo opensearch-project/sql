@@ -67,4 +67,16 @@ public class CalciteExplainIT extends ExplainIT {
     String expected = loadExpectedPlan("explain_merge_join_sort_push.json");
     assertJsonEqualsIgnoreId(expected, result);
   }
+
+  // Only for Calcite, as v2 gets unstable serialized string for function
+  @Test
+  public void testFilterScriptPushDownExplain() throws Exception {
+    super.testFilterScriptPushDownExplain();
+  }
+
+  // Only for Calcite, as v2 gets unstable serialized string for function
+  @Test
+  public void testFilterFunctionScriptPushDownExplain() throws Exception {
+    super.testFilterFunctionScriptPushDownExplain();
+  }
 }

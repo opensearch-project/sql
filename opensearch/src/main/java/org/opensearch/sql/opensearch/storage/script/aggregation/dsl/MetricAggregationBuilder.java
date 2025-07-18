@@ -27,7 +27,7 @@ import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.opensearch.response.agg.*;
 import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder;
-import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
+import org.opensearch.sql.opensearch.storage.serde.ExpressionSerializer;
 
 /** Build the Metric Aggregation and List of {@link MetricParser} from {@link NamedAggregator}. */
 public class MetricAggregationBuilder

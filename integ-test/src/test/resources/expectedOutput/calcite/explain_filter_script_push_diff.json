@@ -1,0 +1,6 @@
+{
+  "calcite": {
+    "logical": "LogicalProject(firstname=[$1])\n  LogicalFilter(condition=[<>($1, '')])\n    CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
+    "physical": "CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[firstname], FILTER-><>($0, '')], OpenSearchRequestBuilder(sourceBuilder={\"from\":0,\"timeout\":\"1m\",\"query\":{\"bool\":{\"must\":[{\"exists\":{\"field\":\"firstname\",\"boost\":1.0}}],\"must_not\":[{\"term\":{\"firstname.keyword\":{\"value\":\"\",\"boost\":1.0}}}],\"adjust_pure_negative\":true,\"boost\":1.0}},\"_source\":{\"includes\":[\"firstname\"],\"excludes\":[]},\"sort\":[{\"_doc\":{\"order\":\"asc\"}}]}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])\n"
+  }
+}
