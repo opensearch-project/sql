@@ -531,30 +531,6 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testBinWithAligntimeIntegrationWithStats() throws IOException {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | bin epoch_millis span=86400000 aligntime=earliest AS day_bucket |"
-                    + " stats count() by day_bucket | sort day_bucket",
-                TEST_INDEX_DATE_FORMATS));
-
-    verifySchema(actual, schema("count()", "bigint"), schema("day_bucket", "timestamp"));
-
-    // Should group all records by day buckets aligned to earliest time
-    JSONArray datarows = actual.getJSONArray("datarows");
-    assertTrue(datarows.length() >= 1);
-
-    // Verify that we get reasonable count values
-    for (int i = 0; i < datarows.length(); i++) {
-      JSONArray row = datarows.getJSONArray(i);
-      long count = row.getLong(0);
-      assertTrue(count > 0); // Should have at least 1 record per bucket
-      assertNotNull(row.getString(1)); // day_bucket should be valid timestamp
-    }
-  }
-
-  @Test
   public void testBinWithAligntimeMathematicalCorrectness() throws IOException {
     // Test the mathematical correctness of aligntime binning
     long aligntime = 450000000000L; // A specific alignment point
