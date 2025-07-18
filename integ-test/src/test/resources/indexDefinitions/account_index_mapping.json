@@ -3,7 +3,13 @@
     "properties": {
       "gender": {
         "type": "text",
-        "fielddata": true
+        "fielddata": true,
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
       },
       "address": {
         "type": "text",

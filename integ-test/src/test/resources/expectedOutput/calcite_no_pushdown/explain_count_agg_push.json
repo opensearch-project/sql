@@ -1,0 +1,6 @@
+{
+  "calcite": {
+    "logical": "LogicalAggregate(group=[{}], cnt=[COUNT()])\n  CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
+    "physical": "EnumerableAggregate(group=[{}], cnt=[COUNT()])\n  CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n"
+  }
+}

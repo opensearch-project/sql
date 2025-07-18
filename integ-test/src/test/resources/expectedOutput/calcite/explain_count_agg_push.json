@@ -1,0 +1,6 @@
+{
+  "calcite": {
+    "logical": "LogicalAggregate(group=[{}], cnt=[COUNT()])\n  CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
+    "physical": "CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={},cnt=COUNT())], OpenSearchRequestBuilder(sourceBuilder={\"from\":0,\"size\":0,\"timeout\":\"1m\",\"aggregations\":{\"cnt\":{\"value_count\":{\"field\":\"_index\"}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])\n"
+  }
+}

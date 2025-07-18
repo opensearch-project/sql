@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Map;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
-import org.opensearch.sql.opensearch.request.system.OpenSearchDescribeIndexRequest;
+import org.opensearch.sql.opensearch.util.MergeRules.MergeRuleHelper;
 
 public class MergeArrayAndObjectMapBenchmark {
   private static final List<Map<String, OpenSearchDataType>> candidateMaps = prepareListOfMaps(120);
@@ -21,7 +21,7 @@ public class MergeArrayAndObjectMapBenchmark {
   public void testMerge() {
     Map<String, OpenSearchDataType> finalResult = new HashMap<>();
     for (Map<String, OpenSearchDataType> map : candidateMaps) {
-      OpenSearchDescribeIndexRequest.mergeObjectAndArrayInsideMap(finalResult, map);
+      MergeRuleHelper.merge(finalResult, map);
     }
   }
 
