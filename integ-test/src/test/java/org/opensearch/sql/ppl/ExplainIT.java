@@ -99,6 +99,14 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testCountAggPushDownExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_count_agg_push.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString("source=opensearch-sql_test_index_account | stats count() as cnt"));
+  }
+
+  @Test
   public void testSortPushDownExplain() throws IOException {
     String expected = loadExpectedPlan("explain_sort_push.json");
     assertJsonEqualsIgnoreId(
