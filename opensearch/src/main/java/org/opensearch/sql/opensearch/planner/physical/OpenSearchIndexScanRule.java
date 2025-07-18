@@ -8,24 +8,25 @@ package org.opensearch.sql.opensearch.planner.physical;
 import java.util.HashSet;
 import java.util.Set;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rex.RexNode;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
-import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
+import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 
 public interface OpenSearchIndexScanRule {
   /**
    * CalciteOpenSearchIndexScan doesn't allow push-down anymore (except Sort under some strict
    * condition) after Aggregate push-down.
    */
-  static boolean noAggregatePushed(CalciteLogicalIndexScan scan) {
+  static boolean noAggregatePushed(AbstractCalciteIndexScan scan) {
     if (scan.getPushDownContext().isAggregatePushed()) return false;
     final RelOptTable table = scan.getTable();
     return table.unwrap(OpenSearchIndex.class) != null;
   }
 
-  static boolean isLimitPushed(CalciteLogicalIndexScan scan) {
+  static boolean isLimitPushed(AbstractCalciteIndexScan scan) {
     return scan.getPushDownContext().isLimitPushed();
   }
 
@@ -53,7 +54,7 @@ public interface OpenSearchIndexScanRule {
     return sort.fetch != null;
   }
 
-  static boolean sortByFieldsOnly(LogicalSort sort) {
+  static boolean sortByFieldsOnly(Sort sort) {
     return !sort.getCollation().getFieldCollations().isEmpty() && sort.fetch == null;
   }
 }

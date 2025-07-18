@@ -431,7 +431,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
 
     JSONArray dataRows = getDataRows(response);
     assertEquals(1, dataRows.length());
-    assertEquals("m", dataRows.getJSONArray(0).getString(0));
+    assertEquals("M", dataRows.getJSONArray(0).getString(0));
   }
 
   /**
