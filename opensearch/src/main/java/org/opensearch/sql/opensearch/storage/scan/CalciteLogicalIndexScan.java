@@ -19,6 +19,7 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -30,6 +31,9 @@ import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -48,6 +52,7 @@ import org.opensearch.sql.opensearch.planner.physical.EnumerableIndexScanRule;
 import org.opensearch.sql.opensearch.planner.physical.OpenSearchIndexRules;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
+import org.opensearch.sql.opensearch.request.PredicateAnalyzer.QueryExpression;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 
@@ -97,20 +102,32 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     }
   }
 
-  public CalciteLogicalIndexScan pushDownFilter(Filter filter) {
+  public AbstractRelNode pushDownFilter(Filter filter) {
     try {
-      CalciteLogicalIndexScan newScan = this.copyWithNewSchema(filter.getRowType());
       List<String> schema = this.getRowType().getFieldNames();
       Map<String, ExprType> filedTypes = this.osIndex.getFieldTypes();
-      QueryBuilder filterBuilder =
-          PredicateAnalyzer.analyze(filter.getCondition(), schema, filedTypes);
+      QueryExpression queryExpression =
+          PredicateAnalyzer.analyze_(filter.getCondition(), schema, filedTypes);
+      QueryBuilder queryBuilder = queryExpression.builder();
+      CalciteLogicalIndexScan newScan = this.copyWithNewSchema(filter.getRowType());
+      // TODO: handle the case where condition contains a score function
       newScan.pushDownContext.add(
           new PushDownAction(
               PushDownType.FILTER,
-              filter.getCondition(),
-              requestBuilder -> requestBuilder.pushDownFilter(filterBuilder)));
+              queryExpression.isPartial()
+                  ? constructCondition(
+                      queryExpression.getAnalyzedNodes(), getCluster().getRexBuilder())
+                  : filter.getCondition(),
+              requestBuilder -> requestBuilder.pushDownFilter(queryBuilder)));
 
-      // TODO: handle the case where condition contains a score function
+      // If the query expression is partial, we need to replace the input of the filter with the
+      // partial pushed scan and the filter condition with non-pushed-down conditions.
+      if (queryExpression.isPartial()) {
+        // Only CompoundQueryExpression could be partial.
+        List<RexNode> conditions = queryExpression.getUnAnalyzableNodes();
+        RexNode newCondition = constructCondition(conditions, getCluster().getRexBuilder());
+        return filter.copy(filter.getTraitSet(), newScan, newCondition);
+      }
       return newScan;
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
@@ -120,6 +137,12 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       }
     }
     return null;
+  }
+
+  private static RexNode constructCondition(List<RexNode> conditions, RexBuilder rexBuilder) {
+    return conditions.size() > 1
+        ? rexBuilder.makeCall(SqlStdOperatorTable.AND, conditions)
+        : conditions.get(0);
   }
 
   /**

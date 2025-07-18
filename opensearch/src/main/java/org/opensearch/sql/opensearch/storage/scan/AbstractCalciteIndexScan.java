@@ -147,6 +147,13 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     // NESTED
   }
 
+  /**
+   * Represents a push down action that can be applied to an OpenSearchRequestBuilder.
+   *
+   * @param type PushDownType enum
+   * @param digest the digest of the pushed down operator
+   * @param action the lambda action to apply on the OpenSearchRequestBuilder
+   */
   public class PushDownAction {
 
     private final PushDownType type;
