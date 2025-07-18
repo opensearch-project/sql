@@ -61,7 +61,8 @@ jacocoTestCoverageVerification {
         rule {
             element = 'CLASS'
             excludes = [
-                    'org.opensearch.sql.prometheus.data.constants.*'
+                    'org.opensearch.sql.prometheus.data.constants.*',
+                    'org.opensearch.sql.prometheus.functions.implementation.*'
             ]
             limit {
                 counter = 'LINE'

@@ -9,6 +9,7 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.sql.SqlKind;
 import org.immutables.value.Value;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
@@ -29,6 +30,11 @@ public class OpenSearchAggregateIndexScanRule
       final LogicalProject project = call.rel(1);
       final CalciteLogicalIndexScan scan = call.rel(2);
       apply(call, aggregate, project, scan);
+    } else if (call.rels.length == 2) {
+      // case of count() without group-by
+      final LogicalAggregate aggregate = call.rel(0);
+      final CalciteLogicalIndexScan scan = call.rel(1);
+      apply(call, aggregate, null, scan);
     } else {
       throw new AssertionError(
           String.format(
@@ -54,6 +60,7 @@ public class OpenSearchAggregateIndexScanRule
     Config DEFAULT =
         ImmutableOpenSearchAggregateIndexScanRule.Config.builder()
             .build()
+            .withDescription("Agg-Project-TableScan")
             .withOperandSupplier(
                 b0 ->
                     b0.operand(LogicalAggregate.class)
@@ -71,6 +78,28 @@ public class OpenSearchAggregateIndexScanRule
                                                             OpenSearchIndexScanRule
                                                                 ::noAggregatePushed))
                                                 .noInputs())));
+    Config COUNT_STAR =
+        ImmutableOpenSearchAggregateIndexScanRule.Config.builder()
+            .build()
+            .withDescription("Agg[count()]-TableScan")
+            .withOperandSupplier(
+                b0 ->
+                    b0.operand(LogicalAggregate.class)
+                        .predicate(
+                            agg ->
+                                agg.getGroupSet().isEmpty()
+                                    && agg.getAggCallList().stream()
+                                        .allMatch(
+                                            call ->
+                                                call.getAggregation().kind == SqlKind.COUNT
+                                                    && call.getArgList().isEmpty()))
+                        .oneInput(
+                            b1 ->
+                                b1.operand(CalciteLogicalIndexScan.class)
+                                    .predicate(
+                                        Predicate.not(OpenSearchIndexScanRule::isLimitPushed)
+                                            .and(OpenSearchIndexScanRule::noAggregatePushed))
+                                    .noInputs()));
 
     @Override
     default OpenSearchAggregateIndexScanRule toRule() {

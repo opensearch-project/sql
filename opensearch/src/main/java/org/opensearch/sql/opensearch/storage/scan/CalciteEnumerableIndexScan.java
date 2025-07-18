@@ -56,6 +56,19 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
   }
 
   @Override
+  protected AbstractCalciteIndexScan buildScan(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      List<RelHint> hints,
+      RelOptTable table,
+      OpenSearchIndex osIndex,
+      RelDataType schema,
+      PushDownContext pushDownContext) {
+    return new CalciteEnumerableIndexScan(
+        cluster, traitSet, hints, table, osIndex, schema, pushDownContext);
+  }
+
+  @Override
   public void register(RelOptPlanner planner) {
     for (RelOptRule rule : OpenSearchRules.OPEN_SEARCH_OPT_RULES) {
       planner.addRule(rule);
@@ -82,18 +95,29 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
     return implementor.result(physType, Blocks.toBlock(Expressions.call(scanOperator, "scan")));
   }
 
+  @Override
+  public Enumerable<@Nullable Object> scanWithLimit() {
+    return executeScan(getQuerySizeLimit());
+  }
+
+  public Enumerable<@Nullable Object> scan() {
+    return executeScan(null);
+  }
+
   /**
    * This Enumerator may be iterated for multiple times, so we need to create opensearch request for
    * each time to avoid reusing source builder. That's because the source builder has stats like PIT
    * or SearchAfter recorded during previous search.
    */
-  @Override
-  public Enumerable<@Nullable Object> scan() {
+  private Enumerable<@Nullable Object> executeScan(Integer querySizeLimit) {
     return new AbstractEnumerable<>() {
       @Override
       public Enumerator<Object> enumerator() {
         OpenSearchRequestBuilder requestBuilder = osIndex.createRequestBuilder();
         pushDownContext.forEach(action -> action.apply(requestBuilder));
+        if (querySizeLimit != null && querySizeLimit > 0 && !pushDownContext.isAggregatePushed()) {
+          requestBuilder.pushDownLimit(querySizeLimit, 0);
+        }
         return new OpenSearchIndexEnumerator(
             osIndex.getClient(),
             getFieldPath(),
