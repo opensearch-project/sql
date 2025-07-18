@@ -479,316 +479,264 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitBin(Bin node, CalcitePlanContext context) {
     visitChildren(node, context);
 
-    // Get the field expression that needs to be binned
     RexNode fieldExpr = rexVisitor.analyze(node.getField(), context);
+    String fieldName = extractFieldName(node);
+    String aliasName = determineAliasName(node, fieldName);
+    RexNode alignTimeValue = processAligntimeParameter(node, fieldExpr, context);
+    RexNode binExpression = createBinExpression(node, fieldExpr, alignTimeValue, context);
 
-    // Extract the field name properly - for Field expressions, get the field name
-    String fieldName;
-    if (node.getField() instanceof Field) {
-      Field field = (Field) node.getField();
-      fieldName = field.getField().toString();
-    } else {
-      fieldName = node.getField().toString();
-    }
-
-    // Determine the alias name - use provided alias or default to binned field name
-    String aliasName = node.getAlias() != null ? node.getAlias() : fieldName + "_bin";
-
-    // Handle aligntime parameter
-    RexNode alignTimeValue = null;
-    if (node.getAligntime() != null) {
-      RelDataType fieldType = fieldExpr.getType();
-      // Aligntime is only valid for time-based fields
-      if (fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP
-          || fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
-          || fieldType.getSqlTypeName() == SqlTypeName.BIGINT
-          || fieldType.getSqlTypeName() == SqlTypeName.DATE) {
-
-        if (node.getAligntime() instanceof Literal) {
-          Literal aligntimeLiteral = (Literal) node.getAligntime();
-          String aligntimeStr = aligntimeLiteral.getValue().toString();
-
-          if ("earliest".equals(aligntimeStr)) {
-            // For earliest, we align to epoch 0, but since subtracting and adding 0
-            // is a no-op, we can just use null to indicate no alignment needed
-            alignTimeValue = null;
-          } else if ("latest".equals(aligntimeStr)) {
-            // Calculate maximum value using aggregate
-            // For now, we'll use a placeholder - in production, this would require
-            // a subquery or window function to get the actual max value
-            alignTimeValue = context.relBuilder.literal(System.currentTimeMillis());
-          } else {
-            // Parse as a time value
-            alignTimeValue = rexVisitor.analyze(node.getAligntime(), context);
-          }
-        } else {
-          // It's a time expression
-          alignTimeValue = rexVisitor.analyze(node.getAligntime(), context);
-        }
-      }
-      // If not a time field, aligntime is ignored
-    }
-
-    RexNode binExpression;
-
-    if (node.getSpan() != null) {
-      // Handle span-based binning using the existing SPAN function
-      // The SPAN function already handles timestamps correctly
-      RexNode spanValue = rexVisitor.analyze(node.getSpan(), context);
-      RelDataType fieldType = fieldExpr.getType();
-
-      // Determine the unit parameter based on field type
-      RexNode unitNode;
-      if (fieldType.getSqlTypeName() == SqlTypeName.BIGINT
-          || fieldType.getSqlTypeName() == SqlTypeName.INTEGER
-          || fieldType.getSqlTypeName() == SqlTypeName.SMALLINT
-          || fieldType.getSqlTypeName() == SqlTypeName.TINYINT
-          || fieldType.getSqlTypeName() == SqlTypeName.DOUBLE
-          || fieldType.getSqlTypeName() == SqlTypeName.FLOAT
-          || fieldType.getSqlTypeName() == SqlTypeName.DECIMAL) {
-        // For numeric fields, pass null to use simple division/multiplication logic
-        unitNode = context.relBuilder.literal(null);
-      } else {
-        // For datetime fields, use "ms" as the default unit for milliseconds
-        unitNode = context.relBuilder.literal("ms");
-      }
-
-      // Check if span is a decimal value - SPAN function only supports INTEGER intervals
-      boolean isDecimalSpan = false;
-      if (spanValue.isA(LITERAL) && ((RexLiteral) spanValue).getValue() != null) {
-        Object spanVal = ((RexLiteral) spanValue).getValue();
-        if (spanVal instanceof Number) {
-          double doubleVal = ((Number) spanVal).doubleValue();
-          isDecimalSpan = (doubleVal != Math.floor(doubleVal));
-        }
-      }
-
-      if (fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP
-          || fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
-          || fieldType.getSqlTypeName() == SqlTypeName.DATE
-          || (unitNode.isA(LITERAL)
-              && ((RexLiteral) unitNode).getValue() != null
-              && !((RexLiteral) unitNode).getValue().toString().isEmpty())) {
-        // Use SPAN function for datetime fields or when unit is specified
-        if ((fieldType.getSqlTypeName() == SqlTypeName.BIGINT
-                || fieldType.getSqlTypeName() == SqlTypeName.INTEGER
-                || fieldType.getSqlTypeName() == SqlTypeName.SMALLINT
-                || fieldType.getSqlTypeName() == SqlTypeName.TINYINT)
-            && unitNode.isA(LITERAL)
-            && ((RexLiteral) unitNode).getValue() == null
-            && !isDecimalSpan) {
-          // For integer-like fields with null unit, ensure span is also INTEGER
-          spanValue = context.relBuilder.cast(spanValue, SqlTypeName.INTEGER);
-        }
-
-        // If aligntime is specified and this is a time field, modify the SPAN function call
-        if (alignTimeValue != null) {
-          // For time alignment, we need to adjust the field value before binning
-          // aligned_bin = floor((field - aligntime) / span) * span + aligntime
-          RexNode adjustedField =
-              context.relBuilder.call(SqlStdOperatorTable.MINUS, fieldExpr, alignTimeValue);
-          binExpression =
-              PPLFuncImpTable.INSTANCE.resolve(
-                  context.rexBuilder, BuiltinFunctionName.SPAN, adjustedField, spanValue, unitNode);
-          // Add back the aligntime offset
-          binExpression =
-              context.relBuilder.call(SqlStdOperatorTable.PLUS, binExpression, alignTimeValue);
-        } else {
-          binExpression =
-              PPLFuncImpTable.INSTANCE.resolve(
-                  context.rexBuilder, BuiltinFunctionName.SPAN, fieldExpr, spanValue, unitNode);
-        }
-      } else {
-        // For numeric fields with simple spans, implement binning directly
-        RexNode workingFieldExpr = fieldExpr;
-
-        if (alignTimeValue != null
-            && (fieldType.getSqlTypeName() == SqlTypeName.BIGINT
-                || fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP
-                || fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)) {
-          // For time alignment on numeric fields that represent time
-          // aligned_bin = floor((field - aligntime) / span) * span + aligntime
-          RexNode adjusted =
-              context.relBuilder.call(SqlStdOperatorTable.MINUS, workingFieldExpr, alignTimeValue);
-          RexNode divided =
-              context.relBuilder.call(SqlStdOperatorTable.DIVIDE, adjusted, spanValue);
-          RexNode floored = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
-          RexNode multiplied =
-              context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, floored, spanValue);
-          binExpression =
-              context.relBuilder.call(SqlStdOperatorTable.PLUS, multiplied, alignTimeValue);
-        } else {
-          // Standard binning without alignment
-          // bin = FLOOR(field / span) * span
-          RexNode divided =
-              context.relBuilder.call(SqlStdOperatorTable.DIVIDE, workingFieldExpr, spanValue);
-          RexNode floored = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
-          binExpression = context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, floored, spanValue);
-        }
-      }
-
-    } else if (node.getMinspan() != null) {
-      // Handle minspan-based binning - automatic span calculation based on data range
-      // When minspan is specified without explicit span, calculate appropriate span
-      RexNode minspanValue = rexVisitor.analyze(node.getMinspan(), context);
-      RelDataType fieldType = fieldExpr.getType();
-
-      // For minspan, we need to calculate the data range and determine appropriate span
-      // This is a simplified implementation - in production, you'd want to:
-      // 1. Calculate actual min/max values from the data
-      // 2. Use minspan as the minimum allowed span
-      // 3. Calculate optimal span that is >= minspan and creates reasonable number of bins
-
-      // Default implementation: use minspan as the span value
-      RexNode spanValue = minspanValue;
-
-      // Determine the unit parameter based on field type
-      RexNode unitNode;
-      if (fieldType.getSqlTypeName() == SqlTypeName.BIGINT
-          || fieldType.getSqlTypeName() == SqlTypeName.INTEGER
-          || fieldType.getSqlTypeName() == SqlTypeName.SMALLINT
-          || fieldType.getSqlTypeName() == SqlTypeName.TINYINT
-          || fieldType.getSqlTypeName() == SqlTypeName.DOUBLE
-          || fieldType.getSqlTypeName() == SqlTypeName.FLOAT
-          || fieldType.getSqlTypeName() == SqlTypeName.DECIMAL) {
-        // For numeric fields, pass null to use simple division/multiplication logic
-        unitNode = context.relBuilder.literal(null);
-      } else {
-        // For datetime fields, use empty string unit (will be handled by datetime logic)
-        unitNode = context.relBuilder.literal("");
-      }
-
-      // Check if span is a decimal value - SPAN function only supports INTEGER intervals
-      boolean isDecimalSpan = false;
-      if (spanValue.isA(LITERAL) && ((RexLiteral) spanValue).getValue() != null) {
-        Object spanVal = ((RexLiteral) spanValue).getValue();
-        if (spanVal instanceof Number) {
-          double doubleVal = ((Number) spanVal).doubleValue();
-          isDecimalSpan = (doubleVal != Math.floor(doubleVal));
-        }
-      }
-
-      if (fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP
-          || fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
-          || fieldType.getSqlTypeName() == SqlTypeName.DATE
-          || (unitNode.isA(LITERAL)
-              && ((RexLiteral) unitNode).getValue() != null
-              && !((RexLiteral) unitNode).getValue().toString().isEmpty())) {
-        // Use SPAN function for datetime fields or when unit is specified
-        if ((fieldType.getSqlTypeName() == SqlTypeName.BIGINT
-                || fieldType.getSqlTypeName() == SqlTypeName.INTEGER
-                || fieldType.getSqlTypeName() == SqlTypeName.SMALLINT
-                || fieldType.getSqlTypeName() == SqlTypeName.TINYINT)
-            && unitNode.isA(LITERAL)
-            && ((RexLiteral) unitNode).getValue() == null
-            && !isDecimalSpan) {
-          // For integer-like fields with null unit, ensure span is also INTEGER
-          spanValue = context.relBuilder.cast(spanValue, SqlTypeName.INTEGER);
-        }
-
-        // If aligntime is specified and this is a time field, modify the SPAN function call
-        if (alignTimeValue != null) {
-          // For time alignment, we need to adjust the field value before binning
-          // aligned_bin = floor((field - aligntime) / span) * span + aligntime
-          RexNode adjustedField =
-              context.relBuilder.call(SqlStdOperatorTable.MINUS, fieldExpr, alignTimeValue);
-          binExpression =
-              PPLFuncImpTable.INSTANCE.resolve(
-                  context.rexBuilder, BuiltinFunctionName.SPAN, adjustedField, spanValue, unitNode);
-          // Add back the aligntime offset
-          binExpression =
-              context.relBuilder.call(SqlStdOperatorTable.PLUS, binExpression, alignTimeValue);
-        } else {
-          binExpression =
-              PPLFuncImpTable.INSTANCE.resolve(
-                  context.rexBuilder, BuiltinFunctionName.SPAN, fieldExpr, spanValue, unitNode);
-        }
-      } else {
-        // For numeric fields with simple spans, implement binning directly
-        RexNode workingFieldExpr = fieldExpr;
-
-        if (alignTimeValue != null
-            && (fieldType.getSqlTypeName() == SqlTypeName.BIGINT
-                || fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP
-                || fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)) {
-          // For time alignment on numeric fields that represent time
-          // aligned_bin = floor((field - aligntime) / span) * span + aligntime
-          RexNode adjusted =
-              context.relBuilder.call(SqlStdOperatorTable.MINUS, workingFieldExpr, alignTimeValue);
-          RexNode divided =
-              context.relBuilder.call(SqlStdOperatorTable.DIVIDE, adjusted, spanValue);
-          RexNode floored = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
-          RexNode multiplied =
-              context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, floored, spanValue);
-          binExpression =
-              context.relBuilder.call(SqlStdOperatorTable.PLUS, multiplied, alignTimeValue);
-        } else {
-          // Standard binning without alignment
-          // bin = FLOOR(field / span) * span
-          RexNode divided =
-              context.relBuilder.call(SqlStdOperatorTable.DIVIDE, workingFieldExpr, spanValue);
-          RexNode floored = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
-          binExpression = context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, floored, spanValue);
-        }
-      }
-
-    } else if (node.getBins() != null) {
-      // Handle bins-based binning (divide range into equal parts)
-      // This is a simplified implementation - in production, you'd want to calculate
-      // the actual range from the data or use aggregation functions
-      Integer numBins = node.getBins();
-
-      // Use a default range - this should be improved to calculate actual data range
-      RexNode minValue = context.relBuilder.literal(0.0);
-      RexNode range = context.relBuilder.literal(1000.0); // Default range
-      RexNode binSize =
-          context.relBuilder.call(
-              SqlStdOperatorTable.DIVIDE, range, context.relBuilder.literal(numBins));
-
-      // Check field type for proper casting
-      RelDataType fieldType = fieldExpr.getType();
-      RexNode workingFieldExpr = fieldExpr;
-
-      if (fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP
-          || fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
-        // For timestamp fields, cast directly to BIGINT (milliseconds since epoch)
-        workingFieldExpr = context.relBuilder.cast(fieldExpr, SqlTypeName.BIGINT);
-      }
-
-      // bin = floor((field - min) / bin_size) * bin_size + min
-      RexNode shifted =
-          context.relBuilder.call(SqlStdOperatorTable.MINUS, workingFieldExpr, minValue);
-      RexNode divided =
-          PPLFuncImpTable.INSTANCE.resolve(
-              context.rexBuilder, BuiltinFunctionName.DIVIDE, shifted, binSize);
-      RexNode floored = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
-      RexNode multiplied = context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, floored, binSize);
-      binExpression = context.relBuilder.call(SqlStdOperatorTable.PLUS, multiplied, minValue);
-
-    } else {
-      // Default binning behavior - use span of 1 for integer-like binning
-      RelDataType fieldType = fieldExpr.getType();
-      RexNode defaultSpan = context.relBuilder.literal(1);
-      RexNode workingFieldExpr = fieldExpr;
-
-      if (fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP
-          || fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
-        // For timestamp fields, cast to BIGINT first
-        workingFieldExpr = context.relBuilder.cast(fieldExpr, SqlTypeName.BIGINT);
-      }
-
-      RexNode divided =
-          context.relBuilder.call(SqlStdOperatorTable.DIVIDE, workingFieldExpr, defaultSpan);
-      binExpression = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
-    }
-
-    // Create the binned field with alias
+    // Create the binned field with alias and add to projection
     RexNode aliasedBinExpression = context.relBuilder.alias(binExpression, aliasName);
-
-    // Add the binned field to the projection
     context.relBuilder.projectPlus(aliasedBinExpression);
 
     return context.relBuilder.peek();
+  }
+
+  private String extractFieldName(Bin node) {
+    if (node.getField() instanceof Field) {
+      Field field = (Field) node.getField();
+      return field.getField().toString();
+    } else {
+      return node.getField().toString();
+    }
+  }
+
+  private String determineAliasName(Bin node, String fieldName) {
+    return node.getAlias() != null ? node.getAlias() : fieldName + "_bin";
+  }
+
+  private RexNode processAligntimeParameter(
+      Bin node, RexNode fieldExpr, CalcitePlanContext context) {
+    if (node.getAligntime() == null) {
+      return null;
+    }
+
+    RelDataType fieldType = fieldExpr.getType();
+    // Aligntime is only valid for time-based fields
+    if (!isTimeBasedField(fieldType)) {
+      return null;
+    }
+
+    if (node.getAligntime() instanceof Literal) {
+      Literal aligntimeLiteral = (Literal) node.getAligntime();
+      String aligntimeStr = aligntimeLiteral.getValue().toString();
+
+      if ("earliest".equals(aligntimeStr)) {
+        // For earliest, we align to epoch 0, but since subtracting and adding 0
+        // is a no-op, we can just use null to indicate no alignment needed
+        return null;
+      } else if ("latest".equals(aligntimeStr)) {
+        // Calculate maximum value using aggregate
+        // For now, we'll use a placeholder - in production, this would require
+        // a subquery or window function to get the actual max value
+        return context.relBuilder.literal(System.currentTimeMillis());
+      } else {
+        // Parse as a time value
+        return rexVisitor.analyze(node.getAligntime(), context);
+      }
+    } else {
+      // It's a time expression
+      return rexVisitor.analyze(node.getAligntime(), context);
+    }
+  }
+
+  private boolean isTimeBasedField(RelDataType fieldType) {
+    return fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP
+        || fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
+        || fieldType.getSqlTypeName() == SqlTypeName.BIGINT
+        || fieldType.getSqlTypeName() == SqlTypeName.DATE;
+  }
+
+  private RexNode createBinExpression(
+      Bin node, RexNode fieldExpr, RexNode alignTimeValue, CalcitePlanContext context) {
+    if (node.getSpan() != null) {
+      return createSpanBasedBinning(node, fieldExpr, alignTimeValue, context);
+    } else if (node.getMinspan() != null) {
+      return createMinspanBasedBinning(node, fieldExpr, alignTimeValue, context);
+    } else if (node.getBins() != null) {
+      return createBinsBasedBinning(node, fieldExpr, context);
+    } else {
+      return createDefaultBinning(fieldExpr, context);
+    }
+  }
+
+  private RexNode createSpanBasedBinning(
+      Bin node, RexNode fieldExpr, RexNode alignTimeValue, CalcitePlanContext context) {
+    RexNode spanValue = rexVisitor.analyze(node.getSpan(), context);
+    RelDataType fieldType = fieldExpr.getType();
+    RexNode unitNode = determineUnitForField(fieldType, context, "ms");
+    boolean isDecimalSpan = isDecimalValue(spanValue);
+
+    if (shouldUseSpanFunction(fieldType, unitNode, isDecimalSpan)) {
+      return createSpanFunctionBinning(
+          fieldExpr, spanValue, unitNode, alignTimeValue, fieldType, isDecimalSpan, context);
+    } else {
+      return createDirectBinning(fieldExpr, spanValue, alignTimeValue, fieldType, context);
+    }
+  }
+
+  private RexNode createMinspanBasedBinning(
+      Bin node, RexNode fieldExpr, RexNode alignTimeValue, CalcitePlanContext context) {
+    RexNode minspanValue = rexVisitor.analyze(node.getMinspan(), context);
+    RelDataType fieldType = fieldExpr.getType();
+    RexNode spanValue = minspanValue; // Default implementation: use minspan as the span value
+    RexNode unitNode = determineUnitForField(fieldType, context, "");
+    boolean isDecimalSpan = isDecimalValue(spanValue);
+
+    if (shouldUseSpanFunction(fieldType, unitNode, isDecimalSpan)) {
+      return createSpanFunctionBinning(
+          fieldExpr, spanValue, unitNode, alignTimeValue, fieldType, isDecimalSpan, context);
+    } else {
+      return createDirectBinning(fieldExpr, spanValue, alignTimeValue, fieldType, context);
+    }
+  }
+
+  private RexNode createBinsBasedBinning(Bin node, RexNode fieldExpr, CalcitePlanContext context) {
+    Integer numBins = node.getBins();
+    // Use a default range - this should be improved to calculate actual data range
+    RexNode minValue = context.relBuilder.literal(0.0);
+    RexNode range = context.relBuilder.literal(1000.0);
+    RexNode binSize =
+        context.relBuilder.call(
+            SqlStdOperatorTable.DIVIDE, range, context.relBuilder.literal(numBins));
+
+    RelDataType fieldType = fieldExpr.getType();
+    RexNode workingFieldExpr = fieldExpr;
+
+    if (fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP
+        || fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
+      workingFieldExpr = context.relBuilder.cast(fieldExpr, SqlTypeName.BIGINT);
+    }
+
+    // bin = floor((field - min) / bin_size) * bin_size + min
+    RexNode shifted =
+        context.relBuilder.call(SqlStdOperatorTable.MINUS, workingFieldExpr, minValue);
+    RexNode divided =
+        PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder, BuiltinFunctionName.DIVIDE, shifted, binSize);
+    RexNode floored = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
+    RexNode multiplied = context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, floored, binSize);
+    return context.relBuilder.call(SqlStdOperatorTable.PLUS, multiplied, minValue);
+  }
+
+  private RexNode createDefaultBinning(RexNode fieldExpr, CalcitePlanContext context) {
+    RelDataType fieldType = fieldExpr.getType();
+    RexNode defaultSpan = context.relBuilder.literal(1);
+    RexNode workingFieldExpr = fieldExpr;
+
+    if (fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP
+        || fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
+      workingFieldExpr = context.relBuilder.cast(fieldExpr, SqlTypeName.BIGINT);
+    }
+
+    RexNode divided =
+        context.relBuilder.call(SqlStdOperatorTable.DIVIDE, workingFieldExpr, defaultSpan);
+    return context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
+  }
+
+  private RexNode determineUnitForField(
+      RelDataType fieldType, CalcitePlanContext context, String defaultTimeUnit) {
+    if (fieldType.getSqlTypeName() == SqlTypeName.BIGINT
+        || fieldType.getSqlTypeName() == SqlTypeName.INTEGER
+        || fieldType.getSqlTypeName() == SqlTypeName.SMALLINT
+        || fieldType.getSqlTypeName() == SqlTypeName.TINYINT
+        || fieldType.getSqlTypeName() == SqlTypeName.DOUBLE
+        || fieldType.getSqlTypeName() == SqlTypeName.FLOAT
+        || fieldType.getSqlTypeName() == SqlTypeName.DECIMAL) {
+      return context.relBuilder.literal(null);
+    } else {
+      return context.relBuilder.literal(defaultTimeUnit);
+    }
+  }
+
+  private boolean isDecimalValue(RexNode value) {
+    if (value.isA(LITERAL) && ((RexLiteral) value).getValue() != null) {
+      Object val = ((RexLiteral) value).getValue();
+      if (val instanceof Number) {
+        double doubleVal = ((Number) val).doubleValue();
+        return (doubleVal != Math.floor(doubleVal));
+      }
+    }
+    return false;
+  }
+
+  private boolean shouldUseSpanFunction(
+      RelDataType fieldType, RexNode unitNode, boolean isDecimalSpan) {
+    return fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP
+        || fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
+        || fieldType.getSqlTypeName() == SqlTypeName.DATE
+        || (unitNode.isA(LITERAL)
+            && ((RexLiteral) unitNode).getValue() != null
+            && !((RexLiteral) unitNode).getValue().toString().isEmpty());
+  }
+
+  private RexNode createSpanFunctionBinning(
+      RexNode fieldExpr,
+      RexNode spanValue,
+      RexNode unitNode,
+      RexNode alignTimeValue,
+      RelDataType fieldType,
+      boolean isDecimalSpan,
+      CalcitePlanContext context) {
+    // For integer-like fields with null unit, ensure span is also INTEGER
+    if (isIntegerLikeField(fieldType)
+        && unitNode.isA(LITERAL)
+        && ((RexLiteral) unitNode).getValue() == null
+        && !isDecimalSpan) {
+      spanValue = context.relBuilder.cast(spanValue, SqlTypeName.INTEGER);
+    }
+
+    if (alignTimeValue != null) {
+      // For time alignment, adjust the field value before binning
+      RexNode adjustedField =
+          context.relBuilder.call(SqlStdOperatorTable.MINUS, fieldExpr, alignTimeValue);
+      RexNode binExpression =
+          PPLFuncImpTable.INSTANCE.resolve(
+              context.rexBuilder, BuiltinFunctionName.SPAN, adjustedField, spanValue, unitNode);
+      return context.relBuilder.call(SqlStdOperatorTable.PLUS, binExpression, alignTimeValue);
+    } else {
+      return PPLFuncImpTable.INSTANCE.resolve(
+          context.rexBuilder, BuiltinFunctionName.SPAN, fieldExpr, spanValue, unitNode);
+    }
+  }
+
+  private RexNode createDirectBinning(
+      RexNode fieldExpr,
+      RexNode spanValue,
+      RexNode alignTimeValue,
+      RelDataType fieldType,
+      CalcitePlanContext context) {
+    RexNode workingFieldExpr = fieldExpr;
+
+    if (alignTimeValue != null && shouldApplyAlignment(fieldType)) {
+      // For time alignment: aligned_bin = floor((field - aligntime) / span) * span + aligntime
+      RexNode adjusted =
+          context.relBuilder.call(SqlStdOperatorTable.MINUS, workingFieldExpr, alignTimeValue);
+      RexNode divided = context.relBuilder.call(SqlStdOperatorTable.DIVIDE, adjusted, spanValue);
+      RexNode floored = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
+      RexNode multiplied =
+          context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, floored, spanValue);
+      return context.relBuilder.call(SqlStdOperatorTable.PLUS, multiplied, alignTimeValue);
+    } else {
+      // Standard binning: bin = FLOOR(field / span) * span
+      RexNode divided =
+          context.relBuilder.call(SqlStdOperatorTable.DIVIDE, workingFieldExpr, spanValue);
+      RexNode floored = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
+      return context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, floored, spanValue);
+    }
+  }
+
+  private boolean isIntegerLikeField(RelDataType fieldType) {
+    return fieldType.getSqlTypeName() == SqlTypeName.BIGINT
+        || fieldType.getSqlTypeName() == SqlTypeName.INTEGER
+        || fieldType.getSqlTypeName() == SqlTypeName.SMALLINT
+        || fieldType.getSqlTypeName() == SqlTypeName.TINYINT;
+  }
+
+  private boolean shouldApplyAlignment(RelDataType fieldType) {
+    return fieldType.getSqlTypeName() == SqlTypeName.BIGINT
+        || fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP
+        || fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE;
   }
 
   @Override
