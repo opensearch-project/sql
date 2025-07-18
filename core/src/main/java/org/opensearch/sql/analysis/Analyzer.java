@@ -83,6 +83,7 @@ import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
+import org.opensearch.sql.ast.tree.Table;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
@@ -127,7 +128,6 @@ import org.opensearch.sql.planner.logical.LogicalTrendline;
 import org.opensearch.sql.planner.logical.LogicalValues;
 import org.opensearch.sql.planner.logical.LogicalWindow;
 import org.opensearch.sql.planner.physical.datasource.DataSourceTable;
-import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.utils.ParseUtils;
 
 /**
@@ -191,7 +191,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     String tableName = dataSourceSchemaIdentifierNameResolver.getIdentifierName();
     context.push();
     TypeEnvironment curEnv = context.peek();
-    Table table;
+    org.opensearch.sql.storage.Table table;
     if (DATASOURCES_TABLE_NAME.equals(tableName)) {
       table = new DataSourceTable(dataSourceService);
     } else {
@@ -252,7 +252,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
                 arguments);
     context.push();
     TypeEnvironment curEnv = context.peek();
-    Table table = tableFunctionImplementation.applyArguments();
+    org.opensearch.sql.storage.Table table = tableFunctionImplementation.applyArguments();
     table.getFieldTypes().forEach((k, v) -> curEnv.define(new Symbol(Namespace.FIELD_NAME, k), v));
     table
         .getReservedFieldTypes()
@@ -716,6 +716,26 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   public LogicalPlan visitAppendCol(AppendCol node, AnalysisContext context) {
     throw new UnsupportedOperationException(
         "AppendCol is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+  }
+
+  /**
+   * Process a Table node and convert it to a logical plan.
+   *
+   * <p>This method handles the Table AST node by checking if the Calcite engine is enabled. The
+   * Table operation is only supported when the Calcite engine is enabled, otherwise an
+   * UnsupportedOperationException is thrown.
+   *
+   * @param node The Table AST node to be processed
+   * @param context The analysis context containing type environment and other analysis state
+   * @return A logical plan representing the table operation
+   * @throws UnsupportedOperationException When Calcite engine is not enabled
+   */
+  @Override
+  public LogicalPlan visitTable(Table node, AnalysisContext context) {
+    // Table operations require the Calcite engine to be enabled
+    // This is a fallback mechanism to ensure users are aware of the requirement
+    throw new UnsupportedOperationException(
+        "Table is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
   }
 
   private LogicalSort buildSort(

@@ -78,6 +78,7 @@ import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
+import org.opensearch.sql.ast.tree.Table;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
@@ -657,6 +658,46 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         .map(this::internalVisitExpression)
         .map(Object::toString)
         .collect(Collectors.toList());
+  }
+
+  /**
+   * Processes the PPL 'table' command which selects specific fields to display in the result.
+   *
+   * <p>The table command is used to explicitly specify which fields should be included in the query
+   * results. It's similar to the SELECT clause in SQL, allowing users to choose specific fields
+   * rather than returning all fields from the data source.
+   *
+   * <p>Example PPL query: "source=index | table field1, field2, field3" or "source=index | table
+   * field1 field2 field3"
+   *
+   * @param ctx The parse tree context for the table command containing field expressions to be
+   *     displayed
+   * @return An UnresolvedPlan representing the table operation with the specified fields
+   */
+  @Override
+  public UnresolvedPlan visitTableCommand(OpenSearchPPLParser.TableCommandContext ctx) {
+    // Extract all field expressions from the command context
+    // and transform them into UnresolvedExpressions
+    List<UnresolvedExpression> fields;
+
+    if (ctx.wcFieldList() != null) {
+      // Handle comma-separated fields: table field1, field2, field3
+      fields =
+          ctx.wcFieldList().wcFieldExpression().stream()
+              .map(this::internalVisitExpression)
+              .collect(Collectors.toList());
+    } else if (ctx.wcFieldExpressionList() != null) {
+      // Handle space-delimited fields: table field1 field2 field3
+      fields =
+          ctx.wcFieldExpressionList().wcFieldExpression().stream()
+              .map(this::internalVisitExpression)
+              .collect(Collectors.toList());
+    } else {
+      // Fallback to empty list if neither is present (shouldn't happen with valid syntax)
+      fields = Collections.emptyList();
+    }
+
+    return new Table(fields);
   }
 
   /** trendline command. */

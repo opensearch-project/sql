@@ -73,12 +73,14 @@ commands
    | appendcolCommand
    | expandCommand
    | flattenCommand
+   | tableCommand
    ;
 
 commandName
    : SEARCH
    | DESCRIBE
    | SHOW
+   | TABLE
    | WHERE
    | FIELDS
    | JOIN
@@ -117,6 +119,15 @@ describeCommand
 
 showDataSourcesCommand
    : SHOW DATASOURCES
+   ;
+
+tableCommand
+   : TABLE wcFieldList
+   | TABLE wcFieldExpressionList
+   ;
+
+wcFieldExpressionList
+   : wcFieldExpression (wcFieldExpression)+
    ;
 
 whereCommand
@@ -1104,6 +1115,7 @@ tableIdent
 
 wildcard
    : ident (MODULE ident)* (MODULE)?
+   | ident (STAR ident)* (STAR)?
    | SINGLE_QUOTE wildcard SINGLE_QUOTE
    | DOUBLE_QUOTE wildcard DOUBLE_QUOTE
    | BACKTICK wildcard BACKTICK

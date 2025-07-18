@@ -71,6 +71,7 @@ import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
+import org.opensearch.sql.ast.tree.Table;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.Values;
@@ -109,6 +110,21 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitRelation(Relation node, C context) {
+    return visitChildren(node, context);
+  }
+
+  /**
+   * Visit a Table node in the AST.
+   *
+   * <p>This method processes a Table node which represents a data source in SQL queries. Tables are
+   * fundamental relation objects that serve as leaf nodes in the query plan.
+   *
+   * @param node The Table node to visit
+   * @param context The context object that carries information throughout the visitor pattern
+   * @return The result of visiting the Table node's children
+   */
+  public T visitTable(Table node, C context) {
+    // Delegate to visitChildren to process any child nodes of the Table
     return visitChildren(node, context);
   }
 
