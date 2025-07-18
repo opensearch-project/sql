@@ -19,6 +19,10 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import org.opensearch.action.search.*;
+import org.opensearch.cluster.metadata.DataStream;
+import org.opensearch.cluster.metadata.IndexMetadata;
+import org.opensearch.cluster.metadata.Metadata;
+import org.opensearch.common.Nullable;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentType;
@@ -31,6 +35,7 @@ import org.opensearch.search.SearchHits;
 import org.opensearch.search.SearchModule;
 import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
@@ -73,6 +78,8 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
 
   private SearchResponse searchResponse = null;
 
+  private Metadata metadata;
+
   /** Constructor of OpenSearchQueryRequest. */
   public OpenSearchQueryRequest(
       String indexName, int size, OpenSearchExprValueFactory factory, List<String> includes) {
@@ -110,13 +117,15 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
       OpenSearchExprValueFactory factory,
       List<String> includes,
       TimeValue cursorKeepAlive,
-      String pitId) {
+      String pitId,
+      @Nullable Metadata metadata) {
     this.indexName = indexName;
     this.sourceBuilder = sourceBuilder;
     this.exprValueFactory = factory;
     this.includes = includes;
     this.cursorKeepAlive = cursorKeepAlive;
     this.pitId = pitId;
+    this.metadata = metadata;
   }
 
   /**
@@ -191,10 +200,36 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
       }
       // Set sort field for search_after
       if (this.sourceBuilder.sorts() == null) {
-        this.sourceBuilder.sort(DOC_FIELD_NAME, ASC);
-        // Workaround to preserve sort location more exactly,
-        // see https://github.com/opensearch-project/sql/pull/3061
-        this.sourceBuilder.sort(METADATA_FIELD_ID, ASC);
+        boolean specifiedSort = false;
+        if (metadata != null) {
+          // 1. sort by `index.sort.field` if existed
+          IndexMetadata indexMetadata = metadata.index(indexName.toString());
+          if (indexMetadata != null) {
+            List<String> sortFields = indexMetadata.getSettings().getAsList("index.sort.field");
+            List<String> sortDirs = indexMetadata.getSettings().getAsList("index.sort.order");
+            for (int i = 0; i < sortFields.size(); i++) {
+              this.sourceBuilder.sort(sortFields.get(i), SortOrder.fromString(sortDirs.get(i)));
+              specifiedSort = true;
+            }
+          }
+          // 2. sort by `@timestamp` if the data stream is time-series optimized
+          if (!specifiedSort) {
+            DataStream dataStream = metadata.dataStreams().get(indexName.toString());
+            if (dataStream != null) {
+              String timestampField = dataStream.getTimeStampField().getName();
+              if (timestampField.equals("@timestamp")) {
+                this.sourceBuilder.sort(timestampField, ASC);
+                specifiedSort = true;
+              }
+            }
+          }
+        }
+        if (!specifiedSort) {
+          this.sourceBuilder.sort(DOC_FIELD_NAME, ASC);
+          // Workaround to preserve sort location more exactly,
+          // see https://github.com/opensearch-project/sql/pull/3061
+          this.sourceBuilder.sort(METADATA_FIELD_ID, ASC);
+        }
       }
       SearchRequest searchRequest = new SearchRequest().source(this.sourceBuilder);
       this.searchResponse = searchAction.apply(searchRequest);
