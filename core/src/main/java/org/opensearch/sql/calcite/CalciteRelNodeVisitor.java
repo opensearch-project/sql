@@ -556,6 +556,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     //        \- Project([c, b])
     //           \- Filter(a > 1)
     //              \- Scan t
+    // Example 3: source=t | stats count(): no project added for count()
+    // Before: Aggregate(count)
+    //           \- Scan t
+    // After: Aggregate(count)
+    //           \- Scan t
     Pair<List<RexNode>, List<AggCall>> resolved =
         resolveAttributesForAggregation(groupExprList, aggExprList, context);
     List<RexInputRef> trimmedRefs = new ArrayList<>();
