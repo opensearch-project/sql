@@ -78,6 +78,7 @@ import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.AppendCol;
+import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
@@ -108,6 +109,7 @@ import org.opensearch.sql.ast.tree.Trendline.TrendlineType;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
+import org.opensearch.sql.calcite.utils.BinUtils;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -352,6 +354,25 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitHead(Head node, CalcitePlanContext context) {
     visitChildren(node, context);
     context.relBuilder.limit(node.getFrom(), node.getSize());
+    return context.relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitBin(Bin node, CalcitePlanContext context) {
+    visitChildren(node, context);
+
+    RexNode fieldExpr = rexVisitor.analyze(node.getField(), context);
+    String fieldName = BinUtils.extractFieldName(node);
+    String aliasName = BinUtils.determineAliasName(node, fieldName);
+    RexNode alignTimeValue =
+        BinUtils.processAligntimeParameter(node, fieldExpr, context, rexVisitor);
+    RexNode binExpression =
+        BinUtils.createBinExpression(node, fieldExpr, alignTimeValue, context, rexVisitor);
+
+    // Create the binned field with alias and add to projection
+    RexNode aliasedBinExpression = context.relBuilder.alias(binExpression, aliasName);
+    context.relBuilder.projectPlus(aliasedBinExpression);
+
     return context.relBuilder.peek();
   }
 
