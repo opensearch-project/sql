@@ -12,7 +12,6 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.tools.RelBuilder;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.Bin;
@@ -21,14 +20,12 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
 /**
- * Utility class for handling bin command operations in Calcite.
- * Contains helper methods for processing bin parameters and creating bin expressions.
+ * Utility class for handling bin command operations in Calcite. Contains helper methods for
+ * processing bin parameters and creating bin expressions.
  */
 public class BinUtils {
 
-  /**
-   * Extracts the field name from a Bin node.
-   */
+  /** Extracts the field name from a Bin node. */
   public static String extractFieldName(Bin node) {
     if (node.getField() instanceof Field) {
       Field field = (Field) node.getField();
@@ -38,18 +35,16 @@ public class BinUtils {
     }
   }
 
-  /**
-   * Determines the alias name for the binned field.
-   */
+  /** Determines the alias name for the binned field. */
   public static String determineAliasName(Bin node, String fieldName) {
     return node.getAlias() != null ? node.getAlias() : fieldName + "_bin";
   }
 
-  /**
-   * Processes the aligntime parameter and returns the corresponding RexNode.
-   */
+  /** Processes the aligntime parameter and returns the corresponding RexNode. */
   public static RexNode processAligntimeParameter(
-      Bin node, RexNode fieldExpr, CalcitePlanContext context, 
+      Bin node,
+      RexNode fieldExpr,
+      CalcitePlanContext context,
       org.opensearch.sql.calcite.CalciteRexNodeVisitor rexVisitor) {
     if (node.getAligntime() == null) {
       return null;
@@ -84,11 +79,12 @@ public class BinUtils {
     }
   }
 
-  /**
-   * Creates the appropriate bin expression based on the bin parameters.
-   */
+  /** Creates the appropriate bin expression based on the bin parameters. */
   public static RexNode createBinExpression(
-      Bin node, RexNode fieldExpr, RexNode alignTimeValue, CalcitePlanContext context,
+      Bin node,
+      RexNode fieldExpr,
+      RexNode alignTimeValue,
+      CalcitePlanContext context,
       org.opensearch.sql.calcite.CalciteRexNodeVisitor rexVisitor) {
     if (node.getSpan() != null) {
       return createSpanBasedBinning(node, fieldExpr, alignTimeValue, context, rexVisitor);
@@ -101,11 +97,12 @@ public class BinUtils {
     }
   }
 
-  /**
-   * Creates span-based binning expression.
-   */
+  /** Creates span-based binning expression. */
   public static RexNode createSpanBasedBinning(
-      Bin node, RexNode fieldExpr, RexNode alignTimeValue, CalcitePlanContext context,
+      Bin node,
+      RexNode fieldExpr,
+      RexNode alignTimeValue,
+      CalcitePlanContext context,
       org.opensearch.sql.calcite.CalciteRexNodeVisitor rexVisitor) {
     RexNode spanValue = rexVisitor.analyze(node.getSpan(), context);
     RelDataType fieldType = fieldExpr.getType();
@@ -120,11 +117,12 @@ public class BinUtils {
     }
   }
 
-  /**
-   * Creates minspan-based binning expression.
-   */
+  /** Creates minspan-based binning expression. */
   public static RexNode createMinspanBasedBinning(
-      Bin node, RexNode fieldExpr, RexNode alignTimeValue, CalcitePlanContext context,
+      Bin node,
+      RexNode fieldExpr,
+      RexNode alignTimeValue,
+      CalcitePlanContext context,
       org.opensearch.sql.calcite.CalciteRexNodeVisitor rexVisitor) {
     RexNode minspanValue = rexVisitor.analyze(node.getMinspan(), context);
     RelDataType fieldType = fieldExpr.getType();
@@ -140,10 +138,9 @@ public class BinUtils {
     }
   }
 
-  /**
-   * Creates bins-based binning expression.
-   */
-  public static RexNode createBinsBasedBinning(Bin node, RexNode fieldExpr, CalcitePlanContext context) {
+  /** Creates bins-based binning expression. */
+  public static RexNode createBinsBasedBinning(
+      Bin node, RexNode fieldExpr, CalcitePlanContext context) {
     Integer numBins = node.getBins();
     // Use a default range - this should be improved to calculate actual data range
     RexNode minValue = context.relBuilder.literal(0.0);
@@ -171,9 +168,7 @@ public class BinUtils {
     return context.relBuilder.call(SqlStdOperatorTable.PLUS, multiplied, minValue);
   }
 
-  /**
-   * Creates default binning expression.
-   */
+  /** Creates default binning expression. */
   public static RexNode createDefaultBinning(RexNode fieldExpr, CalcitePlanContext context) {
     RelDataType fieldType = fieldExpr.getType();
     RexNode defaultSpan = context.relBuilder.literal(1);
@@ -189,9 +184,7 @@ public class BinUtils {
     return context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
   }
 
-  /**
-   * Determines the unit parameter for the given field type.
-   */
+  /** Determines the unit parameter for the given field type. */
   public static RexNode determineUnitForField(
       RelDataType fieldType, CalcitePlanContext context, String defaultTimeUnit) {
     if (fieldType.getSqlTypeName() == SqlTypeName.BIGINT
@@ -207,9 +200,7 @@ public class BinUtils {
     }
   }
 
-  /**
-   * Checks if the given value is a decimal number.
-   */
+  /** Checks if the given value is a decimal number. */
   public static boolean isDecimalValue(RexNode value) {
     if (value.isA(LITERAL) && ((RexLiteral) value).getValue() != null) {
       Object val = ((RexLiteral) value).getValue();
@@ -221,9 +212,7 @@ public class BinUtils {
     return false;
   }
 
-  /**
-   * Determines whether to use the SPAN function or direct mathematical operations.
-   */
+  /** Determines whether to use the SPAN function or direct mathematical operations. */
   public static boolean shouldUseSpanFunction(
       RelDataType fieldType, RexNode unitNode, boolean isDecimalSpan) {
     return fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP
@@ -234,9 +223,7 @@ public class BinUtils {
             && !((RexLiteral) unitNode).getValue().toString().isEmpty());
   }
 
-  /**
-   * Creates binning expression using the SPAN function.
-   */
+  /** Creates binning expression using the SPAN function. */
   public static RexNode createSpanFunctionBinning(
       RexNode fieldExpr,
       RexNode spanValue,
@@ -267,9 +254,7 @@ public class BinUtils {
     }
   }
 
-  /**
-   * Creates binning expression using direct mathematical operations.
-   */
+  /** Creates binning expression using direct mathematical operations. */
   public static RexNode createDirectBinning(
       RexNode fieldExpr,
       RexNode spanValue,
@@ -296,9 +281,7 @@ public class BinUtils {
     }
   }
 
-  /**
-   * Checks if the field type is time-based.
-   */
+  /** Checks if the field type is time-based. */
   public static boolean isTimeBasedField(RelDataType fieldType) {
     return fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP
         || fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
@@ -306,9 +289,7 @@ public class BinUtils {
         || fieldType.getSqlTypeName() == SqlTypeName.DATE;
   }
 
-  /**
-   * Checks if the field type is integer-like.
-   */
+  /** Checks if the field type is integer-like. */
   public static boolean isIntegerLikeField(RelDataType fieldType) {
     return fieldType.getSqlTypeName() == SqlTypeName.BIGINT
         || fieldType.getSqlTypeName() == SqlTypeName.INTEGER
@@ -316,9 +297,7 @@ public class BinUtils {
         || fieldType.getSqlTypeName() == SqlTypeName.TINYINT;
   }
 
-  /**
-   * Determines if alignment should be applied for the given field type.
-   */
+  /** Determines if alignment should be applied for the given field type. */
   public static boolean shouldApplyAlignment(RelDataType fieldType) {
     return fieldType.getSqlTypeName() == SqlTypeName.BIGINT
         || fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP
