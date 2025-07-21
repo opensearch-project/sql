@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.remote;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 
 import java.io.IOException;
+import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.ppl.ExplainIT;
@@ -65,6 +66,32 @@ public class CalciteExplainIT extends ExplainIT {
             + " l.account_number=r.account_number opensearch-sql_test_index_bank";
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_merge_join_sort_push.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  // Only for Calcite
+  @Test
+  public void supportPartialPushDown() throws IOException {
+    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    // field `address` is text type without keyword subfield, so we cannot push it down.
+    String query =
+        "source=opensearch-sql_test_index_account | where (state = 'Seattle' or age < 10) and (age"
+            + " >= 1 and address = '880 Holmes Lane') | fields age, address";
+    var result = explainQueryToString(query);
+    String expected = loadFromFile("expectedOutput/calcite/explain_partial_filter_push.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  // Only for Calcite
+  @Test
+  public void supportPartialPushDown_NoPushIfAllFailed() throws IOException {
+    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    // field `address` is text type without keyword subfield, so we cannot push it down.
+    String query =
+        "source=opensearch-sql_test_index_account | where (address = '671 Bristol Street' or age <"
+            + " 10) and (age >= 10 or address = '880 Holmes Lane') | fields age, address";
+    var result = explainQueryToString(query);
+    String expected = loadFromFile("expectedOutput/calcite/explain_partial_filter_push2.json");
     assertJsonEqualsIgnoreId(expected, result);
   }
 

@@ -17,6 +17,7 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -27,6 +28,9 @@ import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -102,7 +106,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     }
   }
 
-  public CalciteLogicalIndexScan pushDownFilter(Filter filter) {
+  public AbstractRelNode pushDownFilter(Filter filter) {
     try {
       RelDataType rowType = filter.getRowType();
       CalciteLogicalIndexScan newScan = this.copyWithNewSchema(filter.getRowType());
@@ -114,16 +118,26 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       QueryExpression queryExpression =
           PredicateAnalyzer.analyzeExpression(
               filter.getCondition(), schema, fieldTypes, rowType, getCluster());
-
+      // TODO: handle the case where condition contains a score function
       newScan.pushDownContext.add(
           PushDownAction.of(
               QueryExpression.containsScript(queryExpression)
                   ? PushDownType.SCRIPT
                   : PushDownType.FILTER,
-              filter.getCondition(),
+              queryExpression.isPartial()
+                  ? constructCondition(
+                      queryExpression.getAnalyzedNodes(), getCluster().getRexBuilder())
+                  : filter.getCondition(),
               requestBuilder -> requestBuilder.pushDownFilter(queryExpression.builder())));
 
-      // TODO: handle the case where condition contains a score function
+      // If the query expression is partial, we need to replace the input of the filter with the
+      // partial pushed scan and the filter condition with non-pushed-down conditions.
+      if (queryExpression.isPartial()) {
+        // Only CompoundQueryExpression could be partial.
+        List<RexNode> conditions = queryExpression.getUnAnalyzableNodes();
+        RexNode newCondition = constructCondition(conditions, getCluster().getRexBuilder());
+        return filter.copy(filter.getTraitSet(), newScan, newCondition);
+      }
       return newScan;
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
@@ -133,6 +147,12 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       }
     }
     return null;
+  }
+
+  private static RexNode constructCondition(List<RexNode> conditions, RexBuilder rexBuilder) {
+    return conditions.size() > 1
+        ? rexBuilder.makeCall(SqlStdOperatorTable.AND, conditions)
+        : conditions.get(0);
   }
 
   /**
