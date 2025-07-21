@@ -95,6 +95,20 @@ public class CalciteExplainIT extends ExplainIT {
     assertJsonEqualsIgnoreId(expected, result);
   }
 
+  @Test
+  public void supportPartialPushDownScript() throws IOException {
+    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    // field `address` is text type without keyword subfield, so we cannot push it down.
+    // But the second condition can be translated to script, so the second one is pushed down.
+    String query =
+        "source=opensearch-sql_test_index_account | where address = '671 Bristol Street' and age -"
+            + " 2 = 30 | fields firstname, age, address";
+    var result = explainQueryToString(query);
+    String expected =
+        loadFromFile("expectedOutput/calcite/explain_partial_filter_script_push.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
   // Only for Calcite, as v2 gets unstable serialized string for function
   @Test
   public void testFilterScriptPushDownExplain() throws Exception {

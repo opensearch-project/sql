@@ -47,7 +47,6 @@ import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.ExpressionNotAnalyzableException;
-import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.UnsupportedScriptException;
 
 public class PredicateAnalyzerTest {
   final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
@@ -660,11 +659,11 @@ public class PredicateAnalyzerTest {
     final RexInputRef field3 =
         builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.VARCHAR), 2);
     RexNode call = builder.makeCall(SqlStdOperatorTable.EQUALS, field3, stringLiteral);
-    IllegalArgumentException exception =
+    ExpressionNotAnalyzableException exception =
         assertThrows(
-            IllegalArgumentException.class,
+            ExpressionNotAnalyzableException.class,
             () -> PredicateAnalyzer.analyze(call, schema, fieldTypes));
-    assertEquals("field name is null or empty", exception.getMessage());
+    assertEquals("Can't convert =($2, 'Hi')", exception.getMessage());
   }
 
   @Test
@@ -679,12 +678,10 @@ public class PredicateAnalyzerTest {
             .build();
     // PPL IS_EMPTY is translated to OR(IS_NULL(arg), IS_EMPTY(arg))
     RexNode call = PPLFuncImpTable.INSTANCE.resolve(builder, BuiltinFunctionName.IS_EMPTY, field2);
-    UnsupportedScriptException exception =
+    ExpressionNotAnalyzableException exception =
         assertThrows(
-            UnsupportedScriptException.class,
+            ExpressionNotAnalyzableException.class,
             () -> PredicateAnalyzer.analyzeExpression(call, schema, fieldTypes, rowType, cluster));
-    assertEquals(
-        "DSL will evaluate both branches of OR with isNUll, prevent push-down to avoid NPE",
-        exception.getMessage());
+    assertEquals("Can't convert OR(IS NULL($1), IS EMPTY($1))", exception.getMessage());
   }
 }

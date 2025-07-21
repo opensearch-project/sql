@@ -177,7 +177,8 @@ public class PredicateAnalyzer {
       List<String> schema,
       Map<String, ExprType> fieldTypes,
       RelDataType rowType,
-      RelOptCluster cluster) throws ExpressionNotAnalyzableException {
+      RelOptCluster cluster)
+      throws ExpressionNotAnalyzableException {
     requireNonNull(expression, "expression");
     try {
       // visits expression tree
@@ -185,8 +186,11 @@ public class PredicateAnalyzer {
           (QueryExpression) expression.accept(new Visitor(schema, fieldTypes, rowType, cluster));
       return queryExpression;
     } catch (Throwable e) {
-      Throwables.throwIfInstanceOf(e, UnsupportedOperationException.class);
-      throw new ExpressionNotAnalyzableException("Can't convert " + expression, e);
+      if (e instanceof UnsupportedScriptException) {
+        Throwables.throwIfInstanceOf(e, UnsupportedOperationException.class);
+        throw new ExpressionNotAnalyzableException("Can't convert " + expression, e);
+      }
+      return new ScriptQueryExpression(expression, rowType, fieldTypes, cluster);
     }
   }
 
@@ -604,9 +608,6 @@ public class PredicateAnalyzer {
     }
 
     private QueryExpression andOr(RexCall call) {
-      QueryExpression[] expressions = new QueryExpression[call.getOperands().size()];
-      boolean partial = false;
-      int failedCount = 0;
       // For function isEmpty and isBlank, we implement them via expression `isNull or {@function}`,
       // Unlike `OR` in Java, `SHOULD` in DSL will evaluate both branches and lead to NPE.
       if (call.getKind() == SqlKind.OR
@@ -616,40 +617,41 @@ public class PredicateAnalyzer {
         throw new UnsupportedScriptException(
             "DSL will evaluate both branches of OR with isNUll, prevent push-down to avoid NPE");
       }
+
+      QueryExpression[] expressions = new QueryExpression[call.getOperands().size()];
+      PredicateAnalyzerException firstError = null;
+      boolean partial = false;
+      int failedCount = 0;
       for (int i = 0; i < call.getOperands().size(); i++) {
+        RexNode operand = call.getOperands().get(i);
         try {
-          Expression expr = call.getOperands().get(i).accept(this);
-          if (expr instanceof NamedFieldExpression) {
-            // nop currently
-          } else {
-            expressions[i] = (QueryExpression) call.getOperands().get(i).accept(this);
-            // Update or simplify the analyzed node list if it is not partial.
-            if (!expressions[i].isPartial())
-              expressions[i].updateAnalyzedNodes(call.getOperands().get(i));
+          Expression expr = tryAnalyzeOperand(operand);
+          if (expr instanceof QueryExpression) {
+            expressions[i] = (QueryExpression) expr;
+            partial |= expressions[i].isPartial();
           }
-          partial |= expressions[i].isPartial();
         } catch (PredicateAnalyzerException e) {
-          try {
-            expressions[i] =
-                new ScriptQueryExpression(call.getOperands().get(i), rowType, fieldTypes, cluster);
-            if (!expressions[i].isPartial())
-              expressions[i].updateAnalyzedNodes(call.getOperands().get(i));
-          } catch (UnsupportedScriptException ex) {
-            if (call.getKind() == SqlKind.OR) throw ex;
-            partial = true;
+          if (firstError == null) {
+            firstError = e;
           }
-        } catch (UnsupportedScriptException e) {
-          if (call.getKind() == SqlKind.OR) throw e;
           partial = true;
           ++failedCount;
           // If we cannot analyze the operand, wrap the RexNode with UnAnalyzableQueryExpression and
           // record them in the array. We will reuse them later.
-          expressions[i] = new UnAnalyzableQueryExpression(call.getOperands().get(i));
+          expressions[i] = new UnAnalyzableQueryExpression(operand);
         }
       }
 
       switch (call.getKind()) {
         case OR:
+          if (partial) {
+            if (firstError != null) {
+              throw firstError;
+            } else {
+              final String message = format(Locale.ROOT, "Unable to handle call: [%s]", call);
+              throw new PredicateAnalyzerException(message);
+            }
+          }
           return CompoundQueryExpression.or(expressions);
         case AND:
           if (failedCount == call.getOperands().size()) {
@@ -661,6 +663,30 @@ public class PredicateAnalyzer {
         default:
           String message = format(Locale.ROOT, "Unable to handle call: [%s]", call);
           throw new PredicateAnalyzerException(message);
+      }
+    }
+
+    private Expression tryAnalyzeOperand(RexNode node) {
+      try {
+        Expression expr = node.accept(this);
+        if (expr instanceof NamedFieldExpression) {
+          return expr;
+        }
+        QueryExpression qe = (QueryExpression) expr;
+        if (!qe.isPartial()) {
+          qe.updateAnalyzedNodes(node);
+        }
+        return qe;
+      } catch (PredicateAnalyzerException firstFailed) {
+        try {
+          QueryExpression qe = new ScriptQueryExpression(node, rowType, fieldTypes, cluster);
+          if (!qe.isPartial()) {
+            qe.updateAnalyzedNodes(node);
+          }
+          return qe;
+        } catch (UnsupportedScriptException secondFailed) {
+          throw new PredicateAnalyzerException(secondFailed);
+        }
       }
     }
 
@@ -1297,6 +1323,7 @@ public class PredicateAnalyzer {
 
   public static class ScriptQueryExpression extends QueryExpression {
     private final String code;
+    private RexNode analyzedNode;
 
     public ScriptQueryExpression(
         RexNode rexNode,
@@ -1331,12 +1358,12 @@ public class PredicateAnalyzer {
 
     @Override
     public List<RexNode> getAnalyzedNodes() {
-      return List.of();
+      return List.of(analyzedNode);
     }
 
     @Override
     public void updateAnalyzedNodes(RexNode rexNode) {
-
+      this.analyzedNode = rexNode;
     }
 
     @Override
