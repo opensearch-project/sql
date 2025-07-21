@@ -341,7 +341,7 @@ public class PPLSyntaxParserTest {
     exceptionRule.expectMessage(
         StringContainsInOrder.stringContainsInOrder(
             "[=] is not a valid term at this part of the query: 'describe source=' <-- HERE.",
-            "Expecting tokens:"));
+            "Expecting one of"));
 
     new PPLSyntaxParser().parse("describe source=t");
   }
