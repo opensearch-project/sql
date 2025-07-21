@@ -1099,8 +1099,7 @@ ident
    ;
 
 tableIdent
-   // specially allow index name ends with * without wrapping it with backticks
-   : (CLUSTER)? (ident | ID STAR)
+   : (CLUSTER)? (ident | (STAR)? ident (STAR ident)* (STAR)?)
    ;
 
 wildcard

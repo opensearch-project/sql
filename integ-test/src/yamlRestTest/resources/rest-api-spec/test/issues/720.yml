@@ -16,7 +16,7 @@ teardown:
             plugins.calcite.fallback.allowed : true
 
 ---
-"Decimal literal should convert to double in pushdown":
+"Support multiply without blanks":
   - skip:
       features:
         - headers
@@ -32,7 +32,7 @@ teardown:
         Content-Type: 'application/json'
       ppl:
         body:
-          query: 'source=test* | eval a = balance*10 | fields a'
+          query: 'source= *te*st* | eval a = balance*10 | fields a'
   - match: {"total": 1}
   - match: {"schema": [{"name": "a", "type": "bigint"}]}
   - match: {"datarows": [[10000]]}
