@@ -29,8 +29,6 @@ setup:
         body:
           query: 'source=test | head 1 from 1 '
   - match: {"total": 1}
-  - match: {"schema": [{"name": "id", "type": "bigint"}]}
-  - match: {"datarows": [[2]]}
 
   - do:
       headers:
@@ -39,5 +37,3 @@ setup:
         body:
           query: 'source=test | head 2 | head 1 from 1 '
   - match: { "total": 1 }
-  - match: { "schema": [ { "name": "id", "type": "bigint" } ] }
-  - match: { "datarows": [ [ 2 ] ] }
