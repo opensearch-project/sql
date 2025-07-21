@@ -37,38 +37,58 @@ import static org.opensearch.index.query.QueryBuilders.rangeQuery;
 import static org.opensearch.index.query.QueryBuilders.regexpQuery;
 import static org.opensearch.index.query.QueryBuilders.termQuery;
 import static org.opensearch.index.query.QueryBuilders.termsQuery;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.MULTI_FIELDS_RELEVANCE_FUNCTION_SET;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.SINGLE_FIELD_RELEVANCE_FUNCTION_SET;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.BoundType;
 import com.google.common.collect.Range;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.GregorianCalendar;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import lombok.Getter;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.NlsString;
+import org.apache.calcite.util.RangeSets;
 import org.apache.calcite.util.Sarg;
+import org.opensearch.index.mapper.DateFieldMapper;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.RangeQueryBuilder;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
+import org.opensearch.sql.calcite.type.ExprSqlType;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
+import org.opensearch.sql.data.model.ExprTimestampValue;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
-import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchBoolPrefixQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchPhrasePrefixQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchPhraseQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MultiMatchQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.QueryStringQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.SimpleQueryStringQuery;
 
 /**
  * Query predicate analyzer. Uses visitor pattern to traverse existing expression and convert it to
@@ -125,17 +145,15 @@ public class PredicateAnalyzer {
   public static QueryBuilder analyze(
       RexNode expression, List<String> schema, Map<String, ExprType> filedTypes)
       throws ExpressionNotAnalyzableException {
+    return analyze_(expression, schema, filedTypes).builder();
+  }
+
+  public static QueryExpression analyze_(
+      RexNode expression, List<String> schema, Map<String, ExprType> filedTypes)
+      throws ExpressionNotAnalyzableException {
     requireNonNull(expression, "expression");
     try {
-      // visits expression tree
-      QueryExpression queryExpression =
-          (QueryExpression) expression.accept(new Visitor(schema, filedTypes));
-
-      if (queryExpression != null && queryExpression.isPartial()) {
-        throw new UnsupportedOperationException(
-            "Can't handle partial QueryExpression: " + queryExpression);
-      }
-      return queryExpression != null ? queryExpression.builder() : null;
+      return (QueryExpression) expression.accept(new Visitor(schema, filedTypes));
     } catch (Throwable e) {
       Throwables.throwIfInstanceOf(e, UnsupportedOperationException.class);
       throw new ExpressionNotAnalyzableException("Can't convert " + expression, e);
@@ -215,7 +233,7 @@ public class PredicateAnalyzer {
         case INTERNAL:
           switch (call.getKind()) {
             case SEARCH:
-              return canBeTranslatedToTermsQuery(call);
+              return true;
             default:
               return false;
           }
@@ -224,20 +242,6 @@ public class PredicateAnalyzer {
         default:
           return false;
       }
-    }
-
-    /**
-     * There are three types of the Sarg included in SEARCH RexCall: 1) Sarg is points (In ('a',
-     * 'b', 'c' ...)). In this case the search call can be translated to terms Query 2) Sarg is
-     * complementedPoints (Not in ('a', 'b')). In this case the search call can be translated to
-     * MustNot terms Query 3) Sarg is real Range( > 1 and <= 10). In this case the search call
-     * should be translated to rang Query Currently only the 1) and 2) cases are supported.
-     *
-     * @param search SEARCH RexCall
-     * @return true if it isSearchWithPoints or isSearchWithComplementedPoints, other false
-     */
-    static boolean canBeTranslatedToTermsQuery(RexCall search) {
-      return isSearchWithPoints(search) || isSearchWithComplementedPoints(search);
     }
 
     static boolean isSearchWithPoints(RexCall search) {
@@ -250,6 +254,12 @@ public class PredicateAnalyzer {
       RexLiteral literal = (RexLiteral) search.getOperands().get(1);
       final Sarg<?> sarg = requireNonNull(literal.getValueAs(Sarg.class), "Sarg");
       return sarg.isComplementedPoints();
+    }
+
+    static RexUnknownAs getNullAsForSearch(RexCall search) {
+      RexLiteral literal = (RexLiteral) search.getOperands().get(1);
+      final Sarg<?> sarg = requireNonNull(literal.getValueAs(Sarg.class), "Sarg");
+      return sarg.nullAs;
     }
 
     @Override
@@ -278,14 +288,7 @@ public class PredicateAnalyzer {
             }
           };
         case FUNCTION:
-          if (call.getOperator().getName().equalsIgnoreCase("CONTAINS")) {
-            List<Expression> operands = visitList(call.getOperands());
-            String query =
-                convertQueryString(
-                    operands.subList(0, operands.size() - 1), operands.get(operands.size() - 1));
-            return QueryExpression.create(new NamedFieldExpression()).queryString(query);
-          }
-          // fall through
+          return visitRelevanceFunc(call);
         default:
           String message =
               format(Locale.ROOT, "Unsupported syntax [%s] for call: [%s]", syntax, call);
@@ -293,23 +296,123 @@ public class PredicateAnalyzer {
       }
     }
 
-    private static String convertQueryString(List<Expression> fields, Expression query) {
-      int index = 0;
-      checkArgument(query instanceof LiteralExpression, "Query string must be a string literal");
-      String queryString = ((LiteralExpression) query).stringValue();
-      @SuppressWarnings("ModifiedButNotUsed")
-      Map<String, String> fieldMap = new LinkedHashMap<>();
-      for (Expression expr : fields) {
-        if (expr instanceof NamedFieldExpression) {
-          NamedFieldExpression field = (NamedFieldExpression) expr;
-          String fieldIndexString = format(Locale.ROOT, "$%d", index++);
-          fieldMap.put(fieldIndexString, field.getReference());
-        }
+    private QueryExpression visitRelevanceFunc(RexCall call) {
+      String funcName = call.getOperator().getName().toLowerCase(Locale.ROOT);
+      List<RexNode> ops = call.getOperands();
+      assert ops.size() >= 2 : "Relevance query function should at least have 2 operands";
+
+      if (SINGLE_FIELD_RELEVANCE_FUNCTION_SET.contains(funcName)) {
+        List<Expression> fieldQueryOperands =
+            visitList(
+                List.of(
+                    AliasPair.from(ops.get(0), funcName).value,
+                    AliasPair.from(ops.get(1), funcName).value));
+        NamedFieldExpression namedFieldExpression =
+            (NamedFieldExpression) fieldQueryOperands.get(0);
+        String queryLiteralOperand = ((LiteralExpression) fieldQueryOperands.get(1)).stringValue();
+        Map<String, String> optionalArguments =
+            parseRelevanceFunctionOptionalArguments(ops, funcName);
+
+        return SINGLE_FIELD_RELEVANCE_FUNCTION_HANDLERS
+            .get(funcName)
+            .apply(namedFieldExpression, queryLiteralOperand, optionalArguments);
+      } else if (MULTI_FIELDS_RELEVANCE_FUNCTION_SET.contains(funcName)) {
+        RexCall fieldsRexCall = (RexCall) AliasPair.from(ops.get(0), funcName).value;
+        String queryLiteralOperand =
+            ((LiteralExpression)
+                    visitList(List.of(AliasPair.from(ops.get(1), funcName).value)).get(0))
+                .stringValue();
+        Map<String, String> optionalArguments =
+            parseRelevanceFunctionOptionalArguments(ops, funcName);
+
+        return MULTI_FIELDS_RELEVANCE_FUNCTION_HANDLERS
+            .get(funcName)
+            .apply(fieldsRexCall, queryLiteralOperand, optionalArguments);
       }
-      try {
-        return queryString;
-      } catch (Exception e) {
-        throw new PredicateAnalyzerException(e);
+
+      throw new PredicateAnalyzerException(
+          format(Locale.ROOT, "Unsupported search relevance function: [%s]", funcName));
+    }
+
+    @FunctionalInterface
+    private interface SingleFieldRelevanceFunctionHandler {
+      QueryExpression apply(NamedFieldExpression field, String query, Map<String, String> opts);
+    }
+
+    @FunctionalInterface
+    private interface MultiFieldsRelevanceFunctionHandler {
+      QueryExpression apply(RexCall fields, String query, Map<String, String> opts);
+    }
+
+    private static final Map<String, SingleFieldRelevanceFunctionHandler>
+        SINGLE_FIELD_RELEVANCE_FUNCTION_HANDLERS =
+            Map.of(
+                "match", (f, q, o) -> QueryExpression.create(f).match(q, o),
+                "match_phrase", (f, q, o) -> QueryExpression.create(f).matchPhrase(q, o),
+                "match_bool_prefix", (f, q, o) -> QueryExpression.create(f).matchBoolPrefix(q, o),
+                "match_phrase_prefix",
+                    (f, q, o) -> QueryExpression.create(f).matchPhrasePrefix(q, o));
+
+    private static final Map<String, MultiFieldsRelevanceFunctionHandler>
+        MULTI_FIELDS_RELEVANCE_FUNCTION_HANDLERS =
+            Map.of(
+                "simple_query_string",
+                    (c, q, o) ->
+                        QueryExpression.create(new NamedFieldExpression())
+                            .simpleQueryString(c, q, o),
+                "query_string",
+                    (c, q, o) ->
+                        QueryExpression.create(new NamedFieldExpression()).queryString(c, q, o),
+                "multi_match",
+                    (c, q, o) ->
+                        QueryExpression.create(new NamedFieldExpression()).multiMatch(c, q, o));
+
+    private Map<String, String> parseRelevanceFunctionOptionalArguments(
+        List<RexNode> operands, String funcName) {
+      Map<String, String> optionalArguments = new HashMap<>();
+
+      for (int i = 2; i < operands.size(); i++) {
+        AliasPair aliasPair = AliasPair.from(operands.get(i), funcName);
+        String key = ((RexLiteral) aliasPair.alias).getValueAs(String.class);
+        if (optionalArguments.containsKey(key)) {
+          throw new PredicateAnalyzerException(
+              format(
+                  Locale.ROOT,
+                  "Parameter '%s' can only be specified once for function [%s].",
+                  key,
+                  funcName));
+        }
+        optionalArguments.put(key, ((RexLiteral) aliasPair.value).getValueAs(String.class));
+      }
+
+      return optionalArguments;
+    }
+
+    private static RexCall expectCall(RexNode node, SqlOperator op, String funcName) {
+      if (!(node instanceof RexCall call) || call.getOperator() != op) {
+        throw new IllegalArgumentException(
+            format(
+                Locale.ROOT,
+                "Expect [%s] RexCall but get [%s] for function [%s]",
+                op.getName(),
+                node.toString(),
+                funcName));
+      }
+      return call;
+    }
+
+    private static class AliasPair {
+      final RexNode value;
+      final RexNode alias;
+
+      static AliasPair from(RexNode node, String funcName) {
+        RexCall mapCall = expectCall(node, SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR, funcName);
+        return new AliasPair(mapCall.getOperands().get(1), mapCall.getOperands().get(0));
+      }
+
+      private AliasPair(RexNode value, RexNode alias) {
+        this.value = value;
+        this.alias = alias;
       }
     }
 
@@ -410,11 +513,19 @@ public class PredicateAnalyzer {
           }
           return QueryExpression.create(pair.getKey()).lte(pair.getValue());
         case SEARCH:
-          if (isSearchWithComplementedPoints(call)) {
-            return QueryExpression.create(pair.getKey()).notIn(pair.getValue());
-          } else {
-            return QueryExpression.create(pair.getKey()).in(pair.getValue());
-          }
+          QueryExpression expression = constructQueryExpressionForSearch(call, pair);
+          RexUnknownAs nullAs = getNullAsForSearch(call);
+          return switch (nullAs) {
+              // e.g. where isNotNull(a) and (a = 1 or a = 2)
+              // TODO: For this case, seems return `expression` should be equivalent
+            case FALSE -> CompoundQueryExpression.and(
+                false, expression, QueryExpression.create(pair.getKey()).exists());
+              // e.g. where isNull(a) or a = 1 or a = 2
+            case TRUE -> CompoundQueryExpression.or(
+                expression, QueryExpression.create(pair.getKey()).notExists());
+              // e.g. where a = 1 or a = 2
+            case UNKNOWN -> expression;
+          };
         default:
           break;
       }
@@ -422,10 +533,40 @@ public class PredicateAnalyzer {
       throw new PredicateAnalyzerException(message);
     }
 
+    private static QueryExpression constructQueryExpressionForSearch(
+        RexCall call, SwapResult pair) {
+      if (isSearchWithComplementedPoints(call)) {
+        return QueryExpression.create(pair.getKey()).notIn(pair.getValue());
+      } else if (isSearchWithPoints(call)) {
+        return QueryExpression.create(pair.getKey()).in(pair.getValue());
+      } else {
+        Sarg<?> sarg = pair.getValue().literal.getValueAs(Sarg.class);
+        Set<? extends Range<?>> rangeSet = requireNonNull(sarg).rangeSet.asRanges();
+        boolean isTimeStamp =
+            (pair.getKey() instanceof NamedFieldExpression namedField)
+                && namedField.isTimeStampType();
+        List<QueryExpression> queryExpressions =
+            rangeSet.stream()
+                .map(
+                    range ->
+                        RangeSets.isPoint(range)
+                            ? QueryExpression.create(pair.getKey())
+                                .equals(sargPointValue(range.lowerEndpoint()), isTimeStamp)
+                            : QueryExpression.create(pair.getKey()).between(range, isTimeStamp))
+                .toList();
+        if (queryExpressions.size() == 1) {
+          return queryExpressions.getFirst();
+        } else {
+          return CompoundQueryExpression.or(queryExpressions.toArray(new QueryExpression[0]));
+        }
+      }
+    }
+
     private QueryExpression andOr(RexCall call) {
       QueryExpression[] expressions = new QueryExpression[call.getOperands().size()];
       PredicateAnalyzerException firstError = null;
       boolean partial = false;
+      int failedCount = 0;
       for (int i = 0; i < call.getOperands().size(); i++) {
         try {
           Expression expr = call.getOperands().get(i).accept(this);
@@ -433,6 +574,9 @@ public class PredicateAnalyzer {
             // nop currently
           } else {
             expressions[i] = (QueryExpression) call.getOperands().get(i).accept(this);
+            // Update or simplify the analyzed node list if it is not partial.
+            if (!expressions[i].isPartial())
+              expressions[i].updateAnalyzedNodes(call.getOperands().get(i));
           }
           partial |= expressions[i].isPartial();
         } catch (PredicateAnalyzerException e) {
@@ -440,6 +584,10 @@ public class PredicateAnalyzer {
             firstError = e;
           }
           partial = true;
+          ++failedCount;
+          // If we cannot analyze the operand, wrap the RexNode with UnAnalyzableQueryExpression and
+          // record them in the array. We will reuse them later.
+          expressions[i] = new UnAnalyzableQueryExpression(call.getOperands().get(i));
         }
       }
 
@@ -455,6 +603,11 @@ public class PredicateAnalyzer {
           }
           return CompoundQueryExpression.or(expressions);
         case AND:
+          if (failedCount == call.getOperands().size()) {
+            // If all operands failed, we cannot analyze the AND expression.
+            throw new PredicateAnalyzerException(
+                "All expressions in AND failed to analyze: " + call);
+          }
           return CompoundQueryExpression.and(partial, expressions);
         default:
           String message = format(Locale.ROOT, "Unable to handle call: [%s]", call);
@@ -571,48 +724,138 @@ public class PredicateAnalyzer {
   interface Expression {}
 
   /** Main expression operators (like {@code equals}, {@code gt}, {@code exists} etc.) */
-  abstract static class QueryExpression implements Expression {
+  public abstract static class QueryExpression implements Expression {
 
     public abstract QueryBuilder builder();
+
+    public abstract List<RexNode> getAnalyzedNodes();
+
+    public abstract void updateAnalyzedNodes(RexNode rexNode);
+
+    public abstract List<RexNode> getUnAnalyzableNodes();
 
     public boolean isPartial() {
       return false;
     }
 
-    public abstract QueryExpression contains(LiteralExpression literal);
-
     /** Negate {@code this} QueryExpression (not the next one). */
-    public abstract QueryExpression not();
+    QueryExpression not() {
+      throw new PredicateAnalyzerException("not cannot be applied to " + this.getClass());
+    }
 
-    public abstract QueryExpression exists();
+    QueryExpression exists() {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['exists'] " + "cannot be applied to " + this.getClass());
+    }
 
-    public abstract QueryExpression notExists();
+    QueryExpression notExists() {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['notExists'] " + "cannot be applied to " + this.getClass());
+    }
 
-    public abstract QueryExpression like(LiteralExpression literal);
+    QueryExpression contains(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['contains'] " + "cannot be applied to " + this.getClass());
+    }
 
-    public abstract QueryExpression notLike(LiteralExpression literal);
+    QueryExpression between(Range<?> literal, boolean isTimeStamp) {
+      throw new PredicateAnalyzerException("between cannot be applied to " + this.getClass());
+    }
 
-    public abstract QueryExpression equals(LiteralExpression literal);
+    QueryExpression like(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['like'] " + "cannot be applied to " + this.getClass());
+    }
 
-    public abstract QueryExpression in(LiteralExpression literal);
+    QueryExpression notLike(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['notLike'] " + "cannot be applied to " + this.getClass());
+    }
 
-    public abstract QueryExpression notIn(LiteralExpression literal);
+    QueryExpression equals(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['='] " + "cannot be applied to " + this.getClass());
+    }
 
-    public abstract QueryExpression notEquals(LiteralExpression literal);
+    QueryExpression equals(Object point, boolean isTimeStamp) {
+      throw new PredicateAnalyzerException("equals cannot be applied to " + this.getClass());
+    }
 
-    public abstract QueryExpression gt(LiteralExpression literal);
+    QueryExpression notEquals(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['not'] " + "cannot be applied to " + this.getClass());
+    }
 
-    public abstract QueryExpression gte(LiteralExpression literal);
+    QueryExpression gt(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['>'] " + "cannot be applied to " + this.getClass());
+    }
 
-    public abstract QueryExpression lt(LiteralExpression literal);
+    QueryExpression gte(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['>='] " + "cannot be applied to " + this.getClass());
+    }
 
-    public abstract QueryExpression lte(LiteralExpression literal);
+    QueryExpression lt(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['<'] " + "cannot be applied to " + this.getClass());
+    }
 
-    public abstract QueryExpression queryString(String query);
+    QueryExpression lte(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['<='] " + "cannot be applied to " + this.getClass());
+    }
 
-    public abstract QueryExpression isTrue();
+    QueryExpression match(String query, Map<String, String> optionalArguments) {
+      throw new PredicateAnalyzerException("Match " + "cannot be applied to " + this.getClass());
+    }
 
-    public static QueryExpression create(TerminalExpression expression) {
+    QueryExpression matchPhrase(String query, Map<String, String> optionalArguments) {
+      throw new PredicateAnalyzerException(
+          "MatchPhrase " + "cannot be applied to " + this.getClass());
+    }
+
+    QueryExpression matchBoolPrefix(String query, Map<String, String> optionalArguments) {
+      throw new PredicateAnalyzerException(
+          "MatchBoolPrefix " + "cannot be applied to " + this.getClass());
+    }
+
+    QueryExpression matchPhrasePrefix(String query, Map<String, String> optionalArguments) {
+      throw new PredicateAnalyzerException(
+          "MatchPhrasePrefix " + "cannot be applied to " + this.getClass());
+    }
+
+    QueryExpression simpleQueryString(
+        RexCall fieldsRexCall, String query, Map<String, String> optionalArguments) {
+      throw new PredicateAnalyzerException(
+          "SimpleQueryString " + "cannot be applied to " + this.getClass());
+    }
+
+    QueryExpression queryString(
+        RexCall fieldsRexCall, String query, Map<String, String> optionalArguments) {
+      throw new PredicateAnalyzerException(
+          "QueryString " + "cannot be applied to " + this.getClass());
+    }
+
+    QueryExpression multiMatch(
+        RexCall fieldsRexCall, String query, Map<String, String> optionalArguments) {
+      throw new PredicateAnalyzerException(
+          "MultiMatch " + "cannot be applied to " + this.getClass());
+    }
+
+    QueryExpression isTrue() {
+      throw new PredicateAnalyzerException("isTrue cannot be applied to " + this.getClass());
+    }
+
+    QueryExpression in(LiteralExpression literal) {
+      throw new PredicateAnalyzerException("in cannot be applied to " + this.getClass());
+    }
+
+    QueryExpression notIn(LiteralExpression literal) {
+      throw new PredicateAnalyzerException("notIn cannot be applied to " + this.getClass());
+    }
+
+    static QueryExpression create(TerminalExpression expression) {
       if (expression instanceof CastExpression) {
         expression = CastExpression.unpack(expression);
       }
@@ -626,11 +869,43 @@ public class PredicateAnalyzer {
     }
   }
 
+  @Getter
+  static class UnAnalyzableQueryExpression extends QueryExpression {
+    final RexNode unAnalyzableRexNode;
+
+    public UnAnalyzableQueryExpression(RexNode rexNode) {
+      this.unAnalyzableRexNode = requireNonNull(rexNode, "rexNode");
+    }
+
+    @Override
+    public QueryBuilder builder() {
+      return null;
+    }
+
+    @Override
+    public List<RexNode> getUnAnalyzableNodes() {
+      return List.of(unAnalyzableRexNode);
+    }
+
+    @Override
+    public List<RexNode> getAnalyzedNodes() {
+      return List.of();
+    }
+
+    @Override
+    public void updateAnalyzedNodes(RexNode rexNode) {
+      throw new IllegalStateException(
+          "UnAnalyzableQueryExpression does not support unAnalyzableNodes");
+    }
+  }
+
   /** Builds conjunctions / disjunctions based on existing expressions. */
-  static class CompoundQueryExpression extends QueryExpression {
+  public static class CompoundQueryExpression extends QueryExpression {
 
     private final boolean partial;
     private final BoolQueryBuilder builder;
+    @Getter private List<RexNode> analyzedNodes = new ArrayList<>();
+    @Getter private final List<RexNode> unAnalyzableNodes = new ArrayList<>();
 
     public static CompoundQueryExpression or(QueryExpression... expressions) {
       CompoundQueryExpression bqe = new CompoundQueryExpression(false);
@@ -650,7 +925,9 @@ public class PredicateAnalyzer {
     public static CompoundQueryExpression and(boolean partial, QueryExpression... expressions) {
       CompoundQueryExpression bqe = new CompoundQueryExpression(partial);
       for (QueryExpression expression : expressions) {
-        if (expression != null) { // partial expressions have nulls for missing nodes
+        bqe.analyzedNodes.addAll(expression.getAnalyzedNodes());
+        bqe.unAnalyzableNodes.addAll(expression.getUnAnalyzableNodes());
+        if (!(expression instanceof UnAnalyzableQueryExpression)) {
           bqe.builder.must(expression.builder());
         }
       }
@@ -677,101 +954,20 @@ public class PredicateAnalyzer {
     }
 
     @Override
+    public void updateAnalyzedNodes(RexNode rexNode) {
+      this.analyzedNodes = List.of(rexNode);
+    }
+
+    @Override
     public QueryExpression not() {
       return new CompoundQueryExpression(partial, boolQuery().mustNot(builder()));
-    }
-
-    @Override
-    public QueryExpression exists() {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['exists'] " + "cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression contains(LiteralExpression literal) {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['contains'] " + "cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression notExists() {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['notExists'] " + "cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression like(LiteralExpression literal) {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['like'] " + "cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression notLike(LiteralExpression literal) {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['notLike'] " + "cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression equals(LiteralExpression literal) {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['='] " + "cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression notEquals(LiteralExpression literal) {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['not'] " + "cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression gt(LiteralExpression literal) {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['>'] " + "cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression gte(LiteralExpression literal) {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['>='] " + "cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression lt(LiteralExpression literal) {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['<'] " + "cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression lte(LiteralExpression literal) {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['<='] " + "cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression queryString(String query) {
-      throw new PredicateAnalyzerException(
-          "QueryString " + "cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression isTrue() {
-      throw new PredicateAnalyzerException("isTrue cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression in(LiteralExpression literal) {
-      throw new PredicateAnalyzerException("in cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression notIn(LiteralExpression literal) {
-      throw new PredicateAnalyzerException("notIn cannot be applied to a compound expression");
     }
   }
 
   /** Usually basic expression of type {@code a = 'val'} or {@code b > 42}. */
   static class SimpleQueryExpression extends QueryExpression {
 
+    private RexNode analyzedRexNode;
     private final NamedFieldExpression rel;
     private QueryBuilder builder;
 
@@ -780,11 +976,22 @@ public class PredicateAnalyzer {
     }
 
     private String getFieldReferenceForTermQuery() {
-      return rel.getReferenceForTermQuery();
+      String reference = rel.getReferenceForTermQuery();
+      // Throw exception in advance of method builder() to trigger partial push down.
+      if (reference == null) {
+        throw new PredicateAnalyzerException(
+            "Field reference for term query cannot be null for " + rel.getRootName());
+      }
+      return reference;
     }
 
     private SimpleQueryExpression(NamedFieldExpression rel) {
       this.rel = rel;
+    }
+
+    public SimpleQueryExpression(QueryBuilder builder) {
+      this.builder = builder;
+      this.rel = null;
     }
 
     @Override
@@ -793,6 +1000,21 @@ public class PredicateAnalyzer {
         throw new IllegalStateException("Builder was not initialized");
       }
       return builder;
+    }
+
+    @Override
+    public List<RexNode> getUnAnalyzableNodes() {
+      return List.of();
+    }
+
+    @Override
+    public List<RexNode> getAnalyzedNodes() {
+      return List.of(analyzedRexNode);
+    }
+
+    @Override
+    public void updateAnalyzedNodes(RexNode rexNode) {
+      this.analyzedRexNode = rexNode;
     }
 
     @Override
@@ -898,8 +1120,48 @@ public class PredicateAnalyzer {
     }
 
     @Override
-    public QueryExpression queryString(String query) {
-      throw new UnsupportedOperationException("QueryExpression not yet supported: " + query);
+    public QueryExpression match(String query, Map<String, String> optionalArguments) {
+      builder = new MatchQuery().build(getFieldReference(), query, optionalArguments);
+      return this;
+    }
+
+    @Override
+    public QueryExpression matchPhrase(String query, Map<String, String> optionalArguments) {
+      builder = new MatchPhraseQuery().build(getFieldReference(), query, optionalArguments);
+      return this;
+    }
+
+    @Override
+    public QueryExpression matchBoolPrefix(String query, Map<String, String> optionalArguments) {
+      builder = new MatchBoolPrefixQuery().build(getFieldReference(), query, optionalArguments);
+      return this;
+    }
+
+    @Override
+    public QueryExpression matchPhrasePrefix(String query, Map<String, String> optionalArguments) {
+      builder = new MatchPhrasePrefixQuery().build(getFieldReference(), query, optionalArguments);
+      return this;
+    }
+
+    @Override
+    public QueryExpression simpleQueryString(
+        RexCall fieldsRexCall, String query, Map<String, String> optionalArguments) {
+      builder = new SimpleQueryStringQuery().build(fieldsRexCall, query, optionalArguments);
+      return this;
+    }
+
+    @Override
+    public QueryExpression queryString(
+        RexCall fieldsRexCall, String query, Map<String, String> optionalArguments) {
+      builder = new QueryStringQuery().build(fieldsRexCall, query, optionalArguments);
+      return this;
+    }
+
+    @Override
+    public QueryExpression multiMatch(
+        RexCall fieldsRexCall, String query, Map<String, String> optionalArguments) {
+      builder = new MultiMatchQuery().build(fieldsRexCall, query, optionalArguments);
+      return this;
     }
 
     @Override
@@ -921,6 +1183,44 @@ public class PredicateAnalyzer {
       builder = boolQuery().mustNot(termsQuery(getFieldReferenceForTermQuery(), collection));
       return this;
     }
+
+    @Override
+    public QueryExpression equals(Object point, boolean isTimeStamp) {
+      builder =
+          termQuery(getFieldReferenceForTermQuery(), convertEndpointValue(point, isTimeStamp));
+      return this;
+    }
+
+    @Override
+    public QueryExpression between(Range<?> range, boolean isTimeStamp) {
+      Object lowerBound =
+          range.hasLowerBound() ? convertEndpointValue(range.lowerEndpoint(), isTimeStamp) : null;
+      Object upperBound =
+          range.hasUpperBound() ? convertEndpointValue(range.upperEndpoint(), isTimeStamp) : null;
+      RangeQueryBuilder rangeQueryBuilder = rangeQuery(getFieldReference());
+      rangeQueryBuilder =
+          range.lowerBoundType() == BoundType.CLOSED
+              ? rangeQueryBuilder.gte(lowerBound)
+              : rangeQueryBuilder.gt(lowerBound);
+      rangeQueryBuilder =
+          range.upperBoundType() == BoundType.CLOSED
+              ? rangeQueryBuilder.lte(upperBound)
+              : rangeQueryBuilder.lt(upperBound);
+      builder = rangeQueryBuilder;
+      return this;
+    }
+
+    private Object convertEndpointValue(Object value, boolean isTimeStamp) {
+      value = sargPointValue(value);
+      return isTimeStamp ? timestampValueForPushDown(value.toString()) : value;
+    }
+  }
+
+  private static String timestampValueForPushDown(String value) {
+    ExprTimestampValue exprTimestampValue = new ExprTimestampValue(value);
+    return DateFieldMapper.getDefaultDateTimeFormatter()
+        .format(exprTimestampValue.timestampValue());
+    // https://github.com/opensearch-project/sql/pull/3442
   }
 
   /**
@@ -1006,25 +1306,16 @@ public class PredicateAnalyzer {
       return type;
     }
 
-    boolean isTextType() {
-      return type != null && type.getOriginalExprType() instanceof OpenSearchTextType;
+    boolean isTimeStampType() {
+      return type != null
+          && ExprCoreType.TIMESTAMP.equals(
+              type.getOriginalExprType() instanceof OpenSearchDataType osType
+                  ? osType.getExprCoreType()
+                  : type.getOriginalExprType());
     }
 
-    String toKeywordSubField() {
-      ExprType type = this.type.getOriginalExprType();
-      if (type instanceof OpenSearchTextType) {
-        OpenSearchTextType textType = (OpenSearchTextType) type;
-        // For OpenSearch Alias type which maps to the field of text type,
-        // we have to use its original path
-        String path = this.type.getOriginalPath().orElse(this.name);
-        // Find the first subfield with type keyword, return null if non-exist.
-        return textType.getFields().entrySet().stream()
-            .filter(e -> e.getValue().getMappingType() == MappingType.Keyword)
-            .findFirst()
-            .map(e -> path + "." + e.getKey())
-            .orElse(null);
-      }
-      return null;
+    boolean isTextType() {
+      return type != null && type.getOriginalExprType() instanceof OpenSearchTextType;
     }
 
     boolean isMetaField() {
@@ -1036,10 +1327,7 @@ public class PredicateAnalyzer {
     }
 
     String getReferenceForTermQuery() {
-      if (isTextType()) {
-        return toKeywordSubField();
-      }
-      return getRootName();
+      return OpenSearchTextType.toKeywordSubField(getRootName(), this.type);
     }
   }
 
@@ -1062,6 +1350,8 @@ public class PredicateAnalyzer {
         return doubleValue();
       } else if (isBoolean()) {
         return booleanValue();
+      } else if (isTimestamp()) {
+        return timestampValueForPushDown(RexLiteral.stringValue(literal));
       } else if (isString()) {
         return RexLiteral.stringValue(literal);
       } else {
@@ -1089,6 +1379,13 @@ public class PredicateAnalyzer {
       return SqlTypeName.SARG.getName().equalsIgnoreCase(literal.getTypeName().getName());
     }
 
+    public boolean isTimestamp() {
+      if (literal.getType() instanceof ExprSqlType exprSqlType) {
+        return exprSqlType.getUdt() == ExprUDT.EXPR_TIMESTAMP;
+      }
+      return false;
+    }
+
     long longValue() {
       return ((Number) literal.getValue()).longValue();
     }
@@ -1107,33 +1404,34 @@ public class PredicateAnalyzer {
 
     List<Object> sargValue() {
       final Sarg sarg = requireNonNull(literal.getValueAs(Sarg.class), "Sarg");
-      final RelDataType type = literal.getType();
       List<Object> values = new ArrayList<>();
-      final SqlTypeName sqlTypeName = type.getSqlTypeName();
       if (sarg.isPoints()) {
         Set<Range> ranges = sarg.rangeSet.asRanges();
-        ranges.forEach(range -> values.add(sargPointValue(range.lowerEndpoint(), sqlTypeName)));
+        ranges.forEach(range -> values.add(sargPointValue(range.lowerEndpoint())));
       } else if (sarg.isComplementedPoints()) {
         Set<Range> ranges = sarg.negate().rangeSet.asRanges();
-        ranges.forEach(range -> values.add(sargPointValue(range.lowerEndpoint(), sqlTypeName)));
+        ranges.forEach(range -> values.add(sargPointValue(range.lowerEndpoint())));
       }
       return values;
     }
 
-    Object sargPointValue(Object point, SqlTypeName sqlTypeName) {
-      switch (sqlTypeName) {
-        case CHAR:
-        case VARCHAR:
-          return ((NlsString) point).getValue();
-        case DECIMAL:
-          return ((BigDecimal) point).doubleValue();
-        default:
-          return point;
-      }
-    }
-
     Object rawValue() {
       return literal.getValue();
+    }
+  }
+
+  /**
+   * If the sarg point is a NlsString, we should get the value from it. For BigDecimal type, we
+   * should get the double value from the literal. That's because there is no decimal type in
+   * OpenSearch.
+   */
+  public static Object sargPointValue(Object point) {
+    if (point instanceof NlsString) {
+      return ((NlsString) point).getValue();
+    } else if (point instanceof BigDecimal) {
+      return ((BigDecimal) point).doubleValue();
+    } else {
+      return point;
     }
   }
 

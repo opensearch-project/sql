@@ -8,6 +8,7 @@ package org.opensearch.sql.opensearch.storage.scan;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import org.apache.calcite.plan.Convention;
@@ -16,12 +17,20 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.AbstractRelNode;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -35,6 +44,7 @@ import org.opensearch.sql.opensearch.planner.physical.EnumerableIndexScanRule;
 import org.opensearch.sql.opensearch.planner.physical.OpenSearchIndexRules;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
+import org.opensearch.sql.opensearch.request.PredicateAnalyzer.QueryExpression;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 
@@ -66,6 +76,19 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     super(cluster, traitSet, hints, table, osIndex, schema, pushDownContext);
   }
 
+  @Override
+  protected AbstractCalciteIndexScan buildScan(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      List<RelHint> hints,
+      RelOptTable table,
+      OpenSearchIndex osIndex,
+      RelDataType schema,
+      PushDownContext pushDownContext) {
+    return new CalciteLogicalIndexScan(
+        cluster, traitSet, hints, table, osIndex, schema, pushDownContext);
+  }
+
   public CalciteLogicalIndexScan copyWithNewSchema(RelDataType schema) {
     // Do shallow copy for requestBuilder, thus requestBuilder among different plans produced in the
     // optimization process won't affect each other.
@@ -84,20 +107,32 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     }
   }
 
-  public CalciteLogicalIndexScan pushDownFilter(Filter filter) {
+  public AbstractRelNode pushDownFilter(Filter filter) {
     try {
-      CalciteLogicalIndexScan newScan = this.copyWithNewSchema(filter.getRowType());
       List<String> schema = this.getRowType().getFieldNames();
       Map<String, ExprType> filedTypes = this.osIndex.getFieldTypes();
-      QueryBuilder filterBuilder =
-          PredicateAnalyzer.analyze(filter.getCondition(), schema, filedTypes);
+      QueryExpression queryExpression =
+          PredicateAnalyzer.analyze_(filter.getCondition(), schema, filedTypes);
+      QueryBuilder queryBuilder = queryExpression.builder();
+      CalciteLogicalIndexScan newScan = this.copyWithNewSchema(filter.getRowType());
+      // TODO: handle the case where condition contains a score function
       newScan.pushDownContext.add(
           PushDownAction.of(
               PushDownType.FILTER,
-              filter.getCondition(),
-              requestBuilder -> requestBuilder.pushDownFilter(filterBuilder)));
+              queryExpression.isPartial()
+                  ? constructCondition(
+                      queryExpression.getAnalyzedNodes(), getCluster().getRexBuilder())
+                  : filter.getCondition(),
+              requestBuilder -> requestBuilder.pushDownFilter(queryBuilder)));
 
-      // TODO: handle the case where condition contains a score function
+      // If the query expression is partial, we need to replace the input of the filter with the
+      // partial pushed scan and the filter condition with non-pushed-down conditions.
+      if (queryExpression.isPartial()) {
+        // Only CompoundQueryExpression could be partial.
+        List<RexNode> conditions = queryExpression.getUnAnalyzableNodes();
+        RexNode newCondition = constructCondition(conditions, getCluster().getRexBuilder());
+        return filter.copy(filter.getTraitSet(), newScan, newCondition);
+      }
       return newScan;
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
@@ -107,6 +142,12 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       }
     }
     return null;
+  }
+
+  private static RexNode constructCondition(List<RexNode> conditions, RexBuilder rexBuilder) {
+    return conditions.size() > 1
+        ? rexBuilder.makeCall(SqlStdOperatorTable.AND, conditions)
+        : conditions.get(0);
   }
 
   /**
@@ -120,13 +161,30 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       builder.add(fieldList.get(project));
     }
     RelDataType newSchema = builder.build();
-    CalciteLogicalIndexScan newScan = this.copyWithNewSchema(newSchema);
+
+    // Projection may alter indicies in the collations.
+    // E.g. When sorting age
+    // `Project(age) - TableScan(schema=[name, age], collation=[$1 ASC])` should become
+    // `TableScan(schema=[age], collation=[$0 ASC])` after pushing down project.
+    RelTraitSet traitSetWithReIndexedCollations = reIndexCollations(selectedColumns);
+
+    CalciteLogicalIndexScan newScan =
+        new CalciteLogicalIndexScan(
+            getCluster(),
+            traitSetWithReIndexedCollations,
+            hints,
+            table,
+            osIndex,
+            newSchema,
+            pushDownContext.clone());
+
     Map<String, String> aliasMapping = this.osIndex.getAliasMapping();
     // For alias types, we need to push down its original path instead of the alias name.
     List<String> projectedFields =
         newSchema.getFieldNames().stream()
             .map(fieldName -> aliasMapping.getOrDefault(fieldName, fieldName))
             .toList();
+
     newScan.pushDownContext.add(
         PushDownAction.of(
             PushDownType.PROJECT,
@@ -135,14 +193,41 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     return newScan;
   }
 
-  public CalciteLogicalIndexScan pushDownAggregate(Aggregate aggregate) {
+  private RelTraitSet reIndexCollations(List<Integer> selectedColumns) {
+    RelTraitSet newTraitSet;
+    RelCollation relCollation = getTraitSet().getCollation();
+    if (!Objects.isNull(relCollation) && !relCollation.getFieldCollations().isEmpty()) {
+      List<RelFieldCollation> newCollations =
+          relCollation.getFieldCollations().stream()
+              .filter(collation -> selectedColumns.contains(collation.getFieldIndex()))
+              .map(
+                  collation ->
+                      collation.withFieldIndex(selectedColumns.indexOf(collation.getFieldIndex())))
+              .collect(Collectors.toList());
+      newTraitSet = getTraitSet().plus(RelCollations.of(newCollations));
+    } else {
+      newTraitSet = getTraitSet();
+    }
+    return newTraitSet;
+  }
+
+  public CalciteLogicalIndexScan pushDownAggregate(Aggregate aggregate, Project project) {
     try {
-      CalciteLogicalIndexScan newScan = this.copyWithNewSchema(aggregate.getRowType());
+      CalciteLogicalIndexScan newScan =
+          new CalciteLogicalIndexScan(
+              getCluster(),
+              traitSet,
+              hints,
+              table,
+              osIndex,
+              aggregate.getRowType(),
+              // Aggregation will eliminate all collations.
+              cloneWithoutSort(pushDownContext));
       List<String> schema = this.getRowType().getFieldNames();
       Map<String, ExprType> fieldTypes = this.osIndex.getFieldTypes();
       List<String> outputFields = aggregate.getRowType().getFieldNames();
       final Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder =
-          AggregateAnalyzer.analyze(aggregate, schema, fieldTypes, outputFields);
+          AggregateAnalyzer.analyze(aggregate, project, schema, fieldTypes, outputFields);
       Map<String, OpenSearchDataType> extendedTypeMapping =
           aggregate.getRowType().getFieldList().stream()
               .collect(

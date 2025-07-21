@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite.pushdown;
+package org.opensearch.sql.calcite;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -30,8 +30,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalciteDedupCommandIT.class,
   CalciteDescribeCommandIT.class,
   CalciteExpandCommandIT.class,
-  // TODO: Add expected plans for CalciteExplainIT without pushdown
-  //  CalciteExplainIT.class,
+  CalciteExplainIT.class,
   CalciteFieldsCommandIT.class,
   CalciteFillNullCommandIT.class,
   CalciteFlattenCommandIT.class,
@@ -40,16 +39,11 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalciteGeoPointFormatsIT.class,
   CalciteHeadCommandIT.class,
   CalciteInformationSchemaCommandIT.class,
-  // TODO: Enable after implementing comparison for IP addresses with Calcite
-  //  https://github.com/opensearch-project/sql/issues/3776
-  // CalciteIPComparisonIT.class,
+  CalciteIPComparisonIT.class,
   CalciteIPFunctionsIT.class,
   CalciteJsonFunctionsIT.class,
   CalciteLegacyAPICompatibilityIT.class,
   CalciteLikeQueryIT.class,
-  CalciteMatchBoolPrefixIT.class,
-  CalciteMatchIT.class,
-  CalciteMatchPhraseIT.class,
   CalciteMathematicalFunctionIT.class,
   CalciteNewAddedCommandsIT.class,
   CalciteNowLikeFunctionIT.class,
@@ -87,15 +81,12 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalcitePPLTrendlineIT.class,
   CalcitePrometheusDataSourceCommandsIT.class,
   CalciteQueryAnalysisIT.class,
-  CalciteQueryStringIT.class,
   CalciteRareCommandIT.class,
-  CalciteRelevanceFunctionIT.class,
   CalciteRenameCommandIT.class,
   CalciteResourceMonitorIT.class,
   CalciteSearchCommandIT.class,
   CalciteSettingsIT.class,
   CalciteShowDataSourcesCommandIT.class,
-  CalciteSimpleQueryStringIT.class,
   CalciteSortCommandIT.class,
   CalciteStatsCommandIT.class,
   CalciteSystemFunctionIT.class,

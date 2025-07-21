@@ -12,6 +12,8 @@ import static org.opensearch.sql.legacy.TestUtils.getAliasIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getArrayIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getBankIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getBankWithNullValuesIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getBig5MappingFile;
+import static org.opensearch.sql.legacy.TestUtils.getClickBenchMappingFile;
 import static org.opensearch.sql.legacy.TestUtils.getDataTypeNonnumericIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getDataTypeNumericIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getDateIndexMapping;
@@ -901,6 +903,16 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "tpch",
         getTpchMappingFile("customer_index_mapping.json"),
         "src/test/resources/tpch/data/customer.json"),
+    BIG5(
+        "big5",
+        "big5",
+        getBig5MappingFile("big5_index_mapping.json"),
+        "src/test/resources/big5/data/big5.json"),
+    CLICK_BENCH(
+        "hits",
+        "clickbench",
+        getClickBenchMappingFile("clickbench_index_mapping.json"),
+        "src/test/resources/clickbench/data/clickbench.json"),
     ARRAY(
         TestsConstants.TEST_INDEX_ARRAY,
         "array",

@@ -10,11 +10,13 @@ import static org.apache.calcite.sql.type.SqlTypeUtil.createMapType;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.*;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.*;
 
+import com.google.common.collect.ImmutableSet;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.TimeZone;
 import javax.annotation.Nullable;
 import org.apache.calcite.DataContext;
@@ -70,6 +72,10 @@ public class UserDefinedFunctionUtils {
       TYPE_FACTORY.createMapType(
           TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),
           createArrayType(TYPE_FACTORY, TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR), false));
+  public static Set<String> SINGLE_FIELD_RELEVANCE_FUNCTION_SET =
+      ImmutableSet.of("match", "match_phrase", "match_bool_prefix", "match_phrase_prefix");
+  public static Set<String> MULTI_FIELDS_RELEVANCE_FUNCTION_SET =
+      ImmutableSet.of("simple_query_string", "query_string", "multi_match");
 
   public static RelBuilder.AggCall TransferUserDefinedAggFunction(
       Class<? extends UserDefinedAggFunction> UDAF,
@@ -115,7 +121,9 @@ public class UserDefinedFunctionUtils {
         case EXPR_DATE -> SqlTypeName.DATE;
         case EXPR_TIME -> SqlTypeName.TIME;
         case EXPR_TIMESTAMP -> SqlTypeName.TIMESTAMP;
-        case EXPR_IP -> SqlTypeName.VARCHAR;
+          // EXPR_IP is mapped to SqlTypeName.OTHER since there is no
+          // corresponding SqlTypeName in Calcite.
+        case EXPR_IP -> SqlTypeName.OTHER;
         case EXPR_BINARY -> SqlTypeName.VARBINARY;
         default -> type.getSqlTypeName();
       };

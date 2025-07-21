@@ -477,4 +477,20 @@ public class TestUtils {
       return null;
     }
   }
+
+  public static String getBig5MappingFile(String fileName) {
+    try {
+      return TestUtils.fileToString("src/test/resources/big5/mappings/" + fileName, false);
+    } catch (IOException e) {
+      return null;
+    }
+  }
+
+  public static String getClickBenchMappingFile(String fileName) {
+    try {
+      return TestUtils.fileToString("src/test/resources/clickbench/mappings/" + fileName, false);
+    } catch (IOException e) {
+      return null;
+    }
+  }
 }
