@@ -444,7 +444,7 @@ integTest {
 
     dependsOn ':opensearch-sql-plugin:bundlePlugin'
     if(getOSFamilyType() != "windows") {
-//        dependsOn startPrometheus
+        dependsOn startPrometheus
         finalizedBy stopPrometheus
     }
 
