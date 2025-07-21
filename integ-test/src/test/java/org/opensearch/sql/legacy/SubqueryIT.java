@@ -289,19 +289,19 @@ public class SubqueryIT extends SQLIntegTestCase {
                 TEST_INDEX_ACCOUNT));
 
     assertThat(getTotalHits(result), equalTo(1000));
-    JSONObject gender = (JSONObject) result.query("/aggregations/gender");
+    JSONObject gender = (JSONObject) result.query("/aggregations/gender.keyword");
     assertThat(gender.getJSONArray("buckets").length(), equalTo(2));
 
-    boolean isMaleFirst = gender.optQuery("/buckets/0/key").equals("m");
+    boolean isMaleFirst = gender.optQuery("/buckets/0/key").equals("M");
     int maleBucketId = isMaleFirst ? 0 : 1;
     int femaleBucketId = isMaleFirst ? 1 : 0;
 
     String maleBucketPrefix = String.format(Locale.ROOT, "/buckets/%d", maleBucketId);
     String femaleBucketPrefix = String.format(Locale.ROOT, "/buckets/%d", femaleBucketId);
 
-    assertThat(gender.query(maleBucketPrefix + "/key"), equalTo("m"));
+    assertThat(gender.query(maleBucketPrefix + "/key"), equalTo("M"));
     assertThat(gender.query(maleBucketPrefix + "/count/value"), equalTo(507));
-    assertThat(gender.query(femaleBucketPrefix + "/key"), equalTo("f"));
+    assertThat(gender.query(femaleBucketPrefix + "/key"), equalTo("F"));
     assertThat(gender.query(femaleBucketPrefix + "/count/value"), equalTo(493));
   }
 
@@ -333,7 +333,7 @@ public class SubqueryIT extends SQLIntegTestCase {
                     + "      GROUP BY gender "
                     + "      HAVING T2 > 500) t",
                 TEST_INDEX_ACCOUNT));
-    assertThat(result.query("/aggregations/g/buckets/0/c/value"), equalTo(507));
+    assertThat(result.query("/aggregations/gender.keyword/buckets/0/c/value"), equalTo(507));
   }
 
   @Test
