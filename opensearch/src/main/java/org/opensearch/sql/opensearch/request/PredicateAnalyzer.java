@@ -42,7 +42,6 @@ import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.MULTI_FI
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.SINGLE_FIELD_RELEVANCE_FUNCTION_SET;
 import static org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.COMPOUNDED_LANG_NAME;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.Range;
 import java.math.BigDecimal;
@@ -187,10 +186,13 @@ public class PredicateAnalyzer {
       return queryExpression;
     } catch (Throwable e) {
       if (e instanceof UnsupportedScriptException) {
-        Throwables.throwIfInstanceOf(e, UnsupportedOperationException.class);
         throw new ExpressionNotAnalyzableException("Can't convert " + expression, e);
       }
-      return new ScriptQueryExpression(expression, rowType, fieldTypes, cluster);
+      try {
+        return new ScriptQueryExpression(expression, rowType, fieldTypes, cluster);
+      } catch (Throwable e2) {
+        throw new ExpressionNotAnalyzableException("Can't convert " + expression, e2);
+      }
     }
   }
 

@@ -656,13 +656,22 @@ public class PredicateAnalyzerTest {
 
   @Test
   void equals_throwException_TextWithoutKeyword() {
+    final RelDataType rowType =
+        builder
+            .getTypeFactory()
+            .builder()
+            .kind(StructKind.FULLY_QUALIFIED)
+            .add("a", builder.getTypeFactory().createSqlType(SqlTypeName.BIGINT))
+            .add("b", builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR))
+            .add("c", builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR))
+            .build();
     final RexInputRef field3 =
         builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.VARCHAR), 2);
     RexNode call = builder.makeCall(SqlStdOperatorTable.EQUALS, field3, stringLiteral);
     ExpressionNotAnalyzableException exception =
         assertThrows(
             ExpressionNotAnalyzableException.class,
-            () -> PredicateAnalyzer.analyze(call, schema, fieldTypes));
+            () -> PredicateAnalyzer.analyze(call, schema, fieldTypes, rowType, cluster));
     assertEquals("Can't convert =($2, 'Hi')", exception.getMessage());
   }
 
