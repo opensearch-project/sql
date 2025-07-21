@@ -335,9 +335,8 @@ public class CalcitePPLTableTest extends CalcitePPLAbstractTest {
   }
 
   /**
-   * Tests wildcard pattern matching for fields with a specific prefix, similar to the RFC example:
-   * source=access_logs | table host, action, date_m* This extends testTableWildcardFieldsStarting
-   * by combining explicit fields with wildcard patterns.
+   * Tests wildcard pattern matching for fields with a specific prefix. This extends
+   * testTableWildcardFieldsStarting by combining explicit fields with wildcard patterns.
    */
   @Test
   public void testTableWithSpecificPrefixWildcard() {
@@ -353,9 +352,8 @@ public class CalcitePPLTableTest extends CalcitePPLAbstractTest {
   }
 
   /**
-   * Tests mixed field specification with regular fields and wildcards, similar to the RFC example:
-   * source=data | table timestamp, value*, status, response_time This test specifically focuses on
-   * interspersing wildcards between regular fields in a specific order.
+   * Tests mixed field specification with regular fields and wildcards. This test specifically
+   * focuses on interspersing wildcards between regular fields in a specific order.
    */
   @Test
   public void testTableWithMixedFieldSpecification() {
@@ -371,9 +369,25 @@ public class CalcitePPLTableTest extends CalcitePPLAbstractTest {
   }
 
   /**
-   * Tests multiple wildcard patterns in field selection, similar to the RFC example: source=logs |
-   * table time, host*, error_* This test specifically focuses on using multiple different wildcard
-   * patterns in a single query.
+   * Tests table command with multiple wildcards matching different patterns. This test verifies
+   * that fields ending with 'NAME' and 'NO' are correctly selected along with JOB.
+   */
+  @Test
+  public void testTableWithMultipleWildcardTypes() {
+    String ppl = "source=EMP | table *NAME, *NO, JOB";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(ENAME=[$1], DEPTNO=[$7], EMPNO=[$0], JOB=[$2])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql = "SELECT `ENAME`, `DEPTNO`, `EMPNO`, `JOB`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  /**
+   * Tests multiple wildcard patterns in field selection. This test specifically focuses on using
+   * multiple different wildcard patterns in a single query.
    */
   @Test
   public void testTableWithMultipleWildcardPatterns() {
@@ -516,6 +530,190 @@ public class CalcitePPLTableTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql = "SELECT `JOB`, `ENAME`, `EMPNO`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  /**
+   * Tests comma-delimited syntax with wildcard patterns. Verifies that comma-delimited syntax works
+   * correctly with wildcard patterns.
+   */
+  @Test
+  public void testTableCommaDelimitedWithWildcards() {
+    String ppl = "source=EMP | table ENAME,*NO,JOB";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(ENAME=[$1], DEPTNO=[$7], EMPNO=[$0], JOB=[$2])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql = "SELECT `ENAME`, `DEPTNO`, `EMPNO`, `JOB`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  /**
+   * Tests the best practice of placing the table command at the end of search pipelines. This
+   * demonstrates the recommended pattern for optimal performance.
+   */
+  @Test
+  public void testTableAsLastCommand() {
+    String ppl =
+        "source=EMP | where SAL > 1000 | sort DEPTNO | eval ratio = SAL/1000 | table ENAME, DEPTNO,"
+            + " ratio";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(ENAME=[$1], DEPTNO=[$7], ratio=[DIVIDE($5, 1000)])\n"
+            + "  LogicalSort(sort0=[$7], dir0=[ASC-nulls-first])\n"
+            + "    LogicalFilter(condition=[>($5, 1000)])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `ENAME`, `DEPTNO`, `DIVIDE`(`SAL`, 1000) `ratio`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE `SAL` > 1000\n"
+            + "ORDER BY `DEPTNO`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  /**
+   * Tests using the fields command for filtering operations and table for presentation. This
+   * demonstrates the recommended practice of using fields for filtering and table for final
+   * display.
+   */
+  @Test
+  public void testFieldsForFilteringTableForPresentation() {
+    String ppl =
+        "source=EMP | fields ENAME, JOB, SAL, DEPTNO | where SAL > 2000 | table ENAME, JOB, DEPTNO";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(ENAME=[$0], JOB=[$1], DEPTNO=[$3])\n"
+            + "  LogicalFilter(condition=[>($2, 2000)])\n"
+            + "    LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5], DEPTNO=[$7])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `ENAME`, `JOB`, `DEPTNO`\n"
+            + "FROM (SELECT `ENAME`, `JOB`, `SAL`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`) `t`\n"
+            + "WHERE `SAL` > 2000";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  /**
+   * Tests selecting a large number of fields with wildcards for performance optimization. This
+   * demonstrates how to efficiently select related fields using wildcards.
+   */
+  @Test
+  public void testTableWithLargeFieldSetOptimization() {
+    String ppl = "source=EMP | table E*, *DATE, D*";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], HIREDATE=[$4], DEPTNO=[$7])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`, `HIREDATE`, `DEPTNO`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  /**
+   * Tests compatibility with other PPL commands in a complex pipeline. This demonstrates how table
+   * integrates with the existing PPL command architecture.
+   */
+  @Test
+  public void testTableCompatibilityWithOtherCommands() {
+    String ppl =
+        "source=EMP | stats count() as cnt, avg(SAL) as avgSal by DEPTNO | sort - avgSal | table"
+            + " DEPTNO, avgSal, cnt";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(DEPTNO=[$2], avgSal=[$1], cnt=[$0])\n"
+            + "  LogicalSort(sort0=[$1], dir0=[DESC-nulls-last])\n"
+            + "    LogicalProject(cnt=[$1], avgSal=[$2], DEPTNO=[$0])\n"
+            + "      LogicalAggregate(group=[{0}], cnt=[COUNT()], avgSal=[AVG($1)])\n"
+            + "        LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+            + "          LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `DEPTNO`, `avgSal`, `cnt`\n"
+            + "FROM (SELECT COUNT(*) `cnt`, AVG(`SAL`) `avgSal`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "GROUP BY `DEPTNO`\n"
+            + "ORDER BY 2 DESC) `t2`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  /**
+   * Tests table command in the middle of a pipeline followed by other commands. This verifies that
+   * table can be used to select fields before further processing.
+   */
+  @Test
+  public void testTableInMiddleOfPipeline() {
+    String ppl = "source=EMP | table ENAME, SAL, DEPTNO | where SAL > 2000 | sort - SAL";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(sort0=[$1], dir0=[DESC-nulls-last])\n"
+            + "  LogicalFilter(condition=[>($1, 2000)])\n"
+            + "    LogicalProject(ENAME=[$1], SAL=[$5], DEPTNO=[$7])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT *\n"
+            + "FROM (SELECT `ENAME`, `SAL`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`) `t`\n"
+            + "WHERE `SAL` > 2000\n"
+            + "ORDER BY `SAL` DESC";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  /**
+   * Tests multiple table commands in a pipeline. This verifies that table commands can be used to
+   * progressively refine field selection.
+   */
+  @Test
+  public void testMultipleTableCommands() {
+    String ppl = "source=EMP | table ENAME, SAL, DEPTNO, JOB | where SAL > 2000 | table ENAME, SAL";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(ENAME=[$0], SAL=[$1])\n"
+            + "  LogicalFilter(condition=[>($1, 2000)])\n"
+            + "    LogicalProject(ENAME=[$1], SAL=[$5], DEPTNO=[$7], JOB=[$2])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `ENAME`, `SAL`\n"
+            + "FROM (SELECT `ENAME`, `SAL`, `DEPTNO`, `JOB`\n"
+            + "FROM `scott`.`EMP`) `t`\n"
+            + "WHERE `SAL` > 2000";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  /**
+   * Tests table command with wildcard patterns in the middle of a pipeline. This verifies that
+   * wildcard field selection works correctly when not at the end of the pipeline.
+   */
+  @Test
+  public void testTableWithWildcardInMiddleOfPipeline() {
+    String ppl = "source=EMP | table EMP*, SAL, DEPT* | where SAL > 2000 | sort DEPTNO";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(sort0=[$2], dir0=[ASC-nulls-first])\n"
+            + "  LogicalFilter(condition=[>($1, 2000)])\n"
+            + "    LogicalProject(EMPNO=[$0], SAL=[$5], DEPTNO=[$7])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT *\n"
+            + "FROM (SELECT `EMPNO`, `SAL`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`) `t`\n"
+            + "WHERE `SAL` > 2000\n"
+            + "ORDER BY `DEPTNO`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }
