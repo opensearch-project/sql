@@ -14,8 +14,12 @@ import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.volcano.VolcanoPlanner;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.StructKind;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -23,7 +27,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.DateString;
 import org.junit.jupiter.api.Test;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.ExistsQueryBuilder;
@@ -39,6 +42,7 @@ import org.opensearch.index.query.SimpleQueryStringBuilder;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.index.query.TermsQueryBuilder;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
@@ -47,6 +51,7 @@ import org.opensearch.sql.opensearch.request.PredicateAnalyzer.ExpressionNotAnal
 public class PredicateAnalyzerTest {
   final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
   final RexBuilder builder = new RexBuilder(typeFactory);
+  final RelOptCluster cluster = RelOptCluster.create(new VolcanoPlanner(), builder);
   final List<String> schema = List.of("a", "b", "c");
   final Map<String, ExprType> fieldTypes =
       Map.of(
@@ -632,24 +637,41 @@ public class PredicateAnalyzerTest {
 
   @Test
   void equals_throwException_TextWithoutKeyword() {
+    final RelDataType rowType =
+        builder
+            .getTypeFactory()
+            .builder()
+            .kind(StructKind.FULLY_QUALIFIED)
+            .add("a", builder.getTypeFactory().createSqlType(SqlTypeName.BIGINT))
+            .add("b", builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR))
+            .add("c", builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR))
+            .build();
     final RexInputRef field3 =
         builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.VARCHAR), 2);
     RexNode call = builder.makeCall(SqlStdOperatorTable.EQUALS, field3, stringLiteral);
     ExpressionNotAnalyzableException exception =
         assertThrows(
             ExpressionNotAnalyzableException.class,
-            () -> PredicateAnalyzer.analyze(call, schema, fieldTypes));
+            () -> PredicateAnalyzer.analyze(call, schema, fieldTypes, rowType, cluster));
     assertEquals("Can't convert =($2, 'Hi')", exception.getMessage());
   }
 
   @Test
-  void equals_throwException_IncompatibleDateTimeOperands() {
-    RexLiteral dateLiteral = builder.makeDateLiteral(DateString.fromDaysSinceEpoch(100));
-    RexNode call = builder.makeCall(SqlStdOperatorTable.EQUALS, field1, dateLiteral);
+  void isNullOr_throwException() {
+    final RelDataType rowType =
+        builder
+            .getTypeFactory()
+            .builder()
+            .kind(StructKind.FULLY_QUALIFIED)
+            .add("a", builder.getTypeFactory().createSqlType(SqlTypeName.BIGINT))
+            .add("b", builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR))
+            .build();
+    // PPL IS_EMPTY is translated to OR(IS_NULL(arg), IS_EMPTY(arg))
+    RexNode call = PPLFuncImpTable.INSTANCE.resolve(builder, BuiltinFunctionName.IS_EMPTY, field2);
     ExpressionNotAnalyzableException exception =
         assertThrows(
             ExpressionNotAnalyzableException.class,
-            () -> PredicateAnalyzer.analyze(call, schema, fieldTypes));
-    assertEquals("Can't convert =($0, 1970-04-11)", exception.getMessage());
+            () -> PredicateAnalyzer.analyzeExpression(call, schema, fieldTypes, rowType, cluster));
+    assertEquals("Can't convert OR(IS NULL($1), IS EMPTY($1))", exception.getMessage());
   }
 }

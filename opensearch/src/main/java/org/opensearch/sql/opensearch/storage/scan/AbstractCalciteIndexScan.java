@@ -113,7 +113,11 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                           estimated = NumberUtil.multiply(
                                   rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest));
                           break;
-                        case LIMIT:
+                        case SCRIPT:
+                          estimated = NumberUtil.multiply(
+                              rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest)) * 1.1;
+                          break;
+                      case LIMIT:
                           estimated = ((Integer) action.digest).doubleValue();
                           break;
                         default:
@@ -122,7 +126,6 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                       return estimated * estimateRowCountFactor;
                     },
                     (a, b) -> null);
-
   }
 
   // TODO: should we consider equivalent among PushDownContexts with different push down sequence?
@@ -300,6 +303,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     AGGREGATION,
     SORT,
     LIMIT,
+    SCRIPT
     // HIGHLIGHT,
     // NESTED
   }
