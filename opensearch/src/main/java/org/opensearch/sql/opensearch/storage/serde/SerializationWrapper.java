@@ -8,6 +8,8 @@ package org.opensearch.sql.opensearch.storage.serde;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
@@ -28,11 +30,14 @@ public class SerializationWrapper {
    * @return serialized map JSON string
    */
   public static String wrapWithLangType(ScriptEngineType langType, String script) {
-    try {
-      return mapper.writeValueAsString(new LangScriptWrapper(langType, script));
-    } catch (JsonProcessingException e) {
-      throw new RuntimeException("Failed to wrap script with langType: " + langType, e);
-    }
+    return AccessController.doPrivileged(
+        (PrivilegedAction<String>) () -> {
+          try {
+            return mapper.writeValueAsString(new LangScriptWrapper(langType, script));
+          } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to wrap script with langType: " + langType, e);
+          }
+        });
   }
 
   /**

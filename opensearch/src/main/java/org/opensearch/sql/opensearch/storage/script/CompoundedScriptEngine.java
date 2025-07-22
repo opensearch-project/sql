@@ -7,6 +7,8 @@ package org.opensearch.sql.opensearch.storage.script;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.Map;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -38,9 +40,13 @@ public class CompoundedScriptEngine implements ScriptEngine {
   private final CalciteScriptEngine calciteScriptEngine;
 
   public CompoundedScriptEngine() {
-    RexBuilder rexBuilder = new RexBuilder(OpenSearchTypeFactory.TYPE_FACTORY);
-    RelOptCluster cluster = RelOptCluster.create(new VolcanoPlanner(), rexBuilder);
-    this.calciteScriptEngine = new CalciteScriptEngine(cluster);
+    this.calciteScriptEngine = AccessController.doPrivileged(
+        (PrivilegedAction<CalciteScriptEngine>)
+            () -> {
+              RexBuilder rexBuilder = new RexBuilder(OpenSearchTypeFactory.TYPE_FACTORY);
+              RelOptCluster cluster = RelOptCluster.create(new VolcanoPlanner(), rexBuilder);
+              return new CalciteScriptEngine(cluster);
+            });
   }
 
   @Override
@@ -51,19 +57,23 @@ public class CompoundedScriptEngine implements ScriptEngine {
   @Override
   public <T> T compile(
       String scriptName, String scriptCode, ScriptContext<T> context, Map<String, String> options) {
-    LangScriptWrapper unwrapped = SerializationWrapper.unwrapLangType(scriptCode);
-    T result;
-    switch (unwrapped.langType) {
-      case CALCITE:
-        result = calciteScriptEngine.compile(scriptName, unwrapped.script, context, options);
-        break;
-      case V2:
-        result = v2ExpressionScriptEngine.compile(scriptName, unwrapped.script, context, options);
-        break;
-      default:
-        throw new IllegalArgumentException("Unsupported lang type: " + unwrapped.langType);
-    }
-    return result;
+    return AccessController.doPrivileged(
+        (PrivilegedAction<T>)
+            () -> {
+              LangScriptWrapper unwrapped =  SerializationWrapper.unwrapLangType(scriptCode);
+              T result;
+              switch (unwrapped.langType) {
+                case CALCITE:
+                  result = calciteScriptEngine.compile(scriptName, unwrapped.script, context, options);
+                  break;
+                case V2:
+                  result = v2ExpressionScriptEngine.compile(scriptName, unwrapped.script, context, options);
+                  break;
+                default:
+                  throw new IllegalArgumentException("Unsupported lang type: " + unwrapped.langType);
+              }
+              return result;
+            });
   }
 
   @Override
