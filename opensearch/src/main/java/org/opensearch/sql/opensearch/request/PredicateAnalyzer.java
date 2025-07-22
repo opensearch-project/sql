@@ -37,28 +37,36 @@ import static org.opensearch.index.query.QueryBuilders.rangeQuery;
 import static org.opensearch.index.query.QueryBuilders.regexpQuery;
 import static org.opensearch.index.query.QueryBuilders.termQuery;
 import static org.opensearch.index.query.QueryBuilders.termsQuery;
+import static org.opensearch.script.Script.DEFAULT_SCRIPT_TYPE;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.MULTI_FIELDS_RELEVANCE_FUNCTION_SET;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.SINGLE_FIELD_RELEVANCE_FUNCTION_SET;
+import static org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.COMPOUNDED_LANG_NAME;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.Range;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import lombok.Getter;
+import lombok.Setter;
+import org.apache.calcite.DataContext.Variable;
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
@@ -72,15 +80,19 @@ import org.opensearch.index.mapper.DateFieldMapper;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.RangeQueryBuilder;
+import org.opensearch.index.query.ScriptQueryBuilder;
+import org.opensearch.script.Script;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.type.ExprSqlType;
-import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
-import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
+import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.ReferenceFieldVisitor;
+import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.UnsupportedScriptException;
+import org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.ScriptEngineType;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchBoolPrefixQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchPhrasePrefixQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchPhraseQuery;
@@ -88,6 +100,8 @@ import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.Matc
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MultiMatchQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.QueryStringQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.SimpleQueryStringQuery;
+import org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer;
+import org.opensearch.sql.opensearch.storage.serde.SerializationWrapper;
 
 /**
  * Query predicate analyzer. Uses visitor pattern to traverse existing expression and convert it to
@@ -137,27 +151,48 @@ public class PredicateAnalyzer {
    *
    * @param expression expression to analyze
    * @param schema current schema of scan operator
-   * @param filedTypes mapping of OpenSearch field name to ExprType, nested fields are flattened
+   * @param fieldTypes mapping of OpenSearch field name to ExprType, nested fields are flattened
    * @return search query which can be used to query OS cluster
    * @throws ExpressionNotAnalyzableException when expression can't processed by this analyzer
    */
   public static QueryBuilder analyze(
-      RexNode expression, List<String> schema, Map<String, ExprType> filedTypes)
+      RexNode expression, List<String> schema, Map<String, ExprType> fieldTypes)
+      throws ExpressionNotAnalyzableException {
+    return analyze(expression, schema, fieldTypes, null, null);
+  }
+
+  public static QueryBuilder analyze(
+      RexNode expression,
+      List<String> schema,
+      Map<String, ExprType> fieldTypes,
+      RelDataType rowType,
+      RelOptCluster cluster)
+      throws ExpressionNotAnalyzableException {
+    return analyzeExpression(expression, schema, fieldTypes, rowType, cluster).builder();
+  }
+
+  public static QueryExpression analyzeExpression(
+      RexNode expression,
+      List<String> schema,
+      Map<String, ExprType> fieldTypes,
+      RelDataType rowType,
+      RelOptCluster cluster)
       throws ExpressionNotAnalyzableException {
     requireNonNull(expression, "expression");
     try {
       // visits expression tree
       QueryExpression queryExpression =
-          (QueryExpression) expression.accept(new Visitor(schema, filedTypes));
-
-      if (queryExpression != null && queryExpression.isPartial()) {
-        throw new UnsupportedOperationException(
-            "Can't handle partial QueryExpression: " + queryExpression);
-      }
-      return queryExpression != null ? queryExpression.builder() : null;
+          (QueryExpression) expression.accept(new Visitor(schema, fieldTypes, rowType, cluster));
+      return queryExpression;
     } catch (Throwable e) {
-      Throwables.throwIfInstanceOf(e, UnsupportedOperationException.class);
-      throw new ExpressionNotAnalyzableException("Can't convert " + expression, e);
+      if (e instanceof UnsupportedScriptException) {
+        throw new ExpressionNotAnalyzableException("Can't convert " + expression, e);
+      }
+      try {
+        return new ScriptQueryExpression(expression, rowType, fieldTypes, cluster);
+      } catch (Throwable e2) {
+        throw new ExpressionNotAnalyzableException("Can't convert " + expression, e2);
+      }
     }
   }
 
@@ -165,17 +200,25 @@ public class PredicateAnalyzer {
   private static class Visitor extends RexVisitorImpl<Expression> {
 
     List<String> schema;
-    Map<String, ExprType> filedTypes;
+    Map<String, ExprType> fieldTypes;
+    RelDataType rowType;
+    RelOptCluster cluster;
 
-    private Visitor(List<String> schema, Map<String, ExprType> filedTypes) {
+    private Visitor(
+        List<String> schema,
+        Map<String, ExprType> fieldTypes,
+        RelDataType rowType,
+        RelOptCluster cluster) {
       super(true);
       this.schema = schema;
-      this.filedTypes = filedTypes;
+      this.fieldTypes = fieldTypes;
+      this.rowType = rowType;
+      this.cluster = cluster;
     }
 
     @Override
     public Expression visitInputRef(RexInputRef inputRef) {
-      return new NamedFieldExpression(inputRef, schema, filedTypes);
+      return new NamedFieldExpression(inputRef, schema, fieldTypes);
     }
 
     @Override
@@ -257,6 +300,12 @@ public class PredicateAnalyzer {
       return sarg.isComplementedPoints();
     }
 
+    static RexUnknownAs getNullAsForSearch(RexCall search) {
+      RexLiteral literal = (RexLiteral) search.getOperands().get(1);
+      final Sarg<?> sarg = requireNonNull(literal.getValueAs(Sarg.class), "Sarg");
+      return sarg.nullAs;
+    }
+
     @Override
     public Expression visitCall(RexCall call) {
 
@@ -294,7 +343,10 @@ public class PredicateAnalyzer {
     private QueryExpression visitRelevanceFunc(RexCall call) {
       String funcName = call.getOperator().getName().toLowerCase(Locale.ROOT);
       List<RexNode> ops = call.getOperands();
-      assert ops.size() >= 2 : "Relevance query function should at least have 2 operands";
+      if (ops.size() < 2) {
+        throw new PredicateAnalyzerException(
+            "Relevance query function should at least have 2 operands");
+      }
 
       if (SINGLE_FIELD_RELEVANCE_FUNCTION_SET.contains(funcName)) {
         List<Expression> fieldQueryOperands =
@@ -326,7 +378,7 @@ public class PredicateAnalyzer {
       }
 
       throw new PredicateAnalyzerException(
-          String.format(Locale.ROOT, "Unsupported search relevance function: [%s]", funcName));
+          format(Locale.ROOT, "Unsupported search relevance function: [%s]", funcName));
     }
 
     @FunctionalInterface
@@ -371,7 +423,7 @@ public class PredicateAnalyzer {
         String key = ((RexLiteral) aliasPair.alias).getValueAs(String.class);
         if (optionalArguments.containsKey(key)) {
           throw new PredicateAnalyzerException(
-              String.format(
+              format(
                   Locale.ROOT,
                   "Parameter '%s' can only be specified once for function [%s].",
                   key,
@@ -386,7 +438,7 @@ public class PredicateAnalyzer {
     private static RexCall expectCall(RexNode node, SqlOperator op, String funcName) {
       if (!(node instanceof RexCall call) || call.getOperator() != op) {
         throw new IllegalArgumentException(
-            String.format(
+            format(
                 Locale.ROOT,
                 "Expect [%s] RexCall but get [%s] for function [%s]",
                 op.getName(),
@@ -508,31 +560,19 @@ public class PredicateAnalyzer {
           }
           return QueryExpression.create(pair.getKey()).lte(pair.getValue());
         case SEARCH:
-          if (isSearchWithComplementedPoints(call)) {
-            return QueryExpression.create(pair.getKey()).notIn(pair.getValue());
-          } else if (isSearchWithPoints(call)) {
-            return QueryExpression.create(pair.getKey()).in(pair.getValue());
-          } else {
-            Sarg<?> sarg = pair.getValue().literal.getValueAs(Sarg.class);
-            Set<? extends Range<?>> rangeSet = requireNonNull(sarg).rangeSet.asRanges();
-            boolean isTimeStamp =
-                (pair.getKey() instanceof NamedFieldExpression namedField)
-                    && namedField.isTimeStampType();
-            List<QueryExpression> queryExpressions =
-                rangeSet.stream()
-                    .map(
-                        range ->
-                            RangeSets.isPoint(range)
-                                ? QueryExpression.create(pair.getKey())
-                                    .equals(sargPointValue(range.lowerEndpoint()), isTimeStamp)
-                                : QueryExpression.create(pair.getKey()).between(range, isTimeStamp))
-                    .toList();
-            if (queryExpressions.size() == 1) {
-              return queryExpressions.getFirst();
-            } else {
-              return CompoundQueryExpression.or(queryExpressions.toArray(new QueryExpression[0]));
-            }
-          }
+          QueryExpression expression = constructQueryExpressionForSearch(call, pair);
+          RexUnknownAs nullAs = getNullAsForSearch(call);
+          return switch (nullAs) {
+              // e.g. where isNotNull(a) and (a = 1 or a = 2)
+              // TODO: For this case, seems return `expression` should be equivalent
+            case FALSE -> CompoundQueryExpression.and(
+                false, expression, QueryExpression.create(pair.getKey()).exists());
+              // e.g. where isNull(a) or a = 1 or a = 2
+            case TRUE -> CompoundQueryExpression.or(
+                expression, QueryExpression.create(pair.getKey()).notExists());
+              // e.g. where a = 1 or a = 2
+            case UNKNOWN -> expression;
+          };
         default:
           break;
       }
@@ -540,24 +580,67 @@ public class PredicateAnalyzer {
       throw new PredicateAnalyzerException(message);
     }
 
+    private static QueryExpression constructQueryExpressionForSearch(
+        RexCall call, SwapResult pair) {
+      if (isSearchWithComplementedPoints(call)) {
+        return QueryExpression.create(pair.getKey()).notIn(pair.getValue());
+      } else if (isSearchWithPoints(call)) {
+        return QueryExpression.create(pair.getKey()).in(pair.getValue());
+      } else {
+        Sarg<?> sarg = pair.getValue().literal.getValueAs(Sarg.class);
+        Set<? extends Range<?>> rangeSet = requireNonNull(sarg).rangeSet.asRanges();
+        boolean isTimeStamp =
+            (pair.getKey() instanceof NamedFieldExpression namedField)
+                && namedField.isTimeStampType();
+        List<QueryExpression> queryExpressions =
+            rangeSet.stream()
+                .map(
+                    range ->
+                        RangeSets.isPoint(range)
+                            ? QueryExpression.create(pair.getKey())
+                                .equals(sargPointValue(range.lowerEndpoint()), isTimeStamp)
+                            : QueryExpression.create(pair.getKey()).between(range, isTimeStamp))
+                .toList();
+        if (queryExpressions.size() == 1) {
+          return queryExpressions.getFirst();
+        } else {
+          return CompoundQueryExpression.or(queryExpressions.toArray(new QueryExpression[0]));
+        }
+      }
+    }
+
     private QueryExpression andOr(RexCall call) {
+      // For function isEmpty and isBlank, we implement them via expression `isNull or {@function}`,
+      // Unlike `OR` in Java, `SHOULD` in DSL will evaluate both branches and lead to NPE.
+      if (call.getKind() == SqlKind.OR
+          && call.getOperands().size() == 2
+          && (call.getOperands().get(0).getKind() == SqlKind.IS_NULL
+              || call.getOperands().get(1).getKind() == SqlKind.IS_NULL)) {
+        throw new UnsupportedScriptException(
+            "DSL will evaluate both branches of OR with isNUll, prevent push-down to avoid NPE");
+      }
+
       QueryExpression[] expressions = new QueryExpression[call.getOperands().size()];
       PredicateAnalyzerException firstError = null;
       boolean partial = false;
+      int failedCount = 0;
       for (int i = 0; i < call.getOperands().size(); i++) {
+        RexNode operand = call.getOperands().get(i);
         try {
-          Expression expr = call.getOperands().get(i).accept(this);
-          if (expr instanceof NamedFieldExpression) {
-            // nop currently
-          } else {
-            expressions[i] = (QueryExpression) call.getOperands().get(i).accept(this);
+          Expression expr = tryAnalyzeOperand(operand);
+          if (expr instanceof QueryExpression) {
+            expressions[i] = (QueryExpression) expr;
+            partial |= expressions[i].isPartial();
           }
-          partial |= expressions[i].isPartial();
         } catch (PredicateAnalyzerException e) {
           if (firstError == null) {
             firstError = e;
           }
           partial = true;
+          ++failedCount;
+          // If we cannot analyze the operand, wrap the RexNode with UnAnalyzableQueryExpression and
+          // record them in the array. We will reuse them later.
+          expressions[i] = new UnAnalyzableQueryExpression(operand);
         }
       }
 
@@ -573,10 +656,39 @@ public class PredicateAnalyzer {
           }
           return CompoundQueryExpression.or(expressions);
         case AND:
+          if (failedCount == call.getOperands().size()) {
+            // If all operands failed, we cannot analyze the AND expression.
+            throw new PredicateAnalyzerException(
+                "All expressions in AND failed to analyze: " + call);
+          }
           return CompoundQueryExpression.and(partial, expressions);
         default:
           String message = format(Locale.ROOT, "Unable to handle call: [%s]", call);
           throw new PredicateAnalyzerException(message);
+      }
+    }
+
+    private Expression tryAnalyzeOperand(RexNode node) {
+      try {
+        Expression expr = node.accept(this);
+        if (expr instanceof NamedFieldExpression) {
+          return expr;
+        }
+        QueryExpression qe = (QueryExpression) expr;
+        if (!qe.isPartial()) {
+          qe.updateAnalyzedNodes(node);
+        }
+        return qe;
+      } catch (PredicateAnalyzerException firstFailed) {
+        try {
+          QueryExpression qe = new ScriptQueryExpression(node, rowType, fieldTypes, cluster);
+          if (!qe.isPartial()) {
+            qe.updateAnalyzedNodes(node);
+          }
+          return qe;
+        } catch (UnsupportedScriptException secondFailed) {
+          throw new PredicateAnalyzerException(secondFailed);
+        }
       }
     }
 
@@ -689,76 +801,138 @@ public class PredicateAnalyzer {
   interface Expression {}
 
   /** Main expression operators (like {@code equals}, {@code gt}, {@code exists} etc.) */
-  abstract static class QueryExpression implements Expression {
+  public abstract static class QueryExpression implements Expression {
 
     public abstract QueryBuilder builder();
+
+    public abstract List<RexNode> getAnalyzedNodes();
+
+    public abstract void updateAnalyzedNodes(RexNode rexNode);
+
+    public abstract List<RexNode> getUnAnalyzableNodes();
 
     public boolean isPartial() {
       return false;
     }
 
-    public abstract QueryExpression contains(LiteralExpression literal);
-
     /** Negate {@code this} QueryExpression (not the next one). */
-    public abstract QueryExpression not();
-
-    public abstract QueryExpression exists();
-
-    public abstract QueryExpression notExists();
-
-    public abstract QueryExpression like(LiteralExpression literal);
-
-    public abstract QueryExpression notLike(LiteralExpression literal);
-
-    public abstract QueryExpression equals(LiteralExpression literal);
-
-    public abstract QueryExpression in(LiteralExpression literal);
-
-    public abstract QueryExpression notIn(LiteralExpression literal);
-
-    public QueryExpression between(Range<?> literal, boolean isTimeStamp) {
-      throw new PredicateAnalyzer.PredicateAnalyzerException(
-          "between cannot be applied to " + this.getClass());
+    QueryExpression not() {
+      throw new PredicateAnalyzerException("not cannot be applied to " + this.getClass());
     }
 
-    public QueryExpression equals(Object point, boolean isTimeStamp) {
-      throw new PredicateAnalyzer.PredicateAnalyzerException(
-          "equals cannot be applied to " + this.getClass());
+    QueryExpression exists() {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['exists'] " + "cannot be applied to " + this.getClass());
     }
 
-    public abstract QueryExpression notEquals(LiteralExpression literal);
+    QueryExpression notExists() {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['notExists'] " + "cannot be applied to " + this.getClass());
+    }
 
-    public abstract QueryExpression gt(LiteralExpression literal);
+    QueryExpression contains(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['contains'] " + "cannot be applied to " + this.getClass());
+    }
 
-    public abstract QueryExpression gte(LiteralExpression literal);
+    QueryExpression between(Range<?> literal, boolean isTimeStamp) {
+      throw new PredicateAnalyzerException("between cannot be applied to " + this.getClass());
+    }
 
-    public abstract QueryExpression lt(LiteralExpression literal);
+    QueryExpression like(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['like'] " + "cannot be applied to " + this.getClass());
+    }
 
-    public abstract QueryExpression lte(LiteralExpression literal);
+    QueryExpression notLike(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['notLike'] " + "cannot be applied to " + this.getClass());
+    }
 
-    public abstract QueryExpression match(String query, Map<String, String> optionalArguments);
+    QueryExpression equals(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['='] " + "cannot be applied to " + this.getClass());
+    }
 
-    public abstract QueryExpression matchPhrase(
-        String query, Map<String, String> optionalArguments);
+    QueryExpression equals(Object point, boolean isTimeStamp) {
+      throw new PredicateAnalyzerException("equals cannot be applied to " + this.getClass());
+    }
 
-    public abstract QueryExpression matchBoolPrefix(
-        String query, Map<String, String> optionalArguments);
+    QueryExpression notEquals(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['not'] " + "cannot be applied to " + this.getClass());
+    }
 
-    public abstract QueryExpression matchPhrasePrefix(
-        String query, Map<String, String> optionalArguments);
+    QueryExpression gt(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['>'] " + "cannot be applied to " + this.getClass());
+    }
 
-    public abstract QueryExpression simpleQueryString(
-        RexCall fieldsRexCall, String query, Map<String, String> optionalArguments);
+    QueryExpression gte(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['>='] " + "cannot be applied to " + this.getClass());
+    }
 
-    public abstract QueryExpression queryString(
-        RexCall fieldsRexCall, String query, Map<String, String> optionalArguments);
+    QueryExpression lt(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['<'] " + "cannot be applied to " + this.getClass());
+    }
 
-    public abstract QueryExpression multiMatch(
-        RexCall fieldsRexCall, String query, Map<String, String> optionalArguments);
+    QueryExpression lte(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['<='] " + "cannot be applied to " + this.getClass());
+    }
 
-    public abstract QueryExpression isTrue();
+    QueryExpression match(String query, Map<String, String> optionalArguments) {
+      throw new PredicateAnalyzerException("Match " + "cannot be applied to " + this.getClass());
+    }
 
-    public static QueryExpression create(TerminalExpression expression) {
+    QueryExpression matchPhrase(String query, Map<String, String> optionalArguments) {
+      throw new PredicateAnalyzerException(
+          "MatchPhrase " + "cannot be applied to " + this.getClass());
+    }
+
+    QueryExpression matchBoolPrefix(String query, Map<String, String> optionalArguments) {
+      throw new PredicateAnalyzerException(
+          "MatchBoolPrefix " + "cannot be applied to " + this.getClass());
+    }
+
+    QueryExpression matchPhrasePrefix(String query, Map<String, String> optionalArguments) {
+      throw new PredicateAnalyzerException(
+          "MatchPhrasePrefix " + "cannot be applied to " + this.getClass());
+    }
+
+    QueryExpression simpleQueryString(
+        RexCall fieldsRexCall, String query, Map<String, String> optionalArguments) {
+      throw new PredicateAnalyzerException(
+          "SimpleQueryString " + "cannot be applied to " + this.getClass());
+    }
+
+    QueryExpression queryString(
+        RexCall fieldsRexCall, String query, Map<String, String> optionalArguments) {
+      throw new PredicateAnalyzerException(
+          "QueryString " + "cannot be applied to " + this.getClass());
+    }
+
+    QueryExpression multiMatch(
+        RexCall fieldsRexCall, String query, Map<String, String> optionalArguments) {
+      throw new PredicateAnalyzerException(
+          "MultiMatch " + "cannot be applied to " + this.getClass());
+    }
+
+    QueryExpression isTrue() {
+      throw new PredicateAnalyzerException("isTrue cannot be applied to " + this.getClass());
+    }
+
+    QueryExpression in(LiteralExpression literal) {
+      throw new PredicateAnalyzerException("in cannot be applied to " + this.getClass());
+    }
+
+    QueryExpression notIn(LiteralExpression literal) {
+      throw new PredicateAnalyzerException("notIn cannot be applied to " + this.getClass());
+    }
+
+    static QueryExpression create(TerminalExpression expression) {
       if (expression instanceof CastExpression) {
         expression = CastExpression.unpack(expression);
       }
@@ -767,21 +941,63 @@ public class PredicateAnalyzer {
         return new SimpleQueryExpression((NamedFieldExpression) expression);
       } else {
         String message = format(Locale.ROOT, "Unsupported expression: [%s]", expression);
-        throw new PredicateAnalyzer.PredicateAnalyzerException(message);
+        throw new PredicateAnalyzerException(message);
       }
+    }
+
+    public static boolean containsScript(QueryExpression expression) {
+      return expression instanceof ScriptQueryExpression
+          || (expression instanceof CompoundQueryExpression
+              && ((CompoundQueryExpression) expression).containsScript());
+    }
+  }
+
+  @Getter
+  static class UnAnalyzableQueryExpression extends QueryExpression {
+    final RexNode unAnalyzableRexNode;
+
+    public UnAnalyzableQueryExpression(RexNode rexNode) {
+      this.unAnalyzableRexNode = requireNonNull(rexNode, "rexNode");
+    }
+
+    @Override
+    public QueryBuilder builder() {
+      return null;
+    }
+
+    @Override
+    public List<RexNode> getUnAnalyzableNodes() {
+      return List.of(unAnalyzableRexNode);
+    }
+
+    @Override
+    public List<RexNode> getAnalyzedNodes() {
+      return List.of();
+    }
+
+    @Override
+    public void updateAnalyzedNodes(RexNode rexNode) {
+      throw new IllegalStateException(
+          "UnAnalyzableQueryExpression does not support unAnalyzableNodes");
     }
   }
 
   /** Builds conjunctions / disjunctions based on existing expressions. */
-  static class CompoundQueryExpression extends QueryExpression {
+  public static class CompoundQueryExpression extends QueryExpression {
 
     private final boolean partial;
     private final BoolQueryBuilder builder;
+    @Getter private List<RexNode> analyzedNodes = new ArrayList<>();
+    @Getter private final List<RexNode> unAnalyzableNodes = new ArrayList<>();
+    @Setter private boolean containsScript;
 
     public static CompoundQueryExpression or(QueryExpression... expressions) {
       CompoundQueryExpression bqe = new CompoundQueryExpression(false);
       for (QueryExpression expression : expressions) {
         bqe.builder.should(expression.builder());
+        if (QueryExpression.containsScript(expression)) {
+          bqe.setContainsScript(true);
+        }
       }
       return bqe;
     }
@@ -796,25 +1012,40 @@ public class PredicateAnalyzer {
     public static CompoundQueryExpression and(boolean partial, QueryExpression... expressions) {
       CompoundQueryExpression bqe = new CompoundQueryExpression(partial);
       for (QueryExpression expression : expressions) {
-        if (expression != null) { // partial expressions have nulls for missing nodes
+        bqe.analyzedNodes.addAll(expression.getAnalyzedNodes());
+        bqe.unAnalyzableNodes.addAll(expression.getUnAnalyzableNodes());
+        if (!(expression instanceof UnAnalyzableQueryExpression)) {
           bqe.builder.must(expression.builder());
+          if (QueryExpression.containsScript(expression)) {
+            bqe.setContainsScript(true);
+          }
         }
       }
       return bqe;
     }
 
     private CompoundQueryExpression(boolean partial) {
-      this(partial, boolQuery());
+      this(partial, boolQuery(), false);
     }
 
     private CompoundQueryExpression(boolean partial, BoolQueryBuilder builder) {
+      this(partial, builder, false);
+    }
+
+    private CompoundQueryExpression(
+        boolean partial, BoolQueryBuilder builder, boolean containsScript) {
       this.partial = partial;
       this.builder = requireNonNull(builder, "builder");
+      this.containsScript = containsScript;
     }
 
     @Override
     public boolean isPartial() {
       return partial;
+    }
+
+    public boolean containsScript() {
+      return containsScript;
     }
 
     @Override
@@ -823,139 +1054,20 @@ public class PredicateAnalyzer {
     }
 
     @Override
+    public void updateAnalyzedNodes(RexNode rexNode) {
+      this.analyzedNodes = List.of(rexNode);
+    }
+
+    @Override
     public QueryExpression not() {
       return new CompoundQueryExpression(partial, boolQuery().mustNot(builder()));
-    }
-
-    @Override
-    public QueryExpression exists() {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['exists'] " + "cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression contains(LiteralExpression literal) {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['contains'] " + "cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression notExists() {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['notExists'] " + "cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression like(LiteralExpression literal) {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['like'] " + "cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression notLike(LiteralExpression literal) {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['notLike'] " + "cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression equals(LiteralExpression literal) {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['='] " + "cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression notEquals(LiteralExpression literal) {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['not'] " + "cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression gt(LiteralExpression literal) {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['>'] " + "cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression gte(LiteralExpression literal) {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['>='] " + "cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression lt(LiteralExpression literal) {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['<'] " + "cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression lte(LiteralExpression literal) {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['<='] " + "cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression match(String query, Map<String, String> optionalArguments) {
-      throw new PredicateAnalyzerException("Match " + "cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression matchPhrase(String query, Map<String, String> optionalArguments) {
-      throw new PredicateAnalyzerException(
-          "MatchPhrase " + "cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression matchBoolPrefix(String query, Map<String, String> optionalArguments) {
-      throw new PredicateAnalyzerException(
-          "MatchBoolPrefix " + "cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression matchPhrasePrefix(String query, Map<String, String> optionalArguments) {
-      throw new PredicateAnalyzerException(
-          "MatchPhrasePrefix " + "cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression simpleQueryString(
-        RexCall fieldsRexCall, String query, Map<String, String> optionalArguments) {
-      throw new PredicateAnalyzerException(
-          "SimpleQueryString " + "cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression queryString(
-        RexCall fieldsRexCall, String query, Map<String, String> optionalArguments) {
-      throw new PredicateAnalyzerException(
-          "QueryString " + "cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression multiMatch(
-        RexCall fieldsRexCall, String query, Map<String, String> optionalArguments) {
-      throw new PredicateAnalyzerException(
-          "MultiMatch " + "cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression isTrue() {
-      throw new PredicateAnalyzerException("isTrue cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression in(LiteralExpression literal) {
-      throw new PredicateAnalyzerException("in cannot be applied to a compound expression");
-    }
-
-    @Override
-    public QueryExpression notIn(LiteralExpression literal) {
-      throw new PredicateAnalyzerException("notIn cannot be applied to a compound expression");
     }
   }
 
   /** Usually basic expression of type {@code a = 'val'} or {@code b > 42}. */
   static class SimpleQueryExpression extends QueryExpression {
 
+    private RexNode analyzedRexNode;
     private final NamedFieldExpression rel;
     private QueryBuilder builder;
 
@@ -964,7 +1076,13 @@ public class PredicateAnalyzer {
     }
 
     private String getFieldReferenceForTermQuery() {
-      return rel.getReferenceForTermQuery();
+      String reference = rel.getReferenceForTermQuery();
+      // Throw exception in advance of method builder() to trigger partial push down.
+      if (reference == null) {
+        throw new PredicateAnalyzerException(
+            "Field reference for term query cannot be null for " + rel.getRootName());
+      }
+      return reference;
     }
 
     private SimpleQueryExpression(NamedFieldExpression rel) {
@@ -982,6 +1100,21 @@ public class PredicateAnalyzer {
         throw new IllegalStateException("Builder was not initialized");
       }
       return builder;
+    }
+
+    @Override
+    public List<RexNode> getUnAnalyzableNodes() {
+      return List.of();
+    }
+
+    @Override
+    public List<RexNode> getAnalyzedNodes() {
+      return List.of(analyzedRexNode);
+    }
+
+    @Override
+    public void updateAnalyzedNodes(RexNode rexNode) {
+      this.analyzedRexNode = rexNode;
     }
 
     @Override
@@ -1190,6 +1323,189 @@ public class PredicateAnalyzer {
     // https://github.com/opensearch-project/sql/pull/3442
   }
 
+  public static class ScriptQueryExpression extends QueryExpression {
+    private final String code;
+    private RexNode analyzedNode;
+
+    public ScriptQueryExpression(
+        RexNode rexNode,
+        RelDataType rowType,
+        Map<String, ExprType> fieldTypes,
+        RelOptCluster cluster) {
+      ReferenceFieldVisitor validator = new ReferenceFieldVisitor(rowType, fieldTypes, true);
+      // Dry run visitInputRef to make sure the input reference ExprType is valid for script
+      // pushdown
+      validator.visitEach(List.of(rexNode));
+      RelJsonSerializer serializer = new RelJsonSerializer(cluster);
+      this.code =
+          SerializationWrapper.wrapWithLangType(
+              ScriptEngineType.CALCITE, serializer.serialize(rexNode, rowType, fieldTypes));
+    }
+
+    @Override
+    public QueryBuilder builder() {
+      long currentTime = Hook.CURRENT_TIME.get(-1L);
+      if (currentTime < 0) {
+        throw new UnsupportedScriptException(
+            "ScriptQueryExpression requires a valid current time from hook, but it is not set");
+      }
+      return new ScriptQueryBuilder(
+          new Script(
+              DEFAULT_SCRIPT_TYPE,
+              COMPOUNDED_LANG_NAME,
+              code,
+              Collections.emptyMap(),
+              Map.of(Variable.UTC_TIMESTAMP.camelName, currentTime)));
+    }
+
+    @Override
+    public List<RexNode> getAnalyzedNodes() {
+      return List.of(analyzedNode);
+    }
+
+    @Override
+    public void updateAnalyzedNodes(RexNode rexNode) {
+      this.analyzedNode = rexNode;
+    }
+
+    @Override
+    public List<RexNode> getUnAnalyzableNodes() {
+      return List.of();
+    }
+
+    @Override
+    public QueryExpression exists() {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['exists'] " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression contains(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['contains'] " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression not() {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['not'] " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression notExists() {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['notExists'] " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression like(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['like'] " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression notLike(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['notLike'] " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression equals(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['='] " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression notEquals(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['not'] " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression gt(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['>'] " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression gte(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['>='] " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression lt(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['<'] " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression lte(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['<='] " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression match(String query, Map<String, String> optionalArguments) {
+      throw new PredicateAnalyzerException(
+          "Match query " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression matchPhrase(String query, Map<String, String> optionalArguments) {
+      throw new PredicateAnalyzerException(
+          "MatchPhrase query " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression matchBoolPrefix(String query, Map<String, String> optionalArguments) {
+      throw new PredicateAnalyzerException(
+          "MatchBoolPrefix query " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression matchPhrasePrefix(String query, Map<String, String> optionalArguments) {
+      throw new PredicateAnalyzerException(
+          "MatchPhrasePrefix query " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression simpleQueryString(
+        RexCall fieldsRexCall, String query, Map<String, String> optionalArguments) {
+      throw new PredicateAnalyzerException(
+          "SimpleQueryString query " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression queryString(
+        RexCall fieldsRexCall, String query, Map<String, String> optionalArguments) {
+      throw new PredicateAnalyzerException(
+          "QueryString query " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression multiMatch(
+        RexCall fieldsRexCall, String query, Map<String, String> optionalArguments) {
+      throw new PredicateAnalyzerException(
+          "MultiMatch query " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression isTrue() {
+      throw new PredicateAnalyzerException("isTrue cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression in(LiteralExpression literal) {
+      throw new PredicateAnalyzerException("in cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression notIn(LiteralExpression literal) {
+      throw new PredicateAnalyzerException("notIn cannot be applied to a script expression");
+    }
+  }
+
   /**
    * By default, range queries on date/time need use the format of the source to parse the literal.
    * So we need to specify that the literal has "date_time" format
@@ -1238,14 +1554,20 @@ public class PredicateAnalyzer {
   }
 
   /** Used for bind variables. */
-  static final class NamedFieldExpression implements TerminalExpression {
+  public static final class NamedFieldExpression implements TerminalExpression {
 
     private final String name;
     private final ExprType type;
 
-    NamedFieldExpression(int refIndex, List<String> schema, Map<String, ExprType> filedTypes) {
+    public NamedFieldExpression(
+        int refIndex, List<String> schema, Map<String, ExprType> filedTypes) {
       this.name = refIndex >= schema.size() ? null : schema.get(refIndex);
       this.type = filedTypes.get(name);
+    }
+
+    public NamedFieldExpression(String name, ExprType type) {
+      this.name = name;
+      this.type = type;
     }
 
     private NamedFieldExpression() {
@@ -1285,23 +1607,6 @@ public class PredicateAnalyzer {
       return type != null && type.getOriginalExprType() instanceof OpenSearchTextType;
     }
 
-    String toKeywordSubField() {
-      ExprType type = this.type.getOriginalExprType();
-      if (type instanceof OpenSearchTextType) {
-        OpenSearchTextType textType = (OpenSearchTextType) type;
-        // For OpenSearch Alias type which maps to the field of text type,
-        // we have to use its original path
-        String path = this.type.getOriginalPath().orElse(this.name);
-        // Find the first subfield with type keyword, return null if non-exist.
-        return textType.getFields().entrySet().stream()
-            .filter(e -> e.getValue().getMappingType() == MappingType.Keyword)
-            .findFirst()
-            .map(e -> path + "." + e.getKey())
-            .orElse(null);
-      }
-      return null;
-    }
-
     boolean isMetaField() {
       return OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(getRootName());
     }
@@ -1310,11 +1615,8 @@ public class PredicateAnalyzer {
       return getRootName();
     }
 
-    String getReferenceForTermQuery() {
-      if (isTextType()) {
-        return toKeywordSubField();
-      }
-      return getRootName();
+    public String getReferenceForTermQuery() {
+      return OpenSearchTextType.toKeywordSubField(getRootName(), this.type);
     }
   }
 
@@ -1354,6 +1656,10 @@ public class PredicateAnalyzer {
       return SqlTypeName.FRACTIONAL_TYPES.contains(literal.getType().getSqlTypeName());
     }
 
+    boolean isDecimal() {
+      return SqlTypeName.DECIMAL == literal.getType().getSqlTypeName();
+    }
+
     boolean isBoolean() {
       return SqlTypeName.BOOLEAN_TYPES.contains(literal.getType().getSqlTypeName());
     }
@@ -1368,7 +1674,7 @@ public class PredicateAnalyzer {
 
     public boolean isTimestamp() {
       if (literal.getType() instanceof ExprSqlType exprSqlType) {
-        return exprSqlType.getUdt() == OpenSearchTypeFactory.ExprUDT.EXPR_TIMESTAMP;
+        return exprSqlType.getUdt() == ExprUDT.EXPR_TIMESTAMP;
       }
       return false;
     }
@@ -1439,7 +1745,7 @@ public class PredicateAnalyzer {
         || (SqlTypeFamily.TIMESTAMP.contains(op2) && !SqlTypeFamily.TIMESTAMP.contains(op1))
         || (SqlTypeFamily.TIME.contains(op1) && !SqlTypeFamily.TIME.contains(op2))
         || (SqlTypeFamily.TIME.contains(op2) && !SqlTypeFamily.TIME.contains(op1))) {
-      throw new PredicateAnalyzer.PredicateAnalyzerException(
+      throw new PredicateAnalyzerException(
           "Cannot handle " + call.getKind() + " expression for _id field, " + call);
     }
   }

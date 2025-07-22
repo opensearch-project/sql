@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.opensearch.storage.serialization;
+package org.opensearch.sql.opensearch.storage.serde;
 
 import org.opensearch.sql.expression.Expression;
 

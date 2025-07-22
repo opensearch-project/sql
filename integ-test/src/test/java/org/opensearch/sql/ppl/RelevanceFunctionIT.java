@@ -174,8 +174,9 @@ public class RelevanceFunctionIT extends PPLIntegTestCase {
     String query1 =
         "SOURCE="
             + TEST_INDEX_BEER
-            + " | EVAL answerId = AcceptedAnswerId + 1"
-            + " | WHERE simple_query_string(['Tags'], 'taste') and answerId > 200";
+            + " | STATS count(AcceptedAnswerId) as count"
+            + " | EVAL dateStr = makedate(2025, count)"
+            + " | WHERE simple_query_string(['dateStr'], 'taste')";
     assertThrows(Exception.class, () -> executeQuery(query1));
   }
 }
