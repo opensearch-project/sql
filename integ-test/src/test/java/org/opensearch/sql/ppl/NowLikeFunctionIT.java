@@ -124,7 +124,7 @@ public class NowLikeFunctionIT extends PPLIntegTestCase {
                 true,
                 false,
                 false,
-                (Supplier<Temporal>) LocalDateTime::now,
+                (Supplier<Temporal>) () -> LocalDateTime.now(ZoneOffset.UTC),
                 (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse,
                 "uuuu-MM-dd HH:mm:ss"),
             $(

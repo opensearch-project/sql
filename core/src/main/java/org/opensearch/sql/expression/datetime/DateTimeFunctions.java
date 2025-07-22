@@ -265,11 +265,13 @@ public class DateTimeFunctions {
     return define(
         BuiltinFunctionName.SYSDATE.getName(),
         implWithProperties(
-            functionProperties -> new ExprTimestampValue(formatNow(Clock.systemDefaultZone())),
+            functionProperties ->
+                new ExprTimestampValue(formatNow(functionProperties.getSystemClock())),
             TIMESTAMP),
         FunctionDSL.implWithProperties(
             (functionProperties, v) ->
-                new ExprTimestampValue(formatNow(Clock.systemDefaultZone(), v.integerValue())),
+                new ExprTimestampValue(
+                    formatNow(functionProperties.getSystemClock(), v.integerValue())),
             TIMESTAMP,
             INTEGER));
   }
