@@ -449,6 +449,21 @@ public class PPLFuncImpTable {
           return implement.getValue().resolve(builder, args);
         }
       }
+
+      // If no implementation found with exact match, try to find a compatible one
+      for (Map.Entry<CalciteFuncSignature, FunctionImp> implement : implementList) {
+        var signature = implement.getKey();
+        var castedArgs =
+            CoercionUtils.castArguments(builder, signature.typeChecker(), List.of(args));
+        if (castedArgs != null) {
+          // If compatible function is found, replace the original RexNode with cast node
+          // TODO: check - this is a return-once-found implementation, rest possible combinations
+          //  will be skipped.
+          //  Maybe can be improved to return the best match? E.g. convert to timestamp when date,
+          //  time, and timestamp are all possible.
+          return implement.getValue().resolve(builder, castedArgs.toArray(new RexNode[0]));
+        }
+      }
     } catch (Exception e) {
       throw new ExpressionEvaluationException(
           String.format(

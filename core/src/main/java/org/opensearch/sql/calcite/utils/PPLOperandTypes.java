@@ -45,6 +45,11 @@ public class PPLOperandTypes {
   public static final UDFOperandMetadata DATETIME_OR_STRING =
       UDFOperandMetadata.wrap(
           (CompositeOperandTypeChecker) OperandTypes.DATETIME.or(OperandTypes.CHARACTER));
+  public static final UDFOperandMetadata DATETIME_OPTIONAL_INTEGER =
+      UDFOperandMetadata.wrap(
+          (CompositeOperandTypeChecker)
+              OperandTypes.DATETIME.or(
+                  OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER)));
   public static final UDFOperandMetadata DATETIME_DATETIME =
       UDFOperandMetadata.wrap(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME));
   public static final UDFOperandMetadata DATETIME_OR_STRING_DATETIME_OR_STRING =
@@ -64,6 +69,12 @@ public class PPLOperandTypes {
   public static final UDFOperandMetadata STRING_TIMESTAMP =
       UDFOperandMetadata.wrap(
           OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.TIMESTAMP));
+
+  public static final UDFOperandMetadata TIMESTAMP_STRING_STRING =
+      UDFOperandMetadata.wrap(
+          OperandTypes.family(
+              SqlTypeFamily.TIMESTAMP, SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER));
+
   public static final UDFOperandMetadata STRING_INTEGER =
       UDFOperandMetadata.wrap(OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.INTEGER));
 }

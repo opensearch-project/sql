@@ -76,10 +76,8 @@ public class AddSubDateFunction extends ImplementorUDF {
   public UDFOperandMetadata getOperandMetadata() {
     return UDFOperandMetadata.wrap(
         (CompositeOperandTypeChecker)
-            OperandTypes.DATETIME_INTERVAL
-                .or(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER))
-                .or(OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.DATETIME_INTERVAL))
-                .or(OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.INTEGER)));
+            OperandTypes.DATETIME_INTERVAL.or(
+                OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER)));
   }
 
   @RequiredArgsConstructor

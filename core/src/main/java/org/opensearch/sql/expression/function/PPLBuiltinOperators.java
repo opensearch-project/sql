@@ -21,10 +21,7 @@ import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
-import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
@@ -197,17 +194,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               "exprConvertTZ",
               PPLReturnTypes.TIMESTAMP_FORCE_NULLABLE,
               NullPolicy.ANY,
-              UDFOperandMetadata.wrap(
-                  (CompositeOperandTypeChecker)
-                      OperandTypes.family(
-                              SqlTypeFamily.CHARACTER,
-                              SqlTypeFamily.CHARACTER,
-                              SqlTypeFamily.CHARACTER)
-                          .or(
-                              OperandTypes.family(
-                                  SqlTypeFamily.DATETIME,
-                                  SqlTypeFamily.CHARACTER,
-                                  SqlTypeFamily.CHARACTER))))
+              PPLOperandTypes.TIMESTAMP_STRING_STRING)
           .toUDF("CONVERT_TZ");
   public static final SqlOperator DATEDIFF =
       adaptExprMethodWithPropertiesToUDF(
