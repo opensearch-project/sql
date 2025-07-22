@@ -48,6 +48,7 @@ dependencies {
     api "net.minidev:json-smart:2.5.2"
     api('org.apache.calcite:calcite-core:1.38.0') {
         exclude group: 'net.minidev', module: 'json-smart'
+        exclude group: 'commons-lang', module: 'commons-lang'
     }
     api 'org.apache.calcite:calcite-linq4j:1.38.0'
     api project(':common')
