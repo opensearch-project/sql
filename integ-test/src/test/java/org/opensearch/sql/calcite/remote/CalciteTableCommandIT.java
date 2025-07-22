@@ -106,7 +106,7 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
    * @throws IOException if query execution fails
    */
   @Test
-  public void testTableWithAllFields() throws IOException {
+  public void testTableWithPatternWildcard() throws IOException {
     JSONObject actual =
         executeQuery(String.format("source=%s | table account* | head 1", TEST_INDEX_ACCOUNT));
 
@@ -114,6 +114,40 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
     assertTrue("Should return exactly one row", datarows.length() == 1);
     assertTrue(
         "Should have at least account_number field", actual.getJSONArray("schema").length() >= 1);
+  }
+
+  /**
+   * Tests the table command with star wildcard to select all fields. Verifies that the table
+   * command correctly selects all available fields when using the '*' wildcard.
+   *
+   * @throws IOException if query execution fails
+   */
+  @Test
+  public void testTableWithAllFieldsWildcard() throws IOException {
+    JSONObject actual =
+        executeQuery(String.format("source=%s | table * | head 1", TEST_INDEX_ACCOUNT));
+
+    JSONArray datarows = actual.getJSONArray("datarows");
+    JSONArray schema = actual.getJSONArray("schema");
+
+    assertTrue("Should return exactly one row", datarows.length() == 1);
+    assertTrue("Should return all fields", schema.length() > 10);
+
+    // Verify that common fields are included
+    boolean hasAccountNumber = false;
+    boolean hasFirstname = false;
+    boolean hasAge = false;
+
+    for (int i = 0; i < schema.length(); i++) {
+      String fieldName = schema.getJSONObject(i).getString("name");
+      if ("account_number".equals(fieldName)) hasAccountNumber = true;
+      if ("firstname".equals(fieldName)) hasFirstname = true;
+      if ("age".equals(fieldName)) hasAge = true;
+    }
+
+    assertTrue("Should include account_number field", hasAccountNumber);
+    assertTrue("Should include firstname field", hasFirstname);
+    assertTrue("Should include age field", hasAge);
   }
 
   /**

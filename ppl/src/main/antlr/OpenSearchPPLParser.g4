@@ -118,6 +118,7 @@ showDataSourcesCommand
 tableCommand
    : TABLE wcFieldList
    | TABLE wcFieldExpressionList
+   | TABLE STAR
    ;
 
 wcFieldExpressionList

@@ -139,6 +139,26 @@ public class CalcitePPLTableTest extends CalcitePPLAbstractTest {
   }
 
   /**
+   * Tests selecting all fields using the wildcard (*) syntax. Verifies that 'table *' is correctly
+   * translated to SELECT * in SQL.
+   */
+  @Test
+  public void testTableWildcardAllFields() {
+    String ppl = "source=EMP | table *";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(COMM=[$6], DEPTNO=[$7], EMPNO=[$0], ENAME=[$1], HIREDATE=[$4], JOB=[$2],"
+            + " MGR=[$3], SAL=[$5])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `COMM`, `DEPTNO`, `EMPNO`, `ENAME`, `HIREDATE`, `JOB`, `MGR`, `SAL`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  /**
    * Tests a complex query with multiple operations including filter, sort, table, and limit.
    * Verifies that all operations are correctly combined in the expected order.
    */

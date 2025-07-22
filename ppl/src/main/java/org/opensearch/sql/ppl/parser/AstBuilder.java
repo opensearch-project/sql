@@ -676,7 +676,12 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     // and transform them into UnresolvedExpressions
     List<UnresolvedExpression> fields;
 
-    if (ctx.wcFieldList() != null) {
+    if (ctx.STAR() != null) {
+      // Handle 'table *' case - create a Field with wildcard pattern '*'
+      // This will be expanded to match all fields in the CalciteRelNodeVisitor
+      fields =
+          Collections.singletonList(new Field(new QualifiedName(Collections.singletonList("*"))));
+    } else if (ctx.wcFieldList() != null) {
       // Handle comma-separated fields: table field1, field2, field3
       fields =
           ctx.wcFieldList().wcFieldExpression().stream()
