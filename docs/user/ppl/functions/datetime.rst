@@ -1601,8 +1601,8 @@ Description
 >>>>>>>>>>>
 
 Returns the current date and time as a value in 'YYYY-MM-DD hh:mm:ss[.nnnnnn]'.
-SYSDATE() returns the date and time at which it executes in the cluster's time zone. This differs from the behavior for `NOW() <#now>`_, which returns a constant time that indicates the time at which the statement began to execute in UTC.
-If the argument is given, it specifies a fractional seconds precision from 0 to 6, the return value includes a fractional seconds part of that many digits.
+SYSDATE() returns the date and time at which it executes in UTC. This differs from the behavior for `NOW() <#now>`_, which returns a constant time that indicates the time at which the statement began to execute.
+If an argument is given, it specifies a fractional seconds precision from 0 to 6, the return value includes a fractional seconds part of that many digits.
 
 Optional argument type: INTEGER
 
