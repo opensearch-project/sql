@@ -55,8 +55,8 @@ public class YearweekFunction extends ImplementorUDF {
     return UDFOperandMetadata.wrap(
         (CompositeOperandTypeChecker)
             OperandTypes.DATETIME
-                .or(OperandTypes.STRING)
-                .or(OperandTypes.STRING_INTEGER)
+                .or(OperandTypes.CHARACTER)
+                .or(OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.INTEGER))
                 .or(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER)));
   }
 

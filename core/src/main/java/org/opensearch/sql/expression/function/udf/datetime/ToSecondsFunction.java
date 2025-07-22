@@ -54,7 +54,7 @@ public class ToSecondsFunction extends ImplementorUDF {
   public UDFOperandMetadata getOperandMetadata() {
     return UDFOperandMetadata.wrap(
         (CompositeOperandTypeChecker)
-            OperandTypes.DATETIME.or(OperandTypes.STRING).or(OperandTypes.INTEGER));
+            OperandTypes.DATETIME.or(OperandTypes.CHARACTER).or(OperandTypes.INTEGER));
   }
 
   public static class ToSecondsImplementor implements NotNullImplementor {

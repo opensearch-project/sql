@@ -56,7 +56,7 @@ public class WeekdayFunction extends ImplementorUDF {
     return UDFOperandMetadata.wrap(
         (CompositeOperandTypeChecker)
             OperandTypes.DATETIME
-                .or(OperandTypes.STRING)
+                .or(OperandTypes.CHARACTER)
                 .or(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER)));
   }
 

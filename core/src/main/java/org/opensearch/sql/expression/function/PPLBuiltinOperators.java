@@ -194,9 +194,15 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               NullPolicy.ANY,
               UDFOperandMetadata.wrap(
                   (CompositeOperandTypeChecker)
-                      OperandTypes.STRING_STRING_STRING.or(
-                          OperandTypes.family(
-                              SqlTypeFamily.DATETIME, SqlTypeFamily.STRING, SqlTypeFamily.STRING))))
+                      OperandTypes.family(
+                              SqlTypeFamily.CHARACTER,
+                              SqlTypeFamily.CHARACTER,
+                              SqlTypeFamily.CHARACTER)
+                          .or(
+                              OperandTypes.family(
+                                  SqlTypeFamily.DATETIME,
+                                  SqlTypeFamily.CHARACTER,
+                                  SqlTypeFamily.CHARACTER))))
           .toUDF("CONVERT_TZ");
   public static final SqlOperator DATEDIFF =
       adaptExprMethodWithPropertiesToUDF(

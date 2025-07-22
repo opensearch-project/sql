@@ -42,9 +42,11 @@ public class ConvFunction extends ImplementorUDF {
   public UDFOperandMetadata getOperandMetadata() {
     return UDFOperandMetadata.wrap(
         (CompositeOperandTypeChecker)
-            OperandTypes.STRING_INTEGER_INTEGER.or(
-                OperandTypes.family(
-                    SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER)));
+            OperandTypes.family(
+                    SqlTypeFamily.CHARACTER, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER)
+                .or(
+                    OperandTypes.family(
+                        SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER)));
   }
 
   public static class ConvImplementor implements NotNullImplementor {

@@ -62,8 +62,8 @@ public class FormatFunction extends ImplementorUDF {
   public UDFOperandMetadata getOperandMetadata() {
     return UDFOperandMetadata.wrap(
         (CompositeOperandTypeChecker)
-            OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING)
-                .or(OperandTypes.STRING_STRING));
+            OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.CHARACTER)
+                .or(OperandTypes.CHARACTER_CHARACTER));
   }
 
   @RequiredArgsConstructor

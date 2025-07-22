@@ -53,7 +53,7 @@ public class DateAddSubFunction extends ImplementorUDF {
     return UDFOperandMetadata.wrap(
         (CompositeOperandTypeChecker)
             OperandTypes.DATETIME_INTERVAL.or(
-                OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.DATETIME_INTERVAL)));
+                OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.DATETIME_INTERVAL)));
   }
 
   @RequiredArgsConstructor

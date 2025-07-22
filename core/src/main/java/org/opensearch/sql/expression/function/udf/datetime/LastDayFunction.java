@@ -49,7 +49,7 @@ public class LastDayFunction extends ImplementorUDF {
   @Override
   public UDFOperandMetadata getOperandMetadata() {
     return UDFOperandMetadata.wrap(
-        (CompositeOperandTypeChecker) OperandTypes.DATETIME.or(OperandTypes.STRING));
+        (CompositeOperandTypeChecker) OperandTypes.DATETIME.or(OperandTypes.CHARACTER));
   }
 
   public static class LastDayImplementor implements NotNullImplementor {

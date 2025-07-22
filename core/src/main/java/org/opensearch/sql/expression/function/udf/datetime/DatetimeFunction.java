@@ -48,9 +48,9 @@ public class DatetimeFunction extends ImplementorUDF {
     return UDFOperandMetadata.wrap(
         (CompositeOperandTypeChecker)
             OperandTypes.TIMESTAMP_STRING
-                .or(OperandTypes.STRING_STRING)
+                .or(OperandTypes.CHARACTER_CHARACTER)
                 .or(OperandTypes.TIMESTAMP)
-                .or(OperandTypes.STRING));
+                .or(OperandTypes.CHARACTER));
   }
 
   public static class DatetimeImplementor implements NotNullImplementor {

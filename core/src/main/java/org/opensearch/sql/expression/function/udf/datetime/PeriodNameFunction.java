@@ -54,7 +54,7 @@ public class PeriodNameFunction extends ImplementorUDF {
   public UDFOperandMetadata getOperandMetadata() {
     return UDFOperandMetadata.wrap(
         (CompositeOperandTypeChecker)
-            OperandTypes.DATE.or(OperandTypes.TIMESTAMP).or(OperandTypes.STRING));
+            OperandTypes.DATE.or(OperandTypes.TIMESTAMP).or(OperandTypes.CHARACTER));
   }
 
   public static class PeriodNameFunctionImplementor implements NotNullImplementor {

@@ -53,8 +53,8 @@ public class ExtractFunction extends ImplementorUDF {
   public UDFOperandMetadata getOperandMetadata() {
     return UDFOperandMetadata.wrap(
         (CompositeOperandTypeChecker)
-            OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.DATETIME)
-                .or(OperandTypes.STRING_STRING));
+            OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.DATETIME)
+                .or(OperandTypes.CHARACTER_CHARACTER));
   }
 
   public static class ExtractImplementor implements NotNullImplementor {

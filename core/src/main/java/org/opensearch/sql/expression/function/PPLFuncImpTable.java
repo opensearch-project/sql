@@ -860,7 +860,7 @@ public class PPLFuncImpTable {
                       builder.makeFlag(Flag.BOTH),
                       builder.makeLiteral(" "),
                       arg),
-              PPLTypeChecker.family(SqlTypeFamily.STRING)));
+              PPLTypeChecker.family(SqlTypeFamily.CHARACTER)));
 
       register(
           LTRIM,
@@ -871,7 +871,7 @@ public class PPLFuncImpTable {
                       builder.makeFlag(Flag.LEADING),
                       builder.makeLiteral(" "),
                       arg),
-              PPLTypeChecker.family(SqlTypeFamily.STRING)));
+              PPLTypeChecker.family(SqlTypeFamily.CHARACTER)));
       register(
           RTRIM,
           createFunctionImpWithTypeChecker(
@@ -881,7 +881,7 @@ public class PPLFuncImpTable {
                       builder.makeFlag(Flag.TRAILING),
                       builder.makeLiteral(" "),
                       arg),
-              PPLTypeChecker.family(SqlTypeFamily.STRING)));
+              PPLTypeChecker.family(SqlTypeFamily.CHARACTER)));
       register(
           ATAN,
           createFunctionImpWithTypeChecker(
@@ -891,7 +891,7 @@ public class PPLFuncImpTable {
           STRCMP,
           createFunctionImpWithTypeChecker(
               (builder, arg1, arg2) -> builder.makeCall(SqlLibraryOperators.STRCMP, arg2, arg1),
-              PPLTypeChecker.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING)));
+              PPLTypeChecker.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER)));
       // SqlStdOperatorTable.SUBSTRING.getOperandTypeChecker is null. We manually create a type
       // checker for it.
       register(
@@ -899,14 +899,24 @@ public class PPLFuncImpTable {
           wrapWithCompositeTypeChecker(
               SqlStdOperatorTable.SUBSTRING,
               (CompositeOperandTypeChecker)
-                  OperandTypes.STRING_INTEGER.or(OperandTypes.STRING_INTEGER_INTEGER),
+                  OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.INTEGER)
+                      .or(
+                          OperandTypes.family(
+                              SqlTypeFamily.CHARACTER,
+                              SqlTypeFamily.INTEGER,
+                              SqlTypeFamily.INTEGER)),
               false));
       register(
           SUBSTR,
           wrapWithCompositeTypeChecker(
               SqlStdOperatorTable.SUBSTRING,
               (CompositeOperandTypeChecker)
-                  OperandTypes.STRING_INTEGER.or(OperandTypes.STRING_INTEGER_INTEGER),
+                  OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.INTEGER)
+                      .or(
+                          OperandTypes.family(
+                              SqlTypeFamily.CHARACTER,
+                              SqlTypeFamily.INTEGER,
+                              SqlTypeFamily.INTEGER)),
               false));
       // SqlStdOperatorTable.ITEM.getOperandTypeChecker() checks only the first operand instead of
       // all operands. Therefore, we wrap it with a custom CompositeOperandTypeChecker to check both

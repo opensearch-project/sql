@@ -58,16 +58,18 @@ public class TimestampDiffFunction extends ImplementorUDF {
     return UDFOperandMetadata.wrap(
         (CompositeOperandTypeChecker)
             OperandTypes.family(
-                    SqlTypeFamily.STRING, SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME)
+                    SqlTypeFamily.CHARACTER, SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME)
                 .or(
                     OperandTypes.family(
-                        SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.DATETIME))
+                        SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER, SqlTypeFamily.DATETIME))
                 .or(
                     OperandTypes.family(
-                        SqlTypeFamily.STRING, SqlTypeFamily.DATETIME, SqlTypeFamily.STRING))
+                        SqlTypeFamily.CHARACTER, SqlTypeFamily.DATETIME, SqlTypeFamily.CHARACTER))
                 .or(
                     OperandTypes.family(
-                        SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.STRING)));
+                        SqlTypeFamily.CHARACTER,
+                        SqlTypeFamily.CHARACTER,
+                        SqlTypeFamily.CHARACTER)));
   }
 
   public static class DiffImplementor implements NotNullImplementor {

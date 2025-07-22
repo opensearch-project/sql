@@ -27,7 +27,7 @@ public class PPLOperandTypes {
       UDFOperandMetadata.wrap(
           (CompositeOperandTypeChecker) OperandTypes.INTEGER.or(OperandTypes.family()));
   public static final UDFOperandMetadata STRING =
-      UDFOperandMetadata.wrap((FamilyOperandTypeChecker) OperandTypes.STRING);
+      UDFOperandMetadata.wrap((FamilyOperandTypeChecker) OperandTypes.CHARACTER);
   public static final UDFOperandMetadata INTEGER =
       UDFOperandMetadata.wrap((FamilyOperandTypeChecker) OperandTypes.INTEGER);
   public static final UDFOperandMetadata NUMERIC =
@@ -35,7 +35,7 @@ public class PPLOperandTypes {
   public static final UDFOperandMetadata INTEGER_INTEGER =
       UDFOperandMetadata.wrap((FamilyOperandTypeChecker) OperandTypes.INTEGER_INTEGER);
   public static final UDFOperandMetadata STRING_STRING =
-      UDFOperandMetadata.wrap(OperandTypes.STRING_STRING);
+      UDFOperandMetadata.wrap((FamilyOperandTypeChecker) OperandTypes.CHARACTER_CHARACTER);
   public static final UDFOperandMetadata NUMERIC_NUMERIC =
       UDFOperandMetadata.wrap((FamilyOperandTypeChecker) OperandTypes.NUMERIC_NUMERIC);
   public static final UDFOperandMetadata NUMERIC_NUMERIC_NUMERIC =
@@ -44,23 +44,26 @@ public class PPLOperandTypes {
 
   public static final UDFOperandMetadata DATETIME_OR_STRING =
       UDFOperandMetadata.wrap(
-          (CompositeOperandTypeChecker) OperandTypes.DATETIME.or(OperandTypes.STRING));
+          (CompositeOperandTypeChecker) OperandTypes.DATETIME.or(OperandTypes.CHARACTER));
   public static final UDFOperandMetadata DATETIME_DATETIME =
       UDFOperandMetadata.wrap(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME));
   public static final UDFOperandMetadata DATETIME_OR_STRING_DATETIME_OR_STRING =
       UDFOperandMetadata.wrap(
           (CompositeOperandTypeChecker)
-              OperandTypes.STRING_STRING
+              OperandTypes.CHARACTER_CHARACTER
                   .or(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME))
-                  .or(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING))
-                  .or(OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.DATETIME)));
+                  .or(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.CHARACTER))
+                  .or(OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.DATETIME)));
   public static final UDFOperandMetadata TIME_OR_TIMESTAMP_OR_STRING =
       UDFOperandMetadata.wrap(
           (CompositeOperandTypeChecker)
-              OperandTypes.STRING.or(OperandTypes.TIME).or(OperandTypes.TIMESTAMP));
+              OperandTypes.CHARACTER.or(OperandTypes.TIME).or(OperandTypes.TIMESTAMP));
   public static final UDFOperandMetadata DATE_OR_TIMESTAMP_OR_STRING =
       UDFOperandMetadata.wrap(
-          (CompositeOperandTypeChecker) OperandTypes.DATE_OR_TIMESTAMP.or(OperandTypes.STRING));
+          (CompositeOperandTypeChecker) OperandTypes.DATE_OR_TIMESTAMP.or(OperandTypes.CHARACTER));
   public static final UDFOperandMetadata STRING_TIMESTAMP =
-      UDFOperandMetadata.wrap(OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.TIMESTAMP));
+      UDFOperandMetadata.wrap(
+          OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.TIMESTAMP));
+  public static final UDFOperandMetadata STRING_INTEGER =
+      UDFOperandMetadata.wrap(OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.INTEGER));
 }

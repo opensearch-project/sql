@@ -59,7 +59,7 @@ public class FromUnixTimeFunction extends ImplementorUDF {
     return UDFOperandMetadata.wrap(
         (CompositeOperandTypeChecker)
             OperandTypes.NUMERIC.or(
-                OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.STRING)));
+                OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.CHARACTER)));
   }
 
   public static class FromUnixTimeImplementor implements NotNullImplementor {

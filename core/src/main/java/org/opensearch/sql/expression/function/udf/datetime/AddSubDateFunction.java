@@ -78,8 +78,8 @@ public class AddSubDateFunction extends ImplementorUDF {
         (CompositeOperandTypeChecker)
             OperandTypes.DATETIME_INTERVAL
                 .or(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER))
-                .or(OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.DATETIME_INTERVAL))
-                .or(OperandTypes.STRING_INTEGER));
+                .or(OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.DATETIME_INTERVAL))
+                .or(OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.INTEGER)));
   }
 
   @RequiredArgsConstructor
