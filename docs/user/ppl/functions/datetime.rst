@@ -245,7 +245,7 @@ Description
 >>>>>>>>>>>
 
 Returns the current date as a value in 'YYYY-MM-DD' format.
-CURDATE() returns the current UTC date at the time the statement is executed.
+CURDATE() returns the current date in UTC at the time the statement is executed.
 
 
 Return type: DATE
@@ -1595,7 +1595,7 @@ Description
 >>>>>>>>>>>
 
 Returns the current date and time as a value in 'YYYY-MM-DD hh:mm:ss[.nnnnnn]'.
-SYSDATE() returns the time at which it executes in the cluster's time zone. This differs from the behavior for `NOW() <#now>`_, which returns a constant time that indicates the time at which the statement began to execute in the UTC time zone.
+SYSDATE() returns the date and time at which it executes in the cluster's time zone. This differs from the behavior for `NOW() <#now>`_, which returns a constant time that indicates the time at which the statement began to execute in UTC.
 If the argument is given, it specifies a fractional seconds precision from 0 to 6, the return value includes a fractional seconds part of that many digits.
 
 Optional argument type: INTEGER
