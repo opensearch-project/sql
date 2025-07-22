@@ -117,7 +117,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                           estimated = NumberUtil.multiply(
                               rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest)) * 1.1;
                           break;
-                      case LIMIT:
+                        case LIMIT:
                           estimated = ((Integer) action.digest).doubleValue();
                           break;
                         default:

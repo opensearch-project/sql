@@ -52,10 +52,18 @@ public class CompoundedScriptEngine implements ScriptEngine {
   public <T> T compile(
       String scriptName, String scriptCode, ScriptContext<T> context, Map<String, String> options) {
     LangScriptWrapper unwrapped = SerializationWrapper.unwrapLangType(scriptCode);
-    return switch (unwrapped.langType) {
-      case CALCITE -> calciteScriptEngine.compile(scriptName, unwrapped.script, context, options);
-      case V2 -> v2ExpressionScriptEngine.compile(scriptName, unwrapped.script, context, options);
-    };
+    T result;
+    switch (unwrapped.langType) {
+      case CALCITE:
+        result = calciteScriptEngine.compile(scriptName, unwrapped.script, context, options);
+        break;
+      case V2:
+        result = v2ExpressionScriptEngine.compile(scriptName, unwrapped.script, context, options);
+        break;
+      default:
+        throw new IllegalArgumentException("Unsupported lang type: " + unwrapped.langType);
+    }
+    return result;
   }
 
   @Override
