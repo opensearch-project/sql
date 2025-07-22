@@ -8,9 +8,11 @@ package org.opensearch.sql.expression.function;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.adaptExprMethodToUDF;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.adaptExprMethodWithPropertiesToUDF;
 
+import com.google.common.base.Suppliers;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.function.Supplier;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexImpTable;
 import org.apache.calcite.adapter.enumerable.RexImpTable.RexCallImplementor;
@@ -81,6 +83,9 @@ import org.opensearch.sql.expression.function.udf.math.ModFunction;
 
 /** Defines functions and operators that are implemented only by PPL */
 public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
+
+  private static final Supplier<PPLBuiltinOperators> INSTANCE =
+      Suppliers.memoize(() -> (PPLBuiltinOperators) new PPLBuiltinOperators().init());
 
   // Json Functions
   public static final SqlOperator JSON = new JsonFunctionImpl().toUDF("JSON");
@@ -359,6 +364,15 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
       RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("query_string", false);
   public static final SqlOperator MULTI_MATCH =
       RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("multi_match", false);
+
+  /**
+   * Returns the PPL specific operator table, creating it if necessary.
+   *
+   * @return PPLBuiltinOperators operator table
+   */
+  public static PPLBuiltinOperators instance() {
+    return INSTANCE.get();
+  }
 
   /**
    * Invoking an implementor registered in {@link RexImpTable}, need to use reflection since they're

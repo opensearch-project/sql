@@ -109,6 +109,9 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                       case PROJECT, SORT -> rowCount;
                       case FILTER -> NumberUtil.multiply(
                           rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest));
+                      case SCRIPT -> NumberUtil.multiply(
+                              rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest))
+                          * 1.1;
                       case LIMIT -> Math.min(rowCount, (Integer) action.digest);
                     }
                     * estimateRowCountFactor,
@@ -284,6 +287,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     AGGREGATION,
     SORT,
     LIMIT,
+    SCRIPT
     // HIGHLIGHT,
     // NESTED
   }
