@@ -15,6 +15,8 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
 import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
 import org.apache.calcite.sql.type.ImplicitCastOperandTypeChecker;
@@ -499,7 +501,11 @@ public interface PPLTypeChecker {
           case ANY, IGNORE -> List.of(
               OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.ANY));
           case DATETIME_INTERVAL -> SqlTypeName.INTERVAL_TYPES.stream()
-              .map(OpenSearchTypeFactory.TYPE_FACTORY::createSqlType)
+              .map(
+                  type ->
+                      OpenSearchTypeFactory.TYPE_FACTORY.createSqlIntervalType(
+                          new SqlIntervalQualifier(
+                              type.getStartUnit(), type.getEndUnit(), SqlParserPos.ZERO)))
               .collect(Collectors.toList());
           default -> {
             RelDataType type = family.getDefaultConcreteType(OpenSearchTypeFactory.TYPE_FACTORY);
