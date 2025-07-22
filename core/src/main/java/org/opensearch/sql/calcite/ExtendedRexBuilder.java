@@ -8,7 +8,6 @@ package org.opensearch.sql.calcite;
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import java.util.Locale;
@@ -24,17 +23,11 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
-import org.opensearch.sql.calcite.type.ExprSqlType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
-
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_DATE;
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_IP;
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIME;
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIMESTAMP;
 
 public class ExtendedRexBuilder extends RexBuilder {
 

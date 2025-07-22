@@ -7,8 +7,10 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NONNUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY_WITH_NULL;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -196,5 +198,115 @@ public class CalcitePPLCastFunctionIT extends CastFunctionIT {
         rows("1.2.3.4"),
         rows("1.2.3.5"),
         rows("::ffff:1234"));
+  }
+
+  @Test
+  public void testCastDate() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval a = cast('1984-04-12' as DATE) | fields a",
+                TEST_INDEX_DATE_FORMATS));
+    verifySchema(actual, schema("a", "date"));
+    verifyDataRows(actual, rows("1984-04-12"), rows("1984-04-12"));
+
+    actual =
+        executeQuery(
+            String.format(
+                "source=%s | head 1 | eval a = cast('2023-10-01 12:00:00' as date) | fields a",
+                TEST_INDEX_DATE_FORMATS));
+    verifySchema(actual, schema("a", "date"));
+    verifyDataRows(actual, rows("2023-10-01"));
+
+    Throwable t =
+        assertThrowsWithReplace(
+            ExpressionEvaluationException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | eval a = cast('09:07:42' as DATE) | fields a",
+                        TEST_INDEX_DATE_FORMATS)));
+
+    verifyErrorMessageContains(t, "date:09:07:42 in unsupported format, please use 'yyyy-MM-dd'");
+  }
+
+  @Test
+  public void testCastTime() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval a = cast('09:07:42' as TIME) | fields a",
+                TEST_INDEX_DATE_FORMATS));
+    verifySchema(actual, schema("a", "time"));
+    verifyDataRows(actual, rows("09:07:42"), rows("09:07:42"));
+
+    actual =
+        executeQuery(
+            String.format(
+                "source=%s | head 1 | eval a = cast('09:07:42.12345' as TIME) | fields a",
+                TEST_INDEX_DATE_FORMATS));
+    verifySchema(actual, schema("a", "time"));
+    verifyDataRows(actual, rows("09:07:42.12345"));
+
+    actual =
+        executeQuery(
+            String.format(
+                "source=%s | head 1 | eval a = cast('1985-10-09 12:00:00' as time) | fields a",
+                TEST_INDEX_DATE_FORMATS));
+    verifySchema(actual, schema("a", "time"));
+    verifyDataRows(actual, rows("12:00:00"));
+
+    Throwable t =
+        assertThrowsWithReplace(
+            ExpressionEvaluationException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | eval a = cast('1984-04-12' as TIME) | fields a",
+                        TEST_INDEX_DATE_FORMATS)));
+
+    verifyErrorMessageContains(
+        t, "time:1984-04-12 in unsupported format, please use 'HH:mm:ss[.SSSSSSSSS]'");
+  }
+
+  @Test
+  public void testCastTimestamp() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval a = cast('1984-04-12 09:07:42' as TIMESTAMP) | fields a",
+                TEST_INDEX_DATE_FORMATS));
+    verifySchema(actual, schema("a", "timestamp"));
+    verifyDataRows(actual, rows("1984-04-12 09:07:42"), rows("1984-04-12 09:07:42"));
+
+    actual =
+        executeQuery(
+            String.format(
+                "source=%s | head 1 | eval a = cast('2023-10-01 12:00:00.123456' as timestamp) |"
+                    + " fields a",
+                TEST_INDEX_DATE_FORMATS));
+    verifySchema(actual, schema("a", "timestamp"));
+    verifyDataRows(actual, rows("2023-10-01 12:00:00.123456"));
+
+    actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval a = cast('1984-04-12' as TIMESTAMP) | fields a",
+                TEST_INDEX_DATE_FORMATS));
+    verifySchema(actual, schema("a", "timestamp"));
+    verifyDataRows(actual, rows("1984-04-12 00:00:00"), rows("1984-04-12 00:00:00"));
+
+    Throwable t =
+        assertThrowsWithReplace(
+            ExpressionEvaluationException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | eval a = cast('09:07:42' as TIMESTAMP) | fields a",
+                        TEST_INDEX_DATE_FORMATS)));
+
+    verifyErrorMessageContains(
+        t,
+        "timestamp:09:07:42 in unsupported format, please use 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'");
   }
 }

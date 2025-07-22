@@ -24,6 +24,7 @@ import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
@@ -139,15 +140,18 @@ class YearweekTest extends ExpressionTestBase {
         // test invalid month
         () ->
             assertThrows(
-                SemanticCheckException.class, () -> yearweekQuery("2019-13-05 01:02:03", 0, 0)),
+                ExpressionEvaluationException.class,
+                () -> yearweekQuery("2019-13-05 01:02:03", 0, 0)),
         // test invalid day
         () ->
             assertThrows(
-                SemanticCheckException.class, () -> yearweekQuery("2019-01-50 01:02:03", 0, 0)),
+                ExpressionEvaluationException.class,
+                () -> yearweekQuery("2019-01-50 01:02:03", 0, 0)),
         // test invalid leap year
         () ->
             assertThrows(
-                SemanticCheckException.class, () -> yearweekQuery("2019-02-29 01:02:03", 0, 0)));
+                ExpressionEvaluationException.class,
+                () -> yearweekQuery("2019-02-29 01:02:03", 0, 0)));
   }
 
   @Test
