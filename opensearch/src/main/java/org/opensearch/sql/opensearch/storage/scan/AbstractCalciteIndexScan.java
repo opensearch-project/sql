@@ -37,6 +37,7 @@ import org.opensearch.search.sort.ScoreSortBuilder;
 import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.search.sort.SortOrder;
+import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
@@ -85,6 +86,10 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
         .itemIf("PushDownContext", explainString, !pushDownContext.isEmpty());
   }
 
+  protected Integer getQuerySizeLimit() {
+    return osIndex.getSettings().getSettingValue(Key.QUERY_SIZE_LIMIT);
+  }
+
   @Override
   public double estimateRowCount(RelMetadataQuery mq) {
     /*
@@ -114,7 +119,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                                   rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest));
                           break;
                         case LIMIT:
-                          estimated = ((Integer) action.digest).doubleValue();
+                          estimated = Math.min(rowCount, (Integer) action.digest);
                           break;
                         default:
                           throw new IllegalStateException("Unexpected value: " + action.type);
