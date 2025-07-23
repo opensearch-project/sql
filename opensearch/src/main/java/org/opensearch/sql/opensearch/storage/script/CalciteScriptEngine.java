@@ -37,7 +37,7 @@ import java.time.chrono.ChronoZonedDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.DataContext;
@@ -76,6 +76,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.index.fielddata.ScriptDocValues;
+import org.opensearch.script.AggregationScript;
 import org.opensearch.script.FilterScript;
 import org.opensearch.script.ScriptContext;
 import org.opensearch.script.ScriptEngine;
@@ -83,6 +84,7 @@ import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
+import org.opensearch.sql.opensearch.storage.script.aggregation.CalciteAggregationScriptFactory;
 import org.opensearch.sql.opensearch.storage.script.filter.CalciteFilterScriptFactory;
 import org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer;
 
@@ -103,11 +105,14 @@ public class CalciteScriptEngine implements ScriptEngine {
   public static final String EXPRESSION_LANG_NAME = "opensearch_calcite_expression";
 
   /** All supported script contexts and function to create factory from expression. */
-  private static final Map<ScriptContext<?>, Function<Function1<DataContext, Object[]>, Object>>
+  private static final Map<
+          ScriptContext<?>, BiFunction<Function1<DataContext, Object[]>, RelDataType, Object>>
       CONTEXTS =
           new ImmutableMap.Builder<
-                  ScriptContext<?>, Function<Function1<DataContext, Object[]>, Object>>()
+                  ScriptContext<?>,
+                  BiFunction<Function1<DataContext, Object[]>, RelDataType, Object>>()
               .put(FilterScript.CONTEXT, CalciteFilterScriptFactory::new)
+              .put(AggregationScript.CONTEXT, CalciteAggregationScriptFactory::new)
               .build();
 
   @Override
@@ -135,7 +140,7 @@ public class CalciteScriptEngine implements ScriptEngine {
         new RexExecutable(code, "generated Rex code").getFunction();
 
     if (CONTEXTS.containsKey(context)) {
-      return context.factoryClazz.cast(CONTEXTS.get(context).apply(function));
+      return context.factoryClazz.cast(CONTEXTS.get(context).apply(function, rexNode.getType()));
     }
     throw new IllegalStateException(
         String.format(

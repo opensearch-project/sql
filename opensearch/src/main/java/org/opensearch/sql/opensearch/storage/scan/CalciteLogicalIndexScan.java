@@ -228,11 +228,11 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               aggregate.getRowType(),
               // Aggregation will eliminate all collations.
               cloneWithoutSort(pushDownContext));
-      List<String> schema = this.getRowType().getFieldNames();
       Map<String, ExprType> fieldTypes = this.osIndex.getFieldTypes();
       List<String> outputFields = aggregate.getRowType().getFieldNames();
       final Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder =
-          AggregateAnalyzer.analyze(aggregate, project, schema, fieldTypes, outputFields);
+          AggregateAnalyzer.analyze(
+              aggregate, project, getRowType(), fieldTypes, outputFields, getCluster());
       Map<String, OpenSearchDataType> extendedTypeMapping =
           aggregate.getRowType().getFieldList().stream()
               .collect(

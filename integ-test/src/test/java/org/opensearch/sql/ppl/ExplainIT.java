@@ -13,6 +13,8 @@ import java.io.IOException;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
+import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.legacy.TestUtils;
 
 public class ExplainIT extends PPLIntegTestCase {
@@ -20,6 +22,10 @@ public class ExplainIT extends PPLIntegTestCase {
   @Override
   public void init() throws Exception {
     super.init();
+    // enableCalcite();
+    updateClusterSettings(
+        new SQLIntegTestCase.ClusterSetting(
+            "transient", Settings.Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(), "true"));
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK);
     loadIndex(Index.DATE_FORMATS);
@@ -470,6 +476,37 @@ public class ExplainIT extends PPLIntegTestCase {
       // V2 pushdown as script
       assertTrue(explainedPlan.contains("{\\\"script\\\":"));
     }
+  }
+
+  @Test
+  public void testExplainOnTake() throws IOException {
+    String expected = loadExpectedPlan("explain_take.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats take(firstname, 2) as take"));
+  }
+
+  @Test
+  public void testExplainOnPercentile() throws IOException {
+    String expected = loadExpectedPlan("explain_percentile.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats percentile(balance, 50) as p50,"
+                + " percentile(balance, 90) as p90"));
+  }
+
+  @Test
+  public void testExplainOnAggregationWithFunction() throws IOException {
+    String expected = loadExpectedPlan("explain_agg_with_script.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | eval len = length(gender) | stats sum(balance + 100) as sum by len,"
+                    + " gender ",
+                TEST_INDEX_BANK)));
   }
 
   protected String loadExpectedPlan(String fileName) throws IOException {
