@@ -226,6 +226,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.annotation.Nullable;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
@@ -270,7 +271,6 @@ public class PPLFuncImpTable {
   public interface FunctionImp {
     RelDataType ANY_TYPE = TYPE_FACTORY.createSqlType(SqlTypeName.ANY);
 
-    // TODO: Support argument coercion and casting
     RexNode resolve(RexBuilder builder, RexNode... args);
 
     /**
@@ -452,34 +452,9 @@ public class PPLFuncImpTable {
 
       // If no implementation found with exact match, try to cast arguments to match the
       // signatures.
-      if (BuiltinFunctionName.COMPARATORS.contains(functionName)) {
-        for (Map.Entry<CalciteFuncSignature, FunctionImp> implement : implementList) {
-          var widenedArgs = CoercionUtils.widenArguments(builder, List.of(args));
-          if (widenedArgs != null) {
-            boolean matchSignature =
-                implement
-                    .getKey()
-                    .typeChecker()
-                    .checkOperandTypes(widenedArgs.stream().map(RexNode::getType).toList());
-            if (matchSignature) {
-              return implement.getValue().resolve(builder, widenedArgs.toArray(new RexNode[0]));
-            }
-          }
-        }
-      } else {
-        for (Map.Entry<CalciteFuncSignature, FunctionImp> implement : implementList) {
-          var signature = implement.getKey();
-          var castedArgs =
-              CoercionUtils.castArguments(builder, signature.typeChecker(), List.of(args));
-          if (castedArgs != null) {
-            // If compatible function is found, replace the original RexNode with cast node
-            // TODO: check - this is a return-once-found implementation, rest possible combinations
-            //  will be skipped.
-            //  Maybe can be improved to return the best match? E.g. convert to timestamp when date,
-            //  time, and timestamp are all possible.
-            return implement.getValue().resolve(builder, castedArgs.toArray(new RexNode[0]));
-          }
-        }
+      RexNode coerced = resolveWithCoercion(builder, functionName, implementList, args);
+      if (coerced != null) {
+        return coerced;
       }
     } catch (Exception e) {
       throw new ExpressionEvaluationException(
@@ -499,6 +474,43 @@ public class PPLFuncImpTable {
         String.format(
             "%s function expects {%s}, but got %s",
             functionName, allowedSignatures, getActualSignature(argTypes)));
+  }
+
+  private @Nullable RexNode resolveWithCoercion(
+      final RexBuilder builder,
+      final BuiltinFunctionName functionName,
+      List<Pair<CalciteFuncSignature, FunctionImp>> implementList,
+      RexNode... args) {
+    if (BuiltinFunctionName.COMPARATORS.contains(functionName)) {
+      for (Map.Entry<CalciteFuncSignature, FunctionImp> implement : implementList) {
+        var widenedArgs = CoercionUtils.widenArguments(builder, List.of(args));
+        if (widenedArgs != null) {
+          boolean matchSignature =
+              implement
+                  .getKey()
+                  .typeChecker()
+                  .checkOperandTypes(widenedArgs.stream().map(RexNode::getType).toList());
+          if (matchSignature) {
+            return implement.getValue().resolve(builder, widenedArgs.toArray(new RexNode[0]));
+          }
+        }
+      }
+    } else {
+      for (Map.Entry<CalciteFuncSignature, FunctionImp> implement : implementList) {
+        var signature = implement.getKey();
+        var castedArgs =
+            CoercionUtils.castArguments(builder, signature.typeChecker(), List.of(args));
+        if (castedArgs != null) {
+          // If compatible function is found, replace the original RexNode with cast node
+          // TODO: check - this is a return-once-found implementation, rest possible combinations
+          //  will be skipped.
+          //  Maybe can be improved to return the best match? E.g. convert to timestamp when date,
+          //  time, and timestamp are all possible.
+          return implement.getValue().resolve(builder, castedArgs.toArray(new RexNode[0]));
+        }
+      }
+    }
+    return null;
   }
 
   private static String getActualSignature(List<RelDataType> argTypes) {
