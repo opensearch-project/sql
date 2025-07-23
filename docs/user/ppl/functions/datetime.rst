@@ -10,9 +10,9 @@ Date and Time Functions
 
 .. note::
 
-    All PPL date and time functions use the UTC time zone by default, unless otherwise specified. Both input and output
-    values are interpreted as UTC. For instance, an input timestamp literal like '2020-08-26 01:01:01' is assumed to be
-    in UTC, and the now() function also returns the current date and time in UTC.
+    All PPL date and time functions use the UTC time zone. Both input and output values are interpreted as UTC.
+    For instance, an input timestamp literal like '2020-08-26 01:01:01' is assumed to be in UTC, and the now()
+    function also returns the current date and time in UTC.
 
 ADDDATE
 -------
