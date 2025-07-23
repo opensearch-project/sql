@@ -11,8 +11,6 @@ import static org.apache.commons.lang3.StringUtils.substringAfterLast;
 import static org.opensearch.sql.ast.expression.SpanUnit.NONE;
 import static org.opensearch.sql.ast.expression.SpanUnit.UNKNOWN;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
-import static org.opensearch.sql.utils.DateTimeUtils.findCastType;
-import static org.opensearch.sql.utils.DateTimeUtils.transferCompareForDateRelated;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -215,11 +213,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
 
   @Override
   public RexNode visitCompare(Compare node, CalcitePlanContext context) {
-    RexNode leftCandidate = analyze(node.getLeft(), context);
-    RexNode rightCandidate = analyze(node.getRight(), context);
-    SqlTypeName castTarget = findCastType(leftCandidate, rightCandidate);
-    final RexNode left = transferCompareForDateRelated(leftCandidate, context, castTarget);
-    final RexNode right = transferCompareForDateRelated(rightCandidate, context, castTarget);
+    RexNode left = analyze(node.getLeft(), context);
+    RexNode right = analyze(node.getRight(), context);
     return PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, node.getOperator(), left, right);
   }
 

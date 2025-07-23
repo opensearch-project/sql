@@ -11,6 +11,7 @@ import javax.annotation.Nullable;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.data.type.WideningTypeRule;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
@@ -121,12 +122,22 @@ public class CoercionUtils {
     for (int i = 1; i < arguments.size(); i++) {
       var type = OpenSearchTypeFactory.convertRelDataTypeToExprType(arguments.get(i).getType());
       try {
-        widestType = WideningTypeRule.max(widestType, type);
+        if (areDateAndTime(widestType, type)) {
+          // If one is date and the other is time, we consider timestamp as the widest type
+          widestType = ExprCoreType.TIMESTAMP;
+        } else {
+          widestType = WideningTypeRule.max(widestType, type);
+        }
       } catch (ExpressionEvaluationException e) {
         // the two types are not compatible, return null
         return null;
       }
     }
     return widestType;
+  }
+
+  private static boolean areDateAndTime(ExprType type1, ExprType type2) {
+    return (type1 == ExprCoreType.DATE && type2 == ExprCoreType.TIME)
+        || (type1 == ExprCoreType.TIME && type2 == ExprCoreType.DATE);
   }
 }

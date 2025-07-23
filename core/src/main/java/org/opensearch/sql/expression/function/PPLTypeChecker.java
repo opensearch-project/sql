@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
@@ -25,6 +26,7 @@ import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.Pair;
 import org.opensearch.sql.calcite.type.ExprIPType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -257,28 +259,56 @@ public interface PPLTypeChecker {
       for (int i = 0; i < types.size() - 1; i++) {
         // TODO: Binary, Array UDT?
         // DATETIME, NUMERIC, BOOLEAN will be regarded as comparable
-        // with strings in SqlTypeUtil.isComparable
+        // with strings in isComparable
         RelDataType type_l = types.get(i);
         RelDataType type_r = types.get(i + 1);
-        if (!SqlTypeUtil.isComparable(type_l, type_r)) {
-          return false;
-        }
-        // Disallow coercing between strings and numeric, boolean
-        if ((type_l.getFamily() == SqlTypeFamily.CHARACTER
-                && cannotConvertStringInCompare((SqlTypeFamily) type_r.getFamily()))
-            || (type_r.getFamily() == SqlTypeFamily.CHARACTER
-                && cannotConvertStringInCompare((SqlTypeFamily) type_l.getFamily()))) {
+        if (!isComparable(type_l, type_r)) {
           return false;
         }
       }
       return true;
     }
 
-    private static boolean cannotConvertStringInCompare(SqlTypeFamily typeFamily) {
-      return switch (typeFamily) {
-        case BOOLEAN, INTEGER, NUMERIC, EXACT_NUMERIC, APPROXIMATE_NUMERIC -> true;
-        default -> false;
-      };
+    /**
+     * Modified from {@link SqlTypeUtil#isComparable(RelDataType, RelDataType)} to
+     *
+     * @param type1 first type
+     * @param type2 second type
+     * @return true if the two types are comparable, false otherwise
+     */
+    private static boolean isComparable(RelDataType type1, RelDataType type2) {
+      if (type1.isStruct() != type2.isStruct()) {
+        return false;
+      }
+
+      if (type1.isStruct()) {
+        int n = type1.getFieldCount();
+        if (n != type2.getFieldCount()) {
+          return false;
+        }
+        for (Pair<RelDataTypeField, RelDataTypeField> pair :
+            Pair.zip(type1.getFieldList(), type2.getFieldList())) {
+          if (!isComparable(pair.left.getType(), pair.right.getType())) {
+            return false;
+          }
+        }
+        return true;
+      }
+
+      // Numeric types are comparable without the need to cast
+      if (SqlTypeUtil.isNumeric(type1) && SqlTypeUtil.isNumeric(type2)) {
+        return true;
+      }
+
+      ExprType exprType1 = OpenSearchTypeFactory.convertRelDataTypeToExprType(type1);
+      ExprType exprType2 = OpenSearchTypeFactory.convertRelDataTypeToExprType(type2);
+
+      if (!exprType1.shouldCast(exprType2)) {
+        return true;
+      }
+
+      // If one of the arguments is of type 'ANY', return true.
+      return type1.getFamily() == SqlTypeFamily.ANY || type2.getFamily() == SqlTypeFamily.ANY;
     }
 
     @Override
