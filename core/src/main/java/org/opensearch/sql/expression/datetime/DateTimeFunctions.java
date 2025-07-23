@@ -81,6 +81,7 @@ import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.expression.function.FunctionSignature;
 import org.opensearch.sql.expression.function.SerializableFunction;
 import org.opensearch.sql.expression.function.SerializableTriFunction;
+import org.opensearch.sql.utils.DateTimeFormatters;
 import org.opensearch.sql.utils.DateTimeUtils;
 
 /**
@@ -1280,8 +1281,13 @@ public class DateTimeFunctions {
       ExprValue startingDateTime, ExprValue fromTz, ExprValue toTz) {
     if (startingDateTime.type() == ExprCoreType.STRING) {
       try {
-        startingDateTime = new ExprTimestampValue(startingDateTime.stringValue());
-      } catch (ExpressionEvaluationException e) {
+        // CONVERT_TZ only expects a timestamp in the format "yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]".
+        startingDateTime =
+            new ExprTimestampValue(
+                LocalDateTime.parse(
+                    startingDateTime.stringValue(),
+                    DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS));
+      } catch (DateTimeParseException e) {
         return ExprNullValue.of();
       }
     }
