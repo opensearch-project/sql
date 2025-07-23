@@ -13,8 +13,19 @@ import org.apache.calcite.rex.RexNode;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.data.type.WideningTypeRule;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 
 public class CoercionUtils {
+
+  /**
+   * Casts the arguments to the types specified in the typeChecker. Returns null if no combination
+   * of parameter types matches the arguments or if casting fails.
+   *
+   * @param builder RexBuilder to create casts
+   * @param typeChecker PPLTypeChecker that provides the parameter types
+   * @param arguments List of RexNode arguments to be cast
+   * @return List of cast RexNode arguments or null if casting fails
+   */
   public static @Nullable List<RexNode> castArguments(
       RexBuilder builder, PPLTypeChecker typeChecker, List<RexNode> arguments) {
     List<List<ExprType>> paramTypeCombinations = typeChecker.getParameterTypes();
@@ -28,6 +39,24 @@ public class CoercionUtils {
       }
     }
     return null;
+  }
+
+  /**
+   * Widen the arguments to the widest type found among them. If no widest type can be determined,
+   * returns null.
+   *
+   * @param builder RexBuilder to create casts
+   * @param arguments List of RexNode arguments to be widened
+   * @return List of widened RexNode arguments or null if no widest type can be determined
+   */
+  public static @Nullable List<RexNode> widenArguments(
+      RexBuilder builder, List<RexNode> arguments) {
+    // TODO: Add test on e.g. IP
+    ExprType widestType = findWidestType(arguments);
+    if (widestType == null) {
+      return null; // No widest type found, return null
+    }
+    return arguments.stream().map(arg -> cast(builder, widestType, arg)).toList();
   }
 
   /**
@@ -69,5 +98,35 @@ public class CoercionUtils {
       return builder.makeCast(OpenSearchTypeFactory.convertExprTypeToRelDataType(targetType), arg);
     }
     return null;
+  }
+
+  /**
+   * Finds the widest type among the given arguments. The widest type is determined by applying the
+   * widening type rule to each pair of types in the arguments.
+   *
+   * @param arguments List of RexNode arguments to find the widest type from
+   * @return the widest ExprType if found, otherwise null
+   */
+  private static @Nullable ExprType findWidestType(List<RexNode> arguments) {
+    if (arguments.isEmpty()) {
+      return null; // No arguments to process
+    }
+    ExprType widestType =
+        OpenSearchTypeFactory.convertRelDataTypeToExprType(arguments.getFirst().getType());
+    if (arguments.size() == 1) {
+      return widestType;
+    }
+
+    // Iterate pairwise through the arguments and find the widest type
+    for (int i = 1; i < arguments.size(); i++) {
+      var type = OpenSearchTypeFactory.convertRelDataTypeToExprType(arguments.get(i).getType());
+      try {
+        widestType = WideningTypeRule.max(widestType, type);
+      } catch (ExpressionEvaluationException e) {
+        // the two types are not compatible, return null
+        return null;
+      }
+    }
+    return widestType;
   }
 }

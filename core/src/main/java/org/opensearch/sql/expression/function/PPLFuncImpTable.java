@@ -450,18 +450,35 @@ public class PPLFuncImpTable {
         }
       }
 
-      // If no implementation found with exact match, try to find a compatible one
-      for (Map.Entry<CalciteFuncSignature, FunctionImp> implement : implementList) {
-        var signature = implement.getKey();
-        var castedArgs =
-            CoercionUtils.castArguments(builder, signature.typeChecker(), List.of(args));
-        if (castedArgs != null) {
-          // If compatible function is found, replace the original RexNode with cast node
-          // TODO: check - this is a return-once-found implementation, rest possible combinations
-          //  will be skipped.
-          //  Maybe can be improved to return the best match? E.g. convert to timestamp when date,
-          //  time, and timestamp are all possible.
-          return implement.getValue().resolve(builder, castedArgs.toArray(new RexNode[0]));
+      // If no implementation found with exact match, try to cast arguments to match the
+      // signatures.
+      if (BuiltinFunctionName.COMPARATORS.contains(functionName)) {
+        for (Map.Entry<CalciteFuncSignature, FunctionImp> implement : implementList) {
+          var widenedArgs = CoercionUtils.widenArguments(builder, List.of(args));
+          if (widenedArgs != null) {
+            boolean matchSignature =
+                implement
+                    .getKey()
+                    .typeChecker()
+                    .checkOperandTypes(widenedArgs.stream().map(RexNode::getType).toList());
+            if (matchSignature) {
+              return implement.getValue().resolve(builder, widenedArgs.toArray(new RexNode[0]));
+            }
+          }
+        }
+      } else {
+        for (Map.Entry<CalciteFuncSignature, FunctionImp> implement : implementList) {
+          var signature = implement.getKey();
+          var castedArgs =
+              CoercionUtils.castArguments(builder, signature.typeChecker(), List.of(args));
+          if (castedArgs != null) {
+            // If compatible function is found, replace the original RexNode with cast node
+            // TODO: check - this is a return-once-found implementation, rest possible combinations
+            //  will be skipped.
+            //  Maybe can be improved to return the best match? E.g. convert to timestamp when date,
+            //  time, and timestamp are all possible.
+            return implement.getValue().resolve(builder, castedArgs.toArray(new RexNode[0]));
+          }
         }
       }
     } catch (Exception e) {
