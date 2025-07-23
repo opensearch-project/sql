@@ -70,7 +70,6 @@ import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
-import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.DefaultFunctionResolver;
@@ -1282,7 +1281,7 @@ public class DateTimeFunctions {
     if (startingDateTime.type() == ExprCoreType.STRING) {
       try {
         startingDateTime = new ExprTimestampValue(startingDateTime.stringValue());
-      } catch (SemanticCheckException e) {
+      } catch (ExpressionEvaluationException e) {
         return ExprNullValue.of();
       }
     }
