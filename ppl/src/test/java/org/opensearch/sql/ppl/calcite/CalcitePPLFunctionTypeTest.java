@@ -35,11 +35,7 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
     getRelNode(timePpl);
     Throwable t = Assert.assertThrows(Exception.class, () -> getRelNode(wrongPpl));
     verifyErrorMessageContains(
-        t,
-        "TIMEDIFF function expects"
-            + " {[STRING,STRING],[DATE,DATE],[DATE,TIME],[DATE,TIMESTAMP],[TIME,DATE],[TIME,TIME],[TIME,TIMESTAMP],"
-            + "[TIMESTAMP,DATE],[TIMESTAMP,TIME],[TIMESTAMP,TIMESTAMP],[DATE,STRING],[TIME,STRING],[TIMESTAMP,STRING],[STRING,DATE],[STRING,TIME],[STRING,TIMESTAMP]},"
-            + " but got [INTEGER,STRING]");
+        t, "TIMEDIFF function expects {[TIME,TIME]}, but got [INTEGER,STRING]");
   }
 
   @Test
@@ -104,10 +100,10 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
     Throwable t = Assert.assertThrows(ExpressionEvaluationException.class, () -> getRelNode(ppl));
     verifyErrorMessageContains(
         t,
-        "TIMESTAMP function expects"
-            + " {[STRING],[DATE],[TIME],[TIMESTAMP],[STRING,STRING],[DATE,DATE],[DATE,TIME],[DATE,TIMESTAMP],"
-            + "[TIME,DATE],[TIME,TIME],[TIME,TIMESTAMP],[TIMESTAMP,DATE],[TIMESTAMP,TIME],[TIMESTAMP,TIMESTAMP]"
-            + ",[STRING,DATE],[STRING,TIME],[STRING,TIMESTAMP],[DATE,STRING],[TIME,STRING],[TIMESTAMP,STRING]},"
+        "TIMESTAMP function expects {"
+            + "[STRING],[TIMESTAMP],[DATE],[TIME],[STRING,STRING],[TIMESTAMP,TIMESTAMP],[TIMESTAMP,DATE],"
+            + "[TIMESTAMP,TIME],[DATE,TIMESTAMP],[DATE,DATE],[DATE,TIME],[TIME,TIMESTAMP],[TIME,DATE],"
+            + "[TIME,TIME],[STRING,TIMESTAMP],[STRING,DATE],[STRING,TIME],[TIMESTAMP,STRING],[DATE,STRING],[TIME,STRING]},"
             + " but got [STRING,INTEGER]");
   }
 
