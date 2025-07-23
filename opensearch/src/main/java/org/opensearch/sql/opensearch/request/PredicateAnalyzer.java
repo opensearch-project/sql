@@ -37,6 +37,7 @@ import static org.opensearch.index.query.QueryBuilders.rangeQuery;
 import static org.opensearch.index.query.QueryBuilders.regexpQuery;
 import static org.opensearch.index.query.QueryBuilders.termQuery;
 import static org.opensearch.index.query.QueryBuilders.termsQuery;
+import static org.opensearch.index.query.QueryBuilders.wildcardQuery;
 import static org.opensearch.script.Script.DEFAULT_SCRIPT_TYPE;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.MULTI_FIELDS_RELEVANCE_FUNCTION_SET;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.SINGLE_FIELD_RELEVANCE_FUNCTION_SET;
@@ -534,7 +535,7 @@ public class PredicateAnalyzer {
         case CONTAINS:
           return QueryExpression.create(pair.getKey()).contains(pair.getValue());
         case LIKE:
-          throw new UnsupportedOperationException("LIKE not yet supported");
+          return QueryExpression.create(pair.getKey()).like(pair.getValue());
         case EQUALS:
           return QueryExpression.create(pair.getKey()).equals(pair.getValue());
         case NOT_EQUALS:
@@ -1139,7 +1140,7 @@ public class PredicateAnalyzer {
 
     @Override
     public QueryExpression like(LiteralExpression literal) {
-      builder = regexpQuery(getFieldReference(), literal.stringValue());
+      builder = wildcardQuery(getFieldReference(), literal.stringValue());
       return this;
     }
 
