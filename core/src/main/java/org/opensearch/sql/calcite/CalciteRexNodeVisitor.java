@@ -28,7 +28,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexLambda;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
@@ -463,19 +462,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     }
   }
 
-  private List<RexNode> castArgument(
-      List<RexNode> originalArguments, String functionName, ExtendedRexBuilder rexBuilder) {
-    switch (functionName.toUpperCase(Locale.ROOT)) {
-      case "REDUCE":
-        RexLambda call = (RexLambda) originalArguments.get(2);
-        originalArguments.set(
-            1, rexBuilder.makeCast(call.getType(), originalArguments.get(1), true, true));
-        return originalArguments;
-      default:
-        return originalArguments;
-    }
-  }
-
   @Override
   public RexNode visitFunction(Function node, CalcitePlanContext context) {
     List<UnresolvedExpression> args = node.getFuncArgs();
@@ -501,8 +487,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
         arguments.add(analyze(arg, context));
       }
     }
-
-    arguments = castArgument(arguments, node.getFuncName(), context.rexBuilder);
 
     RexNode resolvedNode =
         PPLFuncImpTable.INSTANCE.resolve(

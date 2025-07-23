@@ -229,6 +229,7 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexLambda;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -442,6 +443,12 @@ public class PPLFuncImpTable {
     if (implementList == null || implementList.isEmpty()) {
       throw new IllegalStateException(String.format("Cannot resolve function: %s", functionName));
     }
+
+    // Make compulsory casts for some functions that require specific casting of arguments.
+    // For example, the REDUCE function requires the second argument to be cast to the
+    // return type of the lambda function.
+    compulsoryCast(builder, functionName, args);
+
     List<RelDataType> argTypes = Arrays.stream(args).map(RexNode::getType).toList();
     try {
       for (Map.Entry<CalciteFuncSignature, FunctionImp> implement : implementList) {
@@ -474,6 +481,26 @@ public class PPLFuncImpTable {
         String.format(
             "%s function expects {%s}, but got %s",
             functionName, allowedSignatures, getActualSignature(argTypes)));
+  }
+
+  /**
+   * Ad-hoc coercion for some functions that require specific casting of arguments. Now it only
+   * applies to the REDUCE function.
+   */
+  private void compulsoryCast(
+      final RexBuilder builder, final BuiltinFunctionName functionName, RexNode... args) {
+
+    //noinspection SwitchStatementWithTooFewBranches
+    switch (functionName) {
+      case BuiltinFunctionName.REDUCE:
+        // Set the second argument to the return type of the lambda function, so that
+        // code generated with linq4j can correctly accumulate the result.
+        RexLambda call = (RexLambda) args[2];
+        args[1] = builder.makeCast(call.getType(), args[1], true, true);
+        break;
+      default:
+        break;
+    }
   }
 
   private @Nullable RexNode resolveWithCoercion(
