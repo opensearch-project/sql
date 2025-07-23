@@ -62,6 +62,32 @@ class OpenSearchExprTextValueTest {
                     "field", OpenSearchDataType.of(OpenSearchDataType.MappingType.Integer))),
         () -> assertEquals("field", OpenSearchTextType.convertTextToKeyword("field", STRING)),
         () -> assertEquals("field", OpenSearchTextType.convertTextToKeyword("field", INTEGER)));
+    assertAll(
+        () ->
+            assertEquals(
+                "field",
+                OpenSearchTextType.toKeywordSubField("field", OpenSearchDataType.of(INTEGER))),
+        () ->
+            assertEquals(
+                "field",
+                OpenSearchTextType.toKeywordSubField("field", OpenSearchDataType.of(STRING))),
+        () ->
+            assertEquals(
+                "field",
+                OpenSearchTextType.toKeywordSubField(
+                    "field", OpenSearchDataType.of(OpenSearchDataType.MappingType.GeoPoint))),
+        () ->
+            assertEquals(
+                "field",
+                OpenSearchTextType.toKeywordSubField(
+                    "field", OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword))),
+        () ->
+            assertEquals(
+                "field",
+                OpenSearchTextType.toKeywordSubField(
+                    "field", OpenSearchDataType.of(OpenSearchDataType.MappingType.Integer))),
+        () -> assertEquals("field", OpenSearchTextType.toKeywordSubField("field", STRING)),
+        () -> assertEquals("field", OpenSearchTextType.toKeywordSubField("field", INTEGER)));
   }
 
   @Test
@@ -77,6 +103,9 @@ class OpenSearchExprTextValueTest {
     assertAll(
         () -> assertEquals("field", OpenSearchTextType.convertTextToKeyword("field", objectType)),
         () -> assertEquals("field", OpenSearchTextType.convertTextToKeyword("field", arrayType)));
+    assertAll(
+        () -> assertEquals("field", OpenSearchTextType.toKeywordSubField("field", objectType)),
+        () -> assertEquals("field", OpenSearchTextType.toKeywordSubField("field", arrayType)));
   }
 
   @Test
@@ -84,6 +113,10 @@ class OpenSearchExprTextValueTest {
     assertEquals(
         "field",
         OpenSearchTextType.convertTextToKeyword(
+            "field", OpenSearchDataType.of(OpenSearchDataType.MappingType.Text)));
+    assertEquals(
+        null,
+        OpenSearchTextType.toKeywordSubField(
             "field", OpenSearchDataType.of(OpenSearchDataType.MappingType.Text)));
   }
 
@@ -94,5 +127,7 @@ class OpenSearchExprTextValueTest {
             Map.of("keyword", OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword)));
     assertEquals(
         "field.keyword", OpenSearchTextType.convertTextToKeyword("field", textWithKeywordType));
+    assertEquals(
+        "field.keyword", OpenSearchTextType.toKeywordSubField("field", textWithKeywordType));
   }
 }
