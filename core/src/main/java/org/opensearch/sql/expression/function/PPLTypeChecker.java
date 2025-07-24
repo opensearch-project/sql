@@ -262,6 +262,10 @@ public interface PPLTypeChecker {
         // with strings in isComparable
         RelDataType type_l = types.get(i);
         RelDataType type_r = types.get(i + 1);
+        // Rule out IP types from built-in comparable functions
+        if (type_l instanceof ExprIPType || type_r instanceof ExprIPType) {
+          return false;
+        }
         if (!isComparable(type_l, type_r)) {
           return false;
         }
