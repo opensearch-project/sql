@@ -10,14 +10,11 @@ import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
-import org.apache.calcite.linq4j.tree.ExpressionType;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.model.ExprIpValue;
-import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
@@ -69,8 +66,7 @@ public class CompareIpFunction extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    // Its type checker will be assigned according to the function name.
-    return null;
+    return new UDFOperandMetadata.IPOperandMetadata();
   }
 
   public static class CompareImplementor implements NotNullImplementor {
@@ -83,22 +79,6 @@ public class CompareIpFunction extends ImplementorUDF {
     @Override
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
-
-      if (!containsIpOperands(call)) {
-        // Call built-in compare function for non-IP operands
-        ExpressionType expressionType =
-            switch (comparisonType) {
-              case EQUALS -> ExpressionType.Equal;
-              case NOT_EQUALS -> ExpressionType.NotEqual;
-              case LESS -> ExpressionType.LessThan;
-              case LESS_OR_EQUAL -> ExpressionType.LessThanOrEqual;
-              case GREATER -> ExpressionType.GreaterThan;
-              case GREATER_OR_EQUAL -> ExpressionType.GreaterThanOrEqual;
-            };
-        return Expressions.makeBinary(
-            expressionType, translatedOperands.get(0), translatedOperands.get(1));
-      }
-
       Expression compareResult =
           Expressions.call(
               CompareImplementor.class,
@@ -107,14 +87,6 @@ public class CompareIpFunction extends ImplementorUDF {
               translatedOperands.get(1));
 
       return generateComparisonExpression(compareResult, comparisonType);
-    }
-
-    private static boolean containsIpOperands(RexCall call) {
-      var left = call.getOperands().get(0);
-      var right = call.getOperands().get(1);
-      var leftType = OpenSearchTypeFactory.convertRelDataTypeToExprType(left.getType());
-      var rightType = OpenSearchTypeFactory.convertRelDataTypeToExprType(right.getType());
-      return leftType == ExprCoreType.IP || rightType == ExprCoreType.IP;
     }
 
     private static Expression generateComparisonExpression(

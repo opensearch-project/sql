@@ -17,11 +17,11 @@ import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlIntervalQualifier;
-import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
 import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
 import org.apache.calcite.sql.type.ImplicitCastOperandTypeChecker;
+import org.apache.calcite.sql.type.SameOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -248,11 +248,11 @@ public interface PPLTypeChecker {
 
   @RequiredArgsConstructor
   class PPLComparableTypeChecker implements PPLTypeChecker {
-    private final SqlOperandCountRange countRange;
+    private final SameOperandTypeChecker innerTypeChecker;
 
     @Override
     public boolean checkOperandTypes(List<RelDataType> types) {
-      if (!countRange.isValidCount(types.size())) {
+      if (!innerTypeChecker.getOperandCountRange().isValidCount(types.size())) {
         return false;
       }
       // Check comparability of consecutive operands
@@ -313,8 +313,8 @@ public interface PPLTypeChecker {
 
     @Override
     public String getAllowedSignatures() {
-      int min = countRange.getMin();
-      int max = countRange.getMax();
+      int min = innerTypeChecker.getOperandCountRange().getMin();
+      int max = innerTypeChecker.getOperandCountRange().getMax();
       final String typeName = "COMPARABLE_TYPE";
       if (min == -1 || max == -1) {
         // If the range is unbounded, we cannot provide a specific signature
@@ -347,7 +347,9 @@ public interface PPLTypeChecker {
       }
       RelDataType type1 = types.get(0);
       RelDataType type2 = types.get(1);
-      return type1 instanceof ExprIPType && type2 instanceof ExprIPType;
+      return areIpAndStringTypes(type1, type2)
+          || areIpAndStringTypes(type2, type1)
+          || (type1 instanceof ExprIPType && type2 instanceof ExprIPType);
     }
 
     @Override
@@ -360,6 +362,10 @@ public interface PPLTypeChecker {
     @Override
     public List<List<ExprType>> getParameterTypes() {
       return List.of(List.of(ExprCoreType.IP, ExprCoreType.IP));
+    }
+
+    private static boolean areIpAndStringTypes(RelDataType typeIp, RelDataType typeString) {
+      return typeIp instanceof ExprIPType && typeString.getFamily() == SqlTypeFamily.CHARACTER;
     }
   }
 
@@ -386,7 +392,7 @@ public interface PPLTypeChecker {
 
     @Override
     public List<List<ExprType>> getParameterTypes() {
-      return List.of(List.of(ExprCoreType.IP, ExprCoreType.STRING));
+      return List.of(List.of(ExprCoreType.IP, ExprCoreType.IP));
     }
   }
 
@@ -461,8 +467,8 @@ public interface PPLTypeChecker {
     return new PPLCompositeTypeChecker(typeChecker);
   }
 
-  static PPLComparableTypeChecker comparable(SqlOperandCountRange countRange) {
-    return new PPLComparableTypeChecker(countRange);
+  static PPLComparableTypeChecker wrapComparable(SameOperandTypeChecker typeChecker) {
+    return new PPLComparableTypeChecker(typeChecker);
   }
 
   // Util Functions

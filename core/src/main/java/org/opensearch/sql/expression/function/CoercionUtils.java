@@ -86,11 +86,15 @@ public class CoercionUtils {
   }
 
   private static @Nullable RexNode cast(RexBuilder builder, ExprType targetType, RexNode arg) {
+    // Implement the logic to check if fromType can be cast to toType
+    // This could involve checking if the types are compatible, or if a cast is possible
+    // For example, you might check if fromType is a subtype of toType, or if a conversion exists
     ExprType argType = OpenSearchTypeFactory.convertRelDataTypeToExprType(arg.getType());
     if (!argType.shouldCast(targetType)) {
       return arg;
     }
 
+    // If the arg is string
     if (WideningTypeRule.distance(argType, targetType) != WideningTypeRule.IMPOSSIBLE_WIDENING) {
       return builder.makeCast(OpenSearchTypeFactory.convertExprTypeToRelDataType(targetType), arg);
     }

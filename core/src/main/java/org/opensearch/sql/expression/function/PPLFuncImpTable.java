@@ -231,7 +231,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLambda;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -241,7 +240,6 @@ import org.apache.calcite.sql.type.ImplicitCastOperandTypeChecker;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SameOperandTypeChecker;
-import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -579,11 +577,7 @@ public class PPLFuncImpTable {
         }
 
         // Only the composite operand type checker for UDFs are concerned here.
-        if (BuiltinFunctionName.COMPARATORS.contains(functionName)) {
-          // Comparison operators like EQUAL, GREATER_THAN, LESS_THAN, etc.
-          register(
-              functionName, wrapWithComparableTypeChecker(operator, SqlOperandCountRanges.of(2)));
-        } else if (operator instanceof SqlUserDefinedFunction
+        if (operator instanceof SqlUserDefinedFunction
             && typeChecker instanceof CompositeOperandTypeChecker compositeTypeChecker) {
           // UDFs implement their own composite type checkers, which always use OR logic for
           // argument
@@ -602,11 +596,9 @@ public class PPLFuncImpTable {
           register(
               functionName, wrapWithCompositeTypeChecker(operator, compositeTypeChecker, true));
         } else if (typeChecker instanceof SameOperandTypeChecker comparableTypeChecker) {
+          // Comparison operators like EQUAL, GREATER_THAN, LESS_THAN, etc.
           // SameOperandTypeCheckers like COALESCE, IFNULL, etc.
-          register(
-              functionName,
-              wrapWithComparableTypeChecker(
-                  operator, comparableTypeChecker.getOperandCountRange()));
+          register(functionName, wrapWithComparableTypeChecker(operator, comparableTypeChecker));
         } else if (typeChecker instanceof UDFOperandMetadata.IPOperandMetadata) {
           register(
               functionName,
@@ -689,7 +681,7 @@ public class PPLFuncImpTable {
     }
 
     private static FunctionImp wrapWithComparableTypeChecker(
-        SqlOperator operator, SqlOperandCountRange countRange) {
+        SqlOperator operator, SameOperandTypeChecker typeChecker) {
       return new FunctionImp() {
         @Override
         public RexNode resolve(RexBuilder builder, RexNode... args) {
@@ -698,7 +690,7 @@ public class PPLFuncImpTable {
 
         @Override
         public PPLTypeChecker getTypeChecker() {
-          return PPLTypeChecker.comparable(countRange);
+          return PPLTypeChecker.wrapComparable(typeChecker);
         }
       };
     }
@@ -735,12 +727,12 @@ public class PPLFuncImpTable {
 
     void populate() {
       // register operators for comparison
-      registerOperator(NOTEQUAL, PPLBuiltinOperators.NOT_EQUALS);
-      registerOperator(EQUAL, PPLBuiltinOperators.EQUALS);
-      registerOperator(GREATER, PPLBuiltinOperators.GREATER);
-      registerOperator(GTE, PPLBuiltinOperators.GTE);
-      registerOperator(LESS, PPLBuiltinOperators.LESS);
-      registerOperator(LTE, PPLBuiltinOperators.LTE);
+      registerOperator(NOTEQUAL, PPLBuiltinOperators.NOT_EQUALS_IP, SqlStdOperatorTable.NOT_EQUALS);
+      registerOperator(EQUAL, PPLBuiltinOperators.EQUALS_IP, SqlStdOperatorTable.EQUALS);
+      registerOperator(GREATER, PPLBuiltinOperators.GREATER_IP, SqlStdOperatorTable.GREATER_THAN);
+      registerOperator(GTE, PPLBuiltinOperators.GTE_IP, SqlStdOperatorTable.GREATER_THAN_OR_EQUAL);
+      registerOperator(LESS, PPLBuiltinOperators.LESS_IP, SqlStdOperatorTable.LESS_THAN);
+      registerOperator(LTE, PPLBuiltinOperators.LTE_IP, SqlStdOperatorTable.LESS_THAN_OR_EQUAL);
 
       // Register std operator
       registerOperator(AND, SqlStdOperatorTable.AND);
@@ -1056,7 +1048,7 @@ public class PPLFuncImpTable {
                       builder.makeCall(SqlStdOperatorTable.EQUALS, arg1, arg2),
                       builder.makeNullLiteral(arg1.getType()),
                       arg1),
-              PPLTypeChecker.comparable(SqlOperandCountRanges.of(2))));
+              PPLTypeChecker.wrapComparable((SameOperandTypeChecker) OperandTypes.SAME_SAME)));
       register(
           IS_EMPTY,
           createFunctionImpWithTypeChecker(
