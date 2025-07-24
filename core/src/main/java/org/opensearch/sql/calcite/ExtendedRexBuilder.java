@@ -5,11 +5,6 @@
 
 package org.opensearch.sql.calcite;
 
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_DATE;
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_IP;
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIME;
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIMESTAMP;
-
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.List;
@@ -140,7 +135,7 @@ public class ExtendedRexBuilder extends RexBuilder {
           if (argExprType == ExprCoreType.IP) {
             yield exp;
           } else if (argExprType == ExprCoreType.STRING) {
-            yield makeCall(type, PPLBuiltinOperators.CAST_IP, List.of(exp));
+            yield makeCall(type, PPLBuiltinOperators.IP, List.of(exp));
           }
           // Throwing error inside implementation will be suppressed by Calcite, thus
           // throwing 500 error. Therefore, we throw error here to ensure the error

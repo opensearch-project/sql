@@ -32,9 +32,9 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
  *   <li>(IP) -> IP
  * </ul>
  */
-public class IPCastFunction extends ImplementorUDF {
+public class IPFunction extends ImplementorUDF {
 
-  public IPCastFunction() {
+  public IPFunction() {
     super(new CastImplementor(), NullPolicy.ANY);
   }
 

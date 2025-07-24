@@ -45,7 +45,7 @@ public class ExprIpValue extends AbstractExprValue {
 
   @Override
   public String toString() {
-    return String.format("IP %s", value());
+    return value();
   }
 
   @Override
