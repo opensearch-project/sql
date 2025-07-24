@@ -11,11 +11,13 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.ppl.CastFunctionIT;
 
 public class CalcitePPLCastFunctionIT extends CastFunctionIT {
@@ -160,5 +162,19 @@ public class CalcitePPLCastFunctionIT extends CastFunctionIT {
                 "source=%s | eval a = cast(boolean_value as STRING) | fields a",
                 TEST_INDEX_DATATYPE_NONNUMERIC));
     verifyDataRows(actual, rows("TRUE"));
+  }
+
+  @Test
+  public void testCastIntegerToIp() {
+    Throwable t =
+        assertThrowsWithReplace(
+            ExpressionEvaluationException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | eval a = cast(1 as ip) | fields a",
+                        TEST_INDEX_DATATYPE_NUMERIC)));
+    verifyErrorMessageContains(
+        t, "Cannot convert INTEGER to IP, only STRING and IP types are supported");
   }
 }

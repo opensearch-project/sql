@@ -17,6 +17,7 @@ import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandMetadata;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
+import org.opensearch.sql.data.type.ExprType;
 
 /**
  * This class is created for the compatibility with {@link SqlUserDefinedFunction} constructors when
@@ -105,83 +106,11 @@ public interface UDFOperandMetadata extends SqlOperandMetadata {
     };
   }
 
-  /**
-   * A named class that serves as an identifier for IP comparator's operand metadata. It does not
-   * implement any actual type checking logic.
-   */
-  class IPOperandMetadata implements UDFOperandMetadata {
-    @Override
-    public SqlOperandTypeChecker getInnerTypeChecker() {
-      return this;
-    }
-
-    @Override
-    public List<RelDataType> paramTypes(RelDataTypeFactory typeFactory) {
-      return List.of();
-    }
-
-    @Override
-    public List<String> paramNames() {
-      return List.of();
-    }
-
-    @Override
-    public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
-      return false;
-    }
-
-    @Override
-    public SqlOperandCountRange getOperandCountRange() {
-      return null;
-    }
-
-    @Override
-    public String getAllowedSignatures(SqlOperator op, String opName) {
-      return "";
-    }
+  static UDFOperandMetadata wrapUDT(List<List<ExprType>> allowSignatures) {
+    return new UDTOperandMetadata(allowSignatures);
   }
 
-  /**
-   * A named class that serves as an identifier for cidr's operand metadata. It does not implement
-   * any actual type checking logic.
-   */
-  class CidrOperandMetadata implements UDFOperandMetadata {
-    @Override
-    public SqlOperandTypeChecker getInnerTypeChecker() {
-      return this;
-    }
-
-    @Override
-    public List<RelDataType> paramTypes(RelDataTypeFactory typeFactory) {
-      return List.of();
-    }
-
-    @Override
-    public List<String> paramNames() {
-      return List.of();
-    }
-
-    @Override
-    public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
-      return false;
-    }
-
-    @Override
-    public SqlOperandCountRange getOperandCountRange() {
-      return null;
-    }
-
-    @Override
-    public String getAllowedSignatures(SqlOperator op, String opName) {
-      return "";
-    }
-  }
-
-  /**
-   * A named class that serves as an identifier for IP cast's operand metadata. It does not
-   * implement any actual type checking logic.
-   */
-  class IPCastOperandMetadata implements UDFOperandMetadata {
+  record UDTOperandMetadata(List<List<ExprType>> allowedParamTypes) implements UDFOperandMetadata {
     @Override
     public SqlOperandTypeChecker getInnerTypeChecker() {
       return this;

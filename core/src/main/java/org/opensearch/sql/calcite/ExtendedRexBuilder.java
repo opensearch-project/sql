@@ -27,6 +27,8 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
@@ -129,13 +131,28 @@ public class ExtendedRexBuilder extends RexBuilder {
       }
     } else if (OpenSearchTypeFactory.isUserDefinedType(type)) {
       var udt = ((AbstractExprRelDataType<?>) type).getUdt();
+      var argExprType = OpenSearchTypeFactory.convertRelDataTypeToExprType(exp.getType());
       return switch (udt) {
         case EXPR_DATE -> makeCall(type, PPLBuiltinOperators.DATE, List.of(exp));
         case EXPR_TIME -> makeCall(type, PPLBuiltinOperators.TIME, List.of(exp));
         case EXPR_TIMESTAMP -> makeCall(type, PPLBuiltinOperators.TIMESTAMP, List.of(exp));
-        case EXPR_IP -> makeCall(type, PPLBuiltinOperators.CAST_IP, List.of(exp));
+        case EXPR_IP -> {
+          if (argExprType == ExprCoreType.IP) {
+            yield exp;
+          } else if (argExprType == ExprCoreType.STRING) {
+            yield makeCall(type, PPLBuiltinOperators.CAST_IP, List.of(exp));
+          }
+          // Throwing error inside implementation will be suppressed by Calcite, thus
+          // throwing 500 error. Therefore, we throw error here to ensure the error
+          // information is displayed properly.
+          throw new ExpressionEvaluationException(
+              String.format(
+                  Locale.ROOT,
+                  "Cannot convert %s to IP, only STRING and IP types are supported",
+                  argExprType));
+        }
         default -> throw new SemanticCheckException(
-            String.format(Locale.ROOT, "Unsupported cast type: %s", udt.name()));
+            String.format(Locale.ROOT, "Cannot cast from %s to %s", argExprType, udt.name()));
       };
     }
     return super.makeCast(pos, type, exp, matchNullability, safe, format);
