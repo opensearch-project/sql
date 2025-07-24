@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.expression.function.udf.ip;
+package org.opensearch.sql.expression.function.udf;
 
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
@@ -22,44 +22,43 @@ import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 /**
- * {@code compare(ip1, ip2)} compares two IP addresses using a provided op.
+ * {@code compare(value1, value2)} compares two values. It extends Calcite's built-in comparators by
+ * supporting IP comparison.
  *
  * <p>Signature:
  *
  * <ul>
- *   <li>(IP, STRING) -> BOOLEAN
- *   <li>(STRING, IP) -> BOOLEAN
- *   <li>(IP, IP) -> BOOLEAN
+ *   <li>(COMPARABLE, COMPARABLE) -> BOOLEAN
  * </ul>
  */
-public class CompareIpFunction extends ImplementorUDF {
+public class CompareFunctions extends ImplementorUDF {
 
-  private CompareIpFunction(ComparisonType comparisonType) {
+  private CompareFunctions(ComparisonType comparisonType) {
     super(new CompareImplementor(comparisonType), NullPolicy.ANY);
   }
 
-  public static CompareIpFunction less() {
-    return new CompareIpFunction(ComparisonType.LESS);
+  public static CompareFunctions less() {
+    return new CompareFunctions(ComparisonType.LESS);
   }
 
-  public static CompareIpFunction greater() {
-    return new CompareIpFunction(ComparisonType.GREATER);
+  public static CompareFunctions greater() {
+    return new CompareFunctions(ComparisonType.GREATER);
   }
 
-  public static CompareIpFunction lessOrEquals() {
-    return new CompareIpFunction(ComparisonType.LESS_OR_EQUAL);
+  public static CompareFunctions lessOrEquals() {
+    return new CompareFunctions(ComparisonType.LESS_OR_EQUAL);
   }
 
-  public static CompareIpFunction greaterOrEquals() {
-    return new CompareIpFunction(ComparisonType.GREATER_OR_EQUAL);
+  public static CompareFunctions greaterOrEquals() {
+    return new CompareFunctions(ComparisonType.GREATER_OR_EQUAL);
   }
 
-  public static CompareIpFunction equals() {
-    return new CompareIpFunction(ComparisonType.EQUALS);
+  public static CompareFunctions equals() {
+    return new CompareFunctions(ComparisonType.EQUALS);
   }
 
-  public static CompareIpFunction notEquals() {
-    return new CompareIpFunction(ComparisonType.NOT_EQUALS);
+  public static CompareFunctions notEquals() {
+    return new CompareFunctions(ComparisonType.NOT_EQUALS);
   }
 
   @Override
