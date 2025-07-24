@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.remote;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NONNUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -176,5 +177,24 @@ public class CalcitePPLCastFunctionIT extends CastFunctionIT {
                         TEST_INDEX_DATATYPE_NUMERIC)));
     verifyErrorMessageContains(
         t, "Cannot convert INTEGER to IP, only STRING and IP types are supported");
+  }
+
+  // Not available in v2
+  @Test
+  public void testCastIpToString() throws IOException {
+    // Test casting ip to string
+    var actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval s = cast(host as STRING) | fields s", TEST_INDEX_WEBLOGS));
+    verifySchema(actual, schema("s", "string"));
+    verifyDataRows(
+        actual,
+        rows("::1"),
+        rows("0.0.0.2"),
+        rows("::3"),
+        rows("1.2.3.4"),
+        rows("1.2.3.5"),
+        rows("::ffff:1234"));
   }
 }

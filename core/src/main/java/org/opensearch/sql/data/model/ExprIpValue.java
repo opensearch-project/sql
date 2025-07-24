@@ -45,6 +45,7 @@ public class ExprIpValue extends AbstractExprValue {
 
   @Override
   public String toString() {
+    // used for casting to string
     return value();
   }
 
