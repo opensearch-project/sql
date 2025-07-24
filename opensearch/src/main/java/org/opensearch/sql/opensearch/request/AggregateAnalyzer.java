@@ -316,8 +316,6 @@ public class AggregateAnalyzer {
               String.format("Unsupported push-down aggregator %s", aggCall.getAggregation()));
         };
       }
-        // case percentile
-        // case percentile_approx
       default -> throw new AggregateAnalyzerException(
           String.format("unsupported aggregator %s", aggCall.getAggregation()));
     };
