@@ -71,7 +71,7 @@ import org.opensearch.sql.expression.function.udf.datetime.WeekFunction;
 import org.opensearch.sql.expression.function.udf.datetime.WeekdayFunction;
 import org.opensearch.sql.expression.function.udf.datetime.YearweekFunction;
 import org.opensearch.sql.expression.function.udf.ip.CidrMatchFunction;
-import org.opensearch.sql.expression.function.udf.CompareFunctions;
+import org.opensearch.sql.expression.function.udf.ip.CompareIpFunction;
 import org.opensearch.sql.expression.function.udf.math.CRC32Function;
 import org.opensearch.sql.expression.function.udf.math.ConvFunction;
 import org.opensearch.sql.expression.function.udf.math.DivideFunction;
@@ -107,12 +107,12 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator CIDRMATCH = new CidrMatchFunction().toUDF("CIDRMATCH");
 
   // Comparing functions
-  public static final SqlOperator NOT_EQUALS = CompareFunctions.notEquals().toUDF("NOT_EQUALS");
-  public static final SqlOperator EQUALS = CompareFunctions.equals().toUDF("EQUALS");
-  public static final SqlOperator GREATER = CompareFunctions.greater().toUDF("GREATER");
-  public static final SqlOperator GTE = CompareFunctions.greaterOrEquals().toUDF("GTE");
-  public static final SqlOperator LESS = CompareFunctions.less().toUDF("LESS");
-  public static final SqlOperator LTE = CompareFunctions.lessOrEquals().toUDF("LTE");
+  public static final SqlOperator NOT_EQUALS = CompareIpFunction.notEquals().toUDF("NOT_EQUALS");
+  public static final SqlOperator EQUALS = CompareIpFunction.equals().toUDF("EQUALS");
+  public static final SqlOperator GREATER = CompareIpFunction.greater().toUDF("GREATER");
+  public static final SqlOperator GTE = CompareIpFunction.greaterOrEquals().toUDF("GTE");
+  public static final SqlOperator LESS = CompareIpFunction.less().toUDF("LESS");
+  public static final SqlOperator LTE = CompareIpFunction.lessOrEquals().toUDF("LTE");
 
   // Condition function
   public static final SqlOperator EARLIEST = new EarliestFunction().toUDF("EARLIEST");
