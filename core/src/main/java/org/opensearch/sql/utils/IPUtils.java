@@ -94,18 +94,4 @@ public class IPUtils {
         ? iPv4Address.toIPv6()
         : (IPv6Address) ipAddress;
   }
-
-  /**
-   * Check if a string is a valid IP address.
-   *
-   * @param ip IP address string
-   * @return true if it's a valid IP address
-   */
-  public static boolean isValidIP(String ip) {
-    try {
-      return new IPAddressString(ip, ipAddressStringParameters).toAddress() != null;
-    } catch (Exception e) {
-      return false;
-    }
-  }
 }
