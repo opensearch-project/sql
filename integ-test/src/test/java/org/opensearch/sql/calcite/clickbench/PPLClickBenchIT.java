@@ -48,9 +48,12 @@ public class PPLClickBenchIT extends PPLIntegTestCase {
     System.out.println();
   }
 
-  /** Ignore queries that are not supported by Calcite. */
+  /**
+   * Ignore queries that are not supported by Calcite. Ignore q33 because of too much script push
+   * down, which will cause ResourceMonitor restriction.
+   */
   protected Set<Integer> ignored() {
-    return Set.of(29);
+    return Set.of(29, 30);
   }
 
   @Test
