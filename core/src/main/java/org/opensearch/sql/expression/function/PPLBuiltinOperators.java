@@ -106,14 +106,13 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator SHA2 = CryptographicFunction.sha2().toUDF("SHA2");
   public static final SqlOperator CIDRMATCH = new CidrMatchFunction().toUDF("CIDRMATCH");
 
-  // IP comparing functions
-  public static final SqlOperator NOT_EQUALS_IP =
-      CompareIpFunction.notEquals().toUDF("NOT_EQUALS_IP");
-  public static final SqlOperator EQUALS_IP = CompareIpFunction.equals().toUDF("EQUALS_IP");
-  public static final SqlOperator GREATER_IP = CompareIpFunction.greater().toUDF("GREATER_IP");
-  public static final SqlOperator GTE_IP = CompareIpFunction.greaterOrEquals().toUDF("GTE_IP");
-  public static final SqlOperator LESS_IP = CompareIpFunction.less().toUDF("LESS_IP");
-  public static final SqlOperator LTE_IP = CompareIpFunction.lessOrEquals().toUDF("LTE_IP");
+  // Comparing functions
+  public static final SqlOperator NOT_EQUALS = CompareIpFunction.notEquals().toUDF("NOT_EQUALS");
+  public static final SqlOperator EQUALS = CompareIpFunction.equals().toUDF("EQUALS");
+  public static final SqlOperator GREATER = CompareIpFunction.greater().toUDF("GREATER");
+  public static final SqlOperator GTE = CompareIpFunction.greaterOrEquals().toUDF("GTE");
+  public static final SqlOperator LESS = CompareIpFunction.less().toUDF("LESS");
+  public static final SqlOperator LTE = CompareIpFunction.lessOrEquals().toUDF("LTE");
 
   // Condition function
   public static final SqlOperator EARLIEST = new EarliestFunction().toUDF("EARLIEST");
