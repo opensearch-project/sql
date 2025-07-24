@@ -13,8 +13,6 @@ import java.io.IOException;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
-import org.opensearch.sql.common.setting.Settings;
-import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.legacy.TestUtils;
 
 public class ExplainIT extends PPLIntegTestCase {
@@ -22,10 +20,6 @@ public class ExplainIT extends PPLIntegTestCase {
   @Override
   public void init() throws Exception {
     super.init();
-    // enableCalcite();
-    updateClusterSettings(
-        new SQLIntegTestCase.ClusterSetting(
-            "transient", Settings.Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(), "true"));
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK);
     loadIndex(Index.DATE_FORMATS);
@@ -359,7 +353,6 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testPatternsSimplePatternMethodWithAggPushDownExplain() throws IOException {
-    // TODO: Correct calcite expected result once pushdown is supported
     String expected = loadExpectedPlan("explain_patterns_simple_pattern_agg_push.json");
     assertJsonEqualsIgnoreId(
         expected,

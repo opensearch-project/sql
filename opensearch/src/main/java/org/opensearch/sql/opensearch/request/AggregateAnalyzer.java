@@ -222,7 +222,9 @@ public class AggregateAnalyzer {
   }
 
   private static List<RexNode> convertAggArgThroughProject(AggregateCall aggCall, Project project) {
-    return aggCall.getArgList().stream().map(project.getProjects()::get).toList();
+    return project == null
+        ? List.of()
+        : aggCall.getArgList().stream().map(project.getProjects()::get).toList();
   }
 
   private static Pair<AggregationBuilder, MetricParser> createAggregationBuilderAndParser(
