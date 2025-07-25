@@ -76,6 +76,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.index.fielddata.ScriptDocValues;
+import org.opensearch.script.FieldScript;
 import org.opensearch.script.FilterScript;
 import org.opensearch.script.ScriptContext;
 import org.opensearch.script.ScriptEngine;
@@ -83,6 +84,7 @@ import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
+import org.opensearch.sql.opensearch.storage.script.filter.CalciteFieldScriptFactory;
 import org.opensearch.sql.opensearch.storage.script.filter.CalciteFilterScriptFactory;
 import org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer;
 
@@ -108,6 +110,7 @@ public class CalciteScriptEngine implements ScriptEngine {
           new ImmutableMap.Builder<
                   ScriptContext<?>, Function<Function1<DataContext, Object[]>, Object>>()
               .put(FilterScript.CONTEXT, CalciteFilterScriptFactory::new)
+              .put(FieldScript.CONTEXT, CalciteFieldScriptFactory::new)
               .build();
 
   @Override
@@ -343,7 +346,7 @@ public class CalciteScriptEngine implements ScriptEngine {
     String referenceField = expression.getReferenceForTermQuery();
     if (StringUtils.isEmpty(referenceField)) {
       throw new UnsupportedScriptException(
-          "Field name cannot be empty for expression: " + expression);
+          "Field name cannot be empty for expression: " + expression.getRootName());
     }
     return Pair.of(referenceField, exprType);
   }

@@ -8,6 +8,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelRule;
@@ -91,7 +92,10 @@ public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectInd
                         .oneInput(
                             b1 ->
                                 b1.operand(CalciteLogicalIndexScan.class)
-                                    .predicate(OpenSearchIndexScanRule::noAggregatePushed)
+                                    .predicate(
+                                        Predicate.not(
+                                                OpenSearchIndexScanRule::isScriptProjectPushed)
+                                            .and(OpenSearchIndexScanRule::noAggregatePushed))
                                     .noInputs()));
 
     @Override

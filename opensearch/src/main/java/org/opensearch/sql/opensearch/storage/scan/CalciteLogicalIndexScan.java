@@ -5,12 +5,17 @@
 
 package org.opensearch.sql.opensearch.storage.scan;
 
+import static org.opensearch.script.Script.DEFAULT_SCRIPT_TYPE;
+import static org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.COMPOUNDED_LANG_NAME;
+
 import com.google.common.collect.ImmutableList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.Getter;
+import org.apache.calcite.DataContext;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -25,15 +30,19 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.script.Script;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.common.setting.Settings;
@@ -46,6 +55,10 @@ import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.QueryExpression;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
+import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine;
+import org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine;
+import org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer;
+import org.opensearch.sql.opensearch.storage.serde.SerializationWrapper;
 
 /** The logical relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
@@ -97,8 +110,8 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
 
   @Override
   public void register(RelOptPlanner planner) {
-    super.register(planner);
     planner.addRule(EnumerableIndexScanRule.DEFAULT_CONFIG.toRule());
+    super.register(planner);
     if (osIndex.getSettings().getSettingValue(Settings.Key.CALCITE_PUSHDOWN_ENABLED)) {
       for (RelOptRule rule : OpenSearchIndexRules.OPEN_SEARCH_INDEX_SCAN_RULES) {
         planner.addRule(rule);
@@ -108,9 +121,9 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
 
   public AbstractRelNode pushDownFilter(Filter filter) {
     try {
-      RelDataType rowType = filter.getRowType();
+      RelDataType rowType = this.getRowType();
       CalciteLogicalIndexScan newScan = this.copyWithNewSchema(filter.getRowType());
-      List<String> schema = this.getRowType().getFieldNames();
+      List<String> schema = rowType.getFieldNames();
       Map<String, ExprType> fieldTypes =
           this.osIndex.getFieldTypes().entrySet().stream()
               .filter(entry -> schema.contains(entry.getKey()))
@@ -153,6 +166,69 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     return conditions.size() > 1
         ? rexBuilder.makeCall(SqlStdOperatorTable.AND, conditions)
         : conditions.get(0);
+  }
+
+  public CalciteLogicalIndexScan pushDownScriptProject(LogicalProject project) {
+    // 1. prepare stage
+    long currentTime = Hook.CURRENT_TIME.get(-1L);
+    if (currentTime < 0) {
+      throw new CalciteScriptEngine.UnsupportedScriptException(
+          "ScriptQueryExpression requires a valid current time from hook, but it is not set");
+    }
+
+    Map<String, ExprType> fieldTypes =
+        this.osIndex.getFieldTypes().entrySet().stream()
+            .filter(entry -> this.schema.getFieldNames().contains(entry.getKey()))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+    RelJsonSerializer serializer = new RelJsonSerializer(getCluster());
+
+    CalciteLogicalIndexScan newScan =
+        new CalciteLogicalIndexScan(
+            getCluster(),
+            project.getTraitSet(),
+            hints,
+            table,
+            osIndex,
+            project.getRowType(),
+            pushDownContext.clone());
+
+    // 2. figure out the RexCall in projects
+    List<org.apache.calcite.util.Pair<RexNode, String>> calls =
+        project.getNamedProjects().stream().filter(pair -> pair.left instanceof RexCall).toList();
+    CalciteScriptEngine.ReferenceFieldVisitor validator =
+        new CalciteScriptEngine.ReferenceFieldVisitor(
+            project.getInput().getRowType(), fieldTypes, true);
+    // Dry run visitInputRef to make sure the input reference ExprType is valid for script
+    // pushdown
+    validator.visitEach(calls.stream().map(call -> call.left).toList());
+
+    // 3. push down the RexCall to script fields
+    List<Script> scripts =
+        calls.stream()
+            .map(
+                call -> {
+                  String code =
+                      SerializationWrapper.wrapWithLangType(
+                          CompoundedScriptEngine.ScriptEngineType.CALCITE,
+                          serializer.serialize(
+                              call.left, project.getInput().getRowType(), fieldTypes));
+                  return new Script(
+                      DEFAULT_SCRIPT_TYPE,
+                      COMPOUNDED_LANG_NAME,
+                      code,
+                      Collections.emptyMap(),
+                      Map.of(DataContext.Variable.UTC_TIMESTAMP.camelName, currentTime));
+                })
+            .toList();
+    newScan.pushDownContext.add(
+        PushDownAction.of(
+            PushDownType.SCRIPT_PROJECT,
+            calls.stream().map(call -> call.right).toList(),
+            requestBuilder ->
+                requestBuilder.pushDownScriptProjects(
+                    calls.stream().map(call -> call.right).toList(), scripts)));
+    return newScan;
   }
 
   /**

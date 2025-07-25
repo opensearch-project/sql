@@ -42,6 +42,17 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testScriptProjectPushDownExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_script_project_push.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| eval age2 = age + 2, upper_name = upper(firstname), age3 = 3"
+                + "| fields age2, upper_name, gender, lastname, age3"));
+  }
+
+  @Test
   public void testFilterPushDownExplain() throws IOException {
     String expected = loadExpectedPlan("explain_filter_push.json");
     assertJsonEqualsIgnoreId(

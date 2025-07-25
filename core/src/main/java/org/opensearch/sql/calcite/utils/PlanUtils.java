@@ -20,9 +20,12 @@ import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -346,5 +349,29 @@ public interface PlanUtils {
       }
     }
     return rexNode;
+  }
+
+  static boolean containsRexLiteral(LogicalProject project) {
+    return project.getProjects().stream().anyMatch(e -> e instanceof RexLiteral);
+  }
+
+  /** Check if contains pure RexCall */
+  static boolean containsRexCall(LogicalProject project) {
+    return project.getProjects().stream().anyMatch(e -> e instanceof RexCall);
+  }
+
+  /** Check if contains RexOver */
+  static boolean containsRexOver(LogicalProject project) {
+    List<Boolean> containsRexOver = new ArrayList<>();
+    final RexVisitorImpl<Void> visitor =
+        new RexVisitorImpl<Void>(true) {
+          @Override
+          public Void visitOver(RexOver over) {
+            containsRexOver.add(true);
+            return null;
+          }
+        };
+    visitor.visitEach(project.getProjects());
+    return !containsRexOver.isEmpty();
   }
 }

@@ -12,6 +12,8 @@ import org.apache.calcite.plan.RelOptRule;
 public class OpenSearchIndexRules {
   private static final OpenSearchProjectIndexScanRule PROJECT_INDEX_SCAN =
       OpenSearchProjectIndexScanRule.Config.DEFAULT.toRule();
+  private static final OpenSearchScriptProjectIndexScanRule SCRIPT_PROJECT_INDEX_SCAN =
+      OpenSearchScriptProjectIndexScanRule.Config.DEFAULT.toRule();
   private static final OpenSearchFilterIndexScanRule FILTER_INDEX_SCAN =
       OpenSearchFilterIndexScanRule.Config.DEFAULT.toRule();
   private static final OpenSearchAggregateIndexScanRule AGGREGATE_INDEX_SCAN =
@@ -26,6 +28,7 @@ public class OpenSearchIndexRules {
   public static final List<RelOptRule> OPEN_SEARCH_INDEX_SCAN_RULES =
       ImmutableList.of(
           PROJECT_INDEX_SCAN,
+          SCRIPT_PROJECT_INDEX_SCAN,
           FILTER_INDEX_SCAN,
           AGGREGATE_INDEX_SCAN,
           COUNT_STAR_INDEX_SCAN,

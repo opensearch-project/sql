@@ -106,7 +106,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
             (rowCount, action) ->
                 switch (action.type) {
                       case AGGREGATION -> mq.getRowCount((RelNode) action.digest);
-                      case PROJECT, SORT -> rowCount;
+                      case PROJECT, SCRIPT_PROJECT, SORT -> rowCount;
                       case FILTER -> NumberUtil.multiply(
                           rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest));
                       case SCRIPT -> NumberUtil.multiply(
@@ -123,6 +123,8 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
 
     private boolean isAggregatePushed = false;
     @Getter private boolean isLimitPushed = false;
+    @Getter private boolean isProjectPushed = false;
+    @Getter private boolean isScriptProjectPushed = false;
 
     @Override
     public PushDownContext clone() {
@@ -136,6 +138,12 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
       }
       if (pushDownAction.type == PushDownType.LIMIT) {
         isLimitPushed = true;
+      }
+      if (pushDownAction.type == PushDownType.PROJECT) {
+        isProjectPushed = true;
+      }
+      if (pushDownAction.type == PushDownType.SCRIPT_PROJECT) {
+        isScriptProjectPushed = true;
       }
       return super.add(pushDownAction);
     }
@@ -284,6 +292,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
   protected enum PushDownType {
     FILTER,
     PROJECT,
+    SCRIPT_PROJECT,
     AGGREGATION,
     SORT,
     LIMIT,

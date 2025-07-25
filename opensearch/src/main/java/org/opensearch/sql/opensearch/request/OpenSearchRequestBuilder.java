@@ -33,6 +33,7 @@ import org.opensearch.index.query.InnerHitBuilder;
 import org.opensearch.index.query.NestedQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.script.Script;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.fetch.subphase.FetchSourceContext;
@@ -291,6 +292,13 @@ public class OpenSearchRequestBuilder {
 
   public void pushDownProjectStream(Stream<String> projects) {
     sourceBuilder.fetchSource(projects.distinct().toArray(String[]::new), new String[0]);
+  }
+
+  /** Push down script project list to DSL requests for v3 engine. */
+  public void pushDownScriptProjects(List<String> scriptProjects, List<Script> scripts) {
+    for (int i = 0; i < scriptProjects.size(); i++) {
+      sourceBuilder.scriptField(scriptProjects.get(i), scripts.get(i));
+    }
   }
 
   public void pushTypeMapping(Map<String, OpenSearchDataType> typeMapping) {

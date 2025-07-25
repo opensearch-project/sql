@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.common.document.DocumentField;
 import org.opensearch.core.common.text.Text;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
@@ -116,12 +117,21 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
    */
   private void addParsedHitsToBuilder(
       ImmutableMap.Builder<String, ExprValue> builder, SearchHit hit) {
-    builder.putAll(
-        exprValueFactory
-            .construct(
-                hit.getSourceAsString(),
-                !(hit.getInnerHits() == null || hit.getInnerHits().isEmpty()))
-            .tupleValue());
+    if (hit.hasSource()) {
+      builder.putAll(
+          exprValueFactory
+              .construct(
+                  hit.getSourceAsString(),
+                  !(hit.getInnerHits() == null || hit.getInnerHits().isEmpty()))
+              .tupleValue());
+    }
+    if (!hit.getDocumentFields().isEmpty()) {
+      for (DocumentField field : hit.getDocumentFields().values()) {
+        String name = field.getName();
+        Object value = field.getValue();
+        builder.put(name, exprValueFactory.construct(name, value, false));
+      }
+    }
   }
 
   /**
