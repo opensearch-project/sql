@@ -1458,26 +1458,20 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // Process each expression in the projection list
     for (UnresolvedExpression expr : node.getProjectList()) {
-      if (expr instanceof Field field) {
-        String fieldName = field.getField().toString();
-        if (fieldName.contains("*")) {
-          // Handle wildcard patterns (e.g., "log.*" or "*")
-          List<String> matchedFields = expandWildcard(fieldName, availableFields);
-          for (String matchedField : matchedFields) {
-            // Add each matched field to the projection list
-            projectList.add(context.relBuilder.field(matchedField));
-            explicitFieldNames.add(matchedField);
-          }
-        } else {
-          // Handle regular field reference
-          projectList.add(rexVisitor.analyze(expr, context));
-          explicitFieldNames.add(fieldName);
+      Field field = (Field) expr;
+      String fieldName = field.getField().toString();
+      if (fieldName.contains("*")) {
+        // Handle wildcard patterns (e.g., "log.*" or "*")
+        List<String> matchedFields = expandWildcard(fieldName, availableFields);
+        for (String matchedField : matchedFields) {
+          // Add each matched field to the projection list
+          projectList.add(context.relBuilder.field(matchedField));
+          explicitFieldNames.add(matchedField);
         }
       } else {
-        // Handle non-field expressions (functions, literals, etc.)
+        // Handle regular field reference
         projectList.add(rexVisitor.analyze(expr, context));
-        // Generate a default name for expressions without explicit names
-        explicitFieldNames.add("expr" + projectList.size());
+        explicitFieldNames.add(fieldName);
       }
     }
 
