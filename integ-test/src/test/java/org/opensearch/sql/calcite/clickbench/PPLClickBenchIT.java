@@ -49,7 +49,7 @@ public class PPLClickBenchIT extends PPLIntegTestCase {
   }
 
   /**
-   * Ignore queries that are not supported by Calcite. Ignore q33 because of too much script push
+   * Ignore queries that are not supported by Calcite. Ignore q30 because of too much script push
    * down, which will cause ResourceMonitor restriction.
    */
   protected Set<Integer> ignored() {
