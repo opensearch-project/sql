@@ -16,12 +16,12 @@ import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.Temporal;
 import java.time.temporal.TemporalUnit;
 import java.util.List;
-import java.util.TimeZone;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -133,9 +133,8 @@ class NowLikeFunctionTest extends ExpressionTestBase {
 
   private static LocalDateTime utcDateTimeNow(FunctionProperties functionProperties) {
     ZonedDateTime zonedDateTime =
-        LocalDateTime.now(functionProperties.getQueryStartClock())
-            .atZone(TimeZone.getDefault().toZoneId());
-    return zonedDateTime.withZoneSameInstant(UTC_ZONE_ID).toLocalDateTime();
+        LocalDateTime.now(functionProperties.getQueryStartClock()).atZone(ZoneOffset.UTC);
+    return zonedDateTime.withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime();
   }
 
   /**
