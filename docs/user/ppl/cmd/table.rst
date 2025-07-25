@@ -11,13 +11,16 @@ table
 
 Description
 ============
-The ``table`` command returns a table that is formed by only the fields that you specify in the arguments. Columns are displayed in the same order that fields are specified. Column headers are the field names. Rows are the field values. Each row represents an event.
+The ``table`` command provides tabular data presentation and field selection operations. It displays search results in a tabular format with only the specified fields, creating focused tabular views for better data visualization and readability.
 
-The ``table`` command is similar to the ``fields`` command in that it lets you specify the fields you want to keep in your results. Use ``table`` command when you want to retain data in tabular format.
+This command is useful for:
 
-With the exception of a scatter plot to show trends in the relationships between discrete values of your data, you should not use the ``table`` command for charts.
+* Creating focused tabular views of search results with only relevant fields
+* Presenting data in a structured format for better readability
+* Simplifying complex data sets by displaying only fields of interest
+* Controlling column order in result presentation
 
-To optimize searches, avoid putting the ``table`` command in the middle of your searches and instead, put it at the end of your searches.
+For optimal performance, place the ``table`` command at the end of your search pipeline.
 
 
 Syntax
@@ -28,30 +31,32 @@ table <wc-field-list>
 Arguments
 ============
 <wc-field-list>
-  A list of valid field names. The list can be space-delimited or comma-delimited. You can use the asterisk (``*``) as a wildcard to specify a list of fields with similar names. For example, if you want to specify all fields that start with "value", you can use a wildcard such as ``value*``.
+  A space or comma-delimited list of field names with wildcard support. Supports various wildcard patterns using asterisk (*):
+  
+  * Prefix wildcard: ``EMP*`` (matches fields starting with "EMP")
+  * Suffix wildcard: ``*NO`` (matches fields ending with "NO")
+  * Contains wildcard: ``*E*`` (matches fields containing "E")
+  * Mixed explicit and wildcard: ``ENAME, EMP*, JOB``
 
 
 Usage
 ============
-The ``table`` command is a transforming command.
-
-
-Command Type
-============
-The ``table`` command is a non-streaming command. If you are looking for a streaming command similar to the ``table`` command, use the ``fields`` command.
+The ``table`` command processes the entire result set and formats it for tabular presentation.
 
 
 Field Renaming
 ============
-The ``table`` command doesn't let you rename fields, only specify the fields that you want to show in your tabulated results. If you're going to rename a field, do it before piping the results to ``table``.
+The ``table`` command displays fields with their original names and does not support field renaming within the command itself. To rename fields, use the ``rename`` command before ``table``.
 
 
-Field Selection Patterns
-========================
+Best Practices
+==============
 
-* ``field*``: Fields starting with "field"
-* ``*_time``: Fields ending with "_time"
-* ``log_*_data``: Fields matching pattern with wildcards
+* Place the ``table`` command at the end of search pipelines for optimal performance
+* Use wildcards to select groups of related fields efficiently
+* Perform field renaming before using the ``table`` command
+* Use the ``fields`` command for filtering operations and ``table`` for presentation
+* For large result sets, consider limiting the number of fields to improve performance
 
 
 Examples
@@ -74,53 +79,87 @@ PPL query::
     +----------------+-----------+----------+
 
 
-Example 2: Wildcard field selection
-----------------------------------
+Example 2: Using wildcards
+--------------------------
 
 PPL query::
 
-    os> source=logs | table time, host*, error_code;
+    os> source=employees | table ENAME, JOB, DEPT*;
+    fetched rows / total rows = 5/5
+    +--------+----------+--------+
+    | ENAME  | JOB      | DEPTNO |
+    |--------+----------+--------|
+    | SMITH  | CLERK    | 20     |
+    | ALLEN  | SALESMAN | 30     |
+    | WARD   | SALESMAN | 30     |
+    | JONES  | MANAGER  | 20     |
+    | MARTIN | SALESMAN | 30     |
+    +--------+----------+--------+
+
+
+Example 3: Using renamed fields
+-------------------------------
+
+PPL query::
+
+    os> source=employees | rename EMPNO as emp_id, ENAME as emp_name | table emp_id, emp_name, JOB;
+    fetched rows / total rows = 5/5
+    +--------+----------+----------+
+    | emp_id | emp_name | JOB      |
+    |--------+----------+----------|
+    | 7369   | SMITH    | CLERK    |
+    | 7499   | ALLEN    | SALESMAN |
+    | 7521   | WARD     | SALESMAN |
+    | 7566   | JONES    | MANAGER  |
+    | 7654   | MARTIN   | SALESMAN |
+    +--------+----------+----------+
+
+
+Example 4: Sorting and filtering with table
+-------------------------------------------
+
+PPL query::
+
+    os> source=employees | where SAL > 1000 | sort - SAL | table ENAME, SAL, DEPTNO | head 3;
     fetched rows / total rows = 3/3
-    +----------+-----------+------------+------------+
-    | time     | host_name | host_ip    | error_code |
-    |----------+-----------+------------+------------|
-    | 10:30:00 | server1   | 10.0.0.1   | 404        |
-    | 10:31:00 | server2   | 10.0.0.2   | 500        |
-    | 10:32:00 | server1   | 10.0.0.1   | 200        |
-    +----------+-----------+------------+------------+
+    +-------+--------+--------+
+    | ENAME | SAL    | DEPTNO |
+    |-------+--------+--------|
+    | KING  | 5000.0 | 10     |
+    | SCOTT | 3000.0 | 20     |
+    | FORD  | 3000.0 | 20     |
+    +-------+--------+--------+
 
 
-Example 3: Network classification
---------------------------------
-
-PPL query::
-
-    os> source=access_logs | dedup clientip | eval network=if(cidrmatch("192.0.0.0/16", clientip), "local", "other") | table clientip, network;
-    fetched rows / total rows = 5/5
-    +---------------+---------+
-    | clientip      | network |
-    |---------------+---------|
-    | 192.0.1.51    | other   |
-    | 192.168.11.33 | other   |
-    | 192.168.11.44 | other   |
-    | 192.1.2.40    | other   |
-    | 192.0.1.39    | local   |
-    +---------------+---------+
-
-
-Example 4: Multiple field pattern selection
------------------------------------------
+Example 5: Multiple wildcard patterns
+-------------------------------------
 
 PPL query::
 
-    os> source=access_logs | table host, action, date_m*;
+    os> source=employees | table *NAME, *NO, JOB;
     fetched rows / total rows = 5/5
-    +------+------------+----------+------------+-----------+
-    | host | action     | date_mday | date_minute | date_month |
-    |------+------------+----------+------------+-----------|
-    | www1 |            | 20       | 51         | july      |
-    | www1 |            | 20       | 48         | july      |
-    | www1 |            | 20       | 48         | july      |
-    | www1 | addtocart  | 20       | 48         | july      |
-    | www1 |            | 20       | 48         | july      |
-    +------+------------+----------+------------+-----------+
+    +--------+--------+----------+
+    | ENAME  | DEPTNO | JOB      |
+    |--------+--------+----------|
+    | SMITH  | 20     | CLERK    |
+    | ALLEN  | 30     | SALESMAN |
+    | WARD   | 30     | SALESMAN |
+    | JONES  | 20     | MANAGER  |
+    | MARTIN | 30     | SALESMAN |
+    +--------+--------+----------+
+
+
+Example 6: Table with evaluation
+-------------------------------
+
+PPL query::
+
+    os> source=employees | dedup DEPTNO | eval dept_type=case(DEPTNO=10, 'accounting' else 'other') | table EMPNO, dept_type;
+    fetched rows / total rows = 3/3
+    +-------+------------+
+    | EMPNO | dept_type  |
+    |-------+------------|
+    | 7782  | accounting |
+    | 7369  | other      |
+    | 7839  | other      |
+    +-------+------------+
