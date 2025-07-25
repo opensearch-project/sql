@@ -128,7 +128,11 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
 
     verifyNumOfRows(actual, 1);
 
-    verifySchema(actual, schema("account_number", "bigint"), schema("firstname", "string"), schema("age", "bigint"));
+    verifySchema(
+        actual,
+        schema("account_number", "bigint"),
+        schema("firstname", "string"),
+        schema("age", "bigint"));
   }
 
   /**
@@ -435,7 +439,8 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
                     + " age, ratio",
                 TEST_INDEX_ACCOUNT));
 
-    verifySchema(actual, schema("firstname", "string"), schema("age", "bigint"), schema("ratio", "double"));
+    verifySchema(
+        actual, schema("firstname", "string"), schema("age", "bigint"), schema("ratio", "double"));
 
     verifyNumOfRows(actual, 1000);
   }
