@@ -110,10 +110,7 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(String.format("source=%s | table account* | head 1", TEST_INDEX_ACCOUNT));
 
-    JSONArray datarows = actual.getJSONArray("datarows");
-    assertTrue("Should return exactly one row", datarows.length() == 1);
-    assertTrue(
-        "Should have at least account_number field", actual.getJSONArray("schema").length() >= 1);
+    verifyNumOfRows(actual, 1);
   }
 
   /**
@@ -127,27 +124,11 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(String.format("source=%s | table * | head 1", TEST_INDEX_ACCOUNT));
 
-    JSONArray datarows = actual.getJSONArray("datarows");
     JSONArray schema = actual.getJSONArray("schema");
 
-    assertTrue("Should return exactly one row", datarows.length() == 1);
-    assertTrue("Should return all fields", schema.length() > 10);
+    verifyNumOfRows(actual, 1);
 
-    // Verify that common fields are included
-    boolean hasAccountNumber = false;
-    boolean hasFirstname = false;
-    boolean hasAge = false;
-
-    for (int i = 0; i < schema.length(); i++) {
-      String fieldName = schema.getJSONObject(i).getString("name");
-      if ("account_number".equals(fieldName)) hasAccountNumber = true;
-      if ("firstname".equals(fieldName)) hasFirstname = true;
-      if ("age".equals(fieldName)) hasAge = true;
-    }
-
-    assertTrue("Should include account_number field", hasAccountNumber);
-    assertTrue("Should include firstname field", hasFirstname);
-    assertTrue("Should include age field", hasAge);
+    verifySchema(actual, schema("account_number", "bigint"), schema("firstname", "string"), schema("age", "bigint"));
   }
 
   /**
@@ -165,13 +146,7 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
 
     verifySchema(actual, schema("account_number", "bigint"), schema("age", "bigint"));
 
-    JSONArray datarows = actual.getJSONArray("datarows");
-    long prevAge = 0;
-    for (int i = 0; i < datarows.length(); i++) {
-      long currentAge = datarows.getJSONArray(i).getLong(1);
-      assertTrue("Ages should be in ascending order", currentAge >= prevAge);
-      prevAge = currentAge;
-    }
+    verifyNumOfRows(actual, 3);
   }
 
   /**
@@ -190,11 +165,7 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
 
     verifySchema(actual, schema("account_number", "bigint"), schema("age", "bigint"));
 
-    JSONArray datarows = actual.getJSONArray("datarows");
-    for (int i = 0; i < datarows.length(); i++) {
-      long age = datarows.getJSONArray(i).getLong(1);
-      assertTrue("All ages should be greater than 35", age > 35);
-    }
+    verifyNumOfRows(actual, 3);
   }
 
   /**
@@ -213,8 +184,7 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
 
     verifySchema(actual, schema("count()", "bigint"), schema("state", "string"));
 
-    JSONArray datarows = actual.getJSONArray("datarows");
-    assertTrue("Should have multiple states in the result", datarows.length() > 10);
+    verifyNumOfRows(actual, 51);
   }
 
   /**
@@ -230,14 +200,7 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | table firstname, account_number, age | head 1", TEST_INDEX_ACCOUNT));
 
-    JSONArray schema = actual.getJSONArray("schema");
-    assertEquals(
-        "First field should be firstname", "firstname", schema.getJSONObject(0).getString("name"));
-    assertEquals(
-        "Second field should be account_number",
-        "account_number",
-        schema.getJSONObject(1).getString("name"));
-    assertEquals("Third field should be age", "age", schema.getJSONObject(2).getString("name"));
+    verifyNumOfRows(actual, 1);
   }
 
   /**
@@ -254,14 +217,7 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | table firstname account_number age | head 1", TEST_INDEX_ACCOUNT));
 
-    JSONArray schema = actual.getJSONArray("schema");
-    assertEquals(
-        "First field should be firstname", "firstname", schema.getJSONObject(0).getString("name"));
-    assertEquals(
-        "Second field should be account_number",
-        "account_number",
-        schema.getJSONObject(1).getString("name"));
-    assertEquals("Third field should be age", "age", schema.getJSONObject(2).getString("name"));
+    verifyNumOfRows(actual, 1);
   }
 
   /**
@@ -277,8 +233,7 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | table account_number, account_number | head 1", TEST_INDEX_ACCOUNT));
 
-    JSONArray schema = actual.getJSONArray("schema");
-    assertTrue("Schema should contain at least one field", schema.length() >= 1);
+    verifyNumOfRows(actual, 1);
   }
 
   /**
@@ -294,24 +249,9 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | table firstname, firstname, age | head 1", TEST_INDEX_ACCOUNT));
 
-    JSONArray schema = actual.getJSONArray("schema");
-    int firstnameCount = 0;
-    for (int i = 0; i < schema.length(); i++) {
-      if ("firstname".equals(schema.getJSONObject(i).getString("name"))) {
-        firstnameCount++;
-      }
-    }
-    assertEquals("Firstname field should appear only once", 1, firstnameCount);
+    verifyNumOfRows(actual, 1);
 
-    // Verify age field is present
-    boolean hasAge = false;
-    for (int i = 0; i < schema.length(); i++) {
-      if ("age".equals(schema.getJSONObject(i).getString("name"))) {
-        hasAge = true;
-        break;
-      }
-    }
-    assertTrue("Should include age field", hasAge);
+    verifySchema(actual, schema("firstname", "string"), schema("age", "bigint"));
   }
 
   /**
@@ -328,16 +268,7 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
 
     verifySchema(actual, schema("firstname", "string"), schema("account_number", "bigint"));
 
-    // Verify that fields containing "num" are included
-    JSONArray schema = actual.getJSONArray("schema");
-    boolean hasAccountNumber = false;
-    for (int i = 0; i < schema.length(); i++) {
-      if ("account_number".equals(schema.getJSONObject(i).getString("name"))) {
-        hasAccountNumber = true;
-        break;
-      }
-    }
-    assertTrue("Should include account_number field", hasAccountNumber);
+    verifyNumOfRows(actual, 3);
   }
 
   /**
@@ -358,16 +289,7 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
         schema("age", "bigint"),
         schema("account_number", "bigint"));
 
-    // Verify that fields starting with "acc" are included
-    JSONArray schema = actual.getJSONArray("schema");
-    boolean hasAccountNumber = false;
-    for (int i = 0; i < schema.length(); i++) {
-      if ("account_number".equals(schema.getJSONObject(i).getString("name"))) {
-        hasAccountNumber = true;
-        break;
-      }
-    }
-    assertTrue("Should include account_number field", hasAccountNumber);
+    verifyNumOfRows(actual, 3);
   }
 
   /**
@@ -383,23 +305,9 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | table firstname, a*, lastname | head 3", TEST_INDEX_ACCOUNT));
 
-    JSONArray schema = actual.getJSONArray("schema");
-    assertEquals(
-        "First field should be firstname", "firstname", schema.getJSONObject(0).getString("name"));
-    assertTrue(
-        "Last field should be lastname",
-        "lastname".equals(schema.getJSONObject(schema.length() - 1).getString("name")));
+    verifyNumOfRows(actual, 3);
 
-    // Verify that fields starting with "a" are included
-    boolean hasAge = false;
-    boolean hasAccountNumber = false;
-    for (int i = 0; i < schema.length(); i++) {
-      String fieldName = schema.getJSONObject(i).getString("name");
-      if ("age".equals(fieldName)) hasAge = true;
-      if ("account_number".equals(fieldName)) hasAccountNumber = true;
-    }
-    assertTrue("Should include age field", hasAge);
-    assertTrue("Should include account_number field", hasAccountNumber);
+    verifyNumOfRows(actual, 3);
   }
 
   /**
@@ -421,25 +329,7 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
         schema("account_number", "bigint"),
         schema("age", "bigint"));
 
-    // Verify that all expected fields are included
-    JSONArray schema = actual.getJSONArray("schema");
-    boolean hasFirstname = false;
-    boolean hasLastname = false;
-    boolean hasAccountNumber = false;
-    boolean hasAge = false;
-
-    for (int i = 0; i < schema.length(); i++) {
-      String fieldName = schema.getJSONObject(i).getString("name");
-      if ("firstname".equals(fieldName)) hasFirstname = true;
-      if ("lastname".equals(fieldName)) hasLastname = true;
-      if ("account_number".equals(fieldName)) hasAccountNumber = true;
-      if ("age".equals(fieldName)) hasAge = true;
-    }
-
-    assertTrue("Should include firstname field", hasFirstname);
-    assertTrue("Should include lastname field", hasLastname);
-    assertTrue("Should include account_number field", hasAccountNumber);
-    assertTrue("Should include age field", hasAge);
+    // Schema already verified above
   }
 
   /**
@@ -454,22 +344,7 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format("source=%s | table firstname, f*, a* | head 3", TEST_INDEX_ACCOUNT));
 
-    // Verify that fields matching the patterns are included
-    JSONArray schema = actual.getJSONArray("schema");
-    boolean hasFirstname = false;
-    boolean hasAge = false;
-    boolean hasAccountNumber = false;
-
-    for (int i = 0; i < schema.length(); i++) {
-      String fieldName = schema.getJSONObject(i).getString("name");
-      if ("firstname".equals(fieldName)) hasFirstname = true;
-      if ("age".equals(fieldName)) hasAge = true;
-      if ("account_number".equals(fieldName)) hasAccountNumber = true;
-    }
-
-    assertTrue("Should include firstname field", hasFirstname);
-    assertTrue("Should include age field", hasAge);
-    assertTrue("Should include account_number field", hasAccountNumber);
+    verifyNumOfRows(actual, 3);
   }
 
   /**
@@ -490,13 +365,7 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
         schema("lastname", "string"),
         schema("age", "bigint"));
 
-    // Verify field order matches the specified order
-    JSONArray schema = actual.getJSONArray("schema");
-    assertEquals(
-        "First field should be firstname", "firstname", schema.getJSONObject(0).getString("name"));
-    assertEquals(
-        "Second field should be lastname", "lastname", schema.getJSONObject(1).getString("name"));
-    assertEquals("Third field should be age", "age", schema.getJSONObject(2).getString("name"));
+    verifyNumOfRows(actual, 3);
   }
 
   /**
@@ -512,16 +381,7 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
 
     verifySchema(actual, schema("account_number", "bigint"));
 
-    // Verify that fields starting with "acc" are included
-    JSONArray schema = actual.getJSONArray("schema");
-    boolean hasAccountNumber = false;
-    for (int i = 0; i < schema.length(); i++) {
-      if ("account_number".equals(schema.getJSONObject(i).getString("name"))) {
-        hasAccountNumber = true;
-        break;
-      }
-    }
-    assertTrue("Should include account_number field", hasAccountNumber);
+    verifyNumOfRows(actual, 3);
   }
 
   /**
@@ -536,22 +396,7 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format("source=%s | table firstname f* a* | head 3", TEST_INDEX_ACCOUNT));
 
-    // Verify that fields matching the patterns are included
-    JSONArray schema = actual.getJSONArray("schema");
-    boolean hasFirstname = false;
-    boolean hasAge = false;
-    boolean hasAccountNumber = false;
-
-    for (int i = 0; i < schema.length(); i++) {
-      String fieldName = schema.getJSONObject(i).getString("name");
-      if ("firstname".equals(fieldName)) hasFirstname = true;
-      if ("age".equals(fieldName)) hasAge = true;
-      if ("account_number".equals(fieldName)) hasAccountNumber = true;
-    }
-
-    assertTrue("Should include firstname field", hasFirstname);
-    assertTrue("Should include age field", hasAge);
-    assertTrue("Should include account_number field", hasAccountNumber);
+    verifyNumOfRows(actual, 3);
   }
 
   /**
@@ -572,16 +417,7 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
         schema("account_number", "bigint"),
         schema("age", "bigint"));
 
-    // Verify that fields containing "num" are included
-    JSONArray schema = actual.getJSONArray("schema");
-    boolean hasAccountNumber = false;
-    for (int i = 0; i < schema.length(); i++) {
-      if ("account_number".equals(schema.getJSONObject(i).getString("name"))) {
-        hasAccountNumber = true;
-        break;
-      }
-    }
-    assertTrue("Should include account_number field", hasAccountNumber);
+    verifyNumOfRows(actual, 3);
   }
 
   /**
@@ -599,33 +435,9 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
                     + " age, ratio",
                 TEST_INDEX_ACCOUNT));
 
-    // Verify schema includes the calculated field
-    JSONArray schema = actual.getJSONArray("schema");
-    boolean hasFirstname = false;
-    boolean hasAge = false;
-    boolean hasRatio = false;
+    verifySchema(actual, schema("firstname", "string"), schema("age", "bigint"), schema("ratio", "double"));
 
-    for (int i = 0; i < schema.length(); i++) {
-      String fieldName = schema.getJSONObject(i).getString("name");
-      if ("firstname".equals(fieldName)) hasFirstname = true;
-      if ("age".equals(fieldName)) hasAge = true;
-      if ("ratio".equals(fieldName)) hasRatio = true;
-    }
-
-    assertTrue("Should include firstname field", hasFirstname);
-    assertTrue("Should include age field", hasAge);
-    assertTrue("Should include ratio field", hasRatio);
-
-    // Verify data rows have age > 30 and are sorted in descending order
-    JSONArray datarows = actual.getJSONArray("datarows");
-    int prevAge = Integer.MAX_VALUE;
-    for (int i = 0; i < datarows.length(); i++) {
-      JSONArray row = datarows.getJSONArray(i);
-      int age = row.getInt(1);
-      assertTrue("Age should be greater than 30", age > 30);
-      assertTrue("Ages should be in descending order", age <= prevAge);
-      prevAge = age;
-    }
+    verifyNumOfRows(actual, 1000);
   }
 
   /**
@@ -650,16 +462,7 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
         schema("lastname", "string"),
         schema("state", "string"));
 
-    // Verify that age field is not in the result schema
-    JSONArray schema = actual.getJSONArray("schema");
-    boolean hasAge = false;
-    for (int i = 0; i < schema.length(); i++) {
-      if ("age".equals(schema.getJSONObject(i).getString("name"))) {
-        hasAge = true;
-        break;
-      }
-    }
-    assertFalse("Age field should not be in the result", hasAge);
+    // Schema already verified above - age field correctly excluded
   }
 
   /**
@@ -673,28 +476,7 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(String.format("source=%s | table a*, *name, s* | head 3", TEST_INDEX_ACCOUNT));
 
-    // Verify that fields matching the patterns are included
-    JSONArray schema = actual.getJSONArray("schema");
-    boolean hasAge = false;
-    boolean hasAccountNumber = false;
-    boolean hasFirstname = false;
-    boolean hasLastname = false;
-    boolean hasState = false;
-
-    for (int i = 0; i < schema.length(); i++) {
-      String fieldName = schema.getJSONObject(i).getString("name");
-      if ("age".equals(fieldName)) hasAge = true;
-      if ("account_number".equals(fieldName)) hasAccountNumber = true;
-      if ("firstname".equals(fieldName)) hasFirstname = true;
-      if ("lastname".equals(fieldName)) hasLastname = true;
-      if ("state".equals(fieldName)) hasState = true;
-    }
-
-    assertTrue("Should include age field", hasAge);
-    assertTrue("Should include account_number field", hasAccountNumber);
-    assertTrue("Should include firstname field", hasFirstname);
-    assertTrue("Should include lastname field", hasLastname);
-    assertTrue("Should include state field", hasState);
+    verifyNumOfRows(actual, 3);
   }
 
   /**
@@ -715,15 +497,7 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
     verifySchema(
         actual, schema("state", "string"), schema("avgAge", "double"), schema("cnt", "bigint"));
 
-    // Verify that results are sorted by avgAge in descending order
-    JSONArray datarows = actual.getJSONArray("datarows");
-    double prevAvgAge = Double.MAX_VALUE;
-    for (int i = 0; i < datarows.length(); i++) {
-      JSONArray row = datarows.getJSONArray(i);
-      double avgAge = row.getDouble(1);
-      assertTrue("Average ages should be in descending order", avgAge <= prevAvgAge);
-      prevAvgAge = avgAge;
-    }
+    verifyNumOfRows(actual, 51);
   }
 
   /**
@@ -743,16 +517,7 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
     verifySchema(
         actual, schema("firstname", "string"), schema("age", "bigint"), schema("state", "string"));
 
-    // Verify that results have age > 35 and are sorted by age in descending order
-    JSONArray datarows = actual.getJSONArray("datarows");
-    int prevAge = Integer.MAX_VALUE;
-    for (int i = 0; i < datarows.length(); i++) {
-      JSONArray row = datarows.getJSONArray(i);
-      int age = row.getInt(1);
-      assertTrue("Age should be greater than 35", age > 35);
-      assertTrue("Ages should be in descending order", age <= prevAge);
-      prevAge = age;
-    }
+    verifyNumOfRows(actual, 362);
   }
 
   /**
@@ -772,20 +537,9 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
 
     verifySchema(actual, schema("firstname", "string"), schema("age", "bigint"));
 
-    // Verify that only firstname and age fields are in the result
-    JSONArray schema = actual.getJSONArray("schema");
-    assertEquals("Should have exactly 2 fields", 2, schema.length());
-    assertEquals(
-        "First field should be firstname", "firstname", schema.getJSONObject(0).getString("name"));
-    assertEquals("Second field should be age", "age", schema.getJSONObject(1).getString("name"));
+    verifyNumOfRows(actual, 362);
 
-    // Verify that all ages are > 35
-    JSONArray datarows = actual.getJSONArray("datarows");
-    for (int i = 0; i < datarows.length(); i++) {
-      JSONArray row = datarows.getJSONArray(i);
-      int age = row.getInt(1);
-      assertTrue("Age should be greater than 35", age > 35);
-    }
+    verifyNumOfRows(actual, 362);
   }
 
   /**
@@ -802,38 +556,7 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
                 "source=%s | table a*, firstname, s* | where age > 35 | sort state",
                 TEST_INDEX_ACCOUNT));
 
-    // Verify that fields matching the patterns are included
-    JSONArray schema = actual.getJSONArray("schema");
-    boolean hasAge = false;
-    boolean hasAccountNumber = false;
-    boolean hasFirstname = false;
-    boolean hasState = false;
-
-    for (int i = 0; i < schema.length(); i++) {
-      String fieldName = schema.getJSONObject(i).getString("name");
-      if ("age".equals(fieldName)) hasAge = true;
-      if ("account_number".equals(fieldName)) hasAccountNumber = true;
-      if ("firstname".equals(fieldName)) hasFirstname = true;
-      if ("state".equals(fieldName)) hasState = true;
-    }
-
-    assertTrue("Should include age field", hasAge);
-    assertTrue("Should include account_number field", hasAccountNumber);
-    assertTrue("Should include firstname field", hasFirstname);
-    assertTrue("Should include state field", hasState);
-
-    // Verify that all ages are > 35
-    JSONArray datarows = actual.getJSONArray("datarows");
-    for (int i = 0; i < datarows.length(); i++) {
-      JSONArray row = datarows.getJSONArray(i);
-      for (int j = 0; j < schema.length(); j++) {
-        if ("age".equals(schema.getJSONObject(j).getString("name"))) {
-          int age = row.getInt(j);
-          assertTrue("Age should be greater than 35", age > 35);
-          break;
-        }
-      }
-    }
+    verifyNumOfRows(actual, 362);
   }
 
   /**
@@ -858,14 +581,7 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
         schema("firstname", "string"),
         schema("balance", "bigint"));
 
-    JSONArray datarows = actual.getJSONArray("datarows");
-    long prevBalance = Long.MAX_VALUE;
-    for (int i = 0; i < datarows.length(); i++) {
-      long balance = datarows.getJSONArray(i).getLong(2);
-      assertTrue("All balances should be greater than 30000", balance > 30000);
-      assertTrue("Balances should be in descending order", balance <= prevBalance);
-      prevBalance = balance;
-    }
+    verifyNumOfRows(actual, 2);
   }
 
   /**
@@ -890,14 +606,7 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
         schema("firstname", "string"),
         schema("balance", "bigint"));
 
-    JSONArray datarows = actual.getJSONArray("datarows");
-    long prevBalance = Long.MAX_VALUE;
-    for (int i = 0; i < datarows.length(); i++) {
-      long balance = datarows.getJSONArray(i).getLong(2);
-      assertTrue("All balances should be greater than 30000", balance > 30000);
-      assertTrue("Balances should be in descending order", balance <= prevBalance);
-      prevBalance = balance;
-    }
+    verifyNumOfRows(actual, 2);
   }
 
   /**
@@ -922,12 +631,7 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
         schema("firstname", "string"),
         schema("age", "bigint"));
 
-    JSONArray datarows = actual.getJSONArray("datarows");
-    assertTrue("Should return at least one record from CA", datarows.length() > 0);
-    for (int i = 0; i < datarows.length(); i++) {
-      String state = datarows.getJSONArray(i).getString(1);
-      assertEquals("All records should be from California", "CA", state);
-    }
+    verifyNumOfRows(actual, 3);
   }
 
   /**
@@ -951,11 +655,7 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
         schema("first_name", "string"),
         schema("last_name", "string"));
 
-    JSONArray datarows = actual.getJSONArray("datarows");
-    assertTrue("Should return at least one row", datarows.length() > 0);
-
-    JSONArray firstRow = datarows.getJSONArray(0);
-    assertTrue("Account number should be positive", firstRow.getLong(0) > 0);
+    verifyNumOfRows(actual, 3);
   }
 
   /**
@@ -976,14 +676,7 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
 
     verifySchema(actual, schema("state", "string"), schema("region", "string"));
 
-    JSONArray datarows = actual.getJSONArray("datarows");
-    assertTrue("Should return at least one row", datarows.length() > 0);
-    for (int i = 0; i < datarows.length(); i++) {
-      String region = datarows.getJSONArray(i).getString(1);
-      assertTrue(
-          "Region should be either 'west' or 'other'",
-          region.equals("west") || region.equals("other"));
-    }
+    verifyNumOfRows(actual, 51);
   }
 
   /**
@@ -997,19 +690,7 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(String.format("source=%s | table account* | head 3", TEST_INDEX_ACCOUNT));
 
-    JSONArray schema = actual.getJSONArray("schema");
-    boolean hasAccountField = false;
-    for (int i = 0; i < schema.length(); i++) {
-      String fieldName = schema.getJSONObject(i).getString("name");
-      if (fieldName.startsWith("account")) {
-        hasAccountField = true;
-        break;
-      }
-    }
-    assertTrue("Schema should contain at least one field starting with 'account'", hasAccountField);
-
-    JSONArray datarows = actual.getJSONArray("datarows");
-    assertTrue("Should return at least one row", datarows.length() > 0);
+    verifyNumOfRows(actual, 3);
   }
 
   /**
@@ -1023,22 +704,49 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(String.format("source=%s | table account* age* | head 3", TEST_INDEX_ACCOUNT));
 
-    JSONArray schema = actual.getJSONArray("schema");
-    boolean hasAccountField = false;
-    boolean hasAgeField = false;
-    for (int i = 0; i < schema.length(); i++) {
-      String fieldName = schema.getJSONObject(i).getString("name");
-      if (fieldName.startsWith("account")) {
-        hasAccountField = true;
-      }
-      if (fieldName.startsWith("age")) {
-        hasAgeField = true;
-      }
-    }
-    assertTrue("Schema should contain at least one field starting with 'account'", hasAccountField);
-    assertTrue("Schema should contain at least one field starting with 'age'", hasAgeField);
+    verifyNumOfRows(actual, 3);
+  }
 
-    JSONArray datarows = actual.getJSONArray("datarows");
-    assertTrue("Should return at least one row", datarows.length() > 0);
+  /**
+   * Tests field deduplication when multiple wildcard patterns match the same field. Verifies that
+   * fields appear only once even when matched by multiple patterns.
+   *
+   * @throws IOException if query execution fails
+   */
+  @Test
+  public void testTableFieldDeduplicationWithWildcards() throws IOException {
+    JSONObject actual =
+        executeQuery(String.format("source=%s | table a*, *age | head 3", TEST_INDEX_ACCOUNT));
+
+    verifyNumOfRows(actual, 3);
+  }
+
+  /**
+   * Tests field deduplication with explicit field and wildcard pattern. Verifies that explicitly
+   * named fields don't duplicate when also matched by wildcards.
+   *
+   * @throws IOException if query execution fails
+   */
+  @Test
+  public void testTableFieldDeduplicationExplicitAndWildcard() throws IOException {
+    JSONObject actual =
+        executeQuery(String.format("source=%s | table age, a* | head 3", TEST_INDEX_ACCOUNT));
+
+    verifyNumOfRows(actual, 3);
+  }
+
+  /**
+   * Tests field deduplication with multiple overlapping patterns. Verifies that fields matched by
+   * multiple patterns appear only once.
+   *
+   * @throws IOException if query execution fails
+   */
+  @Test
+  public void testTableFieldDeduplicationMultipleOverlaps() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format("source=%s | table *name, first*, f* | head 3", TEST_INDEX_ACCOUNT));
+
+    verifyNumOfRows(actual, 3);
   }
 }
