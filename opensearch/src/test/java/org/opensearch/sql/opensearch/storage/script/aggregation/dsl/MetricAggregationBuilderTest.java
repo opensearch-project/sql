@@ -44,7 +44,7 @@ import org.opensearch.sql.expression.aggregation.PercentileApproximateAggregator
 import org.opensearch.sql.expression.aggregation.SumAggregator;
 import org.opensearch.sql.expression.aggregation.TakeAggregator;
 import org.opensearch.sql.expression.function.FunctionName;
-import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
+import org.opensearch.sql.opensearch.storage.serde.ExpressionSerializer;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)

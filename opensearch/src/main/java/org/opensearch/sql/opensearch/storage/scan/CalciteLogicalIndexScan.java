@@ -25,7 +25,6 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.hint.RelHint;
-import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -35,7 +34,6 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.common.setting.Settings;
@@ -110,21 +108,27 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
 
   public AbstractRelNode pushDownFilter(Filter filter) {
     try {
-      List<String> schema = this.getRowType().getFieldNames();
-      Map<String, ExprType> filedTypes = this.osIndex.getFieldTypes();
-      QueryExpression queryExpression =
-          PredicateAnalyzer.analyze_(filter.getCondition(), schema, filedTypes);
-      QueryBuilder queryBuilder = queryExpression.builder();
+      RelDataType rowType = filter.getRowType();
       CalciteLogicalIndexScan newScan = this.copyWithNewSchema(filter.getRowType());
+      List<String> schema = this.getRowType().getFieldNames();
+      Map<String, ExprType> fieldTypes =
+          this.osIndex.getFieldTypes().entrySet().stream()
+              .filter(entry -> schema.contains(entry.getKey()))
+              .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+      QueryExpression queryExpression =
+          PredicateAnalyzer.analyzeExpression(
+              filter.getCondition(), schema, fieldTypes, rowType, getCluster());
       // TODO: handle the case where condition contains a score function
       newScan.pushDownContext.add(
           new PushDownAction(
-              PushDownType.FILTER,
+              QueryExpression.containsScript(queryExpression)
+                  ? PushDownType.SCRIPT
+                  : PushDownType.FILTER,
               queryExpression.isPartial()
                   ? constructCondition(
                       queryExpression.getAnalyzedNodes(), getCluster().getRexBuilder())
                   : filter.getCondition(),
-              requestBuilder -> requestBuilder.pushDownFilter(queryBuilder)));
+              requestBuilder -> requestBuilder.pushDownFilter(queryExpression.builder())));
 
       // If the query expression is partial, we need to replace the input of the filter with the
       // partial pushed scan and the filter condition with non-pushed-down conditions.

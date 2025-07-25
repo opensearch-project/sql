@@ -56,7 +56,7 @@ import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
-import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
+import org.opensearch.sql.opensearch.storage.serde.ExpressionSerializer;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
@@ -182,8 +182,9 @@ class FilterQueryBuilderTest {
         "{\n"
             + "  \"script\" : {\n"
             + "    \"script\" : {\n"
-            + "      \"source\" : \"is not null(age)\",\n"
-            + "      \"lang\" : \"opensearch_query_expression\"\n"
+            + "      \"source\" : \"{\\\"langType\\\":\\\"v2\\\",\\\"script\\\":\\\"is not"
+            + " null(age)\\\"}\",\n"
+            + "      \"lang\" : \"opensearch_compounded_script\"\n"
             + "    },\n"
             + "    \"boost\" : 1.0\n"
             + "  }\n"
@@ -198,8 +199,9 @@ class FilterQueryBuilderTest {
         "{\n"
             + "  \"script\" : {\n"
             + "    \"script\" : {\n"
-            + "      \"source\" : \"=(abs(age), 30)\",\n"
-            + "      \"lang\" : \"opensearch_query_expression\"\n"
+            + "      \"source\" : \"{\\\"langType\\\":\\\"v2\\\",\\\"script\\\":\\\"=(abs(age),"
+            + " 30)\\\"}\",\n"
+            + "      \"lang\" : \"opensearch_compounded_script\"\n"
             + "    },\n"
             + "    \"boost\" : 1.0\n"
             + "  }\n"
@@ -214,8 +216,9 @@ class FilterQueryBuilderTest {
         "{\n"
             + "  \"script\" : {\n"
             + "    \"script\" : {\n"
-            + "      \"source\" : \"=(age1, age2)\",\n"
-            + "      \"lang\" : \"opensearch_query_expression\"\n"
+            + "      \"source\" : \"{\\\"langType\\\":\\\"v2\\\",\\\"script\\\":\\\"=(age1,"
+            + " age2)\\\"}\",\n"
+            + "      \"lang\" : \"opensearch_compounded_script\"\n"
             + "    },\n"
             + "    \"boost\" : 1.0\n"
             + "  }\n"
@@ -1919,8 +1922,9 @@ class FilterQueryBuilderTest {
         "{\n"
             + "  \"script\" : {\n"
             + "    \"script\" : {\n"
-            + "      \"source\" : \"=(string_value, cast_to_string(+(1, 0)))\",\n"
-            + "      \"lang\" : \"opensearch_query_expression\"\n"
+            + "      \"source\" : \"{\\\"langType\\\":\\\"v2\\\",\\\"script\\\":\\\"=(string_value,"
+            + " cast_to_string(+(1, 0)))\\\"}\",\n"
+            + "      \"lang\" : \"opensearch_compounded_script\"\n"
             + "    },\n"
             + "    \"boost\" : 1.0\n"
             + "  }\n"
@@ -1937,8 +1941,10 @@ class FilterQueryBuilderTest {
         "{\n"
             + "  \"script\" : {\n"
             + "    \"script\" : {\n"
-            + "      \"source\" : \"=(integer_value, abs(+(1, 0)))\",\n"
-            + "      \"lang\" : \"opensearch_query_expression\"\n"
+            + "      \"source\" :"
+            + " \"{\\\"langType\\\":\\\"v2\\\",\\\"script\\\":\\\"=(integer_value, abs(+(1,"
+            + " 0)))\\\"}\",\n"
+            + "      \"lang\" : \"opensearch_compounded_script\"\n"
             + "    },\n"
             + "    \"boost\" : 1.0\n"
             + "  }\n"
