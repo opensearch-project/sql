@@ -94,6 +94,7 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.ReferenceFieldVisitor;
 import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.UnsupportedScriptException;
 import org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.ScriptEngineType;
+import org.opensearch.sql.opensearch.storage.script.StringUtils;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchBoolPrefixQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchPhrasePrefixQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchPhraseQuery;
@@ -1138,10 +1139,24 @@ public class PredicateAnalyzer {
       return this;
     }
 
+    /*
+     * Prefer to run wildcard query for keyword type field. For text type field, it doesn't support
+     * cross term match because OpenSearch internally break text to multiple terms and apply wildcard
+     * matching one by one, which is not same behavior with regular like function without pushdown.
+     */
     @Override
     public QueryExpression like(LiteralExpression literal) {
-      builder = wildcardQuery(getFieldReference(), literal.stringValue());
-      return this;
+      String fieldName = getFieldReference();
+      String keywordField = OpenSearchTextType.toKeywordSubField(fieldName, this.rel.getExprType());
+      boolean isKeywordField = keywordField != null;
+      if (isKeywordField) {
+        builder =
+            wildcardQuery(
+                    keywordField, StringUtils.convertSqlWildcardToLucene(literal.stringValue()))
+                .caseInsensitive(true);
+        return this;
+      }
+      throw new UnsupportedOperationException("Like query is not supported for text field");
     }
 
     @Override

@@ -62,9 +62,9 @@ public class LikeQueryIT extends PPLIntegTestCase {
   @Test
   public void test_like_on_text_field_with_one_word() throws IOException {
     String query =
-        "source=" + TEST_INDEX_WILDCARD + " | WHERE Like(TextBody, 'test*') | fields TextBody";
+        "source=" + TEST_INDEX_WILDCARD + " | WHERE Like(TextBody, 'test%') | fields TextBody";
     JSONObject result = executeQuery(query);
-    assertEquals(9, result.getInt("total"));
+    assertEquals(8, result.getInt("total"));
   }
 
   @Test
