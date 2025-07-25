@@ -24,6 +24,9 @@ reverse
 
 * No parameters: The reverse command takes no arguments or options.
 
+Note
+=====
+The `reverse` command processes the entire dataset. If applied directly to millions of records, it will consume significant memory resources on the coordinating node. Users should only apply the `reverse` command to smaller datasets, typically after aggregation operations.
 
 Example 1: Basic reverse operation
 ==================================
