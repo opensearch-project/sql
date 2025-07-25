@@ -1455,6 +1455,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<String> availableFields = context.relBuilder.peek().getRowType().getFieldNames();
     List<RexNode> projectList = new ArrayList<>(); // List to store field references
     List<String> explicitFieldNames = new ArrayList<>(); // List to store output field names
+    Set<String> seenFields = new HashSet<>(); // Track fields to avoid duplicates
 
     // Process each expression in the projection list
     for (UnresolvedExpression expr : node.getProjectList()) {
@@ -1464,14 +1465,20 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         // Handle wildcard patterns (e.g., "log.*" or "*")
         List<String> matchedFields = expandWildcard(fieldName, availableFields);
         for (String matchedField : matchedFields) {
-          // Add each matched field to the projection list
-          projectList.add(context.relBuilder.field(matchedField));
-          explicitFieldNames.add(matchedField);
+          if (!seenFields.contains(matchedField)) {
+            // Add each matched field to the projection list only if not already seen
+            projectList.add(context.relBuilder.field(matchedField));
+            explicitFieldNames.add(matchedField);
+            seenFields.add(matchedField);
+          }
         }
       } else {
-        // Handle regular field reference
-        projectList.add(rexVisitor.analyze(expr, context));
-        explicitFieldNames.add(fieldName);
+        if (!seenFields.contains(fieldName)) {
+          // Handle regular field reference only if not already seen
+          projectList.add(rexVisitor.analyze(expr, context));
+          explicitFieldNames.add(fieldName);
+          seenFields.add(fieldName);
+        }
       }
     }
 

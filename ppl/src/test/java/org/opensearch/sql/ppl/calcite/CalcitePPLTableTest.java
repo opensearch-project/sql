@@ -286,7 +286,7 @@ public class CalcitePPLTableTest extends CalcitePPLAbstractTest {
 
   /**
    * Tests the interaction between field renaming and wildcard patterns. Verifies that renamed
-   * fields are correctly handled with wildcards.
+   * fields are correctly handled with wildcards and duplicates are removed.
    */
   @Test
   public void testTableWithRenameAndWildcard() {
@@ -294,13 +294,12 @@ public class CalcitePPLTableTest extends CalcitePPLAbstractTest {
         "source=EMP | rename EMPNO as emp_id, ENAME as emp_name | table emp_id, emp_name, emp*";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(emp_id=[$0], emp_name=[$1], emp_id0=[$0], emp_name0=[$1])\n"
+        "LogicalProject(emp_id=[$0], emp_name=[$1])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO` `emp_id`, `ENAME` `emp_name`, `EMPNO` `emp_id0`, `ENAME` `emp_name0`\n"
-            + "FROM `scott`.`EMP`";
+        "SELECT `EMPNO` `emp_id`, `ENAME` `emp_name`\n" + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -338,19 +337,19 @@ public class CalcitePPLTableTest extends CalcitePPLAbstractTest {
 
   /**
    * Tests complex wildcard patterns that match characters in the middle of field names. Verifies
-   * that fields containing 'E' are correctly selected.
+   * that fields containing 'E' are correctly selected and duplicates are removed.
    */
   @Test
   public void testTableWithWildcardPattern() {
     String ppl = "source=EMP | table ENAME, *E*";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(ENAME=[$1], DEPTNO=[$7], EMPNO=[$0], ENAME0=[$1], HIREDATE=[$4])\n"
+        "LogicalProject(ENAME=[$1], DEPTNO=[$7], EMPNO=[$0], HIREDATE=[$4])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, `DEPTNO`, `EMPNO`, `ENAME` `ENAME0`, `HIREDATE`\n" + "FROM `scott`.`EMP`";
+        "SELECT `ENAME`, `DEPTNO`, `EMPNO`, `HIREDATE`\n" + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -407,19 +406,18 @@ public class CalcitePPLTableTest extends CalcitePPLAbstractTest {
 
   /**
    * Tests multiple wildcard patterns in field selection. This test specifically focuses on using
-   * multiple different wildcard patterns in a single query.
+   * multiple different wildcard patterns in a single query with deduplication.
    */
   @Test
   public void testTableWithMultipleWildcardPatterns() {
     String ppl = "source=EMP | table ENAME, E*, D*";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(ENAME=[$1], EMPNO=[$0], ENAME0=[$1], DEPTNO=[$7])\n"
+        "LogicalProject(ENAME=[$1], EMPNO=[$0], DEPTNO=[$7])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
-    String expectedSparkSql =
-        "SELECT `ENAME`, `EMPNO`, `ENAME` `ENAME0`, `DEPTNO`\n" + "FROM `scott`.`EMP`";
+    String expectedSparkSql = "SELECT `ENAME`, `EMPNO`, `DEPTNO`\n" + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -458,19 +456,18 @@ public class CalcitePPLTableTest extends CalcitePPLAbstractTest {
 
   /**
    * Tests space-delimited syntax with multiple wildcard patterns. Verifies that multiple wildcard
-   * patterns work correctly with space-delimited syntax.
+   * patterns work correctly with space-delimited syntax and duplicates are removed.
    */
   @Test
   public void testTableSpaceDelimitedMultipleWildcards() {
     String ppl = "source=EMP | table ENAME E* D*";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(ENAME=[$1], EMPNO=[$0], ENAME0=[$1], DEPTNO=[$7])\n"
+        "LogicalProject(ENAME=[$1], EMPNO=[$0], DEPTNO=[$7])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
-    String expectedSparkSql =
-        "SELECT `ENAME`, `EMPNO`, `ENAME` `ENAME0`, `DEPTNO`\n" + "FROM `scott`.`EMP`";
+    String expectedSparkSql = "SELECT `ENAME`, `EMPNO`, `DEPTNO`\n" + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -734,6 +731,54 @@ public class CalcitePPLTableTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`) `t`\n"
             + "WHERE `SAL` > 2000\n"
             + "ORDER BY `DEPTNO`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  /**
+   * Tests field deduplication when multiple wildcard patterns match the same field. Verifies that
+   * EMPNO appears only once even though both EMP* and *NO patterns match it.
+   */
+  @Test
+  public void testTableFieldDeduplicationWithWildcards() {
+    String ppl = "source=EMP | table EMP*, *NO";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], DEPTNO=[$7])\n" + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql = "SELECT `EMPNO`, `DEPTNO`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  /**
+   * Tests field deduplication with explicit field and wildcard pattern. Verifies that EMPNO appears
+   * only once when explicitly listed and also matched by wildcard.
+   */
+  @Test
+  public void testTableFieldDeduplicationExplicitAndWildcard() {
+    String ppl = "source=EMP | table EMPNO, EMP*";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0])\n" + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql = "SELECT `EMPNO`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  /**
+   * Tests field deduplication with multiple overlapping patterns. Verifies that ENAME appears only
+   * once despite being matched by multiple patterns.
+   */
+  @Test
+  public void testTableFieldDeduplicationMultipleOverlaps() {
+    String ppl = "source=EMP | table E*, *NAME, EN*";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1])\n" + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql = "SELECT `EMPNO`, `ENAME`\n" + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }
