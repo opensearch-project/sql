@@ -327,7 +327,8 @@ public class PredicateAnalyzer {
         case SPECIAL:
           return switch (call.getKind()) {
             case CAST -> toCastExpression(call);
-            case LIKE, CONTAINS -> binary(call);
+            case CONTAINS -> binary(call);
+            case LIKE -> like(call);
             default -> {
               String message = format(Locale.ROOT, "Unsupported call: [%s]", call);
               throw new PredicateAnalyzerException(message);
@@ -535,8 +536,6 @@ public class PredicateAnalyzer {
       switch (call.getKind()) {
         case CONTAINS:
           return QueryExpression.create(pair.getKey()).contains(pair.getValue());
-        case LIKE:
-          return QueryExpression.create(pair.getKey()).like(pair.getValue());
         case EQUALS:
           return QueryExpression.create(pair.getKey()).equals(pair.getValue());
         case NOT_EQUALS:
@@ -580,6 +579,16 @@ public class PredicateAnalyzer {
       }
       String message = format(Locale.ROOT, "Unable to handle call: [%s]", call);
       throw new PredicateAnalyzerException(message);
+    }
+
+    private QueryExpression like(RexCall call) {
+      // The third default escape is not used here. It's handled by
+      // StringUtils.convertSqlWildcardToLucene
+      checkState(call.getOperands().size() == 3);
+      final Expression a = call.getOperands().get(0).accept(this);
+      final Expression b = call.getOperands().get(1).accept(this);
+      final SwapResult pair = swap(a, b);
+      return QueryExpression.create(pair.getKey()).like(pair.getValue());
     }
 
     private static QueryExpression constructQueryExpressionForSearch(

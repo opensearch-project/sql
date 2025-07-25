@@ -117,9 +117,9 @@ public class LikeQueryIT extends SQLIntegTestCase {
 
   @Test
   public void test_like_on_text_field_with_one_word() throws IOException {
-    String query = "SELECT * FROM " + TEST_INDEX_WILDCARD + " WHERE TextBody LIKE 'test*'";
+    String query = "SELECT * FROM " + TEST_INDEX_WILDCARD + " WHERE TextBody LIKE 'test%'";
     JSONObject result = executeJdbcRequest(query);
-    assertEquals(9, result.getInt("total"));
+    assertEquals(8, result.getInt("total"));
   }
 
   @Test

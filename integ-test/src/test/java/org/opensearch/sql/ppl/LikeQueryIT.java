@@ -72,7 +72,7 @@ public class LikeQueryIT extends PPLIntegTestCase {
     String query =
         "source="
             + TEST_INDEX_WILDCARD
-            + " | WHERE Like(TextKeywordBody, 'test*') | fields TextKeywordBody";
+            + " | WHERE Like(TextKeywordBody, 'test%') | fields TextKeywordBody";
     JSONObject result = executeQuery(query);
     assertEquals(8, result.getInt("total"));
   }
@@ -82,7 +82,7 @@ public class LikeQueryIT extends PPLIntegTestCase {
     String query =
         "source="
             + TEST_INDEX_WILDCARD
-            + " | WHERE Like(TextKeywordBody, 'test wild*') | fields TextKeywordBody";
+            + " | WHERE Like(TextKeywordBody, 'test wild%') | fields TextKeywordBody";
     JSONObject result = executeQuery(query);
     assertEquals(7, result.getInt("total"));
   }
@@ -90,9 +90,9 @@ public class LikeQueryIT extends PPLIntegTestCase {
   @Test
   public void test_like_on_text_field_with_greater_than_one_word() throws IOException {
     String query =
-        "source=" + TEST_INDEX_WILDCARD + " | WHERE Like(TextBody, 'test wild*') | fields TextBody";
+        "source=" + TEST_INDEX_WILDCARD + " | WHERE Like(TextBody, 'test wild%') | fields TextBody";
     JSONObject result = executeQuery(query);
-    assertEquals(0, result.getInt("total"));
+    assertEquals(7, result.getInt("total"));
   }
 
   @Test

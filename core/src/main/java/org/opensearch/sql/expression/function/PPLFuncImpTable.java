@@ -713,7 +713,6 @@ public class PPLFuncImpTable {
       registerOperator(REGEXP, SqlLibraryOperators.REGEXP);
       registerOperator(CONCAT, SqlLibraryOperators.CONCAT_FUNCTION);
       registerOperator(CONCAT_WS, SqlLibraryOperators.CONCAT_WS);
-      registerOperator(LIKE, SqlLibraryOperators.ILIKE);
       registerOperator(CONCAT_WS, SqlLibraryOperators.CONCAT_WS);
       registerOperator(REVERSE, SqlLibraryOperators.REVERSE);
       registerOperator(RIGHT, SqlLibraryOperators.RIGHT);
@@ -992,6 +991,18 @@ public class PPLFuncImpTable {
                               builder.makeLiteral(" "),
                               arg))),
               PPLTypeChecker.family(SqlTypeFamily.ANY)));
+      register(
+          LIKE,
+          createFunctionImpWithTypeChecker(
+              (builder, arg1, arg2) ->
+                  builder.makeCall(
+                      SqlLibraryOperators.ILIKE,
+                      arg1,
+                      arg2,
+                      // TODO: Figure out escaping solution. '\\' is used for JSON input but is not
+                      // necessary for SQL function input
+                      builder.makeLiteral("\\")),
+              PPLTypeChecker.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING)));
     }
   }
 

@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import java.io.IOException;
+import org.junit.Test;
 import org.opensearch.sql.ppl.LikeQueryIT;
 
 public class CalciteLikeQueryIT extends LikeQueryIT {
@@ -13,5 +15,14 @@ public class CalciteLikeQueryIT extends LikeQueryIT {
     super.init();
     enableCalcite();
     disallowCalciteFallback();
+  }
+
+  @Override
+  @Test
+  public void test_convert_field_text_to_keyword() throws IOException {
+    // This test case is not applied to no pushdown case
+    if (isPushdownEnabled()) {
+      super.test_convert_field_text_to_keyword();
+    }
   }
 }
