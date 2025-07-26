@@ -9,6 +9,7 @@ import java.util.Map;
 import lombok.EqualsAndHashCode;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.rel.type.RelDataType;
 import org.opensearch.script.FilterScript;
 import org.opensearch.search.lookup.SearchLookup;
 
@@ -19,7 +20,7 @@ public class CalciteFilterScriptFactory implements FilterScript.Factory {
   /** Generated code of calcite to execute. */
   private final Function1<DataContext, Object[]> function;
 
-  public CalciteFilterScriptFactory(Function1<DataContext, Object[]> function) {
+  public CalciteFilterScriptFactory(Function1<DataContext, Object[]> function, RelDataType type) {
     this.function = function;
   }
 

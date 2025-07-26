@@ -1344,18 +1344,21 @@ public class PredicateAnalyzer {
 
     @Override
     public QueryBuilder builder() {
+      return new ScriptQueryBuilder(getScript());
+    }
+
+    public Script getScript() {
       long currentTime = Hook.CURRENT_TIME.get(-1L);
       if (currentTime < 0) {
         throw new UnsupportedScriptException(
             "ScriptQueryExpression requires a valid current time from hook, but it is not set");
       }
-      return new ScriptQueryBuilder(
-          new Script(
-              DEFAULT_SCRIPT_TYPE,
-              COMPOUNDED_LANG_NAME,
-              code,
-              Collections.emptyMap(),
-              Map.of(Variable.UTC_TIMESTAMP.camelName, currentTime)));
+      return new Script(
+          DEFAULT_SCRIPT_TYPE,
+          COMPOUNDED_LANG_NAME,
+          code,
+          Collections.emptyMap(),
+          Map.of(Variable.UTC_TIMESTAMP.camelName, currentTime));
     }
 
     @Override
@@ -1371,138 +1374,6 @@ public class PredicateAnalyzer {
     @Override
     public List<RexNode> getUnAnalyzableNodes() {
       return List.of();
-    }
-
-    @Override
-    public QueryExpression exists() {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['exists'] " + "cannot be applied to a script expression");
-    }
-
-    @Override
-    public QueryExpression contains(LiteralExpression literal) {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['contains'] " + "cannot be applied to a script expression");
-    }
-
-    @Override
-    public QueryExpression not() {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['not'] " + "cannot be applied to a script expression");
-    }
-
-    @Override
-    public QueryExpression notExists() {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['notExists'] " + "cannot be applied to a script expression");
-    }
-
-    @Override
-    public QueryExpression like(LiteralExpression literal) {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['like'] " + "cannot be applied to a script expression");
-    }
-
-    @Override
-    public QueryExpression notLike(LiteralExpression literal) {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['notLike'] " + "cannot be applied to a script expression");
-    }
-
-    @Override
-    public QueryExpression equals(LiteralExpression literal) {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['='] " + "cannot be applied to a script expression");
-    }
-
-    @Override
-    public QueryExpression notEquals(LiteralExpression literal) {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['not'] " + "cannot be applied to a script expression");
-    }
-
-    @Override
-    public QueryExpression gt(LiteralExpression literal) {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['>'] " + "cannot be applied to a script expression");
-    }
-
-    @Override
-    public QueryExpression gte(LiteralExpression literal) {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['>='] " + "cannot be applied to a script expression");
-    }
-
-    @Override
-    public QueryExpression lt(LiteralExpression literal) {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['<'] " + "cannot be applied to a script expression");
-    }
-
-    @Override
-    public QueryExpression lte(LiteralExpression literal) {
-      throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['<='] " + "cannot be applied to a script expression");
-    }
-
-    @Override
-    public QueryExpression match(String query, Map<String, String> optionalArguments) {
-      throw new PredicateAnalyzerException(
-          "Match query " + "cannot be applied to a script expression");
-    }
-
-    @Override
-    public QueryExpression matchPhrase(String query, Map<String, String> optionalArguments) {
-      throw new PredicateAnalyzerException(
-          "MatchPhrase query " + "cannot be applied to a script expression");
-    }
-
-    @Override
-    public QueryExpression matchBoolPrefix(String query, Map<String, String> optionalArguments) {
-      throw new PredicateAnalyzerException(
-          "MatchBoolPrefix query " + "cannot be applied to a script expression");
-    }
-
-    @Override
-    public QueryExpression matchPhrasePrefix(String query, Map<String, String> optionalArguments) {
-      throw new PredicateAnalyzerException(
-          "MatchPhrasePrefix query " + "cannot be applied to a script expression");
-    }
-
-    @Override
-    public QueryExpression simpleQueryString(
-        RexCall fieldsRexCall, String query, Map<String, String> optionalArguments) {
-      throw new PredicateAnalyzerException(
-          "SimpleQueryString query " + "cannot be applied to a script expression");
-    }
-
-    @Override
-    public QueryExpression queryString(
-        RexCall fieldsRexCall, String query, Map<String, String> optionalArguments) {
-      throw new PredicateAnalyzerException(
-          "QueryString query " + "cannot be applied to a script expression");
-    }
-
-    @Override
-    public QueryExpression multiMatch(
-        RexCall fieldsRexCall, String query, Map<String, String> optionalArguments) {
-      throw new PredicateAnalyzerException(
-          "MultiMatch query " + "cannot be applied to a script expression");
-    }
-
-    @Override
-    public QueryExpression isTrue() {
-      throw new PredicateAnalyzerException("isTrue cannot be applied to a script expression");
-    }
-
-    @Override
-    public QueryExpression in(LiteralExpression literal) {
-      throw new PredicateAnalyzerException("in cannot be applied to a script expression");
-    }
-
-    @Override
-    public QueryExpression notIn(LiteralExpression literal) {
-      throw new PredicateAnalyzerException("notIn cannot be applied to a script expression");
     }
   }
 
