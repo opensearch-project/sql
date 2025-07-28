@@ -12,6 +12,7 @@ import com.google.common.base.Suppliers;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexImpTable;
@@ -109,12 +110,19 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
 
   // IP comparing functions
   public static final SqlOperator NOT_EQUALS_IP =
-      CompareIpFunction.notEquals().toUDF("NOT_EQUALS_IP");
-  public static final SqlOperator EQUALS_IP = CompareIpFunction.equals().toUDF("EQUALS_IP");
-  public static final SqlOperator GREATER_IP = CompareIpFunction.greater().toUDF("GREATER_IP");
-  public static final SqlOperator GTE_IP = CompareIpFunction.greaterOrEquals().toUDF("GTE_IP");
-  public static final SqlOperator LESS_IP = CompareIpFunction.less().toUDF("LESS_IP");
-  public static final SqlOperator LTE_IP = CompareIpFunction.lessOrEquals().toUDF("LTE_IP");
+      CompareIpFunction.notEquals()
+          .withReverse(lookupOperator("NOT_EQUALS_IP"))
+          .toUDF("NOT_EQUALS_IP");
+  public static final SqlOperator EQUALS_IP =
+      CompareIpFunction.equals().withReverse(lookupOperator("EQUALS_IP")).toUDF("EQUALS_IP");
+  public static final SqlOperator GREATER_IP =
+      CompareIpFunction.greater().withReverse(lookupOperator("LESS_IP")).toUDF("GREATER_IP");
+  public static final SqlOperator GTE_IP =
+      CompareIpFunction.greaterOrEquals().withReverse(lookupOperator("LTE_IP")).toUDF("GTE_IP");
+  public static final SqlOperator LESS_IP =
+      CompareIpFunction.less().withReverse(lookupOperator("GREATER_IP")).toUDF("LESS_IP");
+  public static final SqlOperator LTE_IP =
+      CompareIpFunction.lessOrEquals().withReverse(lookupOperator("GTE_IP")).toUDF("LTE_IP");
 
   // Condition function
   public static final SqlOperator EARLIEST = new EarliestFunction().toUDF("EARLIEST");
@@ -381,5 +389,13 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
                 "implementSafe", RexToLixTranslator.class, RexCall.class, List.class);
     method.setAccessible(true);
     return (Expression) method.invoke(rexCallImplementor, translator, call, List.of(field));
+  }
+
+  private static Supplier<SqlOperator> lookupOperator(String name) {
+    return () -> {
+      AtomicReference<SqlOperator> ref = new AtomicReference<>();
+      INSTANCE.get().lookUpOperators(name, false, ref::set);
+      return ref.get();
+    };
   }
 }

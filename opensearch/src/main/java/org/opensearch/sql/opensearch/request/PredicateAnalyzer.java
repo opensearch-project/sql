@@ -84,8 +84,10 @@ import org.opensearch.index.query.RangeQueryBuilder;
 import org.opensearch.index.query.ScriptQueryBuilder;
 import org.opensearch.script.Script;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
+import org.opensearch.sql.calcite.type.ExprIPType;
 import org.opensearch.sql.calcite.type.ExprSqlType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
+import org.opensearch.sql.data.model.ExprIpValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -335,6 +337,8 @@ public class PredicateAnalyzer {
             }
           };
         case FUNCTION:
+          if (call.getOperator().getName().equalsIgnoreCase("IP")) {}
+
           return visitRelevanceFunc(call);
         default:
           String message =
@@ -1348,6 +1352,11 @@ public class PredicateAnalyzer {
     // https://github.com/opensearch-project/sql/pull/3442
   }
 
+  private static String ipValueForPushDown(String value) {
+    ExprIpValue exprIpValue = new ExprIpValue(value);
+    return exprIpValue.value();
+  }
+
   public static class ScriptQueryExpression extends QueryExpression {
     private final String code;
     private RexNode analyzedNode;
@@ -1539,6 +1548,8 @@ public class PredicateAnalyzer {
         return timestampValueForPushDown(RexLiteral.stringValue(literal));
       } else if (isString()) {
         return RexLiteral.stringValue(literal);
+      } else if (isIp()) {
+        return ipValueForPushDown(RexLiteral.stringValue(literal));
       } else {
         return rawValue();
       }
@@ -1573,6 +1584,10 @@ public class PredicateAnalyzer {
         return exprSqlType.getUdt() == ExprUDT.EXPR_TIMESTAMP;
       }
       return false;
+    }
+
+    public boolean isIp() {
+      return literal.getType() instanceof ExprIPType;
     }
 
     long longValue() {

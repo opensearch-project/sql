@@ -54,6 +54,7 @@ public class UserDefinedFunctionUtils {
       TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, true);
   public static final RelDataType NULLABLE_STRING =
       TYPE_FACTORY.createTypeWithNullability(TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR), true);
+  public static final RelDataType NULLABLE_IP_UDT = TYPE_FACTORY.createUDT(EXPR_IP, true);
 
   public static RelDataType nullablePatternAggList =
       createArrayType(
