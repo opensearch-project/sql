@@ -8,8 +8,10 @@ package org.opensearch.sql.calcite;
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
+import java.util.Locale;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
@@ -21,6 +23,18 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.opensearch.sql.ast.expression.SpanUnit;
+import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
+import org.opensearch.sql.calcite.type.ExprSqlType;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_DATE;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_IP;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIME;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIMESTAMP;
 
 public class ExtendedRexBuilder extends RexBuilder {
 
@@ -119,7 +133,35 @@ public class ExtendedRexBuilder extends RexBuilder {
         //            SqlStdOperatorTable.NOT_EQUALS,
         //            ImmutableList.of(exp, makeZeroLiteral(exp.getType())));
       }
-    }
+    } else if (OpenSearchTypeFactory.isUserDefinedType(type)) {
+      var udt = ((AbstractExprRelDataType<?>) type).getUdt();
+      var argExprType = OpenSearchTypeFactory.convertRelDataTypeToExprType(exp.getType());
+      switch (udt) {
+          case EXPR_DATE:
+              return makeCall(type, PPLBuiltinOperators.DATE, List.of(exp));
+          case EXPR_TIME:
+              return makeCall(type, PPLBuiltinOperators.TIME, List.of(exp));
+          case EXPR_TIMESTAMP:
+              return makeCall(type, PPLBuiltinOperators.TIMESTAMP, List.of(exp));
+          case EXPR_IP:
+              if (argExprType == ExprCoreType.IP) {
+                  return exp;
+              } else if (argExprType == ExprCoreType.STRING) {
+                  return makeCall(type, PPLBuiltinOperators.IP, List.of(exp));
+              }
+              // Throwing error inside implementation will be suppressed by Calcite, thus
+              // throwing 500 error. Therefore, we throw error here to ensure the error
+              // information is displayed properly.
+              throw new ExpressionEvaluationException(
+                      String.format(
+                              Locale.ROOT,
+                              "Cannot convert %s to IP, only STRING and IP types are supported",
+                              argExprType));
+          default:
+            throw new SemanticCheckException(
+                    String.format(Locale.ROOT, "Cannot cast from %s to %s", argExprType, udt.name()));
+                }
+      }
     return super.makeCast(pos, type, exp, matchNullability, safe, format);
   }
 }
