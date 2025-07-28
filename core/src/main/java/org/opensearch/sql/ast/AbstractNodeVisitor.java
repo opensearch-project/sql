@@ -116,8 +116,8 @@ public abstract class AbstractNodeVisitor<T, C> {
   /**
    * Visit a Table node in the AST.
    *
-   * <p>This method processes a Table node which represents a table operation in SQL queries.
-   * Table nodes can have child nodes representing the source data for the operation.
+   * <p>This method processes a Table node which represents a table operation in SQL queries. Table
+   * nodes can have child nodes representing the source data for the operation.
    *
    * @param node The Table node to visit
    * @param context The context object that carries information throughout the visitor pattern
