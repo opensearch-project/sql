@@ -49,6 +49,43 @@ Field Renaming
 The ``table`` command returns fields with their original names and does not support field renaming within the command itself. To rename fields, use the ``rename`` command before ``table``.
 
 
+Comparison with fields Command
+==============================
+
+The ``table`` and ``fields`` commands are both used for field selection but have key differences:
+
+**Similarities:**
+
+* Both commands filter search results to include specific fields
+* Both support comma-delimited and space-delimited field lists
+* Both support wildcard patterns for field selection
+* Both can be used to reduce result set size for better performance
+
+**Differences:**
+
++------------------+------------------------+------------------------+
+| Aspect           | table                  | fields                 |
++==================+========================+========================+
+| **Syntax**       | ``table <field-list>``| ``fields [+|-] <field-list>`` |
++------------------+------------------------+------------------------+
+| **Primary Use**  | Field selection only  | Keep (+) or remove (-) fields |
++------------------+------------------------+------------------------+
+| **Field Removal**| Not supported          | Supported with ``-`` prefix |
++------------------+------------------------+------------------------+
+| **Default Behavior** | Always keeps specified fields | Keeps fields (+ is default) |
++------------------+------------------------+------------------------+
+
+**When to use table:**
+
+* When you want to control field order in results
+* When you only need to keep specific fields (no removal needed)
+
+**When to use fields:**
+
+* When you need to remove specific fields from results
+* When you want explicit control over keep/remove behavior
+
+
 Best Practices
 ==============
 
@@ -56,6 +93,8 @@ Best Practices
 * Use wildcards to select groups of related fields efficiently
 * Perform field renaming before using the ``table`` command
 * For large result sets, consider limiting the number of fields to improve performance
+* Choose ``table`` over ``fields`` when you want to control field ordering
+* Choose ``fields`` over ``table`` when you need to remove specific fields
 
 
 Examples
@@ -67,8 +106,15 @@ Example 1: Basic field selection
 PPL query::
 
     os> source=accounts | table account_number, firstname, lastname;
-
-Returns results containing only the account_number, firstname, and lastname fields.
+    fetched rows / total rows = 4/4
+    +----------------+-----------+----------+
+    | account_number | firstname | lastname |
+    |----------------+-----------+----------|
+    | 1              | Amber     | Duke     |
+    | 6              | Hattie    | Bond     |
+    | 13             | Nanette   | Bates    |
+    | 18             | Dale      | Adams    |
+    +----------------+-----------+----------+
 
 
 Example 2: Using wildcards
@@ -77,8 +123,15 @@ Example 2: Using wildcards
 PPL query::
 
     os> source=employees | table ENAME, JOB, DEPT*;
-
-Returns results containing ENAME, JOB, and any fields matching the DEPT* pattern.
+    fetched rows / total rows = 4/4
+    +--------+-----------+--------+----------+
+    | ENAME  | JOB       | DEPTNO | DEPTNAME |
+    |--------+-----------+--------+----------|
+    | SMITH  | CLERK     | 20     | RESEARCH |
+    | ALLEN  | SALESMAN  | 30     | SALES    |
+    | WARD   | SALESMAN  | 30     | SALES    |
+    | JONES  | MANAGER   | 20     | RESEARCH |
+    +--------+-----------+--------+----------+
 
 
 Example 3: Using renamed fields
@@ -87,8 +140,15 @@ Example 3: Using renamed fields
 PPL query::
 
     os> source=employees | rename EMPNO as emp_id, ENAME as emp_name | table emp_id, emp_name, JOB;
-
-Returns results containing only the emp_id, emp_name, and JOB fields.
+    fetched rows / total rows = 4/4
+    +--------+----------+-----------+
+    | emp_id | emp_name | JOB       |
+    |--------+----------+-----------|
+    | 7369   | SMITH    | CLERK     |
+    | 7499   | ALLEN    | SALESMAN  |
+    | 7521   | WARD     | SALESMAN  |
+    | 7566   | JONES    | MANAGER   |
+    +--------+----------+-----------+
 
 
 Example 4: Sorting and filtering with table
@@ -97,8 +157,14 @@ Example 4: Sorting and filtering with table
 PPL query::
 
     os> source=employees | where SAL > 1000 | sort - SAL | table ENAME, SAL, DEPTNO | head 3;
-
-Returns the top 3 results containing only ENAME, SAL, and DEPTNO fields.
+    fetched rows / total rows = 3/3
+    +-------+------+--------+
+    | ENAME | SAL  | DEPTNO |
+    |-------+------+--------|
+    | KING  | 5000 | 10     |
+    | SCOTT | 3000 | 20     |
+    | FORD  | 3000 | 20     |
+    +-------+------+--------+
 
 
 Example 5: Multiple wildcard patterns
@@ -107,8 +173,15 @@ Example 5: Multiple wildcard patterns
 PPL query::
 
     os> source=employees | table *NAME, *NO, JOB;
-
-Returns results containing fields matching *NAME, *NO patterns, and the JOB field.
+    fetched rows / total rows = 4/4
+    +--------+--------+--------+-----------+
+    | ENAME  | EMPNO  | DEPTNO | JOB       |
+    |--------+--------+--------+-----------|
+    | SMITH  | 7369   | 20     | CLERK     |
+    | ALLEN  | 7499   | 30     | SALESMAN  |
+    | WARD   | 7521   | 30     | SALESMAN  |
+    | JONES  | 7566   | 20     | MANAGER   |
+    +--------+--------+--------+-----------+
 
 
 Example 6: Table with evaluation
@@ -117,5 +190,67 @@ Example 6: Table with evaluation
 PPL query::
 
     os> source=employees | dedup DEPTNO | eval dept_type=case(DEPTNO=10, 'accounting' else 'other') | table EMPNO, dept_type;
+    fetched rows / total rows = 3/3
+    +-------+------------+
+    | EMPNO | dept_type  |
+    |-------+------------|
+    | 7782  | accounting |
+    | 7369  | other      |
+    | 7499  | other      |
+    +-------+------------+
 
-Returns results containing only EMPNO and dept_type fields.
+
+Example 7: Comparison with fields command
+-----------------------------------------
+
+Using ``table`` to select fields::
+
+    os> source=accounts | table account_number, firstname, lastname;
+    fetched rows / total rows = 4/4
+    +----------------+-----------+----------+
+    | account_number | firstname | lastname |
+    |----------------+-----------+----------|
+    | 1              | Amber     | Duke     |
+    | 6              | Hattie    | Bond     |
+    | 13             | Nanette   | Bates    |
+    | 18             | Dale      | Adams    |
+    +----------------+-----------+----------+
+
+Equivalent using ``fields`` command::
+
+    os> source=accounts | fields account_number, firstname, lastname;
+    fetched rows / total rows = 4/4
+    +----------------+-----------+----------+
+    | account_number | firstname | lastname |
+    |----------------+-----------+----------|
+    | 1              | Amber     | Duke     |
+    | 6              | Hattie    | Bond     |
+    | 13             | Nanette   | Bates    |
+    | 18             | Dale      | Adams    |
+    +----------------+-----------+----------+
+
+Using ``fields`` to remove fields (not possible with ``table``)::
+
+    os> source=accounts | fields - account_number;
+    fetched rows / total rows = 4/4
+    +-----------+----------+-----+--------+-------+---------+
+    | firstname | lastname | age | city   | state | balance |
+    |-----------+----------+-----+--------+-------+---------|
+    | Amber     | Duke     | 32  | Brogan | IL    | 39225   |
+    | Hattie    | Bond     | 36  | Dante  | TN    | 5686    |
+    | Nanette   | Bates    | 28  | Nogal  | VA    | 32838   |
+    | Dale      | Adams    | 33  | Orick  | MD    | 4180    |
+    +-----------+----------+-----+--------+-------+---------+
+
+Using ``table`` with wildcards::
+
+    os> source=employees | table EMP*, *NAME, JOB;
+    fetched rows / total rows = 4/4
+    +-------+--------+----------+-----------+
+    | EMPNO | ENAME  | DEPTNAME | JOB       |
+    |-------+--------+----------+-----------|
+    | 7369  | SMITH  | RESEARCH | CLERK     |
+    | 7499  | ALLEN  | SALES    | SALESMAN  |
+    | 7521  | WARD   | SALES    | SALESMAN  |
+    | 7566  | JONES  | RESEARCH | MANAGER   |
+    +-------+--------+----------+-----------+
