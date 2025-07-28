@@ -343,63 +343,6 @@ public interface PPLTypeChecker {
     }
   }
 
-  class PPLIPCompareTypeChecker implements PPLTypeChecker {
-    @Override
-    public boolean checkOperandTypes(List<RelDataType> types) {
-      if (types.size() != 2) {
-        return false;
-      }
-      RelDataType type1 = types.get(0);
-      RelDataType type2 = types.get(1);
-      return areIpAndStringTypes(type1, type2)
-          || areIpAndStringTypes(type2, type1)
-          || (type1 instanceof ExprIPType && type2 instanceof ExprIPType);
-    }
-
-    @Override
-    public String getAllowedSignatures() {
-      // Will be merged with the allowed signatures of comparable type checker,
-      // shown as [COMPARABLE_TYPE,COMPARABLE_TYPE]
-      return "";
-    }
-
-    @Override
-    public List<List<ExprType>> getParameterTypes() {
-      return List.of(List.of(ExprCoreType.IP, ExprCoreType.IP));
-    }
-
-    private static boolean areIpAndStringTypes(RelDataType typeIp, RelDataType typeString) {
-      return typeIp instanceof ExprIPType && typeString.getFamily() == SqlTypeFamily.CHARACTER;
-    }
-  }
-
-  class PPLCidrTypeChecker implements PPLTypeChecker {
-    @Override
-    public boolean checkOperandTypes(List<RelDataType> types) {
-      if (types.size() != 2) {
-        return false;
-      }
-      RelDataType type1 = types.get(0);
-      RelDataType type2 = types.get(1);
-
-      // accept (STRING, STRING) or (IP, STRING)
-      if (type2.getFamily() != SqlTypeFamily.CHARACTER) {
-        return false;
-      }
-      return type1 instanceof ExprIPType || type1.getFamily() == SqlTypeFamily.CHARACTER;
-    }
-
-    @Override
-    public String getAllowedSignatures() {
-      return "[STRING,STRING],[IP,STRING]";
-    }
-
-    @Override
-    public List<List<ExprType>> getParameterTypes() {
-      return List.of(List.of(ExprCoreType.IP, ExprCoreType.IP));
-    }
-  }
-
   /**
    * Creates a {@link PPLFamilyTypeChecker} with a fixed operand count, validating that each operand
    * belongs to its corresponding {@link SqlTypeFamily}.
@@ -473,6 +416,47 @@ public interface PPLTypeChecker {
 
   static PPLComparableTypeChecker wrapComparable(SameOperandTypeChecker typeChecker) {
     return new PPLComparableTypeChecker(typeChecker);
+  }
+
+  /**
+   * Create a {@link PPLTypeChecker} from a list of allowed signatures consisted of {@link
+   * ExprType}. This is useful to validate arguments against user-defined types (UDT) that does not
+   * match any Calcite {@link SqlTypeFamily}.
+   *
+   * @param allowedSignatures a list of allowed signatures, where each signature is a list of {@link
+   *     ExprType} representing the expected types of the function arguments.
+   * @return a {@link PPLTypeChecker} that checks if the operand types match any of the allowed
+   *     signatures
+   */
+  static PPLTypeChecker wrapUDT(List<List<ExprType>> allowedSignatures) {
+    return new PPLTypeChecker() {
+      @Override
+      public boolean checkOperandTypes(List<RelDataType> types) {
+        List<ExprType> argExprTypes =
+            types.stream().map(OpenSearchTypeFactory::convertRelDataTypeToExprType).toList();
+        for (var allowedSignature : allowedSignatures) {
+          if (allowedSignature.size() != types.size()) {
+            continue; // Skip signatures that do not match the operand count
+          }
+          // Check if the argument types match the allowed signature
+          if (IntStream.range(0, allowedSignature.size())
+              .allMatch(i -> allowedSignature.get(i).equals(argExprTypes.get(i)))) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      @Override
+      public String getAllowedSignatures() {
+        return PPLTypeChecker.formatExprSignatures(allowedSignatures);
+      }
+
+      @Override
+      public List<List<ExprType>> getParameterTypes() {
+        return allowedSignatures;
+      }
+    };
   }
 
   // Util Functions

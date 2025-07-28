@@ -599,18 +599,9 @@ public class PPLFuncImpTable {
           // Comparison operators like EQUAL, GREATER_THAN, LESS_THAN, etc.
           // SameOperandTypeCheckers like COALESCE, IFNULL, etc.
           register(functionName, wrapWithComparableTypeChecker(operator, comparableTypeChecker));
-        } else if (typeChecker instanceof UDFOperandMetadata.IPOperandMetadata) {
-          register(
-              functionName,
-              createFunctionImpWithTypeChecker(
-                  (builder, arg1, arg2) -> builder.makeCall(operator, arg1, arg2),
-                  new PPLTypeChecker.PPLIPCompareTypeChecker()));
-        } else if (typeChecker instanceof UDFOperandMetadata.CidrOperandMetadata) {
-          register(
-              functionName,
-              createFunctionImpWithTypeChecker(
-                  (builder, arg1, arg2) -> builder.makeCall(operator, arg1, arg2),
-                  new PPLTypeChecker.PPLCidrTypeChecker()));
+        } else if (typeChecker
+            instanceof UDFOperandMetadata.UDTOperandMetadata udtOperandMetadata) {
+          register(functionName, wrapWithUdtTypeChecker(operator, udtOperandMetadata));
         } else {
           logger.info(
               "Cannot create type checker for function: {}. Will skip its type checking",
@@ -628,6 +619,13 @@ public class PPLFuncImpTable {
           (UDFOperandMetadata) udfOperator.getOperandTypeChecker();
       return (udfOperandMetadata == null) ? null : udfOperandMetadata.getInnerTypeChecker();
     }
+
+    // Such wrapWith*TypeChecker methods are useful in that we don't have to create explicit
+    // overrides of resolve function for different number of operands.
+    // I.e. we don't have to explicitly call
+    //  (FuncImp1) (builder, arg1) -> builder.makeCall(operator, arg1);
+    // (FuncImp2) (builder, arg1, arg2) -> builder.makeCall(operator, arg1, arg2);
+    // etc.
 
     /**
      * Wrap a SqlOperator into a FunctionImp with a composite type checker.
@@ -691,6 +689,21 @@ public class PPLFuncImpTable {
         @Override
         public PPLTypeChecker getTypeChecker() {
           return PPLTypeChecker.wrapComparable(typeChecker);
+        }
+      };
+    }
+
+    private static FunctionImp wrapWithUdtTypeChecker(
+        SqlOperator operator, UDFOperandMetadata.UDTOperandMetadata udtOperandMetadata) {
+      return new FunctionImp() {
+        @Override
+        public RexNode resolve(RexBuilder builder, RexNode... args) {
+          return builder.makeCall(operator, args);
+        }
+
+        @Override
+        public PPLTypeChecker getTypeChecker() {
+          return PPLTypeChecker.wrapUDT(udtOperandMetadata.allowedParamTypes());
         }
       };
     }

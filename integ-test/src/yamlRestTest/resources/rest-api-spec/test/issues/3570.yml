@@ -76,7 +76,7 @@ teardown:
         Content-Type: 'application/json'
       ppl:
         body:
-          query: 'source=hdfs_logs | patterns content mode=aggregation | fields patterns_field, pattern_count'
+          query: 'source=hdfs_logs | patterns content mode=aggregation | sort patterns_field | fields patterns_field, pattern_count'
   - match: {"total": 5}
   - match: {"schema": [{"name": "patterns_field", "type": "string"}, {"name": "pattern_count", "type": "bigint"}]}
   - match: {"datarows": [
@@ -85,12 +85,12 @@ teardown:
       2
     ],
     [
-      "<token1>* <token2>.<token3>: /<token4>/<token5>/<token6>/_<token7>/_<token8>_<token9>_<token10>_<token11>_<token12>_<token13>/<token14>-<token15>. <token16>_-<token17>",
-      1
-    ],
-    [
       "<token1> <token2> <token3> <token4>_<token5>",
       2
+    ],
+    [
+      "<token1>* <token2>.<token3>: /<token4>/<token5>/<token6>/_<token7>/_<token8>_<token9>_<token10>_<token11>_<token12>_<token13>/<token14>-<token15>. <token16>_-<token17>",
+      1
     ],
     [
       "<token1>* <token2>.<token3>: /<token4>/<token5>/<token6>/_<token7>/_<token8>_<token9>_<token10>_<token11>_<token12>_<token13>/<token14>-<token15>. <token16>_<token17>",
