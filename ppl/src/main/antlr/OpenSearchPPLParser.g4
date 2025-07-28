@@ -117,11 +117,11 @@ showDataSourcesCommand
 
 tableCommand
    : TABLE wcFieldList
-   | TABLE wcFieldExpressionList
+   | TABLE wcSpaceSeparatedFieldList
    | TABLE STAR
    ;
 
-wcFieldExpressionList
+wcSpaceSeparatedFieldList
    : wcFieldExpression (wcFieldExpression)+
    ;
 

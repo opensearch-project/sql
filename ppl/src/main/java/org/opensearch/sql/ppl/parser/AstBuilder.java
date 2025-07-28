@@ -687,10 +687,10 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
           ctx.wcFieldList().wcFieldExpression().stream()
               .map(this::internalVisitExpression)
               .collect(Collectors.toList());
-    } else if (ctx.wcFieldExpressionList() != null) {
+    } else if (ctx.wcSpaceSeparatedFieldList() != null) {
       // Handle space-delimited fields: table field1 field2 field3
       fields =
-          ctx.wcFieldExpressionList().wcFieldExpression().stream()
+          ctx.wcSpaceSeparatedFieldList().wcFieldExpression().stream()
               .map(this::internalVisitExpression)
               .collect(Collectors.toList());
     } else {
