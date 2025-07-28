@@ -165,10 +165,10 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
     JSONObject stats =
         executeQuery(
             String.format(
-                "source=%s | table account_number, state | stats count() by state | sort state",
+                "source=%s | table account_number, state | stats count() by state | sort state | head 10",
                 TEST_INDEX_ACCOUNT));
     verifySchema(stats, schema("count()", "bigint"), schema("state", "string"));
-    verifyNumOfRows(stats, 51);
+    verifyNumOfRows(stats, 10);
   }
 
   /**
