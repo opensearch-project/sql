@@ -209,7 +209,8 @@ public class CalciteScriptEngine implements ScriptEngine {
       if (exprType instanceof ExprCoreType) {
         ExprCoreType type = (ExprCoreType) exprType;
         switch (type) {
-          case INTEGER, SHORT:
+          case INTEGER:
+          case SHORT:
             docValue = EnumUtils.convert(docValueExpr, Long.class);
             break;
           case FLOAT:

@@ -401,9 +401,9 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
       // It will always use a single CompositeAggregationBuilder for the aggregation with GroupBy
       // See {@link AggregateAnalyzer}
       CompositeAggregationBuilder compositeAggregationBuilder =
-          (CompositeAggregationBuilder) aggregationBuilder.getLeft().getFirst();
+          (CompositeAggregationBuilder) aggregationBuilder.getLeft().get(0);
       List<CompositeValuesSourceBuilder<?>> buckets =
-          ((CompositeAggregationBuilder) aggregationBuilder.getLeft().getFirst()).sources();
+          ((CompositeAggregationBuilder) aggregationBuilder.getLeft().get(0)).sources();
       List<CompositeValuesSourceBuilder<?>> newBuckets = new ArrayList<>(buckets.size());
       List<Integer> selected = new ArrayList<>(collations.size());
       // Have to put the collation required buckets first, then the rest of buckets.
@@ -414,12 +414,18 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
             NullDirection nullDirection = collation.nullDirection;
             SortOrder order =
                 Direction.DESCENDING.equals(direction) ? SortOrder.DESC : SortOrder.ASC;
-            MissingOrder missingOrder =
-                switch (nullDirection) {
-                  case FIRST -> MissingOrder.FIRST;
-                  case LAST -> MissingOrder.LAST;
-                  default -> MissingOrder.DEFAULT;
-                };
+            MissingOrder missingOrder;
+            switch (nullDirection) {
+              case FIRST:
+                missingOrder = MissingOrder.FIRST;
+                break;
+              case LAST:
+                missingOrder = MissingOrder.LAST;
+                break;
+              default:
+                missingOrder = MissingOrder.DEFAULT;
+                break;
+            }
             newBuckets.add(bucket.order(order).missingOrder(missingOrder));
             selected.add(collation.getFieldIndex());
           });

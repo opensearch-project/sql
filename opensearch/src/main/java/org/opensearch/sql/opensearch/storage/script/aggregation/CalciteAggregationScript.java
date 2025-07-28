@@ -50,15 +50,19 @@ class CalciteAggregationScript extends AggregationScript {
     Object value = calciteScript.execute(this::getDoc)[0];
     ExprType exprType = OpenSearchTypeFactory.convertRelDataTypeToExprType(type);
     // See logic in {@link ExpressionAggregationScript::execute}
-    return switch ((ExprCoreType) exprType) {
-      case TIME ->
-      // Can't get timestamp from `ExprTimeValue`
-      MILLIS.between(LocalTime.MIN, ExprValueUtils.fromObjectValue(value, TIME).timeValue());
-      case DATE -> ExprValueUtils.fromObjectValue(value, DATE).timestampValue().toEpochMilli();
-      case TIMESTAMP -> ExprValueUtils.fromObjectValue(value, TIMESTAMP)
-          .timestampValue()
-          .toEpochMilli();
-      default -> value;
-    };
+    ExprCoreType coreType = (ExprCoreType) exprType;
+    switch (coreType) {
+      case TIME:
+        // Can't get timestamp from `ExprTimeValue`
+        return MILLIS.between(LocalTime.MIN, ExprValueUtils.fromObjectValue(value, TIME).timeValue());
+      case DATE:
+        return ExprValueUtils.fromObjectValue(value, DATE).timestampValue().toEpochMilli();
+      case TIMESTAMP:
+        return ExprValueUtils.fromObjectValue(value, TIMESTAMP)
+            .timestampValue()
+            .toEpochMilli();
+      default:
+        return value;
+    }
   }
 }
