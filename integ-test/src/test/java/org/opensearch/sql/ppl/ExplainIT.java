@@ -353,7 +353,6 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testPatternsSimplePatternMethodWithAggPushDownExplain() throws IOException {
-    // TODO: Correct calcite expected result once pushdown is supported
     String expected = loadExpectedPlan("explain_patterns_simple_pattern_agg_push.json");
     assertJsonEqualsIgnoreId(
         expected,
@@ -470,6 +469,37 @@ public class ExplainIT extends PPLIntegTestCase {
       // V2 pushdown as script
       assertTrue(explainedPlan.contains("{\\\"script\\\":"));
     }
+  }
+
+  @Test
+  public void testExplainOnTake() throws IOException {
+    String expected = loadExpectedPlan("explain_take.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats take(firstname, 2) as take"));
+  }
+
+  @Test
+  public void testExplainOnPercentile() throws IOException {
+    String expected = loadExpectedPlan("explain_percentile.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats percentile(balance, 50) as p50,"
+                + " percentile(balance, 90) as p90"));
+  }
+
+  @Test
+  public void testExplainOnAggregationWithFunction() throws IOException {
+    String expected = loadExpectedPlan("explain_agg_with_script.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | eval len = length(gender) | stats sum(balance + 100) as sum by len,"
+                    + " gender ",
+                TEST_INDEX_BANK)));
   }
 
   protected String loadExpectedPlan(String fileName) throws IOException {
