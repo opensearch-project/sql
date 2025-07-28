@@ -79,6 +79,7 @@ public class OpenSearchScriptProjectIndexScanRule
                                         Predicate.not(
                                                 OpenSearchIndexScanRule::isScriptProjectPushed)
                                             .and(OpenSearchIndexScanRule::isProjectPushed)
+                                            .and(OpenSearchIndexScanRule::noLimitPushed)
                                             .and(OpenSearchIndexScanRule::noAggregatePushed))
                                     .noInputs()));
 

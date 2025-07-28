@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
@@ -25,6 +26,12 @@ public class PPLClickBenchIT extends PPLIntegTestCase {
     super.init();
     loadIndex(Index.CLICK_BENCH);
     disableCalcite();
+    setMaxScriptFields("hits", 100);
+  }
+
+  @After
+  public void afterTest() throws IOException {
+    resetMaxScriptFields("hits");
   }
 
   @AfterClass
@@ -53,7 +60,7 @@ public class PPLClickBenchIT extends PPLIntegTestCase {
    * down, which will cause ResourceMonitor restriction.
    */
   protected Set<Integer> ignored() {
-    return Set.of(29, 30);
+    return Set.of(29);
   }
 
   @Test

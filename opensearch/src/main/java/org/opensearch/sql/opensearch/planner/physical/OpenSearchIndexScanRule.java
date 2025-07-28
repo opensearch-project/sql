@@ -38,6 +38,10 @@ public interface OpenSearchIndexScanRule {
     return scan.getPushDownContext().isLimitPushed();
   }
 
+  static boolean noLimitPushed(AbstractCalciteIndexScan scan) {
+    return !isLimitPushed(scan);
+  }
+
   // `RelDecorrelator` may generate a Project with duplicated fields, e.g. Project($0,$0).
   // There will be problem if pushing down the pattern like `Aggregate(AGG($0),{1})-Project($0,$0)`,
   // as it will lead to field-name conflict.

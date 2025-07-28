@@ -96,6 +96,8 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
       Integer.parseInt(System.getProperty("defaultQuerySizeLimit", "200"));
   public static final Integer DEFAULT_MAX_RESULT_WINDOW =
       Integer.parseInt(System.getProperty("defaultMaxResultWindow", "10000"));
+  public static final Integer DEFAULT_MAX_SCRIPT_FIELDS =
+      Integer.parseInt(System.getProperty("defaultMaxScriptFields", "32"));
 
   public boolean shouldResetQuerySizeLimit() {
     return true;
@@ -216,6 +218,15 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   protected void resetMaxResultWindow(String indexName) throws IOException {
     updateIndexSettings(
         indexName, "{ \"index\": { \"max_result_window\": " + DEFAULT_MAX_RESULT_WINDOW + " } }");
+  }
+
+  protected void setMaxScriptFields(String indexName, Integer value) throws IOException {
+    updateIndexSettings(indexName, "{ \"index\": { \"max_script_fields\":" + value + " } }");
+  }
+
+  protected void resetMaxScriptFields(String indexName) throws IOException {
+    updateIndexSettings(
+        indexName, "{ \"index\": { \"max_script_fields\": " + DEFAULT_MAX_SCRIPT_FIELDS + " } }");
   }
 
   /** Provide for each test to load test index, data and other setup work */

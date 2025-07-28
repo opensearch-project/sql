@@ -349,6 +349,15 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testDivide() throws IOException {
+    //    String res = executeQueryToString(String.format(
+    //        "source=%s | eval r1 = 22 / 7, r2 = integer_number / 1, r3 = 21 / 7, r4 ="
+    //            + " byte_number / short_number, r5 = half_float_number / float_number, r6 ="
+    //            + " float_number / short_number, r7 = 22 / 7.0, r8 = 22.0 / 7, r9 = 21.0 / 7.0,"
+    //            + " r10 = half_float_number / short_number, r11 = double_number / float_number"
+    //            + " | fields r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11",
+    //        TEST_INDEX_DATATYPE_NUMERIC));
+    //    assertEquals("", res);
+
     JSONObject actual =
         executeQuery(
             String.format(
@@ -373,17 +382,17 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
         schema("r11", "double"));
     verifyDataRows(
         actual,
-        closeTo(
+        rows(
             3,
             2,
             3,
             1,
-            1.1774194,
+            isPushdownEnabled() ? 1.1775454 : 1.1774194,
             2.0666666,
             3.142857142857143,
             3.142857142857143,
             3.0,
-            2.4333334,
+            isPushdownEnabled() ? 2.4335938 : 2.4333334,
             0.8225806704669051));
   }
 

@@ -27,6 +27,7 @@
 
 package org.opensearch.sql.opensearch.storage.script;
 
+import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.SHORT;
@@ -209,7 +210,7 @@ public class CalciteScriptEngine implements ScriptEngine {
      */
     private Expression tryConvertDocValue(Expression docValueExpr, ExprType exprType) {
       return switch (exprType) {
-        case INTEGER, SHORT -> EnumUtils.convert(docValueExpr, Long.class);
+        case INTEGER, SHORT, BYTE -> EnumUtils.convert(docValueExpr, Long.class);
         case FLOAT -> EnumUtils.convert(docValueExpr, Double.class);
         default -> docValueExpr;
       };

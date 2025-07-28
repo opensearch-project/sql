@@ -32,6 +32,10 @@ public interface Content {
   /** Is double value. */
   boolean isDouble();
 
+  boolean isShort();
+
+  boolean isByte();
+
   /** Is int value. */
   boolean isInt();
 
