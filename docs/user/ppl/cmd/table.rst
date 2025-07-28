@@ -41,7 +41,7 @@ Arguments
 
 Usage
 ============
-The ``table`` command processes the entire result set and filters it to include only the specified fields.
+The ``table`` command processes the entire result set and filters it to include only the specified fields. Duplicate field names in the field list are automatically de-duplicated.
 
 
 Field Renaming
@@ -57,8 +57,6 @@ The ``table`` and ``fields`` commands are both used for field selection but have
 **Similarities:**
 
 * Both commands filter search results to include specific fields
-* Both support comma-delimited and space-delimited field lists
-* Both support wildcard patterns for field selection
 * Both can be used to reduce result set size for better performance
 
 **Differences:**
@@ -70,7 +68,13 @@ The ``table`` and ``fields`` commands are both used for field selection but have
 +------------------+------------------------+------------------------+
 | **Primary Use**  | Field selection only  | Keep (+) or remove (-) fields |
 +------------------+------------------------+------------------------+
+| **Field List Format** | Space or comma-delimited | Comma-delimited only |
++------------------+------------------------+------------------------+
+| **Wildcard Support** | Yes (*, prefix, suffix, contains) | No |
++------------------+------------------------+------------------------+
 | **Field Removal**| Not supported          | Supported with ``-`` prefix |
++------------------+------------------------+------------------------+
+| **Deduplication**| Automatic              | Not applicable         |
 +------------------+------------------------+------------------------+
 | **Default Behavior** | Always keeps specified fields | Keeps fields (+ is default) |
 +------------------+------------------------+------------------------+
@@ -117,21 +121,21 @@ PPL query::
     +----------------+-----------+----------+
 
 
-Example 2: Using wildcards
---------------------------
+Example 2: Using wildcards and field deduplication
+---------------------------------------------------
 
-PPL query::
+This example shows wildcard usage and automatic field deduplication. The field ``ENAME`` appears in both the wildcard pattern ``*NAME`` and is explicitly specified, but only appears once in the result::
 
-    os> source=employees | table ENAME, JOB, DEPT*;
+    os> source=employees | table *NAME, ENAME, JOB, DEPT*;
     fetched rows / total rows = 4/4
-    +--------+-----------+--------+----------+
-    | ENAME  | JOB       | DEPTNO | DEPTNAME |
-    |--------+-----------+--------+----------|
-    | SMITH  | CLERK     | 20     | RESEARCH |
-    | ALLEN  | SALESMAN  | 30     | SALES    |
-    | WARD   | SALESMAN  | 30     | SALES    |
-    | JONES  | MANAGER   | 20     | RESEARCH |
-    +--------+-----------+--------+----------+
+    +--------+----------+-----------+--------+----------+
+    | ENAME  | DEPTNAME | JOB       | DEPTNO | DEPTNAME |
+    |--------+----------+-----------+--------+----------|
+    | SMITH  | RESEARCH | CLERK     | 20     | RESEARCH |
+    | ALLEN  | SALES    | SALESMAN  | 30     | SALES    |
+    | WARD   | SALES    | SALESMAN  | 30     | SALES    |
+    | JONES  | RESEARCH | MANAGER   | 20     | RESEARCH |
+    +--------+----------+-----------+--------+----------+
 
 
 Example 3: Using renamed fields
@@ -184,7 +188,24 @@ PPL query::
     +--------+--------+--------+-----------+
 
 
-Example 6: Table with evaluation
+Example 6: Field deduplication with explicit field selection
+------------------------------------------------------------
+
+This example demonstrates deduplication when the same field is explicitly listed multiple times::
+
+    os> source=employees | table ENAME, JOB, ENAME, DEPTNO;
+    fetched rows / total rows = 4/4
+    +--------+-----------+--------+
+    | ENAME  | JOB       | DEPTNO |
+    |--------+-----------+--------|
+    | SMITH  | CLERK     | 20     |
+    | ALLEN  | SALESMAN  | 30     |
+    | WARD   | SALESMAN  | 30     |
+    | JONES  | MANAGER   | 20     |
+    +--------+-----------+--------+
+
+
+Example 7: Table with evaluation
 -------------------------------
 
 PPL query::
@@ -200,7 +221,7 @@ PPL query::
     +-------+------------+
 
 
-Example 7: Comparison with fields command
+Example 8: Comparison with fields command
 -----------------------------------------
 
 Using ``table`` to select fields::
@@ -241,16 +262,3 @@ Using ``fields`` to remove fields (not possible with ``table``)::
     | Nanette   | Bates    | 28  | Nogal  | VA    | 32838   |
     | Dale      | Adams    | 33  | Orick  | MD    | 4180    |
     +-----------+----------+-----+--------+-------+---------+
-
-Using ``table`` with wildcards::
-
-    os> source=employees | table EMP*, *NAME, JOB;
-    fetched rows / total rows = 4/4
-    +-------+--------+----------+-----------+
-    | EMPNO | ENAME  | DEPTNAME | JOB       |
-    |-------+--------+----------+-----------|
-    | 7369  | SMITH  | RESEARCH | CLERK     |
-    | 7499  | ALLEN  | SALES    | SALESMAN  |
-    | 7521  | WARD   | SALES    | SALESMAN  |
-    | 7566  | JONES  | RESEARCH | MANAGER   |
-    +-------+--------+----------+-----------+
