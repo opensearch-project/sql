@@ -122,12 +122,8 @@ public class ExprIpValueTest {
 
   @Test
   public void testToString() {
-    ipv4EqualStrings.forEach(
-        (s) ->
-            assertEquals(String.format("IP %s", ipv4String), ExprValueUtils.ipValue(s).toString()));
-    ipv6EqualStrings.forEach(
-        (s) ->
-            assertEquals(String.format("IP %s", ipv6String), ExprValueUtils.ipValue(s).toString()));
+    ipv4EqualStrings.forEach((s) -> assertEquals(ipv4String, ExprValueUtils.ipValue(s).toString()));
+    ipv6EqualStrings.forEach((s) -> assertEquals(ipv6String, ExprValueUtils.ipValue(s).toString()));
   }
 
   @Test

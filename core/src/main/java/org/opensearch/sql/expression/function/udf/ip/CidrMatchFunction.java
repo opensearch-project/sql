@@ -17,6 +17,7 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.data.model.ExprIpValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 import org.opensearch.sql.expression.ip.IPFunctions;
@@ -46,7 +47,10 @@ public class CidrMatchFunction extends ImplementorUDF {
     // EXPR_IP is mapped to SqlTypeFamily.OTHER in
     // UserDefinedFunctionUtils.convertRelDataTypeToSqlTypeName
     // We use a specific type checker to serve
-    return new UDFOperandMetadata.CidrOperandMetadata();
+    return UDFOperandMetadata.wrapUDT(
+        List.of(
+            List.of(ExprCoreType.IP, ExprCoreType.STRING),
+            List.of(ExprCoreType.STRING, ExprCoreType.STRING)));
   }
 
   public static class CidrMatchImplementor implements NotNullImplementor {
