@@ -60,7 +60,10 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "" + "SELECT COUNT(*) `cnt`\n" + "FROM `scott`.`EMP`\n" + "WHERE `JOB` ILIKE 'SALE%' ESCAPE '\\'";
+        ""
+            + "SELECT COUNT(*) `cnt`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE `JOB` ILIKE 'SALE%' ESCAPE '\\'";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }
