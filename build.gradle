@@ -163,7 +163,7 @@ subprojects {
     }
 
     // Publish internal modules as Maven artifacts for external use, such as by opensearch-spark and opensearch-cli.
-    def publishedModules = ['api', 'sql', 'ppl', 'core', 'opensearch', 'common', 'protocol']
+    def publishedModules = ['api', 'sql', 'ppl', 'core', 'opensearch', 'common', 'protocol', 'datasources']
     if (publishedModules.contains(name)) {
         apply plugin: 'java-library'
         apply plugin: 'maven-publish'
