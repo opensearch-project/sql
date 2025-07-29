@@ -337,7 +337,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (node.getCount() != null && node.getCount() > 0) {
       context.relBuilder.limit(0, node.getCount());
     }
-    
+
     return context.relBuilder.peek();
   }
 

@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 package org.opensearch.sql.ppl.parser;
+
 import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertFalse;
 import static org.opensearch.sql.ast.dsl.AstDSL.agg;
@@ -41,6 +42,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.sort;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
 import static org.opensearch.sql.ast.dsl.AstDSL.xor;
+
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.List;
@@ -51,12 +53,14 @@ import org.junit.Test;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.RelevanceFieldList;
+
 public class AstExpressionBuilderTest extends AstBuilderTest {
   @Test
   public void testLogicalNotExpr() {
     assertEqual(
         "source=t not a=1", filter(relation("t"), not(compare("=", field("a"), intLiteral(1)))));
   }
+
   @Test
   public void testLogicalOrExpr() {
     assertEqual(
@@ -65,6 +69,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             relation("t"),
             or(compare("=", field("a"), intLiteral(1)), compare("=", field("b"), intLiteral(2)))));
   }
+
   @Test
   public void testLogicalAndExpr() {
     assertEqual(
@@ -73,6 +78,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             relation("t"),
             and(compare("=", field("a"), intLiteral(1)), compare("=", field("b"), intLiteral(2)))));
   }
+
   @Test
   public void testLogicalAndExprWithoutKeywordAnd() {
     assertEqual(
@@ -81,6 +87,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             relation("t"),
             and(compare("=", field("a"), intLiteral(1)), compare("=", field("b"), intLiteral(2)))));
   }
+
   @Test
   public void testLogicalXorExpr() {
     assertEqual(
@@ -89,6 +96,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             relation("t"),
             xor(compare("=", field("a"), intLiteral(1)), compare("=", field("b"), intLiteral(2)))));
   }
+
   @Test
   public void testLogicalAndOr() {
     assertEqual(
@@ -103,6 +111,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                     compare("=", field("c"), intLiteral(3))),
                 compare("=", field("d"), intLiteral(4)))));
   }
+
   @Test
   public void testLogicalParenthetic() {
     assertEqual(
@@ -117,6 +126,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                     compare("=", field("c"), intLiteral(3)),
                     compare("=", field("d"), intLiteral(4))))));
   }
+
   @Test
   public void testLogicalNotAndXorOr() {
     assertEqual(
@@ -131,17 +141,20 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                         not(compare("=", field("c"), intLiteral(3))))),
                 compare("=", field("d"), intLiteral(4)))));
   }
+
   @Test
   public void testLogicalLikeExpr() {
     assertEqual(
         "source=t like(a, '_a%b%c_d_')",
         filter(relation("t"), function("like", field("a"), stringLiteral("_a%b%c_d_"))));
   }
+
   @Test
   public void testBooleanIsNullFunction() {
     assertEqual("source=t isnull(a)", filter(relation("t"), function("is null", field("a"))));
     assertEqual("source=t ISNULL(a)", filter(relation("t"), function("is null", field("a"))));
   }
+
   @Test
   public void testBooleanIsNotNullFunction() {
     assertEqual(
@@ -149,6 +162,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
     assertEqual(
         "source=t ISNOTNULL(a)", filter(relation("t"), function("is not null", field("a"))));
   }
+
   /** Todo. search operator should not include functionCall, need to change antlr. */
   @Ignore("search operator should not include functionCall, need to change antlr")
   public void testEvalExpr() {
@@ -156,16 +170,19 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         "source=t f=abs(a)",
         filter(relation("t"), equalTo(field("f"), function("abs", field("a")))));
   }
+
   @Test
   public void testEvalFunctionExpr() {
     assertEqual(
         "source=t | eval f=abs(a)",
         eval(relation("t"), let(field("f"), function("abs", field("a")))));
   }
+
   @Test
   public void testEvalFunctionExprNoArgs() {
     assertEqual("source=t | eval f=PI()", eval(relation("t"), let(field("f"), function("PI"))));
   }
+
   @Test
   public void testEvalIfFunctionExpr() {
     assertEqual(
@@ -279,6 +296,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                     intLiteral(1),
                     intLiteral(0)))));
   }
+
   @Test
   public void testPositionFunctionExpr() {
     assertEqual(
@@ -287,6 +305,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             relation("t"),
             let(field("f"), function("position", stringLiteral("substr"), stringLiteral("str")))));
   }
+
   @Test
   public void testEvalBinaryOperationExpr() {
     assertEqual(
@@ -296,12 +315,14 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         "source=t | eval f=(a+b)",
         eval(relation("t"), let(field("f"), function("+", field("a"), field("b")))));
   }
+
   @Test
   public void testLiteralValueBinaryOperationExpr() {
     assertEqual(
         "source=t | eval f=3+2",
         eval(relation("t"), let(field("f"), function("+", intLiteral(3), intLiteral(2)))));
   }
+
   @Test
   public void testBinaryOperationExprWithParentheses() {
     assertEqual(
@@ -313,6 +334,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                 field("a"),
                 function("*", function("+", intLiteral(1), intLiteral(2)), intLiteral(3)))));
   }
+
   @Test
   public void testBinaryOperationExprPrecedence() {
     assertEqual(
@@ -324,25 +346,30 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                 field("a"),
                 function("+", intLiteral(1), function("*", intLiteral(2), intLiteral(3))))));
   }
+
   @Test
   public void testCompareExpr() {
     assertEqual(
         "source=t a='b'", filter(relation("t"), compare("=", field("a"), stringLiteral("b"))));
   }
+
   @Test
   public void testCompareFieldsExpr() {
     assertEqual("source=t a>b", filter(relation("t"), compare(">", field("a"), field("b"))));
   }
+
   @Test
   public void testInExpr() {
     assertEqual(
         "source=t f in (1, 2, 3)",
         filter(relation("t"), in(field("f"), intLiteral(1), intLiteral(2), intLiteral(3))));
   }
+
   @Test
   public void testFieldExpr() {
     assertEqual("source=t | sort + f", sort(relation("t"), field("f", defaultSortFieldArgs())));
   }
+
   @Test
   public void testSortFieldWithMinusKeyword() {
     assertEqual(
@@ -351,10 +378,12 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             relation("t"),
             field("f", argument("asc", booleanLiteral(false)), argument("type", nullLiteral()))));
   }
+
   @Test
   public void testSortFieldWithBackticks() {
     assertEqual("source=t | sort `f`", sort(relation("t"), field("f", defaultSortFieldArgs())));
   }
+
   @Test
   public void testSortFieldWithAutoKeyword() {
     assertEqual(
@@ -366,6 +395,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                 argument("asc", booleanLiteral(true)),
                 argument("type", stringLiteral("auto")))));
   }
+
   @Test
   public void testSortFieldWithIpKeyword() {
     assertEqual(
@@ -377,6 +407,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                 argument("asc", booleanLiteral(true)),
                 argument("type", stringLiteral("ip")))));
   }
+
   @Test
   public void testSortFieldWithNumKeyword() {
     assertEqual(
@@ -388,6 +419,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                 argument("asc", booleanLiteral(true)),
                 argument("type", stringLiteral("num")))));
   }
+
   @Test
   public void testSortFieldWithStrKeyword() {
     assertEqual(
@@ -399,6 +431,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                 argument("asc", booleanLiteral(true)),
                 argument("type", stringLiteral("str")))));
   }
+
   @Test
   public void testAggFuncCallExpr() {
     assertEqual(
@@ -410,6 +443,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             exprList(alias("b", field("b"))),
             defaultStatsArgs()));
   }
+
   @Test
   public void testVarAggregationShouldPass() {
     assertEqual(
@@ -421,6 +455,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             exprList(alias("b", field("b"))),
             defaultStatsArgs()));
   }
+
   @Test
   public void testVarpAggregationShouldPass() {
     assertEqual(
@@ -432,6 +467,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             exprList(alias("b", field("b"))),
             defaultStatsArgs()));
   }
+
   @Test
   public void testStdDevAggregationShouldPass() {
     assertEqual(
@@ -443,6 +479,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             exprList(alias("b", field("b"))),
             defaultStatsArgs()));
   }
+
   @Test
   public void testStdDevPAggregationShouldPass() {
     assertEqual(
@@ -454,6 +491,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             exprList(alias("b", field("b"))),
             defaultStatsArgs()));
   }
+
   @Test
   public void testPercentileAggFuncExpr() {
     assertEqual(
@@ -495,6 +533,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             emptyList(),
             defaultStatsArgs()));
   }
+
   @Test
   public void testCountFuncCallExpr() {
     assertEqual(
@@ -506,6 +545,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             exprList(alias("b", field("b"))),
             defaultStatsArgs()));
   }
+
   @Test
   public void testDistinctCount() {
     assertEqual(
@@ -517,6 +557,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             emptyList(),
             defaultStatsArgs()));
   }
+
   @Test
   public void testTakeAggregationNoArgsShouldPass() {
     assertEqual(
@@ -531,6 +572,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             emptyList(),
             defaultStatsArgs()));
   }
+
   @Test
   public void testTakeAggregationWithArgsShouldPass() {
     assertEqual(
@@ -545,18 +587,21 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             emptyList(),
             defaultStatsArgs()));
   }
+
   @Test
   public void testEvalFuncCallExpr() {
     assertEqual(
         "source=t | eval f=abs(a)",
         eval(relation("t"), let(field("f"), function("abs", field("a")))));
   }
+
   @Test
   public void testDataTypeFuncCall() {
     assertEqual(
         "source=t | eval f=cast(1 as string)",
         eval(relation("t"), let(field("f"), cast(intLiteral(1), stringLiteral("string")))));
   }
+
   @Test
   public void testNestedFieldName() {
     assertEqual(
@@ -566,12 +611,14 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             defaultFieldsArgs(),
             field(qualifiedName("field0", "field1", "field2"))));
   }
+
   @Test
   public void testFieldNameWithSpecialChars() {
     assertEqual(
         "source=t | fields `field-0`",
         projectWithArg(relation("t"), defaultFieldsArgs(), field(qualifiedName("field-0"))));
   }
+
   @Test
   public void testNestedFieldNameWithSpecialChars() {
     assertEqual(
@@ -581,12 +628,14 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             defaultFieldsArgs(),
             field(qualifiedName("field-0", "field#1", "field*2"))));
   }
+
   @Test
   public void testStringLiteralExpr() {
     assertEqual(
         "source=t a=\"string\"",
         filter(relation("t"), compare("=", field("a"), stringLiteral("string"))));
   }
+
   @Test
   public void testIntegerLiteralExpr() {
     assertEqual(
@@ -597,6 +646,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                 compare("=", field("a"), intLiteral(1)),
                 compare("=", field("b"), intLiteral(-1)))));
   }
+
   @Test
   public void testLongLiteralExpr() {
     assertEqual(
@@ -607,26 +657,31 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                 compare("=", field("a"), longLiteral(1234567890123L)),
                 compare("=", field("b"), longLiteral(-1234567890123L)))));
   }
+
   @Test
   public void testDoubleLiteralExpr() {
     assertEqual(
         "source=t b=0.1d", filter(relation("t"), compare("=", field("b"), doubleLiteral(0.1))));
   }
+
   @Test
   public void testFloatLiteralExpr() {
     assertEqual(
         "source=t b=0.1f", filter(relation("t"), compare("=", field("b"), floatLiteral(0.1f))));
   }
+
   @Test
   public void testDecimalLiteralExpr() {
     assertEqual(
         "source=t b=0.1", filter(relation("t"), compare("=", field("b"), decimalLiteral(0.1))));
   }
+
   @Test
   public void testBooleanLiteralExpr() {
     assertEqual(
         "source=t a=true", filter(relation("t"), compare("=", field("a"), booleanLiteral(true))));
   }
+
   @Test
   public void testIntervalLiteralExpr() {
     assertEqual(
@@ -634,6 +689,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         filter(
             relation("t"), compare("=", field("a"), intervalLiteral(1, DataType.INTEGER, "day"))));
   }
+
   @Test
   public void testKeywordsAsIdentifiers() {
     assertEqual("source=timestamp", relation("timestamp"));
@@ -641,12 +697,14 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         "source=t | fields timestamp",
         projectWithArg(relation("t"), defaultFieldsArgs(), field("timestamp")));
   }
+
   @Test
   public void canBuildKeywordsAsIdentInQualifiedName() {
     assertEqual(
         "source=test | fields timestamp",
         projectWithArg(relation("test"), defaultFieldsArgs(), field("timestamp")));
   }
+
   @Test
   public void canBuildMetaDataFieldAsQualifiedName() {
     assertEqual(
@@ -659,6 +717,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             field("_sort"),
             field("_maxscore")));
   }
+
   @Test
   public void canBuildNonMetaDataFieldAsQualifiedName() {
     assertEqual(
@@ -671,6 +730,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             field("_routing"),
             field("___field")));
   }
+
   @Test
   public void canBuildMatchRelevanceFunctionWithArguments() {
     assertEqual(
@@ -683,6 +743,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                 unresolvedArg("query", stringLiteral("test query")),
                 unresolvedArg("analyzer", stringLiteral("keyword")))));
   }
+
   @Test
   public void canBuildMulti_matchRelevanceFunctionWithArguments() {
     assertEqual(
@@ -698,6 +759,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                 unresolvedArg("query", stringLiteral("test query")),
                 unresolvedArg("analyzer", stringLiteral("keyword")))));
   }
+
   @Test
   public void canBuildSimple_query_stringRelevanceFunctionWithArguments() {
     assertEqual(
@@ -713,6 +775,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                 unresolvedArg("query", stringLiteral("test query")),
                 unresolvedArg("analyzer", stringLiteral("keyword")))));
   }
+
   @Test
   public void canBuildQuery_stringRelevanceFunctionWithArguments() {
     assertEqual(
@@ -728,6 +791,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                 unresolvedArg("query", stringLiteral("test query")),
                 unresolvedArg("analyzer", stringLiteral("keyword")))));
   }
+
   @Test
   public void functionNameCanBeUsedAsIdentifier() {
     assertFunctionNameCouldBeId(
@@ -756,6 +820,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             + "| PATTERN | PATTERNS | NEW_FIELD | KMEANS | AD | ML | SOURCE | INDEX | D | DESC "
             + "| DATASOURCES");
   }
+
   void assertFunctionNameCouldBeId(String antlrFunctionName) {
     List<String> functionList =
         Arrays.stream(antlrFunctionName.split("\\|"))
@@ -769,6 +834,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
           projectWithArg(relation("t"), defaultFieldsArgs(), field(qualifiedName(functionName))));
     }
   }
+
   // https://github.com/opensearch-project/sql/issues/1318
   @Test
   public void indexCanBeId() {
@@ -781,6 +847,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             exprList(alias("index", field("index"))),
             defaultStatsArgs()));
   }
+
   @Test
   public void testExtractFunctionExpr() {
     assertEqual(
@@ -791,6 +858,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                 field("f"),
                 function("extract", stringLiteral("day"), stringLiteral("2001-05-07 10:11:12")))));
   }
+
   @Test
   public void testGet_FormatFunctionExpr() {
     assertEqual(
@@ -799,6 +867,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             relation("t"),
             let(field("f"), function("get_format", stringLiteral("DATE"), stringLiteral("USA")))));
   }
+
   @Test
   public void testTimeStampAddFunctionExpr() {
     assertEqual(
@@ -813,6 +882,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                     intLiteral(15),
                     stringLiteral("2001-03-06 00:00:00")))));
   }
+
   @Test
   public void testTimeStampDiffFunctionExpr() {
     assertEqual(

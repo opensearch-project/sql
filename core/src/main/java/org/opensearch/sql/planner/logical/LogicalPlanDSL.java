@@ -101,7 +101,8 @@ public class LogicalPlanDSL {
     return new LogicalSort(input, null, Arrays.asList(sorts));
   }
 
-  public static LogicalPlan sort(LogicalPlan input, Integer count, Pair<SortOption, Expression>... sorts) {
+  public static LogicalPlan sort(
+      LogicalPlan input, Integer count, Pair<SortOption, Expression>... sorts) {
     return new LogicalSort(input, count, Arrays.asList(sorts));
   }
 

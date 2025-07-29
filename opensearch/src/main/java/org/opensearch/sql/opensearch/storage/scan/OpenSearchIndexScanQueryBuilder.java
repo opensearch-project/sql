@@ -88,7 +88,7 @@ class OpenSearchIndexScanQueryBuilder implements PushDownQueryBuilder {
     if (sort.getCount() != null) {
       requestBuilder.pushDownLimit(sort.getCount(), 0);
     }
-    
+
     return true;
   }
 

@@ -24,7 +24,8 @@ public class LogicalSort extends LogicalPlan {
   private final List<Pair<SortOption, Expression>> sortList;
 
   /** Constructor of LogicalSort. */
-  public LogicalSort(LogicalPlan child, Integer count, List<Pair<SortOption, Expression>> sortList) {
+  public LogicalSort(
+      LogicalPlan child, Integer count, List<Pair<SortOption, Expression>> sortList) {
     super(Collections.singletonList(child));
     this.count = count;
     this.sortList = sortList;

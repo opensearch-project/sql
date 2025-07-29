@@ -77,8 +77,9 @@ class AstSortBuilderTest {
           AstSortBuilder sortBuilder = new AstSortBuilder(querySpec);
           assertEquals(
               new Sort(
-                  null, // count
-                  ImmutableList.of(field("name", expect))).attach(child),
+                      null, // count
+                      ImmutableList.of(field("name", expect)))
+                  .attach(child),
               sortBuilder.visitOrderByClause(orderByClause).attach(child));
         });
   }

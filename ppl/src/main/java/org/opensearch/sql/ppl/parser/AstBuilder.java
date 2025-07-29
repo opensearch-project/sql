@@ -42,12 +42,11 @@ import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.And;
+import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
-import org.opensearch.sql.ast.expression.Argument;
-import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.PatternMethod;
@@ -374,18 +373,19 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   public UnresolvedPlan visitSortCommand(SortCommandContext ctx) {
     Integer count = ctx.count != null ? Integer.parseInt(ctx.count.getText()) : null;
     boolean shouldReverse = ctx.DESC() != null || ctx.D() != null;
-    
-    List<Field> sortFields = ctx.sortbyClause().sortField().stream()
-        .map(sort -> (Field) internalVisitExpression(sort))
-        .map(field -> shouldReverse ? reverseSortDirection(field) : field)
-        .collect(Collectors.toList());
-    
+
+    List<Field> sortFields =
+        ctx.sortbyClause().sortField().stream()
+            .map(sort -> (Field) internalVisitExpression(sort))
+            .map(field -> shouldReverse ? reverseSortDirection(field) : field)
+            .collect(Collectors.toList());
+
     return new Sort(count, sortFields);
   }
 
   private Field reverseSortDirection(Field field) {
     List<Argument> updatedArgs = new ArrayList<>();
-    
+
     for (Argument arg : field.getFieldArgs()) {
       if ("asc".equals(arg.getArgName())) {
         boolean isAscending = (Boolean) arg.getValue().getValue();
@@ -394,7 +394,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         updatedArgs.add(arg);
       }
     }
-    
+
     return new Field(field.getField(), updatedArgs);
   }
 
