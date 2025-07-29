@@ -179,17 +179,19 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
         schema("account_number", "bigint"),
         schema("firstname", "string"),
         schema("balance", "bigint"),
-        schema("balance_bin", "bigint"));
+        schema("balance_bin", "string"));
 
     // Verify the lowest balance accounts and their binning
-    // The accounts with lowest balances should have balance_bin = 0
+    // The accounts with lowest balances should have range strings like "0-15000"
     JSONArray datarows = actual.getJSONArray("datarows");
     for (int i = 0; i < datarows.length(); i++) {
       JSONArray row = datarows.getJSONArray(i);
       long balance = row.getLong(2);
-      long balanceBin = row.getLong(3);
-      long expectedBin = (balance / 15000) * 15000;
-      assertEquals(expectedBin, balanceBin);
+      String balanceBin = row.getString(3);
+      long expectedBinStart = (balance / 15000) * 15000;
+      long expectedBinEnd = expectedBinStart + 15000;
+      String expectedRange = expectedBinStart + "-" + expectedBinEnd;
+      assertEquals(expectedRange, balanceBin);
     }
   }
 
@@ -207,16 +209,18 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
         actual,
         schema("firstname", "string"),
         schema("balance", "bigint"),
-        schema("balance_bucket", "bigint"));
+        schema("balance_bucket", "string"));
 
-    // All results should have balance > 30000 and balance_bucket >= 30000
+    // All results should have balance > 30000 and balance_bucket ranges starting >= 30000
     JSONArray datarows = actual.getJSONArray("datarows");
     for (int i = 0; i < datarows.length(); i++) {
       JSONArray row = datarows.getJSONArray(i);
       long balance = row.getLong(1);
-      long balanceBucket = row.getLong(2);
+      String balanceBucket = row.getString(2);
       assertTrue(balance > 30000);
-      assertTrue(balanceBucket >= 30000);
+      // Extract start value from range string like "30000-40000"
+      long bucketStart = Long.parseLong(balanceBucket.split("-")[0]);
+      assertTrue(bucketStart >= 30000);
     }
   }
 
@@ -286,18 +290,17 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
         actual,
         schema("account_number", "bigint"),
         schema("balance", "bigint"),
-        schema("balance_bin", "bigint"));
+        schema("balance_bin", "string"));
 
     // With minspan=5000, the system should use 5000 as the span value
-    // Verify that binning creates proper buckets (balance values should be rounded down to nearest
-    // 5000)
+    // Verify that binning creates proper range strings
     verifyDataRows(
         actual,
-        rows(1, 39225, 35000), // floor(39225/5000) * 5000 = 7 * 5000 = 35000
-        rows(6, 5686, 5000), // floor(5686/5000) * 5000 = 1 * 5000 = 5000
-        rows(13, 32838, 30000), // floor(32838/5000) * 5000 = 6 * 5000 = 30000
-        rows(18, 4180, 0), // floor(4180/5000) * 5000 = 0 * 5000 = 0
-        rows(20, 16418, 15000)); // floor(16418/5000) * 5000 = 3 * 5000 = 15000
+        rows(1, 39225, "35000-40000"), // floor(39225/5000) * 5000 = 35000, range is 35000-40000
+        rows(6, 5686, "5000-10000"), // floor(5686/5000) * 5000 = 5000, range is 5000-10000
+        rows(13, 32838, "30000-35000"), // floor(32838/5000) * 5000 = 30000, range is 30000-35000
+        rows(18, 4180, "0-5000"), // floor(4180/5000) * 5000 = 0, range is 0-5000
+        rows(20, 16418, "15000-20000")); // floor(16418/5000) * 5000 = 15000, range is 15000-20000
   }
 
   @Test
@@ -313,13 +316,13 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
         actual,
         schema("account_number", "bigint"),
         schema("balance", "bigint"),
-        schema("balance_tier", "bigint"));
+        schema("balance_tier", "string"));
 
     verifyDataRows(
         actual,
-        rows(1, 39225, 30000), // floor(39225/10000) * 10000 = 3 * 10000 = 30000
-        rows(6, 5686, 0), // floor(5686/10000) * 10000 = 0 * 10000 = 0
-        rows(13, 32838, 30000)); // floor(32838/10000) * 10000 = 3 * 10000 = 30000
+        rows(1, 39225, "30000-40000"), // floor(39225/10000) * 10000 = 30000, range is 30000-40000
+        rows(6, 5686, "0-10000"), // floor(5686/10000) * 10000 = 0, range is 0-10000
+        rows(13, 32838, "30000-40000")); // floor(32838/10000) * 10000 = 30000, range is 30000-40000
   }
 
   @Test
@@ -335,14 +338,15 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
         actual,
         schema("account_number", "bigint"),
         schema("balance", "bigint"),
-        schema("balance_category", "double"));
+        schema("balance_category", "string"));
 
     // Test minspan with decimal values - verify first 3 accounts
+    // Note: Even with decimal minspan, our implementation returns range strings
     verifyDataRows(
         actual,
-        rows(1, 39225, 37502.5), // floor(39225/7500.5) * 7500.5 = 5 * 7500.5 = 37502.5
-        rows(6, 5686, 0.0), // floor(5686/7500.5) * 7500.5 = 0 * 7500.5 = 0.0
-        rows(13, 32838, 30002.0)); // floor(32838/7500.5) * 7500.5 = 4 * 7500.5 = 30002.0
+        rows(1, 39225, "37502.5-45003.0"), // floor(39225/7500.5) * 7500.5 = 37502.5, range with decimal
+        rows(6, 5686, "0.0-7500.5"), // floor(5686/7500.5) * 7500.5 = 0.0, range with decimal
+        rows(13, 32838, "30002.0-37502.5")); // floor(32838/7500.5) * 7500.5 = 30002.0, range with decimal
   }
 
   @Test
@@ -354,16 +358,16 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
                     + " balance_segment | sort balance_segment",
                 TEST_INDEX_ACCOUNT));
 
-    verifySchema(actual, schema("count()", "bigint"), schema("balance_segment", "bigint"));
+    verifySchema(actual, schema("count()", "bigint"), schema("balance_segment", "string"));
 
     // Based on 1000 accounts with balances from ~1000 to ~50000, verify we get multiple segments
     // Verify just that we have a reasonable structure with correct first segment
     JSONArray datarows = actual.getJSONArray("datarows");
     assertTrue(datarows.length() >= 3); // Should have at least 3 segments
 
-    // First row should be segment 0 with reasonable count
+    // First row should be segment "0-15000" with reasonable count
     JSONArray firstRow = datarows.getJSONArray(0);
-    assertEquals(0, firstRow.getInt(1)); // First segment should be 0
+    assertEquals("0-15000", firstRow.getString(1)); // First segment should be "0-15000"
     assertTrue(
         firstRow.getInt(0) > 100 && firstRow.getInt(0) < 500); // Reasonable count for 15000 span
   }
@@ -381,16 +385,18 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
         actual,
         schema("account_number", "bigint"),
         schema("age", "bigint"),
-        schema("age_group", "bigint"));
+        schema("age_group", "string"));
 
-    // Age values should be binned into groups of 5
+    // Age values should be binned into range strings with span of 5
     JSONArray datarows = actual.getJSONArray("datarows");
     for (int i = 0; i < datarows.length(); i++) {
       JSONArray row = datarows.getJSONArray(i);
       long age = row.getLong(1);
-      long ageGroup = row.getLong(2);
-      long expectedGroup = (age / 5) * 5;
-      assertEquals(expectedGroup, ageGroup);
+      String ageGroup = row.getString(2);
+      long expectedGroupStart = (age / 5) * 5;
+      long expectedGroupEnd = expectedGroupStart + 5;
+      String expectedRange = expectedGroupStart + "-" + expectedGroupEnd;
+      assertEquals(expectedRange, ageGroup);
     }
   }
 
@@ -408,16 +414,18 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
         schema("account_number", "bigint"),
         schema("firstname", "string"),
         schema("balance", "bigint"),
-        schema("balance_bin", "bigint"));
+        schema("balance_bin", "string"));
 
     // Verify mathematical correctness for minspan binning
     JSONArray datarows = actual.getJSONArray("datarows");
     for (int i = 0; i < datarows.length(); i++) {
       JSONArray row = datarows.getJSONArray(i);
       long balance = row.getLong(2);
-      long balanceBin = row.getLong(3);
-      long expectedBin = (balance / 12000) * 12000;
-      assertEquals(expectedBin, balanceBin);
+      String balanceBin = row.getString(3);
+      long expectedBinStart = (balance / 12000) * 12000;
+      long expectedBinEnd = expectedBinStart + 12000;
+      String expectedRange = expectedBinStart + "-" + expectedBinEnd;
+      assertEquals(expectedRange, balanceBin);
     }
   }
 
@@ -552,14 +560,14 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
         actual,
         schema("account_number", "bigint"),
         schema("balance", "bigint"),
-        schema("balance_bucket", "bigint"));
+        schema("balance_bucket", "string"));
 
     // Should behave exactly like normal binning (aligntime ignored for numeric fields)
     verifyDataRows(
         actual,
-        rows(1, 39225, 30000), // floor(39225/10000) * 10000 = 30000
-        rows(6, 5686, 0), // floor(5686/10000) * 10000 = 0
-        rows(13, 32838, 30000)); // floor(32838/10000) * 10000 = 30000
+        rows(1, 39225, "30000-40000"), // floor(39225/10000) * 10000 = 30000, range is 30000-40000
+        rows(6, 5686, "0-10000"), // floor(5686/10000) * 10000 = 0, range is 0-10000
+        rows(13, 32838, "30000-40000")); // floor(32838/10000) * 10000 = 30000, range is 30000-40000
   }
 
   @Test
@@ -629,7 +637,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
         actual,
         schema("account_number", "bigint"),
         schema("balance", "bigint"),
-        schema("balance_range", "bigint"));
+        schema("balance_range", "string"));
 
     // Verify that only values within [10000, 40000] range are binned
     // Values outside the range should have NULL in balance_range
@@ -641,12 +649,15 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
       long balance = row.getLong(1);
 
       if (balance >= 10000 && balance <= 40000) {
-        // Values within range should have a binned value
+        // Values within range should have a binned range string
         assertFalse("Balance range should not be null for values in range", row.isNull(2));
-        long balanceRange = row.getLong(2);
+        String balanceRange = row.getString(2);
+        assertTrue("Balance range should contain dash", balanceRange.contains("-"));
+        // Extract start value from range string like "30000-40000"
+        long rangeStart = Long.parseLong(balanceRange.split("-")[0]);
         assertTrue(
-            "Balance range should be valid bin", balanceRange >= 10000 && balanceRange <= 40000);
-        assertTrue("Balance range should be multiple of 10000", balanceRange % 10000 == 0);
+            "Balance range start should be valid bin", rangeStart >= 10000 && rangeStart <= 40000);
+        assertTrue("Balance range start should be multiple of 10000", rangeStart % 10000 == 0);
       } else {
         // Values outside range should be NULL
         assertTrue("Balance range should be null for values outside range", row.isNull(2));
@@ -667,7 +678,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
         actual,
         schema("account_number", "bigint"),
         schema("balance", "bigint"),
-        schema("balance_group", "bigint"));
+        schema("balance_group", "string"));
 
     // Verify that only values >= 20000 are binned
     JSONArray datarows = actual.getJSONArray("datarows");
@@ -678,11 +689,14 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
       long balance = row.getLong(1);
 
       if (balance >= 20000) {
-        // Values >= start should have a binned value
+        // Values >= start should have a binned range string
         assertFalse("Balance group should not be null for values >= start", row.isNull(2));
-        long balanceGroup = row.getLong(2);
-        assertTrue("Balance group should be >= start", balanceGroup >= 20000);
-        assertTrue("Balance group should be multiple of 15000", balanceGroup % 15000 == 0);
+        String balanceGroup = row.getString(2);
+        assertTrue("Balance group should contain dash", balanceGroup.contains("-"));
+        // Extract start value from range string like "30000-45000"
+        long groupStart = Long.parseLong(balanceGroup.split("-")[0]);
+        assertTrue("Balance group start should be >= start", groupStart >= 20000);
+        assertTrue("Balance group start should be multiple of 15000", groupStart % 15000 == 0);
       } else {
         // Values < start should be NULL
         assertTrue("Balance group should be null for values < start", row.isNull(2));
@@ -704,18 +718,20 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
         actual,
         schema("account_number", "bigint"),
         schema("balance", "bigint"),
-        schema("balance_bin", "bigint"));
+        schema("balance_bin", "string"));
 
     // Should see binning applied to ALL values, not just those in [30000, 40000]
     JSONArray datarows = actual.getJSONArray("datarows");
     for (int i = 0; i < datarows.length(); i++) {
       JSONArray row = datarows.getJSONArray(i);
       long balance = row.getLong(1);
-      long balanceBin = row.getLong(2);
+      String balanceBin = row.getString(2);
 
       // All values should be binned with span=5000, regardless of start/end
-      long expectedBin = (balance / 5000) * 5000;
-      assertEquals("Bin should use span regardless of start/end", expectedBin, balanceBin);
+      long expectedBinStart = (balance / 5000) * 5000;
+      long expectedBinEnd = expectedBinStart + 5000;
+      String expectedRange = expectedBinStart + "-" + expectedBinEnd;
+      assertEquals("Bin should use span regardless of start/end", expectedRange, balanceBin);
     }
   }
 
@@ -729,17 +745,20 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
                     + "stats count() by age_bin | sort age_bin",
                 TEST_INDEX_ACCOUNT));
 
-    verifySchema(actual, schema("count()", "bigint"), schema("age_bin", "bigint"));
+    verifySchema(actual, schema("count()", "bigint"), schema("age_bin", "string"));
 
     // SPL would create bins: 20-30, 30-40 (using nice width=10 instead of exact width=5)
     JSONArray datarows = actual.getJSONArray("datarows");
     assertTrue("Should have at most 3 bins with nice width=10", datarows.length() <= 3);
 
-    // Verify bins are multiples of 10 (nice numbers)
+    // Verify bins are range strings with nice number boundaries
     for (int i = 0; i < datarows.length(); i++) {
       JSONArray row = datarows.getJSONArray(i);
-      long ageBin = row.getLong(1);
-      assertEquals("Bins should be multiples of 10", 0, ageBin % 10);
+      String ageBin = row.getString(1);
+      assertTrue("Bins should be range strings", ageBin.contains("-"));
+      // Extract start value from range string like "20-30"
+      long binStart = Long.parseLong(ageBin.split("-")[0]);
+      assertEquals("Bins should start at multiples of 10", 0, binStart % 10);
     }
   }
 
@@ -758,9 +777,12 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
 
     JSONArray datarows1 = actual1.getJSONArray("datarows");
     if (datarows1.length() >= 2) {
-      long bin1 = datarows1.getJSONArray(0).getLong(1);
-      long bin2 = datarows1.getJSONArray(1).getLong(1);
-      assertEquals("Width should be 10 for range ≤ 100", 10, bin2 - bin1);
+      String bin1 = datarows1.getJSONArray(0).getString(1);
+      String bin2 = datarows1.getJSONArray(1).getString(1);
+      // Extract start values from range strings like "20-30", "30-40"
+      long start1 = Long.parseLong(bin1.split("-")[0]);
+      long start2 = Long.parseLong(bin2.split("-")[0]);
+      assertEquals("Width should be 10 for range ≤ 100", 10, start2 - start1);
     }
 
     // Test 2: start=0 end=101 should use width=100 (dramatic change!)
@@ -772,9 +794,9 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
                 TEST_INDEX_ACCOUNT));
 
     JSONArray datarows2 = actual2.getJSONArray("datarows");
-    // With width=100, all ages should fall into bin 0
+    // With width=100, all ages should fall into single range bin like "0-100"
     assertEquals("Should have single bin with width=100", 1, datarows2.length());
-    assertEquals("Single bin should be at 0", 0, datarows2.getJSONArray(0).getLong(1));
+    assertEquals("Single bin should be range starting at 0", "0-100", datarows2.getJSONArray(0).getString(1));
   }
 
   @Test
@@ -794,11 +816,13 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     for (int i = 0; i < datarows.length(); i++) {
       JSONArray row = datarows.getJSONArray(i);
       long balance = row.getLong(0);
-      long balanceBin = row.getLong(1);
+      String balanceBin = row.getString(1);
 
-      // Bins should be based on expanded range starting at 20000
-      assertTrue("Bins should be multiples of 10000", balanceBin % 10000 == 0);
-      assertTrue("Bins should start from 20000 or higher", balanceBin >= 20000);
+      // Bins should be range strings based on expanded range starting at 20000
+      assertTrue("Bins should be range strings", balanceBin.contains("-"));
+      long binStart = Long.parseLong(balanceBin.split("-")[0]);
+      assertTrue("Bins should start with multiples of 10000", binStart % 10000 == 0);
+      assertTrue("Bins should start from 20000 or higher", binStart >= 20000);
     }
   }
 
@@ -812,17 +836,21 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
                     + "stats count() AS cnt by age_group | sort age_group",
                 TEST_INDEX_ACCOUNT));
 
-    verifySchema(actual, schema("cnt", "bigint"), schema("age_group", "bigint"));
+    verifySchema(actual, schema("cnt", "bigint"), schema("age_group", "string"));
 
     // Should create at most 5 bins with nice numbers
     JSONArray datarows = actual.getJSONArray("datarows");
     assertTrue("Should have at most 5 bins", datarows.length() <= 5);
 
-    // Verify nice number binning
+    // Verify nice number binning with range strings
     if (datarows.length() >= 2) {
-      long bin1 = datarows.getJSONArray(0).getLong(1);
-      long bin2 = datarows.getJSONArray(1).getLong(1);
-      long width = bin2 - bin1;
+      String bin1 = datarows.getJSONArray(0).getString(1);
+      String bin2 = datarows.getJSONArray(1).getString(1);
+      
+      // Extract start values from range strings like "20-30", "30-40"
+      long start1 = Long.parseLong(bin1.split("-")[0]);
+      long start2 = Long.parseLong(bin2.split("-")[0]);
+      long width = start2 - start1;
 
       // Width should be a nice number (1, 2, 5, 10, 20, 50, 100, etc.)
       assertTrue(
@@ -853,7 +881,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
         actual,
         schema("account_number", "bigint"),
         schema("balance", "bigint"),
-        schema("balance_tier", "bigint"));
+        schema("balance_tier", "string"));
 
     // Verify that only values <= 35000 are binned
     JSONArray datarows = actual.getJSONArray("datarows");
@@ -864,11 +892,14 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
       long balance = row.getLong(1);
 
       if (balance <= 35000) {
-        // Values <= end should have a binned value
+        // Values <= end should have a binned range string
         assertFalse("Balance tier should not be null for values <= end", row.isNull(2));
-        long balanceTier = row.getLong(2);
-        assertTrue("Balance tier should be <= end", balanceTier <= 35000);
-        assertTrue("Balance tier should be multiple of 12000", balanceTier % 12000 == 0);
+        String balanceTier = row.getString(2);
+        assertTrue("Balance tier should contain dash", balanceTier.contains("-"));
+        // Extract start value from range string like "24000-36000"
+        long tierStart = Long.parseLong(balanceTier.split("-")[0]);
+        assertTrue("Balance tier start should be <= end", tierStart <= 35000);
+        assertTrue("Balance tier start should be multiple of 12000", tierStart % 12000 == 0);
       } else {
         // Values > end should be NULL
         assertTrue("Balance tier should be null for values > end", row.isNull(2));
