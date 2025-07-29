@@ -5,6 +5,9 @@
 
 package org.opensearch.sql.ppl.calcite;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Test;
@@ -56,7 +59,7 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
 
     // The bins parameter should now work properly with window functions to calculate min/max
     // Expected logical plan should include window operations and proper binning expressions
-    String actualLogical = getLogicalPlan(root);
+    String actualLogical = root.toString();
     System.out.println("Actual logical plan for bins=5:");
     System.out.println(actualLogical);
 
