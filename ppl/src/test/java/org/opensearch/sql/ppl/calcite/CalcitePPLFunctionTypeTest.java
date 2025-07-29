@@ -47,8 +47,8 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
     verifyErrorMessageContains(
         t,
         // Temporary fix for the error message as LESS function has two variants. Will remove
-        // [IP,IP],[IP,STRING],[STRING,IP] when merging the two variants.
-        "LESS function expects {[IP,IP],[IP,STRING],[STRING,IP],[COMPARABLE_TYPE,COMPARABLE_TYPE]},"
+        // [IP,IP] when merging the two variants.
+        "LESS function expects {[IP,IP],[COMPARABLE_TYPE,COMPARABLE_TYPE]},"
             + " but got [STRING,INTEGER]");
   }
 
