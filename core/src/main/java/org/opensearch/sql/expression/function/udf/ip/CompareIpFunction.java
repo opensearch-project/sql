@@ -15,7 +15,7 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprIpValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
@@ -83,9 +83,10 @@ public class CompareIpFunction extends ImplementorUDF {
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
       Expression compareResult =
           Expressions.call(
+              CompareImplementor.class,
+              "compareTo",
               translatedOperands.get(0),
-              "compare",
-              Expressions.convert_(translatedOperands.get(1), ExprValue.class));
+              translatedOperands.get(1));
 
       return generateComparisonExpression(compareResult, comparisonType);
     }
@@ -101,6 +102,21 @@ public class CompareIpFunction extends ImplementorUDF {
         case GREATER -> Expressions.greaterThan(compareResult, zero);
         case GREATER_OR_EQUAL -> Expressions.greaterThanOrEqual(compareResult, zero);
       };
+    }
+
+    public static int compareTo(Object obj1, Object obj2) {
+      ExprIpValue v1 = toExprIpValue(obj1);
+      ExprIpValue v2 = toExprIpValue(obj2);
+      return v1.compare(v2);
+    }
+
+    private static ExprIpValue toExprIpValue(Object obj) {
+      if (obj instanceof ExprIpValue) {
+        return (ExprIpValue) obj;
+      } else if (obj instanceof String) {
+        return new ExprIpValue((String) obj);
+      }
+      throw new IllegalArgumentException("Invalid IP type: " + obj);
     }
   }
 
