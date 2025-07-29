@@ -944,6 +944,7 @@ class AnalyzerTest extends AnalyzerTestBase {
                         DSL.named(
                             "avg(integer_value)", DSL.avg(DSL.ref("integer_value", INTEGER)))),
                     ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING)))),
+                10000,
                 // Aggregator in Sort AST node is replaced with reference by expression optimizer
                 Pair.of(SortOption.DEFAULT_ASC, DSL.ref("avg(integer_value)", DOUBLE))),
             DSL.named("string_value", DSL.ref("string_value", STRING))),

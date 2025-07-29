@@ -237,7 +237,7 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | sort DEPTNO";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalSort(sort0=[$7], dir0=[ASC-nulls-first], fetch=[10000])\n"
+        "LogicalSort(sort0=[$7], dir0=[ASC-nulls-first])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
   }
@@ -247,7 +247,7 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | sort DEPTNO, SAL";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalSort(sort0=[$7], sort1=[$5], dir0=[ASC-nulls-first], dir1=[ASC-nulls-first], fetch=[10000])\n"
+        "LogicalSort(sort0=[$7], sort1=[$5], dir0=[ASC-nulls-first], dir1=[ASC-nulls-first])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
   }
@@ -259,7 +259,7 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         "LogicalProject(EMPNO=[$0], DEPTNO=[$7], SAL=[$5])\n"
             + "  LogicalSort(sort0=[$7], sort1=[$5], dir0=[ASC-nulls-first],"
-            + " dir1=[DESC-nulls-last], fetch=[10000])\n"
+            + " dir1=[DESC-nulls-last])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
