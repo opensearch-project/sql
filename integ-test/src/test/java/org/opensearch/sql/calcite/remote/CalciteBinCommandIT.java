@@ -344,9 +344,15 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     // Note: Even with decimal minspan, our implementation returns range strings
     verifyDataRows(
         actual,
-        rows(1, 39225, "37502.5-45003.0"), // floor(39225/7500.5) * 7500.5 = 37502.5, range with decimal
+        rows(
+            1,
+            39225,
+            "37502.5-45003.0"), // floor(39225/7500.5) * 7500.5 = 37502.5, range with decimal
         rows(6, 5686, "0.0-7500.5"), // floor(5686/7500.5) * 7500.5 = 0.0, range with decimal
-        rows(13, 32838, "30002.0-37502.5")); // floor(32838/7500.5) * 7500.5 = 30002.0, range with decimal
+        rows(
+            13,
+            32838,
+            "30002.0-37502.5")); // floor(32838/7500.5) * 7500.5 = 30002.0, range with decimal
   }
 
   @Test
@@ -796,7 +802,10 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     JSONArray datarows2 = actual2.getJSONArray("datarows");
     // With width=100, all ages should fall into single range bin like "0-100"
     assertEquals("Should have single bin with width=100", 1, datarows2.length());
-    assertEquals("Single bin should be range starting at 0", "0-100", datarows2.getJSONArray(0).getString(1));
+    assertEquals(
+        "Single bin should be range starting at 0",
+        "0-100",
+        datarows2.getJSONArray(0).getString(1));
   }
 
   @Test
@@ -846,7 +855,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     if (datarows.length() >= 2) {
       String bin1 = datarows.getJSONArray(0).getString(1);
       String bin2 = datarows.getJSONArray(1).getString(1);
-      
+
       // Extract start values from range strings like "20-30", "30-40"
       long start1 = Long.parseLong(bin1.split("-")[0]);
       long start2 = Long.parseLong(bin2.split("-")[0]);
