@@ -77,9 +77,8 @@ class AstSortBuilderTest {
           AstSortBuilder sortBuilder = new AstSortBuilder(querySpec);
           assertEquals(
               new Sort(
-                  child, // has to mock and attach child otherwise Guava ImmutableList NPE in
-                  // getChild()
-                  ImmutableList.of(field("name", expect))),
+                  null, // count
+                  ImmutableList.of(field("name", expect))).attach(child),
               sortBuilder.visitOrderByClause(orderByClause).attach(child));
         });
   }

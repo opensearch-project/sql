@@ -25,11 +25,21 @@ import org.opensearch.sql.ast.expression.Field;
 @ToString
 @EqualsAndHashCode(callSuper = false)
 @Getter
-@RequiredArgsConstructor
-@AllArgsConstructor
 public class Sort extends UnresolvedPlan {
   private UnresolvedPlan child;
+  private final Integer count;
   private final List<Field> sortList;
+
+  /** Sort Constructor without count. */
+  public Sort(List<Field> sortList) {
+    this(null, sortList);
+  }
+
+  /** Sort Constructor. */
+  public Sort(Integer count, List<Field> sortList) {
+    this.count = count;
+    this.sortList = sortList;
+  }
 
   @Override
   public Sort attach(UnresolvedPlan child) {

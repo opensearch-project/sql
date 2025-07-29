@@ -237,7 +237,7 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | sort DEPTNO";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalSort(sort0=[$7], dir0=[ASC-nulls-first])\n"
+        "LogicalSort(sort0=[$7], dir0=[ASC-nulls-first], fetch=[10000])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
   }
@@ -247,7 +247,7 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | sort DEPTNO, SAL";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalSort(sort0=[$7], sort1=[$5], dir0=[ASC-nulls-first], dir1=[ASC-nulls-first])\n"
+        "LogicalSort(sort0=[$7], sort1=[$5], dir0=[ASC-nulls-first], dir1=[ASC-nulls-first], fetch=[10000])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
   }
@@ -259,7 +259,7 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         "LogicalProject(EMPNO=[$0], DEPTNO=[$7], SAL=[$5])\n"
             + "  LogicalSort(sort0=[$7], sort1=[$5], dir0=[ASC-nulls-first],"
-            + " dir1=[DESC-nulls-last])\n"
+            + " dir1=[DESC-nulls-last], fetch=[10000])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
@@ -294,6 +294,36 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
             + "EMPNO=7788; DEPTNO=20; SAL=3000.00\n"
             + "EMPNO=7902; DEPTNO=20; SAL=3000.00\n";
     verifyResult(root, expectedResult);
+  }
+
+  @Test
+  public void testSortWithCountLimit() {
+    String ppl = "source=EMP | sort 3 DEPTNO";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(sort0=[$7], dir0=[ASC-nulls-first], fetch=[3])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  @Test
+  public void testSortWithCountZero() {
+    String ppl = "source=EMP | sort 0 DEPTNO";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(sort0=[$7], dir0=[ASC-nulls-first])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  @Test
+  public void testSortWithDescReversal() {
+    String ppl = "source=EMP | sort + DEPTNO, - SAL desc";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(sort0=[$7], sort1=[$5], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
   }
 
   @Test

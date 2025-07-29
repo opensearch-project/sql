@@ -91,6 +91,7 @@ public class ArgumentFactoryTest extends AstBuilderTest {
         "source=t | sort - auto(field0)",
         sort(
             relation("t"),
+            10000,
             field(
                 "field0",
                 exprList(

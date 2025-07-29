@@ -369,7 +369,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
 
   @Test
   public void testFieldExpr() {
-    assertEqual("source=t | sort + f", sort(relation("t"), field("f", defaultSortFieldArgs())));
+    assertEqual("source=t | sort + f", sort(relation("t"), 10000, field("f", defaultSortFieldArgs())));
   }
 
   @Test
@@ -378,12 +378,13 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         "source=t | sort - f",
         sort(
             relation("t"),
+            10000,
             field("f", argument("asc", booleanLiteral(false)), argument("type", nullLiteral()))));
   }
 
   @Test
   public void testSortFieldWithBackticks() {
-    assertEqual("source=t | sort `f`", sort(relation("t"), field("f", defaultSortFieldArgs())));
+    assertEqual("source=t | sort `f`", sort(relation("t"), 10000, field("f", defaultSortFieldArgs())));
   }
 
   @Test
@@ -392,6 +393,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         "source=t | sort auto(f)",
         sort(
             relation("t"),
+            10000,
             field(
                 "f",
                 argument("asc", booleanLiteral(true)),
@@ -404,8 +406,9 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         "source=t | sort ip(f)",
         sort(
             relation("t"),
+            10000,
             field(
-                "f",
+                cast(qualifiedName("f"), stringLiteral("ip")),
                 argument("asc", booleanLiteral(true)),
                 argument("type", stringLiteral("ip")))));
   }
@@ -416,8 +419,9 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         "source=t | sort num(f)",
         sort(
             relation("t"),
+            10000,
             field(
-                "f",
+                cast(qualifiedName("f"), stringLiteral("double")),
                 argument("asc", booleanLiteral(true)),
                 argument("type", stringLiteral("num")))));
   }
@@ -428,8 +432,9 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         "source=t | sort str(f)",
         sort(
             relation("t"),
+            10000,
             field(
-                "f",
+                cast(qualifiedName("f"), stringLiteral("string")),
                 argument("asc", booleanLiteral(true)),
                 argument("type", stringLiteral("str")))));
   }

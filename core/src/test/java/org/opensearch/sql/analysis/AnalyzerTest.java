@@ -957,6 +957,7 @@ class AnalyzerTest extends AnalyzerTestBase {
                     emptyList(),
                     ImmutableList.of(AstDSL.alias("string_value", qualifiedName("string_value"))),
                     emptyList()),
+                10000,
                 field(
                     function("avg", qualifiedName("integer_value")),
                     argument("asc", booleanLiteral(true)))),

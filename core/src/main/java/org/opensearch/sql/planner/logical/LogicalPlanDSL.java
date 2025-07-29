@@ -98,7 +98,11 @@ public class LogicalPlanDSL {
   }
 
   public static LogicalPlan sort(LogicalPlan input, Pair<SortOption, Expression>... sorts) {
-    return new LogicalSort(input, Arrays.asList(sorts));
+    return new LogicalSort(input, null, Arrays.asList(sorts));
+  }
+
+  public static LogicalPlan sort(LogicalPlan input, Integer count, Pair<SortOption, Expression>... sorts) {
+    return new LogicalSort(input, count, Arrays.asList(sorts));
   }
 
   public static LogicalPlan dedupe(LogicalPlan input, Expression... fields) {

@@ -7,6 +7,7 @@ package org.opensearch.sql.ppl.parser;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
@@ -45,6 +46,8 @@ import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.PatternMethod;
@@ -369,10 +372,30 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   /** Sort command. */
   @Override
   public UnresolvedPlan visitSortCommand(SortCommandContext ctx) {
-    return new Sort(
-        ctx.sortbyClause().sortField().stream()
-            .map(sort -> (Field) internalVisitExpression(sort))
-            .collect(Collectors.toList()));
+    Integer count = ctx.count != null ? Integer.parseInt(ctx.count.getText()) : null;
+    boolean shouldReverse = ctx.DESC() != null || ctx.D() != null;
+    
+    List<Field> sortFields = ctx.sortbyClause().sortField().stream()
+        .map(sort -> (Field) internalVisitExpression(sort))
+        .map(field -> shouldReverse ? reverseSortDirection(field) : field)
+        .collect(Collectors.toList());
+    
+    return new Sort(count, sortFields);
+  }
+
+  private Field reverseSortDirection(Field field) {
+    List<Argument> updatedArgs = new ArrayList<>();
+    
+    for (Argument arg : field.getFieldArgs()) {
+      if ("asc".equals(arg.getArgName())) {
+        boolean isAscending = (Boolean) arg.getValue().getValue();
+        updatedArgs.add(new Argument("asc", booleanLiteral(!isAscending)));
+      } else {
+        updatedArgs.add(arg);
+      }
+    }
+    
+    return new Field(field.getField(), updatedArgs);
   }
 
   /** Eval command. */
