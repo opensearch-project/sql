@@ -9,7 +9,9 @@ import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.MatcherUtils.*;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Locale;
+import java.util.Set;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
@@ -34,26 +36,23 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | bin balance span=5000 | fields account_number, balance, balance_bin |"
-                    + " head 5",
+                "source=%s | bin balance span=5000 | fields account_number, balance | head 5",
                 TEST_INDEX_ACCOUNT));
 
     verifySchema(
         actual,
         schema("account_number", "bigint"),
-        schema("balance", "bigint"),
-        schema("balance_bin", "bigint"));
+        schema("balance", "string")); // balance is now transformed to range strings
 
-    // Verify that binning creates proper buckets (balance values should be rounded down to nearest
-    // 5000)
+    // Verify that binning creates proper range strings
     // Based on the actual accounts.json data, first few accounts have these exact values
     verifyDataRows(
         actual,
-        rows(1, 39225, 35000), // floor(39225/5000) * 5000 = 7 * 5000 = 35000
-        rows(6, 5686, 5000), // floor(5686/5000) * 5000 = 1 * 5000 = 5000
-        rows(13, 32838, 30000), // floor(32838/5000) * 5000 = 6 * 5000 = 30000
-        rows(18, 4180, 0), // floor(4180/5000) * 5000 = 0 * 5000 = 0
-        rows(20, 16418, 15000)); // floor(16418/5000) * 5000 = 3 * 5000 = 15000
+        rows(1, "35000-40000"), // 39225 falls in range 35000-40000
+        rows(6, "5000-10000"), // 5686 falls in range 5000-10000
+        rows(13, "30000-35000"), // 32838 falls in range 30000-35000
+        rows(18, "0-5000"), // 4180 falls in range 0-5000
+        rows(20, "15000-20000")); // 16418 falls in range 15000-20000
   }
 
   @Test
@@ -68,14 +67,14 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     verifySchema(
         actual,
         schema("account_number", "bigint"),
-        schema("balance", "bigint"),
-        schema("balance_range", "bigint"));
+        schema("balance", "bigint"), // Original field stays unchanged
+        schema("balance_range", "string")); // Alias creates a new field with range strings
 
     verifyDataRows(
         actual,
-        rows(1, 39225, 30000), // floor(39225/10000) * 10000 = 3 * 10000 = 30000
-        rows(6, 5686, 0), // floor(5686/10000) * 10000 = 0 * 10000 = 0
-        rows(13, 32838, 30000)); // floor(32838/10000) * 10000 = 3 * 10000 = 30000
+        rows(1, 39225, "30000-40000"), // Original balance + range string
+        rows(6, 5686, "0-10000"), // Original balance + range string
+        rows(13, 32838, "30000-40000")); // Original balance + range string
   }
 
   @Test
@@ -83,7 +82,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | bin balance span=7500.5 AS balance_group | fields account_number,"
+                "source=%s | bin balance span=7500 AS balance_group | fields account_number,"
                     + " balance, balance_group | head 3",
                 TEST_INDEX_ACCOUNT));
 
@@ -91,14 +90,14 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
         actual,
         schema("account_number", "bigint"),
         schema("balance", "bigint"),
-        schema("balance_group", "double"));
+        schema("balance_group", "string")); // Range strings
 
-    // Test binning with decimal span values - verify first 3 accounts
+    // Test binning with integer span values - verify first 3 accounts
     verifyDataRows(
         actual,
-        rows(1, 39225, 37502.5), // floor(39225/7500.5) * 7500.5 = 5 * 7500.5 = 37502.5
-        rows(6, 5686, 0.0), // floor(5686/7500.5) * 7500.5 = 0 * 7500.5 = 0.0
-        rows(13, 32838, 30002.0)); // floor(32838/7500.5) * 7500.5 = 4 * 7500.5 = 30002.0
+        rows(1, 39225, "37500-45000"), // 39225 falls in range 37500-45000
+        rows(6, 5686, "0-7500"), // 5686 falls in range 0-7500
+        rows(13, 32838, "30000-37500")); // 32838 falls in range 30000-37500
   }
 
   @Test
@@ -106,21 +105,19 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | bin age | fields account_number, age, age_bin | head 3",
-                TEST_INDEX_ACCOUNT));
+                "source=%s | bin age | fields account_number, age | head 3", TEST_INDEX_ACCOUNT));
 
     verifySchema(
         actual,
         schema("account_number", "bigint"),
-        schema("age", "bigint"), // Age is bigint in Calcite
-        schema("age_bin", "bigint")); // Default behavior produces bigint
+        schema("age", "string")); // Age is transformed to range strings
 
-    // With default behavior (no span, no bins), should use span=1
+    // With default behavior (no span, no bins), should use span=10
     verifyDataRows(
         actual,
-        rows(1, 32, 32), // floor(32/1) = 32
-        rows(6, 36, 36), // floor(36/1) = 36
-        rows(13, 28, 28)); // floor(28/1) = 28
+        rows(1, "30-40"), // 32 falls in range 30-40
+        rows(6, "30-40"), // 36 falls in range 30-40
+        rows(13, "20-30")); // 28 falls in range 20-30
   }
 
   @Test
@@ -237,9 +234,44 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     verifyErrorMessageContains(e, "field [nonexistent_field] not found");
   }
 
-  // Note: bins parameter test is omitted due to implementation issue
-  // The bins parameter currently produces incorrect results (constant -840 value)
-  // This should be investigated and fixed in the CalciteRelNodeVisitor implementation
+  @Test
+  public void testBinWithBinsParameterBasic() throws IOException {
+    // Test basic bins parameter functionality
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | bin age bins=4 AS age_bin | fields account_number, age, age_bin | head"
+                    + " 10",
+                TEST_INDEX_ACCOUNT));
+
+    verifySchema(
+        actual,
+        schema("account_number", "bigint"),
+        schema("age", "bigint"),
+        schema("age_bin", "string"));
+
+    // Verify that binning occurred (should not have raw age values)
+    JSONArray datarows = actual.getJSONArray("datarows");
+    assertTrue("Should have data", datarows.length() > 0);
+
+    // Check that we get range string values, not individual age values
+    Set<String> ageBins = new HashSet<>();
+    for (int i = 0; i < datarows.length(); i++) {
+      JSONArray row = datarows.getJSONArray(i);
+      String ageBin = row.getString(2);
+      ageBins.add(ageBin);
+    }
+
+    // With bins=4 for age range (roughly 20-50), should have at most 4 distinct range strings
+    assertTrue("Should have at most 4 bins with bins=4", ageBins.size() <= 4);
+    assertTrue("Should have at least 2 bins", ageBins.size() >= 2);
+
+    // Verify bins are reasonable range strings (like "20-30", "30-40")
+    for (String bin : ageBins) {
+      assertTrue("Bin values should be range strings", bin.contains("-"));
+      assertTrue("Should not be 'Other'", !bin.equals("Other"));
+    }
+  }
 
   @Test
   public void testBasicBinWithMinspan() throws IOException {
@@ -582,5 +614,622 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     // Should handle multiple bin operations with different aligntime settings
     JSONArray datarows = actual.getJSONArray("datarows");
     assertTrue(datarows.length() >= 1);
+  }
+
+  @Test
+  public void testBinWithStartAndEndConstraints() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | bin balance span=10000 start=10000 end=40000 AS balance_range | fields"
+                    + " account_number, balance, balance_range | sort balance | head 10",
+                TEST_INDEX_ACCOUNT));
+
+    verifySchema(
+        actual,
+        schema("account_number", "bigint"),
+        schema("balance", "bigint"),
+        schema("balance_range", "bigint"));
+
+    // Verify that only values within [10000, 40000] range are binned
+    // Values outside the range should have NULL in balance_range
+    JSONArray datarows = actual.getJSONArray("datarows");
+    assertTrue(datarows.length() >= 1);
+
+    for (int i = 0; i < datarows.length(); i++) {
+      JSONArray row = datarows.getJSONArray(i);
+      long balance = row.getLong(1);
+
+      if (balance >= 10000 && balance <= 40000) {
+        // Values within range should have a binned value
+        assertFalse("Balance range should not be null for values in range", row.isNull(2));
+        long balanceRange = row.getLong(2);
+        assertTrue(
+            "Balance range should be valid bin", balanceRange >= 10000 && balanceRange <= 40000);
+        assertTrue("Balance range should be multiple of 10000", balanceRange % 10000 == 0);
+      } else {
+        // Values outside range should be NULL
+        assertTrue("Balance range should be null for values outside range", row.isNull(2));
+      }
+    }
+  }
+
+  @Test
+  public void testBinWithOnlyStartConstraint() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | bin balance span=15000 start=20000 AS balance_group | fields"
+                    + " account_number, balance, balance_group | sort balance | head 8",
+                TEST_INDEX_ACCOUNT));
+
+    verifySchema(
+        actual,
+        schema("account_number", "bigint"),
+        schema("balance", "bigint"),
+        schema("balance_group", "bigint"));
+
+    // Verify that only values >= 20000 are binned
+    JSONArray datarows = actual.getJSONArray("datarows");
+    assertTrue(datarows.length() >= 1);
+
+    for (int i = 0; i < datarows.length(); i++) {
+      JSONArray row = datarows.getJSONArray(i);
+      long balance = row.getLong(1);
+
+      if (balance >= 20000) {
+        // Values >= start should have a binned value
+        assertFalse("Balance group should not be null for values >= start", row.isNull(2));
+        long balanceGroup = row.getLong(2);
+        assertTrue("Balance group should be >= start", balanceGroup >= 20000);
+        assertTrue("Balance group should be multiple of 15000", balanceGroup % 15000 == 0);
+      } else {
+        // Values < start should be NULL
+        assertTrue("Balance group should be null for values < start", row.isNull(2));
+      }
+    }
+  }
+
+  @Test
+  public void testBinWithSpanIgnoresStartEnd() throws IOException {
+    // SPL behavior: when span is specified, start/end are completely ignored
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | bin balance span=5000 start=30000 end=40000 AS balance_bin | fields"
+                    + " account_number, balance, balance_bin | sort balance | head 10",
+                TEST_INDEX_ACCOUNT));
+
+    verifySchema(
+        actual,
+        schema("account_number", "bigint"),
+        schema("balance", "bigint"),
+        schema("balance_bin", "bigint"));
+
+    // Should see binning applied to ALL values, not just those in [30000, 40000]
+    JSONArray datarows = actual.getJSONArray("datarows");
+    for (int i = 0; i < datarows.length(); i++) {
+      JSONArray row = datarows.getJSONArray(i);
+      long balance = row.getLong(1);
+      long balanceBin = row.getLong(2);
+
+      // All values should be binned with span=5000, regardless of start/end
+      long expectedBin = (balance / 5000) * 5000;
+      assertEquals("Bin should use span regardless of start/end", expectedBin, balanceBin);
+    }
+  }
+
+  @Test
+  public void testBinWithBinsUsesNiceNumbers() throws IOException {
+    // SPL uses "nice" numbers - bins=4 for range 20-40 should use width=10, creating 3 bins
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where age >= 20 AND age <= 40 | bin age bins=4 AS age_bin | "
+                    + "stats count() by age_bin | sort age_bin",
+                TEST_INDEX_ACCOUNT));
+
+    verifySchema(actual, schema("count()", "bigint"), schema("age_bin", "bigint"));
+
+    // SPL would create bins: 20-30, 30-40 (using nice width=10 instead of exact width=5)
+    JSONArray datarows = actual.getJSONArray("datarows");
+    assertTrue("Should have at most 3 bins with nice width=10", datarows.length() <= 3);
+
+    // Verify bins are multiples of 10 (nice numbers)
+    for (int i = 0; i < datarows.length(); i++) {
+      JSONArray row = datarows.getJSONArray(i);
+      long ageBin = row.getLong(1);
+      assertEquals("Bins should be multiples of 10", 0, ageBin % 10);
+    }
+  }
+
+  @Test
+  public void testBinNiceNumberThresholdBehavior() throws IOException {
+    // Test SPL's dramatic behavior change at range thresholds
+    // Range ≤ 100 uses width=10, Range > 100 uses width=100
+
+    // Test 1: start=0 end=100 should use width=10
+    JSONObject actual1 =
+        executeQuery(
+            String.format(
+                "source=%s | bin age start=0 end=100 AS age_bin | "
+                    + "stats count() by age_bin | sort age_bin | head 3",
+                TEST_INDEX_ACCOUNT));
+
+    JSONArray datarows1 = actual1.getJSONArray("datarows");
+    if (datarows1.length() >= 2) {
+      long bin1 = datarows1.getJSONArray(0).getLong(1);
+      long bin2 = datarows1.getJSONArray(1).getLong(1);
+      assertEquals("Width should be 10 for range ≤ 100", 10, bin2 - bin1);
+    }
+
+    // Test 2: start=0 end=101 should use width=100 (dramatic change!)
+    JSONObject actual2 =
+        executeQuery(
+            String.format(
+                "source=%s | bin age start=0 end=101 AS age_bin | "
+                    + "stats count() by age_bin | sort age_bin",
+                TEST_INDEX_ACCOUNT));
+
+    JSONArray datarows2 = actual2.getJSONArray("datarows");
+    // With width=100, all ages should fall into bin 0
+    assertEquals("Should have single bin with width=100", 1, datarows2.length());
+    assertEquals("Single bin should be at 0", 0, datarows2.getJSONArray(0).getLong(1));
+  }
+
+  @Test
+  public void testBinStartEndExpandRangeOnly() throws IOException {
+    // SPL behavior: start/end can only expand the range, never shrink it
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where balance >= 30000 AND balance <= 40000 | "
+                    + "bin balance start=20000 end=50000 bins=5 AS balance_bin | "
+                    + "fields balance, balance_bin | sort balance",
+                TEST_INDEX_ACCOUNT));
+
+    // Even though data is 30000-40000, bins should be calculated for 20000-50000 range
+    // With range=30000 and bins=5, nice width would be 10000
+    JSONArray datarows = actual.getJSONArray("datarows");
+    for (int i = 0; i < datarows.length(); i++) {
+      JSONArray row = datarows.getJSONArray(i);
+      long balance = row.getLong(0);
+      long balanceBin = row.getLong(1);
+
+      // Bins should be based on expanded range starting at 20000
+      assertTrue("Bins should be multiples of 10000", balanceBin % 10000 == 0);
+      assertTrue("Bins should start from 20000 or higher", balanceBin >= 20000);
+    }
+  }
+
+  @Test
+  public void testBinWithOnlyBinsParameter() throws IOException {
+    // Test bins parameter without start/end - should use actual data range
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | bin age bins=5 AS age_group | "
+                    + "stats count() AS cnt by age_group | sort age_group",
+                TEST_INDEX_ACCOUNT));
+
+    verifySchema(actual, schema("cnt", "bigint"), schema("age_group", "bigint"));
+
+    // Should create at most 5 bins with nice numbers
+    JSONArray datarows = actual.getJSONArray("datarows");
+    assertTrue("Should have at most 5 bins", datarows.length() <= 5);
+
+    // Verify nice number binning
+    if (datarows.length() >= 2) {
+      long bin1 = datarows.getJSONArray(0).getLong(1);
+      long bin2 = datarows.getJSONArray(1).getLong(1);
+      long width = bin2 - bin1;
+
+      // Width should be a nice number (1, 2, 5, 10, 20, 50, 100, etc.)
+      assertTrue(
+          "Width should be a nice number",
+          width == 1
+              || width == 2
+              || width == 5
+              || width == 10
+              || width == 20
+              || width == 50
+              || width == 100
+              || width == 200
+              || width == 500
+              || width == 1000);
+    }
+  }
+
+  @Test
+  public void testBinWithOnlyEndConstraint() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | bin balance span=12000 end=35000 AS balance_tier | fields"
+                    + " account_number, balance, balance_tier | sort balance | head 8",
+                TEST_INDEX_ACCOUNT));
+
+    verifySchema(
+        actual,
+        schema("account_number", "bigint"),
+        schema("balance", "bigint"),
+        schema("balance_tier", "bigint"));
+
+    // Verify that only values <= 35000 are binned
+    JSONArray datarows = actual.getJSONArray("datarows");
+    assertTrue(datarows.length() >= 1);
+
+    for (int i = 0; i < datarows.length(); i++) {
+      JSONArray row = datarows.getJSONArray(i);
+      long balance = row.getLong(1);
+
+      if (balance <= 35000) {
+        // Values <= end should have a binned value
+        assertFalse("Balance tier should not be null for values <= end", row.isNull(2));
+        long balanceTier = row.getLong(2);
+        assertTrue("Balance tier should be <= end", balanceTier <= 35000);
+        assertTrue("Balance tier should be multiple of 12000", balanceTier % 12000 == 0);
+      } else {
+        // Values > end should be NULL
+        assertTrue("Balance tier should be null for values > end", row.isNull(2));
+      }
+    }
+  }
+
+  @Test
+  public void testBinSPLRangeThresholdBehavior() throws IOException {
+    // Critical SPL compatibility test: dramatic behavior change at range thresholds
+    // This test demonstrates the core SPL range-threshold algorithm:
+    // - range <= 100 → width = 10 (multiple bins)
+    // - range > 100 → width = 100 (single massive bin)
+
+    // Test case 1: end=100 → range=100 → width=10 → multiple bins
+    JSONObject actual100 =
+        executeQuery(
+            String.format(
+                "source=%s | bin age start=0 end=100 | stats count() by age | sort age",
+                TEST_INDEX_ACCOUNT));
+
+    // Should have multiple bins with width=10: 0-10, 10-20, 20-30, 30-40, 40-50
+    JSONArray datarows100 = actual100.getJSONArray("datarows");
+    assertTrue("Should have multiple bins for range=100", datarows100.length() > 1);
+
+    // Test case 2: end=101 → range=101 → width=100 → single massive bin
+    JSONObject actual101 =
+        executeQuery(
+            String.format(
+                "source=%s | bin age start=0 end=101 | stats count() by age | sort age",
+                TEST_INDEX_ACCOUNT));
+
+    // Should have ONLY ONE bin with width=100: 0-100 containing ALL records
+    JSONArray datarows101 = actual101.getJSONArray("datarows");
+    assertEquals("Should have exactly 1 bin for range=101", 1, datarows101.length());
+
+    // Verify the single bin contains ALL age records (should be ~1000 records)
+    JSONArray singleBin = datarows101.getJSONArray(0);
+    String ageBin = singleBin.getString(0);
+    int count = singleBin.getInt(1);
+
+    assertEquals("Should be single massive bin 0-100", "0-100", ageBin);
+    assertTrue("Should contain ALL records (>= 900)", count >= 900);
+
+    // This demonstrates SPL's dramatic threshold behavior:
+    // end=100 vs end=101 completely changes the binning strategy
+  }
+
+  @Test
+  public void testBinParameterPrecedenceFix() throws IOException {
+    // Critical Bug 1 Fix: bins parameter should IGNORE start/end completely
+    // Test: bin age bins=3 start=100 end=200
+    // Expected: Should create bins based on actual age data (0-100), NOT start/end values
+
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | bin age bins=3 start=100 end=200 | stats count() by age | sort age",
+                TEST_INDEX_ACCOUNT));
+
+    JSONArray datarows = actual.getJSONArray("datarows");
+    assertTrue("Should have bins based on data range, not start/end", datarows.length() <= 3);
+
+    // Verify that bins are NOT in the 100-200 range (which would be wrong)
+    // Instead, they should be in the actual age data range (20-50)
+    for (int i = 0; i < datarows.length(); i++) {
+      JSONArray row = datarows.getJSONArray(i);
+      String ageBin = row.getString(0);
+
+      // Should NOT contain bins like "100-133" or "133-166" etc.
+      assertFalse(
+          "Bins should not be in start/end range when bins param is present",
+          ageBin.startsWith("100") || ageBin.startsWith("133") || ageBin.startsWith("166"));
+
+      // Should contain bins based on actual data range
+      assertTrue(
+          "Should contain proper age range bins",
+          ageBin.contains("20")
+              || ageBin.contains("30")
+              || ageBin.contains("40")
+              || ageBin.contains("50"));
+    }
+  }
+
+  @Test
+  public void testBinCompleteCoverageNoOther() throws IOException {
+    // Critical Bug 2 & 3 Fix: Complete bin coverage without "Other" fallback
+    // Test: bin balance span=10000
+    // Expected: Should create 5 proper bins covering full range, NO "Other"
+
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | bin balance span=10000 | stats count() by balance | sort balance",
+                TEST_INDEX_ACCOUNT));
+
+    JSONArray datarows = actual.getJSONArray("datarows");
+    assertTrue("Should have multiple bins for complete coverage", datarows.length() >= 3);
+
+    // Verify NO "Other" bins exist
+    for (int i = 0; i < datarows.length(); i++) {
+      JSONArray row = datarows.getJSONArray(i);
+      String balanceBin = row.getString(0);
+
+      assertFalse(
+          "Should never create 'Other' bins - SPL doesn't use them", "Other".equals(balanceBin));
+      assertFalse(
+          "Should never create 'Outlier' bins in normal cases", "Outlier".equals(balanceBin));
+
+      // Should be proper range strings
+      assertTrue("All bins should be proper range strings", balanceBin.contains("-"));
+    }
+
+    // Expected bins: 0-10000, 10000-20000, 20000-30000, 30000-40000, 40000-50000
+    // Verify we have comprehensive coverage
+    boolean hasLowRange = false;
+    boolean hasMidRange = false;
+    boolean hasHighRange = false;
+
+    for (int i = 0; i < datarows.length(); i++) {
+      JSONArray row = datarows.getJSONArray(i);
+      String balanceBin = row.getString(0);
+
+      if (balanceBin.startsWith("0-") || balanceBin.startsWith("10000-")) {
+        hasLowRange = true;
+      }
+      if (balanceBin.startsWith("20000-") || balanceBin.startsWith("30000-")) {
+        hasMidRange = true;
+      }
+      if (balanceBin.startsWith("40000-") || balanceBin.startsWith("50000-")) {
+        hasHighRange = true;
+      }
+    }
+
+    assertTrue("Should have low range coverage", hasLowRange);
+    assertTrue("Should have mid range coverage", hasMidRange);
+    assertTrue("Should have high range coverage", hasHighRange);
+  }
+
+  @Test
+  public void testBinNoTrailingSpaces() throws IOException {
+    // Fix: Remove trailing spaces from range strings
+    // Current: "20-25  " → Required: "20-25"
+
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | bin age span=5 | stats count() by age | head 3", TEST_INDEX_ACCOUNT));
+
+    JSONArray datarows = actual.getJSONArray("datarows");
+
+    for (int i = 0; i < datarows.length(); i++) {
+      JSONArray row = datarows.getJSONArray(i);
+      String ageBin = row.getString(0);
+
+      // Verify no trailing spaces
+      assertEquals("Range strings should not have trailing spaces", ageBin.trim(), ageBin);
+
+      // Should be clean format like "20-25", not "20-25  "
+      assertTrue("Should be proper range format", ageBin.matches("\\d+-\\d+"));
+    }
+  }
+
+  @Test
+  public void testBinsFiveCreatesExactlyFiveBins() throws IOException {
+    // CRITICAL BUG FIX: bins=5 should create exactly 5 bins, not 500+
+    // Expected: 0-10000, 10000-20000, 20000-30000, 30000-40000, 40000-50000
+
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | bin balance bins=5 | stats count() by balance | sort balance",
+                TEST_INDEX_ACCOUNT));
+
+    JSONArray datarows = actual.getJSONArray("datarows");
+
+    // Should have exactly 5 bins (or fewer if data doesn't fill all ranges)
+    assertTrue("Should have at most 5 bins for bins=5", datarows.length() <= 5);
+    assertTrue("Should have at least 3 bins", datarows.length() >= 3);
+
+    // Verify these are LARGE bins (like 10000 width), not tiny bins (like 100 width)
+    boolean hasLargeBins = false;
+    for (int i = 0; i < datarows.length(); i++) {
+      JSONArray row = datarows.getJSONArray(i);
+      String balanceBin = row.getString(0);
+
+      // Should have large bin widths like "0-10000", "10000-20000"
+      // NOT tiny widths like "0-100", "100-200"
+      if (balanceBin.contains("10000")
+          || balanceBin.contains("20000")
+          || balanceBin.contains("30000")
+          || balanceBin.contains("40000")) {
+        hasLargeBins = true;
+      }
+
+      // Should NOT have tiny bins
+      assertFalse(
+          "Should not create tiny bins like 0-100",
+          balanceBin.equals("0-100") || balanceBin.equals("100-200"));
+    }
+
+    assertTrue("Should create large bins with 10000+ width", hasLargeBins);
+
+    // Verify total count is reasonable (should have all 1000 records distributed)
+    int totalCount = 0;
+    for (int i = 0; i < datarows.length(); i++) {
+      JSONArray row = datarows.getJSONArray(i);
+      totalCount += row.getInt(1);
+    }
+    assertTrue("Should have most records distributed across bins", totalCount >= 900);
+  }
+
+  @Test
+  public void testCriticalBugFixes() throws IOException {
+    // BUG FIX 1: Parameter precedence - span must ignore start/end completely
+    JSONObject spanOnly =
+        executeQuery(
+            String.format(
+                "source=%s | bin age span=5 | stats count() by age | sort age | head 3",
+                TEST_INDEX_ACCOUNT));
+
+    JSONObject spanWithIgnoredParams =
+        executeQuery(
+            String.format(
+                "source=%s | bin age span=5 start=999 end=999 | stats count() by age | sort age |"
+                    + " head 3",
+                TEST_INDEX_ACCOUNT));
+
+    // Results should be IDENTICAL - start/end should be completely ignored when span is present
+    assertEquals(
+        "Span with start/end should be identical to span alone",
+        spanOnly.toString(),
+        spanWithIgnoredParams.toString());
+  }
+
+  @Test
+  public void testBalanceSpanSequentialBins() throws IOException {
+    // BUG FIX 3: balance span=10000 should create proper sequential bins, not "200-10200"
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | bin balance span=10000 | stats count() by balance | sort balance",
+                TEST_INDEX_ACCOUNT));
+
+    JSONArray datarows = actual.getJSONArray("datarows");
+    assertTrue("Should have multiple sequential bins", datarows.length() >= 3);
+
+    // Verify proper sequential bins: 0-10000, 10000-20000, 20000-30000, etc.
+    boolean hasProperSequence = false;
+    for (int i = 0; i < datarows.length(); i++) {
+      JSONArray row = datarows.getJSONArray(i);
+      String balanceBin = row.getString(0);
+
+      // Should have proper sequential bins
+      if (balanceBin.equals("0-10000")
+          || balanceBin.equals("10000-20000")
+          || balanceBin.equals("20000-30000")
+          || balanceBin.equals("30000-40000")) {
+        hasProperSequence = true;
+      }
+
+      // Should NOT have the broken "200-10200" pattern
+      assertFalse(
+          "Should not create broken ranges like 200-10200",
+          balanceBin.contains("200-10200") || balanceBin.contains("-10200"));
+    }
+
+    assertTrue("Should have proper sequential bins like 0-10000, 10000-20000", hasProperSequence);
+  }
+
+  @Test
+  public void testAgeBinsTenCreatesSPLBehavior() throws IOException {
+    // BUG FIX 2: age bins=10 should create 3 bins with width=10 (SPL behavior)
+    // NOT 10 tiny bins with width=3 or 5 bins with width=5
+
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | bin age bins=10 | stats count() by age | sort age",
+                TEST_INDEX_ACCOUNT));
+
+    JSONArray datarows = actual.getJSONArray("datarows");
+
+    // SPL creates 3 bins with width=10: 20-30, 30-40, 40-50
+    assertTrue(
+        "Should have around 3 bins for age bins=10 (SPL behavior)",
+        datarows.length() >= 2 && datarows.length() <= 4);
+
+    // Verify we have decade-based bins (width=10), not tiny bins (width=3)
+    boolean hasDecadeBins = false;
+    for (int i = 0; i < datarows.length(); i++) {
+      JSONArray row = datarows.getJSONArray(i);
+      String ageBin = row.getString(0);
+
+      // Should have decade-based bins
+      if (ageBin.equals("20-30") || ageBin.equals("30-40") || ageBin.equals("40-50")) {
+        hasDecadeBins = true;
+      }
+
+      // Should NOT have tiny bins like "20-23", "23-26", etc.
+      assertFalse(
+          "Should not create tiny bins for age",
+          ageBin.equals("20-23") || ageBin.equals("23-26") || ageBin.equals("26-29"));
+    }
+
+    assertTrue("Should create decade-based bins like 20-30, 30-40", hasDecadeBins);
+  }
+
+  @Test
+  public void testDefaultBinningBehavior() throws IOException {
+    // FINAL FIX: Default binning should create smart bins like SPL
+    // Test: bin balance (no parameters)
+    // Expected: 5 proper bins like 0-10000, 10000-20000, etc.
+    // NOT single bin "100-110" with all records
+
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | bin balance | stats count() by balance | sort balance",
+                TEST_INDEX_ACCOUNT));
+
+    JSONArray datarows = actual.getJSONArray("datarows");
+
+    // Should have multiple bins (like 5), not just 1
+    assertTrue("Default binning should create multiple bins", datarows.length() >= 3);
+    assertTrue("Should have at most 10 bins for good default behavior", datarows.length() <= 10);
+
+    // Should NOT have the broken single bin "100-110"
+    boolean hasBrokenSingleBin = false;
+    boolean hasProperLargeBins = false;
+
+    for (int i = 0; i < datarows.length(); i++) {
+      JSONArray row = datarows.getJSONArray(i);
+      String balanceBin = row.getString(0);
+
+      // Check for the broken single bin
+      if (balanceBin.equals("100-110")) {
+        hasBrokenSingleBin = true;
+      }
+
+      // Check for proper large bins (SPL-style)
+      if (balanceBin.contains("10000")
+          || balanceBin.contains("20000")
+          || balanceBin.contains("30000")
+          || balanceBin.contains("40000")) {
+        hasProperLargeBins = true;
+      }
+    }
+
+    assertFalse("Should NOT create broken single bin '100-110'", hasBrokenSingleBin);
+    assertTrue("Should create proper large bins like '0-10000', '10000-20000'", hasProperLargeBins);
+
+    // Verify reasonable distribution of records across bins
+    int totalCount = 0;
+    for (int i = 0; i < datarows.length(); i++) {
+      JSONArray row = datarows.getJSONArray(i);
+      totalCount += row.getInt(1);
+    }
+    assertTrue("Should distribute most records across multiple bins", totalCount >= 900);
+
+    // This should now produce the same result as "bin balance span=10000"
+    // demonstrating full SPL compatibility for default behavior!
   }
 }

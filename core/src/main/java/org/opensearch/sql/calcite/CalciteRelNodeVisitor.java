@@ -480,15 +480,36 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     RexNode fieldExpr = rexVisitor.analyze(node.getField(), context);
     String fieldName = BinUtils.extractFieldName(node);
-    String aliasName = BinUtils.determineAliasName(node, fieldName);
     RexNode alignTimeValue =
         BinUtils.processAligntimeParameter(node, fieldExpr, context, rexVisitor);
     RexNode binExpression =
         BinUtils.createBinExpression(node, fieldExpr, alignTimeValue, context, rexVisitor);
 
-    // Create the binned field with alias and add to projection
-    RexNode aliasedBinExpression = context.relBuilder.alias(binExpression, aliasName);
-    context.relBuilder.projectPlus(aliasedBinExpression);
+    // SPL bin command behavior:
+    // - Without alias: transforms the original field in-place
+    // - With alias: creates a new field with the alias name, keeps original unchanged
+    if (node.getAlias() != null) {
+      // With alias: add the binned field as a new column
+      String aliasName = node.getAlias();
+      RexNode aliasedBinExpression = context.relBuilder.alias(binExpression, aliasName);
+      context.relBuilder.projectPlus(aliasedBinExpression);
+    } else {
+      // Without alias: transform the original field in-place
+      List<String> currentFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+      List<RexNode> projectionFields = new ArrayList<>();
+
+      for (String currentFieldName : currentFieldNames) {
+        if (currentFieldName.equals(fieldName)) {
+          // Transform the target field to range strings
+          projectionFields.add(context.relBuilder.alias(binExpression, fieldName));
+        } else {
+          // Keep other fields unchanged
+          projectionFields.add(context.relBuilder.field(currentFieldName));
+        }
+      }
+
+      context.relBuilder.project(projectionFields);
+    }
 
     return context.relBuilder.peek();
   }
