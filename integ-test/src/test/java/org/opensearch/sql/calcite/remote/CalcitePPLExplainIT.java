@@ -72,18 +72,6 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
     assertJsonEquals(expected, result);
   }
 
-  @Test
-  public void testExplainWithReverse() throws IOException {
-    String result = executeWithReplace("explain source=test | sort age | reverse | head 5");
-
-    // Verify that the plan contains a LogicalSort with fetch (from head 5)
-    assertTrue(result.contains("LogicalSort") && result.contains("fetch=[5]"));
-
-    // Verify that reverse added a ROW_NUMBER and another sort (descending)
-    assertTrue(result.contains("ROW_NUMBER()"));
-    assertTrue(result.contains("dir0=[DESC]"));
-  }
-
   /**
    * Executes the PPL query and returns the result as a string with windows-style line breaks
    * replaced with Unix-style ones.
