@@ -73,6 +73,8 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   protected void timing(MapBuilder<String, Long> builder, String query, String ppl)
       throws IOException {
     executeQuery(ppl); // warm-up
+    System.out.println("Query: " + query);
+    System.out.println(explainQueryToString(ppl));
     long start = System.currentTimeMillis();
     executeQuery(ppl);
     long duration = System.currentTimeMillis() - start;
