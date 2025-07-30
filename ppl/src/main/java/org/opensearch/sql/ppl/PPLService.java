@@ -97,6 +97,7 @@ public class PPLService {
                 new AstBuilder(request.getRequest(), settings),
                 AstStatementBuilder.StatementBuilderContext.builder()
                     .isExplain(request.isExplainRequest())
+                    .fetchSize(0) // Default fetch size - this was broken before our grammar changes
                     .format(request.getFormat())
                     .build()));
 

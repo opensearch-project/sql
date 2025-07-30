@@ -102,7 +102,7 @@ commandName
    ;
 
 searchCommand
-   : (SEARCH)? (logicalExpression)* fromClause (logicalExpression)*     # searchFrom
+   : (SEARCH)? (predicateExpression)* fromClause (predicateExpression)*     # searchFrom
    ;
 
 describeCommand
@@ -114,7 +114,7 @@ showDataSourcesCommand
    ;
 
 whereCommand
-   : WHERE logicalExpression
+   : WHERE predicateExpression
    ;
 
 fieldsCommand
@@ -327,7 +327,7 @@ sideAlias
    ;
 
 joinCriteria
-   : ON logicalExpression
+   : ON predicateExpression
    ;
 
 joinHintList
@@ -367,7 +367,7 @@ sortbyClause
    ;
 
 evalClause
-   : fieldExpression EQUAL logicalExpression
+   : fieldExpression EQUAL expression
    ;
 
 eventstatsAggTerm
@@ -441,35 +441,49 @@ numericLiteral
     | floatLiteral
     ;
 
-// predicates
-logicalExpression
-   : NOT logicalExpression                                      # logicalNot
-   | left = logicalExpression AND right = logicalExpression     # logicalAnd
-   | left = logicalExpression XOR right = logicalExpression     # logicalXor
-   | left = logicalExpression OR right = logicalExpression      # logicalOr
-   | expression                                                 # logicalExpr
+
+// TOP-LEVEL: Any value (including boolean)
+expression
+   : predicateExpression                                        # predicateExpr
+   | valueExpression                                            # valueExpr
    ;
 
-expression
-   : valueExpression                                            # valueExpr
-   | relevanceExpression                                        # relevanceExpr
-   | left = expression comparisonOperator right = expression    # compareExpr
-   | expression NOT? IN valueList                               # inExpr
-   | expression NOT? BETWEEN expression AND expression          # between
+// BOOLEAN-ONLY: Must evaluate to true/false
+predicateExpression
+   : LT_PRTHS predicateExpression RT_PRTHS                      # nestedPredicate
+   | NOT predicateExpression                                    # logicalNot
+   | left = predicateExpression AND right = predicateExpression # logicalAnd
+   | left = predicateExpression XOR right = predicateExpression # logicalXor
+   | left = predicateExpression OR right = predicateExpression  # logicalOr
+   | left = predicateExpression comparisonOperator right = predicateExpression # predicateComparison
+   | left = valueExpression comparisonOperator right = valueExpression # comparison
+   | valueExpression NOT? IN valueList                         # inList
+   | valueExpression NOT? IN LT_SQR_PRTHS subSearch RT_SQR_PRTHS # inSubquery
+   | LT_PRTHS valueExpression (COMMA valueExpression)* RT_PRTHS NOT? IN LT_SQR_PRTHS subSearch RT_SQR_PRTHS # tupleInSubquery
+   | valueExpression NOT? BETWEEN valueExpression AND valueExpression # between
+   | EXISTS existsTarget                                        # existsPredicate
+   | FORALL LT_PRTHS lambda RT_PRTHS                          # forallCollection
+   | relevanceExpression                                        # relevance
+   | booleanLiteral                                            # booleanLiteralPredicate
+   | conditionFunctionName LT_PRTHS functionArgs RT_PRTHS      # booleanFunction
+   | fieldExpression                                           # fieldPredicate
+   | CASE LT_PRTHS predicateExpression COMMA valueExpression (COMMA predicateExpression COMMA valueExpression)* (ELSE valueExpression)? RT_PRTHS # caseWhenPredicate
+   ;
+
+existsTarget
+   : LT_SQR_PRTHS subSearch RT_SQR_PRTHS                       # existsSubquery
+   | LT_PRTHS lambda RT_PRTHS                                  # existsCollection
    ;
 
 valueExpression
-   : left = valueExpression binaryOperator = (STAR | DIVIDE | MODULE) right = valueExpression                   # binaryArithmetic
+   : LT_PRTHS valueExpression RT_PRTHS                                                                          # nestedValueExpr
+   | left = valueExpression binaryOperator = (STAR | DIVIDE | MODULE) right = valueExpression                   # binaryArithmetic
    | left = valueExpression binaryOperator = (PLUS | MINUS) right = valueExpression                             # binaryArithmetic
    | literalValue                                                                                               # literalValueExpr
    | functionCall                                                                                               # functionCallExpr
    | lambda                                                                                                     # lambdaExpr
    | LT_SQR_PRTHS subSearch RT_SQR_PRTHS                                                                        # scalarSubqueryExpr
-   | valueExpression NOT? IN LT_SQR_PRTHS subSearch RT_SQR_PRTHS                                                # inSubqueryExpr
-   | LT_PRTHS valueExpression (COMMA valueExpression)* RT_PRTHS NOT? IN LT_SQR_PRTHS subSearch RT_SQR_PRTHS     # inSubqueryExpr
-   | EXISTS LT_SQR_PRTHS subSearch RT_SQR_PRTHS                                                                 # existsSubqueryExpr
    | fieldExpression                                                                                            # fieldExpr
-   | LT_PRTHS logicalExpression RT_PRTHS                                                                        # nestedValueExpr
    ;
 
 functionCall
@@ -487,7 +501,7 @@ positionFunctionCall
    ;
 
 caseFunctionCall
-   : CASE LT_PRTHS logicalExpression COMMA valueExpression (COMMA logicalExpression COMMA valueExpression)* (ELSE valueExpression)? RT_PRTHS
+   : CASE LT_PRTHS predicateExpression COMMA valueExpression (COMMA predicateExpression COMMA valueExpression)* (ELSE valueExpression)? RT_PRTHS
    ;
 
 relevanceExpression
@@ -551,7 +565,7 @@ evalFunctionCall
 
 // cast function
 dataTypeFunctionCall
-   : CAST LT_PRTHS logicalExpression AS convertedDataType RT_PRTHS
+   : CAST LT_PRTHS expression AS convertedDataType RT_PRTHS
    ;
 
 convertedDataType
@@ -594,12 +608,12 @@ functionArg
 
 functionArgExpression
    : lambda
-   | logicalExpression
+   | expression
    ;
 
 lambda
-   : ident ARROW logicalExpression
-   | LT_PRTHS ident (COMMA ident)+ RT_PRTHS ARROW logicalExpression
+   : ident ARROW expression
+   | LT_PRTHS ident (COMMA ident)+ RT_PRTHS ARROW expression
    ;
 
 relevanceArg
