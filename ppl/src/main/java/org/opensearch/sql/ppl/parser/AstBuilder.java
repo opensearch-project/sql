@@ -14,6 +14,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DescribeCo
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.HeadCommandContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchFromContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortCommandContext;
@@ -269,6 +270,32 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
    */
   @Override
   public UnresolvedPlan visitFieldsCommand(FieldsCommandContext ctx) {
+    List<UnresolvedExpression> fields;
+    
+    if (ctx.fieldList() != null) {
+      fields = ctx.fieldList().fieldExpression().stream()
+          .map(this::internalVisitExpression)
+          .collect(Collectors.toList());
+    } else if (ctx.spaceSeparatedFieldList() != null) {
+      fields = ctx.spaceSeparatedFieldList().fieldExpression().stream()
+          .map(this::internalVisitExpression)
+          .collect(Collectors.toList());
+    } else {
+      fields = Collections.emptyList();
+    }
+    
+    return new Project(fields, ArgumentFactory.getArgumentList(ctx));
+  }
+
+  /**
+   * Processes the PPL 'table' command as an alias for 'fields' command (Calcite-only).
+   * Supports all field selection syntax: comma-delimited, space-delimited, +/- operators.
+   * 
+   * @param ctx the table command context from the parser
+   * @return Project node with selected fields, identical to fields command behavior
+   */
+  @Override
+  public UnresolvedPlan visitTableCommand(TableCommandContext ctx) {
     List<UnresolvedExpression> fields;
     
     if (ctx.fieldList() != null) {

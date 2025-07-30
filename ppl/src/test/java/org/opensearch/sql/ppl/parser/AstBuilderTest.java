@@ -205,6 +205,8 @@ public class AstBuilderTest {
             field("g")));
   }
 
+
+
   @Test
   public void testSearchCommandWithQualifiedName() {
     assertEqual(

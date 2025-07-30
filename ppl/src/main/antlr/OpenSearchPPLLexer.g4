@@ -17,6 +17,7 @@ EXPLAIN:                            'EXPLAIN';
 FROM:                               'FROM';
 WHERE:                              'WHERE';
 FIELDS:                             'FIELDS';
+TABLE:                              'TABLE';  // Alias for FIELDS command (Calcite-only)
 RENAME:                             'RENAME';
 STATS:                              'STATS';
 EVENTSTATS:                         'EVENTSTATS';
