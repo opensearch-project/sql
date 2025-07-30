@@ -30,7 +30,7 @@ public class LikeQuery extends LuceneQuery {
    * ReferenceExpression while wildcard_query are of type NamedArgumentExpression
    */
   protected WildcardQueryBuilder createBuilder(String field, String query) {
-    String matchText = StringUtils.convertSqlWildcardToLucene(query);
+    String matchText = StringUtils.convertSqlWildcardToLuceneSafe(query);
     return QueryBuilders.wildcardQuery(field, matchText).caseInsensitive(true);
   }
 

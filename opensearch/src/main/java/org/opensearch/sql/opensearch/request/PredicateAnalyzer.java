@@ -1161,7 +1161,7 @@ public class PredicateAnalyzer {
       if (isKeywordField) {
         builder =
             wildcardQuery(
-                    keywordField, StringUtils.convertSqlWildcardToLucene(literal.stringValue()))
+                    keywordField, StringUtils.convertSqlWildcardToLuceneSafe(literal.stringValue()))
                 .caseInsensitive(true);
         return this;
       }
