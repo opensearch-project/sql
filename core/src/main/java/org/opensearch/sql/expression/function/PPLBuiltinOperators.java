@@ -27,6 +27,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
+import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.util.BuiltInMethod;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
@@ -180,11 +181,15 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator SECOND = new DatePartFunction(TimeUnit.SECOND).toUDF("SECOND");
   public static final SqlOperator MICROSECOND =
       new DatePartFunction(TimeUnit.MICROSECOND).toUDF("MICROSECOND");
-  public static final SqlOperator NOW = new CurrentFunction(ExprCoreType.TIMESTAMP).toUDF("NOW");
+  public static final SqlOperator NOW =
+      new CurrentFunction(ExprCoreType.TIMESTAMP)
+          .toUDF("NOW", false, false, SqlMonotonicity.INCREASING);
   public static final SqlOperator CURRENT_TIME =
-      new CurrentFunction(ExprCoreType.TIME).toUDF("CURRENT_TIME");
+      new CurrentFunction(ExprCoreType.TIME)
+          .toUDF("CURRENT_TIME", false, false, SqlMonotonicity.INCREASING);
   public static final SqlOperator CURRENT_DATE =
-      new CurrentFunction(ExprCoreType.DATE).toUDF("CURRENT_DATE");
+      new CurrentFunction(ExprCoreType.DATE)
+          .toUDF("CURRENT_DATE", false, false, SqlMonotonicity.INCREASING);
   public static final SqlOperator DATE_FORMAT =
       new FormatFunction(ExprCoreType.DATE).toUDF("DATE_FORMAT");
   public static final SqlOperator TIME_FORMAT =
@@ -272,7 +277,8 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               NullPolicy.ANY,
               PPLOperandTypes.STRING_STRING)
           .toUDF("STR_TO_DATE");
-  public static final SqlOperator SYSDATE = new SysdateFunction().toUDF("SYSDATE");
+  public static final SqlOperator SYSDATE =
+      new SysdateFunction().toUDF("SYSDATE", false, true, SqlMonotonicity.INCREASING);
   public static final SqlOperator SEC_TO_TIME = new SecToTimeFunction().toUDF("SEC_TO_TIME");
   public static final SqlOperator TIME =
       adaptExprMethodToUDF(
@@ -357,11 +363,11 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator MATCH_PHRASE_PREFIX =
       RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("match_phrase_prefix");
   public static final SqlOperator SIMPLE_QUERY_STRING =
-      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("simple_query_string", false);
+      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("simple_query_string", false, false);
   public static final SqlOperator QUERY_STRING =
-      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("query_string", false);
+      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("query_string", false, false);
   public static final SqlOperator MULTI_MATCH =
-      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("multi_match", false);
+      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("multi_match", false, false);
 
   /**
    * Returns the PPL specific operator table, creating it if necessary.

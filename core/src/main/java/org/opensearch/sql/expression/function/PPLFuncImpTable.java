@@ -248,6 +248,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.ExtendedRexBuilder;
 import org.opensearch.sql.calcite.udf.udaf.LogPatternAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.PercentileApproxFunction;
 import org.opensearch.sql.calcite.udf.udaf.TakeAggFunction;
@@ -572,6 +573,16 @@ public class PPLFuncImpTable {
       return new FunctionImp() {
         @Override
         public RexNode resolve(RexBuilder builder, RexNode... args) {
+          // https://github.com/opensearch-project/sql/issues/3938
+          // It might be a bug of Calcite in RexProgramBuilder.registerInternal():
+          // the exprMap uses RexNode's digest as key which cause the ProjectToCalcRule
+          // create an incorrect RexProgram in LogicalCalc. This is a workaround to add an
+          // autoincrement id as the last operand of function to avoid duplicated key in exprMap.
+          if (operator instanceof SqlUserDefinedFunction
+              && operator.isDynamicFunction()
+              && builder instanceof ExtendedRexBuilder) {
+            return ((ExtendedRexBuilder) builder).makeCallWithIncrementIdOperand(operator, args);
+          }
           return builder.makeCall(operator, args);
         }
 

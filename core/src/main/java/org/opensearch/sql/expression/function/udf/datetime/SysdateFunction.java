@@ -61,12 +61,12 @@ public class SysdateFunction extends ImplementorUDF {
       return Expressions.call(SysdateImplementor.class, "sysdate", operandsWithProperties);
     }
 
-    public static String sysdate(FunctionProperties properties) {
+    public static String sysdate(FunctionProperties properties, int ignored) {
       var localDateTime = DateTimeFunctions.formatNow(properties.getSystemClock(), 0);
       return (String) new ExprTimestampValue(localDateTime).valueForCalcite();
     }
 
-    public static String sysdate(FunctionProperties properties, int precision) {
+    public static String sysdate(FunctionProperties properties, int precision, int ignored) {
       var localDateTime = DateTimeFunctions.formatNow(properties.getSystemClock(), precision);
       return (String) new ExprTimestampValue(localDateTime).valueForCalcite();
     }

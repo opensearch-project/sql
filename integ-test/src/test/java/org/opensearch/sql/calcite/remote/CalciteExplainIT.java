@@ -109,6 +109,17 @@ public class CalciteExplainIT extends ExplainIT {
     assertJsonEqualsIgnoreId(expected, result);
   }
 
+  // Only for Calcite
+  @Test
+  public void testDynamicFunctionSysdate() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | eval a = sysdate(6) | sort age | eval b ="
+            + " sysdate(6) | fields a, b";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_dynamic_function_sysdate.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
   // Only for Calcite, as v2 gets unstable serialized string for function
   @Test
   public void testFilterScriptPushDownExplain() throws Exception {

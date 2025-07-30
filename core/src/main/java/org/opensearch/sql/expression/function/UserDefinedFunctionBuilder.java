@@ -9,9 +9,11 @@ import java.util.Collections;
 import org.apache.calcite.schema.ImplementableFunction;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 
 /**
@@ -33,7 +35,12 @@ public interface UserDefinedFunctionBuilder {
   UDFOperandMetadata getOperandMetadata();
 
   default SqlUserDefinedFunction toUDF(String functionName) {
-    return toUDF(functionName, true);
+    return toUDF(functionName, true, false, SqlMonotonicity.NOT_MONOTONIC);
+  }
+
+  default SqlUserDefinedFunction toUDF(
+      String functionName, boolean isDeterministic, boolean dynamic) {
+    return toUDF(functionName, isDeterministic, dynamic, SqlMonotonicity.NOT_MONOTONIC);
   }
 
   /**
@@ -45,7 +52,8 @@ public interface UserDefinedFunctionBuilder {
    * @param isDeterministic Specified isDeterministic flag
    * @return Calcite SqlUserDefinedFunction
    */
-  default SqlUserDefinedFunction toUDF(String functionName, boolean isDeterministic) {
+  default SqlUserDefinedFunction toUDF(
+      String functionName, boolean isDeterministic, boolean dynamic, SqlMonotonicity monotonicity) {
     SqlIdentifier udfLtrimIdentifier =
         new SqlIdentifier(Collections.singletonList(functionName), null, SqlParserPos.ZERO, null);
     return new SqlUserDefinedFunction(
@@ -58,6 +66,16 @@ public interface UserDefinedFunctionBuilder {
       @Override
       public boolean isDeterministic() {
         return isDeterministic;
+      }
+
+      @Override
+      public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
+        return monotonicity;
+      }
+
+      @Override
+      public boolean isDynamicFunction() {
+        return dynamic;
       }
     };
   }

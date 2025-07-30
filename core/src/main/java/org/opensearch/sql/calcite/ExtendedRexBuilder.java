@@ -6,15 +6,19 @@
 package org.opensearch.sql.calcite;
 
 import com.google.common.collect.ImmutableList;
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -29,6 +33,13 @@ import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
 public class ExtendedRexBuilder extends RexBuilder {
 
+  private static final ThreadLocal<AtomicInteger> threadCounter =
+      ThreadLocal.withInitial(() -> new AtomicInteger(0));
+
+  public static int getNextId() {
+    return threadCounter.get().getAndIncrement();
+  }
+
   public ExtendedRexBuilder(RexBuilder rexBuilder) {
     super(rexBuilder.getTypeFactory());
   }
@@ -39,6 +50,23 @@ public class ExtendedRexBuilder extends RexBuilder {
 
   public RexNode equals(RexNode n1, RexNode n2) {
     return this.makeCall(SqlStdOperatorTable.EQUALS, n1, n2);
+  }
+
+  /**
+   * Creates a new RexNode call with an incremented ID operand. This method takes a SQL operator and
+   * variable number of RexNode expressions, adds an auto-incremented integer ID as the last
+   * operand, and returns the resulting RexNode call.
+   *
+   * @param op The SQL operator to use in the call
+   * @param exprs Variable number of RexNode expressions as operands
+   * @return A new RexNode representing the call with the added ID operand
+   */
+  public RexNode makeCallWithIncrementIdOperand(SqlOperator op, RexNode... exprs) {
+    List<RexNode> rexNodes = new ArrayList<>(Arrays.asList(exprs));
+    rexNodes.add(
+        makeExactLiteral(
+            new BigDecimal(getNextId()), typeFactory.createSqlType(SqlTypeName.INTEGER)));
+    return makeCall(op, rexNodes);
   }
 
   public RexNode and(RexNode left, RexNode right) {
