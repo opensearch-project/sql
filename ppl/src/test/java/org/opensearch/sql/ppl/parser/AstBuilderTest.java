@@ -431,6 +431,7 @@ public class AstBuilderTest {
         "source=t | sort f1, f2",
         sort(
             relation("t"),
+            10000,
             field("f1", defaultSortFieldArgs()),
             field("f2", defaultSortFieldArgs())));
   }
@@ -441,6 +442,7 @@ public class AstBuilderTest {
         "source=t | sort - f1, + f2",
         sort(
             relation("t"),
+            10000,
             field(
                 "f1",
                 exprList(argument("asc", booleanLiteral(false)), argument("type", nullLiteral()))),
@@ -459,6 +461,7 @@ public class AstBuilderTest {
         "source=t | sort f1 desc",
         sort(
             relation("t"),
+            10000,
             field(
                 "f1",
                 exprList(
@@ -471,6 +474,7 @@ public class AstBuilderTest {
         "source=t | sort f1 d",
         sort(
             relation("t"),
+            10000,
             field(
                 "f1",
                 exprList(

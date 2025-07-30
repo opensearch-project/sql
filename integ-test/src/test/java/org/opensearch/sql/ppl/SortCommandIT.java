@@ -161,4 +161,49 @@ public class SortCommandIT extends PPLIntegTestCase {
         executeQuery(String.format("source=%s | sort age | head 2 | fields age", TEST_INDEX_BANK));
     verifyOrder(result, rows(28), rows(32));
   }
+
+  @Test
+  public void testSortWithCountLimit() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | sort 3 - account_number | fields account_number", TEST_INDEX_BANK));
+    verifyOrder(result, rows(32), rows(25), rows(20));
+  }
+
+  @Test
+  public void testSortWithCountZero() throws IOException {
+    // count=0 should return all results (unlimited)
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | sort 0 - account_number | fields account_number", TEST_INDEX_BANK));
+    verifyOrder(result, rows(32), rows(25), rows(20), rows(18), rows(13), rows(6), rows(1));
+  }
+
+  @Test
+  public void testSortWithDescSuffix() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | sort account_number desc | fields account_number", TEST_INDEX_BANK));
+    verifyOrder(result, rows(32), rows(25), rows(20), rows(18), rows(13), rows(6), rows(1));
+  }
+
+  @Test
+  public void testSortWithStrCast() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | sort str(account_number) | fields account_number", TEST_INDEX_BANK));
+    verifyOrder(result, rows(1), rows(13), rows(18), rows(20), rows(25), rows(32), rows(6));
+  }
+
+  @Test
+  public void testSortWithNumCast() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | sort num(bytes) | fields bytes", TEST_INDEX_WEBLOGS));
+    verifyOrder(result, rows("1234"), rows("3985"), rows("4085"), rows("4321"), rows("6245"), rows("9876"));
+  }
 }
