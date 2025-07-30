@@ -119,6 +119,12 @@ whereCommand
 
 fieldsCommand
    : FIELDS (PLUS | MINUS)? fieldList
+   | FIELDS (PLUS | MINUS)? spaceSeparatedFieldList
+   ;
+
+// Space-separated field list: fields field1 field2 field3
+spaceSeparatedFieldList
+   : fieldExpression (fieldExpression)+
    ;
 
 renameCommand

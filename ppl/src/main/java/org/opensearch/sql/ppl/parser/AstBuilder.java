@@ -263,14 +263,27 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return joinType;
   }
 
-  /** Fields command. */
+  /**
+   * Processes the PPL 'fields' command supporting both comma-delimited and space-delimited syntax.
+   * Examples: "fields field1, field2" or "fields field1 field2"
+   */
   @Override
   public UnresolvedPlan visitFieldsCommand(FieldsCommandContext ctx) {
-    return new Project(
-        ctx.fieldList().fieldExpression().stream()
-            .map(this::internalVisitExpression)
-            .collect(Collectors.toList()),
-        ArgumentFactory.getArgumentList(ctx));
+    List<UnresolvedExpression> fields;
+    
+    if (ctx.fieldList() != null) {
+      fields = ctx.fieldList().fieldExpression().stream()
+          .map(this::internalVisitExpression)
+          .collect(Collectors.toList());
+    } else if (ctx.spaceSeparatedFieldList() != null) {
+      fields = ctx.spaceSeparatedFieldList().fieldExpression().stream()
+          .map(this::internalVisitExpression)
+          .collect(Collectors.toList());
+    } else {
+      fields = Collections.emptyList();
+    }
+    
+    return new Project(fields, ArgumentFactory.getArgumentList(ctx));
   }
 
   /** Rename command. */

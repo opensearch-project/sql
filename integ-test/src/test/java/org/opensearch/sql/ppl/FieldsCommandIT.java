@@ -131,4 +131,43 @@ public class FieldsCommandIT extends PPLIntegTestCase {
         rows("linux", null, "linux", null, 1, null, "os1", null),
         rows(null, "linux", null, "linux", null, 2, null, "os2"));
   }
+
+  /**
+   * Tests space-delimited field selection syntax.
+   */
+  @Test
+  public void testFieldsWithSpaceDelimitedSyntax() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source=%s | fields firstname lastname age", TEST_INDEX_ACCOUNT));
+    verifyColumn(result, columnName("firstname"), columnName("lastname"), columnName("age"));
+  }
+
+  /**
+   * Tests equivalence between space-delimited and comma-delimited field syntax.
+   */
+  @Test
+  public void testFieldsSpaceDelimitedEquivalentToCommaDelimited() throws IOException {
+    JSONObject commaResult =
+        executeQuery(String.format("source=%s | fields firstname, lastname, age | head 3", TEST_INDEX_ACCOUNT));
+    JSONObject spaceResult =
+        executeQuery(String.format("source=%s | fields firstname lastname age | head 3", TEST_INDEX_ACCOUNT));
+    
+    verifySchema(commaResult, 
+        schema("firstname", "string"), 
+        schema("lastname", "string"), 
+        schema("age", "bigint"));
+    verifySchema(spaceResult, 
+        schema("firstname", "string"), 
+        schema("lastname", "string"), 
+        schema("age", "bigint"));
+    
+    verifyDataRows(commaResult, 
+        rows("Amber", "Duke", 32), 
+        rows("Hattie", "Bond", 36), 
+        rows("Nanette", "Bates", 28));
+    verifyDataRows(spaceResult, 
+        rows("Amber", "Duke", 32), 
+        rows("Hattie", "Bond", 36), 
+        rows("Nanette", "Bates", 28));
+  }
 }
