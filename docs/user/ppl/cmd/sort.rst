@@ -16,11 +16,13 @@ Description
 
 Syntax
 ============
-sort <[+|-] sort-field>...
+sort [count] <[+|-] sort-field>... [desc|d]
 
 
+* count: optional. The number of results to return. **Default:** 10,000. Use 0 to return all results.
 * [+|-]: optional. The plus [+] stands for ascending order and NULL/MISSING first and a minus [-] stands for descending order and NULL/MISSING last. **Default:** ascending order and NULL/MISSING first.
-* sort-field: mandatory. The field used to sort.
+* sort-field: mandatory. The field used to sort. Can use ``auto(field)``, ``str(field)``, ``ip(field)``, or ``num(field)`` to specify how to interpret field values.
+* [desc|d]: optional. Reverses the sort results. If multiple fields are specified, reverses order of first field then for all duplicate values of the first field, reverses the order of the values of the second field and so on.
 
 
 Example 1: Sort by one field
@@ -49,7 +51,7 @@ The example show sort all the document with age field in ascending order.
 
 PPL query::
 
-    os> source=accounts | sort age | fields account_number, age;
+    os> source=accounts | sort 0 age | fields account_number, age;
     fetched rows / total rows = 4/4
     +----------------+-----+
     | account_number | age |
@@ -114,3 +116,55 @@ PPL query::
     | Pyrami   |
     | Quility  |
     +----------+
+
+Example 5: Specify the number of sorted documents to return
+============================================================
+
+The example shows sorting all the document and returning 2 documents.
+
+PPL query::
+
+    os> source=accounts | sort 2 age | fields account_number, age;
+    fetched rows / total rows = 2/2
+    +------------------+-------+
+    | account_number   | age   |
+    |------------------+-------|
+    | 13               | 28    |
+    | 1                | 32    |
+    +------------------+-------+
+
+Example 6: Sort with desc modifier
+===================================
+
+The example shows sorting with the desc modifier to reverse sort order.
+
+PPL query::
+
+    os> source=accounts | sort age desc | fields account_number, age;
+    fetched rows / total rows = 4/4
+    +----------------+-----+
+    | account_number | age |
+    |----------------+-----|
+    | 6              | 36  |
+    | 18             | 33  |
+    | 1              | 32  |
+    | 13             | 28  |
+    +----------------+-----+
+
+Example 7: Sort with specifying field type
+==================================
+
+The example shows sorting with str() to sort numeric values lexicographically.
+
+PPL query::
+
+    os> source=accounts | sort str(account_number) | fields account_number;
+    fetched rows / total rows = 4/4
+    +----------------+
+    | account_number |
+    |----------------|
+    | 1              |
+    | 13             |
+    | 18             |
+    | 6              |
+    +----------------+
