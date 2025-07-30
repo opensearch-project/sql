@@ -1458,7 +1458,7 @@ public class PredicateAnalyzer {
       this.type = null;
     }
 
-    String getRootName() {
+    public String getRootName() {
       return name;
     }
 
