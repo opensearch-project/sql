@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.remote;
 
 import java.io.IOException;
+import org.junit.Assume;
 import org.junit.Test;
 import org.opensearch.sql.ppl.LikeQueryIT;
 
@@ -20,9 +21,7 @@ public class CalciteLikeQueryIT extends LikeQueryIT {
   @Override
   @Test
   public void test_convert_field_text_to_keyword() throws IOException {
-    // This test case is not applied to no pushdown case
-    if (isPushdownEnabled()) {
-      super.test_convert_field_text_to_keyword();
-    }
+    Assume.assumeTrue("Pushdown is not enabled, skipping this test.", isPushdownEnabled());
+    super.test_convert_field_text_to_keyword();
   }
 }
