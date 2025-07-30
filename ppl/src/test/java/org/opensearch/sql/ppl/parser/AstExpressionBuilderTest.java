@@ -367,7 +367,8 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
 
   @Test
   public void testFieldExpr() {
-    assertEqual("source=t | sort + f", sort(relation("t"), 10000, field("f", defaultSortFieldArgs())));
+    assertEqual(
+        "source=t | sort + f", sort(relation("t"), 10000, field("f", defaultSortFieldArgs())));
   }
 
   @Test
@@ -382,7 +383,8 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
 
   @Test
   public void testSortFieldWithBackticks() {
-    assertEqual("source=t | sort `f`", sort(relation("t"), 10000, field("f", defaultSortFieldArgs())));
+    assertEqual(
+        "source=t | sort `f`", sort(relation("t"), 10000, field("f", defaultSortFieldArgs())));
   }
 
   @Test

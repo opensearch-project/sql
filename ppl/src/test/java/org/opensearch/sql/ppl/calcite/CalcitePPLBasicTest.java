@@ -316,7 +316,6 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
   }
 
-
   @Test
   public void testSortWithDescReversal() {
     String ppl = "source=EMP | sort + DEPTNO, - SAL desc";
