@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.remote;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -37,6 +38,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     loadIndex(Index.BANK_WITH_NULL_VALUES);
     loadIndex(Index.CALCS);
     loadIndex(Index.DATE_FORMATS);
+    loadIndex(Index.DATA_TYPE_NUMERIC);
   }
 
   @Test
@@ -805,5 +807,15 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         schema("len", null, "int"),
         schema("gender", null, "string"));
     verifyDataRows(response, rows(121764, 1, "F"), rows(65909, 1, "M"));
+  }
+
+  @Test
+  public void testAggByByteNumberWithScript() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | eval a = abs(byte_number) | stats count() by a",
+                TEST_INDEX_DATATYPE_NUMERIC));
+    verifyDataRows(response, rows(1, 4));
   }
 }
