@@ -47,6 +47,7 @@ pplCommands
 commands
    : whereCommand
    | fieldsCommand
+   | tableCommand
    | joinCommand
    | renameCommand
    | statsCommand
@@ -77,6 +78,7 @@ commandName
    | SHOW
    | WHERE
    | FIELDS
+   | TABLE
    | JOIN
    | RENAME
    | STATS
@@ -120,6 +122,12 @@ whereCommand
 fieldsCommand
    : FIELDS (PLUS | MINUS)? fieldList
    | FIELDS (PLUS | MINUS)? spaceSeparatedFieldList
+   ;
+
+// Table command - alias for fields command (Calcite-only)
+tableCommand
+   : TABLE (PLUS | MINUS)? fieldList
+   | TABLE (PLUS | MINUS)? spaceSeparatedFieldList
    ;
 
 // Space-separated field list: fields field1 field2 field3

@@ -12,6 +12,8 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLit
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
+
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
 
 import java.util.Arrays;
@@ -38,6 +40,21 @@ public class ArgumentFactory {
             ? new Argument("exclude", new Literal(true, DataType.BOOLEAN))
             : new Argument("exclude", new Literal(false, DataType.BOOLEAN)));
   }
+
+  /**
+   * Get list of {@link Argument} for table command (Calcite-only).
+   *
+   * @param ctx TableCommandContext instance
+   * @return the list of arguments fetched from the table command
+   */
+  public static List<Argument> getArgumentList(TableCommandContext ctx) {
+    return Collections.singletonList(
+        ctx.MINUS() != null
+            ? new Argument("exclude", new Literal(true, DataType.BOOLEAN))
+            : new Argument("exclude", new Literal(false, DataType.BOOLEAN)));
+  }
+
+
 
   /**
    * Get list of {@link Argument}.
