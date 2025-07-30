@@ -15,6 +15,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.data.model.ExprIpValue;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
@@ -66,7 +67,11 @@ public class CompareIpFunction extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    return new UDFOperandMetadata.IPOperandMetadata();
+    return UDFOperandMetadata.wrapUDT(
+        List.of(
+            List.of(ExprCoreType.IP, ExprCoreType.IP),
+            List.of(ExprCoreType.IP, ExprCoreType.STRING),
+            List.of(ExprCoreType.STRING, ExprCoreType.IP)));
   }
 
   public static class CompareImplementor implements NotNullImplementor {
