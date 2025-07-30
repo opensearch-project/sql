@@ -1,0 +1,6 @@
+{
+  "calcite": {
+    "logical": "LogicalProject(host=[$0])\n  LogicalFilter(condition=[LTE_IP(IP('::ffff:1234':VARCHAR), $0)])\n    CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_weblogs]])\n",
+    "physical": "CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_weblogs]], PushDownContext=[[PROJECT->[host], FILTER->LTE_IP(IP('::ffff:1234':VARCHAR), $0)], OpenSearchRequestBuilder(sourceBuilder={\"from\":0,\"timeout\":\"1m\",\"query\":{\"range\":{\"host\":{\"from\":\"::ffff:1234\",\"to\":null,\"include_lower\":true,\"include_upper\":true,\"boost\":1.0}}},\"_source\":{\"includes\":[\"host\"],\"excludes\":[]},\"sort\":[{\"_doc\":{\"order\":\"asc\"}}]}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])\n"
+  }
+}

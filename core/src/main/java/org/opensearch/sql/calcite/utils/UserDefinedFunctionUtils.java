@@ -77,6 +77,7 @@ public class UserDefinedFunctionUtils {
       ImmutableSet.of("match", "match_phrase", "match_bool_prefix", "match_phrase_prefix");
   public static Set<String> MULTI_FIELDS_RELEVANCE_FUNCTION_SET =
       ImmutableSet.of("simple_query_string", "query_string", "multi_match");
+  public static String IP_FUNCTION_NAME = "IP";
 
   public static RelBuilder.AggCall TransferUserDefinedAggFunction(
       Class<? extends UserDefinedAggFunction> UDAF,

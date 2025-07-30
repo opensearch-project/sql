@@ -87,6 +87,7 @@ import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.type.ExprIPType;
 import org.opensearch.sql.calcite.type.ExprSqlType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.model.ExprIpValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -337,9 +338,14 @@ public class PredicateAnalyzer {
             }
           };
         case FUNCTION:
-          if (call.getOperator().getName().equalsIgnoreCase("IP")) {}
-
-          return visitRelevanceFunc(call);
+          String functionName = call.getOperator().getName().toLowerCase(Locale.ROOT);
+          if (functionName.equalsIgnoreCase(UserDefinedFunctionUtils.IP_FUNCTION_NAME)) {
+            return visitIpFunction(call);
+          } else if (SINGLE_FIELD_RELEVANCE_FUNCTION_SET.contains(functionName)
+              || MULTI_FIELDS_RELEVANCE_FUNCTION_SET.contains(functionName)) {
+            return visitRelevanceFunc(call);
+          }
+          // fall through
         default:
           String message =
               format(Locale.ROOT, "Unsupported syntax [%s] for call: [%s]", syntax, call);
@@ -386,6 +392,10 @@ public class PredicateAnalyzer {
 
       throw new PredicateAnalyzerException(
           format(Locale.ROOT, "Unsupported search relevance function: [%s]", funcName));
+    }
+
+    private LiteralExpression visitIpFunction(RexCall call) {
+      return new LiteralExpression((RexLiteral) call.getOperands().getFirst());
     }
 
     @FunctionalInterface
