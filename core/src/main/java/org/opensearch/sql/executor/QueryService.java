@@ -100,7 +100,7 @@ public class QueryService {
                     CalcitePlanContext.create(
                         buildFrameworkConfig(), getQuerySizeLimit(), queryType);
                 RelNode relNode = analyze(plan, context);
-                RelNode optimized = optimize(relNode);
+                RelNode optimized = optimize(relNode, context, false);
                 RelNode calcitePlan = convertToCalcitePlan(optimized);
                 executionEngine.execute(calcitePlan, context, listener);
                 return null;
@@ -133,7 +133,7 @@ public class QueryService {
                     CalcitePlanContext.create(
                         buildFrameworkConfig(), getQuerySizeLimit(), queryType);
                 RelNode relNode = analyze(plan, context);
-                RelNode optimized = optimize(relNode);
+                RelNode optimized = optimize(relNode, context, true);
                 RelNode calcitePlan = convertToCalcitePlan(optimized);
                 executionEngine.explain(calcitePlan, format, context, listener);
                 return null;
@@ -250,8 +250,14 @@ public class QueryService {
     return planner.plan(plan);
   }
 
-  public RelNode optimize(RelNode plan) {
-    return planner.customOptimize(plan);
+  /**
+   * Try to optimize the plan by appending a limit operator for QUERY_SIZE_LIMIT Don't add for
+   * `EXPLAIN` to avoid changing its output plan.
+   */
+  public RelNode optimize(RelNode plan, CalcitePlanContext context, boolean isExplain) {
+    if (isExplain) return plan;
+    context.relBuilder.limit(0, context.querySizeLimit);
+    return context.relBuilder.peek();
   }
 
   private boolean isCalciteFallbackAllowed() {
