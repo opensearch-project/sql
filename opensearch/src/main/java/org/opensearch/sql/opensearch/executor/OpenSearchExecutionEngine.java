@@ -156,8 +156,8 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       ResponseListener<ExplainResponse> listener) {
     client.schedule(
         () -> {
-          CalcitePlanContext.isExplain.set(true);
           try {
+            CalcitePlanContext.isExplain.set(true);
             if (format == ExplainFormat.SIMPLE) {
               String logical = RelOptUtil.toString(rel, SqlExplainLevel.NO_ATTRIBUTES);
               listener.onResponse(
