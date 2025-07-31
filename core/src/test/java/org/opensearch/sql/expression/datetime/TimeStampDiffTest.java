@@ -27,6 +27,7 @@ import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
@@ -263,7 +264,7 @@ class TimeStampDiffTest extends ExpressionTestBase {
     FunctionExpression expr =
         timestampdiffQuery(
             functionProperties, unit, new ExprStringValue(arg1), new ExprStringValue(arg2));
-    assertThrows(SemanticCheckException.class, () -> eval(expr));
+    assertThrows(ExpressionEvaluationException.class, () -> eval(expr));
   }
 
   @Test

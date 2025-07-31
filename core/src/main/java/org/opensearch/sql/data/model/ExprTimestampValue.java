@@ -13,13 +13,15 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
-import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.utils.DateTimeFormatters;
 
 /** Expression Timestamp Value. */
 @RequiredArgsConstructor
@@ -27,15 +29,18 @@ public class ExprTimestampValue extends AbstractExprValue {
 
   private final Instant timestamp;
 
-  /** Constructor. */
+  /**
+   * Constructor with timestamp string.
+   *
+   * @param timestamp a date or timestamp string (does not accept time string)
+   */
   public ExprTimestampValue(String timestamp) {
     try {
       this.timestamp =
-          LocalDateTime.parse(timestamp, DATE_TIME_FORMATTER_VARIABLE_NANOS)
-              .atZone(UTC_ZONE_ID)
-              .toInstant();
+          LocalDateTime.parse(timestamp, DateTimeFormatters.DATE_TIMESTAMP_FORMATTER)
+              .toInstant(ZoneOffset.UTC);
     } catch (DateTimeParseException e) {
-      throw new SemanticCheckException(
+      throw new ExpressionEvaluationException(
           String.format(
               "timestamp:%s in unsupported format, please use 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'",
               timestamp));

@@ -10,7 +10,6 @@ import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
-import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
@@ -31,7 +30,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
   public void testYearWeekInvalid() {
     Throwable e =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -44,7 +43,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
   public void testYearInvalid() {
     Throwable e =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -53,7 +52,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
     verifyErrorMessageContains(e, "unsupported format");
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -66,7 +65,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
   public void testWeekInvalid() {
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -76,7 +75,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -89,7 +88,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
   public void testTO_SECONDSInvalid() {
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -99,7 +98,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -108,7 +107,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
     verifyErrorMessageContains(e2, "unsupported format");
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -122,7 +121,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -131,7 +130,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
     verifyErrorMessageContains(e1, "unsupported format");
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -140,7 +139,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
     verifyErrorMessageContains(e2, "unsupported format");
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -154,7 +153,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -164,7 +163,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -174,7 +173,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -188,7 +187,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -198,7 +197,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -208,7 +207,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -222,7 +221,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -233,7 +232,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -243,7 +242,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -258,7 +257,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -268,7 +267,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -278,7 +277,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -293,7 +292,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -304,7 +303,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -314,7 +313,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -328,7 +327,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -338,7 +337,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -348,7 +347,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -358,7 +357,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e4 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -368,7 +367,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e5 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -378,7 +377,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e6 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -392,7 +391,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -402,7 +401,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -412,7 +411,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -426,7 +425,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -436,7 +435,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -446,7 +445,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -460,7 +459,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -470,7 +469,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -480,7 +479,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -494,7 +493,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -504,7 +503,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -514,7 +513,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -528,7 +527,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -538,7 +537,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -548,7 +547,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -562,7 +561,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -572,7 +571,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -582,7 +581,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -596,7 +595,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -606,7 +605,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -616,7 +615,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -630,7 +629,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -640,7 +639,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -650,7 +649,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -664,7 +663,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -674,7 +673,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -684,7 +683,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -698,7 +697,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -708,7 +707,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -718,7 +717,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -732,7 +731,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -742,7 +741,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -752,7 +751,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -766,7 +765,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -777,7 +776,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -787,7 +786,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -802,7 +801,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -812,7 +811,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -822,7 +821,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -836,7 +835,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -846,7 +845,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -856,7 +855,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -870,7 +869,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -880,7 +879,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -890,7 +889,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -904,7 +903,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -914,7 +913,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -924,7 +923,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -938,7 +937,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -948,7 +947,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -958,7 +957,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -968,7 +967,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e4 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -978,7 +977,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e5 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -988,7 +987,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e6 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -998,7 +997,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e7 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1008,7 +1007,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e8 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1018,7 +1017,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e9 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1033,7 +1032,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1043,7 +1042,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1053,7 +1052,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1067,7 +1066,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1077,7 +1076,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1087,7 +1086,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1101,7 +1100,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1111,7 +1110,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1121,7 +1120,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1135,7 +1134,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1145,7 +1144,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1155,7 +1154,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1169,7 +1168,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1179,7 +1178,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1189,7 +1188,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1203,7 +1202,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1213,7 +1212,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1223,7 +1222,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1237,7 +1236,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1247,7 +1246,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1257,7 +1256,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1268,7 +1267,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e4 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1278,7 +1277,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e5 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1288,7 +1287,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e6 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1302,7 +1301,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1312,7 +1311,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1322,7 +1321,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1337,7 +1336,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1347,7 +1346,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1357,7 +1356,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1372,7 +1371,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1382,7 +1381,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1392,7 +1391,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1407,7 +1406,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1417,7 +1416,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1427,7 +1426,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1442,7 +1441,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1452,7 +1451,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1462,7 +1461,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1473,7 +1472,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e4 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1483,7 +1482,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e5 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1493,7 +1492,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e6 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1506,7 +1505,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
   public void testSUBTIMEInvalid() {
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1516,7 +1515,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1526,7 +1525,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1541,7 +1540,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1551,7 +1550,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1561,7 +1560,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1576,7 +1575,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1587,7 +1586,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1598,7 +1597,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1613,7 +1612,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1623,7 +1622,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1633,7 +1632,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1648,7 +1647,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e1 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1658,7 +1657,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e2 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -1668,7 +1667,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
 
     Throwable e3 =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
