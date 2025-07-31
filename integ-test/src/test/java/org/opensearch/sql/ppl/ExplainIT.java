@@ -434,6 +434,24 @@ public class ExplainIT extends PPLIntegTestCase {
                 + " default_operator='or', analyzer=english)"));
   }
 
+  @Test
+  public void testKeywordLikeFunctionExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_keyword_like_function.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | where like(firstname, '%mbe%')"));
+  }
+
+  @Test
+  public void testTextLikeFunctionExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_text_like_function.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | where like(address, '%Holmes%')"));
+  }
+
   @Ignore("The serialized string is unstable because of function properties")
   @Test
   public void testFilterScriptPushDownExplain() throws Exception {

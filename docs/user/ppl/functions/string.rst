@@ -105,6 +105,8 @@ Example::
     +-------------------------------+
 
 
+Limitation: The pushdown of the LIKE function to a DSL wildcard query is supported only for keyword fields.
+
 LOCATE
 -------
 

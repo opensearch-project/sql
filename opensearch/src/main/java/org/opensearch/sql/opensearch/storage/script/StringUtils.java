@@ -10,12 +10,32 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class StringUtils {
   /**
-   * Converts sql wildcard character % and _ to * and ?.
+   * Converts sql wildcard character % and _ to * and ?. Also, DSL specific wildcard (* and ?) is
+   * still supported. This function is used for legacy SQL WILDCARDQUERY and WILDCARD_QUERY
+   * functions.
    *
    * @param text string to be converted
    * @return converted string
    */
+  @Deprecated
   public static String convertSqlWildcardToLucene(String text) {
+    return convert(text, false);
+  }
+
+  /**
+   * Transforms a SQL like pattern into a Lucene/OpenSearch wildcard pattern.
+   *
+   * <p>It replaces '%' with '*' and '_' with '?' and escapes any literal '*' or '?' so they are
+   * treated as ordinary characters.
+   *
+   * @param text string to be converted
+   * @return converted string
+   */
+  public static String convertSqlWildcardToLuceneSafe(String text) {
+    return convert(text, true);
+  }
+
+  private static String convert(String text, boolean escapeStarQuestion) {
     final char DEFAULT_ESCAPE = '\\';
     StringBuilder convertedString = new StringBuilder(text.length());
     boolean escaped = false;
@@ -42,6 +62,14 @@ public class StringUtils {
           } else {
             convertedString.append('?');
           }
+          escaped = false;
+          break;
+        case '*':
+        case '?':
+          if (escapeStarQuestion && !escaped) {
+            convertedString.append(DEFAULT_ESCAPE);
+          }
+          convertedString.append(currentChar);
           escaped = false;
           break;
         default:

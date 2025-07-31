@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.calcite.remote;
 
-import java.io.IOException;
 import org.opensearch.sql.ppl.WhereCommandIT;
 
 public class CalciteWhereCommandIT extends WhereCommandIT {
@@ -14,19 +13,6 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
     super.init();
     enableCalcite();
     disallowCalciteFallback();
-  }
-
-  @Override
-  public void testIsNotNullFunction() throws IOException {
-    withFallbackEnabled(
-        () -> {
-          try {
-            super.testIsNotNullFunction();
-          } catch (IOException e) {
-            throw new RuntimeException(e);
-          }
-        },
-        "https://github.com/opensearch-project/sql/issues/3428");
   }
 
   @Override
