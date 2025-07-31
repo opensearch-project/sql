@@ -138,11 +138,11 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   /** Search command. */
   @Override
   public UnresolvedPlan visitSearchFrom(SearchFromContext ctx) {
-    if (ctx.logicalExpression().isEmpty()) {
+    if (ctx.predicateExpression().isEmpty()) {
       return visitFromClause(ctx.fromClause());
     } else {
       return new Filter(
-              ctx.logicalExpression().stream()
+              ctx.predicateExpression().stream()
                   .map(this::internalVisitExpression)
                   .reduce(And::new)
                   .get())
@@ -176,7 +176,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   /** Where command. */
   @Override
   public UnresolvedPlan visitWhereCommand(WhereCommandContext ctx) {
-    return new Filter(internalVisitExpression(ctx.logicalExpression()));
+    return new Filter(internalVisitExpression(ctx.predicateExpression()));
   }
 
   @Override
