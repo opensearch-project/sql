@@ -19,6 +19,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.geospatial.action.IpEnrichmentActionClient;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -60,7 +61,9 @@ public class GeoIpFunction extends ImplementorUDF {
   public UDFOperandMetadata getOperandMetadata() {
     return UDFOperandMetadata.wrap(
         (CompositeOperandTypeChecker)
-            OperandTypes.STRING_STRING.or(OperandTypes.STRING_STRING_STRING));
+            OperandTypes.CHARACTER_CHARACTER.or(
+                OperandTypes.family(
+                    SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER)));
   }
 
   public static class GeoIPImplementor implements NotNullImplementor {
