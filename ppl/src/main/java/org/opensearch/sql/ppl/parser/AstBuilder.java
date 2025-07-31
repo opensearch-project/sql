@@ -372,29 +372,23 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitSortCommand(SortCommandContext ctx) {
     Integer count = ctx.count != null ? Integer.parseInt(ctx.count.getText()) : null;
-    boolean shouldReverse = ctx.DESC() != null || ctx.D() != null;
+    boolean desc = ctx.DESC() != null || ctx.D() != null;
 
-    List<Field> sortFields =
-        ctx.sortbyClause().sortField().stream()
-            .map(sort -> (Field) internalVisitExpression(sort))
-            .map(field -> shouldReverse ? reverseSortDirection(field) : field)
-            .collect(Collectors.toList());
+    List<Field> sortFields = ctx.sortbyClause().sortField().stream()
+        .map(sort -> (Field) internalVisitExpression(sort))
+        .map(field -> desc ? reverseSortDirection(field) : field)
+        .collect(Collectors.toList());
 
     return new Sort(count, sortFields);
   }
 
   private Field reverseSortDirection(Field field) {
-    List<Argument> updatedArgs = new ArrayList<>();
-
-    for (Argument arg : field.getFieldArgs()) {
-      if ("asc".equals(arg.getArgName())) {
-        boolean isAscending = (Boolean) arg.getValue().getValue();
-        updatedArgs.add(new Argument("asc", booleanLiteral(!isAscending)));
-      } else {
-        updatedArgs.add(arg);
-      }
-    }
-
+    List<Argument> updatedArgs = field.getFieldArgs().stream()
+        .map(arg -> "asc".equals(arg.getArgName()) 
+            ? new Argument("asc", booleanLiteral(!((Boolean) arg.getValue().getValue())))
+            : arg)
+        .collect(Collectors.toList());
+    
     return new Field(field.getField(), updatedArgs);
   }
 
