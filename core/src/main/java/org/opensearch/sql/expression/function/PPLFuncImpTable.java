@@ -226,8 +226,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.annotation.Nullable;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexLambda;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -270,7 +272,6 @@ public class PPLFuncImpTable {
   public interface FunctionImp {
     RelDataType ANY_TYPE = TYPE_FACTORY.createSqlType(SqlTypeName.ANY);
 
-    // TODO: Support argument coercion and casting
     RexNode resolve(RexBuilder builder, RexNode... args);
 
     /**
@@ -442,12 +443,25 @@ public class PPLFuncImpTable {
     if (implementList == null || implementList.isEmpty()) {
       throw new IllegalStateException(String.format("Cannot resolve function: %s", functionName));
     }
+
+    // Make compulsory casts for some functions that require specific casting of arguments.
+    // For example, the REDUCE function requires the second argument to be cast to the
+    // return type of the lambda function.
+    compulsoryCast(builder, functionName, args);
+
     List<RelDataType> argTypes = Arrays.stream(args).map(RexNode::getType).toList();
     try {
       for (Map.Entry<CalciteFuncSignature, FunctionImp> implement : implementList) {
         if (implement.getKey().match(functionName.getName(), argTypes)) {
           return implement.getValue().resolve(builder, args);
         }
+      }
+
+      // If no implementation found with exact match, try to cast arguments to match the
+      // signatures.
+      RexNode coerced = resolveWithCoercion(builder, functionName, implementList, args);
+      if (coerced != null) {
+        return coerced;
       }
     } catch (Exception e) {
       throw new ExpressionEvaluationException(
@@ -467,6 +481,63 @@ public class PPLFuncImpTable {
         String.format(
             "%s function expects {%s}, but got %s",
             functionName, allowedSignatures, getActualSignature(argTypes)));
+  }
+
+  /**
+   * Ad-hoc coercion for some functions that require specific casting of arguments. Now it only
+   * applies to the REDUCE function.
+   */
+  private void compulsoryCast(
+      final RexBuilder builder, final BuiltinFunctionName functionName, RexNode... args) {
+
+    //noinspection SwitchStatementWithTooFewBranches
+    switch (functionName) {
+      case BuiltinFunctionName.REDUCE:
+        // Set the second argument to the return type of the lambda function, so that
+        // code generated with linq4j can correctly accumulate the result.
+        RexLambda call = (RexLambda) args[2];
+        args[1] = builder.makeCast(call.getType(), args[1], true, true);
+        break;
+      default:
+        break;
+    }
+  }
+
+  private @Nullable RexNode resolveWithCoercion(
+      final RexBuilder builder,
+      final BuiltinFunctionName functionName,
+      List<Pair<CalciteFuncSignature, FunctionImp>> implementList,
+      RexNode... args) {
+    if (BuiltinFunctionName.COMPARATORS.contains(functionName)) {
+      for (Map.Entry<CalciteFuncSignature, FunctionImp> implement : implementList) {
+        var widenedArgs = CoercionUtils.widenArguments(builder, List.of(args));
+        if (widenedArgs != null) {
+          boolean matchSignature =
+              implement
+                  .getKey()
+                  .typeChecker()
+                  .checkOperandTypes(widenedArgs.stream().map(RexNode::getType).toList());
+          if (matchSignature) {
+            return implement.getValue().resolve(builder, widenedArgs.toArray(new RexNode[0]));
+          }
+        }
+      }
+    } else {
+      for (Map.Entry<CalciteFuncSignature, FunctionImp> implement : implementList) {
+        var signature = implement.getKey();
+        var castedArgs =
+            CoercionUtils.castArguments(builder, signature.typeChecker(), List.of(args));
+        if (castedArgs != null) {
+          // If compatible function is found, replace the original RexNode with cast node
+          // TODO: check - this is a return-once-found implementation, rest possible combinations
+          //  will be skipped.
+          //  Maybe can be improved to return the best match? E.g. convert to timestamp when date,
+          //  time, and timestamp are all possible.
+          return implement.getValue().resolve(builder, castedArgs.toArray(new RexNode[0]));
+        }
+      }
+    }
+    return null;
   }
 
   private static String getActualSignature(List<RelDataType> argTypes) {
@@ -872,7 +943,7 @@ public class PPLFuncImpTable {
                       builder.makeFlag(Flag.BOTH),
                       builder.makeLiteral(" "),
                       arg),
-              PPLTypeChecker.family(SqlTypeFamily.STRING)));
+              PPLTypeChecker.family(SqlTypeFamily.CHARACTER)));
 
       register(
           LTRIM,
@@ -883,7 +954,7 @@ public class PPLFuncImpTable {
                       builder.makeFlag(Flag.LEADING),
                       builder.makeLiteral(" "),
                       arg),
-              PPLTypeChecker.family(SqlTypeFamily.STRING)));
+              PPLTypeChecker.family(SqlTypeFamily.CHARACTER)));
       register(
           RTRIM,
           createFunctionImpWithTypeChecker(
@@ -893,7 +964,7 @@ public class PPLFuncImpTable {
                       builder.makeFlag(Flag.TRAILING),
                       builder.makeLiteral(" "),
                       arg),
-              PPLTypeChecker.family(SqlTypeFamily.STRING)));
+              PPLTypeChecker.family(SqlTypeFamily.CHARACTER)));
       register(
           ATAN,
           createFunctionImpWithTypeChecker(
@@ -903,7 +974,7 @@ public class PPLFuncImpTable {
           STRCMP,
           createFunctionImpWithTypeChecker(
               (builder, arg1, arg2) -> builder.makeCall(SqlLibraryOperators.STRCMP, arg2, arg1),
-              PPLTypeChecker.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING)));
+              PPLTypeChecker.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER)));
       // SqlStdOperatorTable.SUBSTRING.getOperandTypeChecker is null. We manually create a type
       // checker for it.
       register(
@@ -911,14 +982,24 @@ public class PPLFuncImpTable {
           wrapWithCompositeTypeChecker(
               SqlStdOperatorTable.SUBSTRING,
               (CompositeOperandTypeChecker)
-                  OperandTypes.STRING_INTEGER.or(OperandTypes.STRING_INTEGER_INTEGER),
+                  OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.INTEGER)
+                      .or(
+                          OperandTypes.family(
+                              SqlTypeFamily.CHARACTER,
+                              SqlTypeFamily.INTEGER,
+                              SqlTypeFamily.INTEGER)),
               false));
       register(
           SUBSTR,
           wrapWithCompositeTypeChecker(
               SqlStdOperatorTable.SUBSTRING,
               (CompositeOperandTypeChecker)
-                  OperandTypes.STRING_INTEGER.or(OperandTypes.STRING_INTEGER_INTEGER),
+                  OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.INTEGER)
+                      .or(
+                          OperandTypes.family(
+                              SqlTypeFamily.CHARACTER,
+                              SqlTypeFamily.INTEGER,
+                              SqlTypeFamily.INTEGER)),
               false));
       // SqlStdOperatorTable.ITEM.getOperandTypeChecker() checks only the first operand instead of
       // all operands. Therefore, we wrap it with a custom CompositeOperandTypeChecker to check both

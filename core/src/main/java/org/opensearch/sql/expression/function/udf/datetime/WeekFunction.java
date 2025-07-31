@@ -14,10 +14,8 @@ import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
-import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -52,12 +50,7 @@ public class WeekFunction extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    return UDFOperandMetadata.wrap(
-        (CompositeOperandTypeChecker)
-            OperandTypes.DATETIME
-                .or(OperandTypes.STRING)
-                .or(OperandTypes.STRING_INTEGER)
-                .or(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER)));
+    return PPLOperandTypes.DATETIME_OPTIONAL_INTEGER;
   }
 
   public static class WeekImplementor implements NotNullImplementor {

@@ -1,6 +1,6 @@
 {
   "calcite": {
-    "logical": "LogicalProject(sum=[$2], len=[$0], gender=[$1])\n  LogicalAggregate(group=[{0, 1}], sum=[SUM($2)])\n    LogicalProject(len=[CHAR_LENGTH($4)], gender=[$4], $f3=[+($7, 100)])\n      CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])\n",
-    "physical": "EnumerableCalc(expr#0..2=[{inputs}], sum=[$t2], len=[$t0], gender=[$t1])\n  EnumerableAggregate(group=[{0, 1}], sum=[SUM($2)])\n    EnumerableCalc(expr#0..18=[{inputs}], expr#19=[CHAR_LENGTH($t4)], expr#20=[100], expr#21=[+($t7, $t20)], len=[$t19], gender=[$t4], $f3=[$t21])\n      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])\n"
+    "logical": "LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])\n  LogicalProject(sum=[$2], len=[$0], gender=[$1])\n    LogicalAggregate(group=[{0, 1}], sum=[SUM($2)])\n      LogicalProject(len=[CHAR_LENGTH($4)], gender=[$4], $f3=[+($7, 100)])\n        CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])\n",
+    "physical": "EnumerableLimit(fetch=[10000])\n  EnumerableCalc(expr#0..2=[{inputs}], sum=[$t2], len=[$t0], gender=[$t1])\n    EnumerableAggregate(group=[{0, 1}], sum=[SUM($2)])\n      EnumerableCalc(expr#0..18=[{inputs}], expr#19=[CHAR_LENGTH($t4)], expr#20=[100], expr#21=[+($t7, $t20)], len=[$t19], gender=[$t4], $f3=[$t21])\n        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])\n"
   }
 }

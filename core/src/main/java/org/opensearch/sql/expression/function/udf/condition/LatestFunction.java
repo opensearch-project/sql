@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.expression.function.udf.condition;
 
-import static org.opensearch.sql.calcite.utils.PPLOperandTypes.STRING_TIMESTAMP;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.prependFunctionProperties;
 import static org.opensearch.sql.utils.DateTimeUtils.getRelativeZonedDateTime;
 
@@ -23,6 +22,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
@@ -41,7 +41,7 @@ public class LatestFunction extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    return STRING_TIMESTAMP;
+    return PPLOperandTypes.STRING_TIMESTAMP;
   }
 
   public static class LatestImplementor implements NotNullImplementor {
