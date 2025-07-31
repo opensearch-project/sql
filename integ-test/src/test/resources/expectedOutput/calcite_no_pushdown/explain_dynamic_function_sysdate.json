@@ -1,0 +1,6 @@
+{
+  "calcite": {
+    "logical": "LogicalSort(sort0=[$1], dir0=[ASC])\n  LogicalProject(a=[$17], b=[SYSDATE(6, 1)])\n    LogicalSort(sort0=[$8], dir0=[ASC-nulls-first])\n      LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], _id=[$11], _index=[$12], _score=[$13], _maxscore=[$14], _sort=[$15], _routing=[$16], a=[SYSDATE(6, 0)])\n        CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
+    "physical": "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[6], expr#3=[1], expr#4=[SYSDATE($t2, $t3)], a=[$t1], b=[$t4])\n  EnumerableSort(sort0=[$0], dir0=[ASC-nulls-first])\n    EnumerableCalc(expr#0..16=[{inputs}], expr#17=[6], expr#18=[0], expr#19=[SYSDATE($t17, $t18)], age=[$t8], a=[$t19])\n      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n"
+  }
+}

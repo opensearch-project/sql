@@ -11,6 +11,7 @@ import java.io.IOException;
 import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.opensearch.sql.calcite.ExtendedRexBuilder;
 import org.opensearch.sql.ppl.ExplainIT;
 
 public class CalciteExplainIT extends ExplainIT {
@@ -19,6 +20,7 @@ public class CalciteExplainIT extends ExplainIT {
     super.init();
     enableCalcite();
     disallowCalciteFallback();
+    ExtendedRexBuilder.resetId();
   }
 
   @Override
@@ -106,6 +108,17 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryToString(query);
     String expected =
         loadFromFile("expectedOutput/calcite/explain_partial_filter_script_push.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  // Only for Calcite
+  @Test
+  public void testDynamicFunctionSysdate() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | eval a = sysdate(6) | sort age | eval b ="
+            + " sysdate(6) | fields a, b";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_dynamic_function_sysdate.json");
     assertJsonEqualsIgnoreId(expected, result);
   }
 
