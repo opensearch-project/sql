@@ -69,6 +69,7 @@ commands
    | appendcolCommand
    | expandCommand
    | flattenCommand
+   | reverseCommand
    ;
 
 commandName
@@ -99,6 +100,7 @@ commandName
    | FLATTEN
    | TRENDLINE
    | EXPLAIN
+   | REVERSE
    ;
 
 searchCommand
@@ -139,6 +141,10 @@ dedupCommand
 
 sortCommand
    : SORT sortbyClause
+   ;
+
+reverseCommand
+   : REVERSE
    ;
 
 evalCommand

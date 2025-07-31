@@ -80,6 +80,7 @@ import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
+import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
@@ -680,6 +681,12 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   public LogicalPlan visitFlatten(Flatten node, AnalysisContext context) {
     throw new UnsupportedOperationException(
         "FLATTEN is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+  }
+
+  @Override
+  public LogicalPlan visitReverse(Reverse node, AnalysisContext context) {
+    throw new UnsupportedOperationException(
+        "REVERSE is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
   }
 
   @Override
