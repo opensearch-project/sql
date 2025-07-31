@@ -122,17 +122,24 @@ whereCommand
 fieldsCommand
    : FIELDS (PLUS | MINUS)? wcFieldList
    | FIELDS (PLUS | MINUS)? wcSpaceSeparatedFieldList
+   | FIELDS (PLUS | MINUS)? wcMixedFieldList
    ;
 
 // Table command - alias for fields command
 tableCommand
    : TABLE (PLUS | MINUS)? wcFieldList
    | TABLE (PLUS | MINUS)? wcSpaceSeparatedFieldList
+   | TABLE (PLUS | MINUS)? wcMixedFieldList
    ;
 
 // Space-separated wildcard field list: fields field1 field2 field3
 wcSpaceSeparatedFieldList
    : wcFieldExpression (wcFieldExpression)+
+   ;
+
+// Mixed delimiter wildcard field list: fields field1 field2, field3 field4
+wcMixedFieldList
+   : wcFieldExpression (COMMA? wcFieldExpression)+
    ;
 
 renameCommand

@@ -69,4 +69,46 @@ public class CalcitePPLTableTest extends CalcitePPLAbstractTest {
     String expectedSparkSql = "SELECT `JOB`, `EMPNO`, `DEPTNO`\n" + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  /** Tests mixed comma and space delimiters with table command. */
+  @Test
+  public void testTableWithMixedDelimiters() {
+    String ppl = "source=EMP | table JOB EMPNO, DEPTNO";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(JOB=[$2], EMPNO=[$0], DEPTNO=[$7])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql = "SELECT `JOB`, `EMPNO`, `DEPTNO`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  /** Tests mixed delimiters with wildcards. */
+  @Test
+  public void testTableWithMixedDelimitersAndWildcards() {
+    String ppl = "source=EMP | table JOB EMP*, *NO";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(JOB=[$2], EMPNO=[$0], DEPTNO=[$7])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql = "SELECT `JOB`, `EMPNO`, `DEPTNO`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  /** Tests complex mixed delimiter patterns. */
+  @Test
+  public void testTableWithComplexMixedDelimiters() {
+    String ppl = "source=EMP | table JOB, EMPNO DEPTNO, SAL";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(JOB=[$2], EMPNO=[$0], DEPTNO=[$7], SAL=[$5])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql = "SELECT `JOB`, `EMPNO`, `DEPTNO`, `SAL`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
 }

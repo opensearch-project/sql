@@ -120,4 +120,33 @@ public class CalciteFieldsCommandIT extends FieldsCommandIT {
         schema("account_number", "bigint"),
         schema("lastname", "string"));
   }
+
+  /** Tests mixed comma and space delimiters with fields command. */
+  @Test
+  public void testCalciteFieldsWithMixedDelimiters() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | fields firstname lastname, age | head 3", TEST_INDEX_ACCOUNT));
+    verifyColumn(result, columnName("firstname"), columnName("lastname"), columnName("age"));
+    verifySchema(
+        result,
+        schema("firstname", "string"),
+        schema("lastname", "string"),
+        schema("age", "bigint"));
+  }
+
+  /** Tests mixed delimiters with wildcards. */
+  @Test
+  public void testCalciteFieldsWithMixedDelimitersAndWildcards() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | fields firstname account*, *name", TEST_INDEX_ACCOUNT));
+    verifyColumn(
+        result, columnName("firstname"), columnName("account_number"), columnName("lastname"));
+    verifySchema(
+        result,
+        schema("firstname", "string"),
+        schema("account_number", "bigint"),
+        schema("lastname", "string"));
+  }
 }

@@ -245,8 +245,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           }
         }
       } else {
-        // Non-field expression, analyze normally
-        expandedList.add(rexVisitor.analyze(expr, context));
+        throw new IllegalStateException(
+            "Unexpected non-field expression in project list: " + expr.getClass().getSimpleName());
       }
     }
 
