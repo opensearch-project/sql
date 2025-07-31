@@ -63,7 +63,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalcitePPLDedupIT.class,
   CalcitePPLEventstatsIT.class,
   CalcitePPLExistsSubqueryIT.class,
-  CalcitePPLExplainIT.class,
+  CalcitePPLExplainCommandIT.class,
   CalcitePPLFillnullIT.class,
   CalcitePPLGrokIT.class,
   CalcitePPLInSubqueryIT.class,
