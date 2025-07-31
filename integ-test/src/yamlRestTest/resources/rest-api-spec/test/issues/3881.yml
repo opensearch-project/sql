@@ -40,10 +40,10 @@ teardown:
         Content-Type: 'application/json'
       ppl:
         body:
-          query: 'source=test | where a = 1 or a = 2 or isNull(a)'
+          query: 'source=test | where a = 1 or a = 2 or isNull(a) | sort a'
   - match: {"total": 3}
   - match: {"schema": [{"name": "a", "type": "bigint"}]}
-  - match: {"datarows": [[1], [2], [null]]}
+  - match: {"datarows": [[null], [1], [2]]}
 
   - do:
       allowed_warnings:
@@ -52,7 +52,7 @@ teardown:
         Content-Type: 'application/json'
       ppl:
         body:
-          query: 'source=test | where (a = 1 or a = 2) and isNotNull(a)'
+          query: 'source=test | where (a = 1 or a = 2) and isNotNull(a) | sort a'
   - match: { "total": 2 }
   - match: { "schema": [ { "name": "a", "type": "bigint" } ] }
   - match: {"datarows": [[1], [2]]}
