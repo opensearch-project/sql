@@ -126,7 +126,8 @@ public class CalciteFieldsCommandIT extends FieldsCommandIT {
   public void testCalciteFieldsWithMixedDelimiters() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format("source=%s | fields firstname lastname, age | head 3", TEST_INDEX_ACCOUNT));
+            String.format(
+                "source=%s | fields firstname lastname, age | head 3", TEST_INDEX_ACCOUNT));
     verifyColumn(result, columnName("firstname"), columnName("lastname"), columnName("age"));
     verifySchema(
         result,

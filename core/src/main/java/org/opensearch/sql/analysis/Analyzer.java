@@ -395,10 +395,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
         for (UnresolvedExpression expr : node.getProjectList()) {
           if (expr instanceof Field && ((Field) expr).getField().toString().contains("*")) {
             // Resolve wildcard patterns for exclusion
-            List<NamedExpression> wildcardFields = WildcardFieldResolver.resolveWildcards(
-                Collections.singletonList(expr), context, expressionAnalyzer);
-            wildcardFields.forEach(field -> 
-                referenceExpressions.add((ReferenceExpression) field.getDelegated()));
+            List<NamedExpression> wildcardFields =
+                WildcardFieldResolver.resolveWildcards(
+                    Collections.singletonList(expr), context, expressionAnalyzer);
+            wildcardFields.forEach(
+                field -> referenceExpressions.add((ReferenceExpression) field.getDelegated()));
           } else {
             referenceExpressions.add(
                 (ReferenceExpression) expressionAnalyzer.analyze(expr, context));
@@ -423,14 +424,18 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     }
 
     // Check if any field contains wildcards and resolve them
-    boolean hasWildcards = node.getProjectList().stream()
-        .anyMatch(expr -> expr instanceof Field && 
-            ((Field) expr).getField().toString().contains("*"));
-    
+    boolean hasWildcards =
+        node.getProjectList().stream()
+            .anyMatch(
+                expr ->
+                    expr instanceof Field && ((Field) expr).getField().toString().contains("*"));
+
     List<NamedExpression> namedExpressions;
     if (hasWildcards) {
       // Use wildcard resolver for field expansion
-      namedExpressions = WildcardFieldResolver.resolveWildcards(node.getProjectList(), context, expressionAnalyzer);
+      namedExpressions =
+          WildcardFieldResolver.resolveWildcards(
+              node.getProjectList(), context, expressionAnalyzer);
     } else {
       // Use regular expression analyzer
       namedExpressions =

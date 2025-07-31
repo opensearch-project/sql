@@ -37,9 +37,9 @@ class WildcardFieldResolverTest {
     context = mock(AnalysisContext.class);
     typeEnvironment = mock(TypeEnvironment.class);
     expressionAnalyzer = mock(ExpressionAnalyzer.class);
-    
+
     when(context.peek()).thenReturn(typeEnvironment);
-    
+
     // Setup available fields
     availableFields = new HashMap<>();
     availableFields.put("account_number", ExprCoreType.INTEGER);
@@ -49,7 +49,7 @@ class WildcardFieldResolverTest {
     availableFields.put("age", ExprCoreType.INTEGER);
     availableFields.put("city", ExprCoreType.STRING);
     availableFields.put("state", ExprCoreType.STRING);
-    
+
     when(typeEnvironment.lookupAllFields(Namespace.FIELD_NAME)).thenReturn(availableFields);
   }
 
@@ -58,10 +58,10 @@ class WildcardFieldResolverTest {
     // Test account* pattern
     Field wildcardField = new Field(QualifiedName.of("account*"));
     List<UnresolvedExpression> projectList = Arrays.asList(wildcardField);
-    
-    List<NamedExpression> result = WildcardFieldResolver.resolveWildcards(
-        projectList, context, expressionAnalyzer);
-    
+
+    List<NamedExpression> result =
+        WildcardFieldResolver.resolveWildcards(projectList, context, expressionAnalyzer);
+
     assertEquals(1, result.size());
     assertEquals("account_number", result.get(0).getNameOrAlias());
     assertTrue(result.get(0).getDelegated() instanceof ReferenceExpression);
@@ -72,10 +72,10 @@ class WildcardFieldResolverTest {
     // Test *name pattern
     Field wildcardField = new Field(QualifiedName.of("*name"));
     List<UnresolvedExpression> projectList = Arrays.asList(wildcardField);
-    
-    List<NamedExpression> result = WildcardFieldResolver.resolveWildcards(
-        projectList, context, expressionAnalyzer);
-    
+
+    List<NamedExpression> result =
+        WildcardFieldResolver.resolveWildcards(projectList, context, expressionAnalyzer);
+
     assertEquals(2, result.size());
     // Results should be sorted
     assertEquals("firstname", result.get(0).getNameOrAlias());
@@ -87,10 +87,10 @@ class WildcardFieldResolverTest {
     // Test *a* pattern (should match account_number, age, balance, firstname, lastname, state)
     Field wildcardField = new Field(QualifiedName.of("*a*"));
     List<UnresolvedExpression> projectList = Arrays.asList(wildcardField);
-    
-    List<NamedExpression> result = WildcardFieldResolver.resolveWildcards(
-        projectList, context, expressionAnalyzer);
-    
+
+    List<NamedExpression> result =
+        WildcardFieldResolver.resolveWildcards(projectList, context, expressionAnalyzer);
+
     assertEquals(6, result.size());
     // Results should be sorted alphabetically
     assertEquals("account_number", result.get(0).getNameOrAlias());
@@ -107,14 +107,14 @@ class WildcardFieldResolverTest {
     Field wildcardField = new Field(QualifiedName.of("*name"));
     Field regularField = new Field(QualifiedName.of("age"));
     List<UnresolvedExpression> projectList = Arrays.asList(wildcardField, regularField);
-    
+
     // Mock the expression analyzer for regular field
     when(expressionAnalyzer.analyze(regularField, context))
         .thenReturn(new ReferenceExpression("age", ExprCoreType.INTEGER));
-    
-    List<NamedExpression> result = WildcardFieldResolver.resolveWildcards(
-        projectList, context, expressionAnalyzer);
-    
+
+    List<NamedExpression> result =
+        WildcardFieldResolver.resolveWildcards(projectList, context, expressionAnalyzer);
+
     assertEquals(3, result.size());
     // First two should be from wildcard (sorted)
     assertEquals("firstname", result.get(0).getNameOrAlias());

@@ -164,7 +164,8 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
   public void testCalciteTableWithMixedDelimiters() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format("source=%s | table firstname lastname, age | head 3", TEST_INDEX_ACCOUNT));
+            String.format(
+                "source=%s | table firstname lastname, age | head 3", TEST_INDEX_ACCOUNT));
     verifyColumn(result, columnName("firstname"), columnName("lastname"), columnName("age"));
     verifySchema(
         result,
