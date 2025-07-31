@@ -569,19 +569,19 @@ public class QueryIT extends SQLIntegTestCase {
                 Locale.ROOT,
                 "SELECT * FROM %s WHERE gender LIKE 'm' AND NOT gender LIKE 'f'",
                 TEST_INDEX_ACCOUNT));
-    // Assert there are results and they all have gender 'm'
+    // Assert there are results and they all have gender 'M'
     Assert.assertNotEquals(0, getTotalHits(response4));
     JSONArray hits = getHits(response4);
     for (int i = 0; i < hits.length(); i++) {
       JSONObject hit = hits.getJSONObject(i);
-      Assert.assertEquals("m", getSource(hit).getString("gender").toLowerCase());
+      Assert.assertEquals("M", getSource(hit).getString("gender"));
     }
 
     JSONObject response5 =
         executeQuery(
             String.format(
                 Locale.ROOT,
-                "SELECT * FROM %s WHERE NOT (gender = 'm' OR gender = 'f')",
+                "SELECT * FROM %s WHERE NOT (gender = 'M' OR gender = 'F')",
                 TEST_INDEX_ACCOUNT));
     Assert.assertEquals(0, getTotalHits(response5));
   }
@@ -942,8 +942,8 @@ public class QueryIT extends SQLIntegTestCase {
   @Test
   public void complexConditionQuery() throws IOException {
     String errorMessage =
-        "Result does not exist to the condition (gender='m' AND (age> 25 OR account_number>5)) OR"
-            + " (gender='f' AND (age>30 OR account_number < 8)";
+        "Result does not exist to the condition (gender='M' AND (age> 25 OR account_number>5)) OR"
+            + " (gender='F' AND (age>30 OR account_number < 8)";
 
     JSONObject response =
         executeQuery(
@@ -951,8 +951,8 @@ public class QueryIT extends SQLIntegTestCase {
                 Locale.ROOT,
                 "SELECT * "
                     + "FROM %s "
-                    + "WHERE (gender='m' AND (age> 25 OR account_number>5)) "
-                    + "OR (gender='f' AND (age>30 OR account_number < 8))",
+                    + "WHERE (gender='M' AND (age> 25 OR account_number>5)) "
+                    + "OR (gender='F' AND (age>30 OR account_number < 8))",
                 TEST_INDEX_ACCOUNT));
 
     JSONArray hits = getHits(response);
@@ -960,14 +960,14 @@ public class QueryIT extends SQLIntegTestCase {
       JSONObject hit = hits.getJSONObject(i);
       JSONObject source = getSource(hit);
 
-      String gender = source.getString("gender").toLowerCase();
+      String gender = source.getString("gender");
       int age = source.getInt("age");
       int accountNumber = source.getInt("account_number");
 
       Assert.assertTrue(
           errorMessage,
-          (gender.equals("m") && (age > 25 || accountNumber > 5))
-              || (gender.equals("f") && (age > 30 || accountNumber < 8)));
+          (gender.equals("M") && (age > 25 || accountNumber > 5))
+              || (gender.equals("F") && (age > 30 || accountNumber < 8)));
     }
   }
 
@@ -975,8 +975,8 @@ public class QueryIT extends SQLIntegTestCase {
   public void complexNotConditionQuery() throws IOException {
     String errorMessage =
         "Result does not exist to the condition "
-            + "NOT (gender='m' AND NOT (age > 25 OR account_number > 5)) "
-            + "OR (NOT gender='f' AND NOT (age > 30 OR account_number < 8))";
+            + "NOT (gender='M' AND NOT (age > 25 OR account_number > 5)) "
+            + "OR (NOT gender='F' AND NOT (age > 30 OR account_number < 8))";
 
     JSONObject response =
         executeQuery(
@@ -984,8 +984,8 @@ public class QueryIT extends SQLIntegTestCase {
                 Locale.ROOT,
                 "SELECT * "
                     + "FROM %s "
-                    + "WHERE NOT (gender='m' AND NOT (age > 25 OR account_number > 5)) "
-                    + "OR (NOT gender='f' AND NOT (age > 30 OR account_number < 8))",
+                    + "WHERE NOT (gender='M' AND NOT (age > 25 OR account_number > 5)) "
+                    + "OR (NOT gender='F' AND NOT (age > 30 OR account_number < 8))",
                 TEST_INDEX_ACCOUNT));
 
     JSONArray hits = getHits(response);
@@ -994,14 +994,14 @@ public class QueryIT extends SQLIntegTestCase {
       JSONObject hit = hits.getJSONObject(i);
       JSONObject source = getSource(hit);
 
-      String gender = source.getString("gender").toLowerCase();
+      String gender = source.getString("gender");
       int age = source.getInt("age");
       int accountNumber = source.getInt("account_number");
 
       Assert.assertTrue(
           errorMessage,
-          !(gender.equals("m") && !(age > 25 || accountNumber > 5))
-              || (!gender.equals("f") && !(age > 30 || accountNumber < 8)));
+          !(gender.equals("M") && !(age > 25 || accountNumber > 5))
+              || (!gender.equals("F") && !(age > 30 || accountNumber < 8)));
     }
   }
 

@@ -206,16 +206,23 @@ public class CalciteScriptEngine implements ScriptEngine {
      * DocValue only support long and double for integer and float, cast to the related type first
      */
     private Expression tryConvertDocValue(Expression docValueExpr, ExprType exprType) {
-      switch (exprType) {
-        case INTEGER:
-        case SHORT:
-        case BYTE:
-          return EnumUtils.convert(docValueExpr, Long.class);
-        case FLOAT:
-          return EnumUtils.convert(docValueExpr, Double.class);
-        default:
-          return docValueExpr;
+      Expression docValue = docValueExpr;
+      if (exprType instanceof ExprCoreType) {
+        ExprCoreType type = (ExprCoreType) exprType;
+        switch (type) {
+          case INTEGER:
+          case SHORT:
+          case BYTE:
+            docValue = EnumUtils.convert(docValueExpr, Long.class);
+            break;
+          case FLOAT:
+            docValue = EnumUtils.convert(docValueExpr, Double.class);
+            break;
+          default:
+            // fallthrough
+        }
       }
+      return docValue;
     }
   }
 

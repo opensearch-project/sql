@@ -43,6 +43,7 @@ import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
@@ -254,20 +255,24 @@ class DateTimeFunctionTest extends ExpressionTestBase {
         DSL.day_of_month(functionProperties, DSL.literal("2020-02-29")), 29);
 
     // Feb. 29 of a non-leap year
-    assertThrows(SemanticCheckException.class, () -> testInvalidDayOfMonth("2021-02-29"));
+    assertThrows(ExpressionEvaluationException.class, () -> testInvalidDayOfMonth("2021-02-29"));
   }
 
   @Test
   public void dayOfMonthWithUnderscoresInvalidArguments() {
     assertAll(
         // 40th day of the month
-        () -> assertThrows(SemanticCheckException.class, () -> testInvalidDayOfMonth("2021-02-40")),
+        () ->
+            assertThrows(
+                ExpressionEvaluationException.class, () -> testInvalidDayOfMonth("2021-02-40")),
         // 13th month of the year
-        () -> assertThrows(SemanticCheckException.class, () -> testInvalidDayOfMonth("2021-13-40")),
+        () ->
+            assertThrows(
+                ExpressionEvaluationException.class, () -> testInvalidDayOfMonth("2021-13-40")),
         // incorrect format
         () ->
             assertThrows(
-                SemanticCheckException.class, () -> testInvalidDayOfMonth("asdfasdfasdf")));
+                ExpressionEvaluationException.class, () -> testInvalidDayOfMonth("asdfasdfasdf")));
   }
 
   private void dayOfWeekQuery(FunctionExpression dateExpression, int dayOfWeek, String testExpr) {
@@ -362,20 +367,28 @@ class DateTimeFunctionTest extends ExpressionTestBase {
                 1,
                 "day_of_week(\"2021-02-28\")"),
         // Feb. 29 of a non-leap year
-        () -> assertThrows(SemanticCheckException.class, () -> testInvalidDayOfWeek("2021-02-29")));
+        () ->
+            assertThrows(
+                ExpressionEvaluationException.class, () -> testInvalidDayOfWeek("2021-02-29")));
   }
 
   @Test
   public void dayOfWeekWithUnderscoresInvalidArgument() {
     assertAll(
         // 40th day of the month
-        () -> assertThrows(SemanticCheckException.class, () -> testInvalidDayOfWeek("2021-02-40")),
+        () ->
+            assertThrows(
+                ExpressionEvaluationException.class, () -> testInvalidDayOfWeek("2021-02-40")),
 
         // 13th month of the year
-        () -> assertThrows(SemanticCheckException.class, () -> testInvalidDayOfWeek("2021-13-29")),
+        () ->
+            assertThrows(
+                ExpressionEvaluationException.class, () -> testInvalidDayOfWeek("2021-13-29")),
 
         // incorrect format
-        () -> assertThrows(SemanticCheckException.class, () -> testInvalidDayOfWeek("asdfasdf")));
+        () ->
+            assertThrows(
+                ExpressionEvaluationException.class, () -> testInvalidDayOfWeek("asdfasdf")));
   }
 
   @Test
@@ -495,15 +508,19 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   public void invalidDayOfYearArgument() {
     assertAll(
         // 29th of Feb non-leapyear
-        () -> assertThrows(SemanticCheckException.class, () -> invalidDayOfYearQuery("2019-02-29")),
+        () ->
+            assertThrows(
+                ExpressionEvaluationException.class, () -> invalidDayOfYearQuery("2019-02-29")),
 
         // 13th month
-        () -> assertThrows(SemanticCheckException.class, () -> invalidDayOfYearQuery("2019-13-15")),
+        () ->
+            assertThrows(
+                ExpressionEvaluationException.class, () -> invalidDayOfYearQuery("2019-13-15")),
 
         // incorrect format for type
         () ->
             assertThrows(
-                SemanticCheckException.class, () -> invalidDayOfYearQuery("asdfasdfasdf")));
+                ExpressionEvaluationException.class, () -> invalidDayOfYearQuery("asdfasdfasdf")));
   }
 
   @Test
@@ -593,19 +610,19 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   @Test
   public void invalidMinuteOfDay() {
     assertThrows(
-        SemanticCheckException.class, () -> testInvalidMinuteOfDay("2022-12-14 12:23:3400"));
+        ExpressionEvaluationException.class, () -> testInvalidMinuteOfDay("2022-12-14 12:23:3400"));
     assertThrows(
-        SemanticCheckException.class, () -> testInvalidMinuteOfDay("2022-12-14 12:2300:34"));
+        ExpressionEvaluationException.class, () -> testInvalidMinuteOfDay("2022-12-14 12:2300:34"));
     assertThrows(
-        SemanticCheckException.class, () -> testInvalidMinuteOfDay("2022-12-14 1200:23:34"));
+        ExpressionEvaluationException.class, () -> testInvalidMinuteOfDay("2022-12-14 1200:23:34"));
     assertThrows(
-        SemanticCheckException.class, () -> testInvalidMinuteOfDay("2022-12-1400 12:23:34"));
+        ExpressionEvaluationException.class, () -> testInvalidMinuteOfDay("2022-12-1400 12:23:34"));
     assertThrows(
-        SemanticCheckException.class, () -> testInvalidMinuteOfDay("2022-1200-14 12:23:34"));
-    assertThrows(SemanticCheckException.class, () -> testInvalidMinuteOfDay("12:23:3400"));
-    assertThrows(SemanticCheckException.class, () -> testInvalidMinuteOfDay("12:2300:34"));
-    assertThrows(SemanticCheckException.class, () -> testInvalidMinuteOfDay("1200:23:34"));
-    assertThrows(SemanticCheckException.class, () -> testInvalidMinuteOfDay("asdfasdfasdf"));
+        ExpressionEvaluationException.class, () -> testInvalidMinuteOfDay("2022-1200-14 12:23:34"));
+    assertThrows(ExpressionEvaluationException.class, () -> testInvalidMinuteOfDay("12:23:3400"));
+    assertThrows(ExpressionEvaluationException.class, () -> testInvalidMinuteOfDay("12:2300:34"));
+    assertThrows(ExpressionEvaluationException.class, () -> testInvalidMinuteOfDay("1200:23:34"));
+    assertThrows(ExpressionEvaluationException.class, () -> testInvalidMinuteOfDay("asdfasdfasdf"));
   }
 
   private void hourOfDayQuery(FunctionExpression dateExpression, int hour) {
@@ -645,15 +662,23 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   public void hourOfDayInvalidArguments() {
     assertAll(
         // Invalid Seconds
-        () -> assertThrows(SemanticCheckException.class, () -> invalidHourOfDayQuery("12:23:61")),
+        () ->
+            assertThrows(
+                ExpressionEvaluationException.class, () -> invalidHourOfDayQuery("12:23:61")),
         // Invalid Minutes
-        () -> assertThrows(SemanticCheckException.class, () -> invalidHourOfDayQuery("12:61:34")),
+        () ->
+            assertThrows(
+                ExpressionEvaluationException.class, () -> invalidHourOfDayQuery("12:61:34")),
 
         // Invalid Hours
-        () -> assertThrows(SemanticCheckException.class, () -> invalidHourOfDayQuery("25:23:34")),
+        () ->
+            assertThrows(
+                ExpressionEvaluationException.class, () -> invalidHourOfDayQuery("25:23:34")),
 
         // incorrect format
-        () -> assertThrows(SemanticCheckException.class, () -> invalidHourOfDayQuery("asdfasdf")));
+        () ->
+            assertThrows(
+                ExpressionEvaluationException.class, () -> invalidHourOfDayQuery("asdfasdf")));
   }
 
   private void checkForExpectedDay(
@@ -712,7 +737,7 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void testLastDayInvalidArgument() {
-    assertThrows(SemanticCheckException.class, () -> lastDay("asdfasdf"));
+    assertThrows(ExpressionEvaluationException.class, () -> lastDay("asdfasdf"));
   }
 
   @Test
@@ -859,19 +884,23 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     assertAll(
         // Invalid Seconds
         () ->
-            assertThrows(SemanticCheckException.class, () -> invalidMinuteOfHourQuery("12:23:61")),
+            assertThrows(
+                ExpressionEvaluationException.class, () -> invalidMinuteOfHourQuery("12:23:61")),
 
         // Invalid Minutes
         () ->
-            assertThrows(SemanticCheckException.class, () -> invalidMinuteOfHourQuery("12:61:34")),
+            assertThrows(
+                ExpressionEvaluationException.class, () -> invalidMinuteOfHourQuery("12:61:34")),
 
         // Invalid Hours
         () ->
-            assertThrows(SemanticCheckException.class, () -> invalidMinuteOfHourQuery("25:23:34")),
+            assertThrows(
+                ExpressionEvaluationException.class, () -> invalidMinuteOfHourQuery("25:23:34")),
 
         // incorrect format
         () ->
-            assertThrows(SemanticCheckException.class, () -> invalidMinuteOfHourQuery("asdfasdf")));
+            assertThrows(
+                ExpressionEvaluationException.class, () -> invalidMinuteOfHourQuery("asdfasdf")));
   }
 
   @Test
@@ -924,7 +953,7 @@ class DateTimeFunctionTest extends ExpressionTestBase {
         LocalDate.now(functionProperties.getQueryStartClock()).getMonthValue());
   }
 
-  private void invalidDatesQuery(String date) throws SemanticCheckException {
+  private void invalidDatesQuery(String date) throws ExpressionEvaluationException {
     FunctionExpression expression =
         DSL.month_of_year(functionProperties, DSL.literal(new ExprDateValue(date)));
     eval(expression);
@@ -933,10 +962,18 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   @Test
   public void monthOfYearInvalidDates() {
     assertAll(
-        () -> assertThrows(SemanticCheckException.class, () -> invalidDatesQuery("2019-01-50")),
-        () -> assertThrows(SemanticCheckException.class, () -> invalidDatesQuery("2019-02-29")),
-        () -> assertThrows(SemanticCheckException.class, () -> invalidDatesQuery("2019-02-31")),
-        () -> assertThrows(SemanticCheckException.class, () -> invalidDatesQuery("2019-13-05")));
+        () ->
+            assertThrows(
+                ExpressionEvaluationException.class, () -> invalidDatesQuery("2019-01-50")),
+        () ->
+            assertThrows(
+                ExpressionEvaluationException.class, () -> invalidDatesQuery("2019-02-29")),
+        () ->
+            assertThrows(
+                ExpressionEvaluationException.class, () -> invalidDatesQuery("2019-02-31")),
+        () ->
+            assertThrows(
+                ExpressionEvaluationException.class, () -> invalidDatesQuery("2019-13-05")));
   }
 
   @Test
@@ -1101,19 +1138,19 @@ class DateTimeFunctionTest extends ExpressionTestBase {
         // Invalid Seconds
         () ->
             assertThrows(
-                SemanticCheckException.class, () -> invalidSecondOfMinuteQuery("12:23:61")),
+                ExpressionEvaluationException.class, () -> invalidSecondOfMinuteQuery("12:23:61")),
         // Invalid Minutes
         () ->
             assertThrows(
-                SemanticCheckException.class, () -> invalidSecondOfMinuteQuery("12:61:34")),
+                ExpressionEvaluationException.class, () -> invalidSecondOfMinuteQuery("12:61:34")),
         // Invalid Hours
         () ->
             assertThrows(
-                SemanticCheckException.class, () -> invalidSecondOfMinuteQuery("25:23:34")),
+                ExpressionEvaluationException.class, () -> invalidSecondOfMinuteQuery("25:23:34")),
         // incorrect format
         () ->
             assertThrows(
-                SemanticCheckException.class, () -> invalidSecondOfMinuteQuery("asdfasdf")));
+                ExpressionEvaluationException.class, () -> invalidSecondOfMinuteQuery("asdfasdf")));
   }
 
   @Test
@@ -1319,8 +1356,7 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   public void modeInUnsupportedFormat() {
     FunctionExpression expression1 =
         DSL.week(functionProperties, DSL.literal(new ExprDateValue("2019-01-05")), DSL.literal(8));
-    SemanticCheckException exception =
-        assertThrows(SemanticCheckException.class, () -> eval(expression1));
+    Throwable exception = assertThrows(SemanticCheckException.class, () -> eval(expression1));
     assertEquals("mode:8 is invalid, please use mode value between 0-7", exception.getMessage());
 
     FunctionExpression expression2 =
@@ -1336,31 +1372,34 @@ class DateTimeFunctionTest extends ExpressionTestBase {
         // test invalid month
         () ->
             assertThrows(
-                SemanticCheckException.class, () -> weekOfYearQuery("2019-13-05 01:02:03", 0, 0)),
+                ExpressionEvaluationException.class,
+                () -> weekOfYearQuery("2019-13-05 01:02:03", 0, 0)),
         // test invalid day
         () ->
             assertThrows(
-                SemanticCheckException.class, () -> weekOfYearQuery("2019-01-50 01:02:03", 0, 0)),
+                ExpressionEvaluationException.class,
+                () -> weekOfYearQuery("2019-01-50 01:02:03", 0, 0)),
         // test invalid leap year
         () ->
             assertThrows(
-                SemanticCheckException.class, () -> weekOfYearQuery("2019-02-29 01:02:03", 0, 0)),
+                ExpressionEvaluationException.class,
+                () -> weekOfYearQuery("2019-02-29 01:02:03", 0, 0)),
 
         // Test for Week_Of_Year
         // test invalid month
         () ->
             assertThrows(
-                SemanticCheckException.class,
+                ExpressionEvaluationException.class,
                 () -> weekOfYearUnderscoresQuery("2019-13-05 01:02:03", 0, 0)),
         // test invalid day
         () ->
             assertThrows(
-                SemanticCheckException.class,
+                ExpressionEvaluationException.class,
                 () -> weekOfYearUnderscoresQuery("2019-01-50 01:02:03", 0, 0)),
         // test invalid leap year
         () ->
             assertThrows(
-                SemanticCheckException.class,
+                ExpressionEvaluationException.class,
                 () -> weekOfYearUnderscoresQuery("2019-02-29 01:02:03", 0, 0)));
   }
 
@@ -1369,8 +1408,7 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     FunctionExpression expression1 =
         DSL.week_of_year(
             functionProperties, DSL.literal(new ExprDateValue("2019-01-05")), DSL.literal(8));
-    SemanticCheckException exception =
-        assertThrows(SemanticCheckException.class, () -> eval(expression1));
+    Throwable exception = assertThrows(SemanticCheckException.class, () -> eval(expression1));
     assertEquals("mode:8 is invalid, please use mode value between 0-7", exception.getMessage());
 
     FunctionExpression expression2 =
@@ -1514,7 +1552,7 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   @MethodSource("getInvalidTestDataForTimeFormat")
   public void testInvalidTimeFormat(LiteralExpression arg, LiteralExpression format) {
     FunctionExpression expr = DSL.time_format(functionProperties, arg, format);
-    assertThrows(SemanticCheckException.class, () -> eval(expr));
+    assertThrows(ExpressionEvaluationException.class, () -> eval(expr));
   }
 
   private static Stream<Arguments> getInvalidTimeFormatHandlers() {

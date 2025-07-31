@@ -8,6 +8,12 @@ Date and Time Functions
    :local:
    :depth: 1
 
+.. note::
+
+    All PPL date and time functions use the UTC time zone. Both input and output values are interpreted as UTC.
+    For instance, an input timestamp literal like '2020-08-26 01:01:01' is assumed to be in UTC, and the now()
+    function also returns the current date and time in UTC.
+
 ADDDATE
 -------
 
@@ -112,7 +118,7 @@ Description
 
 Usage: convert_tz(datetime, from_timezone, to_timezone) constructs a local datetime converted from the from_timezone to the to_timezone. CONVERT_TZ returns null when any of the three function arguments are invalid, i.e. datetime is not in the format yyyy-MM-dd HH:mm:ss or the timeszone is not in (+/-)HH:mm. It also is invalid for invalid dates, such as February 30th and invalid timezones, which are ones outside of -13:59 and +14:00.
 
-Argument type: DATETIME, STRING, STRING
+Argument type: DATETIME/STRING, STRING, STRING
 
 Return type: DATETIME
 
@@ -244,8 +250,9 @@ CURDATE
 Description
 >>>>>>>>>>>
 
-Returns the current time as a value in 'YYYY-MM-DD'.
-CURDATE() returns the time at which it executes as `SYSDATE() <#sysdate>`_ does.
+Returns the current date as a value in 'YYYY-MM-DD' format.
+CURDATE() returns the current date in UTC at the time the statement is executed.
+
 
 Return type: DATE
 
@@ -268,7 +275,7 @@ CURRENT_DATE
 Description
 >>>>>>>>>>>
 
-`CURRENT_DATE()` are synonyms for `CURDATE() <#curdate>`_.
+`CURRENT_DATE()` is a synonym for `CURDATE() <#curdate>`_.
 
 Example::
 
@@ -287,7 +294,7 @@ CURRENT_TIME
 Description
 >>>>>>>>>>>
 
-`CURRENT_TIME()` are synonyms for `CURTIME() <#curtime>`_.
+`CURRENT_TIME()` is a synonym for `CURTIME() <#curtime>`_.
 
 Example::
 
@@ -306,7 +313,7 @@ CURRENT_TIMESTAMP
 Description
 >>>>>>>>>>>
 
-`CURRENT_TIMESTAMP()` are synonyms for `NOW() <#now>`_.
+`CURRENT_TIMESTAMP()` is a synonym for `NOW() <#now>`_.
 
 Example::
 
@@ -325,7 +332,7 @@ CURTIME
 Description
 >>>>>>>>>>>
 
-Returns the current time as a value in 'hh:mm:ss'.
+Returns the current time as a value in 'hh:mm:ss' format in the UTC time zone.
 CURTIME() returns the time at which the statement began to execute as `NOW() <#now>`_ does.
 
 Return type: TIME
@@ -1188,7 +1195,7 @@ Example::
 
 
 MINUTE_OF_DAY
-------
+-------------
 
 Description
 >>>>>>>>>>>
@@ -1314,7 +1321,7 @@ NOW
 Description
 >>>>>>>>>>>
 
-Returns the current date and time as a value in 'YYYY-MM-DD hh:mm:ss' format. The value is expressed in the cluster time zone.
+Returns the current date and time as a value in 'YYYY-MM-DD hh:mm:ss' format. The value is expressed in the UTC time zone.
 `NOW()` returns a constant time that indicates the time at which the statement began to execute. This differs from the behavior for `SYSDATE() <#sysdate>`_, which returns the exact time at which it executes.
 
 Return type: DATETIME
@@ -1605,8 +1612,8 @@ Description
 >>>>>>>>>>>
 
 Returns the current date and time as a value in 'YYYY-MM-DD hh:mm:ss[.nnnnnn]'.
-SYSDATE() returns the time at which it executes. This differs from the behavior for `NOW() <#now>`_, which returns a constant time that indicates the time at which the statement began to execute.
-If the argument is given, it specifies a fractional seconds precision from 0 to 6, the return value includes a fractional seconds part of that many digits.
+SYSDATE() returns the date and time at which it executes in UTC. This differs from the behavior for `NOW() <#now>`_, which returns a constant time that indicates the time at which the statement began to execute.
+If an argument is given, it specifies a fractional seconds precision from 0 to 6, the return value includes a fractional seconds part of that many digits.
 
 Optional argument type: INTEGER
 

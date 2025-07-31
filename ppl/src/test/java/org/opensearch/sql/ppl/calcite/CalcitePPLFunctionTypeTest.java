@@ -49,7 +49,11 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | where ENAME < 6 | fields ENAME";
     Throwable t = Assert.assertThrows(ExpressionEvaluationException.class, () -> getRelNode(ppl));
     verifyErrorMessageContains(
-        t, "LESS function expects {[COMPARABLE_TYPE,COMPARABLE_TYPE]}, but got [STRING,INTEGER]");
+        t,
+        // Temporary fix for the error message as LESS function has two variants. Will remove
+        // [IP,IP],[IP,STRING],[STRING,IP] when merging the two variants.
+        "LESS function expects {[IP,IP],[IP,STRING],[STRING,IP],[COMPARABLE_TYPE,COMPARABLE_TYPE]},"
+            + " but got [STRING,INTEGER]");
   }
 
   @Test

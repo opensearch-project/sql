@@ -302,7 +302,7 @@ public class CalciteToolsHelper {
       RelDataType resultType = root.rel.getRowType();
       boolean isDml = root.kind.belongsTo(SqlKind.DML);
       if (root.rel instanceof Scannable) {
-        final Bindable bindable = dataContext -> ((Scannable) root.rel).scan();
+        final Bindable bindable = dataContext -> ((Scannable) root.rel).scanWithLimit();
 
         return new PreparedResultImpl(
             resultType,

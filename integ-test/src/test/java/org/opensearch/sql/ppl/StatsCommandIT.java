@@ -11,7 +11,6 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
-import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 
@@ -358,27 +357,15 @@ public class StatsCommandIT extends PPLIntegTestCase {
         schema("span(age,10)", null, "int"),
         schema("gender", null, "string"),
         schema("state", null, "string"));
-    if (isCalciteEnabled()) {
-      verifyDataRows(
-          response,
-          rows(1, 20, "F", "VA"),
-          rows(1, 30, "F", "IN"),
-          rows(1, 30, "F", "PA"),
-          rows(1, 30, "M", "IL"),
-          rows(1, 30, "M", "MD"),
-          rows(1, 30, "M", "TN"),
-          rows(1, 30, "M", "WA"));
-    } else {
-      verifyDataRowsInOrder(
-          response,
-          rows(1, 20, "f", "VA"),
-          rows(1, 30, "f", "IN"),
-          rows(1, 30, "f", "PA"),
-          rows(1, 30, "m", "IL"),
-          rows(1, 30, "m", "MD"),
-          rows(1, 30, "m", "TN"),
-          rows(1, 30, "m", "WA"));
-    }
+    verifyDataRows(
+        response,
+        rows(1, 20, "F", "VA"),
+        rows(1, 30, "F", "IN"),
+        rows(1, 30, "F", "PA"),
+        rows(1, 30, "M", "IL"),
+        rows(1, 30, "M", "MD"),
+        rows(1, 30, "M", "TN"),
+        rows(1, 30, "M", "WA"));
   }
 
   @Test
@@ -395,27 +382,15 @@ public class StatsCommandIT extends PPLIntegTestCase {
         schema("span(age,10)", null, "int"),
         schema("gender", null, "string"),
         schema("state", null, "string"));
-    if (isCalciteEnabled()) {
-      verifyDataRows(
-          response,
-          rows(1, 20, "F", "VA"),
-          rows(1, 30, "F", "IN"),
-          rows(1, 30, "F", "PA"),
-          rows(1, 30, "M", "IL"),
-          rows(1, 30, "M", "MD"),
-          rows(1, 30, "M", "TN"),
-          rows(1, 30, "M", "WA"));
-    } else {
-      verifyDataRowsInOrder(
-          response,
-          rows(1, 20, "f", "VA"),
-          rows(1, 30, "f", "IN"),
-          rows(1, 30, "f", "PA"),
-          rows(1, 30, "m", "IL"),
-          rows(1, 30, "m", "MD"),
-          rows(1, 30, "m", "TN"),
-          rows(1, 30, "m", "WA"));
-    }
+    verifyDataRows(
+        response,
+        rows(1, 20, "F", "VA"),
+        rows(1, 30, "F", "IN"),
+        rows(1, 30, "F", "PA"),
+        rows(1, 30, "M", "IL"),
+        rows(1, 30, "M", "MD"),
+        rows(1, 30, "M", "TN"),
+        rows(1, 30, "M", "WA"));
   }
 
   @Test
@@ -466,12 +441,12 @@ public class StatsCommandIT extends PPLIntegTestCase {
     verifySchema(response, schema("p50", null, "bigint"), schema("age", null, "int"));
     verifyDataRows(
         response,
-        rows(isCalciteEnabled() ? null : 0, null),
+        rows(isCalciteEnabled() && !isPushdownEnabled() ? null : 0, null),
         rows(32838, 28),
         rows(39225, 32),
         rows(4180, 33),
         rows(48086, 34),
-        rows(isCalciteEnabled() ? null : 0, 36));
+        rows(isCalciteEnabled() && !isPushdownEnabled() ? null : 0, 36));
   }
 
   @Test

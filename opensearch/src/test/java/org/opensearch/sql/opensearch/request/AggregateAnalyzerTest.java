@@ -20,6 +20,7 @@ import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexInputRef;
@@ -46,6 +47,13 @@ class AggregateAnalyzerTest {
 
   private final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
   private final List<String> schema = List.of("a", "b", "c");
+  private final RelDataType rowType =
+      typeFactory.createStructType(
+          ImmutableList.of(
+              typeFactory.createSqlType(SqlTypeName.INTEGER),
+              typeFactory.createSqlType(SqlTypeName.VARCHAR),
+              typeFactory.createSqlType(SqlTypeName.VARCHAR)),
+          schema);
   final Map<String, ExprType> fieldTypes =
       Map.of(
           "a",
@@ -130,7 +138,7 @@ class AggregateAnalyzerTest {
             List.of(countCall, avgCall, sumCall, minCall, maxCall), ImmutableBitSet.of());
     Project project = createMockProject(List.of(0));
     Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
-        AggregateAnalyzer.analyze(aggregate, project, schema, fieldTypes, outputFields);
+        AggregateAnalyzer.analyze(aggregate, project, rowType, fieldTypes, outputFields, null);
     assertEquals(
         "[{\"cnt\":{\"value_count\":{\"field\":\"_index\"}}},"
             + " {\"avg\":{\"avg\":{\"field\":\"a\"}}},"
@@ -211,7 +219,7 @@ class AggregateAnalyzerTest {
             List.of(varSampCall, varPopCall, stddevSampCall, stddevPopCall), ImmutableBitSet.of());
     Project project = createMockProject(List.of(0));
     Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
-        AggregateAnalyzer.analyze(aggregate, project, schema, fieldTypes, outputFields);
+        AggregateAnalyzer.analyze(aggregate, project, rowType, fieldTypes, outputFields, null);
     assertEquals(
         "[{\"var_samp\":{\"extended_stats\":{\"field\":\"a\",\"sigma\":2.0}}},"
             + " {\"var_pop\":{\"extended_stats\":{\"field\":\"a\",\"sigma\":2.0}}},"
@@ -250,7 +258,7 @@ class AggregateAnalyzerTest {
     Aggregate aggregate = createMockAggregate(List.of(aggCall), ImmutableBitSet.of(0, 1));
     Project project = createMockProject(List.of(0, 1));
     Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
-        AggregateAnalyzer.analyze(aggregate, project, schema, fieldTypes, outputFields);
+        AggregateAnalyzer.analyze(aggregate, project, rowType, fieldTypes, outputFields, null);
 
     assertEquals(
         "[{\"composite_buckets\":{\"composite\":{\"size\":1000,\"sources\":["
@@ -292,7 +300,8 @@ class AggregateAnalyzerTest {
         assertThrows(
             ExpressionNotAnalyzableException.class,
             () ->
-                AggregateAnalyzer.analyze(aggregate, project, schema, fieldTypes, List.of("sum")));
+                AggregateAnalyzer.analyze(
+                    aggregate, project, rowType, fieldTypes, List.of("sum"), null));
     assertEquals("[field] must not be null: [sum]", exception.getCause().getMessage());
   }
 
@@ -317,7 +326,9 @@ class AggregateAnalyzerTest {
     ExpressionNotAnalyzableException exception =
         assertThrows(
             ExpressionNotAnalyzableException.class,
-            () -> AggregateAnalyzer.analyze(aggregate, project, schema, fieldTypes, outputFields));
+            () ->
+                AggregateAnalyzer.analyze(
+                    aggregate, project, rowType, fieldTypes, outputFields, null));
     assertEquals("[field] must not be null", exception.getCause().getMessage());
   }
 
@@ -334,9 +345,11 @@ class AggregateAnalyzerTest {
     for (Integer index : refIndex) {
       RexInputRef ref = mock(RexInputRef.class);
       when(ref.getIndex()).thenReturn(index);
+      when(ref.getType()).thenReturn(typeFactory.createSqlType(SqlTypeName.INTEGER));
       rexNodes.add(ref);
     }
     when(project.getProjects()).thenReturn(rexNodes);
+    when(project.getRowType()).thenReturn(rowType);
     return project;
   }
 }
