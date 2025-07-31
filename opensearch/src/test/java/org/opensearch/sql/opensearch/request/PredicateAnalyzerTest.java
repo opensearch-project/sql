@@ -41,6 +41,7 @@ import org.opensearch.index.query.RangeQueryBuilder;
 import org.opensearch.index.query.SimpleQueryStringBuilder;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.index.query.TermsQueryBuilder;
+import org.opensearch.index.query.WildcardQueryBuilder;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
@@ -550,6 +551,38 @@ public class PredicateAnalyzerTest {
             "  }\n" +
             "}",
         result.toString());
+  }
+
+  @Test
+  void likeFunction_keywordField_generatesWildcardQuery() throws ExpressionNotAnalyzableException {
+    List<RexNode> arguments = Arrays.asList(field2, builder.makeLiteral("%Hi%"));
+    RexNode call =
+        PPLFuncImpTable.INSTANCE.resolve(builder, "like", arguments.toArray(new RexNode[0]));
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
+    assertInstanceOf(WildcardQueryBuilder.class, result);
+    assertEquals(
+        """
+            {
+              "wildcard" : {
+                "b.keyword" : {
+                  "wildcard" : "*Hi*",
+                  "case_insensitive" : true,
+                  "boost" : 1.0
+                }
+              }
+            }""",
+        result.toString());
+  }
+
+  @Test
+  void likeFunction_textField_throwsException() throws ExpressionNotAnalyzableException {
+    RexInputRef field3 = builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.VARCHAR), 2);
+    List<RexNode> arguments = Arrays.asList(field3, builder.makeLiteral("%Hi%"));
+    RexNode call =
+        PPLFuncImpTable.INSTANCE.resolve(builder, "like", arguments.toArray(new RexNode[0]));
+    assertThrows(
+        ExpressionNotAnalyzableException.class,
+        () -> PredicateAnalyzer.analyze(call, schema, fieldTypes));
   }
 
   @Test
