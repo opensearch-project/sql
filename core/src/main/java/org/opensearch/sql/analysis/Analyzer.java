@@ -390,10 +390,20 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       Boolean exclude = (Boolean) argument.getValue().getValue();
       if (exclude) {
         TypeEnvironment curEnv = context.peek();
-        List<ReferenceExpression> referenceExpressions =
-            node.getProjectList().stream()
-                .map(expr -> (ReferenceExpression) expressionAnalyzer.analyze(expr, context))
-                .collect(Collectors.toList());
+        // Handle wildcards in exclusion patterns
+        List<ReferenceExpression> referenceExpressions = new ArrayList<>();
+        for (UnresolvedExpression expr : node.getProjectList()) {
+          if (expr instanceof Field && ((Field) expr).getField().toString().contains("*")) {
+            // Resolve wildcard patterns for exclusion
+            List<NamedExpression> wildcardFields = WildcardFieldResolver.resolveWildcards(
+                Collections.singletonList(expr), context, expressionAnalyzer);
+            wildcardFields.forEach(field -> 
+                referenceExpressions.add((ReferenceExpression) field.getDelegated()));
+          } else {
+            referenceExpressions.add(
+                (ReferenceExpression) expressionAnalyzer.analyze(expr, context));
+          }
+        }
         referenceExpressions.forEach(ref -> curEnv.remove(ref));
         return new LogicalRemove(child, ImmutableSet.copyOf(referenceExpressions));
       }
@@ -412,11 +422,23 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       child = highlightAnalyzer.analyze(expr, context);
     }
 
-    List<NamedExpression> namedExpressions =
-        selectExpressionAnalyzer.analyze(
-            node.getProjectList(),
-            context,
-            new ExpressionReferenceOptimizer(expressionAnalyzer.getRepository(), child));
+    // Check if any field contains wildcards and resolve them
+    boolean hasWildcards = node.getProjectList().stream()
+        .anyMatch(expr -> expr instanceof Field && 
+            ((Field) expr).getField().toString().contains("*"));
+    
+    List<NamedExpression> namedExpressions;
+    if (hasWildcards) {
+      // Use wildcard resolver for field expansion
+      namedExpressions = WildcardFieldResolver.resolveWildcards(node.getProjectList(), context, expressionAnalyzer);
+    } else {
+      // Use regular expression analyzer
+      namedExpressions =
+          selectExpressionAnalyzer.analyze(
+              node.getProjectList(),
+              context,
+              new ExpressionReferenceOptimizer(expressionAnalyzer.getRepository(), child));
+    }
 
     for (UnresolvedExpression expr : node.getProjectList()) {
       NestedAnalyzer nestedAnalyzer =

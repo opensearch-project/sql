@@ -177,7 +177,7 @@ public class FieldsCommandIT extends PPLIntegTestCase {
   }
 
   /** Tests prefix wildcard pattern matching. */
-  @Ignore("Wildcard functionality requires Calcite engine")
+  // @Ignore("Wildcard functionality requires Calcite engine")
   @Test
   public void testFieldsWithPrefixWildcard() throws IOException {
     JSONObject result =
@@ -186,7 +186,7 @@ public class FieldsCommandIT extends PPLIntegTestCase {
   }
 
   /** Tests suffix wildcard pattern matching. */
-  @Ignore("Wildcard functionality requires Calcite engine")
+  // @Ignore("Wildcard functionality requires Calcite engine")
   @Test
   public void testFieldsWithSuffixWildcard() throws IOException {
     JSONObject result = executeQuery(String.format("source=%s | fields *name", TEST_INDEX_ACCOUNT));
@@ -194,7 +194,7 @@ public class FieldsCommandIT extends PPLIntegTestCase {
   }
 
   /** Tests contains wildcard pattern matching. */
-  @Ignore("Wildcard functionality requires Calcite engine")
+  // @Ignore("Wildcard functionality requires Calcite engine")
   @Test
   public void testFieldsWithContainsWildcard() throws IOException {
     JSONObject result =
@@ -213,7 +213,7 @@ public class FieldsCommandIT extends PPLIntegTestCase {
   }
 
   /** Tests mixed explicit fields and wildcard patterns. */
-  @Ignore("Wildcard functionality requires Calcite engine")
+  // @Ignore("Wildcard functionality requires Calcite engine")
   @Test
   public void testFieldsWithMixedWildcards() throws IOException {
     JSONObject result =
