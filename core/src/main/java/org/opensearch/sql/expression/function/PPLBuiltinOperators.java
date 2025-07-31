@@ -75,9 +75,14 @@ import org.opensearch.sql.expression.function.udf.ip.CidrMatchFunction;
 import org.opensearch.sql.expression.function.udf.ip.CompareIpFunction;
 import org.opensearch.sql.expression.function.udf.math.CRC32Function;
 import org.opensearch.sql.expression.function.udf.math.ConvFunction;
+import org.opensearch.sql.expression.function.udf.math.CoshFunction;
 import org.opensearch.sql.expression.function.udf.math.DivideFunction;
 import org.opensearch.sql.expression.function.udf.math.EulerFunction;
+import org.opensearch.sql.expression.function.udf.math.Expm1Function;
 import org.opensearch.sql.expression.function.udf.math.ModFunction;
+import org.opensearch.sql.expression.function.udf.math.RintFunction;
+import org.opensearch.sql.expression.function.udf.math.SignumFunction;
+import org.opensearch.sql.expression.function.udf.math.SinhFunction;
 
 /** Defines functions and operators that are implemented only by PPL */
 public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
@@ -103,6 +108,11 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator DIVIDE = new DivideFunction().toUDF("DIVIDE");
   public static final SqlOperator SHA2 = CryptographicFunction.sha2().toUDF("SHA2");
   public static final SqlOperator CIDRMATCH = new CidrMatchFunction().toUDF("CIDRMATCH");
+  public static final SqlOperator COSH = new CoshFunction().toUDF("COSH");
+  public static final SqlOperator SINH = new SinhFunction().toUDF("SINH");
+  public static final SqlOperator EXPM1 = new Expm1Function().toUDF("EXPM1");
+  public static final SqlOperator RINT = new RintFunction().toUDF("RINT");
+  public static final SqlOperator SIGNUM = new SignumFunction().toUDF("SIGNUM");
 
   // IP comparing functions
   public static final SqlOperator NOT_EQUALS_IP =
