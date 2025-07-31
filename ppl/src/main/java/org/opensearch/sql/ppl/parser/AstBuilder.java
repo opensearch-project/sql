@@ -265,9 +265,9 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   }
 
   /**
-   * Processes the PPL 'fields' command supporting comma-delimited, space-delimited, mixed-delimited, and wildcard
-   * syntax. Examples: "fields field1, field2", "fields field1 field2", "fields field1, field2 field3", "fields account*", "fields
-   * *name"
+   * Processes the PPL 'fields' command supporting comma-delimited, space-delimited,
+   * mixed-delimited, and wildcard syntax. Examples: "fields field1, field2", "fields field1
+   * field2", "fields field1, field2 field3", "fields account*", "fields *name"
    */
   @Override
   public UnresolvedPlan visitFieldsCommand(FieldsCommandContext ctx) {
@@ -297,7 +297,8 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   /**
    * Processes the PPL 'table' command as an alias for 'fields' command (Calcite-only). Supports all
-   * field selection syntax: comma-delimited, space-delimited, mixed-delimited, wildcards, +/- operators.
+   * field selection syntax: comma-delimited, space-delimited, mixed-delimited, wildcards, +/-
+   * operators.
    */
   @Override
   public UnresolvedPlan visitTableCommand(TableCommandContext ctx) {
