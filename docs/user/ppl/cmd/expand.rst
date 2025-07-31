@@ -11,7 +11,7 @@ expand
 
 Description
 ============
-     (From 3.1.0)
+| (Experimental)
 
 Use the ``expand`` command on a nested array field to transform a single
 document into multiple documents—each containing one element from the array.
