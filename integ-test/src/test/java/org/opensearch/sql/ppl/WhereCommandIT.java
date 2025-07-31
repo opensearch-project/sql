@@ -89,6 +89,16 @@ public class WhereCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testLikeFunctionNoHit() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where like(firstname, 'Duk_') | fields lastname",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    assertEquals(0, result.getInt("total"));
+  }
+
+  @Test
   public void testIsNullFunction() throws IOException {
     JSONObject result =
         executeQuery(

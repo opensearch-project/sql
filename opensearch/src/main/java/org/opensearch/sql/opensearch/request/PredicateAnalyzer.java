@@ -37,6 +37,7 @@ import static org.opensearch.index.query.QueryBuilders.rangeQuery;
 import static org.opensearch.index.query.QueryBuilders.regexpQuery;
 import static org.opensearch.index.query.QueryBuilders.termQuery;
 import static org.opensearch.index.query.QueryBuilders.termsQuery;
+import static org.opensearch.index.query.QueryBuilders.wildcardQuery;
 import static org.opensearch.script.Script.DEFAULT_SCRIPT_TYPE;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.MULTI_FIELDS_RELEVANCE_FUNCTION_SET;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.SINGLE_FIELD_RELEVANCE_FUNCTION_SET;
@@ -94,6 +95,7 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.ReferenceFieldVisitor;
 import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.UnsupportedScriptException;
 import org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.ScriptEngineType;
+import org.opensearch.sql.opensearch.storage.script.StringUtils;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchBoolPrefixQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchPhrasePrefixQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchPhraseQuery;
@@ -332,6 +334,7 @@ public class PredicateAnalyzer {
             case CAST:
               return toCastExpression(call);
             case LIKE:
+              return like(call);
             case CONTAINS:
               return binary(call);
             default:
@@ -554,8 +557,6 @@ public class PredicateAnalyzer {
       switch (call.getKind()) {
         case CONTAINS:
           return QueryExpression.create(pair.getKey()).contains(pair.getValue());
-        case LIKE:
-          throw new UnsupportedOperationException("LIKE not yet supported");
         case EQUALS:
           return QueryExpression.create(pair.getKey()).equals(pair.getValue());
         case NOT_EQUALS:
@@ -599,6 +600,16 @@ public class PredicateAnalyzer {
       }
       String message = format(Locale.ROOT, "Unable to handle call: [%s]", call);
       throw new PredicateAnalyzerException(message);
+    }
+
+    private QueryExpression like(RexCall call) {
+      // The third default escape is not used here. It's handled by
+      // StringUtils.convertSqlWildcardToLucene
+      checkState(call.getOperands().size() == 3);
+      final Expression a = call.getOperands().get(0).accept(this);
+      final Expression b = call.getOperands().get(1).accept(this);
+      final SwapResult pair = swap(a, b);
+      return QueryExpression.create(pair.getKey()).like(pair.getValue());
     }
 
     private static QueryExpression constructQueryExpressionForSearch(
@@ -1158,10 +1169,24 @@ public class PredicateAnalyzer {
       return this;
     }
 
+    /*
+     * Prefer to run wildcard query for keyword type field. For text type field, it doesn't support
+     * cross term match because OpenSearch internally break text to multiple terms and apply wildcard
+     * matching one by one, which is not same behavior with regular like function without pushdown.
+     */
     @Override
     public QueryExpression like(LiteralExpression literal) {
-      builder = regexpQuery(getFieldReference(), literal.stringValue());
-      return this;
+      String fieldName = getFieldReference();
+      String keywordField = OpenSearchTextType.toKeywordSubField(fieldName, this.rel.getExprType());
+      boolean isKeywordField = keywordField != null;
+      if (isKeywordField) {
+        builder =
+            wildcardQuery(
+                    keywordField, StringUtils.convertSqlWildcardToLuceneSafe(literal.stringValue()))
+                .caseInsensitive(true);
+        return this;
+      }
+      throw new UnsupportedOperationException("Like query is not supported for text field");
     }
 
     @Override
