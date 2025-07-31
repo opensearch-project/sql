@@ -6,10 +6,13 @@
 package org.opensearch.sql.ppl;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
@@ -23,6 +26,7 @@ public class ExplainIT extends PPLIntegTestCase {
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK);
     loadIndex(Index.DATE_FORMATS);
+    loadIndex(Index.WEBLOG);
   }
 
   @Test
@@ -85,6 +89,34 @@ public class ExplainIT extends PPLIntegTestCase {
             "source=opensearch-sql_test_index_date_formats | fields custom_time"
                 + "| where custom_time > '2016-12-08 12:00:00.123456789' "
                 + "| where custom_time < '2018-11-09 19:00:00.123456789' "));
+  }
+
+  @Test
+  public void testFilterByCompareIPCoercion() throws IOException {
+    // Should automatically cast the string literal to IP.
+    // TODO: Push down IP comparison as range query with Calcite
+    String expected = loadExpectedPlan("explain_filter_compare_ip.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                Locale.ROOT,
+                "source=%s | where host > '1.1.1.1' | fields host",
+                TEST_INDEX_WEBLOGS)));
+  }
+
+  @Test
+  public void testWeekArgumentCoercion() throws IOException {
+    String expected = loadExpectedPlan("explain_week_argument_coercion.json");
+    // Week accepts WEEK(timestamp/date/time, [optional int]), it should cast the string
+    // argument to timestamp with Calcite. In v2, it accepts string, so there is no cast.
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                Locale.ROOT,
+                "source=%s |  eval w = week('2024-12-10') | fields w",
+                TEST_INDEX_ACCOUNT)));
   }
 
   @Test
