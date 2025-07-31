@@ -40,6 +40,11 @@ public class ExtendedRexBuilder extends RexBuilder {
     return threadCounter.get().getAndIncrement();
   }
 
+  // For test only. Reset id to avoid unstable explain output of query.
+  public static void resetId() {
+    threadCounter.get().set(0);
+  }
+
   public ExtendedRexBuilder(RexBuilder rexBuilder) {
     super(rexBuilder.getTypeFactory());
   }

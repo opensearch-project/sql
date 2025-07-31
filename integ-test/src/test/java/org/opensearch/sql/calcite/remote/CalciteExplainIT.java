@@ -11,6 +11,7 @@ import java.io.IOException;
 import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.opensearch.sql.calcite.ExtendedRexBuilder;
 import org.opensearch.sql.ppl.ExplainIT;
 
 public class CalciteExplainIT extends ExplainIT {
@@ -19,6 +20,7 @@ public class CalciteExplainIT extends ExplainIT {
     super.init();
     enableCalcite();
     disallowCalciteFallback();
+    ExtendedRexBuilder.resetId();
   }
 
   @Override
