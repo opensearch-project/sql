@@ -173,7 +173,7 @@ public class SortCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testSortWithCountZero() throws IOException {
-    // count=0 should return all results (unlimited)
+    // count=0 should return all results
     JSONObject result =
         executeQuery(
             String.format(
