@@ -13,13 +13,13 @@ import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.*;
 import com.google.common.collect.ImmutableSet;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
-
 import javax.annotation.Nullable;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
@@ -127,8 +127,10 @@ public class UserDefinedFunctionUtils {
           return SqlTypeName.TIME;
         case EXPR_TIMESTAMP:
           return SqlTypeName.TIMESTAMP;
+        // EXPR_IP is mapped to SqlTypeName.OTHER since there is no
+        // corresponding SqlTypeName in Calcite.
         case EXPR_IP:
-          return SqlTypeName.VARCHAR;
+          return SqlTypeName.OTHER;
         case EXPR_BINARY:
           return SqlTypeName.VARBINARY;
         default:
@@ -143,8 +145,7 @@ public class UserDefinedFunctionUtils {
     Instant instant =
         Instant.ofEpochSecond(
             currentTimeInNanos / 1_000_000_000, currentTimeInNanos % 1_000_000_000);
-    TimeZone timeZone = TimeZone.getDefault();
-    ZoneId zoneId = timeZone.toZoneId();
+    ZoneId zoneId = ZoneOffset.UTC;
     return new FunctionProperties(instant, zoneId, QueryType.PPL);
   }
 

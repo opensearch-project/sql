@@ -23,7 +23,6 @@ import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -222,10 +221,6 @@ public interface PPLTypeChecker {
         RelDataType type_l = types.get(i);
         RelDataType type_r = types.get(i + 1);
         if (!SqlTypeUtil.isComparable(type_l, type_r)) {
-          if (areIpAndStringTypes(type_l, type_r) || areIpAndStringTypes(type_r, type_l)) {
-            // Allow IP and string comparison
-            continue;
-          }
           return false;
         }
         // Disallow coercing between strings and numeric, boolean
@@ -250,15 +245,6 @@ public interface PPLTypeChecker {
         default:
           return false;
       }
-    }
-
-    private static boolean areIpAndStringTypes(RelDataType typeIp, RelDataType typeString) {
-      if (typeIp instanceof AbstractExprRelDataType<?>) {
-        AbstractExprRelDataType<?> exprRelDataType = (AbstractExprRelDataType<?>) typeIp;
-        return exprRelDataType.getExprType() == ExprCoreType.IP
-            && typeString.getFamily() == SqlTypeFamily.CHARACTER;
-      }
-      return false;
     }
 
     @Override
@@ -358,6 +344,42 @@ public interface PPLTypeChecker {
     return new PPLComparableTypeChecker(typeChecker);
   }
 
+  /**
+   * Create a {@link PPLTypeChecker} from a list of allowed signatures consisted of {@link
+   * ExprType}. This is useful to validate arguments against user-defined types (UDT) that does not
+   * match any Calcite {@link SqlTypeFamily}.
+   *
+   * @param allowedSignatures a list of allowed signatures, where each signature is a list of {@link
+   *     ExprType} representing the expected types of the function arguments.
+   * @return a {@link PPLTypeChecker} that checks if the operand types match any of the allowed
+   *     signatures
+   */
+  static PPLTypeChecker wrapUDT(List<List<ExprType>> allowedSignatures) {
+    return new PPLTypeChecker() {
+      @Override
+      public boolean checkOperandTypes(List<RelDataType> types) {
+        List<ExprType> argExprTypes =
+            types.stream().map(OpenSearchTypeFactory::convertRelDataTypeToExprType).collect(Collectors.toList());
+        for (var allowedSignature : allowedSignatures) {
+          if (allowedSignature.size() != types.size()) {
+            continue; // Skip signatures that do not match the operand count
+          }
+          // Check if the argument types match the allowed signature
+          if (IntStream.range(0, allowedSignature.size())
+              .allMatch(i -> allowedSignature.get(i).equals(argExprTypes.get(i)))) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      @Override
+      public String getAllowedSignatures() {
+        return PPLTypeChecker.getExprFamilySignature(allowedSignatures);
+      }
+    };
+  }
+
   // Util Functions
   /**
    * Generates a list of allowed function signatures based on the provided {@link
@@ -453,6 +475,10 @@ public interface PPLTypeChecker {
     List<List<ExprType>> signatures = Lists.cartesianProduct(exprTypes);
 
     // Convert each signature to a string representation and then concatenate them
+    return getExprFamilySignature(signatures);
+  }
+
+  private static String getExprFamilySignature(List<List<ExprType>> signatures) {
     return signatures.stream()
         .map(
             types ->

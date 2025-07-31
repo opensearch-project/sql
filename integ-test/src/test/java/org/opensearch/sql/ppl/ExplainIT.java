@@ -10,6 +10,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 
 import java.io.IOException;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.legacy.TestUtils;
@@ -98,6 +99,14 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testCountAggPushDownExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_count_agg_push.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString("source=opensearch-sql_test_index_account | stats count() as cnt"));
+  }
+
+  @Test
   public void testSortPushDownExplain() throws IOException {
     String expected = loadExpectedPlan("explain_sort_push.json");
     assertJsonEqualsIgnoreId(
@@ -134,7 +143,7 @@ public class ExplainIT extends PPLIntegTestCase {
         explainQueryToString(
             "source=opensearch-sql_test_index_account "
                 + "| sort account_number, firstname, address, balance "
-                + "| sort - balance, - gender, address "
+                + "| sort - balance, - gender, account_number "
                 + "| fields account_number, firstname, address, balance, gender"));
   }
 
@@ -344,7 +353,6 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testPatternsSimplePatternMethodWithAggPushDownExplain() throws IOException {
-    // TODO: Correct calcite expected result once pushdown is supported
     String expected = loadExpectedPlan("explain_patterns_simple_pattern_agg_push.json");
     assertJsonEqualsIgnoreId(
         expected,
@@ -424,6 +432,74 @@ public class ExplainIT extends PPLIntegTestCase {
             "source=opensearch-sql_test_index_account"
                 + "| where simple_query_string(['email', name 4.0], 'gmail',"
                 + " default_operator='or', analyzer=english)"));
+  }
+
+  @Ignore("The serialized string is unstable because of function properties")
+  @Test
+  public void testFilterScriptPushDownExplain() throws Exception {
+    String expected = loadExpectedPlan("explain_filter_script_push.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | where firstname ='Amber' and age - 2 = 30 |"
+                + " fields firstname, age"));
+  }
+
+  @Ignore("The serialized string is unstable because of function properties")
+  @Test
+  public void testFilterFunctionScriptPushDownExplain() throws Exception {
+    String expected = loadExpectedPlan("explain_filter_function_script_push.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account |  where length(firstname) = 5 and abs(age) ="
+                + " 32 and balance = 39225 | fields firstname, age"));
+  }
+
+  @Test
+  public void testDifferentFilterScriptPushDownBehaviorExplain() throws Exception {
+    String explainedPlan =
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account |  where firstname != '' | fields firstname");
+    if (isCalciteEnabled()) {
+      // Calcite pushdown as pure filter query
+      String expected = loadExpectedPlan("explain_filter_script_push_diff.json");
+      assertJsonEqualsIgnoreId(expected, explainedPlan);
+    } else {
+      // V2 pushdown as script
+      assertTrue(explainedPlan.contains("{\\\"script\\\":"));
+    }
+  }
+
+  @Test
+  public void testExplainOnTake() throws IOException {
+    String expected = loadExpectedPlan("explain_take.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats take(firstname, 2) as take"));
+  }
+
+  @Test
+  public void testExplainOnPercentile() throws IOException {
+    String expected = loadExpectedPlan("explain_percentile.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats percentile(balance, 50) as p50,"
+                + " percentile(balance, 90) as p90"));
+  }
+
+  @Test
+  public void testExplainOnAggregationWithFunction() throws IOException {
+    String expected = loadExpectedPlan("explain_agg_with_script.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | eval len = length(gender) | stats sum(balance + 100) as sum by len,"
+                    + " gender ",
+                TEST_INDEX_BANK)));
   }
 
   protected String loadExpectedPlan(String fileName) throws IOException {

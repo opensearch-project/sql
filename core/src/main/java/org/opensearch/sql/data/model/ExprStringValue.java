@@ -14,6 +14,7 @@ import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 
 /** Expression String Value. */
@@ -58,7 +59,7 @@ public class ExprStringValue extends AbstractExprValue {
   public Instant timestampValue() {
     try {
       return new ExprTimestampValue(value).timestampValue();
-    } catch (SemanticCheckException e) {
+    } catch (ExpressionEvaluationException e) {
       return new ExprTimestampValue(
               LocalDateTime.of(new ExprDateValue(value).dateValue(), LocalTime.of(0, 0, 0)).toInstant(ZoneOffset.UTC))
               .timestampValue();
@@ -69,7 +70,7 @@ public class ExprStringValue extends AbstractExprValue {
   public LocalDate dateValue() {
     try {
       return new ExprDatetimeValue(value).dateValue();
-    } catch (SemanticCheckException e) {
+    } catch (ExpressionEvaluationException e) {
       return new ExprDateValue(value).dateValue();
     }
   }
@@ -78,7 +79,7 @@ public class ExprStringValue extends AbstractExprValue {
   public LocalTime timeValue() {
     try {
       return new ExprDatetimeValue(value).timeValue();
-    } catch (SemanticCheckException e) {
+    } catch (ExpressionEvaluationException e) {
       return new ExprTimeValue(value).timeValue();
     }
   }

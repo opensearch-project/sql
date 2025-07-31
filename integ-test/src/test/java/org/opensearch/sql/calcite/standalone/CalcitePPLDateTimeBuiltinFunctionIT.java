@@ -51,8 +51,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   private static String getFormattedLocalDate() {
-    return LocalDateTime.now(ZoneId.systemDefault())
-        .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+    return LocalDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
   }
 
   void verifyDateFormat(String date, String type, String format, String formatted)
@@ -105,7 +104,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
 
   @Test
   public void testTimestampWithTimeInput() throws IOException {
-    String utcTomorrow = LocalDate.now().plusDays(1).toString();
+    String utcTomorrow = LocalDate.now(ZoneOffset.UTC).plusDays(1).toString();
     JSONObject actual =
         executeQuery(
             String.format(
@@ -927,7 +926,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     final String thu = DayOfWeek.THURSDAY.getDisplayName(TextStyle.FULL, Locale.getDefault());
     final String apr = Month.APRIL.getDisplayName(TextStyle.FULL, Locale.getDefault());
     final String dec = Month.DECEMBER.getDisplayName(TextStyle.FULL, Locale.getDefault());
-    LocalDate today = LocalDate.now(ZoneId.systemDefault());
+    LocalDate today = LocalDate.now(ZoneOffset.UTC);
     LocalDate lastDayOfToday =
         LocalDate.of(
             today.getYear(), today.getMonth(), today.getMonth().length(today.isLeapYear()));
@@ -1021,7 +1020,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         schema("d13", "string"));
 
     Instant expectedInstant =
-        LocalDateTime.parse("1984-04-12T09:07:42").atZone(ZoneOffset.systemDefault()).toInstant();
+        LocalDateTime.parse("1984-04-12T09:07:42").atZone(ZoneOffset.UTC).toInstant();
     LocalDateTime offsetUTC = LocalDateTime.ofInstant(expectedInstant, ZoneOffset.UTC);
     LocalDateTime offsetPlus8 = LocalDateTime.ofInstant(expectedInstant, ZoneId.of("+08:00"));
     String expectedDatetimeAtUTC =
@@ -1077,7 +1076,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         schema("d9", "bigint"),
         schema("t", "time"));
 
-    LocalDate today = LocalDate.now(ZoneId.systemDefault());
+    LocalDate today = LocalDate.now(ZoneOffset.UTC);
     long dateDiffWithToday = ChronoUnit.DAYS.between(LocalDate.parse("1984-04-12"), today);
     verifyDataRows(
         actual,

@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.data.model;
 
-import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_WITH_TZ;
 import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
 
 import com.google.common.base.Objects;
@@ -20,7 +19,8 @@ import java.time.temporal.ChronoUnit;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
-import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.utils.DateTimeFormatters;
 
 @RequiredArgsConstructor
 public class ExprDatetimeValue extends AbstractExprValue {
@@ -29,9 +29,9 @@ public class ExprDatetimeValue extends AbstractExprValue {
   /** Constructor with datetime string as input. */
   public ExprDatetimeValue(String datetime) {
     try {
-      this.datetime = LocalDateTime.parse(datetime, DATE_TIME_FORMATTER_WITH_TZ);
+      this.datetime = LocalDateTime.parse(datetime, DateTimeFormatters.DATE_TIMESTAMP_FORMATTER);
     } catch (DateTimeParseException e) {
-      throw new SemanticCheckException(
+      throw new ExpressionEvaluationException(
           String.format(
               "datetime:%s in unsupported format, please use 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'",
               datetime));

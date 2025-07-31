@@ -25,7 +25,7 @@ import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
-import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
+import org.opensearch.sql.opensearch.storage.serde.ExpressionSerializer;
 
 /** Bucket Aggregation Builder. */
 public class BucketAggregationBuilder {

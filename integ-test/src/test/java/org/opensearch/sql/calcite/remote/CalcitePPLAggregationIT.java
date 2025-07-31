@@ -790,4 +790,20 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
             + "}",
         response.toString());
   }
+
+  @Test
+  public void testAggWithFunction() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | eval len = length(gender) | stats sum(balance + 100) as sum by len,"
+                    + " gender ",
+                TEST_INDEX_BANK));
+    verifySchema(
+        response,
+        schema("sum", null, "bigint"),
+        schema("len", null, "int"),
+        schema("gender", null, "string"));
+    verifyDataRows(response, rows(121764, 1, "F"), rows(65909, 1, "M"));
+  }
 }
