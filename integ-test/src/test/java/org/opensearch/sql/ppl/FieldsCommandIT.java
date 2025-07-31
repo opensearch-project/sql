@@ -222,4 +222,18 @@ public class FieldsCommandIT extends PPLIntegTestCase {
     verifyColumn(
         result, columnName("firstname"), columnName("account_number"), columnName("lastname"));
   }
+
+  /** Tests mixed comma and space delimiters with fields command. */
+  @Test
+  public void testFieldsWithMixedDelimiters() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | fields firstname lastname, age | head 3", TEST_INDEX_ACCOUNT));
+    verifyColumn(result, columnName("firstname"), columnName("lastname"), columnName("age"));
+    verifySchema(
+        result,
+        schema("firstname", "string"),
+        schema("lastname", "string"),
+        schema("age", "bigint"));
+  }
 }

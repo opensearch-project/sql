@@ -158,4 +158,33 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
         columnName("state"),
         columnName("balance"));
   }
+
+  /** Tests mixed comma and space delimiters with table command. */
+  @Test
+  public void testCalciteTableWithMixedDelimiters() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | table firstname lastname, age | head 3", TEST_INDEX_ACCOUNT));
+    verifyColumn(result, columnName("firstname"), columnName("lastname"), columnName("age"));
+    verifySchema(
+        result,
+        schema("firstname", "string"),
+        schema("lastname", "string"),
+        schema("age", "bigint"));
+  }
+
+  /** Tests mixed delimiters with wildcards. */
+  @Test
+  public void testCalciteTableWithMixedDelimitersAndWildcards() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | table firstname account*, *name", TEST_INDEX_ACCOUNT));
+    verifyColumn(
+        result, columnName("firstname"), columnName("account_number"), columnName("lastname"));
+    verifySchema(
+        result,
+        schema("firstname", "string"),
+        schema("account_number", "bigint"),
+        schema("lastname", "string"));
+  }
 }
