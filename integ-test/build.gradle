@@ -412,6 +412,7 @@ task integTestWithSecurity(type: RestIntegTestTask) {
     // https://github.com/opensearch-project/sql/issues/1974
     filter {
         includeTestsMatching 'org.opensearch.sql.security.CrossClusterSearchIT'
+        includeTestsMatching 'org.opensearch.sql.security.PPLPermissionsIT'
     }
 }
 

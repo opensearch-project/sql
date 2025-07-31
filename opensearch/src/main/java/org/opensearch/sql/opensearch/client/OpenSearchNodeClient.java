@@ -16,6 +16,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
@@ -54,6 +55,8 @@ public class OpenSearchNodeClient implements OpenSearchClient {
       IndicesExistsResponse checkExistResponse =
           client.admin().indices().exists(new IndicesExistsRequest(indexName)).actionGet();
       return checkExistResponse.isExists();
+    } catch (OpenSearchSecurityException e) {
+      throw e;
     } catch (Exception e) {
       throw new IllegalStateException("Failed to check if index [" + indexName + "] exists", e);
     }
@@ -90,7 +93,7 @@ public class OpenSearchNodeClient implements OpenSearchClient {
           .collect(
               Collectors.toUnmodifiableMap(
                   Map.Entry::getKey, cursor -> new IndexMapping(cursor.getValue())));
-    } catch (IndexNotFoundException e) {
+    } catch (IndexNotFoundException | OpenSearchSecurityException e) {
       // Re-throw directly to be treated as client error finally
       throw e;
     } catch (Exception e) {
@@ -121,6 +124,8 @@ public class OpenSearchNodeClient implements OpenSearchClient {
                 IndexSettings.MAX_RESULT_WINDOW_SETTING.getDefault(settings)));
       }
       return result.build();
+    } catch (OpenSearchSecurityException e) {
+      throw e;
     } catch (Exception e) {
       throw new IllegalStateException(
           "Failed to read setting for index pattern [" + indexExpression + "]", e);
@@ -205,8 +210,15 @@ public class OpenSearchNodeClient implements OpenSearchClient {
     try {
       CreatePitResponse pitResponse = execute.get();
       return pitResponse.getId();
-    } catch (InterruptedException | ExecutionException e) {
-      throw new RuntimeException("Error occurred while creating PIT for new engine SQL query", e);
+    } catch (ExecutionException e) {
+      if (e.getCause() instanceof OpenSearchSecurityException) {
+        throw (OpenSearchSecurityException) e.getCause();
+      }
+      throw new RuntimeException(
+          "Error occurred while creating PIT for internal plugin operation", e);
+    } catch (InterruptedException e) {
+      throw new RuntimeException(
+          "Error occurred while creating PIT for internal plugin operation", e);
     }
   }
 
@@ -215,9 +227,16 @@ public class OpenSearchNodeClient implements OpenSearchClient {
     ActionFuture<DeletePitResponse> execute =
         this.client.execute(DeletePitAction.INSTANCE, deletePitRequest);
     try {
-      DeletePitResponse deletePitResponse = execute.get();
-    } catch (InterruptedException | ExecutionException e) {
-      throw new RuntimeException("Error occurred while deleting PIT.", e);
+      execute.get();
+    } catch (ExecutionException e) {
+      if (e.getCause() instanceof OpenSearchSecurityException) {
+        throw (OpenSearchSecurityException) e.getCause();
+      }
+      throw new RuntimeException(
+          "Error occurred while deleting PIT for internal plugin operation", e);
+    } catch (InterruptedException e) {
+      throw new RuntimeException(
+          "Error occurred while deleting PIT for internal plugin operation", e);
     }
   }
 }

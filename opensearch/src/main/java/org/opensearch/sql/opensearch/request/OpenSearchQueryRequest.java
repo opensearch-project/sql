@@ -196,7 +196,8 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
         // see https://github.com/opensearch-project/sql/pull/3061
         this.sourceBuilder.sort(METADATA_FIELD_ID, ASC);
       }
-      SearchRequest searchRequest = new SearchRequest().source(this.sourceBuilder);
+      SearchRequest searchRequest =
+          new SearchRequest().indices(indexName.getIndexNames()).source(this.sourceBuilder);
       this.searchResponse = searchAction.apply(searchRequest);
 
       openSearchResponse = new OpenSearchResponse(this.searchResponse, exprValueFactory, includes);
