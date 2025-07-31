@@ -204,6 +204,7 @@ public class SortCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format("source=%s | sort num(bytes) | fields bytes", TEST_INDEX_WEBLOGS));
-    verifyOrder(result, rows("1234"), rows("3985"), rows("4085"), rows("4321"), rows("6245"), rows("9876"));
+    verifyOrder(
+        result, rows("1234"), rows("3985"), rows("4085"), rows("4321"), rows("6245"), rows("9876"));
   }
 }
