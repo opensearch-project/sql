@@ -74,6 +74,7 @@ commands
    | expandCommand
    | flattenCommand
    | reverseCommand
+   | timechartCommand
    ;
 
 commandName
@@ -103,6 +104,7 @@ commandName
    | EXPAND
    | FLATTEN
    | TRENDLINE
+   | TIMECHART
    | EXPLAIN
    | REVERSE
    ;
@@ -151,6 +153,15 @@ sortCommand
 
 reverseCommand
    : REVERSE
+   ;
+
+timechartCommand
+   : TIMECHART (spanClause)? statsFunction (BY fieldExpression)?
+   ;
+
+spanLiteral
+   : integerLiteral timespanUnit
+   | stringLiteral
    ;
 
 evalCommand

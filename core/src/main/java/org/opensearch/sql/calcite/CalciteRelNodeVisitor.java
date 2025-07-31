@@ -103,6 +103,7 @@ import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Timechart;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.Trendline.TrendlineType;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
@@ -1211,6 +1212,68 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .collect(Collectors.toList());
     relBuilder.projectPlus(expandedFields);
     return relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitTimechart(
+      org.opensearch.sql.ast.tree.Timechart node, CalcitePlanContext context) {
+    visitChildren(node, context);
+    
+    // Build aggregation list with the provided aggregate function
+    List<UnresolvedExpression> aggExprList = List.of(node.getAggregateFunction());
+    
+    // Build group by list - span first, then by field if present
+    List<UnresolvedExpression> groupExprList = new ArrayList<>();
+    
+    // Add span - use @timestamp field
+    UnresolvedExpression spanExpr;
+    if (node.getSpanExpression() != null) {
+      spanExpr = node.getSpanExpression();
+    } else {
+      // Default to 1 minute span if not specified
+      spanExpr = AstDSL.span(AstDSL.field("@timestamp"), AstDSL.stringLiteral("1m"), null);
+    }
+    groupExprList.add(spanExpr);
+    
+    // Add by field if present
+    if (node.getByField() != null) {
+      groupExprList.add(node.getByField());
+    }
+    
+    // Perform aggregation with trimming
+    Pair<List<RexNode>, List<AggCall>> aggregationAttributes =
+        aggregateWithTrimming(groupExprList, aggExprList, context);
+    
+    // Schema reordering - aggregation results first, then group by columns
+    List<RexNode> outputFields = context.relBuilder.fields();
+    int numOfOutputFields = outputFields.size();
+    int numOfAggList = aggExprList.size();
+    List<RexNode> reordered = new ArrayList<>(numOfOutputFields);
+    
+    // Add aggregation results first
+    List<RexNode> aggRexList =
+        outputFields.subList(numOfOutputFields - numOfAggList, numOfOutputFields);
+    reordered.addAll(aggRexList);
+    
+    // Add group by columns
+    List<RexNode> aliasedGroupByList =
+        aggregationAttributes.getLeft().stream()
+            .map(this::extractAliasLiteral)
+            .flatMap(Optional::stream)
+            .map(ref -> ((RexLiteral) ref).getValueAs(String.class))
+            .map(context.relBuilder::field)
+            .map(f -> (RexNode) f)
+            .toList();
+    reordered.addAll(aliasedGroupByList);
+    context.relBuilder.project(reordered);
+    
+    // Sort by time (span field) - always first group by field
+    if (!aliasedGroupByList.isEmpty()) {
+      RexNode timeField = aliasedGroupByList.get(0);
+      context.relBuilder.sort(timeField);
+    }
+    
+    return context.relBuilder.peek();
   }
 
   @Override
