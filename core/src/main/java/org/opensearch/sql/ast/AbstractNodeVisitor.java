@@ -73,6 +73,7 @@ import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Timechart;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
@@ -246,6 +247,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitReverse(Reverse node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitTimechart(Timechart node, C context) {
     return visitChildren(node, context);
   }
 
