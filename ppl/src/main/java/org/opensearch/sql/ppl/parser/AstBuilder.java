@@ -14,11 +14,11 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DescribeCo
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.HeadCommandContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchFromContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableFunctionContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WhereCommandContext;
@@ -265,51 +265,53 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   }
 
   /**
-   * Processes the PPL 'fields' command supporting both comma-delimited and space-delimited syntax.
-   * Examples: "fields field1, field2" or "fields field1 field2"
+   * Processes the PPL 'fields' command supporting comma-delimited, space-delimited, and wildcard
+   * syntax. Examples: "fields field1, field2", "fields field1 field2", "fields account*", "fields
+   * *name"
    */
   @Override
   public UnresolvedPlan visitFieldsCommand(FieldsCommandContext ctx) {
     List<UnresolvedExpression> fields;
-    
-    if (ctx.fieldList() != null) {
-      fields = ctx.fieldList().fieldExpression().stream()
-          .map(this::internalVisitExpression)
-          .collect(Collectors.toList());
-    } else if (ctx.spaceSeparatedFieldList() != null) {
-      fields = ctx.spaceSeparatedFieldList().fieldExpression().stream()
-          .map(this::internalVisitExpression)
-          .collect(Collectors.toList());
+
+    if (ctx.wcFieldList() != null) {
+      fields =
+          ctx.wcFieldList().wcFieldExpression().stream()
+              .map(this::internalVisitExpression)
+              .collect(Collectors.toList());
+    } else if (ctx.wcSpaceSeparatedFieldList() != null) {
+      fields =
+          ctx.wcSpaceSeparatedFieldList().wcFieldExpression().stream()
+              .map(this::internalVisitExpression)
+              .collect(Collectors.toList());
     } else {
       fields = Collections.emptyList();
     }
-    
+
     return new Project(fields, ArgumentFactory.getArgumentList(ctx));
   }
 
   /**
-   * Processes the PPL 'table' command as an alias for 'fields' command (Calcite-only).
-   * Supports all field selection syntax: comma-delimited, space-delimited, +/- operators.
-   * 
-   * @param ctx the table command context from the parser
-   * @return Project node with selected fields, identical to fields command behavior
+   * Processes the PPL 'table' command as an alias for 'fields' command (Calcite-only). Supports all
+   * field selection syntax: comma-delimited, space-delimited, wildcards, +/- operators.
    */
   @Override
   public UnresolvedPlan visitTableCommand(TableCommandContext ctx) {
     List<UnresolvedExpression> fields;
-    
-    if (ctx.fieldList() != null) {
-      fields = ctx.fieldList().fieldExpression().stream()
-          .map(this::internalVisitExpression)
-          .collect(Collectors.toList());
-    } else if (ctx.spaceSeparatedFieldList() != null) {
-      fields = ctx.spaceSeparatedFieldList().fieldExpression().stream()
-          .map(this::internalVisitExpression)
-          .collect(Collectors.toList());
+
+    if (ctx.wcFieldList() != null) {
+      fields =
+          ctx.wcFieldList().wcFieldExpression().stream()
+              .map(this::internalVisitExpression)
+              .collect(Collectors.toList());
+    } else if (ctx.wcSpaceSeparatedFieldList() != null) {
+      fields =
+          ctx.wcSpaceSeparatedFieldList().wcFieldExpression().stream()
+              .map(this::internalVisitExpression)
+              .collect(Collectors.toList());
     } else {
       fields = Collections.emptyList();
     }
-    
+
     return new Project(fields, ArgumentFactory.getArgumentList(ctx));
   }
 

@@ -120,19 +120,19 @@ whereCommand
    ;
 
 fieldsCommand
-   : FIELDS (PLUS | MINUS)? fieldList
-   | FIELDS (PLUS | MINUS)? spaceSeparatedFieldList
+   : FIELDS (PLUS | MINUS)? wcFieldList
+   | FIELDS (PLUS | MINUS)? wcSpaceSeparatedFieldList
    ;
 
-// Table command - alias for fields command (Calcite-only)
+// Table command - alias for fields command
 tableCommand
-   : TABLE (PLUS | MINUS)? fieldList
-   | TABLE (PLUS | MINUS)? spaceSeparatedFieldList
+   : TABLE (PLUS | MINUS)? wcFieldList
+   | TABLE (PLUS | MINUS)? wcSpaceSeparatedFieldList
    ;
 
-// Space-separated field list: fields field1 field2 field3
-spaceSeparatedFieldList
-   : fieldExpression (fieldExpression)+
+// Space-separated wildcard field list: fields field1 field2 field3
+wcSpaceSeparatedFieldList
+   : wcFieldExpression (wcFieldExpression)+
    ;
 
 renameCommand

@@ -132,42 +132,94 @@ public class FieldsCommandIT extends PPLIntegTestCase {
         rows(null, "linux", null, "linux", null, 2, null, "os2"));
   }
 
-  /**
-   * Tests space-delimited field selection syntax.
-   */
+  /** Tests space-delimited field selection syntax. */
   @Test
   public void testFieldsWithSpaceDelimitedSyntax() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | fields firstname lastname age", TEST_INDEX_ACCOUNT));
+        executeQuery(
+            String.format("source=%s | fields firstname lastname age", TEST_INDEX_ACCOUNT));
     verifyColumn(result, columnName("firstname"), columnName("lastname"), columnName("age"));
   }
 
-  /**
-   * Tests equivalence between space-delimited and comma-delimited field syntax.
-   */
+  /** Tests equivalence between space-delimited and comma-delimited field syntax. */
   @Test
   public void testFieldsSpaceDelimitedEquivalentToCommaDelimited() throws IOException {
     JSONObject commaResult =
-        executeQuery(String.format("source=%s | fields firstname, lastname, age | head 3", TEST_INDEX_ACCOUNT));
+        executeQuery(
+            String.format(
+                "source=%s | fields firstname, lastname, age | head 3", TEST_INDEX_ACCOUNT));
     JSONObject spaceResult =
-        executeQuery(String.format("source=%s | fields firstname lastname age | head 3", TEST_INDEX_ACCOUNT));
-    
-    verifySchema(commaResult, 
-        schema("firstname", "string"), 
-        schema("lastname", "string"), 
+        executeQuery(
+            String.format(
+                "source=%s | fields firstname lastname age | head 3", TEST_INDEX_ACCOUNT));
+
+    verifySchema(
+        commaResult,
+        schema("firstname", "string"),
+        schema("lastname", "string"),
         schema("age", "bigint"));
-    verifySchema(spaceResult, 
-        schema("firstname", "string"), 
-        schema("lastname", "string"), 
+    verifySchema(
+        spaceResult,
+        schema("firstname", "string"),
+        schema("lastname", "string"),
         schema("age", "bigint"));
-    
-    verifyDataRows(commaResult, 
-        rows("Amber", "Duke", 32), 
-        rows("Hattie", "Bond", 36), 
+
+    verifyDataRows(
+        commaResult,
+        rows("Amber", "Duke", 32),
+        rows("Hattie", "Bond", 36),
         rows("Nanette", "Bates", 28));
-    verifyDataRows(spaceResult, 
-        rows("Amber", "Duke", 32), 
-        rows("Hattie", "Bond", 36), 
+    verifyDataRows(
+        spaceResult,
+        rows("Amber", "Duke", 32),
+        rows("Hattie", "Bond", 36),
         rows("Nanette", "Bates", 28));
+  }
+
+  /** Tests prefix wildcard pattern matching. */
+  @Ignore("Wildcard functionality requires Calcite engine")
+  @Test
+  public void testFieldsWithPrefixWildcard() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source=%s | fields account*", TEST_INDEX_ACCOUNT));
+    verifyColumn(result, columnName("account_number"));
+  }
+
+  /** Tests suffix wildcard pattern matching. */
+  @Ignore("Wildcard functionality requires Calcite engine")
+  @Test
+  public void testFieldsWithSuffixWildcard() throws IOException {
+    JSONObject result = executeQuery(String.format("source=%s | fields *name", TEST_INDEX_ACCOUNT));
+    verifyColumn(result, columnName("firstname"), columnName("lastname"));
+  }
+
+  /** Tests contains wildcard pattern matching. */
+  @Ignore("Wildcard functionality requires Calcite engine")
+  @Test
+  public void testFieldsWithContainsWildcard() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source=%s | fields *a* | head 1", TEST_INDEX_ACCOUNT));
+    // Verify schema contains all 8 fields with 'a' in their names
+    verifySchema(
+        result,
+        schema("account_number", "bigint"),
+        schema("balance", "bigint"),
+        schema("firstname", "string"),
+        schema("lastname", "string"),
+        schema("age", "bigint"),
+        schema("address", "string"),
+        schema("email", "string"),
+        schema("state", "string"));
+  }
+
+  /** Tests mixed explicit fields and wildcard patterns. */
+  @Ignore("Wildcard functionality requires Calcite engine")
+  @Test
+  public void testFieldsWithMixedWildcards() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | fields firstname, account*, *name", TEST_INDEX_ACCOUNT));
+    verifyColumn(
+        result, columnName("firstname"), columnName("account_number"), columnName("lastname"));
   }
 }

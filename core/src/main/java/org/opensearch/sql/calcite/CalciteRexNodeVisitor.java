@@ -295,6 +295,28 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       return context.getRexLambdaRefMap().get(qualifiedName);
     }
     List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
+
+    // 2.0 Handle wildcard patterns
+    if (qualifiedName.contains("*")) {
+      List<String> matchingFields = expandWildcardPattern(qualifiedName, currentFields);
+      if (matchingFields.isEmpty()) {
+        throw new IllegalArgumentException(
+            String.format(
+                "wildcard pattern [%s] matches no fields; input fields are: %s",
+                qualifiedName, currentFields));
+      }
+      // For single match, return the field directly
+      if (matchingFields.size() == 1) {
+        return context.relBuilder.field(matchingFields.get(0));
+      }
+      // For multiple matches, this should be handled at the Project level
+      // This case shouldn't occur in normal field resolution
+      throw new IllegalArgumentException(
+          String.format(
+              "wildcard pattern [%s] matches multiple fields: %s. Use in project context.",
+              qualifiedName, matchingFields));
+    }
+
     if (currentFields.contains(qualifiedName)) {
       // 2.1 resolve QualifiedName from stack top
       // Note: QualifiedName with multiple parts also could be applied in step 2.1,
@@ -343,6 +365,27 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
           String.format(
               "field [%s] not found; input fields are: %s", qualifiedName, currentFields));
     }
+  }
+
+  /**
+   * Expand wildcard pattern to matching field names. Supports prefix (*), suffix (*), and contains
+   * (*) patterns.
+   */
+  private List<String> expandWildcardPattern(String pattern, List<String> availableFields) {
+    return availableFields.stream()
+        .filter(field -> matchesWildcardPattern(pattern, field))
+        .collect(Collectors.toList());
+  }
+
+  /** Check if a field name matches a wildcard pattern. */
+  private boolean matchesWildcardPattern(String pattern, String fieldName) {
+    if (!pattern.contains("*")) {
+      return pattern.equals(fieldName);
+    }
+
+    // Convert wildcard pattern to regex
+    String regex = pattern.replace("*", ".*");
+    return fieldName.matches(regex);
   }
 
   @Override

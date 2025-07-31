@@ -197,10 +197,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       tryToRemoveMetaFields(context, allFields instanceof AllFieldsExcludeMeta);
       return context.relBuilder.peek();
     } else {
-      projectList =
-          node.getProjectList().stream()
-              .map(expr -> rexVisitor.analyze(expr, context))
-              .collect(Collectors.toList());
+      projectList = expandWildcardsInProjectList(node.getProjectList(), context);
     }
     if (node.isExcluded()) {
       context.relBuilder.projectExcept(projectList);
@@ -212,6 +209,89 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       context.relBuilder.project(projectList);
     }
     return context.relBuilder.peek();
+  }
+
+  /** Expand wildcards in project list to individual field references. */
+  private List<RexNode> expandWildcardsInProjectList(
+      List<UnresolvedExpression> projectList, CalcitePlanContext context) {
+    List<RexNode> expandedList = new ArrayList<>();
+    Set<String> addedFields = new HashSet<>();
+    List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
+
+    for (UnresolvedExpression expr : projectList) {
+      if (expr instanceof Field field) {
+        String fieldName = field.getField().toString();
+        if (fieldName.contains("*")) {
+          // Expand wildcard pattern
+          List<String> matchingFields = expandWildcardPattern(fieldName, currentFields);
+          if (matchingFields.isEmpty()) {
+            throw new IllegalArgumentException(
+                String.format(
+                    "wildcard pattern [%s] matches no fields; input fields are: %s",
+                    fieldName, currentFields));
+          }
+          // Add all matching fields, avoiding duplicates
+          for (String matchingField : matchingFields) {
+            if (!addedFields.contains(matchingField)) {
+              expandedList.add(context.relBuilder.field(matchingField));
+              addedFields.add(matchingField);
+            }
+          }
+        } else {
+          // Regular field, analyze normally and track it
+          if (!addedFields.contains(fieldName)) {
+            expandedList.add(rexVisitor.analyze(expr, context));
+            addedFields.add(fieldName);
+          }
+        }
+      } else {
+        // Non-field expression, analyze normally
+        expandedList.add(rexVisitor.analyze(expr, context));
+      }
+    }
+
+    return expandedList;
+  }
+
+  /**
+   * Expand wildcard pattern to matching field names. Maintains original field order and excludes
+   * metadata fields by default.
+   */
+  private List<String> expandWildcardPattern(String pattern, List<String> availableFields) {
+    return availableFields.stream()
+        .filter(field -> !isMetadataField(field)) // Exclude metadata fields
+        .filter(field -> matchesWildcardPattern(pattern, field))
+        .collect(Collectors.toList());
+  }
+
+  /** Check if a field is a metadata field. */
+  private boolean isMetadataField(String fieldName) {
+    return OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(fieldName);
+  }
+
+  /** Check if a field name matches a wildcard pattern. */
+  private boolean matchesWildcardPattern(String pattern, String fieldName) {
+    if (!pattern.contains("*")) {
+      return pattern.equals(fieldName);
+    }
+
+    // Convert wildcard pattern to regex - escape special regex chars except *
+    String regex =
+        pattern
+            .replace(".", "\\.")
+            .replace("[", "\\[")
+            .replace("]", "\\]")
+            .replace("(", "\\(")
+            .replace(")", "\\)")
+            .replace("{", "\\{")
+            .replace("}", "\\}")
+            .replace("+", "\\+")
+            .replace("?", "\\?")
+            .replace("^", "\\^")
+            .replace("$", "\\$")
+            .replace("|", "\\|")
+            .replace("*", ".*");
+    return fieldName.matches(regex);
   }
 
   /** See logic in {@link org.opensearch.sql.analysis.symbol.SymbolTable#lookupAllFields} */
