@@ -561,16 +561,15 @@ public class PredicateAnalyzerTest {
     QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
     assertInstanceOf(WildcardQueryBuilder.class, result);
     assertEquals(
-        """
-            {
-              "wildcard" : {
-                "b.keyword" : {
-                  "wildcard" : "*Hi*",
-                  "case_insensitive" : true,
-                  "boost" : 1.0
-                }
-              }
-            }""",
+        "{\n"
+            + "  \"wildcard\" : {\n"
+            + "    \"b.keyword\" : {\n"
+            + "      \"wildcard\" : \"*Hi*\",\n"
+            + "      \"case_insensitive\" : true,\n"
+            + "      \"boost\" : 1.0\n"
+            + "    }\n"
+            + "  }\n"
+            + "}",
         result.toString());
   }
 
