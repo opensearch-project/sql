@@ -134,8 +134,6 @@ public class RelJsonSerializer {
       }
       throw new IllegalStateException(
           "Failed to deserialize RexNode and its required structure: " + objectMap.get(EXPR), e);
-      throw new IllegalStateException(
-          "Failed to deserialize RexNode and its required structure: " + struct, e);
     }
   }
 }
