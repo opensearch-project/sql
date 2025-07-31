@@ -27,6 +27,7 @@
 
 package org.opensearch.sql.opensearch.storage.script;
 
+import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.SHORT;
@@ -211,6 +212,7 @@ public class CalciteScriptEngine implements ScriptEngine {
         switch (type) {
           case INTEGER:
           case SHORT:
+          case BYTE:
             docValue = EnumUtils.convert(docValueExpr, Long.class);
             break;
           case FLOAT:
@@ -360,7 +362,7 @@ public class CalciteScriptEngine implements ScriptEngine {
     String referenceField = expression.getReferenceForTermQuery();
     if (StringUtils.isEmpty(referenceField)) {
       throw new UnsupportedScriptException(
-          "Field name cannot be empty for expression: " + expression);
+          "Field name cannot be empty for expression: " + expression.getRootName());
     }
     return Pair.of(referenceField, exprType);
   }
