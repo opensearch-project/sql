@@ -8,6 +8,7 @@ package org.opensearch.sql.ppl.parser;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NOT_NULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.POSITION;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.AligntimeValueContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BinaryArithmeticContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BySpanClauseContext;
@@ -439,6 +440,17 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitBooleanLiteral(BooleanLiteralContext ctx) {
     return new Literal(Boolean.valueOf(ctx.getText()), DataType.BOOLEAN);
+  }
+
+  @Override
+  public UnresolvedExpression visitAligntimeValue(AligntimeValueContext ctx) {
+    if (ctx.EARLIEST() != null) {
+      return new Literal("earliest", DataType.STRING);
+    } else if (ctx.LATEST() != null) {
+      return new Literal("latest", DataType.STRING);
+    } else {
+      return visit(ctx.literalValue());
+    }
   }
 
   @Override

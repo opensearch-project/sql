@@ -24,6 +24,7 @@ DEDUP:                              'DEDUP';
 SORT:                               'SORT';
 EVAL:                               'EVAL';
 HEAD:                               'HEAD';
+BIN:                                'BIN';
 TOP:                                'TOP';
 RARE:                               'RARE';
 PARSE:                              'PARSE';
@@ -457,6 +458,11 @@ ZERO_TERMS_QUERY:                   'ZERO_TERMS_QUERY';
 
 // SPAN KEYWORDS
 SPAN:                               'SPAN';
+BINS:                               'BINS';
+MINSPAN:                            'MINSPAN';
+START:                              'START';
+END:                                'END';
+ALIGNTIME:                          'ALIGNTIME';
 MS:                                 'MS';
 S:                                  'S';
 M:                                  'M';
