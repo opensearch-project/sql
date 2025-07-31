@@ -12,7 +12,11 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class CalcitePPLExplainIT extends PPLIntegTestCase {
+/**
+ * This IT is just for explain command only. If you want to test the explain result of PPL query,
+ * use {@link org.opensearch.sql.ppl.ExplainIT}.
+ */
+public class CalcitePPLExplainCommandIT extends PPLIntegTestCase {
 
   @Override
   public void init() throws Exception {
