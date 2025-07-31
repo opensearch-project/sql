@@ -12,7 +12,6 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLit
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
-
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
 
@@ -53,8 +52,6 @@ public class ArgumentFactory {
             ? new Argument("exclude", new Literal(true, DataType.BOOLEAN))
             : new Argument("exclude", new Literal(false, DataType.BOOLEAN)));
   }
-
-
 
   /**
    * Get list of {@link Argument}.
