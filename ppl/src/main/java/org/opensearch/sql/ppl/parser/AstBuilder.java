@@ -374,21 +374,26 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     Integer count = ctx.count != null ? Integer.parseInt(ctx.count.getText()) : null;
     boolean desc = ctx.DESC() != null || ctx.D() != null;
 
-    List<Field> sortFields = ctx.sortbyClause().sortField().stream()
-        .map(sort -> (Field) internalVisitExpression(sort))
-        .map(field -> desc ? reverseSortDirection(field) : field)
-        .collect(Collectors.toList());
+    List<Field> sortFields =
+        ctx.sortbyClause().sortField().stream()
+            .map(sort -> (Field) internalVisitExpression(sort))
+            .map(field -> desc ? reverseSortDirection(field) : field)
+            .collect(Collectors.toList());
 
     return new Sort(count, sortFields);
   }
 
   private Field reverseSortDirection(Field field) {
-    List<Argument> updatedArgs = field.getFieldArgs().stream()
-        .map(arg -> "asc".equals(arg.getArgName()) 
-            ? new Argument("asc", booleanLiteral(!((Boolean) arg.getValue().getValue())))
-            : arg)
-        .collect(Collectors.toList());
-    
+    List<Argument> updatedArgs =
+        field.getFieldArgs().stream()
+            .map(
+                arg ->
+                    "asc".equals(arg.getArgName())
+                        ? new Argument(
+                            "asc", booleanLiteral(!((Boolean) arg.getValue().getValue())))
+                        : arg)
+            .collect(Collectors.toList());
+
     return new Field(field.getField(), updatedArgs);
   }
 
