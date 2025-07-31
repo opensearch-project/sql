@@ -323,7 +323,7 @@ public class SQLPlugin extends Plugin
         new ImmutableSet.Builder<DataSourceFactory>()
             .add(
                 new OpenSearchDataSourceFactory(
-                    new OpenSearchNodeClient(this.client), pluginSettings))
+                    new OpenSearchNodeClient(this.client), pluginSettings, clusterService))
             .add(new PrometheusStorageFactory(pluginSettings))
             .add(new GlueDataSourceFactory(pluginSettings))
             .add(new SecurityLakeDataSourceFactory(pluginSettings))
