@@ -36,6 +36,8 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
 import org.opensearch.sql.calcite.OpenSearchSchema;
+import org.opensearch.sql.calcite.plan.LogicalSystemLimit;
+import org.opensearch.sql.calcite.plan.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
@@ -100,7 +102,7 @@ public class QueryService {
                     CalcitePlanContext.create(
                         buildFrameworkConfig(), getQuerySizeLimit(), queryType);
                 RelNode relNode = analyze(plan, context);
-                RelNode optimized = optimize(relNode, context, false);
+                RelNode optimized = optimize(relNode, context);
                 RelNode calcitePlan = convertToCalcitePlan(optimized);
                 executionEngine.execute(calcitePlan, context, listener);
                 return null;
@@ -133,7 +135,7 @@ public class QueryService {
                     CalcitePlanContext.create(
                         buildFrameworkConfig(), getQuerySizeLimit(), queryType);
                 RelNode relNode = analyze(plan, context);
-                RelNode optimized = optimize(relNode, context, true);
+                RelNode optimized = optimize(relNode, context);
                 RelNode calcitePlan = convertToCalcitePlan(optimized);
                 executionEngine.explain(calcitePlan, format, context, listener);
                 return null;
@@ -254,10 +256,9 @@ public class QueryService {
    * Try to optimize the plan by appending a limit operator for QUERY_SIZE_LIMIT Don't add for
    * `EXPLAIN` to avoid changing its output plan.
    */
-  public RelNode optimize(RelNode plan, CalcitePlanContext context, boolean isExplain) {
-    if (isExplain) return plan;
-    context.relBuilder.limit(0, context.querySizeLimit);
-    return context.relBuilder.peek();
+  public RelNode optimize(RelNode plan, CalcitePlanContext context) {
+    return LogicalSystemLimit.create(
+        SystemLimitType.QUERY_SIZE_LIMIT, plan, context.relBuilder.literal(context.querySizeLimit));
   }
 
   private boolean isCalciteFallbackAllowed() {
