@@ -12,6 +12,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.search.CreatePitAction;
 import org.opensearch.action.search.CreatePitRequest;
 import org.opensearch.action.search.CreatePitResponse;
@@ -63,6 +64,8 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
       CreatePitResponse pitResponse = execute.get();
       pitId = pitResponse.getId();
       LOG.info("Created Point In Time {} successfully.", pitId);
+    } catch (OpenSearchSecurityException e) {
+      throw e;
     } catch (InterruptedException | ExecutionException e) {
       throw new RuntimeException("Error occurred while creating PIT.", e);
     }
@@ -77,6 +80,8 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
     try {
       DeletePitResponse deletePitResponse = execute.get();
       LOG.info("Delete Point In Time {} status: {}", pitId, deletePitResponse.status().getStatus());
+    } catch (OpenSearchSecurityException e) {
+      throw e;
     } catch (InterruptedException | ExecutionException e) {
       throw new RuntimeException("Error occurred while deleting PIT.", e);
     }

@@ -44,13 +44,32 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testExplainCommandExtended() throws IOException {
+  public void testExplainCommandExtendedWithCodegen() throws IOException {
     var result =
-        executeWithReplace("explain extended source=test | where age = 20 | fields name, age");
+        executeWithReplace(
+            "explain extended source=test | where age = 20 | join left=l right=r on l.age=r.age"
+                + " test");
     assertTrue(
         result.contains(
             "public org.apache.calcite.linq4j.Enumerable bind(final"
                 + " org.apache.calcite.DataContext root)"));
+  }
+
+  @Test
+  public void testExplainCommandExtendedWithoutCodegen() throws IOException {
+    var result =
+        executeWithReplace("explain extended source=test | where age = 20 | fields name, age");
+    if (isPushdownEnabled()) {
+      assertFalse(
+          result.contains(
+              "public org.apache.calcite.linq4j.Enumerable bind(final"
+                  + " org.apache.calcite.DataContext root)"));
+    } else {
+      assertTrue(
+          result.contains(
+              "public org.apache.calcite.linq4j.Enumerable bind(final"
+                  + " org.apache.calcite.DataContext root)"));
+    }
   }
 
   @Test
@@ -61,7 +80,8 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
             ? loadFromFile("expectedOutput/calcite/explain_filter_cost_w_pushdown.txt")
             : loadFromFile("expectedOutput/calcite/explain_filter_cost_wo_pushdown.txt");
     assertTrue(
-        String.format("Got: %s\n, expected: %s", result, expected), result.contains(expected));
+        String.format("Got: %s\n, expected: %s", result, expected),
+        result.contains(expected.trim()));
   }
 
   @Test
