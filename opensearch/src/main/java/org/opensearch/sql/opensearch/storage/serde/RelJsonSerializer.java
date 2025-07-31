@@ -26,6 +26,7 @@ import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.util.JsonBuilder;
+import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
@@ -94,7 +95,9 @@ public class RelJsonSerializer {
       ObjectOutputStream objectOutput = new ObjectOutputStream(output);
       objectOutput.writeObject(envelope);
       objectOutput.flush();
-      return Base64.getEncoder().encodeToString(output.toByteArray());
+      return CalcitePlanContext.isExplain.get()
+          ? rexNodeJson
+          : Base64.getEncoder().encodeToString(output.toByteArray());
     } catch (Exception e) {
       throw new IllegalStateException("Failed to serialize RexNode: " + rexNode, e);
     }
