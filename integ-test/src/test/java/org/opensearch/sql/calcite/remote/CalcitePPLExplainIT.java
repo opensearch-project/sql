@@ -80,7 +80,8 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
             ? loadFromFile("expectedOutput/calcite/explain_filter_cost_w_pushdown.txt")
             : loadFromFile("expectedOutput/calcite/explain_filter_cost_wo_pushdown.txt");
     assertTrue(
-        String.format("Got: %s\n, expected: %s", result, expected), result.contains(expected));
+        String.format("Got: %s\n, expected: %s", result, expected),
+        result.contains(expected.trim()));
   }
 
   @Test
