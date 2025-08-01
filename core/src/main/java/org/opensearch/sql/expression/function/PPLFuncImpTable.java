@@ -711,6 +711,7 @@ public class PPLFuncImpTable {
       registerOperator(RAND, SqlStdOperatorTable.RAND);
       registerOperator(ROUND, SqlStdOperatorTable.ROUND);
       registerOperator(SIGN, SqlStdOperatorTable.SIGN);
+      registerOperator(SIGNUM, SqlStdOperatorTable.SIGN);
       registerOperator(SIN, SqlStdOperatorTable.SIN);
       registerOperator(CBRT, SqlStdOperatorTable.CBRT);
       registerOperator(IS_NOT_NULL, SqlStdOperatorTable.IS_NOT_NULL);
@@ -741,7 +742,6 @@ public class PPLFuncImpTable {
       registerOperator(SINH, PPLBuiltinOperators.SINH);
       registerOperator(EXPM1, PPLBuiltinOperators.EXPM1);
       registerOperator(RINT, PPLBuiltinOperators.RINT);
-      registerOperator(SIGNUM, PPLBuiltinOperators.SIGNUM);
       registerOperator(SPAN, PPLBuiltinOperators.SPAN);
       registerOperator(E, PPLBuiltinOperators.E);
       registerOperator(CONV, PPLBuiltinOperators.CONV);

@@ -32,6 +32,106 @@ Example::
     +---------+
 
 
+ADD
+---
+
+Description
+>>>>>>>>>>>
+
+Usage: add(x, y) calculates x plus y.
+
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: Wider number between x and y
+
+Synonyms: Addition Symbol (+)
+
+Example::
+
+    os> source=people | eval `ADD(2, 1)` = ADD(2, 1) | fields `ADD(2, 1)`
+    fetched rows / total rows = 1/1
+    +-----------+
+    | ADD(2, 1) |
+    |-----------|
+    | 3         |
+    +-----------+
+
+
+SUBTRACT
+---
+
+Description
+>>>>>>>>>>>
+
+Usage: subtract(x, y) calculates x minus y.
+
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: Wider number between x and y
+
+Synonyms: Subtraction Symbol (-)
+
+Example::
+
+    os> source=people | eval `SUBTRACT(2, 1)` = SUBTRACT(2, 1) | fields `SUBTRACT(2, 1)`
+    fetched rows / total rows = 1/1
+    +----------------+
+    | SUBTRACT(2, 1) |
+    |----------------|
+    | 1              |
+    +----------------+
+
+
+MULTIPLY
+---
+
+Description
+>>>>>>>>>>>
+
+Usage: multiply(x, y) calculates the multiplication of x and y.
+
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: Wider number between x and y. If y equals to 0, then returns NULL.
+
+Synonyms: Multiplication Symbol (\*)
+
+Example::
+
+    os> source=people | eval `MULTIPLY(2, 1)` = MULTIPLY(2, 1) | fields `MULTIPLY(2, 1)`
+    fetched rows / total rows = 1/1
+    +----------------+
+    | MULTIPLY(2, 1) |
+    |----------------|
+    | 2              |
+    +----------------+
+
+
+DIVIDE
+---
+
+Description
+>>>>>>>>>>>
+
+Usage: divide(x, y) calculates x divided by y.
+
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: Wider number between x and y
+
+Synonyms: Division Symbol (/)
+
+Example::
+
+    os> source=people | eval `DIVIDE(2, 1)` = DIVIDE(2, 1) | fields `DIVIDE(2, 1)`
+    fetched rows / total rows = 1/1
+    +--------------+
+    | DIVIDE(2, 1) |
+    |--------------|
+    | 2            |
+    +--------------+
+
+
 ACOS
 ----
 
@@ -211,6 +311,29 @@ Example::
     +--------+
 
 
+COSH
+---
+
+Description
+>>>>>>>>>>>
+
+Usage: cosh(x) calculate the hyperbolic cosine of x, defined as (((e^x) + (e^(-x))) / 2).
+
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: DOUBLE
+
+Example::
+
+    os> source=people | eval `COSH(2)` = COSH(2) | fields `COSH(2)`
+    fetched rows / total rows = 1/1
+    +--------------------+
+    | COSH(2)            |
+    |--------------------|
+    | 3.7621956910836314 |
+    +--------------------+
+
+
 COT
 ---
 
@@ -322,6 +445,29 @@ Example::
     |------------------|
     | 7.38905609893065 |
     +------------------+
+
+
+EXPM1
+---
+
+Description
+>>>>>>>>>>>
+
+Usage: expm1(NUMBER T) returns the exponential of T, minus 1.
+
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: DOUBLE
+
+Example::
+
+    os> source=people | eval `EXPM1(1)` = EXPM1(1) | fields `EXPM1(1)`
+    fetched rows / total rows = 1/1
+    +-------------------+
+    | EXPM1(1)          |
+    |-------------------|
+    | 1.718281828459045 |
+    +-------------------+
 
 
 FLOOR
@@ -484,6 +630,29 @@ Example::
     |-----------+-------------|
     | 1         | 1.1         |
     +-----------+-------------+
+
+
+MODULUS
+---
+
+Description
+>>>>>>>>>>>
+
+Usage: MODULUS(n, m) calculates the remainder of the number n divided by m.
+
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: Wider type between types of n and m if m is nonzero value. If m equals to 0, then returns NULL.
+
+Example::
+
+    os> source=people | eval `MODULUS(3, 2)` = MODULUS(3, 2), `MODULUS(3.1, 2)` = MODULUS(3.1, 2) | fields `MODULUS(3, 2)`, `MODULUS(3.1, 2)`
+    fetched rows / total rows = 1/1
+    +---------------+-----------------+
+    | MODULUS(3, 2) | MODULUS(3.1, 2) |
+    |---------------+-----------------|
+    | 1             | 1.1             |
+    +---------------+-----------------+
 
 
 PI
@@ -652,6 +821,31 @@ Example::
     +---------+---------+------------+
 
 
+SIGNUM
+----
+
+Description
+>>>>>>>>>>>
+
+Usage: Returns the sign of the argument as -1, 0, or 1, depending on whether the number is negative, zero, or positive
+
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: INTEGER
+
+Synonyms: `SIGN`
+
+Example::
+
+    os> source=people | eval `SIGNUM(1)` = SIGNUM(1), `SIGNUM(0)` = SIGNUM(0), `SIGNUM(-1.1)` = SIGNUM(-1.1) | fields `SIGNUM(1)`, `SIGNUM(0)`, `SIGNUM(-1.1)`
+    fetched rows / total rows = 1/1
+    +-----------+-----------+--------------+
+    | SIGNUM(1) | SIGNUM(0) | SIGNUM(-1.1) |
+    |-----------+-----------+--------------|
+    | 1         | 0         | -1           |
+    +-----------+-----------+--------------+
+
+
 SIN
 ---
 
@@ -673,6 +867,29 @@ Example::
     |--------|
     | 0.0    |
     +--------+
+
+
+SINH
+---
+
+Description
+>>>>>>>>>>>
+
+Usage: sinh(x) calculate the hyperbolic sine of x, defined as (((e^x) - (e^(-x))) / 2).
+
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: DOUBLE
+
+Example::
+
+    os> source=people | eval `SINH(2)` = SINH(2) | fields `SINH(2)`
+    fetched rows / total rows = 1/1
+    +-------------------+
+    | SINH(2)           |
+    |-------------------|
+    | 3.626860407847019 |
+    +-------------------+
 
 
 SQRT
@@ -725,3 +942,26 @@ Example::
     | 2.0     | 2.1         | -3.0      |
     | 2.0     | 2.1         | -3.0      |
     +---------+-------------+-----------+
+
+
+RINT
+---
+
+Description
+>>>>>>>>>>>
+
+Usage: rint(NUMBER T) returns T rounded to the closest whole integer number.
+
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: DOUBLE
+
+Example::
+
+    os> source=people | eval `RINT(1.7)` = RINT(1.7) | fields `RINT(1.7)`
+    fetched rows / total rows = 1/1
+    +-----------+
+    | RINT(1.7) |
+    |-----------|
+    | 2.0       |
+    +-----------+

@@ -137,14 +137,6 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               PPLOperandTypes.NUMERIC)
           .toUDF("EXPM1");
 
-  public static final SqlOperator SIGNUM =
-      adaptMathFunctionToUDF(
-              "signum",
-              ReturnTypes.INTEGER.andThen(SqlTypeTransforms.FORCE_NULLABLE),
-              NullPolicy.ANY,
-              PPLOperandTypes.NUMERIC)
-          .toUDF("SIGNUM");
-
   // IP comparing functions
   public static final SqlOperator NOT_EQUALS_IP =
       CompareIpFunction.notEquals().toUDF("NOT_EQUALS_IP");
