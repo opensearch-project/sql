@@ -73,7 +73,7 @@ public class WindowExpressionAnalyzer extends AbstractNodeVisitor<LogicalPlan, A
       return new LogicalWindow(child, namedWindowFunction, windowDefinition);
     }
     return new LogicalWindow(
-        new LogicalSort(child, allSortItems), namedWindowFunction, windowDefinition);
+        new LogicalSort(child, null, allSortItems), namedWindowFunction, windowDefinition);
   }
 
   private List<Expression> analyzePartitionList(WindowFunction node, AnalysisContext context) {
