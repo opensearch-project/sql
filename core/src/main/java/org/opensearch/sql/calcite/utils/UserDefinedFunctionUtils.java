@@ -233,7 +233,6 @@ public class UserDefinedFunctionUtils {
           Expression operand = translatedOperands.get(0);
           RelDataType inputType = call.getOperands().get(0).getType();
 
-          // 保留类型区分逻辑
           if (SqlTypeFamily.INTEGER.contains(inputType)) {
             operand = Expressions.convert_(operand, Number.class);
             return Expressions.call(
