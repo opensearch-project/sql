@@ -102,13 +102,3 @@ For the following functionalities, the query will be forwarded to the V2 query e
     * Kmeans
 
 * Commands with ``fetch_size`` parameter
-
-* Search relevant functions
-
-    * match
-    * match_phrase
-    * match_bool_prefix
-    * match_phrase_prefix
-    * simple_query_string
-    * query_string
-    * multi_match

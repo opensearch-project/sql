@@ -1,0 +1,2 @@
+source = big5 query_string(['message'], 'shield AND carp AND shark')
+| head 10

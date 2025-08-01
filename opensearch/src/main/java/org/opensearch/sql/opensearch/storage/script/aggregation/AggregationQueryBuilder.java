@@ -35,7 +35,7 @@ import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.script.aggregation.dsl.BucketAggregationBuilder;
 import org.opensearch.sql.opensearch.storage.script.aggregation.dsl.MetricAggregationBuilder;
-import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
+import org.opensearch.sql.opensearch.storage.serde.ExpressionSerializer;
 
 /**
  * Build the AggregationBuilder from the list of {@link NamedAggregator} and list of {@link

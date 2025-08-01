@@ -8,122 +8,25 @@ package org.opensearch.sql.calcite.remote;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NONNUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY_WITH_NULL;
-import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
-import org.opensearch.sql.common.antlr.SyntaxCheckException;
-import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.ppl.CastFunctionIT;
 
-public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
+public class CalcitePPLCastFunctionIT extends CastFunctionIT {
   @Override
   public void init() throws Exception {
     super.init();
     enableCalcite();
     disallowCalciteFallback();
-
-    loadIndex(Index.STATE_COUNTRY);
-    loadIndex(Index.STATE_COUNTRY_WITH_NULL);
-    loadIndex(Index.DATA_TYPE_NUMERIC);
-    loadIndex(Index.DATA_TYPE_NONNUMERIC);
-  }
-
-  @Test
-  public void testCast() throws IOException {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(age as string) | fields a", TEST_INDEX_STATE_COUNTRY));
-
-    verifySchema(actual, schema("a", "string"));
-
-    verifyDataRows(actual, rows("70"), rows("30"), rows("25"), rows("20"));
-  }
-
-  @Test
-  public void testCastOverriding() throws IOException {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval age = cast(age as STRING) | fields age",
-                TEST_INDEX_STATE_COUNTRY));
-
-    verifySchema(actual, schema("age", "string"));
-
-    verifyDataRows(actual, rows("70"), rows("30"), rows("25"), rows("20"));
-  }
-
-  @Test
-  public void testCastToUnknownType() {
-    assertThrowsWithReplace(
-        SyntaxCheckException.class,
-        () ->
-            executeQuery(
-                String.format(
-                    "source=%s | eval age = cast(age as VARCHAR) | fields age",
-                    TEST_INDEX_STATE_COUNTRY)));
-  }
-
-  @Test
-  public void testChainedCast() throws IOException {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval age = cast(concat(cast(age as string), '0') as DOUBLE) | fields"
-                    + " age",
-                TEST_INDEX_STATE_COUNTRY));
-
-    verifySchema(actual, schema("age", "double"));
-
-    verifyDataRows(actual, rows(700.0), rows(300.0), rows(250.0), rows(200.0));
-  }
-
-  @Test
-  public void testCastNullValues() throws IOException {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(state as string) | fields a",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
-
-    assertJsonEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"a\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"California\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"New York\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Ontario\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Quebec\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      null\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      null\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 6,\n"
-            + "  \"size\": 6\n"
-            + "}",
-        actual.toString());
   }
 
   @Test
@@ -133,32 +36,9 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval a = cast(name as boolean) | fields a", TEST_INDEX_STATE_COUNTRY));
 
-    assertJsonEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"a\",\n"
-            + "      \"type\": \"boolean\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      null\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      null\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      null\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      null\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 4,\n"
-            + "  \"size\": 4\n"
-            + "}",
-        actual.toString());
+    verifySchema(actual, schema("a", "boolean"));
+    verifyDataRows(
+        actual, rows((Object) null), rows((Object) null), rows((Object) null), rows((Object) null));
   }
 
   @Test
@@ -220,24 +100,8 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval a = cast('2' as boolean) | fields a | head 1",
                 TEST_INDEX_DATATYPE_NUMERIC));
-    assertJsonEquals(
-        ""
-            + "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"a\",\n"
-            + "      \"type\": \"boolean\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      null\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 1,\n"
-            + "  \"size\": 1\n"
-            + "}",
-        actual.toString());
+    verifySchema(actual, schema("a", "boolean"));
+    verifyDataRows(actual, rows((Object) null));
 
     actual =
         executeQuery(
@@ -251,155 +115,8 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval a = cast('aa' as boolean) | fields a | head 1",
                 TEST_INDEX_DATATYPE_NUMERIC));
-    assertJsonEquals(
-        ""
-            + "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"a\",\n"
-            + "      \"type\": \"boolean\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      null\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 1,\n"
-            + "  \"size\": 1\n"
-            + "}",
-        actual.toString());
-  }
-
-  @Test
-  public void testCastINT() throws IOException {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(integer_number as INTEGER) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
-    verifyDataRows(actual, rows(2));
-
-    actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(integer_number as FLOAT) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
-    verifyDataRows(actual, rows(2));
-
-    actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(integer_number as LONG) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
-    verifyDataRows(actual, rows(2));
-
-    actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(integer_number as DOUBLE) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
-    verifyDataRows(actual, rows(2));
-
-    actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(integer_number as STRING) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
-    verifyDataRows(actual, rows("2"));
-  }
-
-  @Test
-  public void testCastLONG() throws IOException {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(long_number as INT) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
-    verifyDataRows(actual, rows(1));
-
-    actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(long_number as FLOAT) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
-    verifyDataRows(actual, rows(1));
-
-    actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(long_number as DOUBLE) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
-    verifyDataRows(actual, rows(1));
-
-    actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(long_number as STRING) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
-    verifyDataRows(actual, rows("1"));
-  }
-
-  @Test
-  public void testCastFLOAT() throws IOException {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(float_number as INT) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
-    verifyDataRows(actual, rows(6));
-
-    actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(float_number as LONG) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
-    verifyDataRows(actual, rows(6));
-
-    actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(float_number as DOUBLE) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
-    verifyDataRows(actual, rows(6.199999809265137));
-
-    actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(float_number as STRING) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
-    verifyDataRows(actual, rows("6.2"));
-  }
-
-  @Test
-  public void testCastDOUBLE() throws IOException {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(double_number as INT) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
-    verifyDataRows(actual, rows(5));
-
-    actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(double_number as LONG) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
-    verifyDataRows(actual, rows(5));
-
-    actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(double_number as FLOAT) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
-    verifyDataRows(actual, rows(5.1));
-
-    actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(double_number as STRING) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
-    verifyDataRows(actual, rows("5.1"));
+    verifySchema(actual, schema("a", "boolean"));
+    verifyDataRows(actual, rows((Object) null));
   }
 
   @Test
@@ -449,40 +166,35 @@ public class CalcitePPLCastFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testCastNumericSTRING() throws IOException {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(cast(integer_number as STRING) as INT) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
-    verifyDataRows(actual, rows(2));
+  public void testCastIntegerToIp() {
+    Throwable t =
+        assertThrowsWithReplace(
+            ExpressionEvaluationException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | eval a = cast(1 as ip) | fields a",
+                        TEST_INDEX_DATATYPE_NUMERIC)));
+    verifyErrorMessageContains(
+        t, "Cannot convert INTEGER to IP, only STRING and IP types are supported");
+  }
 
-    actual =
+  // Not available in v2
+  @Test
+  public void testCastIpToString() throws IOException {
+    // Test casting ip to string
+    var actual =
         executeQuery(
             String.format(
-                "source=%s | eval a = cast(cast(long_number as STRING) as LONG) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
-    verifyDataRows(actual, rows(1));
-
-    actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(cast(float_number as STRING) as FLOAT) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
-    verifyDataRows(actual, rows(6.2));
-
-    actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(cast(double_number as STRING) as DOUBLE) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
-    verifyDataRows(actual, rows(5.1));
-
-    actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(cast(boolean_value as STRING) as BOOLEAN)| fields a",
-                TEST_INDEX_DATATYPE_NONNUMERIC));
-    verifyDataRows(actual, rows(true));
+                "source=%s | eval s = cast(host as STRING) | fields s", TEST_INDEX_WEBLOGS));
+    verifySchema(actual, schema("s", "string"));
+    verifyDataRows(
+        actual,
+        rows("::1"),
+        rows("0.0.0.2"),
+        rows("::3"),
+        rows("1.2.3.4"),
+        rows("1.2.3.5"),
+        rows("::ffff:1234"));
   }
 }
