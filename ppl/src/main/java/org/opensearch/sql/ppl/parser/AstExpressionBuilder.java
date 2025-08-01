@@ -59,6 +59,8 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.*;
+import org.opensearch.sql.ast.expression.Span;
+import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
@@ -462,6 +464,29 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   public UnresolvedExpression visitSpanClause(SpanClauseContext ctx) {
     String unit = ctx.unit != null ? ctx.unit.getText() : "";
     return new Span(visit(ctx.fieldExpression()), visit(ctx.value), SpanUnit.of(unit));
+  }
+
+  // Handle new syntax: span=1h
+  @Override
+  public UnresolvedExpression visitSpanLiteral(OpenSearchPPLParser.SpanLiteralContext ctx) {
+    if (ctx.integerLiteral() != null && ctx.timespanUnit() != null) {
+      return new Span(
+              AstDSL.field("@timestamp"),
+              new Literal(Integer.parseInt(ctx.integerLiteral().getText()), DataType.INTEGER),
+              SpanUnit.of(ctx.timespanUnit().getText()));
+    }
+
+    if (ctx.integerLiteral() != null) {
+      return new Span(
+              AstDSL.field("@timestamp"),
+              new Literal(Integer.parseInt(ctx.integerLiteral().getText()), DataType.INTEGER),
+              SpanUnit.of(""));
+    }
+
+    return new Span(
+            AstDSL.field("@timestamp"),
+            new Literal(ctx.getText(), DataType.STRING),
+            SpanUnit.of(""));
   }
 
   @Override

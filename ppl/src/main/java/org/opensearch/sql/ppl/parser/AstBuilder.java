@@ -390,9 +390,19 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   /** Timechart command. */
   @Override
   public UnresolvedPlan visitTimechartCommand(OpenSearchPPLParser.TimechartCommandContext ctx) {
-    UnresolvedExpression spanExpression = ctx.spanClause() != null 
-        ? internalVisitExpression(ctx.spanClause()) 
-        : null;
+    UnresolvedExpression spanExpression = null;
+    if (ctx.spanClause() != null) {
+      spanExpression = internalVisitExpression(ctx.spanClause());
+    } else if (ctx.spanLiteral() != null) {
+      // Convert span=1h to span(@timestamp, 1h)
+      spanExpression = internalVisitExpression(ctx.spanLiteral());
+    } else {
+      // Default span if none specified
+      spanExpression = AstDSL.span(
+          AstDSL.field("@timestamp"), 
+          AstDSL.stringLiteral("1m"), 
+          org.opensearch.sql.ast.expression.SpanUnit.of("m"));
+    }
     UnresolvedExpression aggregateFunction = internalVisitExpression(ctx.statsFunction());
     UnresolvedExpression byField = ctx.fieldExpression() != null 
         ? internalVisitExpression(ctx.fieldExpression()) 

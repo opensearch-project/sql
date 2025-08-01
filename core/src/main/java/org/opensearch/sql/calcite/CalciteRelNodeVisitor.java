@@ -70,6 +70,7 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.PatternMethod;
 import org.opensearch.sql.ast.expression.PatternMode;
+import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFrame;
 import org.opensearch.sql.ast.expression.WindowFrame.FrameType;
@@ -1225,26 +1226,28 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Build group by list - span first, then by field if present
     List<UnresolvedExpression> groupExprList = new ArrayList<>();
     
-    // Add span - use @timestamp field
-    UnresolvedExpression spanExpr;
+    // Add span expression with @timestamp alias
     if (node.getSpanExpression() != null) {
-      spanExpr = node.getSpanExpression();
+      groupExprList.add(new Alias("@timestamp", node.getSpanExpression()));
     } else {
-      // Default to 1 minute span if not specified
-      spanExpr = AstDSL.span(AstDSL.field("@timestamp"), AstDSL.stringLiteral("1m"), null);
+      // Default span if none specified
+      UnresolvedExpression defaultSpan = AstDSL.span(AstDSL.field("@timestamp"), AstDSL.stringLiteral("1m"), SpanUnit.of("m"));
+      groupExprList.add(new Alias("@timestamp", defaultSpan));
     }
-    groupExprList.add(spanExpr);
     
-    // Add by field if present
+    // Add by field if present with proper alias
     if (node.getByField() != null) {
-      groupExprList.add(node.getByField());
+      UnresolvedExpression byField = node.getByField();
+      String byAlias = byField instanceof Field ? 
+          ((Field) byField).getField().toString() : byField.toString();
+      groupExprList.add(new Alias(byAlias, byField));
     }
     
     // Perform aggregation with trimming
     Pair<List<RexNode>, List<AggCall>> aggregationAttributes =
         aggregateWithTrimming(groupExprList, aggExprList, context);
     
-    // Schema reordering - aggregation results first, then group by columns
+    // Schema reordering for timechart: aggregation results first, then group by columns
     List<RexNode> outputFields = context.relBuilder.fields();
     int numOfOutputFields = outputFields.size();
     int numOfAggList = aggExprList.size();
@@ -1255,21 +1258,39 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         outputFields.subList(numOfOutputFields - numOfAggList, numOfOutputFields);
     reordered.addAll(aggRexList);
     
-    // Add group by columns
-    List<RexNode> aliasedGroupByList =
-        aggregationAttributes.getLeft().stream()
-            .map(this::extractAliasLiteral)
-            .flatMap(Optional::stream)
-            .map(ref -> ((RexLiteral) ref).getValueAs(String.class))
-            .map(context.relBuilder::field)
-            .map(f -> (RexNode) f)
-            .toList();
-    reordered.addAll(aliasedGroupByList);
-    context.relBuilder.project(reordered);
+    // Add group by columns (span field first, then by field)
+    List<RexNode> groupByFields = new ArrayList<>();
+    for (int i = 0; i < aggregationAttributes.getLeft().size(); i++) {
+      RexNode groupField = outputFields.get(i);
+      groupByFields.add(groupField);
+    }
+    reordered.addAll(groupByFields);
+    
+    // Apply proper field names
+    List<String> fieldNames = new ArrayList<>();
+    
+    // Get aggregation function name
+    UnresolvedExpression aggFunc = node.getAggregateFunction();
+    String aggName = "aggr";
+    if (aggFunc instanceof AggregateFunction) {
+      aggName = ((AggregateFunction) aggFunc).getFuncName();
+    } else if (aggFunc instanceof Function) {
+
+    }
+    fieldNames.add(aggName);
+    
+    fieldNames.add("@timestamp"); // timestamp field
+    
+    if (node.getByField() != null) {
+      String byFieldName = node.getByField() instanceof Field ? 
+          ((Field) node.getByField()).getField().toString() : "host";
+      fieldNames.add(byFieldName);
+    }
+    context.relBuilder.project(reordered, fieldNames);
     
     // Sort by time (span field) - always first group by field
-    if (!aliasedGroupByList.isEmpty()) {
-      RexNode timeField = aliasedGroupByList.get(0);
+    if (!groupByFields.isEmpty()) {
+      RexNode timeField = groupByFields.get(0);
       context.relBuilder.sort(timeField);
     }
     
