@@ -34,12 +34,10 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Optionality;
-import org.apache.commons.lang3.StringUtils;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -231,17 +229,9 @@ public class UserDefinedFunctionUtils {
     NotNullImplementor implementor =
         (translator, call, translatedOperands) -> {
           Expression operand = translatedOperands.get(0);
-          RelDataType inputType = call.getOperands().get(0).getType();
-
-          if (SqlTypeFamily.INTEGER.contains(inputType)) {
-            operand = Expressions.convert_(operand, Number.class);
-            return Expressions.call(
-                MathUtils.class, "integral" + StringUtils.capitalize(methodName), operand);
-          } else {
-            operand = Expressions.convert_(operand, Number.class);
-            return Expressions.call(
-                MathUtils.class, "floating" + StringUtils.capitalize(methodName), operand);
-          }
+          operand = Expressions.box(operand);
+          operand = Expressions.call(operand, "doubleValue");
+          return Expressions.call(Math.class, methodName, operand);
         };
 
     return new ImplementorUDF(implementor, nullPolicy) {

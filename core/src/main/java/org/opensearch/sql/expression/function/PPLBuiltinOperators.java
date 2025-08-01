@@ -104,15 +104,10 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator DIVIDE = new DivideFunction().toUDF("DIVIDE");
   public static final SqlOperator SHA2 = CryptographicFunction.sha2().toUDF("SHA2");
   public static final SqlOperator CIDRMATCH = new CidrMatchFunction().toUDF("CIDRMATCH");
-  //  public static final SqlOperator COSH = new CoshFunction().toUDF("COSH");
-  //  public static final SqlOperator SINH = new SinhFunction().toUDF("SINH");
-  //  public static final SqlOperator EXPM1 = new Expm1Function().toUDF("EXPM1");
-  //  public static final SqlOperator RINT = new RintFunction().toUDF("RINT");
-  //  public static final SqlOperator SIGNUM = new SignumFunction().toUDF("SIGNUM");
 
   public static final SqlOperator COSH =
       adaptMathFunctionToUDF(
-              "Cosh",
+              "cosh",
               ReturnTypes.DOUBLE.andThen(SqlTypeTransforms.FORCE_NULLABLE),
               NullPolicy.ANY,
               PPLOperandTypes.NUMERIC)
@@ -120,7 +115,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
 
   public static final SqlOperator SINH =
       adaptMathFunctionToUDF(
-              "Sinh",
+              "sinh",
               ReturnTypes.DOUBLE.andThen(SqlTypeTransforms.FORCE_NULLABLE),
               NullPolicy.ANY,
               PPLOperandTypes.NUMERIC)
@@ -128,7 +123,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
 
   public static final SqlOperator RINT =
       adaptMathFunctionToUDF(
-              "Rint",
+              "rint",
               ReturnTypes.DOUBLE.andThen(SqlTypeTransforms.FORCE_NULLABLE),
               NullPolicy.ANY,
               PPLOperandTypes.NUMERIC)
@@ -136,7 +131,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
 
   public static final SqlOperator EXPM1 =
       adaptMathFunctionToUDF(
-              "Expm1",
+              "expm1",
               ReturnTypes.DOUBLE.andThen(SqlTypeTransforms.FORCE_NULLABLE),
               NullPolicy.ANY,
               PPLOperandTypes.NUMERIC)
@@ -144,7 +139,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
 
   public static final SqlOperator SIGNUM =
       adaptMathFunctionToUDF(
-              "Signum",
+              "signum",
               ReturnTypes.INTEGER.andThen(SqlTypeTransforms.FORCE_NULLABLE),
               NullPolicy.ANY,
               PPLOperandTypes.NUMERIC)
