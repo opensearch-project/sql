@@ -219,6 +219,33 @@ public class UserDefinedFunctionUtils {
     };
   }
 
+  public static ImplementorUDF adaptMathFunctionToUDF(
+      String methodName,
+      SqlReturnTypeInference returnTypeInference,
+      NullPolicy nullPolicy,
+      UDFOperandMetadata operandMetadata) {
+
+    NotNullImplementor implementor =
+        (translator, call, translatedOperands) -> {
+          Expression operand = translatedOperands.get(0);
+          operand = Expressions.box(operand);
+          operand = Expressions.call(operand, "doubleValue");
+          return Expressions.call(Math.class, methodName, operand);
+        };
+
+    return new ImplementorUDF(implementor, nullPolicy) {
+      @Override
+      public SqlReturnTypeInference getReturnTypeInference() {
+        return returnTypeInference;
+      }
+
+      @Override
+      public UDFOperandMetadata getOperandMetadata() {
+        return operandMetadata;
+      }
+    };
+  }
+
   public static List<Expression> prependFunctionProperties(
       List<Expression> operands, RexToLixTranslator translator) {
     List<Expression> operandsWithProperties = new ArrayList<>(operands);
