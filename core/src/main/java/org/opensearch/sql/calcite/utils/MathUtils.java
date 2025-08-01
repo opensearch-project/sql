@@ -55,4 +55,54 @@ public class MathUtils {
       return (float) value;
     }
   }
+
+  public static Number integralCosh(Number x) {
+    double x0 = x.doubleValue();
+    return Math.cosh(x0);
+  }
+
+  public static Number floatingCosh(Number x) {
+    BigDecimal x0 = new BigDecimal(x.toString());
+    return Math.cosh(x0.doubleValue());
+  }
+
+  public static Number integralSinh(Number x) {
+    double x0 = x.doubleValue();
+    return Math.sinh(x0);
+  }
+
+  public static Number floatingSinh(Number x) {
+    BigDecimal x0 = new BigDecimal(x.toString());
+    return Math.sinh(x0.doubleValue());
+  }
+
+  public static Number integralExpm1(Number x) {
+    double x0 = x.doubleValue();
+    return Math.expm1(x0);
+  }
+
+  public static Number floatingExpm1(Number x) {
+    BigDecimal x0 = new BigDecimal(x.toString());
+    return Math.expm1(x0.doubleValue());
+  }
+
+  public static Number integralRint(Number x) {
+    double x0 = x.doubleValue();
+    return Math.rint(x0);
+  }
+
+  public static Number floatingRint(Number x) {
+    BigDecimal x0 = new BigDecimal(x.toString());
+    return Math.rint(x0.doubleValue());
+  }
+
+  public static Number integralSignum(Number x) {
+    double x0 = x.doubleValue();
+    return (int) Math.signum(x0);
+  }
+
+  public static Number floatingSignum(Number x) {
+    BigDecimal x0 = new BigDecimal(x.toString());
+    return (int) Math.signum(x0.doubleValue());
+  }
 }

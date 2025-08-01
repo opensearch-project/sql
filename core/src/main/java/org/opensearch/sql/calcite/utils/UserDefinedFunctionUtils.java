@@ -34,10 +34,12 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Optionality;
+import org.apache.commons.lang3.StringUtils;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -207,6 +209,42 @@ public class UserDefinedFunctionUtils {
           Expression exprResult = Expressions.call(type, methodName, operands);
           return Expressions.call(exprResult, "valueForCalcite");
         };
+    return new ImplementorUDF(implementor, nullPolicy) {
+      @Override
+      public SqlReturnTypeInference getReturnTypeInference() {
+        return returnTypeInference;
+      }
+
+      @Override
+      public UDFOperandMetadata getOperandMetadata() {
+        return operandMetadata;
+      }
+    };
+  }
+
+  public static ImplementorUDF adaptMathFunctionToUDF(
+      String methodName,
+      SqlReturnTypeInference returnTypeInference,
+      NullPolicy nullPolicy,
+      UDFOperandMetadata operandMetadata) {
+
+    NotNullImplementor implementor =
+        (translator, call, translatedOperands) -> {
+          Expression operand = translatedOperands.get(0);
+          RelDataType inputType = call.getOperands().get(0).getType();
+
+          // 保留类型区分逻辑
+          if (SqlTypeFamily.INTEGER.contains(inputType)) {
+            operand = Expressions.convert_(operand, Number.class);
+            return Expressions.call(
+                MathUtils.class, "integral" + StringUtils.capitalize(methodName), operand);
+          } else {
+            operand = Expressions.convert_(operand, Number.class);
+            return Expressions.call(
+                MathUtils.class, "floating" + StringUtils.capitalize(methodName), operand);
+          }
+        };
+
     return new ImplementorUDF(implementor, nullPolicy) {
       @Override
       public SqlReturnTypeInference getReturnTypeInference() {

@@ -7,6 +7,7 @@ package org.opensearch.sql.expression.function;
 
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.adaptExprMethodToUDF;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.adaptExprMethodWithPropertiesToUDF;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.adaptMathFunctionToUDF;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -75,14 +76,9 @@ import org.opensearch.sql.expression.function.udf.ip.CidrMatchFunction;
 import org.opensearch.sql.expression.function.udf.ip.CompareIpFunction;
 import org.opensearch.sql.expression.function.udf.math.CRC32Function;
 import org.opensearch.sql.expression.function.udf.math.ConvFunction;
-import org.opensearch.sql.expression.function.udf.math.CoshFunction;
 import org.opensearch.sql.expression.function.udf.math.DivideFunction;
 import org.opensearch.sql.expression.function.udf.math.EulerFunction;
-import org.opensearch.sql.expression.function.udf.math.Expm1Function;
 import org.opensearch.sql.expression.function.udf.math.ModFunction;
-import org.opensearch.sql.expression.function.udf.math.RintFunction;
-import org.opensearch.sql.expression.function.udf.math.SignumFunction;
-import org.opensearch.sql.expression.function.udf.math.SinhFunction;
 
 /** Defines functions and operators that are implemented only by PPL */
 public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
@@ -108,11 +104,51 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator DIVIDE = new DivideFunction().toUDF("DIVIDE");
   public static final SqlOperator SHA2 = CryptographicFunction.sha2().toUDF("SHA2");
   public static final SqlOperator CIDRMATCH = new CidrMatchFunction().toUDF("CIDRMATCH");
-  public static final SqlOperator COSH = new CoshFunction().toUDF("COSH");
-  public static final SqlOperator SINH = new SinhFunction().toUDF("SINH");
-  public static final SqlOperator EXPM1 = new Expm1Function().toUDF("EXPM1");
-  public static final SqlOperator RINT = new RintFunction().toUDF("RINT");
-  public static final SqlOperator SIGNUM = new SignumFunction().toUDF("SIGNUM");
+  //  public static final SqlOperator COSH = new CoshFunction().toUDF("COSH");
+  //  public static final SqlOperator SINH = new SinhFunction().toUDF("SINH");
+  //  public static final SqlOperator EXPM1 = new Expm1Function().toUDF("EXPM1");
+  //  public static final SqlOperator RINT = new RintFunction().toUDF("RINT");
+  //  public static final SqlOperator SIGNUM = new SignumFunction().toUDF("SIGNUM");
+
+  public static final SqlOperator COSH =
+      adaptMathFunctionToUDF(
+              "Cosh",
+              ReturnTypes.DOUBLE.andThen(SqlTypeTransforms.FORCE_NULLABLE),
+              NullPolicy.ANY,
+              PPLOperandTypes.NUMERIC)
+          .toUDF("COSH");
+
+  public static final SqlOperator SINH =
+      adaptMathFunctionToUDF(
+              "Sinh",
+              ReturnTypes.DOUBLE.andThen(SqlTypeTransforms.FORCE_NULLABLE),
+              NullPolicy.ANY,
+              PPLOperandTypes.NUMERIC)
+          .toUDF("SINH");
+
+  public static final SqlOperator RINT =
+      adaptMathFunctionToUDF(
+              "Rint",
+              ReturnTypes.DOUBLE.andThen(SqlTypeTransforms.FORCE_NULLABLE),
+              NullPolicy.ANY,
+              PPLOperandTypes.NUMERIC)
+          .toUDF("RINT");
+
+  public static final SqlOperator EXPM1 =
+      adaptMathFunctionToUDF(
+              "Expm1",
+              ReturnTypes.DOUBLE.andThen(SqlTypeTransforms.FORCE_NULLABLE),
+              NullPolicy.ANY,
+              PPLOperandTypes.NUMERIC)
+          .toUDF("EXPM1");
+
+  public static final SqlOperator SIGNUM =
+      adaptMathFunctionToUDF(
+              "Signum",
+              ReturnTypes.INTEGER.andThen(SqlTypeTransforms.FORCE_NULLABLE),
+              NullPolicy.ANY,
+              PPLOperandTypes.NUMERIC)
+          .toUDF("SIGNUM");
 
   // IP comparing functions
   public static final SqlOperator NOT_EQUALS_IP =
