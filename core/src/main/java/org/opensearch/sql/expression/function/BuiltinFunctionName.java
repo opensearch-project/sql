@@ -9,6 +9,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -380,4 +381,13 @@ public enum BuiltinFunctionName {
     return Optional.ofNullable(
         WINDOW_FUNC_MAPPING.getOrDefault(functionName.toLowerCase(Locale.ROOT), null));
   }
+
+  public static final Set<BuiltinFunctionName> COMPARATORS =
+      Set.of(
+          BuiltinFunctionName.EQUAL,
+          BuiltinFunctionName.NOTEQUAL,
+          BuiltinFunctionName.LESS,
+          BuiltinFunctionName.LTE,
+          BuiltinFunctionName.GREATER,
+          BuiltinFunctionName.GTE);
 }

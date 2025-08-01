@@ -15,10 +15,9 @@ import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
-import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
@@ -50,9 +49,7 @@ public class UnixTimestampFunction extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    return UDFOperandMetadata.wrap(
-        (CompositeOperandTypeChecker)
-            OperandTypes.DATETIME.or(OperandTypes.NUMERIC).or(OperandTypes.family()));
+    return PPLOperandTypes.OPTIONAL_DATE_OR_TIMESTAMP_OR_NUMERIC;
   }
 
   public static class UnixTimestampImplementor implements NotNullImplementor {

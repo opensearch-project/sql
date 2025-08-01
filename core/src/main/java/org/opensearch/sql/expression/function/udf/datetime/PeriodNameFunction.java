@@ -16,10 +16,9 @@ import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
-import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.type.ExprType;
@@ -52,9 +51,7 @@ public class PeriodNameFunction extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    return UDFOperandMetadata.wrap(
-        (CompositeOperandTypeChecker)
-            OperandTypes.DATE.or(OperandTypes.TIMESTAMP).or(OperandTypes.STRING));
+    return PPLOperandTypes.DATE_OR_TIMESTAMP_OR_STRING;
   }
 
   public static class PeriodNameFunctionImplementor implements NotNullImplementor {
