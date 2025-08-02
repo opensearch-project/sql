@@ -42,6 +42,7 @@ import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.And;
+import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
@@ -271,59 +272,39 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
    */
   @Override
   public UnresolvedPlan visitFieldsCommand(FieldsCommandContext ctx) {
-    List<UnresolvedExpression> fields;
-
-    if (ctx.wcFieldList() != null) {
-      fields =
-          ctx.wcFieldList().wcFieldExpression().stream()
-              .map(this::internalVisitExpression)
-              .collect(Collectors.toList());
-    } else if (ctx.wcSpaceSeparatedFieldList() != null) {
-      fields =
-          ctx.wcSpaceSeparatedFieldList().wcFieldExpression().stream()
-              .map(this::internalVisitExpression)
-              .collect(Collectors.toList());
-    } else if (ctx.wcMixedFieldList() != null) {
-      fields =
-          ctx.wcMixedFieldList().wcFieldExpression().stream()
-              .map(this::internalVisitExpression)
-              .collect(Collectors.toList());
-    } else {
-      fields = Collections.emptyList();
-    }
-
-    return new Project(fields, ArgumentFactory.getArgumentList(ctx));
+    return buildProjectCommand(ctx.fieldsCommandBody(), ArgumentFactory.getArgumentList(ctx));
   }
 
-  /**
-   * Processes the PPL 'table' command as an alias for 'fields' command (Calcite-only). Supports all
-   * field selection syntax: comma-delimited, space-delimited, mixed-delimited, wildcards, +/-
-   * operators.
-   */
+  /** Processes the PPL 'table' command as an alias for 'fields' command. */
   @Override
   public UnresolvedPlan visitTableCommand(TableCommandContext ctx) {
+    return buildProjectCommand(ctx.fieldsCommandBody(), ArgumentFactory.getArgumentList(ctx));
+  }
+
+  private UnresolvedPlan buildProjectCommand(
+      OpenSearchPPLParser.FieldsCommandBodyContext bodyCtx, List<Argument> arguments) {
     List<UnresolvedExpression> fields;
 
-    if (ctx.wcFieldList() != null) {
+    if (bodyCtx.wcFieldList() != null) {
       fields =
-          ctx.wcFieldList().wcFieldExpression().stream()
+          bodyCtx.wcFieldList().wcFieldExpression().stream()
               .map(this::internalVisitExpression)
               .collect(Collectors.toList());
-    } else if (ctx.wcSpaceSeparatedFieldList() != null) {
+    } else if (bodyCtx.wcSpaceSeparatedFieldList() != null) {
       fields =
-          ctx.wcSpaceSeparatedFieldList().wcFieldExpression().stream()
+          bodyCtx.wcSpaceSeparatedFieldList().wcFieldExpression().stream()
               .map(this::internalVisitExpression)
               .collect(Collectors.toList());
-    } else if (ctx.wcMixedFieldList() != null) {
+    } else if (bodyCtx.wcMixedFieldList() != null) {
       fields =
-          ctx.wcMixedFieldList().wcFieldExpression().stream()
+          bodyCtx.wcMixedFieldList().wcFieldExpression().stream()
               .map(this::internalVisitExpression)
               .collect(Collectors.toList());
     } else {
       fields = Collections.emptyList();
     }
 
-    return new Project(fields, ArgumentFactory.getArgumentList(ctx));
+    return new Project(fields, arguments);
   }
 
   /** Rename command. */

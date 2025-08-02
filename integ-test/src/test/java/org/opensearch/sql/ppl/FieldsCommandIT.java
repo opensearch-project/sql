@@ -36,6 +36,7 @@ public class FieldsCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(String.format("source=%s | fields firstname", TEST_INDEX_ACCOUNT));
     verifyColumn(result, columnName("firstname"));
+    verifySchema(result, schema("firstname", "string"));
   }
 
   @Test
@@ -43,6 +44,7 @@ public class FieldsCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(String.format("source=%s | fields firstname, lastname", TEST_INDEX_ACCOUNT));
     verifyColumn(result, columnName("firstname"), columnName("lastname"));
+    verifySchema(result, schema("firstname", "string"), schema("lastname", "string"));
   }
 
   @Ignore(
@@ -77,6 +79,7 @@ public class FieldsCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(String.format("source=%s | fields firstname, _index", TEST_INDEX_ACCOUNT));
     verifyColumn(result, columnName("firstname"), columnName("_index"));
+    verifySchema(result, schema("firstname", "string"), schema("_index", "string"));
   }
 
   @Test
@@ -85,6 +88,8 @@ public class FieldsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format("source=%s | fields firstname, `_id`, `_index`", TEST_INDEX_ACCOUNT));
     verifyColumn(result, columnName("firstname"), columnName("_id"), columnName("_index"));
+    verifySchema(
+        result, schema("firstname", "string"), schema("_id", "string"), schema("_index", "string"));
   }
 
   @Test
@@ -93,6 +98,7 @@ public class FieldsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format("source=%s | eval a = 1 | fields firstname, _index", TEST_INDEX_ACCOUNT));
     verifyColumn(result, columnName("firstname"), columnName("_index"));
+    verifySchema(result, schema("firstname", "string"), schema("_index", "string"));
   }
 
   @Test
@@ -139,6 +145,11 @@ public class FieldsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format("source=%s | fields firstname lastname age", TEST_INDEX_ACCOUNT));
     verifyColumn(result, columnName("firstname"), columnName("lastname"), columnName("age"));
+    verifySchema(
+        result,
+        schema("firstname", "string"),
+        schema("lastname", "string"),
+        schema("age", "bigint"));
   }
 
   /** Tests equivalence between space-delimited and comma-delimited field syntax. */
@@ -182,6 +193,7 @@ public class FieldsCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(String.format("source=%s | fields account*", TEST_INDEX_ACCOUNT));
     verifyColumn(result, columnName("account_number"));
+    verifySchema(result, schema("account_number", "bigint"));
   }
 
   /** Tests suffix wildcard pattern matching. */
@@ -189,6 +201,7 @@ public class FieldsCommandIT extends PPLIntegTestCase {
   public void testFieldsWithSuffixWildcard() throws IOException {
     JSONObject result = executeQuery(String.format("source=%s | fields *name", TEST_INDEX_ACCOUNT));
     verifyColumn(result, columnName("firstname"), columnName("lastname"));
+    verifySchema(result, schema("firstname", "string"), schema("lastname", "string"));
   }
 
   /** Tests contains wildcard pattern matching. */
@@ -217,6 +230,11 @@ public class FieldsCommandIT extends PPLIntegTestCase {
             String.format("source=%s | fields firstname, account*, *name", TEST_INDEX_ACCOUNT));
     verifyColumn(
         result, columnName("firstname"), columnName("account_number"), columnName("lastname"));
+    verifySchema(
+        result,
+        schema("firstname", "string"),
+        schema("account_number", "bigint"),
+        schema("lastname", "string"));
   }
 
   /** Tests mixed comma and space delimiters with fields command. */

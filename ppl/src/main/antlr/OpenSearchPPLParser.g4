@@ -120,16 +120,18 @@ whereCommand
    ;
 
 fieldsCommand
-   : FIELDS (PLUS | MINUS)? wcFieldList
-   | FIELDS (PLUS | MINUS)? wcSpaceSeparatedFieldList
-   | FIELDS (PLUS | MINUS)? wcMixedFieldList
+   : FIELDS fieldsCommandBody
    ;
 
 // Table command - alias for fields command
 tableCommand
-   : TABLE (PLUS | MINUS)? wcFieldList
-   | TABLE (PLUS | MINUS)? wcSpaceSeparatedFieldList
-   | TABLE (PLUS | MINUS)? wcMixedFieldList
+   : TABLE fieldsCommandBody
+   ;
+
+fieldsCommandBody
+   : (PLUS | MINUS)? wcFieldList
+   | (PLUS | MINUS)? wcSpaceSeparatedFieldList
+   | (PLUS | MINUS)? wcMixedFieldList
    ;
 
 // Space-separated wildcard field list: fields field1 field2 field3

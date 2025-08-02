@@ -87,6 +87,17 @@ public class CalciteFieldsCommandIT extends FieldsCommandIT {
         columnName("city"),
         columnName("state"),
         columnName("balance"));
+    verifySchema(
+        result,
+        schema("account_number", "bigint"),
+        schema("age", "bigint"),
+        schema("gender", "string"),
+        schema("address", "string"),
+        schema("employer", "string"),
+        schema("email", "string"),
+        schema("city", "string"),
+        schema("state", "string"),
+        schema("balance", "bigint"));
   }
 
   /** Tests prefix wildcard pattern matching with Calcite. */
