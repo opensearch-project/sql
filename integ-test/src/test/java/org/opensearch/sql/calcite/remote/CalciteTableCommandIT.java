@@ -157,6 +157,17 @@ public class CalciteTableCommandIT extends PPLIntegTestCase {
         columnName("city"),
         columnName("state"),
         columnName("balance"));
+    verifySchema(
+        result,
+        schema("account_number", "bigint"),
+        schema("age", "bigint"),
+        schema("gender", "string"),
+        schema("address", "string"),
+        schema("employer", "string"),
+        schema("email", "string"),
+        schema("city", "string"),
+        schema("state", "string"),
+        schema("balance", "bigint"));
   }
 
   /** Tests mixed comma and space delimiters with table command. */

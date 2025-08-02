@@ -35,7 +35,7 @@ public class ArgumentFactory {
    */
   public static List<Argument> getArgumentList(FieldsCommandContext ctx) {
     return Collections.singletonList(
-        ctx.MINUS() != null
+        ctx.fieldsCommandBody().MINUS() != null
             ? new Argument("exclude", new Literal(true, DataType.BOOLEAN))
             : new Argument("exclude", new Literal(false, DataType.BOOLEAN)));
   }
@@ -48,7 +48,7 @@ public class ArgumentFactory {
    */
   public static List<Argument> getArgumentList(TableCommandContext ctx) {
     return Collections.singletonList(
-        ctx.MINUS() != null
+        ctx.fieldsCommandBody().MINUS() != null
             ? new Argument("exclude", new Literal(true, DataType.BOOLEAN))
             : new Argument("exclude", new Literal(false, DataType.BOOLEAN)));
   }
