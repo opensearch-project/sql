@@ -36,6 +36,7 @@ public class FieldsCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(String.format("source=%s | fields firstname", TEST_INDEX_ACCOUNT));
     verifyColumn(result, columnName("firstname"));
+    verifySchema(result, schema("firstname", "string"));
   }
 
   @Test
@@ -43,6 +44,7 @@ public class FieldsCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(String.format("source=%s | fields firstname, lastname", TEST_INDEX_ACCOUNT));
     verifyColumn(result, columnName("firstname"), columnName("lastname"));
+    verifySchema(result, schema("firstname", "string"), schema("lastname", "string"));
   }
 
   @Ignore(
@@ -77,6 +79,7 @@ public class FieldsCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(String.format("source=%s | fields firstname, _index", TEST_INDEX_ACCOUNT));
     verifyColumn(result, columnName("firstname"), columnName("_index"));
+    verifySchema(result, schema("firstname", "string"), schema("_index", "string"));
   }
 
   @Test
@@ -85,6 +88,8 @@ public class FieldsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format("source=%s | fields firstname, `_id`, `_index`", TEST_INDEX_ACCOUNT));
     verifyColumn(result, columnName("firstname"), columnName("_id"), columnName("_index"));
+    verifySchema(
+        result, schema("firstname", "string"), schema("_id", "string"), schema("_index", "string"));
   }
 
   @Test
@@ -93,6 +98,7 @@ public class FieldsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format("source=%s | eval a = 1 | fields firstname, _index", TEST_INDEX_ACCOUNT));
     verifyColumn(result, columnName("firstname"), columnName("_index"));
+    verifySchema(result, schema("firstname", "string"), schema("_index", "string"));
   }
 
   @Test
@@ -130,5 +136,119 @@ public class FieldsCommandIT extends PPLIntegTestCase {
         result,
         rows("linux", null, "linux", null, 1, null, "os1", null),
         rows(null, "linux", null, "linux", null, 2, null, "os2"));
+  }
+
+  /** Tests space-delimited field selection syntax. */
+  @Test
+  public void testFieldsWithSpaceDelimitedSyntax() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | fields firstname lastname age", TEST_INDEX_ACCOUNT));
+    verifyColumn(result, columnName("firstname"), columnName("lastname"), columnName("age"));
+    verifySchema(
+        result,
+        schema("firstname", "string"),
+        schema("lastname", "string"),
+        schema("age", "bigint"));
+  }
+
+  /** Tests equivalence between space-delimited and comma-delimited field syntax. */
+  @Test
+  public void testFieldsSpaceDelimitedEquivalentToCommaDelimited() throws IOException {
+    JSONObject commaResult =
+        executeQuery(
+            String.format(
+                "source=%s | fields firstname, lastname, age | head 3", TEST_INDEX_ACCOUNT));
+    JSONObject spaceResult =
+        executeQuery(
+            String.format(
+                "source=%s | fields firstname lastname age | head 3", TEST_INDEX_ACCOUNT));
+
+    verifySchema(
+        commaResult,
+        schema("firstname", "string"),
+        schema("lastname", "string"),
+        schema("age", "bigint"));
+    verifySchema(
+        spaceResult,
+        schema("firstname", "string"),
+        schema("lastname", "string"),
+        schema("age", "bigint"));
+
+    verifyDataRows(
+        commaResult,
+        rows("Amber", "Duke", 32),
+        rows("Hattie", "Bond", 36),
+        rows("Nanette", "Bates", 28));
+    verifyDataRows(
+        spaceResult,
+        rows("Amber", "Duke", 32),
+        rows("Hattie", "Bond", 36),
+        rows("Nanette", "Bates", 28));
+  }
+
+  /** Tests prefix wildcard pattern matching. */
+  @Test
+  public void testFieldsWithPrefixWildcard() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source=%s | fields account*", TEST_INDEX_ACCOUNT));
+    verifyColumn(result, columnName("account_number"));
+    verifySchema(result, schema("account_number", "bigint"));
+  }
+
+  /** Tests suffix wildcard pattern matching. */
+  @Test
+  public void testFieldsWithSuffixWildcard() throws IOException {
+    JSONObject result = executeQuery(String.format("source=%s | fields *name", TEST_INDEX_ACCOUNT));
+    verifyColumn(result, columnName("firstname"), columnName("lastname"));
+    verifySchema(result, schema("firstname", "string"), schema("lastname", "string"));
+  }
+
+  /** Tests contains wildcard pattern matching. */
+  @Test
+  public void testFieldsWithContainsWildcard() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source=%s | fields *a* | head 1", TEST_INDEX_ACCOUNT));
+    // Verify schema contains all 8 fields with 'a' in their names
+    verifySchema(
+        result,
+        schema("account_number", "bigint"),
+        schema("balance", "bigint"),
+        schema("firstname", "string"),
+        schema("lastname", "string"),
+        schema("age", "bigint"),
+        schema("address", "string"),
+        schema("email", "string"),
+        schema("state", "string"));
+  }
+
+  /** Tests mixed explicit fields and wildcard patterns. */
+  @Test
+  public void testFieldsWithMixedWildcards() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | fields firstname, account*, *name", TEST_INDEX_ACCOUNT));
+    verifyColumn(
+        result, columnName("firstname"), columnName("account_number"), columnName("lastname"));
+    verifySchema(
+        result,
+        schema("firstname", "string"),
+        schema("account_number", "bigint"),
+        schema("lastname", "string"));
+  }
+
+  /** Tests mixed comma and space delimiters with fields command. */
+  @Test
+  public void testFieldsWithMixedDelimiters() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | fields firstname lastname, age | head 3", TEST_INDEX_ACCOUNT));
+    verifyColumn(result, columnName("firstname"), columnName("lastname"), columnName("age"));
+    verifySchema(
+        result,
+        schema("firstname", "string"),
+        schema("lastname", "string"),
+        schema("age", "bigint"));
   }
 }

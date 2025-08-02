@@ -47,6 +47,7 @@ pplCommands
 commands
    : whereCommand
    | fieldsCommand
+   | tableCommand
    | joinCommand
    | renameCommand
    | statsCommand
@@ -77,6 +78,7 @@ commandName
    | SHOW
    | WHERE
    | FIELDS
+   | TABLE
    | JOIN
    | RENAME
    | STATS
@@ -118,7 +120,28 @@ whereCommand
    ;
 
 fieldsCommand
-   : FIELDS (PLUS | MINUS)? fieldList
+   : FIELDS fieldsCommandBody
+   ;
+
+// Table command - alias for fields command
+tableCommand
+   : TABLE fieldsCommandBody
+   ;
+
+fieldsCommandBody
+   : (PLUS | MINUS)? wcFieldList
+   | (PLUS | MINUS)? wcSpaceSeparatedFieldList
+   | (PLUS | MINUS)? wcMixedFieldList
+   ;
+
+// Space-separated wildcard field list: fields field1 field2 field3
+wcSpaceSeparatedFieldList
+   : wcFieldExpression (wcFieldExpression)+
+   ;
+
+// Mixed delimiter wildcard field list: fields field1 field2, field3 field4
+wcMixedFieldList
+   : wcFieldExpression (COMMA? wcFieldExpression)+
    ;
 
 renameCommand

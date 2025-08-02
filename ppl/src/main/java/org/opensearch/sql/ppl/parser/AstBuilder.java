@@ -18,6 +18,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameComm
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchFromContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableFunctionContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WhereCommandContext;
@@ -41,6 +42,7 @@ import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.And;
+import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
@@ -263,14 +265,46 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return joinType;
   }
 
-  /** Fields command. */
+  /**
+   * Processes the PPL 'fields' command supporting comma-delimited, space-delimited,
+   * mixed-delimited, and wildcard syntax. Examples: "fields field1, field2", "fields field1
+   * field2", "fields field1, field2 field3", "fields account*", "fields *name"
+   */
   @Override
   public UnresolvedPlan visitFieldsCommand(FieldsCommandContext ctx) {
-    return new Project(
-        ctx.fieldList().fieldExpression().stream()
-            .map(this::internalVisitExpression)
-            .collect(Collectors.toList()),
-        ArgumentFactory.getArgumentList(ctx));
+    return buildProjectCommand(ctx.fieldsCommandBody(), ArgumentFactory.getArgumentList(ctx));
+  }
+
+  /** Processes the PPL 'table' command as an alias for 'fields' command. */
+  @Override
+  public UnresolvedPlan visitTableCommand(TableCommandContext ctx) {
+    return buildProjectCommand(ctx.fieldsCommandBody(), ArgumentFactory.getArgumentList(ctx));
+  }
+
+  private UnresolvedPlan buildProjectCommand(
+      OpenSearchPPLParser.FieldsCommandBodyContext bodyCtx, List<Argument> arguments) {
+    List<UnresolvedExpression> fields;
+
+    if (bodyCtx.wcFieldList() != null) {
+      fields =
+          bodyCtx.wcFieldList().wcFieldExpression().stream()
+              .map(this::internalVisitExpression)
+              .collect(Collectors.toList());
+    } else if (bodyCtx.wcSpaceSeparatedFieldList() != null) {
+      fields =
+          bodyCtx.wcSpaceSeparatedFieldList().wcFieldExpression().stream()
+              .map(this::internalVisitExpression)
+              .collect(Collectors.toList());
+    } else if (bodyCtx.wcMixedFieldList() != null) {
+      fields =
+          bodyCtx.wcMixedFieldList().wcFieldExpression().stream()
+              .map(this::internalVisitExpression)
+              .collect(Collectors.toList());
+    } else {
+      fields = Collections.emptyList();
+    }
+
+    return new Project(fields, arguments);
   }
 
   /** Rename command. */
