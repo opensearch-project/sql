@@ -69,6 +69,7 @@ import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PlanUtils;
+import org.opensearch.sql.calcite.utils.WildcardUtils;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
@@ -290,9 +291,11 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     }
     List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
 
-    // 2.0 Handle wildcard patterns
+    // 2.0 Handle wildcard patterns in field names
+    // Note: This is primarily for single-field wildcard resolution in expressions
     if (qualifiedName.contains("*")) {
-      List<String> matchingFields = expandWildcardPattern(qualifiedName, currentFields);
+      List<String> matchingFields =
+          WildcardUtils.expandWildcardPattern(qualifiedName, currentFields);
       if (matchingFields.isEmpty()) {
         throw new IllegalArgumentException(
             String.format(
@@ -303,8 +306,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       if (matchingFields.size() == 1) {
         return context.relBuilder.field(matchingFields.get(0));
       }
-      // For multiple matches, this should be handled at the Project level
-      // This case shouldn't occur in normal field resolution
+      // Multiple matches should be handled at Project level during field expansion
+      // This prevents ambiguous field references in expressions
       throw new IllegalArgumentException(
           String.format(
               "wildcard pattern [%s] matches multiple fields: %s. Use in project context.",
@@ -359,27 +362,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
           String.format(
               "field [%s] not found; input fields are: %s", qualifiedName, currentFields));
     }
-  }
-
-  /**
-   * Expand wildcard pattern to matching field names. Supports prefix (*), suffix (*), and contains
-   * (*) patterns.
-   */
-  private List<String> expandWildcardPattern(String pattern, List<String> availableFields) {
-    return availableFields.stream()
-        .filter(field -> matchesWildcardPattern(pattern, field))
-        .collect(Collectors.toList());
-  }
-
-  /** Check if a field name matches a wildcard pattern. */
-  private boolean matchesWildcardPattern(String pattern, String fieldName) {
-    if (!pattern.contains("*")) {
-      return pattern.equals(fieldName);
-    }
-
-    // Convert wildcard pattern to regex
-    String regex = pattern.replace("*", ".*");
-    return fieldName.matches(regex);
   }
 
   @Override
