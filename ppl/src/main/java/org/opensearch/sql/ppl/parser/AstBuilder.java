@@ -289,16 +289,19 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       fields =
           bodyCtx.wcFieldList().wcFieldExpression().stream()
               .map(this::internalVisitExpression)
+              .distinct()
               .collect(Collectors.toList());
     } else if (bodyCtx.wcSpaceSeparatedFieldList() != null) {
       fields =
           bodyCtx.wcSpaceSeparatedFieldList().wcFieldExpression().stream()
               .map(this::internalVisitExpression)
+              .distinct()
               .collect(Collectors.toList());
     } else if (bodyCtx.wcMixedFieldList() != null) {
       fields =
           bodyCtx.wcMixedFieldList().wcFieldExpression().stream()
               .map(this::internalVisitExpression)
+              .distinct()
               .collect(Collectors.toList());
     } else {
       fields = Collections.emptyList();

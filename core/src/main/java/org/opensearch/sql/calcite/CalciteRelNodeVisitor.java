@@ -111,6 +111,7 @@ import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.calcite.utils.WildcardUtils;
 import org.opensearch.sql.common.patterns.PatternUtils;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
@@ -222,8 +223,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       if (expr instanceof Field field) {
         String fieldName = field.getField().toString();
         if (fieldName.contains("*")) {
-          // Expand wildcard pattern
-          List<String> matchingFields = expandWildcardPattern(fieldName, currentFields);
+          // Expand wildcard pattern using utility method and filter out metadata fields
+          // This supports patterns like "user_*", "*_id", "prefix_*_suffix"
+          List<String> matchingFields =
+              WildcardUtils.expandWildcardPattern(fieldName, currentFields).stream()
+                  .filter(f -> !isMetadataField(f)) // Exclude OpenSearch internal fields
+                  .collect(Collectors.toList());
           if (matchingFields.isEmpty()) {
             throw new IllegalArgumentException(
                 String.format(
@@ -254,44 +259,17 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   /**
-   * Expand wildcard pattern to matching field names. Maintains original field order and excludes
-   * metadata fields by default.
+   * Check if a field is a metadata field that should be excluded from wildcard expansion.
+   *
+   * <p>Metadata fields are OpenSearch internal fields (like _index, _type, _id, etc.) that are
+   * automatically excluded from wildcard patterns to avoid exposing internal implementation details
+   * to users.
+   *
+   * @param fieldName the field name to check
+   * @return true if the field is a metadata field, false otherwise
    */
-  private List<String> expandWildcardPattern(String pattern, List<String> availableFields) {
-    return availableFields.stream()
-        .filter(field -> !isMetadataField(field)) // Exclude metadata fields
-        .filter(field -> matchesWildcardPattern(pattern, field))
-        .collect(Collectors.toList());
-  }
-
-  /** Check if a field is a metadata field. */
   private boolean isMetadataField(String fieldName) {
     return OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(fieldName);
-  }
-
-  /** Check if a field name matches a wildcard pattern. */
-  private boolean matchesWildcardPattern(String pattern, String fieldName) {
-    if (!pattern.contains("*")) {
-      return pattern.equals(fieldName);
-    }
-
-    // Convert wildcard pattern to regex - escape special regex chars except *
-    String regex =
-        pattern
-            .replace(".", "\\.")
-            .replace("[", "\\[")
-            .replace("]", "\\]")
-            .replace("(", "\\(")
-            .replace(")", "\\)")
-            .replace("{", "\\{")
-            .replace("}", "\\}")
-            .replace("+", "\\+")
-            .replace("?", "\\?")
-            .replace("^", "\\^")
-            .replace("$", "\\$")
-            .replace("|", "\\|")
-            .replace("*", ".*");
-    return fieldName.matches(regex);
   }
 
   /** See logic in {@link org.opensearch.sql.analysis.symbol.SymbolTable#lookupAllFields} */
