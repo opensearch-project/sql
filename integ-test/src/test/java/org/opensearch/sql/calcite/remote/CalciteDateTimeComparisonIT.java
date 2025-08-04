@@ -17,6 +17,5 @@ public class CalciteDateTimeComparisonIT extends DateTimeComparisonIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 }
