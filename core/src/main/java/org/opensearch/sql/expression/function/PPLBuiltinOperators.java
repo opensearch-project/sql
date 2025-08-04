@@ -107,34 +107,22 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
 
   public static final SqlOperator COSH =
       adaptMathFunctionToUDF(
-              "cosh",
-              ReturnTypes.DOUBLE.andThen(SqlTypeTransforms.FORCE_NULLABLE),
-              NullPolicy.ANY,
-              PPLOperandTypes.NUMERIC)
+              "cosh", ReturnTypes.DOUBLE_FORCE_NULLABLE, NullPolicy.ANY, PPLOperandTypes.NUMERIC)
           .toUDF("COSH");
 
   public static final SqlOperator SINH =
       adaptMathFunctionToUDF(
-              "sinh",
-              ReturnTypes.DOUBLE.andThen(SqlTypeTransforms.FORCE_NULLABLE),
-              NullPolicy.ANY,
-              PPLOperandTypes.NUMERIC)
+              "sinh", ReturnTypes.DOUBLE_FORCE_NULLABLE, NullPolicy.ANY, PPLOperandTypes.NUMERIC)
           .toUDF("SINH");
 
   public static final SqlOperator RINT =
       adaptMathFunctionToUDF(
-              "rint",
-              ReturnTypes.DOUBLE.andThen(SqlTypeTransforms.FORCE_NULLABLE),
-              NullPolicy.ANY,
-              PPLOperandTypes.NUMERIC)
+              "rint", ReturnTypes.DOUBLE_FORCE_NULLABLE, NullPolicy.ANY, PPLOperandTypes.NUMERIC)
           .toUDF("RINT");
 
   public static final SqlOperator EXPM1 =
       adaptMathFunctionToUDF(
-              "expm1",
-              ReturnTypes.DOUBLE.andThen(SqlTypeTransforms.FORCE_NULLABLE),
-              NullPolicy.ANY,
-              PPLOperandTypes.NUMERIC)
+              "expm1", ReturnTypes.DOUBLE_FORCE_NULLABLE, NullPolicy.ANY, PPLOperandTypes.NUMERIC)
           .toUDF("EXPM1");
 
   // IP comparing functions

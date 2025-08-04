@@ -15,7 +15,7 @@ ABS
 Description
 >>>>>>>>>>>
 
-Usage: abs(x) calculate the abs x.
+Usage: abs(x) calculates the abs x.
 
 Argument type: INTEGER/LONG/FLOAT/DOUBLE
 
@@ -40,7 +40,7 @@ Description
 
 Usage: add(x, y) calculates x plus y.
 
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
+Argument type: INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE
 
 Return type: Wider number between x and y
 
@@ -58,14 +58,14 @@ Example::
 
 
 SUBTRACT
----
+--------
 
 Description
 >>>>>>>>>>>
 
 Usage: subtract(x, y) calculates x minus y.
 
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
+Argument type: INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE
 
 Return type: Wider number between x and y
 
@@ -83,14 +83,14 @@ Example::
 
 
 MULTIPLY
----
+--------
 
 Description
 >>>>>>>>>>>
 
 Usage: multiply(x, y) calculates the multiplication of x and y.
 
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
+Argument type: INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE
 
 Return type: Wider number between x and y. If y equals to 0, then returns NULL.
 
@@ -108,14 +108,14 @@ Example::
 
 
 DIVIDE
----
+------
 
 Description
 >>>>>>>>>>>
 
 Usage: divide(x, y) calculates x divided by y.
 
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
+Argument type: INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE
 
 Return type: Wider number between x and y
 
@@ -138,7 +138,7 @@ ACOS
 Description
 >>>>>>>>>>>
 
-Usage: acos(x) calculate the arc cosine of x. Returns NULL if x is not in the range -1 to 1.
+Usage: acos(x) calculates the arc cosine of x. Returns NULL if x is not in the range -1 to 1.
 
 Argument type: INTEGER/LONG/FLOAT/DOUBLE
 
@@ -209,7 +209,7 @@ Description
 
 Usage: atan2(y, x) calculates the arc tangent of y / x, except that the signs of both arguments are used to determine the quadrant of the result.
 
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
+Argument type: INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE
 
 Return type: DOUBLE
 
@@ -294,7 +294,7 @@ COS
 Description
 >>>>>>>>>>>
 
-Usage: cos(x) calculate the cosine of x, where x is given in radians.
+Usage: cos(x) calculates the cosine of x, where x is given in radians.
 
 Argument type: INTEGER/LONG/FLOAT/DOUBLE
 
@@ -312,12 +312,12 @@ Example::
 
 
 COSH
----
+----
 
 Description
 >>>>>>>>>>>
 
-Usage: cosh(x) calculate the hyperbolic cosine of x, defined as (((e^x) + (e^(-x))) / 2).
+Usage: cosh(x) calculates the hyperbolic cosine of x, defined as (((e^x) + (e^(-x))) / 2).
 
 Argument type: INTEGER/LONG/FLOAT/DOUBLE
 
@@ -340,7 +340,7 @@ COT
 Description
 >>>>>>>>>>>
 
-Usage: cot(x) calculate the cotangent of x. Returns out-of-range error if x equals to 0.
+Usage: cot(x) calculates the cotangent of x. Returns out-of-range error if x equals to 0.
 
 Argument type: INTEGER/LONG/FLOAT/DOUBLE
 
@@ -448,7 +448,7 @@ Example::
 
 
 EXPM1
----
+-----
 
 Description
 >>>>>>>>>>>
@@ -617,7 +617,7 @@ Description
 
 Usage: MOD(n, m) calculates the remainder of the number n divided by m.
 
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
+Argument type: INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE
 
 Return type: Wider type between types of n and m if m is nonzero value. If m equals to 0, then returns NULL.
 
@@ -633,14 +633,14 @@ Example::
 
 
 MODULUS
----
+-------
 
 Description
 >>>>>>>>>>>
 
 Usage: MODULUS(n, m) calculates the remainder of the number n divided by m.
 
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
+Argument type: INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE
 
 Return type: Wider type between types of n and m if m is nonzero value. If m equals to 0, then returns NULL.
 
@@ -684,7 +684,7 @@ Description
 
 Usage: POW(x, y) calculates the value of x raised to the power of y. Bad inputs return NULL result.
 
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
+Argument type: INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE
 
 Return type: DOUBLE
 
@@ -709,7 +709,7 @@ Description
 
 Usage: POWER(x, y) calculates the value of x raised to the power of y. Bad inputs return NULL result.
 
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
+Argument type: INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE
 
 Return type: DOUBLE
 
@@ -822,7 +822,7 @@ Example::
 
 
 SIGNUM
-----
+------
 
 Description
 >>>>>>>>>>>
@@ -852,7 +852,7 @@ SIN
 Description
 >>>>>>>>>>>
 
-Usage: sin(x) calculate the sine of x, where x is given in radians.
+Usage: sin(x) calculates the sine of x, where x is given in radians.
 
 Argument type: INTEGER/LONG/FLOAT/DOUBLE
 
@@ -870,12 +870,12 @@ Example::
 
 
 SINH
----
+----
 
 Description
 >>>>>>>>>>>
 
-Usage: sinh(x) calculate the hyperbolic sine of x, defined as (((e^x) - (e^(-x))) / 2).
+Usage: sinh(x) calculates the hyperbolic sine of x, defined as (((e^x) - (e^(-x))) / 2).
 
 Argument type: INTEGER/LONG/FLOAT/DOUBLE
 
@@ -945,7 +945,7 @@ Example::
 
 
 RINT
----
+----
 
 Description
 >>>>>>>>>>>
