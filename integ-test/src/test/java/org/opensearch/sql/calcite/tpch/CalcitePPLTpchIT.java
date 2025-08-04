@@ -249,8 +249,8 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
     verifySchemaInOrder(
         actual,
         schema("l_shipmode", "string"),
-        schema("high_line_count", "int"),
-        schema("low_line_count", "int"));
+        schema("high_line_count", "bigint"),
+        schema("low_line_count", "bigint"));
     verifyDataRows(actual, rows("MAIL", 5, 5), rows("SHIP", 5, 10));
   }
 
