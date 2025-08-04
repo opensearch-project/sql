@@ -70,7 +70,6 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.PatternMethod;
 import org.opensearch.sql.ast.expression.PatternMode;
-import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFrame;
 import org.opensearch.sql.ast.expression.WindowFrame.FrameType;
@@ -1231,28 +1230,26 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Build group by list - span first, then by field if present
     List<UnresolvedExpression> groupExprList = new ArrayList<>();
     
-    // Add span expression with @timestamp alias
+    // Add span - use @timestamp field
+    UnresolvedExpression spanExpr;
     if (node.getSpanExpression() != null) {
-      groupExprList.add(new Alias("@timestamp", node.getSpanExpression()));
+      spanExpr = node.getSpanExpression();
     } else {
-      // Default span if none specified
-      UnresolvedExpression defaultSpan = AstDSL.span(AstDSL.field("@timestamp"), AstDSL.stringLiteral("1m"), SpanUnit.of("m"));
-      groupExprList.add(new Alias("@timestamp", defaultSpan));
+      // Default to 1 minute span if not specified
+      spanExpr = AstDSL.span(AstDSL.field("@timestamp"), AstDSL.stringLiteral("1"), null);
     }
+    groupExprList.add(spanExpr);
     
-    // Add by field if present with proper alias
+    // Add by field if present
     if (node.getByField() != null) {
-      UnresolvedExpression byField = node.getByField();
-      String byAlias = byField instanceof Field ? 
-          ((Field) byField).getField().toString() : byField.toString();
-      groupExprList.add(new Alias(byAlias, byField));
+      groupExprList.add(node.getByField());
     }
     
     // Perform aggregation with trimming
     Pair<List<RexNode>, List<AggCall>> aggregationAttributes =
         aggregateWithTrimming(groupExprList, aggExprList, context);
     
-    // Schema reordering for timechart: aggregation results first, then group by columns
+    // Schema reordering - aggregation results first, then group by columns
     List<RexNode> outputFields = context.relBuilder.fields();
     int numOfOutputFields = outputFields.size();
     int numOfAggList = aggExprList.size();
@@ -1263,41 +1260,36 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         outputFields.subList(numOfOutputFields - numOfAggList, numOfOutputFields);
     reordered.addAll(aggRexList);
     
-    // Add group by columns (span field first, then by field)
-    List<RexNode> groupByFields = new ArrayList<>();
-    for (int i = 0; i < aggregationAttributes.getLeft().size(); i++) {
-      RexNode groupField = outputFields.get(i);
-      groupByFields.add(groupField);
+    // Add group by columns (timestamp and host)
+    for (int i = 0; i < numOfOutputFields - numOfAggList; i++) {
+      reordered.add(outputFields.get(i));
     }
-    reordered.addAll(groupByFields);
     
-    // Apply proper field names
+    // Create proper field names
     List<String> fieldNames = new ArrayList<>();
     
     // Get aggregation function name
     UnresolvedExpression aggFunc = node.getAggregateFunction();
-    String aggName = "aggr";
-    if (aggFunc instanceof AggregateFunction) {
-      aggName = ((AggregateFunction) aggFunc).getFuncName();
-    } else if (aggFunc instanceof Function) {
-
+    String aggName = "aggr"; // default
+    if (aggFunc instanceof org.opensearch.sql.ast.expression.AggregateFunction) {
+      aggName = ((org.opensearch.sql.ast.expression.AggregateFunction) aggFunc).getFuncName();
     }
     fieldNames.add(aggName);
     
-    fieldNames.add("@timestamp"); // timestamp field
-    
+    // Add by field name first (matches data order)
     if (node.getByField() != null) {
-      String byFieldName = node.getByField() instanceof Field ? 
-          ((Field) node.getByField()).getField().toString() : "host";
+      String byFieldName = node.getByField() instanceof org.opensearch.sql.ast.expression.Field ? 
+          ((org.opensearch.sql.ast.expression.Field) node.getByField()).getField().toString() : "host";
       fieldNames.add(byFieldName);
     }
+    
+    // Add timestamp field name last
+    fieldNames.add("@timestamp");
+    
     context.relBuilder.project(reordered, fieldNames);
     
     // Sort by time (span field) - always first group by field
-    if (!groupByFields.isEmpty()) {
-      RexNode timeField = groupByFields.get(0);
-      context.relBuilder.sort(timeField);
-    }
+    context.relBuilder.sort(context.relBuilder.field(0));
     
     return context.relBuilder.peek();
   }

@@ -396,7 +396,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       // Default span if none specified
       spanExpression = AstDSL.span(
           AstDSL.field("@timestamp"), 
-          AstDSL.stringLiteral("1m"), 
+          AstDSL.intLiteral(1),
           org.opensearch.sql.ast.expression.SpanUnit.of("m"));
     }
     UnresolvedExpression aggregateFunction = internalVisitExpression(ctx.statsFunction());
