@@ -213,7 +213,8 @@ public class PPLAggregateConvertRule extends RelRule<PPLAggregateConvertRule.Con
         new ArrayList<>(relBuilder.fields(IntStream.range(0, groupSetOffset).boxed().toList()));
     parentProjects.addAll(
         newExprOnAggCall.transform(
-            (constructor, name) -> relBuilder.alias(constructor.apply(relBuilder.peek()), name)));
+            (constructor, name) ->
+                aliasMaybe(relBuilder, constructor.apply(relBuilder.peek()), name)));
     relBuilder.project(parentProjects);
     call.transformTo(relBuilder.build());
   }
@@ -255,6 +256,10 @@ public class PPLAggregateConvertRule extends RelRule<PPLAggregateConvertRule.Con
     } else {
       return literalConverter.apply(operand);
     }
+  }
+
+  private RexNode aliasMaybe(RelBuilder builder, RexNode node, String alias) {
+    return alias == null ? node : builder.alias(node, alias);
   }
 
   /** Rule configuration. */

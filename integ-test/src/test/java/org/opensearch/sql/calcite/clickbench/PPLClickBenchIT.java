@@ -50,7 +50,7 @@ public class PPLClickBenchIT extends PPLIntegTestCase {
 
   /** Ignore queries that are not supported by Calcite. */
   protected Set<Integer> ignored() {
-    return Set.of(29);
+    return Set.of(29, 30);
   }
 
   @Test

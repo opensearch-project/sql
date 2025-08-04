@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.clickbench;
 
+import java.util.Set;
 import org.junit.FixMethodOrder;
 import org.junit.runners.MethodSorters;
 
@@ -16,5 +17,10 @@ public class CalcitePPLClickBenchIT extends PPLClickBenchIT {
     super.init();
     enableCalcite();
     disallowCalciteFallback();
+  }
+
+  @Override
+  protected Set<Integer> ignored() {
+    return Set.of(29);
   }
 }
