@@ -478,6 +478,22 @@ public class AstBuilderTest {
   }
 
   @Test
+  public void testSortCommandWithMultipleFieldsAndDesc() {
+    assertEqual(
+        "source=t | sort f1, -f2 desc",
+        sort(
+            relation("t"),
+            field(
+                "f1",
+                exprList(
+                    argument("asc", booleanLiteral(false)), argument("type", nullLiteral()))),
+            field(
+                "f2",
+                exprList(
+                    argument("asc", booleanLiteral(true)), argument("type", nullLiteral())))));
+  }
+
+  @Test
   public void testEvalCommand() {
     assertEqual(
         "source=t | eval r=abs(f)",

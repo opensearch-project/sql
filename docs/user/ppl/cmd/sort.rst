@@ -151,7 +151,28 @@ PPL query::
     | 13             | 28  |
     +----------------+-----+
 
-Example 7: Sort with specifying field type
+Example 7: Sort by multiple fields with desc modifier
+======================================================
+
+The example shows sorting by multiple fields using desc, which reverses the sort order for all specified fields. Gender is reversed from ascending to descending, and the descending age sort is reversed to ascending within each gender group.
+
+PPL query::
+
+    os> source=accounts | sort gender, -age desc | fields account_number, gender, age;
+    fetched rows / total rows = 6/6
+    +----------------+--------+-----+
+    | account_number | gender | age |
+    |----------------+--------+-----|
+    | 20             | M      | 28  |
+    | 1              | M      | 32  |
+    | 18             | M      | 33  |
+    | 6              | M      | 36  |
+    | 13             | F      | 28  |
+    | 16             | F      | 39  |
+    +----------------+--------+-----+
+
+
+Example 8: Sort with specifying field type
 ==================================
 
 The example shows sorting with str() to sort numeric values lexicographically.

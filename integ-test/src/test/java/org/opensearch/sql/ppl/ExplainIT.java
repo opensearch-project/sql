@@ -119,6 +119,17 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testSortWithCountPushDownExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_sort_count_push.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| sort 5 age "
+                + "| fields age"));
+  }
+
+  @Test
   public void testSortWithAggregationExplain() throws IOException {
     // Sorts whose by fields are aggregators should not be pushed down
     String expected = loadExpectedPlan("explain_sort_agg_push.json");
