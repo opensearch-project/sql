@@ -157,7 +157,6 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     client.schedule(
         () -> {
           try {
-            CalcitePlanContext.isExplain.set(true);
             if (format == ExplainFormat.SIMPLE) {
               String logical = RelOptUtil.toString(rel, SqlExplainLevel.NO_ATTRIBUTES);
               listener.onResponse(
@@ -173,6 +172,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
               try (Hook.Closeable closeable = getPhysicalPlanInHook(physical, level)) {
                 if (format == ExplainFormat.EXTENDED) {
                   getCodegenInHook(javaCode);
+                  CalcitePlanContext.isExplain.set(true);
                 }
                 // triggers the hook
                 AccessController.doPrivileged(
