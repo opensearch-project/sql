@@ -32,8 +32,7 @@ public class OpenSearchDedupPushdownRule extends RelRule<OpenSearchDedupPushdown
     final LogicalProject finalOutput = call.rel(0);
     final LogicalFilter numOfDedupFilter = call.rel(1);
     final LogicalProject projectWithWindow = call.rel(2);
-    final LogicalFilter isNotNullFilter = call.rel(3);
-    final CalciteLogicalIndexScan scan = call.rel(4);
+    final CalciteLogicalIndexScan scan = call.rel(3);
     RexLiteral numLiteral =
         PlanUtils.findLiterals(numOfDedupFilter.getCondition(), true).getFirst();
     Integer num = numLiteral.getValueAs(Integer.class);
@@ -90,24 +89,15 @@ public class OpenSearchDedupPushdownRule extends RelRule<OpenSearchDedupPushdown
                                                 .predicate(PlanUtils::containsRowNumberDedup)
                                                 .oneInput(
                                                     b3 ->
-                                                        b3.operand(LogicalFilter.class)
+                                                        b3.operand(CalciteLogicalIndexScan.class)
                                                             .predicate(
-                                                                f ->
-                                                                    f.getCondition().getKind()
-                                                                        == SqlKind.IS_NOT_NULL)
-                                                            .oneInput(
-                                                                b4 ->
-                                                                    b4.operand(
-                                                                            CalciteLogicalIndexScan
-                                                                                .class)
-                                                                        .predicate(
-                                                                            Predicate.not(
-                                                                                    OpenSearchIndexScanRule
-                                                                                        ::isLimitPushed)
-                                                                                .and(
-                                                                                    OpenSearchIndexScanRule
-                                                                                        ::noAggregatePushed))
-                                                                        .noInputs())))));
+                                                                Predicate.not(
+                                                                        OpenSearchIndexScanRule
+                                                                            ::isLimitPushed)
+                                                                    .and(
+                                                                        OpenSearchIndexScanRule
+                                                                            ::noAggregatePushed))
+                                                            .noInputs()))));
 
     @Override
     default OpenSearchDedupPushdownRule toRule() {
