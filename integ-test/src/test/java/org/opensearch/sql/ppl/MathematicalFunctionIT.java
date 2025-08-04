@@ -340,6 +340,14 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testSignum() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source=%s | eval f = signum(age) | fields f", TEST_INDEX_BANK));
+    verifySchema(result, schema("f", null, "int"));
+    verifyDataRows(result, rows(1), rows(1), rows(1), rows(1), rows(1), rows(1), rows(1));
+  }
+
+  @Test
   public void testSqrt() throws IOException {
     JSONObject result =
         executeQuery(String.format("source=%s | eval f = sqrt(age) | fields f", TEST_INDEX_BANK));
@@ -538,14 +546,5 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
         executeQuery(String.format("source=%s | eval f = rint(1.7) | fields f", TEST_INDEX_BANK));
     verifySchema(result, schema("f", null, "double"));
     verifySome(result.getJSONArray("datarows"), rows(Math.rint(1.7)));
-  }
-
-  @Test
-  public void testSignum() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format("source=%s | eval f = signum(-1.1) | fields f", TEST_INDEX_BANK));
-    verifySchema(result, schema("f", null, "integer"));
-    verifySome(result.getJSONArray("datarows"), rows(Math.signum(-1.1)));
   }
 }
