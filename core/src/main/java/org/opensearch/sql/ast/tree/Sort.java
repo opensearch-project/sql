@@ -25,6 +25,7 @@ import org.opensearch.sql.ast.expression.Field;
 @Getter
 public class Sort extends UnresolvedPlan {
   private UnresolvedPlan child;
+  /** Max number of sorted results to return. */
   private final Integer count;
   private final List<Field> sortList;
 

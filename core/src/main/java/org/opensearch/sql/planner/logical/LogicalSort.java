@@ -20,6 +20,7 @@ import org.opensearch.sql.expression.Expression;
 @EqualsAndHashCode(callSuper = true)
 public class LogicalSort extends LogicalPlan {
 
+  /** Max number of sorted results to return. */
   private final Integer count;
   private final List<Pair<SortOption, Expression>> sortList;
 
