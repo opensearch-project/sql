@@ -110,12 +110,13 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testScriptDecodingWithExtendedFormat() throws IOException {
+  public void testSkipScriptEncodingOnExtendedFormat() throws IOException {
+    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
     String query =
         "source=opensearch-sql_test_index_account | where address = '671 Bristol Street' and age -"
             + " 2 = 30 | fields firstname, age, address";
     var result = explainQueryToString(query, true);
-    String expected = loadFromFile("expectedOutput/calcite/explain_script_decoding.json");
+    String expected = loadFromFile("expectedOutput/calcite/explain_skip_script_encoding.json");
     assertJsonEqualsIgnoreId(expected, result);
   }
 
