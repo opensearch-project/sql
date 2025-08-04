@@ -552,6 +552,18 @@ public class ExplainIT extends PPLIntegTestCase {
                 TEST_INDEX_BANK)));
   }
 
+  @Test
+  public void testExplainOnAggregationWithSumEnhancement() throws IOException {
+    String expected = loadExpectedPlan("explain_agg_with_sum_enhancement.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | stats sum(balance), sum(balance + 100), sum(balance - 100),"
+                    + " sum(balance * 100), sum(balance / 100) by gender",
+                TEST_INDEX_BANK)));
+  }
+
   protected String loadExpectedPlan(String fileName) throws IOException {
     String prefix;
     if (isCalciteEnabled()) {
