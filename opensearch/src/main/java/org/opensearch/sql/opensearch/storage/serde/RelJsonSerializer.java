@@ -95,7 +95,7 @@ public class RelJsonSerializer {
       ObjectOutputStream objectOutput = new ObjectOutputStream(output);
       objectOutput.writeObject(envelope);
       objectOutput.flush();
-      return CalcitePlanContext.isExplain.get()
+      return CalcitePlanContext.skipEncoding.get()
           ? rexNodeJson
           : Base64.getEncoder().encodeToString(output.toByteArray());
     } catch (Exception e) {

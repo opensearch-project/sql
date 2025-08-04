@@ -36,7 +36,7 @@ public class CalcitePlanContext {
   public final QueryType queryType;
   public final Integer querySizeLimit;
 
-  public static final ThreadLocal<Boolean> isExplain = ThreadLocal.withInitial(() -> false);
+  public static final ThreadLocal<Boolean> skipEncoding = ThreadLocal.withInitial(() -> false);
 
   @Getter @Setter private boolean isResolvingJoinCondition = false;
   @Getter @Setter private boolean isResolvingSubquery = false;
