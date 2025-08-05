@@ -15,6 +15,7 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -28,9 +29,17 @@ import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
 public class ExtendedRexBuilder extends RexBuilder {
+  /**
+   * Formats double values in PPL using a non-scientific notation, displaying up to 16 digits after
+   * the decimal point. This formatting is consistent with PPL V2.
+   */
+  private static final String DOUBLE_FORMAT = "0.0###############";
+
+  private final RexLiteral doubleFormat;
 
   public ExtendedRexBuilder(RexBuilder rexBuilder) {
     super(rexBuilder.getTypeFactory());
+    doubleFormat = makeLiteral(DOUBLE_FORMAT);
   }
 
   public RexNode coalesce(RexNode... nodes) {
@@ -149,6 +158,15 @@ public class ExtendedRexBuilder extends RexBuilder {
         default -> throw new SemanticCheckException(
             String.format(Locale.ROOT, "Cannot cast from %s to %s", argExprType, udt.name()));
       };
+    }
+    // If casting an approximate numeric (e.g. double) to a character type and no format is
+    // specified,
+    // use the custom double format to ensure non-scientific notation with up to 16 decimal digits.
+    // This patch is necessary because Calcite's built-in CAST converts 0.0 to 0E0 as string.
+    else if (SqlTypeUtil.isApproximateNumeric(exp.getType())
+        && SqlTypeUtil.isCharacter(type)
+        && format.getType().getSqlTypeName() == SqlTypeName.NULL) {
+      return makeCall(type, SqlLibraryOperators.FORMAT_NUMBER, List.of(exp, doubleFormat));
     }
     return super.makeCast(pos, type, exp, matchNullability, safe, format);
   }
