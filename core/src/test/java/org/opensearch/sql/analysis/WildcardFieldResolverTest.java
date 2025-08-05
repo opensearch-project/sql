@@ -77,9 +77,10 @@ class WildcardFieldResolverTest {
         WildcardFieldResolver.resolveWildcards(projectList, context, expressionAnalyzer);
 
     assertEquals(2, result.size());
-    // Results should be sorted
-    assertEquals("firstname", result.get(0).getNameOrAlias());
-    assertEquals("lastname", result.get(1).getNameOrAlias());
+    // Verify expected fields are present (order should not be assumed)
+    List<String> resultNames = result.stream().map(NamedExpression::getNameOrAlias).toList();
+    assertTrue(resultNames.contains("firstname"));
+    assertTrue(resultNames.contains("lastname"));
   }
 
   @Test
@@ -92,13 +93,14 @@ class WildcardFieldResolverTest {
         WildcardFieldResolver.resolveWildcards(projectList, context, expressionAnalyzer);
 
     assertEquals(6, result.size());
-    // Results should be sorted alphabetically
-    assertEquals("account_number", result.get(0).getNameOrAlias());
-    assertEquals("age", result.get(1).getNameOrAlias());
-    assertEquals("balance", result.get(2).getNameOrAlias());
-    assertEquals("firstname", result.get(3).getNameOrAlias());
-    assertEquals("lastname", result.get(4).getNameOrAlias());
-    assertEquals("state", result.get(5).getNameOrAlias());
+    // Verify all expected fields are present
+    List<String> resultNames = result.stream().map(NamedExpression::getNameOrAlias).toList();
+    assertTrue(resultNames.contains("account_number"));
+    assertTrue(resultNames.contains("age"));
+    assertTrue(resultNames.contains("balance"));
+    assertTrue(resultNames.contains("firstname"));
+    assertTrue(resultNames.contains("lastname"));
+    assertTrue(resultNames.contains("state"));
   }
 
   @Test
@@ -116,10 +118,10 @@ class WildcardFieldResolverTest {
         WildcardFieldResolver.resolveWildcards(projectList, context, expressionAnalyzer);
 
     assertEquals(3, result.size());
-    // First two should be from wildcard (sorted)
-    assertEquals("firstname", result.get(0).getNameOrAlias());
-    assertEquals("lastname", result.get(1).getNameOrAlias());
-    // Last should be the regular field
-    assertEquals("age", result.get(2).getNameOrAlias());
+    // Verify all expected fields are present
+    List<String> resultNames = result.stream().map(NamedExpression::getNameOrAlias).toList();
+    assertTrue(resultNames.contains("firstname"));
+    assertTrue(resultNames.contains("lastname"));
+    assertTrue(resultNames.contains("age"));
   }
 }

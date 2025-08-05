@@ -69,7 +69,6 @@ import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PlanUtils;
-import org.opensearch.sql.calcite.utils.WildcardUtils;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
@@ -77,18 +76,48 @@ import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
+/**
+ * Converts AST expressions to Calcite RexNode (row expressions).
+ *
+ * <p>Handles scalar expressions, function arguments, etc. Unlike CalciteRelNodeVisitor which
+ * processes logical plans, this visitor focuses on individual expressions within those plans.
+ *
+ * <p>Converts literals, field references, functions, operators, and subqueries. Wildcards are not
+ * supported - field references must be unambiguous.
+ */
 @RequiredArgsConstructor
 public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalcitePlanContext> {
   private final CalciteRelNodeVisitor planVisitor;
 
+  /**
+   * Analyzes an unresolved expression and converts it to a RexNode.
+   *
+   * @param unresolved The AST expression to analyze
+   * @param context Calcite plan context
+   * @return RexNode representing the expression
+   */
   public RexNode analyze(UnresolvedExpression unresolved, CalcitePlanContext context) {
     return unresolved.accept(this, context);
   }
 
+  /**
+   * Analyzes a list of unresolved expressions and converts them to RexNodes.
+   *
+   * @param list List of AST expressions to analyze
+   * @param context Calcite plan context
+   * @return List of RexNodes representing the expressions
+   */
   public List<RexNode> analyze(List<UnresolvedExpression> list, CalcitePlanContext context) {
     return list.stream().map(u -> u.accept(this, context)).toList();
   }
 
+  /**
+   * Analyzes an expression specifically in the context of a JOIN condition.
+   *
+   * @param unresolved The AST expression to analyze
+   * @param context Calcite plan context
+   * @return RexNode representing the join condition
+   */
   public RexNode analyzeJoinCondition(UnresolvedExpression unresolved, CalcitePlanContext context) {
     return context.resolveJoinCondition(unresolved, this::analyze);
   }
@@ -291,28 +320,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     }
     List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
 
-    // 2.0 Handle wildcard patterns in field names
-    // Note: This is primarily for single-field wildcard resolution in expressions
-    if (qualifiedName.contains("*")) {
-      List<String> matchingFields =
-          WildcardUtils.expandWildcardPattern(qualifiedName, currentFields);
-      if (matchingFields.isEmpty()) {
-        throw new IllegalArgumentException(
-            String.format(
-                "wildcard pattern [%s] matches no fields; input fields are: %s",
-                qualifiedName, currentFields));
-      }
-      // For single match, return the field directly
-      if (matchingFields.size() == 1) {
-        return context.relBuilder.field(matchingFields.get(0));
-      }
-      // Multiple matches should be handled at Project level during field expansion
-      // This prevents ambiguous field references in expressions
-      throw new IllegalArgumentException(
-          String.format(
-              "wildcard pattern [%s] matches multiple fields: %s. Use in project context.",
-              qualifiedName, matchingFields));
-    }
+    // Note: Wildcards are not supported in expression contexts (WHERE, ORDER BY, etc.)
+    // They should only be used in PROJECT contexts and are handled by CalciteRelNodeVisitor
 
     if (currentFields.contains(qualifiedName)) {
       // 2.1 resolve QualifiedName from stack top
