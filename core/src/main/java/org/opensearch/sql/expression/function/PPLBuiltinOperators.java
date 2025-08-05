@@ -77,6 +77,7 @@ import org.opensearch.sql.expression.function.udf.math.CRC32Function;
 import org.opensearch.sql.expression.function.udf.math.ConvFunction;
 import org.opensearch.sql.expression.function.udf.math.DivideFunction;
 import org.opensearch.sql.expression.function.udf.math.EulerFunction;
+import org.opensearch.sql.expression.function.udf.math.FormatNumberFunction;
 import org.opensearch.sql.expression.function.udf.math.ModFunction;
 
 /** Defines functions and operators that are implemented only by PPL */
@@ -355,6 +356,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
       RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("query_string", false);
   public static final SqlOperator MULTI_MATCH =
       RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("multi_match", false);
+  public static final SqlOperator FORMAT_NUMBER = new FormatNumberFunction().toUDF("FORMAT_NUMBER");
 
   /**
    * Returns the PPL specific operator table, creating it if necessary.

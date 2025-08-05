@@ -15,7 +15,6 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
-import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -29,17 +28,9 @@ import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
 public class ExtendedRexBuilder extends RexBuilder {
-  /**
-   * Formats double values in PPL using a non-scientific notation, displaying up to 16 digits after
-   * the decimal point. This formatting is consistent with PPL V2.
-   */
-  private static final String DOUBLE_FORMAT = "0.0###############";
-
-  private final RexLiteral doubleFormat;
 
   public ExtendedRexBuilder(RexBuilder rexBuilder) {
     super(rexBuilder.getTypeFactory());
-    doubleFormat = makeLiteral(DOUBLE_FORMAT);
   }
 
   public RexNode coalesce(RexNode... nodes) {
@@ -166,7 +157,9 @@ public class ExtendedRexBuilder extends RexBuilder {
     else if (SqlTypeUtil.isApproximateNumeric(exp.getType())
         && SqlTypeUtil.isCharacter(type)
         && format.getType().getSqlTypeName() == SqlTypeName.NULL) {
-      return makeCall(type, SqlLibraryOperators.FORMAT_NUMBER, List.of(exp, doubleFormat));
+      // Use a custom FORMAT_NUMBER which first convert the number to a BigDecimal, then
+      // calls SqlFunctions.formatNumber
+      return makeCall(type, PPLBuiltinOperators.FORMAT_NUMBER, List.of(exp));
     }
     return super.makeCast(pos, type, exp, matchNullability, safe, format);
   }
