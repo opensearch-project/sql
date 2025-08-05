@@ -43,7 +43,7 @@ public class PointInTime extends Paginate {
   @Override
   protected void loadFirstBatch() {
     // Check if this table has JOIN_TIME_OUT hint configured
-    if (request.hasJoinTimeoutHint()) {
+    if (request.getHintJoinTimeout() != null) {
       TimeValue customTimeout = request.getHintJoinTimeout();
       LOG.info(
           "PointInTime: Creating PIT with JOIN_TIME_OUT hint: {} seconds",
@@ -78,7 +78,7 @@ public class PointInTime extends Paginate {
     if (hits != null && hits.length > 0) {
       Object[] sortValues = hits[hits.length - 1].getSortValues();
 
-      LOG.info("Loading next batch of response using Point In Time. - " + truncatePitId(pitId));
+      LOG.info("Loading next batch of response using Point In Time. - " + pitId);
       searchResponse =
           request
               .getRequestBuilder()
@@ -88,11 +88,5 @@ public class PointInTime extends Paginate {
               .searchAfter(sortValues)
               .get();
     }
-  }
-
-  private String truncatePitId(String pitId) {
-    if (pitId == null) return "null";
-    if (pitId.length() <= 20) return pitId;
-    return pitId.substring(0, 20);
   }
 }

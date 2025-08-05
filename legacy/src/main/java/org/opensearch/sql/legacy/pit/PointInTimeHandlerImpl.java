@@ -82,10 +82,7 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
     try {
       CreatePitResponse pitResponse = execute.get();
       pitId = pitResponse.getId();
-      LOG.info(
-          "Created Point In Time {} with keepalive {} successfully.",
-          truncatePitId(pitId),
-          keepAlive);
+      LOG.info("Created Point In Time {} with keepalive {} successfully.", pitId, keepAlive);
     } catch (InterruptedException | ExecutionException e) {
       throw new RuntimeException("Error occurred while creating PIT.", e);
     }
@@ -99,10 +96,7 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
         client.execute(DeletePitAction.INSTANCE, deletePitRequest);
     try {
       DeletePitResponse deletePitResponse = execute.get();
-      LOG.info(
-          "Delete Point In Time {} status: {}",
-          truncatePitId(pitId),
-          deletePitResponse.status().getStatus());
+      LOG.info("Delete Point In Time {} status: {}", pitId, deletePitResponse.status().getStatus());
     } catch (InterruptedException | ExecutionException e) {
       throw new RuntimeException("Error occurred while deleting PIT.", e);
     }
@@ -127,11 +121,5 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
     LOG.info(
         "Using default PIT keepalive: {} ({}ms)", defaultKeepAlive, defaultKeepAlive.getMillis());
     return defaultKeepAlive;
-  }
-
-  private String truncatePitId(String pitId) {
-    if (pitId == null) return "null";
-    if (pitId.length() <= 20) return pitId;
-    return pitId.substring(0, 20);
   }
 }

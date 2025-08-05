@@ -69,8 +69,4 @@ public class TableInJoinRequestBuilder {
   public void setHintJoinTimeout(TimeValue hintJoinTimeout) {
     this.hintJoinTimeout = hintJoinTimeout;
   }
-
-  public boolean hasJoinTimeoutHint() {
-    return hintJoinTimeout != null;
-  }
 }
