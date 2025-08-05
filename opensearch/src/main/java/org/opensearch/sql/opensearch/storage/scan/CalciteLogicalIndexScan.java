@@ -34,7 +34,6 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.common.setting.Settings;
@@ -109,21 +108,27 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
 
   public AbstractRelNode pushDownFilter(Filter filter) {
     try {
-      List<String> schema = this.getRowType().getFieldNames();
-      Map<String, ExprType> filedTypes = this.osIndex.getFieldTypes();
-      QueryExpression queryExpression =
-          PredicateAnalyzer.analyze_(filter.getCondition(), schema, filedTypes);
-      QueryBuilder queryBuilder = queryExpression.builder();
+      RelDataType rowType = filter.getRowType();
       CalciteLogicalIndexScan newScan = this.copyWithNewSchema(filter.getRowType());
+      List<String> schema = this.getRowType().getFieldNames();
+      Map<String, ExprType> fieldTypes =
+          this.osIndex.getFieldTypes().entrySet().stream()
+              .filter(entry -> schema.contains(entry.getKey()))
+              .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+      QueryExpression queryExpression =
+          PredicateAnalyzer.analyzeExpression(
+              filter.getCondition(), schema, fieldTypes, rowType, getCluster());
       // TODO: handle the case where condition contains a score function
       newScan.pushDownContext.add(
           PushDownAction.of(
-              PushDownType.FILTER,
+              QueryExpression.containsScript(queryExpression)
+                  ? PushDownType.SCRIPT
+                  : PushDownType.FILTER,
               queryExpression.isPartial()
                   ? constructCondition(
                       queryExpression.getAnalyzedNodes(), getCluster().getRexBuilder())
                   : filter.getCondition(),
-              requestBuilder -> requestBuilder.pushDownFilter(queryBuilder)));
+              requestBuilder -> requestBuilder.pushDownFilter(queryExpression.builder())));
 
       // If the query expression is partial, we need to replace the input of the filter with the
       // partial pushed scan and the filter condition with non-pushed-down conditions.
@@ -223,11 +228,11 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               aggregate.getRowType(),
               // Aggregation will eliminate all collations.
               cloneWithoutSort(pushDownContext));
-      List<String> schema = this.getRowType().getFieldNames();
       Map<String, ExprType> fieldTypes = this.osIndex.getFieldTypes();
       List<String> outputFields = aggregate.getRowType().getFieldNames();
       final Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder =
-          AggregateAnalyzer.analyze(aggregate, project, schema, fieldTypes, outputFields);
+          AggregateAnalyzer.analyze(
+              aggregate, project, getRowType(), fieldTypes, outputFields, getCluster());
       Map<String, OpenSearchDataType> extendedTypeMapping =
           aggregate.getRowType().getFieldList().stream()
               .collect(
@@ -237,14 +242,8 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
                           OpenSearchDataType.of(
                               OpenSearchTypeFactory.convertRelDataTypeToExprType(
                                   field.getType()))));
-      newScan.pushDownContext.add(
-          PushDownAction.of(
-              PushDownType.AGGREGATION,
-              aggregate,
-              requestBuilder -> {
-                requestBuilder.pushDownAggregation(aggregationBuilder);
-                requestBuilder.pushTypeMapping(extendedTypeMapping);
-              }));
+      AggPushDownAction action = new AggPushDownAction(aggregationBuilder, extendedTypeMapping);
+      newScan.pushDownContext.add(PushDownAction.of(PushDownType.AGGREGATION, aggregate, action));
       return newScan;
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {

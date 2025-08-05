@@ -10,7 +10,10 @@ import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_PUSHDOWN_RO
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import lombok.Getter;
 import org.apache.calcite.adapter.enumerable.EnumerableMergeJoin;
@@ -20,6 +23,8 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelFieldCollation.Direction;
+import org.apache.calcite.rel.RelFieldCollation.NullDirection;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.TableScan;
@@ -30,16 +35,25 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.NumberUtil;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.search.aggregations.AggregationBuilder;
+import org.opensearch.search.aggregations.AggregationBuilders;
+import org.opensearch.search.aggregations.AggregatorFactories.Builder;
+import org.opensearch.search.aggregations.bucket.composite.CompositeAggregationBuilder;
+import org.opensearch.search.aggregations.bucket.composite.CompositeValuesSourceBuilder;
+import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
 import org.opensearch.search.sort.ScoreSortBuilder;
 import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
+import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 
 /** An abstract relational operator representing a scan of an OpenSearchIndex type. */
@@ -109,6 +123,9 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                       case PROJECT, SORT -> rowCount;
                       case FILTER -> NumberUtil.multiply(
                           rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest));
+                      case SCRIPT -> NumberUtil.multiply(
+                              rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest))
+                          * 1.1;
                       case LIMIT -> Math.min(rowCount, (Integer) action.digest);
                     }
                     * estimateRowCountFactor,
@@ -233,40 +250,45 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
               // Existing collations are overridden (discarded) by the new collations,
               cloneWithoutSort(pushDownContext));
 
-      List<SortBuilder<?>> builders = new ArrayList<>();
-      for (RelFieldCollation collation : collations) {
-        int index = collation.getFieldIndex();
-        String fieldName = this.getRowType().getFieldNames().get(index);
-        RelFieldCollation.Direction direction = collation.getDirection();
-        RelFieldCollation.NullDirection nullDirection = collation.nullDirection;
-        // Default sort order is ASCENDING
-        SortOrder order =
-            RelFieldCollation.Direction.DESCENDING.equals(direction)
-                ? SortOrder.DESC
-                : SortOrder.ASC;
-        // TODO: support script sort and distance sort
-        SortBuilder<?> sortBuilder;
-        if (ScoreSortBuilder.NAME.equals(fieldName)) {
-          sortBuilder = SortBuilders.scoreSort();
-        } else {
-          String missing =
-              switch (nullDirection) {
-                case FIRST -> "_first";
-                case LAST -> "_last";
-                default -> null;
-              };
-          // Keyword field is optimized for sorting in OpenSearch
-          ExprType fieldType = osIndex.getFieldTypes().get(fieldName);
-          String field = OpenSearchTextType.toKeywordSubField(fieldName, fieldType);
-          sortBuilder = SortBuilders.fieldSort(field).missing(missing);
+      AbstractAction action;
+      Object digest;
+      if (pushDownContext.isAggregatePushed) {
+        // Push down the sort into the aggregation bucket
+        ((AggPushDownAction) requireNonNull(pushDownContext.peekLast()).action)
+            .pushDownSortIntoAggBucket(collations);
+        action = requestBuilder -> {};
+        digest = collations;
+      } else {
+        List<SortBuilder<?>> builders = new ArrayList<>();
+        for (RelFieldCollation collation : collations) {
+          int index = collation.getFieldIndex();
+          String fieldName = this.getRowType().getFieldNames().get(index);
+          Direction direction = collation.getDirection();
+          NullDirection nullDirection = collation.nullDirection;
+          // Default sort order is ASCENDING
+          SortOrder order = Direction.DESCENDING.equals(direction) ? SortOrder.DESC : SortOrder.ASC;
+          // TODO: support script sort and distance sort
+          SortBuilder<?> sortBuilder;
+          if (ScoreSortBuilder.NAME.equals(fieldName)) {
+            sortBuilder = SortBuilders.scoreSort();
+          } else {
+            String missing =
+                switch (nullDirection) {
+                  case FIRST -> "_first";
+                  case LAST -> "_last";
+                  default -> null;
+                };
+            // Keyword field is optimized for sorting in OpenSearch
+            ExprType fieldType = osIndex.getFieldTypes().get(fieldName);
+            String field = OpenSearchTextType.toKeywordSubField(fieldName, fieldType);
+            sortBuilder = SortBuilders.fieldSort(field).missing(missing);
+          }
+          builders.add(sortBuilder.order(order));
         }
-        builders.add(sortBuilder.order(order));
+        action = requestBuilder -> requestBuilder.pushDownSort(builders);
+        digest = builders.toString();
       }
-      newScan.pushDownContext.add(
-          PushDownAction.of(
-              PushDownType.SORT,
-              builders.toString(),
-              requestBuilder -> requestBuilder.pushDownSort(builders)));
+      newScan.pushDownContext.add(PushDownAction.of(PushDownType.SORT, digest, action));
       return newScan;
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
@@ -284,6 +306,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     AGGREGATION,
     SORT,
     LIMIT,
+    SCRIPT
     // HIGHLIGHT,
     // NESTED
   }
@@ -311,5 +334,63 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
 
   public interface AbstractAction {
     void apply(OpenSearchRequestBuilder requestBuilder);
+  }
+
+  public static class AggPushDownAction implements AbstractAction {
+
+    private Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder;
+    private final Map<String, OpenSearchDataType> extendedTypeMapping;
+
+    public AggPushDownAction(
+        Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder,
+        Map<String, OpenSearchDataType> extendedTypeMapping) {
+      this.aggregationBuilder = aggregationBuilder;
+      this.extendedTypeMapping = extendedTypeMapping;
+    }
+
+    @Override
+    public void apply(OpenSearchRequestBuilder requestBuilder) {
+      requestBuilder.pushDownAggregation(aggregationBuilder);
+      requestBuilder.pushTypeMapping(extendedTypeMapping);
+    }
+
+    public void pushDownSortIntoAggBucket(List<RelFieldCollation> collations) {
+      // It will always use a single CompositeAggregationBuilder for the aggregation with GroupBy
+      // See {@link AggregateAnalyzer}
+      CompositeAggregationBuilder compositeAggregationBuilder =
+          (CompositeAggregationBuilder) aggregationBuilder.getLeft().getFirst();
+      List<CompositeValuesSourceBuilder<?>> buckets =
+          ((CompositeAggregationBuilder) aggregationBuilder.getLeft().getFirst()).sources();
+      List<CompositeValuesSourceBuilder<?>> newBuckets = new ArrayList<>(buckets.size());
+      List<Integer> selected = new ArrayList<>(collations.size());
+      // Have to put the collation required buckets first, then the rest of buckets.
+      collations.forEach(
+          collation -> {
+            CompositeValuesSourceBuilder<?> bucket = buckets.get(collation.getFieldIndex());
+            Direction direction = collation.getDirection();
+            NullDirection nullDirection = collation.nullDirection;
+            SortOrder order =
+                Direction.DESCENDING.equals(direction) ? SortOrder.DESC : SortOrder.ASC;
+            MissingOrder missingOrder =
+                switch (nullDirection) {
+                  case FIRST -> MissingOrder.FIRST;
+                  case LAST -> MissingOrder.LAST;
+                  default -> MissingOrder.DEFAULT;
+                };
+            newBuckets.add(bucket.order(order).missingOrder(missingOrder));
+            selected.add(collation.getFieldIndex());
+          });
+      IntStream.range(0, buckets.size())
+          .filter(i -> !selected.contains(i))
+          .forEach(i -> newBuckets.add(buckets.get(i)));
+      Builder newAggBuilder = new Builder();
+      compositeAggregationBuilder.getSubAggregations().forEach(newAggBuilder::addAggregator);
+      aggregationBuilder =
+          Pair.of(
+              Collections.singletonList(
+                  AggregationBuilders.composite("composite_buckets", newBuckets)
+                      .subAggregations(newAggBuilder)),
+              aggregationBuilder.getRight());
+    }
   }
 }

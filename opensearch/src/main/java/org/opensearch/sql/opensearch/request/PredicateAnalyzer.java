@@ -37,15 +37,18 @@ import static org.opensearch.index.query.QueryBuilders.rangeQuery;
 import static org.opensearch.index.query.QueryBuilders.regexpQuery;
 import static org.opensearch.index.query.QueryBuilders.termQuery;
 import static org.opensearch.index.query.QueryBuilders.termsQuery;
+import static org.opensearch.index.query.QueryBuilders.wildcardQuery;
+import static org.opensearch.script.Script.DEFAULT_SCRIPT_TYPE;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.MULTI_FIELDS_RELEVANCE_FUNCTION_SET;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.SINGLE_FIELD_RELEVANCE_FUNCTION_SET;
+import static org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.COMPOUNDED_LANG_NAME;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.Range;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.List;
@@ -53,6 +56,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import lombok.Getter;
+import lombok.Setter;
+import org.apache.calcite.DataContext.Variable;
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
@@ -61,6 +67,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
@@ -74,6 +81,8 @@ import org.opensearch.index.mapper.DateFieldMapper;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.RangeQueryBuilder;
+import org.opensearch.index.query.ScriptQueryBuilder;
+import org.opensearch.script.Script;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.type.ExprSqlType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
@@ -82,6 +91,10 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
+import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.ReferenceFieldVisitor;
+import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.UnsupportedScriptException;
+import org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.ScriptEngineType;
+import org.opensearch.sql.opensearch.storage.script.StringUtils;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchBoolPrefixQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchPhrasePrefixQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchPhraseQuery;
@@ -89,6 +102,8 @@ import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.Matc
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MultiMatchQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.QueryStringQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.SimpleQueryStringQuery;
+import org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer;
+import org.opensearch.sql.opensearch.storage.serde.SerializationWrapper;
 
 /**
  * Query predicate analyzer. Uses visitor pattern to traverse existing expression and convert it to
@@ -138,25 +153,48 @@ public class PredicateAnalyzer {
    *
    * @param expression expression to analyze
    * @param schema current schema of scan operator
-   * @param filedTypes mapping of OpenSearch field name to ExprType, nested fields are flattened
+   * @param fieldTypes mapping of OpenSearch field name to ExprType, nested fields are flattened
    * @return search query which can be used to query OS cluster
    * @throws ExpressionNotAnalyzableException when expression can't processed by this analyzer
    */
   public static QueryBuilder analyze(
-      RexNode expression, List<String> schema, Map<String, ExprType> filedTypes)
+      RexNode expression, List<String> schema, Map<String, ExprType> fieldTypes)
       throws ExpressionNotAnalyzableException {
-    return analyze_(expression, schema, filedTypes).builder();
+    return analyze(expression, schema, fieldTypes, null, null);
   }
 
-  public static QueryExpression analyze_(
-      RexNode expression, List<String> schema, Map<String, ExprType> filedTypes)
+  public static QueryBuilder analyze(
+      RexNode expression,
+      List<String> schema,
+      Map<String, ExprType> fieldTypes,
+      RelDataType rowType,
+      RelOptCluster cluster)
+      throws ExpressionNotAnalyzableException {
+    return analyzeExpression(expression, schema, fieldTypes, rowType, cluster).builder();
+  }
+
+  public static QueryExpression analyzeExpression(
+      RexNode expression,
+      List<String> schema,
+      Map<String, ExprType> fieldTypes,
+      RelDataType rowType,
+      RelOptCluster cluster)
       throws ExpressionNotAnalyzableException {
     requireNonNull(expression, "expression");
     try {
-      return (QueryExpression) expression.accept(new Visitor(schema, filedTypes));
+      // visits expression tree
+      QueryExpression queryExpression =
+          (QueryExpression) expression.accept(new Visitor(schema, fieldTypes, rowType, cluster));
+      return queryExpression;
     } catch (Throwable e) {
-      Throwables.throwIfInstanceOf(e, UnsupportedOperationException.class);
-      throw new ExpressionNotAnalyzableException("Can't convert " + expression, e);
+      if (e instanceof UnsupportedScriptException) {
+        throw new ExpressionNotAnalyzableException("Can't convert " + expression, e);
+      }
+      try {
+        return new ScriptQueryExpression(expression, rowType, fieldTypes, cluster);
+      } catch (Throwable e2) {
+        throw new ExpressionNotAnalyzableException("Can't convert " + expression, e2);
+      }
     }
   }
 
@@ -164,17 +202,25 @@ public class PredicateAnalyzer {
   private static class Visitor extends RexVisitorImpl<Expression> {
 
     List<String> schema;
-    Map<String, ExprType> filedTypes;
+    Map<String, ExprType> fieldTypes;
+    RelDataType rowType;
+    RelOptCluster cluster;
 
-    private Visitor(List<String> schema, Map<String, ExprType> filedTypes) {
+    private Visitor(
+        List<String> schema,
+        Map<String, ExprType> fieldTypes,
+        RelDataType rowType,
+        RelOptCluster cluster) {
       super(true);
       this.schema = schema;
-      this.filedTypes = filedTypes;
+      this.fieldTypes = fieldTypes;
+      this.rowType = rowType;
+      this.cluster = cluster;
     }
 
     @Override
     public Expression visitInputRef(RexInputRef inputRef) {
-      return new NamedFieldExpression(inputRef, schema, filedTypes);
+      return new NamedFieldExpression(inputRef, schema, fieldTypes);
     }
 
     @Override
@@ -281,7 +327,8 @@ public class PredicateAnalyzer {
         case SPECIAL:
           return switch (call.getKind()) {
             case CAST -> toCastExpression(call);
-            case LIKE, CONTAINS -> binary(call);
+            case CONTAINS -> binary(call);
+            case LIKE -> like(call);
             default -> {
               String message = format(Locale.ROOT, "Unsupported call: [%s]", call);
               throw new PredicateAnalyzerException(message);
@@ -299,7 +346,10 @@ public class PredicateAnalyzer {
     private QueryExpression visitRelevanceFunc(RexCall call) {
       String funcName = call.getOperator().getName().toLowerCase(Locale.ROOT);
       List<RexNode> ops = call.getOperands();
-      assert ops.size() >= 2 : "Relevance query function should at least have 2 operands";
+      if (ops.size() < 2) {
+        throw new PredicateAnalyzerException(
+            "Relevance query function should at least have 2 operands");
+      }
 
       if (SINGLE_FIELD_RELEVANCE_FUNCTION_SET.contains(funcName)) {
         List<Expression> fieldQueryOperands =
@@ -486,8 +536,6 @@ public class PredicateAnalyzer {
       switch (call.getKind()) {
         case CONTAINS:
           return QueryExpression.create(pair.getKey()).contains(pair.getValue());
-        case LIKE:
-          throw new UnsupportedOperationException("LIKE not yet supported");
         case EQUALS:
           return QueryExpression.create(pair.getKey()).equals(pair.getValue());
         case NOT_EQUALS:
@@ -533,6 +581,16 @@ public class PredicateAnalyzer {
       throw new PredicateAnalyzerException(message);
     }
 
+    private QueryExpression like(RexCall call) {
+      // The third default escape is not used here. It's handled by
+      // StringUtils.convertSqlWildcardToLucene
+      checkState(call.getOperands().size() == 3);
+      final Expression a = call.getOperands().get(0).accept(this);
+      final Expression b = call.getOperands().get(1).accept(this);
+      final SwapResult pair = swap(a, b);
+      return QueryExpression.create(pair.getKey()).like(pair.getValue());
+    }
+
     private static QueryExpression constructQueryExpressionForSearch(
         RexCall call, SwapResult pair) {
       if (isSearchWithComplementedPoints(call)) {
@@ -563,22 +621,28 @@ public class PredicateAnalyzer {
     }
 
     private QueryExpression andOr(RexCall call) {
+      // For function isEmpty and isBlank, we implement them via expression `isNull or {@function}`,
+      // Unlike `OR` in Java, `SHOULD` in DSL will evaluate both branches and lead to NPE.
+      if (call.getKind() == SqlKind.OR
+          && call.getOperands().size() == 2
+          && (call.getOperands().get(0).getKind() == SqlKind.IS_NULL
+              || call.getOperands().get(1).getKind() == SqlKind.IS_NULL)) {
+        throw new UnsupportedScriptException(
+            "DSL will evaluate both branches of OR with isNUll, prevent push-down to avoid NPE");
+      }
+
       QueryExpression[] expressions = new QueryExpression[call.getOperands().size()];
       PredicateAnalyzerException firstError = null;
       boolean partial = false;
       int failedCount = 0;
       for (int i = 0; i < call.getOperands().size(); i++) {
+        RexNode operand = call.getOperands().get(i);
         try {
-          Expression expr = call.getOperands().get(i).accept(this);
-          if (expr instanceof NamedFieldExpression) {
-            // nop currently
-          } else {
-            expressions[i] = (QueryExpression) call.getOperands().get(i).accept(this);
-            // Update or simplify the analyzed node list if it is not partial.
-            if (!expressions[i].isPartial())
-              expressions[i].updateAnalyzedNodes(call.getOperands().get(i));
+          Expression expr = tryAnalyzeOperand(operand);
+          if (expr instanceof QueryExpression) {
+            expressions[i] = (QueryExpression) expr;
+            partial |= expressions[i].isPartial();
           }
-          partial |= expressions[i].isPartial();
         } catch (PredicateAnalyzerException e) {
           if (firstError == null) {
             firstError = e;
@@ -587,7 +651,7 @@ public class PredicateAnalyzer {
           ++failedCount;
           // If we cannot analyze the operand, wrap the RexNode with UnAnalyzableQueryExpression and
           // record them in the array. We will reuse them later.
-          expressions[i] = new UnAnalyzableQueryExpression(call.getOperands().get(i));
+          expressions[i] = new UnAnalyzableQueryExpression(operand);
         }
       }
 
@@ -612,6 +676,30 @@ public class PredicateAnalyzer {
         default:
           String message = format(Locale.ROOT, "Unable to handle call: [%s]", call);
           throw new PredicateAnalyzerException(message);
+      }
+    }
+
+    private Expression tryAnalyzeOperand(RexNode node) {
+      try {
+        Expression expr = node.accept(this);
+        if (expr instanceof NamedFieldExpression) {
+          return expr;
+        }
+        QueryExpression qe = (QueryExpression) expr;
+        if (!qe.isPartial()) {
+          qe.updateAnalyzedNodes(node);
+        }
+        return qe;
+      } catch (PredicateAnalyzerException firstFailed) {
+        try {
+          QueryExpression qe = new ScriptQueryExpression(node, rowType, fieldTypes, cluster);
+          if (!qe.isPartial()) {
+            qe.updateAnalyzedNodes(node);
+          }
+          return qe;
+        } catch (UnsupportedScriptException secondFailed) {
+          throw new PredicateAnalyzerException(secondFailed);
+        }
       }
     }
 
@@ -867,6 +955,12 @@ public class PredicateAnalyzer {
         throw new PredicateAnalyzerException(message);
       }
     }
+
+    public static boolean containsScript(QueryExpression expression) {
+      return expression instanceof ScriptQueryExpression
+          || (expression instanceof CompoundQueryExpression
+              && ((CompoundQueryExpression) expression).containsScript());
+    }
   }
 
   @Getter
@@ -906,11 +1000,15 @@ public class PredicateAnalyzer {
     private final BoolQueryBuilder builder;
     @Getter private List<RexNode> analyzedNodes = new ArrayList<>();
     @Getter private final List<RexNode> unAnalyzableNodes = new ArrayList<>();
+    @Setter private boolean containsScript;
 
     public static CompoundQueryExpression or(QueryExpression... expressions) {
       CompoundQueryExpression bqe = new CompoundQueryExpression(false);
       for (QueryExpression expression : expressions) {
         bqe.builder.should(expression.builder());
+        if (QueryExpression.containsScript(expression)) {
+          bqe.setContainsScript(true);
+        }
       }
       return bqe;
     }
@@ -929,23 +1027,36 @@ public class PredicateAnalyzer {
         bqe.unAnalyzableNodes.addAll(expression.getUnAnalyzableNodes());
         if (!(expression instanceof UnAnalyzableQueryExpression)) {
           bqe.builder.must(expression.builder());
+          if (QueryExpression.containsScript(expression)) {
+            bqe.setContainsScript(true);
+          }
         }
       }
       return bqe;
     }
 
     private CompoundQueryExpression(boolean partial) {
-      this(partial, boolQuery());
+      this(partial, boolQuery(), false);
     }
 
     private CompoundQueryExpression(boolean partial, BoolQueryBuilder builder) {
+      this(partial, builder, false);
+    }
+
+    private CompoundQueryExpression(
+        boolean partial, BoolQueryBuilder builder, boolean containsScript) {
       this.partial = partial;
       this.builder = requireNonNull(builder, "builder");
+      this.containsScript = containsScript;
     }
 
     @Override
     public boolean isPartial() {
       return partial;
+    }
+
+    public boolean containsScript() {
+      return containsScript;
     }
 
     @Override
@@ -1037,10 +1148,24 @@ public class PredicateAnalyzer {
       return this;
     }
 
+    /*
+     * Prefer to run wildcard query for keyword type field. For text type field, it doesn't support
+     * cross term match because OpenSearch internally break text to multiple terms and apply wildcard
+     * matching one by one, which is not same behavior with regular like function without pushdown.
+     */
     @Override
     public QueryExpression like(LiteralExpression literal) {
-      builder = regexpQuery(getFieldReference(), literal.stringValue());
-      return this;
+      String fieldName = getFieldReference();
+      String keywordField = OpenSearchTextType.toKeywordSubField(fieldName, this.rel.getExprType());
+      boolean isKeywordField = keywordField != null;
+      if (isKeywordField) {
+        builder =
+            wildcardQuery(
+                    keywordField, StringUtils.convertSqlWildcardToLuceneSafe(literal.stringValue()))
+                .caseInsensitive(true);
+        return this;
+      }
+      throw new UnsupportedOperationException("Like query is not supported for text field");
     }
 
     @Override
@@ -1223,6 +1348,60 @@ public class PredicateAnalyzer {
     // https://github.com/opensearch-project/sql/pull/3442
   }
 
+  public static class ScriptQueryExpression extends QueryExpression {
+    private final String code;
+    private RexNode analyzedNode;
+
+    public ScriptQueryExpression(
+        RexNode rexNode,
+        RelDataType rowType,
+        Map<String, ExprType> fieldTypes,
+        RelOptCluster cluster) {
+      ReferenceFieldVisitor validator = new ReferenceFieldVisitor(rowType, fieldTypes, true);
+      // Dry run visitInputRef to make sure the input reference ExprType is valid for script
+      // pushdown
+      validator.visitEach(List.of(rexNode));
+      RelJsonSerializer serializer = new RelJsonSerializer(cluster);
+      this.code =
+          SerializationWrapper.wrapWithLangType(
+              ScriptEngineType.CALCITE, serializer.serialize(rexNode, rowType, fieldTypes));
+    }
+
+    @Override
+    public QueryBuilder builder() {
+      return new ScriptQueryBuilder(getScript());
+    }
+
+    public Script getScript() {
+      long currentTime = Hook.CURRENT_TIME.get(-1L);
+      if (currentTime < 0) {
+        throw new UnsupportedScriptException(
+            "ScriptQueryExpression requires a valid current time from hook, but it is not set");
+      }
+      return new Script(
+          DEFAULT_SCRIPT_TYPE,
+          COMPOUNDED_LANG_NAME,
+          code,
+          Collections.emptyMap(),
+          Map.of(Variable.UTC_TIMESTAMP.camelName, currentTime));
+    }
+
+    @Override
+    public List<RexNode> getAnalyzedNodes() {
+      return List.of(analyzedNode);
+    }
+
+    @Override
+    public void updateAnalyzedNodes(RexNode rexNode) {
+      this.analyzedNode = rexNode;
+    }
+
+    @Override
+    public List<RexNode> getUnAnalyzableNodes() {
+      return List.of();
+    }
+  }
+
   /**
    * By default, range queries on date/time need use the format of the source to parse the literal.
    * So we need to specify that the literal has "date_time" format
@@ -1271,14 +1450,20 @@ public class PredicateAnalyzer {
   }
 
   /** Used for bind variables. */
-  static final class NamedFieldExpression implements TerminalExpression {
+  public static final class NamedFieldExpression implements TerminalExpression {
 
     private final String name;
     private final ExprType type;
 
-    NamedFieldExpression(int refIndex, List<String> schema, Map<String, ExprType> filedTypes) {
+    public NamedFieldExpression(
+        int refIndex, List<String> schema, Map<String, ExprType> filedTypes) {
       this.name = refIndex >= schema.size() ? null : schema.get(refIndex);
       this.type = filedTypes.get(name);
+    }
+
+    public NamedFieldExpression(String name, ExprType type) {
+      this.name = name;
+      this.type = type;
     }
 
     private NamedFieldExpression() {
@@ -1298,7 +1483,7 @@ public class PredicateAnalyzer {
       this.type = null;
     }
 
-    String getRootName() {
+    public String getRootName() {
       return name;
     }
 
@@ -1326,7 +1511,7 @@ public class PredicateAnalyzer {
       return getRootName();
     }
 
-    String getReferenceForTermQuery() {
+    public String getReferenceForTermQuery() {
       return OpenSearchTextType.toKeywordSubField(getRootName(), this.type);
     }
   }
@@ -1365,6 +1550,10 @@ public class PredicateAnalyzer {
 
     boolean isFractional() {
       return SqlTypeName.FRACTIONAL_TYPES.contains(literal.getType().getSqlTypeName());
+    }
+
+    boolean isDecimal() {
+      return SqlTypeName.DECIMAL == literal.getType().getSqlTypeName();
     }
 
     boolean isBoolean() {

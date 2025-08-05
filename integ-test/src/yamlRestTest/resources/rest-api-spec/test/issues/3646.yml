@@ -32,7 +32,6 @@ setup:
         body:
           transient:
             plugins.calcite.enabled : true
-            plugins.calcite.fallback.allowed : false
 
 ---
 teardown:
@@ -41,7 +40,6 @@ teardown:
         body:
           transient:
             plugins.calcite.enabled : false
-            plugins.calcite.fallback.allowed : true
 
 ---
 "Path of alias type points to nested field":
