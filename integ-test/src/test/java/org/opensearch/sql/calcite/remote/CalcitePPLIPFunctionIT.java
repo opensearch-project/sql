@@ -21,7 +21,6 @@ public class CalcitePPLIPFunctionIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
 
     loadIndex(Index.GEOIP);
     loadIndex(Index.WEBLOG);

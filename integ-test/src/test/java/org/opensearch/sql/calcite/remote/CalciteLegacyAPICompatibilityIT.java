@@ -12,6 +12,5 @@ public class CalciteLegacyAPICompatibilityIT extends LegacyAPICompatibilityIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 }

@@ -24,7 +24,6 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK);
     enableCalcite();
-    disallowCalciteFallback();
   }
 
   // Basic field selection tests - table command only (fields covered in FieldsCommandIT)

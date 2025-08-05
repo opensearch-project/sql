@@ -12,6 +12,5 @@ public class CalciteMathematicalFunctionIT extends MathematicalFunctionIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 }

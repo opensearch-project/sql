@@ -39,7 +39,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   public void init() throws IOException {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
 
     loadIndex(Index.STATE_COUNTRY);
     loadIndex(Index.DATE_FORMATS);

@@ -34,7 +34,6 @@ teardown:
         body:
           transient:
             plugins.calcite.enabled : false
-            plugins.calcite.fallback.allowed : true
 
 ---
 "Support match_only_text field type with Calcite enabled":
@@ -43,7 +42,6 @@ teardown:
         body:
           transient:
             plugins.calcite.enabled : true
-            plugins.calcite.fallback.allowed : false
 
   - do:
       headers:

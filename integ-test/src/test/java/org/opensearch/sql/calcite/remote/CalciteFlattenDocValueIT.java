@@ -12,6 +12,5 @@ public class CalciteFlattenDocValueIT extends FlattenDocValueIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 }

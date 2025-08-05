@@ -16,7 +16,6 @@ public class CalciteQueryAnalysisIT extends QueryAnalysisIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 
   @Override

@@ -27,6 +27,5 @@ public class CalciteNowLikeFunctionIT extends NowLikeFunctionIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 }

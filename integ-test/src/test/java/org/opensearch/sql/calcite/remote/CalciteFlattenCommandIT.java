@@ -30,7 +30,6 @@ public class CalciteFlattenCommandIT extends PPLIntegTestCase {
     super.init();
     loadIndex(NESTED_WITHOUT_ARRAYS);
     enableCalcite();
-    disallowCalciteFallback();
   }
 
   @Test

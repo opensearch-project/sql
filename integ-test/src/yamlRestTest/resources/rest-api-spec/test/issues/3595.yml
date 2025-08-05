@@ -4,7 +4,6 @@ setup:
         body:
           transient:
             plugins.calcite.enabled : true
-            plugins.calcite.fallback.allowed : false
             plugins.query.size_limit : 1
 
 ---
@@ -14,7 +13,6 @@ teardown:
         body:
           transient:
             plugins.calcite.enabled : false
-            plugins.calcite.fallback.allowed : true
 
 ---
 "Handle lookup command with query size limit is 1":

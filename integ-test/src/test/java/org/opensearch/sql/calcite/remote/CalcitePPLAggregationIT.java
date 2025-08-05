@@ -32,7 +32,6 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
 
     loadIndex(Index.BANK);
     loadIndex(Index.BANK_WITH_NULL_VALUES);

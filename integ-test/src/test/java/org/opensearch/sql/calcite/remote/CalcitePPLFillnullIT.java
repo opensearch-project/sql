@@ -22,7 +22,6 @@ public class CalcitePPLFillnullIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
 
     loadIndex(Index.STATE_COUNTRY_WITH_NULL);
   }

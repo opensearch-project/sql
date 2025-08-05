@@ -23,7 +23,6 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
 
     loadIndex(Index.WEBLOG);
     appendDataForBadResponse();

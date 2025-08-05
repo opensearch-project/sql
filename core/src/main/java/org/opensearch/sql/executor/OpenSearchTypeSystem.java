@@ -5,10 +5,14 @@
 
 package org.opensearch.sql.executor;
 
+import static org.apache.calcite.sql.type.SqlTypeName.APPROX_TYPES;
+import static org.apache.calcite.sql.type.SqlTypeName.INT_TYPES;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
+import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 public class OpenSearchTypeSystem extends RelDataTypeSystemImpl {
@@ -20,12 +24,28 @@ public class OpenSearchTypeSystem extends RelDataTypeSystemImpl {
   public RelDataType deriveAvgAggType(RelDataTypeFactory typeFactory, RelDataType argumentType) {
     if (SqlTypeName.DECIMAL == argumentType.getSqlTypeName()) {
       return typeFactory.createTypeWithNullability(highPrecision(typeFactory, argumentType), false);
-    } else if (SqlTypeName.INT_TYPES.contains(argumentType.getSqlTypeName())) {
+    } else if (INT_TYPES.contains(argumentType.getSqlTypeName())) {
       return typeFactory.createTypeWithNullability(
           typeFactory.createSqlType(SqlTypeName.DOUBLE), false);
     } else {
       return argumentType;
     }
+  }
+
+  @Override
+  public RelDataType deriveSumType(RelDataTypeFactory typeFactory, RelDataType argumentType) {
+    argumentType = super.deriveSumType(typeFactory, argumentType);
+    if (argumentType instanceof BasicSqlType) {
+      SqlTypeName typeName = argumentType.getSqlTypeName();
+      if (INT_TYPES.contains(typeName)) {
+        return typeFactory.createTypeWithNullability(
+            typeFactory.createSqlType(SqlTypeName.BIGINT), argumentType.isNullable());
+      } else if (APPROX_TYPES.contains(typeName)) {
+        return typeFactory.createTypeWithNullability(
+            typeFactory.createSqlType(SqlTypeName.DOUBLE), argumentType.isNullable());
+      }
+    }
+    return argumentType;
   }
 
   /**
