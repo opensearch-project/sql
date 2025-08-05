@@ -35,11 +35,19 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.immutables.value.Value;
 
 /**
- * Planner rule that converts specific aggCall to a more efficient expressions, which includes: -
- * SUM(FIELD + NUMBER) -> SUM(FIELD) + NUMBER * COUNT() - SUM(FIELD - NUMBER) -> SUM(FIELD) - NUMBER
- * * COUNT() - SUM(FIELD * NUMBER) -> SUM(FIELD) * NUMBER - SUM(FIELD / NUMBER) -> SUM(FIELD) /
- * NUMBER, Don't support this because of integer division - MAX/MIN(FIELD [+|-|*|+|/] NUMBER) ->
- * MAX/MIN(FIELD) [+|-|*|+|/] NUMBER
+ * Planner rule that converts specific aggCall to a more efficient expressions, which includes:
+ *
+ * <p>- SUM(FIELD + NUMBER) -> SUM(FIELD) + NUMBER * COUNT()
+ *
+ * <p>- SUM(FIELD - NUMBER) -> SUM(FIELD) - NUMBER * COUNT()
+ *
+ * <p>- SUM(FIELD * NUMBER) -> SUM(FIELD) * NUMBER
+ *
+ * <p>- SUM(FIELD / NUMBER) -> SUM(FIELD) / NUMBER, Don't support this because of precision issue
+ *
+ * <p>TODO:
+ *
+ * <p>- AVG/MAX/MIN(FIELD [+|-|*|+|/] NUMBER) -> AVG/MAX/MIN(FIELD) [+|-|*|+|/] NUMBER
  */
 @Value.Enclosing
 public class PPLAggregateConvertRule extends RelRule<PPLAggregateConvertRule.Config> {
@@ -63,7 +71,7 @@ public class PPLAggregateConvertRule extends RelRule<PPLAggregateConvertRule.Con
     }
   }
 
-  protected void apply(RelOptRuleCall call, LogicalAggregate aggregate, LogicalProject project) {
+  public void apply(RelOptRuleCall call, LogicalAggregate aggregate, LogicalProject project) {
 
     final RelBuilder relBuilder = call.builder();
     final RexBuilder rexBuilder = aggregate.getCluster().getRexBuilder();
@@ -235,7 +243,7 @@ public class PPLAggregateConvertRule extends RelRule<PPLAggregateConvertRule.Con
 
   private boolean isConvertableAggCall(AggregateCall aggCall, Project project) {
     return aggCall.getAggregation().getKind() == SqlKind.SUM
-        && Config.isAddWithLiteral(project.getProjects().get(aggCall.getArgList().getFirst()));
+        && Config.isCallWithLiteral(project.getProjects().get(aggCall.getArgList().getFirst()));
   }
 
   private static Pair<RexInputRef, RexLiteral> getFieldAndLiteral(RexNode node) {
@@ -275,7 +283,7 @@ public class PPLAggregateConvertRule extends RelRule<PPLAggregateConvertRule.Con
                         .oneInput(
                             b1 ->
                                 b1.operand(LogicalProject.class)
-                                    .predicate(Config::containsAddWithNumber)
+                                    .predicate(Config::containsCallWithNumber)
                                     .anyInputs()));
 
     static boolean containsSumAggCall(LogicalAggregate aggregate) {
@@ -283,12 +291,11 @@ public class PPLAggregateConvertRule extends RelRule<PPLAggregateConvertRule.Con
           .anyMatch(aggCall -> aggCall.getAggregation().getKind() == SqlKind.SUM);
     }
 
-    static boolean containsAddWithNumber(LogicalProject project) {
-      return project.getProjects().stream().anyMatch(Config::isAddWithLiteral);
+    static boolean containsCallWithNumber(LogicalProject project) {
+      return project.getProjects().stream().anyMatch(Config::isCallWithLiteral);
     }
 
-    // TODO: support more cases like subtract, multiply, divide
-    private static boolean isAddWithLiteral(RexNode node) {
+    private static boolean isCallWithLiteral(RexNode node) {
       if (CONVERTABLE_FUNCTIONS.contains(node.getKind()) && node instanceof RexCall call) {
         RexNode arg1 = call.getOperands().getFirst();
         RexNode arg2 = call.getOperands().getLast();

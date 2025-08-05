@@ -138,6 +138,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
 
   /** See source in {@link org.apache.calcite.rel.core.Aggregate::computeSelfCost} */
   private static float getAggMultiplier(PushDownAction action) {
+    // START CALCITE
     List<AggregateCall> aggCalls = ((Aggregate) action.digest).getAggCallList();
     float multiplier = 1f + (float) aggCalls.size() * 0.125f;
     for (AggregateCall aggCall : aggCalls) {
@@ -147,6 +148,8 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
         multiplier += 0.0125f;
       }
     }
+    // END CALCITE
+
     // For script aggregation, we need to multiply the multiplier by 2.2 to make up the cost. As we
     // prefer to have non-script agg push down after optimized by {@link PPLAggregateConvertRule}
     if (((AggPushDownAction) action.action).isScriptPushed) {
