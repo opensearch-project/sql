@@ -12,7 +12,6 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLit
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
 
 import java.util.Arrays;
@@ -24,14 +23,23 @@ import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.common.utils.StringUtils;
 
-/** Util class to get all arguments as a list from the PPL command. */
+/**
+ * Utility class for extracting arguments from PPL command contexts.
+ *
+ * <p>This factory class provides static methods to parse ANTLR parser contexts and extract
+ * command-specific arguments as Argument objects with proper default values. Each PPL command has
+ * its own argument extraction method.
+ */
 public class ArgumentFactory {
 
   /**
-   * Get list of {@link Argument}.
+   * Extracts arguments from fields command context.
    *
-   * @param ctx FieldsCommandContext instance
-   * @return the list of arguments fetched from the fields command
+   * <p>Determines whether the fields command is in exclude mode based on the presence of MINUS
+   * token in the command body.
+   *
+   * @param ctx FieldsCommandContext instance from ANTLR parser
+   * @return List containing single exclude argument (true if MINUS present, false otherwise)
    */
   public static List<Argument> getArgumentList(FieldsCommandContext ctx) {
     return Collections.singletonList(
@@ -41,23 +49,14 @@ public class ArgumentFactory {
   }
 
   /**
-   * Get list of {@link Argument} for table command (Calcite-only).
+   * Extracts arguments from stats command context with default values.
    *
-   * @param ctx TableCommandContext instance
-   * @return the list of arguments fetched from the table command
-   */
-  public static List<Argument> getArgumentList(TableCommandContext ctx) {
-    return Collections.singletonList(
-        ctx.fieldsCommandBody().MINUS() != null
-            ? new Argument("exclude", new Literal(true, DataType.BOOLEAN))
-            : new Argument("exclude", new Literal(false, DataType.BOOLEAN)));
-  }
-
-  /**
-   * Get list of {@link Argument}.
+   * <p>Parses optional parameters: partitions, allnum, delim, and dedupsplit. Provides sensible
+   * defaults when parameters are not specified.
    *
-   * @param ctx StatsCommandContext instance
-   * @return the list of arguments fetched from the stats command
+   * @param ctx StatsCommandContext instance from ANTLR parser
+   * @return List of arguments with defaults: partitions=1, allnum=false, delim=" ",
+   *     dedupsplit=false
    */
   public static List<Argument> getArgumentList(StatsCommandContext ctx) {
     return Arrays.asList(
@@ -76,10 +75,13 @@ public class ArgumentFactory {
   }
 
   /**
-   * Get list of {@link Argument}.
+   * Extracts arguments from dedup command context with default values.
    *
-   * @param ctx DedupCommandContext instance
-   * @return the list of arguments fetched from the dedup command
+   * <p>Parses deduplication parameters: number of duplicates allowed, whether to keep empty values,
+   * and consecutive deduplication mode.
+   *
+   * @param ctx DedupCommandContext instance from ANTLR parser
+   * @return List of arguments with defaults: number=1, keepempty=false, consecutive=false
    */
   public static List<Argument> getArgumentList(DedupCommandContext ctx) {
     return Arrays.asList(
@@ -95,32 +97,52 @@ public class ArgumentFactory {
   }
 
   /**
-   * Get list of {@link Argument}.
+   * Extracts arguments from sort field context.
    *
-   * @param ctx SortFieldContext instance
-   * @return the list of arguments fetched from the sort field in sort command
+   * <p>Determines sort order (ascending/descending) and field type for sorting. MINUS token
+   * indicates descending order, type is determined from field expression.
+   *
+   * @param ctx SortFieldContext instance from ANTLR parser
+   * @return List of arguments: asc (boolean), type (auto/ip/num/str/null)
    */
   public static List<Argument> getArgumentList(SortFieldContext ctx) {
-    return Arrays.asList(
-        ctx.MINUS() != null
-            ? new Argument("asc", new Literal(false, DataType.BOOLEAN))
-            : new Argument("asc", new Literal(true, DataType.BOOLEAN)),
-        ctx.sortFieldExpression().AUTO() != null
-            ? new Argument("type", new Literal("auto", DataType.STRING))
-            : ctx.sortFieldExpression().IP() != null
-                ? new Argument("type", new Literal("ip", DataType.STRING))
-                : ctx.sortFieldExpression().NUM() != null
-                    ? new Argument("type", new Literal("num", DataType.STRING))
-                    : ctx.sortFieldExpression().STR() != null
-                        ? new Argument("type", new Literal("str", DataType.STRING))
-                        : new Argument("type", new Literal(null, DataType.NULL)));
+    // Determine sort order: MINUS token indicates descending
+    Argument ascArgument = new Argument("asc", new Literal(ctx.MINUS() == null, DataType.BOOLEAN));
+
+    // Determine sort type from field expression
+    Argument typeArgument = getSortTypeArgument(ctx);
+
+    return Arrays.asList(ascArgument, typeArgument);
   }
 
   /**
-   * Get list of {@link Argument}.
+   * Extracts sort type argument from sort field expression.
    *
-   * @param ctx TopCommandContext instance
-   * @return the list of arguments fetched from the top command
+   * @param ctx SortFieldContext containing the field expression
+   * @return Argument with type value (auto/ip/num/str/null)
+   */
+  private static Argument getSortTypeArgument(SortFieldContext ctx) {
+    if (ctx.sortFieldExpression().AUTO() != null) {
+      return new Argument("type", new Literal("auto", DataType.STRING));
+    } else if (ctx.sortFieldExpression().IP() != null) {
+      return new Argument("type", new Literal("ip", DataType.STRING));
+    } else if (ctx.sortFieldExpression().NUM() != null) {
+      return new Argument("type", new Literal("num", DataType.STRING));
+    } else if (ctx.sortFieldExpression().STR() != null) {
+      return new Argument("type", new Literal("str", DataType.STRING));
+    } else {
+      return new Argument("type", new Literal(null, DataType.NULL));
+    }
+  }
+
+  /**
+   * Extracts arguments from top command context with default values.
+   *
+   * <p>Parses parameters for top N results: number of results, count field name, and whether to
+   * show count in output.
+   *
+   * @param ctx TopCommandContext instance from ANTLR parser
+   * @return List of arguments with defaults: noOfResults=10, countField="count", showCount=true
    */
   public static List<Argument> getArgumentList(TopCommandContext ctx) {
     return Arrays.asList(
@@ -136,10 +158,13 @@ public class ArgumentFactory {
   }
 
   /**
-   * Get list of {@link Argument}.
+   * Extracts arguments from rare command context with default values.
    *
-   * @param ctx RareCommandContext instance
-   * @return the list of argument with default number of results for the rare command
+   * <p>Parses parameters for rare N results: number of results, count field name, and whether to
+   * show count in output. Uses same defaults as top command.
+   *
+   * @param ctx RareCommandContext instance from ANTLR parser
+   * @return List of arguments with defaults: noOfResults=10, countField="count", showCount=true
    */
   public static List<Argument> getArgumentList(RareCommandContext ctx) {
     return Arrays.asList(
@@ -155,10 +180,13 @@ public class ArgumentFactory {
   }
 
   /**
-   * parse argument value into Literal.
+   * Parses parser context into appropriate Literal value.
    *
-   * @param ctx ParserRuleContext instance
-   * @return Literal
+   * <p>Determines the literal type based on parser context type and converts the text value
+   * accordingly. Supports integer, boolean, and string literals.
+   *
+   * @param ctx ParserRuleContext instance (IntegerLiteral, BooleanLiteral, or other)
+   * @return Literal object with appropriate DataType and parsed value
    */
   private static Literal getArgumentValue(ParserRuleContext ctx) {
     return ctx instanceof IntegerLiteralContext

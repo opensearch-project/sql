@@ -88,7 +88,6 @@ import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
-import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -371,94 +370,177 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   /**
-   * Build {@link LogicalProject} or {@link LogicalRemove} from {@link Field}.
+   * Build LogicalProject or LogicalRemove from Project node.
    *
-   * <p>Todo, the include/exclude fields should change the env definition. The cons of current
-   * implementation is even the query contain the field reference which has been excluded from
-   * fields command. There is no {@link SemanticCheckException} will be thrown. Instead, the during
-   * runtime evaluation, the not exist field will be resolve to {@link ExprMissingValue} which will
-   * not impact the correctness.
+   * <p>This method handles two main scenarios: - Exclusion mode: Creates a LogicalRemove to exclude
+   * specified fields - Projection mode: Creates a LogicalProject to select specified fields
    *
-   * <p>Postpone the implementation when finding more use case.
+   * <p>The method processes window functions, highlight expressions, wildcard resolution, and
+   * nested field analysis before creating the final logical plan.
+   *
+   * @param node the Project AST node containing field specifications
+   * @param context the analysis context with type environment
+   * @return LogicalRemove for exclusion or LogicalProject for projection
    */
   @Override
   public LogicalPlan visitProject(Project node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
 
-    if (node.hasArgument()) {
-      Argument argument = node.getArgExprList().get(0);
-      Boolean exclude = (Boolean) argument.getValue().getValue();
-      if (exclude) {
-        TypeEnvironment curEnv = context.peek();
-        // Handle wildcards in exclusion patterns
-        List<ReferenceExpression> referenceExpressions = new ArrayList<>();
-        for (UnresolvedExpression expr : node.getProjectList()) {
-          if (expr instanceof Field && ((Field) expr).getField().toString().contains("*")) {
-            // Resolve wildcard patterns for exclusion
-            List<NamedExpression> wildcardFields =
-                WildcardFieldResolver.resolveWildcards(
-                    Collections.singletonList(expr), context, expressionAnalyzer);
-            wildcardFields.forEach(
-                field -> referenceExpressions.add((ReferenceExpression) field.getDelegated()));
-          } else {
-            referenceExpressions.add(
-                (ReferenceExpression) expressionAnalyzer.analyze(expr, context));
-          }
-        }
-        referenceExpressions.forEach(ref -> curEnv.remove(ref));
-        return new LogicalRemove(child, ImmutableSet.copyOf(referenceExpressions));
-      }
+    // Handle field exclusion (fields - field1, field2)
+    if (node.hasArgument() && isExcludeMode(node)) {
+      return buildLogicalRemove(node, child, context);
     }
 
-    // For each unresolved window function, analyze it by "insert" a window and sort operator
-    // between project and its child.
-    for (UnresolvedExpression expr : node.getProjectList()) {
-      WindowExpressionAnalyzer windowAnalyzer =
-          new WindowExpressionAnalyzer(expressionAnalyzer, child);
-      child = windowAnalyzer.analyze(expr, context);
-    }
+    // Process window and highlight expressions
+    child = processWindowAndHighlightExpressions(node.getProjectList(), child, context);
 
-    for (UnresolvedExpression expr : node.getProjectList()) {
-      HighlightAnalyzer highlightAnalyzer = new HighlightAnalyzer(expressionAnalyzer, child);
-      child = highlightAnalyzer.analyze(expr, context);
-    }
+    // Resolve field expressions based on wildcard presence
+    List<NamedExpression> namedExpressions =
+        resolveFieldExpressions(node.getProjectList(), child, context);
 
-    // Check if any field contains wildcards and resolve them
-    boolean hasWildcards =
-        node.getProjectList().stream()
-            .anyMatch(
-                expr ->
-                    expr instanceof Field && ((Field) expr).getField().toString().contains("*"));
+    // Process nested field analysis
+    child = processNestedAnalysis(node.getProjectList(), namedExpressions, child, context);
 
-    List<NamedExpression> namedExpressions;
-    if (hasWildcards) {
-      // Use wildcard resolver for field expansion
-      namedExpressions =
-          WildcardFieldResolver.resolveWildcards(
-              node.getProjectList(), context, expressionAnalyzer);
-    } else {
-      // Use regular expression analyzer
-      namedExpressions =
-          selectExpressionAnalyzer.analyze(
-              node.getProjectList(),
-              context,
-              new ExpressionReferenceOptimizer(expressionAnalyzer.getRepository(), child));
-    }
-
-    for (UnresolvedExpression expr : node.getProjectList()) {
-      NestedAnalyzer nestedAnalyzer =
-          new NestedAnalyzer(namedExpressions, expressionAnalyzer, child);
-      child = nestedAnalyzer.analyze(expr, context);
-    }
-
-    // new context
+    // Create new type environment with projected fields
     context.push();
     TypeEnvironment newEnv = context.peek();
     namedExpressions.forEach(
         expr ->
             newEnv.define(new Symbol(Namespace.FIELD_NAME, expr.getNameOrAlias()), expr.type()));
-    List<NamedExpression> namedParseExpressions = context.getNamedParseExpressions();
-    return new LogicalProject(child, namedExpressions, namedParseExpressions);
+
+    return new LogicalProject(child, namedExpressions, context.getNamedParseExpressions());
+  }
+
+  /**
+   * Safely checks if the project node is in exclusion mode.
+   *
+   * @param node the project node to check
+   * @return true if the first argument is a boolean true value, false otherwise
+   */
+  private boolean isExcludeMode(Project node) {
+    try {
+      Argument argument = node.getArgExprList().get(0);
+      Object value = argument.getValue().getValue();
+      return Boolean.TRUE.equals(value);
+    } catch (IndexOutOfBoundsException | NullPointerException e) {
+      return false;
+    }
+  }
+
+  /**
+   * Builds a LogicalRemove operation for field exclusion.
+   *
+   * <p>Processes both regular fields and wildcard patterns, resolving wildcards to their actual
+   * field names before creating the removal operation.
+   *
+   * @param node the project node containing fields to exclude
+   * @param child the child logical plan
+   * @param context the analysis context
+   * @return LogicalRemove operation with fields to exclude
+   */
+  private LogicalRemove buildLogicalRemove(
+      Project node, LogicalPlan child, AnalysisContext context) {
+    TypeEnvironment curEnv = context.peek();
+    List<ReferenceExpression> referenceExpressions =
+        collectExclusionFields(node.getProjectList(), context);
+
+    // Remove excluded fields from type environment
+    referenceExpressions.forEach(curEnv::remove);
+    return new LogicalRemove(child, ImmutableSet.copyOf(referenceExpressions));
+  }
+
+  /**
+   * Processes window functions and highlight expressions for each field in the project list.
+   *
+   * <p>For each expression, this method sequentially applies WindowExpressionAnalyzer and
+   * HighlightAnalyzer, potentially inserting LogicalWindow and highlight operators into the logical
+   * plan if the expressions contain relevant functions.
+   *
+   * @param projectList list of unresolved expressions to analyze
+   * @param child the current logical plan
+   * @param context the analysis context
+   * @return updated logical plan with window and highlight operators inserted
+   */
+  private LogicalPlan processWindowAndHighlightExpressions(
+      List<UnresolvedExpression> projectList, LogicalPlan child, AnalysisContext context) {
+    for (UnresolvedExpression expr : projectList) {
+      // Analyze for window functions
+      child = new WindowExpressionAnalyzer(expressionAnalyzer, child).analyze(expr, context);
+      // Analyze for highlight expressions
+      child = new HighlightAnalyzer(expressionAnalyzer, child).analyze(expr, context);
+    }
+    return child;
+  }
+
+  /**
+   * Resolves field expressions using appropriate resolver based on wildcard presence.
+   *
+   * <p>Uses WildcardFieldResolver for expressions containing wildcards, otherwise uses
+   * selectExpressionAnalyzer with optimization.
+   *
+   * @param projectList list of unresolved expressions to resolve
+   * @param child the current logical plan for optimization
+   * @param context the analysis context
+   * @return list of resolved named expressions
+   */
+  private List<NamedExpression> resolveFieldExpressions(
+      List<UnresolvedExpression> projectList, LogicalPlan child, AnalysisContext context) {
+    return WildcardFieldResolver.hasWildcards(projectList)
+        ? WildcardFieldResolver.resolveWildcards(projectList, context, expressionAnalyzer)
+        : selectExpressionAnalyzer.analyze(
+            projectList,
+            context,
+            new ExpressionReferenceOptimizer(expressionAnalyzer.getRepository(), child));
+  }
+
+  /**
+   * Processes nested field analysis for each expression in the project list.
+   *
+   * <p>Applies NestedAnalyzer to handle nested field structures, potentially modifying the logical
+   * plan to support nested field access patterns.
+   *
+   * @param projectList list of unresolved expressions to analyze
+   * @param namedExpressions resolved named expressions for context
+   * @param child the current logical plan
+   * @param context the analysis context
+   * @return updated logical plan with nested field support
+   */
+  private LogicalPlan processNestedAnalysis(
+      List<UnresolvedExpression> projectList,
+      List<NamedExpression> namedExpressions,
+      LogicalPlan child,
+      AnalysisContext context) {
+    for (UnresolvedExpression expr : projectList) {
+      child =
+          new NestedAnalyzer(namedExpressions, expressionAnalyzer, child).analyze(expr, context);
+    }
+    return child;
+  }
+
+  /**
+   * Collects reference expressions for fields to be excluded.
+   *
+   * <p>Reuses the wildcard resolution logic and converts the results to reference expressions.
+   *
+   * @param projectList list of unresolved expressions representing fields to exclude
+   * @param context the analysis context
+   * @return list of reference expressions for excluded fields
+   */
+  private List<ReferenceExpression> collectExclusionFields(
+      List<UnresolvedExpression> projectList, AnalysisContext context) {
+    // Reuse existing wildcard resolution logic
+    List<NamedExpression> namedExpressions =
+        WildcardFieldResolver.hasWildcards(projectList)
+            ? WildcardFieldResolver.resolveWildcards(projectList, context, expressionAnalyzer)
+            : projectList.stream()
+                .map(expr -> expressionAnalyzer.analyze(expr, context))
+                .map(DSL::named)
+                .collect(Collectors.toList());
+
+    // Convert to reference expressions
+    return namedExpressions.stream()
+        .map(field -> (ReferenceExpression) field.getDelegated())
+        .collect(Collectors.toList());
   }
 
   /** Build {@link LogicalEval}. */

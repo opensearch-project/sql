@@ -43,6 +43,7 @@ import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
@@ -275,10 +276,26 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return buildProjectCommand(ctx.fieldsCommandBody(), ArgumentFactory.getArgumentList(ctx));
   }
 
-  /** Processes the PPL 'table' command as an alias for 'fields' command. */
+  /**
+   * Processes the PPL 'table' command as an alias for 'fields' command.
+   *
+   * <p>The table command is functionally identical to the fields command, both using
+   * fieldsCommandBody() to specify field selection. This method creates the exclude argument inline
+   * rather than delegating to ArgumentFactory to avoid code duplication.
+   *
+   * @param ctx TableCommandContext instance from ANTLR parser
+   * @return UnresolvedPlan representing the project operation
+   */
   @Override
   public UnresolvedPlan visitTableCommand(TableCommandContext ctx) {
-    return buildProjectCommand(ctx.fieldsCommandBody(), ArgumentFactory.getArgumentList(ctx));
+    // Table command uses the same fieldsCommandBody as fields command
+    // Create exclude argument based on MINUS token presence
+    return buildProjectCommand(
+        ctx.fieldsCommandBody(),
+        Collections.singletonList(
+            ctx.fieldsCommandBody().MINUS() != null
+                ? new Argument("exclude", new Literal(true, DataType.BOOLEAN))
+                : new Argument("exclude", new Literal(false, DataType.BOOLEAN))));
   }
 
   private UnresolvedPlan buildProjectCommand(

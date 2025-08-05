@@ -188,22 +188,35 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return false;
   }
 
+  /**
+   * Visits a Project node to build the corresponding RelNode. Handles AllFields projection,
+   * wildcard expansion, and field exclusion.
+   *
+   * @param node Project AST node
+   * @param context Calcite plan context
+   * @return RelNode representing the project operation
+   */
   @Override
   public RelNode visitProject(Project node, CalcitePlanContext context) {
     visitChildren(node, context);
     List<RexNode> projectList;
+
+    // Handle AllFields projection (SELECT *)
     if (node.getProjectList().size() == 1
         && node.getProjectList().getFirst() instanceof AllFields allFields) {
       tryToRemoveNestedFields(context);
       tryToRemoveMetaFields(context, allFields instanceof AllFieldsExcludeMeta);
       return context.relBuilder.peek();
     } else {
+      // Expand wildcards and build project list
       projectList = expandWildcardsInProjectList(node.getProjectList(), context);
     }
+
     if (node.isExcluded()) {
+      // Handle field exclusion (fields - field1, field2)
       context.relBuilder.projectExcept(projectList);
     } else {
-      // Only set when not resolving subquery and it's not projectExcept.
+      // Handle regular projection
       if (!context.isResolvingSubquery()) {
         context.setProjectVisited(true);
       }
@@ -212,7 +225,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
-  /** Expand wildcards in project list to individual field references. */
+  /**
+   * Expands wildcards in project list to individual field references. Supports patterns like
+   * "user_*", "*_id", "prefix_*_suffix". Filters out metadata fields and handles deduplication.
+   *
+   * @param projectList List of unresolved expressions that may contain wildcards
+   * @param context Calcite plan context
+   * @return List of RexNode field references with wildcards expanded
+   */
   private List<RexNode> expandWildcardsInProjectList(
       List<UnresolvedExpression> projectList, CalcitePlanContext context) {
     List<RexNode> expandedList = new ArrayList<>();
@@ -223,33 +243,35 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       if (expr instanceof Field field) {
         String fieldName = field.getField().toString();
         if (fieldName.contains("*")) {
-          // Expand wildcard pattern using utility method and filter out metadata fields
-          // This supports patterns like "user_*", "*_id", "prefix_*_suffix"
+          // Handle wildcard field expansion for PROJECT operations (SELECT field lists)
+          // Example: "user_*" expands to ["user_name", "user_id", "user_email"]
           List<String> matchingFields =
               WildcardUtils.expandWildcardPattern(fieldName, currentFields).stream()
                   .filter(f -> !isMetadataField(f)) // Exclude OpenSearch internal fields
                   .collect(Collectors.toList());
+
+          // Validate that the wildcard pattern matched at least one field
           if (matchingFields.isEmpty()) {
             throw new IllegalArgumentException(
                 String.format(
                     "wildcard pattern [%s] matches no fields; input fields are: %s",
                     fieldName, currentFields));
           }
-          // Add all matching fields, avoiding duplicates
+
+          // Add all matching fields to the project list, avoiding duplicates
           for (String matchingField : matchingFields) {
-            if (!addedFields.contains(matchingField)) {
+            if (addedFields.add(matchingField)) { // Set.add() returns false if already present
               expandedList.add(context.relBuilder.field(matchingField));
-              addedFields.add(matchingField);
             }
           }
         } else {
-          // Regular field, analyze normally and track it
-          if (!addedFields.contains(fieldName)) {
+          // Handle regular field with deduplication
+          if (addedFields.add(fieldName)) {
             expandedList.add(rexVisitor.analyze(expr, context));
-            addedFields.add(fieldName);
           }
         }
       } else {
+        // Only Field expressions are supported in project list for Calcite
         throw new IllegalStateException(
             "Unexpected non-field expression in project list: " + expr.getClass().getSimpleName());
       }
@@ -299,8 +321,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   /**
    * Project except with force.
    *
-   * <p>This method is copied from {@link RelBuilder#projectExcept(Iterable)} and modified with the
-   * force flag in project set to true. It is subject to future changes in Calcite.
+   * <p>This method is copied from RelBuilder#projectExcept(Iterable) and modified with the force
+   * flag in project set to true. It is subject to future changes in Calcite.
    *
    * @param relBuilder RelBuilder
    * @param expressions Expressions to exclude from the project
@@ -529,7 +551,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitEval(Eval node, CalcitePlanContext context) {
     visitChildren(node, context);
-    List<String> originalFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
     node.getExpressionList()
         .forEach(
             expr -> {
