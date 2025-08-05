@@ -78,6 +78,8 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
     loadIndex(Index.DOG);
     // Enable Calcite engine to test PIT behavior with Calcite
     enableCalcite();
+    // TODO Handle permission failure in v3
+    allowCalciteFallback();
   }
 
   /**

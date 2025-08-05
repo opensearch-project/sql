@@ -12,6 +12,5 @@ public class CalciteRareCommandIT extends RareCommandIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 }
