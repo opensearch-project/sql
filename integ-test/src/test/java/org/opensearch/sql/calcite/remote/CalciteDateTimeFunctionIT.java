@@ -15,7 +15,6 @@ public class CalciteDateTimeFunctionIT extends DateTimeFunctionIT {
     super.init();
     enableCalcite();
     dataType = "timestamp";
-    disallowCalciteFallback();
   }
 
   // TODO: Remove this when supporting type coercion and casting with Calcite

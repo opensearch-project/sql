@@ -12,6 +12,5 @@ public class CalciteRenameCommandIT extends RenameCommandIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 }

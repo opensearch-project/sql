@@ -12,6 +12,5 @@ public class CalciteTextFunctionIT extends TextFunctionIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 }

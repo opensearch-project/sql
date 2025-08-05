@@ -13,6 +13,5 @@ public class CalciteDateTimeImplementationIT extends DateTimeImplementationIT {
     super.init();
     enableCalcite();
     dataType = "timestamp";
-    disallowCalciteFallback();
   }
 }
