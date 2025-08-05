@@ -22,6 +22,14 @@ public class Map extends UnresolvedExpression {
   private final UnresolvedExpression origin;
   private final UnresolvedExpression target;
 
+  public UnresolvedExpression getOrigin() {
+    return origin;
+  }
+
+  public UnresolvedExpression getTarget() {
+    return target;
+  }
+
   @Override
   public List<UnresolvedExpression> getChild() {
     return Arrays.asList(origin, target);
