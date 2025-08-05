@@ -112,11 +112,14 @@ public class QueryService {
         log.warn("Fallback to V2 query engine since got exception", t);
         executeWithLegacy(plan, queryType, listener, Optional.of(t));
       } else {
-        if (t instanceof Error) {
+        if (t instanceof Exception) {
+          listener.onFailure((Exception) t);
+        } else if (t instanceof VirtualMachineError) {
+          // throw and fast fail the VM errors such as OOM (same with v2).
+          throw t;
+        } else {
           // Calcite may throw AssertError during query execution.
           listener.onFailure(new CalciteUnsupportedException(t.getMessage(), t));
-        } else {
-          listener.onFailure((Exception) t);
         }
       }
     }
