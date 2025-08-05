@@ -392,10 +392,23 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
     return (Expression) method.invoke(rexCallImplementor, translator, call, List.of(field));
   }
 
+  /**
+   * Creates a lazy supplier for looking up a SQL operator by name.
+   *
+   * <p>This method enables operators to reference each other, even when they have circular
+   * dependencies. Instead of looking up the operator immediately, it returns a supplier that will
+   * perform the lookup only when needed.
+   *
+   * <p>For example, {@code LESS_IP} needs to reference {@code GREATER_IP} as its reverse, and vice
+   * versa. Using this lazy approach, both can be defined before either is used.
+   *
+   * @param name The name of the operator to look up
+   * @return A supplier that will look up the operator when called
+   */
   private static Supplier<SqlOperator> lookupOperator(String name) {
     return () -> {
       AtomicReference<SqlOperator> ref = new AtomicReference<>();
-      INSTANCE.get().lookUpOperators(name, false, ref::set);
+      instance().lookUpOperators(name, false, ref::set);
       return ref.get();
     };
   }

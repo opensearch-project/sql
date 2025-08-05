@@ -6,6 +6,7 @@
 package org.opensearch.sql.expression.function.udf.ip;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Supplier;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
@@ -36,11 +37,14 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
  * </ul>
  */
 public class CompareIpFunction extends ImplementorUDF {
+  private final SqlKind kind;
   private Supplier<SqlOperator> reverse;
 
-  private CompareIpFunction(ComparisonType comparisonType) {
-    super(new CompareImplementor(comparisonType), NullPolicy.ANY);
-    reverse = null;
+  private CompareIpFunction(SqlKind kind) {
+    super(new CompareImplementor(kind), NullPolicy.ANY);
+    this.kind = kind;
+    // Will be set later
+    this.reverse = null;
   }
 
   @Override
@@ -48,13 +52,9 @@ public class CompareIpFunction extends ImplementorUDF {
     return SqlSyntax.BINARY;
   }
 
-  public static CompareIpFunction less() {
-    return new CompareIpFunction(ComparisonType.LESS) {
-      @Override
-      public SqlKind getKind() {
-        return SqlKind.LESS_THAN;
-      }
-    };
+  @Override
+  public SqlKind getKind() {
+    return kind;
   }
 
   @Override
@@ -62,54 +62,50 @@ public class CompareIpFunction extends ImplementorUDF {
     return reverse;
   }
 
+  /**
+   * Sets the reverse operator supplier for this comparison function.
+   *
+   * <p>This method is used to establish the reversed relationship between comparison operators
+   * (e.g., "less than" and "greater than"). When the query optimizer normalizes expressions, it may
+   * need to transform "b > a" to "a < b".
+   *
+   * <p>E.g. in the {@code hashCode} method of {@link org.apache.calcite.rex.RexNormalize}#L115, it
+   * always converts <i>B [comparator] A</i> to <i>A [reverse_comparator] B</i> if the ordinal of
+   * the reverse of the comparator is smaller.
+   *
+   * <p>IP comparison functions use this to inform the optimizer that ip_less_than is the reverse of
+   * ip_greater_than, allowing for proper query normalization.
+   *
+   * @param supplier The supplier that provides the reverse SQL operator
+   * @return This CompareIpFunction instance for method chaining
+   */
   public CompareIpFunction withReverse(Supplier<SqlOperator> supplier) {
     this.reverse = supplier;
     return this;
   }
 
+  public static CompareIpFunction less() {
+    return new CompareIpFunction(SqlKind.LESS_THAN);
+  }
+
   public static CompareIpFunction greater() {
-    return new CompareIpFunction(ComparisonType.GREATER) {
-      @Override
-      public SqlKind getKind() {
-        return SqlKind.GREATER_THAN;
-      }
-    };
+    return new CompareIpFunction(SqlKind.GREATER_THAN);
   }
 
   public static CompareIpFunction lessOrEquals() {
-    return new CompareIpFunction(ComparisonType.LESS_OR_EQUAL) {
-      @Override
-      public SqlKind getKind() {
-        return SqlKind.LESS_THAN_OR_EQUAL;
-      }
-    };
+    return new CompareIpFunction(SqlKind.LESS_THAN_OR_EQUAL);
   }
 
   public static CompareIpFunction greaterOrEquals() {
-    return new CompareIpFunction(ComparisonType.GREATER_OR_EQUAL) {
-      @Override
-      public SqlKind getKind() {
-        return SqlKind.GREATER_THAN_OR_EQUAL;
-      }
-    };
+    return new CompareIpFunction(SqlKind.GREATER_THAN_OR_EQUAL);
   }
 
   public static CompareIpFunction equals() {
-    return new CompareIpFunction(ComparisonType.EQUALS) {
-      @Override
-      public SqlKind getKind() {
-        return SqlKind.EQUALS;
-      }
-    };
+    return new CompareIpFunction(SqlKind.EQUALS);
   }
 
   public static CompareIpFunction notEquals() {
-    return new CompareIpFunction(ComparisonType.NOT_EQUALS) {
-      @Override
-      public SqlKind getKind() {
-        return SqlKind.NOT_EQUALS;
-      }
-    };
+    return new CompareIpFunction(SqlKind.NOT_EQUALS);
   }
 
   @Override
@@ -123,10 +119,10 @@ public class CompareIpFunction extends ImplementorUDF {
   }
 
   public static class CompareImplementor implements NotNullImplementor {
-    private final ComparisonType comparisonType;
+    private final SqlKind compareType;
 
-    public CompareImplementor(ComparisonType comparisonType) {
-      this.comparisonType = comparisonType;
+    public CompareImplementor(SqlKind compareType) {
+      this.compareType = compareType;
     }
 
     @Override
@@ -139,19 +135,20 @@ public class CompareIpFunction extends ImplementorUDF {
               translatedOperands.get(0),
               translatedOperands.get(1));
 
-      return evalCompareResult(compareResult, comparisonType);
+      return evalCompareResult(compareResult, compareType);
     }
 
-    private static Expression evalCompareResult(
-        Expression compareResult, ComparisonType comparisonType) {
+    private static Expression evalCompareResult(Expression compareResult, SqlKind compareType) {
       final ConstantExpression zero = Expressions.constant(0);
-      return switch (comparisonType) {
+      return switch (compareType) {
         case EQUALS -> Expressions.equal(compareResult, zero);
         case NOT_EQUALS -> Expressions.notEqual(compareResult, zero);
-        case LESS -> Expressions.lessThan(compareResult, zero);
-        case LESS_OR_EQUAL -> Expressions.lessThanOrEqual(compareResult, zero);
-        case GREATER -> Expressions.greaterThan(compareResult, zero);
-        case GREATER_OR_EQUAL -> Expressions.greaterThanOrEqual(compareResult, zero);
+        case LESS_THAN -> Expressions.lessThan(compareResult, zero);
+        case LESS_THAN_OR_EQUAL -> Expressions.lessThanOrEqual(compareResult, zero);
+        case GREATER_THAN -> Expressions.greaterThan(compareResult, zero);
+        case GREATER_THAN_OR_EQUAL -> Expressions.greaterThanOrEqual(compareResult, zero);
+        default -> throw new UnsupportedOperationException(
+            String.format(Locale.ROOT, "Unsupported compare type: %s", compareType));
       };
     }
 
@@ -169,14 +166,5 @@ public class CompareIpFunction extends ImplementorUDF {
       }
       throw new IllegalArgumentException("Invalid IP type: " + obj);
     }
-  }
-
-  public enum ComparisonType {
-    EQUALS,
-    NOT_EQUALS,
-    LESS,
-    LESS_OR_EQUAL,
-    GREATER,
-    GREATER_OR_EQUAL
   }
 }
