@@ -76,48 +76,18 @@ import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
-/**
- * Converts AST expressions to Calcite RexNode (row expressions).
- *
- * <p>Handles scalar expressions, function arguments, etc. Unlike CalciteRelNodeVisitor which
- * processes logical plans, this visitor focuses on individual expressions within those plans.
- *
- * <p>Converts literals, field references, functions, operators, and subqueries. Wildcards are not
- * supported - field references must be unambiguous.
- */
 @RequiredArgsConstructor
 public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalcitePlanContext> {
   private final CalciteRelNodeVisitor planVisitor;
 
-  /**
-   * Analyzes an unresolved expression and converts it to a RexNode.
-   *
-   * @param unresolved The AST expression to analyze
-   * @param context Calcite plan context
-   * @return RexNode representing the expression
-   */
   public RexNode analyze(UnresolvedExpression unresolved, CalcitePlanContext context) {
     return unresolved.accept(this, context);
   }
 
-  /**
-   * Analyzes a list of unresolved expressions and converts them to RexNodes.
-   *
-   * @param list List of AST expressions to analyze
-   * @param context Calcite plan context
-   * @return List of RexNodes representing the expressions
-   */
   public List<RexNode> analyze(List<UnresolvedExpression> list, CalcitePlanContext context) {
     return list.stream().map(u -> u.accept(this, context)).toList();
   }
 
-  /**
-   * Analyzes an expression specifically in the context of a JOIN condition.
-   *
-   * @param unresolved The AST expression to analyze
-   * @param context Calcite plan context
-   * @return RexNode representing the join condition
-   */
   public RexNode analyzeJoinCondition(UnresolvedExpression unresolved, CalcitePlanContext context) {
     return context.resolveJoinCondition(unresolved, this::analyze);
   }
@@ -319,10 +289,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       return context.getRexLambdaRefMap().get(qualifiedName);
     }
     List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
-
-    // Note: Wildcards are not supported in expression contexts (WHERE, ORDER BY, etc.)
-    // They should only be used in PROJECT contexts and are handled by CalciteRelNodeVisitor
-
     if (currentFields.contains(qualifiedName)) {
       // 2.1 resolve QualifiedName from stack top
       // Note: QualifiedName with multiple parts also could be applied in step 2.1,

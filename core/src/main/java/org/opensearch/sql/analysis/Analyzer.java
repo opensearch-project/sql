@@ -88,6 +88,7 @@ import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -370,17 +371,15 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   /**
-   * Build LogicalProject or LogicalRemove from Project node.
+   * Build {@link LogicalProject} or {@link LogicalRemove} from {@link Field}.
    *
-   * <p>This method handles two main scenarios: - Exclusion mode: Creates a LogicalRemove to exclude
-   * specified fields - Projection mode: Creates a LogicalProject to select specified fields
+   * <p>Todo, the include/exclude fields should change the env definition. The cons of current
+   * implementation is even the query contain the field reference which has been excluded from
+   * fields command. There is no {@link SemanticCheckException} will be thrown. Instead, the during
+   * runtime evaluation, the not exist field will be resolve to {@link ExprMissingValue} which will
+   * not impact the correctness.
    *
-   * <p>The method processes window functions, highlight expressions, wildcard resolution, and
-   * nested field analysis before creating the final logical plan.
-   *
-   * @param node the Project AST node containing field specifications
-   * @param context the analysis context with type environment
-   * @return LogicalRemove for exclusion or LogicalProject for projection
+   * <p>Postpone the implementation when finding more use case.
    */
   @Override
   public LogicalPlan visitProject(Project node, AnalysisContext context) {
@@ -428,7 +427,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   /**
-   * Builds a LogicalRemove operation for field exclusion.
+   * Builds a LogicalRemove operation for PPL field exclusion.
    *
    * <p>Processes both regular fields and wildcard patterns, resolving wildcards to their actual
    * field names before creating the removal operation.
@@ -450,7 +449,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   /**
-   * Processes window functions and highlight expressions for each field in the project list.
+   * Processes window functions and highlight expressions for each field in the PPL fields command.
    *
    * <p>For each expression, this method sequentially applies WindowExpressionAnalyzer and
    * HighlightAnalyzer, potentially inserting LogicalWindow and highlight operators into the logical

@@ -321,8 +321,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   /**
    * Project except with force.
    *
-   * <p>This method is copied from RelBuilder#projectExcept(Iterable) and modified with the force
-   * flag in project set to true. It is subject to future changes in Calcite.
+   * <p>This method is copied from {@link RelBuilder#projectExcept(Iterable)} and modified with the
+   * force flag in project set to true. It is subject to future changes in Calcite.
    *
    * @param relBuilder RelBuilder
    * @param expressions Expressions to exclude from the project
