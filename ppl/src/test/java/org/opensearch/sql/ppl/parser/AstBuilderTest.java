@@ -485,12 +485,10 @@ public class AstBuilderTest {
             relation("t"),
             field(
                 "f1",
-                exprList(
-                    argument("asc", booleanLiteral(false)), argument("type", nullLiteral()))),
+                exprList(argument("asc", booleanLiteral(false)), argument("type", nullLiteral()))),
             field(
                 "f2",
-                exprList(
-                    argument("asc", booleanLiteral(true)), argument("type", nullLiteral())))));
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral())))));
   }
 
   @Test

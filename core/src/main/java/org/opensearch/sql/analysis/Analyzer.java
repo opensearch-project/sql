@@ -672,7 +672,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     }
 
     return new LogicalTrendline(
-        buildSort(child, context, null, Collections.singletonList(node.getSortByField().get())),
+        buildSort(child, context, 0, Collections.singletonList(node.getSortByField().get())),
         computationsAndTypes.build());
   }
 

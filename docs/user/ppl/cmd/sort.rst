@@ -159,16 +159,14 @@ The example shows sorting by multiple fields using desc, which reverses the sort
 PPL query::
 
     os> source=accounts | sort gender, -age desc | fields account_number, gender, age;
-    fetched rows / total rows = 6/6
+    fetched rows / total rows = 4/4
     +----------------+--------+-----+
     | account_number | gender | age |
     |----------------+--------+-----|
-    | 20             | M      | 28  |
     | 1              | M      | 32  |
     | 18             | M      | 33  |
     | 6              | M      | 36  |
     | 13             | F      | 28  |
-    | 16             | F      | 39  |
     +----------------+--------+-----+
 
 

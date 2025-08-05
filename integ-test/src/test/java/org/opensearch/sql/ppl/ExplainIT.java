@@ -124,9 +124,7 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            "source=opensearch-sql_test_index_account"
-                + "| sort 5 age "
-                + "| fields age"));
+            "source=opensearch-sql_test_index_account" + "| sort 5 age " + "| fields age"));
   }
 
   @Test

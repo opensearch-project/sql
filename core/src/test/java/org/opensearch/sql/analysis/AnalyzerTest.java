@@ -957,6 +957,7 @@ class AnalyzerTest extends AnalyzerTestBase {
                     emptyList(),
                     ImmutableList.of(AstDSL.alias("string_value", qualifiedName("string_value"))),
                     emptyList()),
+                0,
                 field(
                     function("avg", qualifiedName("integer_value")),
                     argument("asc", booleanLiteral(true)))),
@@ -1009,7 +1010,7 @@ class AnalyzerTest extends AnalyzerTestBase {
                     DSL.named("string_value", DSL.ref("string_value", STRING))),
                 AstDSL.project(
                     AstDSL.sort(
-                        AstDSL.relation("test"), field(qualifiedName("integer_value"), args)),
+                        AstDSL.relation("test"), 0, field(qualifiedName("integer_value"), args)),
                     AstDSL.alias("string_value", qualifiedName("string_value")))));
   }
 
