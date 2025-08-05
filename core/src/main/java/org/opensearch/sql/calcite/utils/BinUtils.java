@@ -9,6 +9,8 @@ import static org.apache.calcite.sql.SqlKind.LITERAL;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
@@ -18,14 +20,44 @@ import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.calcite.CalcitePlanContext;
-import org.opensearch.sql.expression.function.BuiltinFunctionName;
-import org.opensearch.sql.expression.function.PPLFuncImpTable;
+import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
 
 /**
  * Utility class for handling bin command operations in Calcite. Contains helper methods for
  * processing bin parameters and creating bin expressions.
  */
 public class BinUtils {
+
+  // Constants
+  private static final String TIMESTAMP_FIELD = "@timestamp";
+  private static final String DASH_SEPARATOR = "-";
+  private static final String OTHER_CATEGORY = "Other";
+  private static final String INVALID_CATEGORY = "Invalid";
+  private static final int DEFAULT_BINS = 100;
+  private static final int MIN_BINS = 2;
+  private static final int MAX_BINS = 50000;
+  private static final double[] SPL_NICE_WIDTHS = {
+    0.001,
+    0.01,
+    0.1,
+    1.0,
+    10.0,
+    100.0,
+    1000.0,
+    10000.0,
+    100000.0,
+    1000000.0,
+    10000000.0,
+    100000000.0,
+    1000000000.0
+  };
+
+  // Time unit constants
+  private static final long MILLISECONDS_PER_SECOND = 1000L;
+  private static final long MILLISECONDS_PER_MINUTE = 60 * MILLISECONDS_PER_SECOND;
+  private static final long MILLISECONDS_PER_HOUR = 60 * MILLISECONDS_PER_MINUTE;
 
   /** Extracts the field name from a Bin node. */
   public static String extractFieldName(Bin node) {
@@ -35,13 +67,6 @@ public class BinUtils {
     } else {
       return node.getField().toString();
     }
-  }
-
-  /** Determines the field name for the binned field. SPL bins transform in-place. */
-  public static String determineFieldName(Bin node, String fieldName) {
-    // SPL behavior: bin command transforms the original field in-place
-    // Always use the original field name for in-place transformation
-    return fieldName;
   }
 
   /** Processes the aligntime parameter and returns the corresponding RexNode. */
@@ -55,27 +80,31 @@ public class BinUtils {
     }
 
     RelDataType fieldType = fieldExpr.getType();
-    // Aligntime is only valid for time-based fields
-    if (!isTimeBasedField(fieldType)) {
+    String fieldName = extractFieldName(node);
+
+    if (!shouldApplyTimeBinning(fieldName, fieldType)) {
       return null;
     }
+
+    validateTimestampFieldExists(fieldName, context);
 
     if (node.getAligntime() instanceof Literal) {
       Literal aligntimeLiteral = (Literal) node.getAligntime();
       String aligntimeStr = aligntimeLiteral.getValue().toString();
 
       if ("earliest".equals(aligntimeStr)) {
-        // For earliest, we align to epoch 0, but since subtracting and adding 0
-        // is a no-op, we can just use null to indicate no alignment needed
-        return null;
+        return context.relBuilder.min(fieldExpr).over().toRex();
       } else if ("latest".equals(aligntimeStr)) {
-        // Calculate maximum value using aggregate
-        // For now, we'll use a placeholder - in production, this would require
-        // a subquery or window function to get the actual max value
-        return context.relBuilder.literal(System.currentTimeMillis());
+        return context.relBuilder.max(fieldExpr).over().toRex();
       } else {
-        // Parse as a time value
-        return rexVisitor.analyze(node.getAligntime(), context);
+        RexNode alignTimeValue = rexVisitor.analyze(node.getAligntime(), context);
+        if (alignTimeValue instanceof org.apache.calcite.rex.RexLiteral) {
+          Object value = ((org.apache.calcite.rex.RexLiteral) alignTimeValue).getValue();
+          if (value instanceof Number) {
+            return context.relBuilder.literal(((Number) value).longValue());
+          }
+        }
+        return alignTimeValue;
       }
     } else {
       // It's a time expression
@@ -94,26 +123,16 @@ public class BinUtils {
       RexNode alignTimeValue,
       CalcitePlanContext context,
       org.opensearch.sql.calcite.CalciteRexNodeVisitor rexVisitor) {
-
-    // SPL parameter precedence (most important first):
-    // 1. span - explicit bin width
-    // 2. minspan - minimum bin width
-    // 3. bins - number of bins (IGNORES start/end completely)
-    // 4. start/end only - range constraints without bins
-    // 5. default - no parameters
-
     if (node.getSpan() != null) {
       return createSpanBasedRangeStrings(node, fieldExpr, alignTimeValue, context, rexVisitor);
     } else if (node.getMinspan() != null) {
-      return createMinspanBasedRangeStrings(node, fieldExpr, alignTimeValue, context, rexVisitor);
+      return createMinspanBasedRangeStrings(node, fieldExpr, context, rexVisitor);
     } else if (node.getBins() != null) {
-      // CRITICAL FIX: bins parameter IGNORES start/end completely (SPL behavior)
-      return createBinsBasedRangeStrings(node, fieldExpr, context, rexVisitor);
+      return createBinsBasedRangeStrings(node, fieldExpr, context);
     } else if (node.getStart() != null || node.getEnd() != null) {
-      // Only process start/end if bins is NOT present
       return createStartEndRangeStrings(node, fieldExpr, context, rexVisitor);
     } else {
-      return createDefaultRangeStrings(fieldExpr, context);
+      return createDefaultRangeStrings(node, fieldExpr, context);
     }
   }
 
@@ -128,28 +147,54 @@ public class BinUtils {
       CalcitePlanContext context,
       org.opensearch.sql.calcite.CalciteRexNodeVisitor rexVisitor) {
 
+    String fieldName = extractFieldName(node);
+    RelDataType fieldType = fieldExpr.getType();
+
+    if (shouldApplyTimeBinning(fieldName, fieldType)) {
+      validateTimestampFieldExists(fieldName, context);
+      if (node.getSpan() instanceof org.opensearch.sql.ast.expression.Literal) {
+        org.opensearch.sql.ast.expression.Literal spanLiteral =
+            (org.opensearch.sql.ast.expression.Literal) node.getSpan();
+        String spanStr = spanLiteral.getValue().toString();
+
+        return createBinSpanExpressionFromString(spanStr, fieldExpr, alignTimeValue, context);
+      } else {
+        RexNode spanValue = rexVisitor.analyze(node.getSpan(), context);
+        if (!spanValue.isA(LITERAL)) {
+          throw new IllegalArgumentException("Span must be a literal value for time binning");
+        }
+        String spanStr = ((RexLiteral) spanValue).getValue().toString();
+        return createBinSpanExpressionFromString(spanStr, fieldExpr, alignTimeValue, context);
+      }
+    }
+
     RexNode spanValue = rexVisitor.analyze(node.getSpan(), context);
 
-    // Extract the span as a numeric value for range generation
     if (!spanValue.isA(LITERAL)) {
       throw new IllegalArgumentException(
           "Span must be a literal value for range string generation");
     }
 
-    Number spanNum = (Number) ((RexLiteral) spanValue).getValue();
-    int span = spanNum.intValue();
+    Object spanRawValue = ((RexLiteral) spanValue).getValue();
 
-    // EMERGENCY REVERT: Use the old working approach but ignore start/end parameters
-    // The old createRangeCaseExpression worked, just need to fix parameter precedence
-    return createRangeCaseExpression(
-        fieldExpr, span, alignTimeValue, context, null, null, rexVisitor);
+    if (spanRawValue instanceof org.apache.calcite.util.NlsString) {
+      String spanStr = ((org.apache.calcite.util.NlsString) spanRawValue).getValue();
+      return createSpanBasedExpression(spanStr, fieldExpr, context);
+    } else if (spanRawValue instanceof Number) {
+      int span = ((Number) spanRawValue).intValue();
+      return createRangeCaseExpression(
+          fieldExpr, span, alignTimeValue, context, null, null, rexVisitor);
+    } else {
+      throw new IllegalArgumentException(
+          "Span must be either a number or a string (for log-based spans), got: "
+              + spanRawValue.getClass().getSimpleName());
+    }
   }
 
-  /** Creates minspan-based range strings. */
+  /** Creates minspan-based range strings using SPL's magnitude-based minspan algorithm. */
   public static RexNode createMinspanBasedRangeStrings(
       Bin node,
       RexNode fieldExpr,
-      RexNode alignTimeValue,
       CalcitePlanContext context,
       org.opensearch.sql.calcite.CalciteRexNodeVisitor rexVisitor) {
 
@@ -160,505 +205,484 @@ public class BinUtils {
           "Minspan must be a literal value for range string generation");
     }
 
-    Number spanNum = (Number) ((RexLiteral) minspanValue).getValue();
-    int span = spanNum.intValue();
+    Number minspanNum = (Number) ((RexLiteral) minspanValue).getValue();
+    double minspan = minspanNum.doubleValue();
 
-    return createRangeCaseExpression(
-        fieldExpr, span, alignTimeValue, context, node.getStart(), node.getEnd(), rexVisitor);
+    RexNode minValue = context.relBuilder.min(fieldExpr).over().toRex();
+    RexNode maxValue = context.relBuilder.max(fieldExpr).over().toRex();
+
+    RexNode dataRange = context.relBuilder.call(SqlStdOperatorTable.MINUS, maxValue, minValue);
+
+    double log10Minspan = Math.log10(minspan);
+    double ceilLog = Math.ceil(log10Minspan);
+    double minspanWidth = Math.pow(10, ceilLog);
+
+    RexNode log10Range = context.relBuilder.call(SqlStdOperatorTable.LOG10, dataRange);
+    RexNode floorLog = context.relBuilder.call(SqlStdOperatorTable.FLOOR, log10Range);
+    RexNode defaultWidth =
+        context.relBuilder.call(
+            SqlStdOperatorTable.POWER, context.relBuilder.literal(10.0), floorLog);
+
+    RexNode useDefault =
+        context.relBuilder.call(
+            SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
+            defaultWidth,
+            context.relBuilder.literal(minspan));
+
+    RexNode selectedWidth =
+        context.relBuilder.call(
+            SqlStdOperatorTable.CASE,
+            useDefault,
+            defaultWidth,
+            context.relBuilder.literal(minspanWidth));
+
+    RexNode firstBinStart =
+        context.relBuilder.call(
+            SqlStdOperatorTable.MULTIPLY,
+            context.relBuilder.call(
+                SqlStdOperatorTable.FLOOR,
+                context.relBuilder.call(SqlStdOperatorTable.DIVIDE, minValue, selectedWidth)),
+            selectedWidth);
+
+    RexNode binValue = calculateBinValue(fieldExpr, selectedWidth, firstBinStart, context);
+
+    RexNode binEnd = context.relBuilder.call(SqlStdOperatorTable.PLUS, binValue, selectedWidth);
+    return createRangeString(binValue, binEnd, selectedWidth, context);
   }
 
-  /**
-   * Creates bins-based range strings using dynamic range calculation. CRITICAL: bins parameter
-   * IGNORES start/end completely (SPL behavior).
-   */
+  /** Creates bins-based range strings using SPL's exact "nice number" algorithm. */
   public static RexNode createBinsBasedRangeStrings(
-      Bin node,
-      RexNode fieldExpr,
-      CalcitePlanContext context,
-      org.opensearch.sql.calcite.CalciteRexNodeVisitor rexVisitor) {
+      Bin node, RexNode fieldExpr, CalcitePlanContext context) {
 
     Integer requestedBins = node.getBins();
     if (requestedBins == null) {
-      requestedBins = 10; // Default number of bins
+      requestedBins = DEFAULT_BINS;
     }
 
-    // SPL BEHAVIOR: bins parameter ignores start/end completely
-    // Instead, it calculates bins based on the ACTUAL DATA RANGE
-    // For now, using field-specific defaults that match typical data
-    String fieldName = extractFieldName(node);
-    int rangeStart, rangeEnd;
-
-    // SPL's bins algorithm: Create AT MOST requestedBins with nice widths
-    // For age bins=10: SPL sees range 20-50 and creates 3 bins of width=10
-
-    if ("age".equals(fieldName)) {
-      // Age field: SPL typically sees 20-50 range and prefers width=10 for readability
-      // For bins=10: creates 3 bins (20-30, 30-40, 40-50) rather than 10 tiny bins
-      rangeStart = 20;
-      rangeEnd = 50;
-      // Force nice width selection that prioritizes readability over exact bin count
-      int span = calculateSPLNiceBinWidth(rangeEnd - rangeStart, requestedBins, true);
-      return createBinsWithSpan(fieldExpr, span, rangeStart, rangeEnd, requestedBins, context);
-
-    } else if ("balance".equals(fieldName)) {
-      // Balance field: typical range 0-50000
-      rangeStart = 0;
-      rangeEnd = 50000;
-      int span = calculateSPLNiceBinWidth(rangeEnd - rangeStart, requestedBins, false);
-      return createBinsWithSpan(fieldExpr, span, rangeStart, rangeEnd, requestedBins, context);
-
-    } else {
-      // Default: reasonable range for most numeric fields
-      rangeStart = 0;
-      rangeEnd = 100;
-      int span = calculateSPLNiceBinWidth(rangeEnd - rangeStart, requestedBins, false);
-      return createBinsWithSpan(fieldExpr, span, rangeStart, rangeEnd, requestedBins, context);
+    // Validate bins constraint
+    if (requestedBins < MIN_BINS) {
+      throw new IllegalArgumentException(
+          "The bins parameter must be at least " + MIN_BINS + ", got: " + requestedBins);
     }
+    if (requestedBins > MAX_BINS) {
+      throw new IllegalArgumentException(
+          "The bins parameter must not exceed " + MAX_BINS + ", got: " + requestedBins);
+    }
+
+    return createFallbackBinningExpression(fieldExpr, requestedBins, context);
   }
 
-  /**
-   * Calculates SPL's "nice" bin width that prioritizes readability over exact bin count. For age
-   * bins=10: returns 10 (creating 3 bins) rather than 3 (creating 10 bins). This matches SPL's
-   * philosophy of human-readable bin widths.
-   */
-  private static int calculateSPLNiceBinWidth(
-      int totalRange, int requestedBins, boolean isAgeField) {
-
-    if (isAgeField) {
-      // Age field special case: SPL prefers width=10 for ages regardless of bin count
-      // bins=10 on age 20-50 → creates 3 bins with width=10 (20-30, 30-40, 40-50)
-      if (totalRange <= 30) {
-        return 10; // Always prefer decade-based binning for ages
-      } else {
-        return 20; // For wider age ranges, use 20-year bins
-      }
-    }
-
-    // For other fields: calculate reasonable span but round to nice numbers
-    int initialSpan = Math.max(1, totalRange / requestedBins);
-    return roundToNiceNumber(initialSpan);
-  }
-
-  /**
-   * Creates exactly the right number of bins with the specified span. For bins=5: creates exactly 5
-   * bins, not 500+. This follows the working span implementation pattern.
-   */
-  private static RexNode createBinsWithSpan(
-      RexNode fieldExpr,
-      int span,
-      int rangeStart,
-      int rangeEnd,
-      Integer requestedBins,
-      CalcitePlanContext context) {
-
-    List<RexNode> caseOperands = new ArrayList<>();
-
-    // Create the requested number of bins (or cover the range, whichever is smaller)
-    int actualBins = 0;
-    int maxBins = requestedBins != null ? requestedBins : (rangeEnd - rangeStart) / span + 1;
-
-    for (int binStart = rangeStart; binStart < rangeEnd && actualBins < maxBins; binStart += span) {
-      int binEnd = binStart + span;
-
-      // Create condition: field >= binStart AND field < binEnd
-      RexNode greaterEqual =
-          context.relBuilder.call(
-              SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
-              fieldExpr,
-              context.relBuilder.literal(binStart));
-      RexNode lessThan =
-          context.relBuilder.call(
-              SqlStdOperatorTable.LESS_THAN, fieldExpr, context.relBuilder.literal(binEnd));
-      RexNode condition = context.relBuilder.call(SqlStdOperatorTable.AND, greaterEqual, lessThan);
-
-      // Create range string without trailing spaces
-      String rangeString = (binStart + "-" + binEnd).replaceAll("\\s+", "");
-      RexNode rangeResult = context.relBuilder.literal(rangeString);
-
-      caseOperands.add(condition);
-      caseOperands.add(rangeResult);
-      actualBins++;
-    }
-
-    // Handle values outside the main range (but don't create "Other")
-    // For values below range: put in first bin
-    if (rangeStart > 0) {
-      RexNode belowRange =
-          context.relBuilder.call(
-              SqlStdOperatorTable.LESS_THAN, fieldExpr, context.relBuilder.literal(rangeStart));
-      String firstBinString = (rangeStart + "-" + (rangeStart + span)).replaceAll("\\s+", "");
-      caseOperands.add(belowRange);
-      caseOperands.add(context.relBuilder.literal(firstBinString));
-    }
-
-    // For values above range: put in last bin
-    RexNode aboveRange =
-        context.relBuilder.call(
-            SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
-            fieldExpr,
-            context.relBuilder.literal(rangeEnd));
-    String lastBinString = ((rangeEnd - span) + "-" + rangeEnd).replaceAll("\\s+", "");
-    caseOperands.add(aboveRange);
-    caseOperands.add(context.relBuilder.literal(lastBinString));
-
-    // Final fallback (should rarely be used)
-    caseOperands.add(context.relBuilder.literal("Outlier"));
-
-    return context.relBuilder.call(SqlStdOperatorTable.CASE, caseOperands);
-  }
-
-  /**
-   * Creates comprehensive range coverage that covers the FULL data range. CRITICAL FIX: No "Other"
-   * fallback - SPL creates proper bins for complete coverage.
-   */
-  private static RexNode createComprehensiveRangeCoverage(
-      RexNode fieldExpr, int span, int rangeStart, int rangeEnd, CalcitePlanContext context) {
-
-    List<RexNode> caseOperands = new ArrayList<>();
-
-    // Create bins to cover the COMPLETE range
-    for (int binStart = rangeStart; binStart < rangeEnd; binStart += span) {
-      int binEnd = binStart + span;
-
-      // Create condition: field >= binStart AND field < binEnd
-      RexNode greaterEqual =
-          context.relBuilder.call(
-              SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
-              fieldExpr,
-              context.relBuilder.literal(binStart));
-      RexNode lessThan =
-          context.relBuilder.call(
-              SqlStdOperatorTable.LESS_THAN, fieldExpr, context.relBuilder.literal(binEnd));
-      RexNode condition = context.relBuilder.call(SqlStdOperatorTable.AND, greaterEqual, lessThan);
-
-      // Create range string without trailing spaces
-      String rangeString = (binStart + "-" + binEnd).replaceAll("\\s+", "");
-      RexNode rangeResult = context.relBuilder.literal(rangeString);
-
-      caseOperands.add(condition);
-      caseOperands.add(rangeResult);
-    }
-
-    // SPL BEHAVIOR: Extend range to handle values outside initial estimates
-    // Instead of "Other", create additional bins to cover outliers
-    // For values below range: create lower bins
-    RexNode belowRange =
-        context.relBuilder.call(
-            SqlStdOperatorTable.LESS_THAN, fieldExpr, context.relBuilder.literal(rangeStart));
-    String belowRangeString = ((rangeStart - span) + "-" + rangeStart).replaceAll("\\s+", "");
-    caseOperands.add(belowRange);
-    caseOperands.add(context.relBuilder.literal(belowRangeString));
-
-    // For values above range: create upper bins
-    RexNode aboveRange =
-        context.relBuilder.call(
-            SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
-            fieldExpr,
-            context.relBuilder.literal(rangeEnd));
-    String aboveRangeString = (rangeEnd + "-" + (rangeEnd + span)).replaceAll("\\s+", "");
-    caseOperands.add(aboveRange);
-    caseOperands.add(context.relBuilder.literal(aboveRangeString));
-
-    // Final fallback for extreme edge cases (should rarely be used)
-    caseOperands.add(context.relBuilder.literal("Outlier"));
-
-    return context.relBuilder.call(SqlStdOperatorTable.CASE, caseOperands);
-  }
-
-  /**
-   * Creates range strings when only start/end parameters are specified (without bins). This handles
-   * the case where bins is NOT present but start/end are.
-   */
+  /** Creates range strings when only start/end parameters are specified (without bins). */
   public static RexNode createStartEndRangeStrings(
       Bin node,
       RexNode fieldExpr,
       CalcitePlanContext context,
       org.opensearch.sql.calcite.CalciteRexNodeVisitor rexVisitor) {
 
-    // Process start/end parameters
-    int rangeStart = 0; // default start
-    int rangeEnd = 100; // default end
+    RexNode minValue = context.relBuilder.min(fieldExpr).over().toRex();
+    RexNode maxValue = context.relBuilder.max(fieldExpr).over().toRex();
+
+    RexNode effectiveMin = minValue; // default to data min
+    RexNode effectiveMax = maxValue; // default to data max
 
     if (node.getStart() != null) {
       RexNode startValue = rexVisitor.analyze(node.getStart(), context);
-      if (startValue.isA(LITERAL)) {
-        rangeStart = ((Number) ((RexLiteral) startValue).getValue()).intValue();
-      }
+      effectiveMin =
+          context.relBuilder.call(
+              SqlStdOperatorTable.CASE,
+              context.relBuilder.call(SqlStdOperatorTable.LESS_THAN, startValue, minValue),
+              startValue,
+              minValue);
     }
 
     if (node.getEnd() != null) {
       RexNode endValue = rexVisitor.analyze(node.getEnd(), context);
-      if (endValue.isA(LITERAL)) {
-        rangeEnd = ((Number) ((RexLiteral) endValue).getValue()).intValue();
-      }
-    }
-
-    // Use SPL's range-threshold algorithm to determine span
-    int totalRange = rangeEnd - rangeStart;
-    int span = calculateNiceSpan(totalRange, null); // null = no requested bins
-
-    // CRITICAL FIX for Bug 2: Use the same simple logic as span, not 600+ individual bins
-    return createRangeCaseExpression(
-        fieldExpr, span, null, context, node.getStart(), node.getEnd(), rexVisitor);
-  }
-
-  /**
-   * Creates default range strings when no parameters are specified. FINAL FIX: Implement SPL's
-   * smart default behavior for field types. For balance: should create bins like 0-10000,
-   * 10000-20000, etc.
-   */
-  public static RexNode createDefaultRangeStrings(RexNode fieldExpr, CalcitePlanContext context) {
-    // SPL's default algorithm: analyze field characteristics and choose smart defaults
-    // In practice, SPL analyzes the actual data distribution
-
-    // Use intelligent defaults based on typical field patterns
-    // This can be enhanced to detect field names or analyze data ranges
-
-    int span, rangeStart, rangeEnd;
-
-    // Intelligent defaults based on common field types
-    // Balance-like fields: large numeric values, need wide bins
-    // Age-like fields: small numeric values, need narrow bins
-
-    // For now, use balance-friendly defaults (most common case for large ranges)
-    // This produces the same result as "bin balance span=10000"
-    span = 10000; // Smart default for financial/large numeric data
-    rangeStart = 0; // Start from 0 for most numeric fields
-    rangeEnd = 50000; // Cover typical large numeric range
-
-    // TODO: Could be enhanced with field name detection:
-    // if (fieldName.contains("age")) { span = 5; rangeEnd = 100; }
-    // if (fieldName.contains("balance") || fieldName.contains("amount")) { span = 10000; rangeEnd =
-    // 50000; }
-
-    // Use the same reliable logic as span parameter (but without rexVisitor dependency)
-    // Directly create the range bins with our known parameters
-    List<RexNode> caseOperands = new ArrayList<>();
-
-    // Generate range conditions for the specified range
-    for (int binStart = rangeStart; binStart < rangeEnd; binStart += span) {
-      int binEnd = binStart + span;
-
-      // Create condition: field >= binStart AND field < binEnd
-      RexNode greaterEqual =
+      effectiveMax =
           context.relBuilder.call(
-              SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
-              fieldExpr,
-              context.relBuilder.literal(binStart));
-      RexNode lessThan =
-          context.relBuilder.call(
-              SqlStdOperatorTable.LESS_THAN, fieldExpr, context.relBuilder.literal(binEnd));
-      RexNode condition = context.relBuilder.call(SqlStdOperatorTable.AND, greaterEqual, lessThan);
-
-      // Create range string: "binStart-binEnd" (ensure no trailing spaces)
-      String rangeString = (binStart + "-" + binEnd).replaceAll("\\s+", "");
-      RexNode rangeResult = context.relBuilder.literal(rangeString);
-
-      caseOperands.add(condition);
-      caseOperands.add(rangeResult);
+              SqlStdOperatorTable.CASE,
+              context.relBuilder.call(SqlStdOperatorTable.GREATER_THAN, endValue, maxValue),
+              endValue,
+              maxValue);
     }
 
-    // Add ELSE clause for values outside the range
-    caseOperands.add(context.relBuilder.literal("Other"));
+    RexNode effectiveRange =
+        context.relBuilder.call(SqlStdOperatorTable.MINUS, effectiveMax, effectiveMin);
 
-    return context.relBuilder.call(SqlStdOperatorTable.CASE, caseOperands);
+    RexNode log10Range = context.relBuilder.call(SqlStdOperatorTable.LOG10, effectiveRange);
+    RexNode floorLog = context.relBuilder.call(SqlStdOperatorTable.FLOOR, log10Range);
+
+    RexNode isExactPowerOf10 =
+        context.relBuilder.call(SqlStdOperatorTable.EQUALS, log10Range, floorLog);
+
+    RexNode adjustedMagnitude =
+        context.relBuilder.call(
+            SqlStdOperatorTable.CASE,
+            isExactPowerOf10,
+            context.relBuilder.call(
+                SqlStdOperatorTable.MINUS, floorLog, context.relBuilder.literal(1.0)),
+            floorLog);
+
+    RexNode selectedWidth =
+        context.relBuilder.call(
+            SqlStdOperatorTable.POWER, context.relBuilder.literal(10.0), adjustedMagnitude);
+
+    RexNode firstBinStart =
+        context.relBuilder.call(
+            SqlStdOperatorTable.MULTIPLY,
+            context.relBuilder.call(
+                SqlStdOperatorTable.FLOOR,
+                context.relBuilder.call(SqlStdOperatorTable.DIVIDE, effectiveMin, selectedWidth)),
+            selectedWidth);
+
+    RexNode binValue = calculateBinValue(fieldExpr, selectedWidth, firstBinStart, context);
+
+    RexNode binEnd = context.relBuilder.call(SqlStdOperatorTable.PLUS, binValue, selectedWidth);
+    return createRangeString(binValue, binEnd, selectedWidth, context);
   }
 
   /**
-   * Calculate nice span value using SPL's algorithm. Two different behaviors: 1. When requestedBins
-   * is specified: Calculate span to create ~requestedBins bins 2. When requestedBins is null
-   * (start/end only): Use range-threshold algorithm
+   * Creates default binning when no parameters are specified. Detects field type and uses
+   * appropriate binning.
    */
-  private static int calculateNiceSpan(int totalRange, Integer requestedBins) {
-
-    if (requestedBins != null) {
-      // SPL bins=N behavior: Calculate span to create roughly N bins
-      // For bins=5 with range 0-50000: span should be ~10000 to create 5 bins
-      int initialSpan = Math.max(1, totalRange / requestedBins);
-
-      // Round to "nice" numbers for human readability
-      return roundToNiceNumber(initialSpan);
-
-    } else {
-      // SPL start/end only behavior: Use proper range-threshold algorithm
-      // SPL creates smart bin widths based on total range
-
-      if (totalRange <= 100) {
-        return 10; // Range ≤ 100: creates ~10 bins with width=10
-      } else if (totalRange <= 1000) {
-        return 100; // Range ≤ 1000: creates ~10 bins with width=100
-      } else if (totalRange <= 10000) {
-        return 1000; // Range ≤ 10000: creates ~10 bins with width=1000
-      } else {
-        return 10000; // Range > 10000: creates ~6 bins with width=10000
-      }
-    }
-  }
-
-  /**
-   * Rounds a span to a "nice" human-readable number. SPL prefers values like 1, 2, 5, 10, 20, 50,
-   * 100, 200, 500, 1000, etc.
-   */
-  private static int roundToNiceNumber(int initialSpan) {
-    if (initialSpan <= 1) return 1;
-    if (initialSpan <= 2) return 2;
-    if (initialSpan <= 5) return 5;
-    if (initialSpan <= 10) return 10;
-    if (initialSpan <= 20) return 20;
-    if (initialSpan <= 50) return 50;
-    if (initialSpan <= 100) return 100;
-    if (initialSpan <= 200) return 200;
-    if (initialSpan <= 500) return 500;
-    if (initialSpan <= 1000) return 1000;
-    if (initialSpan <= 2000) return 2000;
-    if (initialSpan <= 5000) return 5000;
-    if (initialSpan <= 10000) return 10000;
-    if (initialSpan <= 20000) return 20000;
-    if (initialSpan <= 50000) return 50000;
-    return 100000; // For very large ranges
-  }
-
-  /** Creates default binning expression. */
-  public static RexNode createDefaultBinning(RexNode fieldExpr, CalcitePlanContext context) {
+  public static RexNode createDefaultRangeStrings(
+      Bin node, RexNode fieldExpr, CalcitePlanContext context) {
     RelDataType fieldType = fieldExpr.getType();
-    RexNode defaultSpan = context.relBuilder.literal(1);
-    RexNode workingFieldExpr = fieldExpr;
+    String fieldName = extractFieldName(node);
 
-    if (fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP
-        || fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
-      workingFieldExpr = context.relBuilder.cast(fieldExpr, SqlTypeName.BIGINT);
+    if (shouldApplyTimeBinning(fieldName, fieldType)) {
+      validateTimestampFieldExists(fieldName, context);
+
+      return BinSpanFunction.createBinTimeSpanExpression(fieldExpr, 1, "h", 0, context);
     }
 
-    RexNode divided =
-        context.relBuilder.call(SqlStdOperatorTable.DIVIDE, workingFieldExpr, defaultSpan);
-    return context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
+    RexNode minValue = context.relBuilder.min(fieldExpr).over().toRex();
+    RexNode maxValue = context.relBuilder.max(fieldExpr).over().toRex();
+
+    RexNode dataRange = context.relBuilder.call(SqlStdOperatorTable.MINUS, maxValue, minValue);
+
+    RexNode log10Range = context.relBuilder.call(SqlStdOperatorTable.LOG10, dataRange);
+    RexNode magnitude = context.relBuilder.call(SqlStdOperatorTable.FLOOR, log10Range);
+
+    RexNode tenLiteral = context.relBuilder.literal(10.0);
+    RexNode defaultWidth =
+        context.relBuilder.call(SqlStdOperatorTable.POWER, tenLiteral, magnitude);
+
+    RexNode widthInt = context.relBuilder.call(SqlStdOperatorTable.FLOOR, defaultWidth);
+
+    RexNode binStartValue = calculateBinValue(fieldExpr, widthInt, context);
+    RexNode binEndValue =
+        context.relBuilder.call(SqlStdOperatorTable.PLUS, binStartValue, widthInt);
+
+    return createRangeString(binStartValue, binEndValue, context);
   }
 
-  /** Determines the unit parameter for the given field type. */
-  public static RexNode determineUnitForField(
-      RelDataType fieldType, CalcitePlanContext context, String defaultTimeUnit) {
-    if (fieldType.getSqlTypeName() == SqlTypeName.BIGINT
-        || fieldType.getSqlTypeName() == SqlTypeName.INTEGER
-        || fieldType.getSqlTypeName() == SqlTypeName.SMALLINT
-        || fieldType.getSqlTypeName() == SqlTypeName.TINYINT
-        || fieldType.getSqlTypeName() == SqlTypeName.DOUBLE
-        || fieldType.getSqlTypeName() == SqlTypeName.FLOAT
-        || fieldType.getSqlTypeName() == SqlTypeName.DECIMAL) {
-      return context.relBuilder.literal(null);
-    } else {
-      return context.relBuilder.literal(defaultTimeUnit);
-    }
+  /**
+   * Checks if a field should receive time-based binning treatment. SPL behavior: Time-based binning
+   * ONLY applies to the special @timestamp field.
+   */
+  public static boolean shouldApplyTimeBinning(String fieldName, RelDataType fieldType) {
+    // SPL compatibility: Only @timestamp field gets time-based binning
+    return TIMESTAMP_FIELD.equals(fieldName) && isTimeBasedField(fieldType);
   }
 
-  /** Checks if the given value is a decimal number. */
-  public static boolean isDecimalValue(RexNode value) {
-    if (value.isA(LITERAL) && ((RexLiteral) value).getValue() != null) {
-      Object val = ((RexLiteral) value).getValue();
-      if (val instanceof Number) {
-        double doubleVal = ((Number) val).doubleValue();
-        return (doubleVal != Math.floor(doubleVal));
+  /** Validates that @timestamp field exists in the dataset when time-based binning is requested. */
+  public static void validateTimestampFieldExists(String fieldName, CalcitePlanContext context) {
+    if (TIMESTAMP_FIELD.equals(fieldName)) {
+      List<String> availableFields = context.relBuilder.peek().getRowType().getFieldNames();
+      if (!availableFields.contains(TIMESTAMP_FIELD)) {
+        throw new IllegalArgumentException(
+            "Time-based binning requires @timestamp field in dataset. "
+                + "Please ensure your data contains @timestamp field for time operations. "
+                + "Available fields: "
+                + availableFields);
       }
     }
-    return false;
   }
 
-  /** Determines whether to use the SPAN function or direct mathematical operations. */
-  public static boolean shouldUseSpanFunction(
-      RelDataType fieldType, RexNode unitNode, boolean isDecimalSpan) {
-    return fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP
-        || fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
-        || fieldType.getSqlTypeName() == SqlTypeName.DATE
-        || (unitNode.isA(LITERAL)
-            && ((RexLiteral) unitNode).getValue() != null
-            && !((RexLiteral) unitNode).getValue().toString().isEmpty());
-  }
-
-  /** Creates binning expression using the SPAN function. */
-  public static RexNode createSpanFunctionBinning(
-      RexNode fieldExpr,
-      RexNode spanValue,
-      RexNode unitNode,
-      RexNode alignTimeValue,
-      RelDataType fieldType,
-      boolean isDecimalSpan,
-      CalcitePlanContext context) {
-    // For integer-like fields with null unit, ensure span is also INTEGER
-    if (isIntegerLikeField(fieldType)
-        && unitNode.isA(LITERAL)
-        && ((RexLiteral) unitNode).getValue() == null
-        && !isDecimalSpan) {
-      spanValue = context.relBuilder.cast(spanValue, SqlTypeName.INTEGER);
+  /** Validates time-based operations on non-@timestamp fields. */
+  public static void validateTimeBasedOperations(Bin node, String fieldName) {
+    // Skip validation for @timestamp field - it's allowed to use time operations
+    if (TIMESTAMP_FIELD.equals(fieldName)) {
+      return;
     }
 
-    if (alignTimeValue != null) {
-      // For time alignment, adjust the field value before binning
-      RexNode adjustedField =
-          context.relBuilder.call(SqlStdOperatorTable.MINUS, fieldExpr, alignTimeValue);
-      RexNode binExpression =
-          PPLFuncImpTable.INSTANCE.resolve(
-              context.rexBuilder, BuiltinFunctionName.SPAN, adjustedField, spanValue, unitNode);
-      return context.relBuilder.call(SqlStdOperatorTable.PLUS, binExpression, alignTimeValue);
-    } else {
-      return PPLFuncImpTable.INSTANCE.resolve(
-          context.rexBuilder, BuiltinFunctionName.SPAN, fieldExpr, spanValue, unitNode);
+    if (node.getSpan() != null) {
+      String spanStr = getOriginalLiteralValue(node.getSpan());
+
+      if (spanStr != null && spanStr.matches(".*[hmsd]$")) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Time-based binning requires '@timestamp' field. "
+                    + "Field '%s' does not support time operations. "
+                    + "Use '@timestamp' for time binning or remove time parameters.",
+                fieldName));
+      }
     }
-  }
 
-  /** Creates binning expression using direct mathematical operations. */
-  public static RexNode createDirectBinning(
-      RexNode fieldExpr,
-      RexNode spanValue,
-      RexNode alignTimeValue,
-      RelDataType fieldType,
-      CalcitePlanContext context) {
-    RexNode workingFieldExpr = fieldExpr;
-
-    if (alignTimeValue != null && shouldApplyAlignment(fieldType)) {
-      // For time alignment: aligned_bin = floor((field - aligntime) / span) * span + aligntime
-      RexNode adjusted =
-          context.relBuilder.call(SqlStdOperatorTable.MINUS, workingFieldExpr, alignTimeValue);
-      RexNode divided = context.relBuilder.call(SqlStdOperatorTable.DIVIDE, adjusted, spanValue);
-      RexNode floored = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
-      RexNode multiplied =
-          context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, floored, spanValue);
-      return context.relBuilder.call(SqlStdOperatorTable.PLUS, multiplied, alignTimeValue);
-    } else {
-      // Standard binning: bin = FLOOR(field / span) * span
-      RexNode divided =
-          context.relBuilder.call(SqlStdOperatorTable.DIVIDE, workingFieldExpr, spanValue);
-      RexNode floored = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
-      return context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, floored, spanValue);
+    // Check for aligntime parameter - only valid for @timestamp
+    if (node.getAligntime() != null) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Time-based binning requires '@timestamp' field. "
+                  + "Field '%s' does not support time operations. "
+                  + "Use '@timestamp' for time binning or remove time parameters.",
+              fieldName));
     }
   }
 
   /** Checks if the field type is time-based. */
   public static boolean isTimeBasedField(RelDataType fieldType) {
-    return fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP
+    // First check standard SQL time types
+    if (fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP
         || fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
-        || fieldType.getSqlTypeName() == SqlTypeName.BIGINT
-        || fieldType.getSqlTypeName() == SqlTypeName.DATE;
+        || fieldType.getSqlTypeName() == SqlTypeName.BIGINT // epoch timestamps
+        || fieldType.getSqlTypeName() == SqlTypeName.DATE) {
+      return true;
+    }
+
+    // Check for OpenSearch UDT types (EXPR_TIMESTAMP mapped to VARCHAR)
+    if (fieldType instanceof AbstractExprRelDataType<?> exprType) {
+      ExprType udtType = exprType.getExprType();
+      return udtType == ExprCoreType.TIMESTAMP
+          || udtType == ExprCoreType.DATE
+          || udtType == ExprCoreType.TIME;
+    }
+
+    // Check if type string contains EXPR_TIMESTAMP (for cases where instanceof check fails)
+    return fieldType.toString().contains("EXPR_TIMESTAMP");
   }
 
-  /** Checks if the field type is integer-like. */
-  public static boolean isIntegerLikeField(RelDataType fieldType) {
-    return fieldType.getSqlTypeName() == SqlTypeName.BIGINT
-        || fieldType.getSqlTypeName() == SqlTypeName.INTEGER
-        || fieldType.getSqlTypeName() == SqlTypeName.SMALLINT
-        || fieldType.getSqlTypeName() == SqlTypeName.TINYINT;
+  // === HELPER METHODS ===
+
+  /** Creates binning calculation with a specific width. */
+  private static RexNode calculateBinValue(
+      RexNode fieldExpr, RexNode selectedWidth, CalcitePlanContext context) {
+    return calculateBinValue(fieldExpr, selectedWidth, null, context);
   }
 
-  /** Determines if alignment should be applied for the given field type. */
-  public static boolean shouldApplyAlignment(RelDataType fieldType) {
-    return fieldType.getSqlTypeName() == SqlTypeName.BIGINT
-        || fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP
-        || fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE;
+  /** Creates binning calculation with a specific width and optional first bin start. */
+  private static RexNode calculateBinValue(
+      RexNode fieldExpr, RexNode selectedWidth, RexNode firstBinStart, CalcitePlanContext context) {
+    if (firstBinStart == null) {
+      RexNode divided =
+          context.relBuilder.call(SqlStdOperatorTable.DIVIDE, fieldExpr, selectedWidth);
+      RexNode floored = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
+      return context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, floored, selectedWidth);
+    } else {
+      RexNode adjustedField =
+          context.relBuilder.call(SqlStdOperatorTable.MINUS, fieldExpr, firstBinStart);
+      RexNode divided =
+          context.relBuilder.call(SqlStdOperatorTable.DIVIDE, adjustedField, selectedWidth);
+      RexNode floored = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
+      RexNode binIndex =
+          context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, floored, selectedWidth);
+      return context.relBuilder.call(SqlStdOperatorTable.PLUS, binIndex, firstBinStart);
+    }
   }
 
-  /**
-   * Creates a CASE expression that converts numeric values to range strings. This is the core
-   * SPL-compatible transformation that generates expressions like: CASE WHEN field >= 30 AND field
-   * < 35 THEN '30-35' WHEN field >= 35 AND field < 40 THEN '35-40' ELSE 'Other' END
-   */
+  /** Creates a formatted range string from start and end values. */
+  private static RexNode createRangeString(
+      RexNode binValue, RexNode binEnd, CalcitePlanContext context) {
+    return createRangeString(binValue, binEnd, null, context);
+  }
+
+  /** Creates a formatted range string from start and end values with optional width formatting. */
+  private static RexNode createRangeString(
+      RexNode binValue, RexNode binEnd, RexNode width, CalcitePlanContext context) {
+    RexNode dash = context.relBuilder.literal(DASH_SEPARATOR);
+
+    RexNode binValueFormatted =
+        width != null
+            ? createFormattedValue(binValue, width, context)
+            : context.relBuilder.cast(
+                context.relBuilder.call(SqlStdOperatorTable.FLOOR, binValue), SqlTypeName.VARCHAR);
+    RexNode binEndFormatted =
+        width != null
+            ? createFormattedValue(binEnd, width, context)
+            : context.relBuilder.cast(
+                context.relBuilder.call(SqlStdOperatorTable.FLOOR, binEnd), SqlTypeName.VARCHAR);
+
+    RexNode firstConcat =
+        context.relBuilder.call(SqlStdOperatorTable.CONCAT, binValueFormatted, dash);
+    return context.relBuilder.call(SqlStdOperatorTable.CONCAT, firstConcat, binEndFormatted);
+  }
+
+  /** Creates a formatted value expression that shows integers without decimals when appropriate. */
+  private static RexNode createFormattedValue(
+      RexNode value, RexNode width, CalcitePlanContext context) {
+    RexNode isIntegerWidth =
+        context.relBuilder.call(
+            SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, width, context.relBuilder.literal(1.0));
+
+    RexNode integerValue =
+        context.relBuilder.cast(
+            context.relBuilder.cast(value, SqlTypeName.INTEGER), SqlTypeName.VARCHAR);
+
+    RexNode decimalValue = context.relBuilder.cast(value, SqlTypeName.VARCHAR);
+
+    return context.relBuilder.call(
+        SqlStdOperatorTable.CASE, isIntegerWidth, integerValue, decimalValue);
+  }
+
+  /** Creates a binning expression that implements SPL's nice number algorithm. */
+  private static RexNode createFallbackBinningExpression(
+      RexNode fieldExpr, int requestedBins, CalcitePlanContext context) {
+
+    RexNode selectedWidth = createDynamicWidthSelection(fieldExpr, requestedBins, context);
+
+    RexNode divided = context.relBuilder.call(SqlStdOperatorTable.DIVIDE, fieldExpr, selectedWidth);
+    RexNode floored = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
+    RexNode binValue =
+        context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, floored, selectedWidth);
+
+    RexNode binEnd = context.relBuilder.call(SqlStdOperatorTable.PLUS, binValue, selectedWidth);
+    return createRangeString(binValue, binEnd, selectedWidth, context);
+  }
+
+  /** Creates dynamic width selection that implements SPL's exact nice number algorithm. */
+  private static RexNode createDynamicWidthSelection(
+      RexNode fieldExpr, int requestedBins, CalcitePlanContext context) {
+
+    RexNode minValue = context.relBuilder.min(fieldExpr).over().toRex();
+    RexNode maxValue = context.relBuilder.max(fieldExpr).over().toRex();
+
+    RexNode dataRange = context.relBuilder.call(SqlStdOperatorTable.MINUS, maxValue, minValue);
+
+    List<RexNode> caseOperands = new ArrayList<>();
+
+    for (double width : SPL_NICE_WIDTHS) {
+      RexNode widthLiteral = context.relBuilder.literal(width);
+
+      RexNode theoreticalBins =
+          context.relBuilder.call(
+              SqlStdOperatorTable.CEIL,
+              context.relBuilder.call(SqlStdOperatorTable.DIVIDE, dataRange, widthLiteral));
+
+      RexNode maxModWidth =
+          context.relBuilder.call(SqlStdOperatorTable.MOD, maxValue, widthLiteral);
+      RexNode needsExtraBin =
+          context.relBuilder.call(
+              SqlStdOperatorTable.EQUALS, maxModWidth, context.relBuilder.literal(0));
+      RexNode extraBin =
+          context.relBuilder.call(
+              SqlStdOperatorTable.CASE,
+              needsExtraBin,
+              context.relBuilder.literal(1),
+              context.relBuilder.literal(0));
+      RexNode actualBins =
+          context.relBuilder.call(SqlStdOperatorTable.PLUS, theoreticalBins, extraBin);
+
+      RexNode constraint =
+          context.relBuilder.call(
+              SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
+              actualBins,
+              context.relBuilder.literal(requestedBins));
+
+      caseOperands.add(constraint);
+      caseOperands.add(widthLiteral);
+    }
+
+    RexNode exactWidth =
+        context.relBuilder.call(
+            SqlStdOperatorTable.DIVIDE, dataRange, context.relBuilder.literal(requestedBins));
+    caseOperands.add(exactWidth);
+
+    return context.relBuilder.call(SqlStdOperatorTable.CASE, caseOperands);
+  }
+
+  /** Parses time span string (like "1h", "30seconds") and creates bin-specific span expression. */
+  private static RexNode createBinSpanExpressionFromString(
+      String spanStr, RexNode fieldExpr, RexNode alignTimeValue, CalcitePlanContext context) {
+
+    // Parse alignment offset if provided
+    long alignmentOffsetMillis = 0;
+    if (alignTimeValue instanceof RexLiteral literal) {
+      Object value = literal.getValue();
+
+      if (value instanceof String) {
+        alignmentOffsetMillis = parseAlignTimeOffset((String) value);
+      } else if (value instanceof Number) {
+        alignmentOffsetMillis = ((Number) value).longValue() * 1000L;
+      }
+    }
+
+    // Parse time span and create bin-specific expression
+    try {
+      // Clean up the span string
+      spanStr = spanStr.replace("'", "").replace("\"", "").trim();
+
+      // Use the comprehensive time unit extraction
+      String timeUnit = extractTimeUnit(spanStr);
+      if (timeUnit != null) {
+        String valueStr = spanStr.substring(0, spanStr.length() - timeUnit.length());
+        int value = Integer.parseInt(valueStr);
+
+        // Normalize the unit to BinSpanFunction's expected format
+        String normalizedUnit = normalizeTimeUnit(timeUnit);
+        return BinSpanFunction.createBinTimeSpanExpression(
+            fieldExpr, value, normalizedUnit, alignmentOffsetMillis, context);
+      } else {
+        // Try parsing as pure number (assume hours)
+        int value = Integer.parseInt(spanStr);
+        return BinSpanFunction.createBinTimeSpanExpression(
+            fieldExpr, value, "h", alignmentOffsetMillis, context);
+      }
+    } catch (NumberFormatException e) {
+      throw new IllegalArgumentException("Invalid time span format: '" + spanStr + "'", e);
+    }
+  }
+
+  /** Normalizes time units to the format expected by BinSpanFunction. */
+  private static String normalizeTimeUnit(String unit) {
+    // Convert all unit variations to the canonical form that BinSpanFunction expects
+    switch (unit.toLowerCase()) {
+        // Seconds
+      case "s":
+      case "sec":
+      case "secs":
+      case "second":
+      case "seconds":
+        return "s";
+        // Minutes
+      case "m":
+      case "min":
+      case "mins":
+      case "minute":
+      case "minutes":
+        return "m";
+        // Hours
+      case "h":
+      case "hr":
+      case "hrs":
+      case "hour":
+      case "hours":
+        return "h";
+        // Days
+      case "d":
+      case "day":
+      case "days":
+        return "d";
+        // Months (case-sensitive M)
+      case "M":
+      case "mon":
+      case "month":
+      case "months":
+        return "M";
+        // Subseconds
+      case "us":
+        return "us";
+      case "ms":
+        return "ms";
+      case "cs":
+        return "cs";
+      case "ds":
+        return "ds";
+      default:
+        return unit; // Return as-is if not recognized
+    }
+  }
+
+  /** Creates a CASE expression that converts numeric values to range strings. */
   private static RexNode createRangeCaseExpression(
       RexNode fieldExpr,
       int span,
@@ -668,16 +692,10 @@ public class BinUtils {
       org.opensearch.sql.ast.expression.UnresolvedExpression endExpr,
       org.opensearch.sql.calcite.CalciteRexNodeVisitor rexVisitor) {
 
-    List<RexNode> caseOperands = new ArrayList<>();
-
-    // Determine the range to cover
-    // For simplicity, we'll generate a reasonable number of ranges
-    // In practice, this should be dynamic based on data or user parameters
     int rangeStart = 0;
-    if (alignTimeValue != null
-        && alignTimeValue.isA(LITERAL)
-        && ((RexLiteral) alignTimeValue).getValue() != null) {
-      rangeStart = ((Number) ((RexLiteral) alignTimeValue).getValue()).intValue();
+    if (alignTimeValue instanceof RexLiteral literal
+        && literal.getValue() instanceof Number number) {
+      rangeStart = number.intValue();
     }
 
     // Override with start parameter if specified
@@ -688,188 +706,365 @@ public class BinUtils {
       }
     }
 
-    int rangeEnd;
+    RexNode spanLiteral = context.relBuilder.literal(span);
+    RexNode rangeStartLiteral = context.relBuilder.literal(rangeStart);
 
-    // CRITICAL FIX for Bug 1: Calculate proper range coverage for span logic
-    if (startExpr == null && endExpr == null) {
-      // Called from span logic - calculate appropriate range to cover data
-      // For balance span=10000: need range 0-50000 to create 5 bins
-      // For age span=5: need range 0-100 to cover typical ages
-      if (span >= 1000) {
-        // Large span (like 10000) suggests financial data - use large range
-        rangeEnd = rangeStart + span * 10; // Creates ~10 bins worth of coverage
-      } else {
-        // Small span (like 5) suggests age/small numeric data - use moderate range
-        rangeEnd = rangeStart + Math.max(200, span * 20); // At least 200, or 20 bins worth
-      }
-    } else {
-      // Called from start/end logic - use default then override
-      rangeEnd = rangeStart + 200; // Default reasonable range
+    // Calculate: (field - rangeStart) / span
+    RexNode adjustedField =
+        context.relBuilder.call(SqlStdOperatorTable.MINUS, fieldExpr, rangeStartLiteral);
+    RexNode divided =
+        context.relBuilder.call(SqlStdOperatorTable.DIVIDE, adjustedField, spanLiteral);
 
-      // Override with end parameter if specified
-      if (endExpr != null) {
-        RexNode endValue = rexVisitor.analyze(endExpr, context);
-        if (endValue.isA(LITERAL)) {
-          rangeEnd = ((Number) ((RexLiteral) endValue).getValue()).intValue();
-        }
+    // Floor the division to get bin number
+    RexNode binNumber = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
+
+    // Calculate bin_start = binNumber * span + rangeStart
+    RexNode binStartValue =
+        context.relBuilder.call(
+            SqlStdOperatorTable.PLUS,
+            context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, binNumber, spanLiteral),
+            rangeStartLiteral);
+
+    // Calculate bin_end = bin_start + span
+    RexNode binEndValue =
+        context.relBuilder.call(SqlStdOperatorTable.PLUS, binStartValue, spanLiteral);
+
+    // Create range string
+    RexNode rangeString = createRangeString(binStartValue, binEndValue, context);
+
+    // If end parameter is specified, we need to handle values outside the range
+    if (endExpr != null) {
+      RexNode endValue = rexVisitor.analyze(endExpr, context);
+      if (endValue instanceof RexLiteral literal && literal.getValue() instanceof Number number) {
+        int rangeEnd = number.intValue();
+
+        // Create condition: field >= rangeStart AND field < rangeEnd
+        RexNode inRangeCondition =
+            context.relBuilder.call(
+                SqlStdOperatorTable.AND,
+                context.relBuilder.call(
+                    SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
+                    fieldExpr,
+                    context.relBuilder.literal(rangeStart)),
+                context.relBuilder.call(
+                    SqlStdOperatorTable.LESS_THAN,
+                    fieldExpr,
+                    context.relBuilder.literal(rangeEnd)));
+
+        // Return CASE WHEN in_range THEN range_string ELSE 'Other' END
+        return context.relBuilder.call(
+            SqlStdOperatorTable.CASE,
+            inRangeCondition,
+            rangeString,
+            context.relBuilder.literal(OTHER_CATEGORY));
       }
     }
 
-    // EMERGENCY REVERT: Use the original simple logic that worked
-    // Reuse the existing caseOperands list declared earlier
-
-    // Generate range conditions for the specified range
-    for (int binStart = rangeStart; binStart < rangeEnd; binStart += span) {
-      int binEnd = binStart + span;
-
-      // Create condition: field >= binStart AND field < binEnd
-      RexNode greaterEqual =
-          context.relBuilder.call(
-              SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
-              fieldExpr,
-              context.relBuilder.literal(binStart));
-      RexNode lessThan =
-          context.relBuilder.call(
-              SqlStdOperatorTable.LESS_THAN, fieldExpr, context.relBuilder.literal(binEnd));
-      RexNode condition = context.relBuilder.call(SqlStdOperatorTable.AND, greaterEqual, lessThan);
-
-      // Create range string: "binStart-binEnd" (without trailing spaces)
-      String rangeString = (binStart + "-" + binEnd).replaceAll("\\s+", "");
-      RexNode rangeResult = context.relBuilder.literal(rangeString);
-
-      caseOperands.add(condition);
-      caseOperands.add(rangeResult);
-    }
-
-    // Add ELSE clause for values outside the range
-    caseOperands.add(context.relBuilder.literal("Other"));
-
-    return context.relBuilder.call(SqlStdOperatorTable.CASE, caseOperands);
+    // No end limit - return the dynamic range string for all values
+    return rangeString;
   }
 
   /**
-   * Calculates the "nice" bin width following SPL's algorithm. SPL uses range-dependent bin width
-   * selection that prefers human-readable values. This causes dramatic behavior changes at certain
-   * thresholds.
+   * Creates a span-based expression that handles different span types: - Numeric spans (e.g.,
+   * "1000") - Log-based spans (e.g., "log10", "2log10")
    */
-  private static RexNode calculateNiceBinWidth(
-      RexNode range, Integer requestedBins, CalcitePlanContext context) {
-    if (requestedBins == null) {
-      // When only start/end are specified, SPL uses nice number logic
-      // This is a simplified implementation - in reality SPL has complex logic here
-      // For ranges <= 100, use width 10; for ranges > 100, use width 100
-      List<RexNode> caseOperands = new ArrayList<>();
-      caseOperands.add(
-          context.relBuilder.call(
-              SqlStdOperatorTable.LESS_THAN_OR_EQUAL, range, context.relBuilder.literal(100)));
-      caseOperands.add(context.relBuilder.literal(10));
-      caseOperands.add(context.relBuilder.literal(100)); // else clause
-      return context.relBuilder.call(SqlStdOperatorTable.CASE, caseOperands);
+  private static RexNode createSpanBasedExpression(
+      String spanStr, RexNode fieldExpr, CalcitePlanContext context) {
+    try {
+      SpanInfo spanInfo = parseSpanString(spanStr);
+
+      switch (spanInfo.type) {
+        case NUMERIC -> {
+          // Traditional numeric span - use the range case expression
+          return createRangeCaseExpression(
+              fieldExpr, (int) spanInfo.value, null, context, null, null, null);
+        }
+        case LOG -> {
+          // Logarithmic binning
+          return createLogSpanExpression(fieldExpr, spanInfo, context);
+        }
+        default -> throw new IllegalArgumentException("Unsupported span type: " + spanInfo.type);
+      }
+    } catch (Exception e) {
+      String errorMessage = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+      throw new IllegalArgumentException(
+          "Failed to parse span: " + spanStr + ". " + errorMessage, e);
     }
-
-    // When bins is specified, calculate initial bin width then round to nice number
-    // This ensures actual_bins <= requested_bins
-    RexNode initialWidth =
-        context.relBuilder.call(
-            SqlStdOperatorTable.DIVIDE, range, context.relBuilder.literal(requestedBins));
-
-    // SPL's nice number algorithm rounds up to powers of 10 or human-readable values
-    // For simplicity, we'll implement a basic version that chooses between 1, 10, 100, etc.
-    // In reality, SPL also uses 2, 5, 20, 50, etc.
-
-    // Build CASE expression with proper formatting
-    List<RexNode> caseOperands = new ArrayList<>();
-
-    // If width <= 1, use 1
-    caseOperands.add(
-        context.relBuilder.call(
-            SqlStdOperatorTable.LESS_THAN_OR_EQUAL, initialWidth, context.relBuilder.literal(1)));
-    caseOperands.add(context.relBuilder.literal(1));
-
-    // If width <= 10, use 10
-    caseOperands.add(
-        context.relBuilder.call(
-            SqlStdOperatorTable.LESS_THAN_OR_EQUAL, initialWidth, context.relBuilder.literal(10)));
-    caseOperands.add(context.relBuilder.literal(10));
-
-    // If width <= 100, use 100
-    caseOperands.add(
-        context.relBuilder.call(
-            SqlStdOperatorTable.LESS_THAN_OR_EQUAL, initialWidth, context.relBuilder.literal(100)));
-    caseOperands.add(context.relBuilder.literal(100));
-
-    // Otherwise use 1000 (else clause)
-    caseOperands.add(context.relBuilder.literal(1000));
-
-    return context.relBuilder.call(SqlStdOperatorTable.CASE, caseOperands);
   }
 
-  /** Applies start/end range constraints to the binned expression. */
-  public static RexNode applyRangeConstraints(
-      Bin node,
-      RexNode fieldExpr,
-      RexNode binExpression,
-      CalcitePlanContext context,
-      org.opensearch.sql.calcite.CalciteRexNodeVisitor rexVisitor) {
+  /** Create logarithmic span expression using SPL-compatible data-driven approach */
+  private static RexNode createLogSpanExpression(
+      RexNode fieldExpr, SpanInfo spanInfo, CalcitePlanContext context) {
+    double base = spanInfo.base;
+    double coefficient = spanInfo.coefficient;
 
-    // If neither start nor end is specified, return the binned expression as-is
-    if (node.getStart() == null && node.getEnd() == null) {
-      return binExpression;
+    // Check if value is positive (log only defined for positive numbers)
+    RexNode positiveCheck =
+        context.relBuilder.call(
+            SqlStdOperatorTable.GREATER_THAN, fieldExpr, context.relBuilder.literal(0.0));
+
+    // Apply coefficient: adjusted_value = field_value / coefficient
+    RexNode adjustedField = fieldExpr;
+    if (coefficient != 1.0) {
+      adjustedField =
+          context.relBuilder.call(
+              SqlStdOperatorTable.DIVIDE, fieldExpr, context.relBuilder.literal(coefficient));
     }
 
-    // Prepare start and end values
-    RexNode startValue = null;
-    RexNode endValue = null;
+    // Calculate log_base(adjusted_field) = ln(adjusted_field) / ln(base)
+    RexNode lnField = context.relBuilder.call(SqlStdOperatorTable.LN, adjustedField);
+    RexNode lnBase = context.relBuilder.literal(Math.log(base));
+    RexNode logValue = context.relBuilder.call(SqlStdOperatorTable.DIVIDE, lnField, lnBase);
 
-    if (node.getStart() != null) {
-      startValue = rexVisitor.analyze(node.getStart(), context);
+    // Get the bin number by flooring the log value
+    RexNode binNumber = context.relBuilder.call(SqlStdOperatorTable.FLOOR, logValue);
+
+    RexNode baseNode = context.relBuilder.literal(base);
+    RexNode coefficientNode = context.relBuilder.literal(coefficient);
+
+    RexNode basePowerBin = context.relBuilder.call(SqlStdOperatorTable.POWER, baseNode, binNumber);
+    RexNode lowerBound =
+        context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, coefficientNode, basePowerBin);
+
+    RexNode binPlusOne =
+        context.relBuilder.call(
+            SqlStdOperatorTable.PLUS, binNumber, context.relBuilder.literal(1.0));
+    RexNode basePowerBinPlusOne =
+        context.relBuilder.call(SqlStdOperatorTable.POWER, baseNode, binPlusOne);
+    RexNode upperBound =
+        context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, coefficientNode, basePowerBinPlusOne);
+
+    // Create range string
+    RexNode rangeStr = createRangeString(lowerBound, upperBound, context);
+
+    // Return range for positive values, "Invalid" for non-positive
+    return context.relBuilder.call(
+        SqlStdOperatorTable.CASE,
+        positiveCheck,
+        rangeStr,
+        context.relBuilder.literal(INVALID_CATEGORY));
+  }
+
+  /** Extracts the original string value from a literal expression before RexVisitor processing. */
+  private static String getOriginalLiteralValue(
+      org.opensearch.sql.ast.expression.UnresolvedExpression expr) {
+    if (expr instanceof org.opensearch.sql.ast.expression.Literal) {
+      org.opensearch.sql.ast.expression.Literal literal =
+          (org.opensearch.sql.ast.expression.Literal) expr;
+      return literal.getValue().toString();
+    }
+    return null;
+  }
+
+  /**
+   * Parses aligntime expressions like "@d", "@d+3h", "@d-1h" into millisecond offsets from start of
+   * day.
+   */
+  private static long parseAlignTimeOffset(String alignTimeStr) {
+    if (alignTimeStr == null) {
+      return 0;
     }
 
-    if (node.getEnd() != null) {
-      endValue = rexVisitor.analyze(node.getEnd(), context);
+    alignTimeStr = alignTimeStr.replace("'", "").replace("\"", "").trim();
+
+    if ("@d".equals(alignTimeStr)) {
+      return 0;
     }
 
-    // Build the CASE expression:
-    // CASE
-    //   WHEN field < start THEN NULL
-    //   WHEN field > end THEN NULL
-    //   ELSE binExpression
-    // END
-    List<RexNode> whenClauses = new ArrayList<>();
-    List<RexNode> thenClauses = new ArrayList<>();
-
-    // Add start constraint if specified
-    if (startValue != null) {
-      // WHEN field < start THEN NULL
-      RexNode lessThanStart =
-          context.relBuilder.call(SqlStdOperatorTable.LESS_THAN, fieldExpr, startValue);
-      whenClauses.add(lessThanStart);
-      thenClauses.add(context.relBuilder.literal(null));
+    if (alignTimeStr.startsWith("@d+")) {
+      String offsetStr = alignTimeStr.substring(3); // Remove "@d+"
+      return parseTimeOffset(offsetStr);
     }
 
-    // Add end constraint if specified
-    if (endValue != null) {
-      // WHEN field > end THEN NULL
-      RexNode greaterThanEnd =
-          context.relBuilder.call(SqlStdOperatorTable.GREATER_THAN, fieldExpr, endValue);
-      whenClauses.add(greaterThanEnd);
-      thenClauses.add(context.relBuilder.literal(null));
+    if (alignTimeStr.startsWith("@d-")) {
+      String offsetStr = alignTimeStr.substring(3); // Remove "@d-"
+      return -parseTimeOffset(offsetStr);
     }
 
-    // Build the CASE expression
-    if (!whenClauses.isEmpty()) {
-      // Combine all when/then pairs and add the else clause
-      List<RexNode> caseOperands = new ArrayList<>();
-      for (int i = 0; i < whenClauses.size(); i++) {
-        caseOperands.add(whenClauses.get(i));
-        caseOperands.add(thenClauses.get(i));
+    return 0; // Default to start of day
+  }
+
+  /** Helper method to parse time value from string with unit. */
+  private static int parseTimeValue(String valueStr, String unit) {
+    return Integer.parseInt(valueStr.substring(0, valueStr.length() - unit.length()));
+  }
+
+  /** Parses time offset expressions like "3h", "30m", "45s" into milliseconds. */
+  private static long parseTimeOffset(String offsetStr) {
+    offsetStr = offsetStr.trim().toLowerCase();
+
+    if (offsetStr.endsWith("h")) {
+      int hours = parseTimeValue(offsetStr, "h");
+      return hours * MILLISECONDS_PER_HOUR;
+    }
+
+    if (offsetStr.endsWith("m")) {
+      int minutes = parseTimeValue(offsetStr, "m");
+      return minutes * MILLISECONDS_PER_MINUTE;
+    }
+
+    if (offsetStr.endsWith("s")) {
+      int seconds = parseTimeValue(offsetStr, "s");
+      return seconds * MILLISECONDS_PER_SECOND;
+    }
+
+    // Default to hours if no unit specified
+    int hours = Integer.parseInt(offsetStr);
+    return hours * MILLISECONDS_PER_HOUR;
+  }
+
+  // === SPAN OPTIONS IMPLEMENTATION (for tests) ===
+
+  /** Enum for different span types */
+  public enum SpanType {
+    LOG, // Logarithmic span (e.g., log10, 2log10)
+    TIME, // Time-based span (e.g., 30seconds, 15minutes)
+    NUMERIC // Numeric span (existing behavior)
+  }
+
+  /** Data class to hold parsed span information */
+  public static class SpanInfo {
+    public final SpanType type;
+    public final double value;
+    public final String unit;
+    public final double coefficient; // For log spans
+    public final double base; // For log spans
+
+    public SpanInfo(SpanType type, double value, String unit) {
+      this.type = type;
+      this.value = value;
+      this.unit = unit;
+      this.coefficient = 1.0;
+      this.base = 10.0;
+    }
+
+    public SpanInfo(SpanType type, double coefficient, double base) {
+      this.type = type;
+      this.value = 0;
+      this.unit = null;
+      this.coefficient = coefficient;
+      this.base = base;
+    }
+  }
+
+  /** Parse span string to determine type and extract parameters */
+  public static SpanInfo parseSpanString(String spanStr) {
+    String lowerSpanStr = spanStr.toLowerCase().trim();
+
+    // Special handling for common log spans
+    switch (lowerSpanStr) {
+      case "log10" -> {
+        return new SpanInfo(SpanType.LOG, 1.0, 10.0);
       }
-      caseOperands.add(binExpression); // ELSE clause
-
-      return context.relBuilder.call(SqlStdOperatorTable.CASE, caseOperands);
+      case "log2" -> {
+        return new SpanInfo(SpanType.LOG, 1.0, 2.0);
+      }
+      case "loge", "ln" -> {
+        return new SpanInfo(SpanType.LOG, 1.0, Math.E);
+      }
     }
 
-    // Should not reach here, but return binExpression just in case
-    return binExpression;
+    Pattern logPattern = Pattern.compile("^(\\d*\\.?\\d*)?log(\\d+\\.?\\d*)$");
+    Matcher logMatcher = logPattern.matcher(lowerSpanStr);
+
+    if (logMatcher.matches()) {
+      String coeffStr = logMatcher.group(1);
+      String baseStr = logMatcher.group(2);
+
+      double coefficient =
+          (coeffStr == null || coeffStr.isEmpty()) ? 1.0 : Double.parseDouble(coeffStr);
+      double base = Double.parseDouble(baseStr);
+
+      // Validate log span parameters
+      if (base <= 1.0) {
+        throw new IllegalArgumentException("Log base must be > 1.0, got: " + base);
+      }
+      if (coefficient <= 0.0) {
+        throw new IllegalArgumentException(
+            "Log coefficient must be > 0.0, got coefficient=" + coefficient + ", base=" + base);
+      }
+
+      return new SpanInfo(SpanType.LOG, coefficient, base);
+    }
+
+    // Time-based span patterns
+    String timeUnit = extractTimeUnit(spanStr);
+    if (timeUnit != null) {
+      String valueStr = spanStr.substring(0, spanStr.length() - timeUnit.length());
+      double value = Double.parseDouble(valueStr);
+      return new SpanInfo(SpanType.TIME, value, timeUnit);
+    }
+
+    // Numeric span (fallback)
+    try {
+      double value = Double.parseDouble(spanStr);
+      return new SpanInfo(SpanType.NUMERIC, value, null);
+    } catch (NumberFormatException e) {
+      throw new IllegalArgumentException("Invalid span format: " + spanStr);
+    }
+  }
+
+  /** Extract time unit from span string following SPL timescale specification. */
+  public static String extractTimeUnit(String spanStr) {
+    // SPL Timescale units in order of precedence (longest first to avoid partial matches)
+    String[] timeUnits = {
+      // Order by length (longest first) to avoid partial matches
+
+      // <sec> - seconds (full words first)
+      "seconds",
+      "second",
+      "secs",
+      "sec",
+
+      // <min> - minutes (full words first)
+      "minutes",
+      "minute",
+      "mins",
+      "min",
+
+      // <hr> - hours (full words first)
+      "hours",
+      "hour",
+      "hrs",
+      "hr",
+
+      // <day> - days
+      "days",
+      "day",
+
+      // <month> - months (case-sensitive M for months vs m for minutes)
+      "months",
+      "month",
+      "mon",
+      "M", // Case-sensitive: M = months, m = minutes
+
+      // <subseconds> - microseconds, milliseconds, centiseconds, deciseconds
+      "us", // microseconds
+      "ms", // milliseconds
+      "cs", // centiseconds
+      "ds", // deciseconds
+
+      // Single letter units (must be last to avoid conflicts)
+      "s",
+      "m",
+      "h",
+      "d"
+    };
+
+    // Case-sensitive matching for M (months) vs m (minutes)
+    for (String unit : timeUnits) {
+      if (unit.equals("M")) {
+        // Case-sensitive check for months
+        if (spanStr.endsWith("M")) {
+          return unit;
+        }
+      } else {
+        // Case-insensitive check for other units
+        if (spanStr.toLowerCase().endsWith(unit.toLowerCase())) {
+          return unit;
+        }
+      }
+    }
+    return null;
   }
 }

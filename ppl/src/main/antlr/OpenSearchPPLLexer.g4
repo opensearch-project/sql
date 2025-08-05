@@ -482,6 +482,22 @@ W:                                  'W';
 Q:                                  'Q';
 Y:                                  'Y';
 
+// Extended timescale units
+SEC:                                'SEC';
+SECS:                               'SECS';
+SECONDS:                            'SECONDS';
+MINS:                               'MINS';
+MINUTES:                            'MINUTES';
+HR:                                 'HR';
+HRS:                                'HRS';
+HOURS:                              'HOURS';
+DAYS:                               'DAYS';
+MON:                                'MON';
+MONTHS:                             'MONTHS';
+US:                                 'US';
+CS:                                 'CS';
+DS:                                 'DS';
+
 
 // LITERALS AND VALUES
 //STRING_LITERAL:                     DQUOTA_STRING | SQUOTA_STRING | BQUOTA_STRING;

@@ -429,10 +429,31 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitBinCommand(BinCommandContext ctx) {
     UnresolvedExpression field = internalVisitExpression(ctx.fieldExpression());
-    UnresolvedExpression span = ctx.span != null ? internalVisitExpression(ctx.span) : null;
+
+    // Handle the new spanValue structure that supports log-based and extended time spans
+    UnresolvedExpression span = null;
+    if (ctx.span != null) {
+      // ctx.span is now a spanValue, which could be numericSpanValue, logBasedSpanValue, or
+      // extendedTimeSpanValue
+      span = internalVisitExpression(ctx.span);
+    }
+
     Integer bins = ctx.bins != null ? Integer.parseInt(ctx.bins.getText()) : null;
-    UnresolvedExpression minspan =
-        ctx.minspan != null ? internalVisitExpression(ctx.minspan) : null;
+
+    // CRITICAL FIX: Also handle minspan with time unit
+    UnresolvedExpression minspan = null;
+    if (ctx.minspan != null) {
+      String minspanValue = ctx.minspan.getText();
+      String minspanUnit = ctx.minspanUnit != null ? ctx.minspanUnit.getText() : null;
+
+      if (minspanUnit != null) {
+        // Create combined minspan like "1h", "30m", etc.
+        minspan = org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(minspanValue + minspanUnit);
+      } else {
+        minspan = internalVisitExpression(ctx.minspan);
+      }
+    }
+
     UnresolvedExpression aligntime = null;
     if (ctx.aligntime != null) {
       aligntime = internalVisitExpression(ctx.aligntime);

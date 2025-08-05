@@ -22,6 +22,14 @@ public class Field extends UnresolvedExpression {
 
   private final List<Argument> fieldArgs;
 
+  public UnresolvedExpression getField() {
+    return field;
+  }
+
+  public List<Argument> getFieldArgs() {
+    return fieldArgs;
+  }
+
   /** Constructor of Field. */
   public Field(UnresolvedExpression field) {
     this(field, Collections.emptyList());

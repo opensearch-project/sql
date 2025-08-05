@@ -319,13 +319,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .map(field -> (RexNode) context.relBuilder.field(field))
             .toList();
     if (!duplicatedNestedFields.isEmpty()) {
-      // This is a workaround to avoid the bug in Calcite:
-      // In {@link RelBuilder#project_(Iterable, Iterable, Iterable, boolean, Iterable)},
-      // the check `RexUtil.isIdentity(nodeList, inputRowType)` will pass when the input
-      // and the output nodeList refer to the same fields, even if the field name list
-      // is different. As a result, renaming operation will not be applied. This makes
-      // the logical plan for the flatten command incorrect, where the operation is
-      // equivalent to renaming the flattened sub-fields. E.g. emp.name -> name.
       forceProjectExcept(context.relBuilder, duplicatedNestedFields);
     }
   }
@@ -480,14 +473,18 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     RexNode fieldExpr = rexVisitor.analyze(node.getField(), context);
     String fieldName = BinUtils.extractFieldName(node);
+
+    // Early validation for @timestamp field existence (SPL compatibility)
+    BinUtils.validateTimestampFieldExists(fieldName, context);
+
+    // CRITICAL: Early validation for time-based operations on non-@timestamp fields
+    BinUtils.validateTimeBasedOperations(node, fieldName);
+
     RexNode alignTimeValue =
         BinUtils.processAligntimeParameter(node, fieldExpr, context, rexVisitor);
     RexNode binExpression =
         BinUtils.createBinExpression(node, fieldExpr, alignTimeValue, context, rexVisitor);
 
-    // SPL bin command behavior:
-    // - Without alias: transforms the original field in-place
-    // - With alias: creates a new field with the alias name, keeps original unchanged
     if (node.getAlias() != null) {
       // With alias: add the binned field as a new column
       String aliasName = node.getAlias();
@@ -498,14 +495,25 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       List<String> currentFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
       List<RexNode> projectionFields = new ArrayList<>();
 
+      boolean fieldTransformed = false;
       for (String currentFieldName : currentFieldNames) {
         if (currentFieldName.equals(fieldName)) {
-          // Transform the target field to range strings
-          projectionFields.add(context.relBuilder.alias(binExpression, fieldName));
+          // Transform the target field to range strings - ensure we use the original field name
+          projectionFields.add(context.relBuilder.alias(binExpression, currentFieldName));
+          fieldTransformed = true;
         } else {
           // Keep other fields unchanged
           projectionFields.add(context.relBuilder.field(currentFieldName));
         }
+      }
+
+      // CRITICAL FIX: If field wasn't found in current schema, this indicates a schema mismatch
+      // In SPL, bin should always operate on existing fields, so this is an error condition
+      if (!fieldTransformed) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Field '%s' not found in current schema. Available fields: %s",
+                fieldName, currentFieldNames));
       }
 
       context.relBuilder.project(projectionFields);

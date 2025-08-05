@@ -49,6 +49,7 @@ import org.opensearch.sql.ast.expression.When;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.DescribeRelation;
 import org.opensearch.sql.ast.tree.Eval;
@@ -560,5 +561,46 @@ public class AstDSL {
           Pair.of(fieldAndReplacement.getLeft(), fieldAndReplacement.getRight()));
     }
     return FillNull.ofVariousValue(replacementsBuilder.build()).attach(input);
+  }
+
+  public static Bin bin(UnresolvedExpression field, Argument... arguments) {
+    UnresolvedExpression span = null;
+    Integer bins = null;
+    UnresolvedExpression minspan = null;
+    UnresolvedExpression aligntime = null;
+    UnresolvedExpression start = null;
+    UnresolvedExpression end = null;
+    String alias = null;
+
+    for (Argument arg : arguments) {
+      switch (arg.getArgName()) {
+        case "span":
+          span = arg.getValue();
+          break;
+        case "bins":
+          bins =
+              ((Literal) arg.getValue()).getValue() instanceof Integer
+                  ? (Integer) ((Literal) arg.getValue()).getValue()
+                  : null;
+          break;
+        case "minspan":
+          minspan = arg.getValue();
+          break;
+        case "aligntime":
+          aligntime = arg.getValue();
+          break;
+        case "start":
+          start = arg.getValue();
+          break;
+        case "end":
+          end = arg.getValue();
+          break;
+        case "alias":
+          alias = arg.getValue().toString();
+          break;
+      }
+    }
+
+    return new Bin(field, span, bins, minspan, aligntime, start, end, alias);
   }
 }

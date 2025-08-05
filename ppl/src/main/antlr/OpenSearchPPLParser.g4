@@ -173,13 +173,26 @@ headCommand
    ;
 
 binCommand
-   : BIN fieldExpression (SPAN EQUAL span = literalValue (spanUnit = timespanUnit)?)? (BINS EQUAL bins = integerLiteral)? (MINSPAN EQUAL minspan = literalValue (minspanUnit = timespanUnit)?)? (ALIGNTIME EQUAL aligntime = aligntimeValue)? (START EQUAL start = numericLiteral)? (END EQUAL end = numericLiteral)? (AS alias = qualifiedName)?
+   : BIN fieldExpression (SPAN EQUAL span = spanValue)? (BINS EQUAL bins = integerLiteral)? (MINSPAN EQUAL minspan = literalValue (minspanUnit = timespanUnit)?)? (ALIGNTIME EQUAL aligntime = aligntimeValue)? (START EQUAL start = numericLiteral)? (END EQUAL end = numericLiteral)? (AS alias = qualifiedName)?
    ;
 
 aligntimeValue
    : EARLIEST
    | LATEST
    | literalValue
+   ;
+
+spanValue
+   : literalValue (timespanUnit)?           # numericSpanValue
+   | logSpanValue                           # logBasedSpanValue
+   | ident timespanUnit                     # extendedTimeSpanValue
+   | ident                                  # identifierSpanValue
+   ;
+
+logSpanValue
+   : (coefficient = numericLiteral)? LOG (base = numericLiteral)?     # logSpan
+   | (coefficient = numericLiteral)? LOG10                           # log10Span
+   | (coefficient = numericLiteral)? LOG2                            # log2Span
    ;
 
 topCommand
@@ -1094,6 +1107,20 @@ timespanUnit
    | MONTH
    | QUARTER
    | YEAR
+   | SEC
+   | SECS  
+   | SECONDS
+   | MINS
+   | MINUTES
+   | HR
+   | HRS
+   | HOURS
+   | DAYS
+   | MON
+   | MONTHS
+   | US
+   | CS
+   | DS
    ;
 
 valueList
@@ -1150,6 +1177,20 @@ keywordsCanBeId
    | collectionFunctionName
    | comparisonOperator
    | explainMode
+   | SEC
+   | SECS  
+   | SECONDS
+   | MINS
+   | MINUTES
+   | HR
+   | HRS
+   | HOURS
+   | DAYS
+   | MON
+   | MONTHS
+   | US
+   | CS
+   | DS
    // commands assist keywords
    | CASE
    | ELSE
