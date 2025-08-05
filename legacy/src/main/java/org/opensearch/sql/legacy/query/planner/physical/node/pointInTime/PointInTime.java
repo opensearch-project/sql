@@ -52,7 +52,7 @@ public class PointInTime extends Paginate {
           new PointInTimeHandlerImpl(
               client, request.getOriginalSelect().getIndexArr(), customTimeout);
     } else {
-      LOG.info("PointInTime: Creating PIT with default settings");
+      LOG.info("PointInTime: Creating PIT with default timeout value: {}");
       pit = new PointInTimeHandlerImpl(client, request.getOriginalSelect().getIndexArr());
     }
 
