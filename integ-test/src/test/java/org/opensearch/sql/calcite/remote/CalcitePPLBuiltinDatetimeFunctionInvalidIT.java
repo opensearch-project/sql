@@ -18,7 +18,6 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
 
     loadIndex(SQLIntegTestCase.Index.STATE_COUNTRY);
     loadIndex(SQLIntegTestCase.Index.STATE_COUNTRY_WITH_NULL);

@@ -15,7 +15,6 @@ public class CalciteGeoPointFormatsIT extends GeoPointFormatsIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 
   @Override

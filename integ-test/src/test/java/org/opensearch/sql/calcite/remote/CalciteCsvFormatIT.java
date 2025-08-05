@@ -12,6 +12,5 @@ public class CalciteCsvFormatIT extends CsvFormatIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 }

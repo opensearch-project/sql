@@ -4,7 +4,6 @@ setup:
         body:
           transient:
             plugins.calcite.enabled: true
-            plugins.calcite.fallback.allowed: false
   - do:
       bulk:
         index: hdfs_logs
@@ -35,7 +34,6 @@ teardown:
         body:
           transient:
             plugins.calcite.enabled : false
-            plugins.calcite.fallback.allowed : true
 
 
 ---

@@ -14,6 +14,5 @@ public class CalciteGeoIpFunctionsIT extends GeoIpFunctionsIT {
     public void init() throws IOException {
         super.init();
         enableCalcite();
-        disallowCalciteFallback();
     }
 }
