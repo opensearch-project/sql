@@ -32,7 +32,6 @@ class LogicalSortTest extends AnalyzerTestBase {
             ImmutablePair.of(SortOption.DEFAULT_ASC, DSL.ref("double_value", DOUBLE))),
         sort(
             relation("schema"),
-            0,
             field("integer_value", defaultSortFieldArgs()),
             field("double_value", defaultSortFieldArgs())));
   }
@@ -46,7 +45,6 @@ class LogicalSortTest extends AnalyzerTestBase {
             ImmutablePair.of(SortOption.DEFAULT_ASC, DSL.ref("double_value", DOUBLE))),
         sort(
             relation("schema"),
-            0,
             field(
                 "integer_value",
                 exprList(argument("asc", booleanLiteral(false)), argument("type", nullLiteral()))),

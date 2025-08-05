@@ -33,7 +33,7 @@ public class Sort extends UnresolvedPlan {
 
   /** Sort Constructor without count. */
   public Sort(List<Field> sortList) {
-    this(0, sortList);
+    this(null, sortList);
   }
 
   /** Sort Constructor. */

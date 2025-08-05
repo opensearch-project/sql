@@ -957,7 +957,6 @@ class AnalyzerTest extends AnalyzerTestBase {
                     emptyList(),
                     ImmutableList.of(AstDSL.alias("string_value", qualifiedName("string_value"))),
                     emptyList()),
-                0,
                 field(
                     function("avg", qualifiedName("integer_value")),
                     argument("asc", booleanLiteral(true)))),
@@ -1010,7 +1009,7 @@ class AnalyzerTest extends AnalyzerTestBase {
                     DSL.named("string_value", DSL.ref("string_value", STRING))),
                 AstDSL.project(
                     AstDSL.sort(
-                        AstDSL.relation("test"), 0, field(qualifiedName("integer_value"), args)),
+                        AstDSL.relation("test"), field(qualifiedName("integer_value"), args)),
                     AstDSL.alias("string_value", qualifiedName("string_value")))));
   }
 
@@ -1022,6 +1021,7 @@ class AnalyzerTest extends AnalyzerTestBase {
             LogicalPlanDSL.window(
                 LogicalPlanDSL.sort(
                     LogicalPlanDSL.relation("test", table),
+                    0,
                     ImmutablePair.of(DEFAULT_ASC, DSL.ref("string_value", STRING)),
                     ImmutablePair.of(DEFAULT_ASC, DSL.ref("integer_value", INTEGER))),
                 DSL.named("window_function", DSL.rowNumber()),
@@ -1466,6 +1466,7 @@ class AnalyzerTest extends AnalyzerTestBase {
         LogicalPlanDSL.trendline(
             LogicalPlanDSL.sort(
                 LogicalPlanDSL.relation("schema", table),
+                0,
                 Pair.of(
                     new SortOption(SortOrder.ASC, NullOrder.NULL_FIRST),
                     DSL.ref("float_value", ExprCoreType.FLOAT))),
