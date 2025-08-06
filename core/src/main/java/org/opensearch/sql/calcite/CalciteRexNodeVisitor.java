@@ -11,8 +11,6 @@ import static org.apache.commons.lang3.StringUtils.substringAfterLast;
 import static org.opensearch.sql.ast.expression.SpanUnit.NONE;
 import static org.opensearch.sql.ast.expression.SpanUnit.UNKNOWN;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
-import static org.opensearch.sql.utils.DateTimeUtils.findCastType;
-import static org.opensearch.sql.utils.DateTimeUtils.transferCompareForDateRelated;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -23,7 +21,6 @@ import java.util.stream.Collectors;
 
 import java.util.Locale;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +29,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexLambda;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
@@ -217,11 +213,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
 
   @Override
   public RexNode visitCompare(Compare node, CalcitePlanContext context) {
-    RexNode leftCandidate = analyze(node.getLeft(), context);
-    RexNode rightCandidate = analyze(node.getRight(), context);
-    SqlTypeName castTarget = findCastType(leftCandidate, rightCandidate);
-    final RexNode left = transferCompareForDateRelated(leftCandidate, context, castTarget);
-    final RexNode right = transferCompareForDateRelated(rightCandidate, context, castTarget);
+    RexNode left = analyze(node.getLeft(), context);
+    RexNode right = analyze(node.getRight(), context);
     return PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, node.getOperator(), left, right);
   }
 
@@ -470,19 +463,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     }
   }
 
-  private List<RexNode> castArgument(
-      List<RexNode> originalArguments, String functionName, ExtendedRexBuilder rexBuilder) {
-    switch (functionName.toUpperCase(Locale.ROOT)) {
-      case "REDUCE":
-        RexLambda call = (RexLambda) originalArguments.get(2);
-        originalArguments.set(
-            1, rexBuilder.makeCast(call.getType(), originalArguments.get(1), true, true));
-        return originalArguments;
-      default:
-        return originalArguments;
-    }
-  }
-
   @Override
   public RexNode visitFunction(Function node, CalcitePlanContext context) {
     List<UnresolvedExpression> args = node.getFuncArgs();
@@ -509,7 +489,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       }
     }
 
-    arguments = castArgument(arguments, node.getFuncName(), context.rexBuilder);
     RexNode resolvedNode =
         PPLFuncImpTable.INSTANCE.resolve(
             context.rexBuilder, node.getFuncName(), arguments.toArray(new RexNode[0]));

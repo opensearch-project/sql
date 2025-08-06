@@ -6,10 +6,16 @@
 package org.opensearch.sql.ppl;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 
 import java.io.IOException;
+import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
@@ -23,6 +29,7 @@ public class ExplainIT extends PPLIntegTestCase {
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK);
     loadIndex(Index.DATE_FORMATS);
+    loadIndex(Index.WEBLOG);
   }
 
   @Test
@@ -85,6 +92,68 @@ public class ExplainIT extends PPLIntegTestCase {
             "source=opensearch-sql_test_index_date_formats | fields custom_time"
                 + "| where custom_time > '2016-12-08 12:00:00.123456789' "
                 + "| where custom_time < '2018-11-09 19:00:00.123456789' "));
+  }
+
+  @Test
+  public void testFilterByCompareIPCoercion() throws IOException {
+    // Should automatically cast the string literal to IP.
+    String expected = loadExpectedPlan("explain_filter_compare_ip.json");
+    // The index of host is flaky (different from test to test)
+    assertJsonEqualsIgnoreFieldIndex(
+        expected,
+        explainQueryToString(
+            String.format(
+                Locale.ROOT,
+                "source=%s | where host > '1.1.1.1' | fields host",
+                TEST_INDEX_WEBLOGS)));
+  }
+
+  private static void assertJsonEqualsIgnoreFieldIndex(String expected, String actual) throws IOException {
+    String reorderedExpected = maskIndexAndReorderProject(expected);
+    String reorderedActual = maskIndexAndReorderProject(actual);
+    assertJsonEqualsIgnoreId(reorderedExpected, reorderedActual);
+  }
+
+  private static String maskIndexAndReorderProject(String plan) {
+    // Replace $number or $tnumber with *
+    Pattern pattern = Pattern.compile("\\$t?(\\d+)");
+    Matcher matcher = pattern.matcher(plan);
+    StringBuilder sb = new StringBuilder();
+    while (matcher.find()) {
+      matcher.appendReplacement(sb, "*");
+    }
+    matcher.appendTail(sb);
+    String maskedPlan = sb.toString();
+    // Reorder logical projects: LogicalProject(b, c, a) -> LogicalProject(a, b, c)
+    Pattern projectPattern = Pattern.compile("LogicalProject\\(([^)]*)\\)");
+    Matcher projectMatcher = projectPattern.matcher(maskedPlan);
+    StringBuilder result = new StringBuilder();
+    while (projectMatcher.find()) {
+      String fields = projectMatcher.group(1);
+      String[] fieldArr = fields.split(",");
+      for (int i = 0; i < fieldArr.length; i++) {
+        fieldArr[i] = fieldArr[i].trim();
+      }
+      java.util.Arrays.sort(fieldArr, String.CASE_INSENSITIVE_ORDER);
+      String sortedFields = String.join(", ", fieldArr);
+      projectMatcher.appendReplacement(result, "LogicalProject(" + sortedFields + ")");
+    }
+    projectMatcher.appendTail(result);
+    return result.toString();
+  }
+
+  @Test
+  public void testWeekArgumentCoercion() throws IOException {
+    String expected = loadExpectedPlan("explain_week_argument_coercion.json");
+    // Week accepts WEEK(timestamp/date/time, [optional int]), it should cast the string
+    // argument to timestamp with Calcite. In v2, it accepts string, so there is no cast.
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                Locale.ROOT,
+                "source=%s |  eval w = week('2024-12-10') | fields w",
+                TEST_INDEX_ACCOUNT)));
   }
 
   @Test
