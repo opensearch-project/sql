@@ -108,7 +108,8 @@ public class BrainLogParserTest {
   public void testPreprocessWithUUID() {
     String logMessage = "127.0.0.1 - 1234 something, user_id:c78ac970-f0c3-4954-8cf8-352a8458d01c";
     String logId = "log1";
-    List<String> expectedResult = Arrays.asList("<*IP*>", "-", "<*>", "something", "user_id:<*UUID*>","log1");
+    List<String> expectedResult =
+        Arrays.asList("<*IP*>", "-", "<*>", "something", "user_id:<*UUID*>", "log1");
     List<String> result = parser.preprocess(logMessage, logId);
     assertEquals(expectedResult, result);
     // Test with different delimiter

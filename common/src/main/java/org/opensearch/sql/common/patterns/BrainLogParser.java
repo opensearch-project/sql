@@ -41,7 +41,9 @@ public class BrainLogParser {
         "<*DATETIME*>");
     // UUID
     DEFAULT_FILTER_PATTERN_VARIABLE_MAP.put(
-            Pattern.compile("\\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\\b"), "<*UUID*>");
+        Pattern.compile(
+            "\\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\\b"),
+        "<*UUID*>");
     // Hex Decimal, letters followed by digits, float numbers
     DEFAULT_FILTER_PATTERN_VARIABLE_MAP.put(
         Pattern.compile(
@@ -50,7 +52,6 @@ public class BrainLogParser {
     // generic number surrounded by non-alphanumeric
     DEFAULT_FILTER_PATTERN_VARIABLE_MAP.put(
         Pattern.compile("(?<=[^A-Za-z0-9 ])(-?\\+?\\d+)(?=[^A-Za-z0-9])"), VARIABLE_DENOTER);
-
   }
 
   public static final List<String> DEFAULT_DELIMITERS = List.of(",", "+");
