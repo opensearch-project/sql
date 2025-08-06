@@ -153,7 +153,7 @@ public class ExtendedRexBuilder extends RexBuilder {
     // Use a custom operator when casting an approximate numeric (e.g. double) to a character type.
     // This patch is necessary because Calcite's built-in CAST converts 0.0 to 0E0 as string.
     else if (SqlTypeUtil.isApproximateNumeric(exp.getType()) && SqlTypeUtil.isCharacter(type)) {
-      // NUMBER_TO_STRING first box the number, then invoke its toString method
+      // NUMBER_TO_STRING uses java's built-in method to get the string representation of a number
       return makeCall(type, PPLBuiltinOperators.NUMBER_TO_STRING, List.of(exp));
     }
     return super.makeCast(pos, type, exp, matchNullability, safe, format);

@@ -6,11 +6,13 @@
 package org.opensearch.sql.expression.function.udf.math;
 
 import java.util.List;
+import java.util.Objects;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
@@ -45,7 +47,9 @@ public class NumberToStringFunction extends ImplementorUDF {
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
       Expression operand = translatedOperands.get(0);
-      return Expressions.call(Expressions.box(operand), "toString");
+      Primitive primitive = Primitive.of(operand.getType());
+      Objects.requireNonNull(primitive);
+      return Expressions.call(primitive.getBoxClass(), "toString", operand);
     }
   }
 }
