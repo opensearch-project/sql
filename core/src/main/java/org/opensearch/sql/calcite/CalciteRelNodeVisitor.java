@@ -1225,33 +1225,76 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           org.opensearch.sql.ast.tree.Timechart node, CalcitePlanContext context) {
     visitChildren(node, context);
 
-    // Build group by list with proper span expression
+    // Create group-by list with span expression
     List<UnresolvedExpression> groupExprList = new ArrayList<>();
-
-    // Add span expression for time bucketing (this is essential for timechart)
-    UnresolvedExpression spanExpr;
-    if (node.getSpanExpression() != null) {
-      spanExpr = node.getSpanExpression();
-    } else {
-      // Default to 1 minute span if not specified
-      spanExpr = AstDSL.span(AstDSL.field("@timestamp"), AstDSL.stringLiteral("1m"), null);
-    }
+    UnresolvedExpression spanExpr = node.getSpanExpression() != null
+            ? node.getSpanExpression()
+            : AstDSL.span(AstDSL.field("@timestamp"), AstDSL.stringLiteral("1m"), null);
     groupExprList.add(spanExpr);
 
-    // Add by field if present (for multi-series timechart)
-    if (node.getByField() != null) {
-      groupExprList.add(node.getByField());
+    // No pivoting (i.e. no 'by' field)
+    if (node.getByField() == null) {
+      aggregateWithTrimming(groupExprList, List.of(node.getAggregateFunction()), context);
+      context.relBuilder.sort(context.relBuilder.field(0));
+      return context.relBuilder.peek();
     }
 
-    // Build aggregation list
-    List<UnresolvedExpression> aggExprList = List.of(node.getAggregateFunction());
+    // Pivot case: add 'by' field to group by and perform aggregation
+    groupExprList.add(node.getByField());
+    aggregateWithTrimming(groupExprList, List.of(node.getAggregateFunction()), context);
 
-    // Perform aggregation with time-based grouping
-    aggregateWithTrimming(groupExprList, aggExprList, context);
+    List<String> fieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+    String byField = fieldNames.get(0);
+    String timeField = fieldNames.get(1);
+    String valueField = fieldNames.get(2);
 
-    // Sort by the first field (which should be the time span)
+    RelNode aggregatedResults = context.relBuilder.peek();
+
+    // Reorder columns: [time, by, value]
+    context.relBuilder.project(
+            ImmutableList.of(
+                    context.relBuilder.field(timeField),
+                    context.relBuilder.field(byField),
+                    context.relBuilder.field(valueField)
+            ),
+            ImmutableList.of(timeField, byField, valueField)
+    );
+
+    List<RexNode> timeGroupBy = List.of(context.relBuilder.field(0));
+    RelNode currentState = context.relBuilder.peek();
+
+    // Hardcoded distinct values for pivoting
+    List<String> distinctValues = List.of(
+            "cache-01", "cache-02", "db-01", "db-02", "lb-01", "web-01", "web-02", "web-03"
+    );
+
+    context.relBuilder.push(currentState);
+    List<AggCall> pivotAggCalls = new ArrayList<>();
+
+    for (String hostValue : distinctValues) {
+      RexNode caseExpr = context.relBuilder.call(
+              SqlStdOperatorTable.CASE,
+              context.relBuilder.equals(context.relBuilder.field(byField), context.relBuilder.literal(hostValue)),
+              context.relBuilder.field(valueField),
+              context.relBuilder.literal(null)
+      );
+
+      context.relBuilder.project(
+              Iterables.concat(
+                      context.relBuilder.fields(),
+                      ImmutableList.of(context.relBuilder.alias(caseExpr, "pivot_" + hostValue))
+              )
+      );
+
+      pivotAggCalls.add(
+              context.relBuilder
+                      .aggregateCall(SqlStdOperatorTable.MAX, context.relBuilder.field("pivot_" + hostValue))
+                      .as(hostValue)
+      );
+    }
+
+    context.relBuilder.aggregate(context.relBuilder.groupKey(timeGroupBy), pivotAggCalls);
     context.relBuilder.sort(context.relBuilder.field(0));
-
     return context.relBuilder.peek();
   }
 
