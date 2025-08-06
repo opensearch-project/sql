@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.opensearch.monitor;
 
+/** Memory usage interface. It is used to get the memory usage of the VM. */
 public interface MemoryUsage {
   long usage();
 

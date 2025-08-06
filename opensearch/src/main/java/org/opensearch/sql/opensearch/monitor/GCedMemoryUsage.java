@@ -59,12 +59,12 @@ public class GCedMemoryUsage implements MemoryUsage {
     for (GarbageCollectorMXBean gcBean : gcBeans) {
       if (gcBean instanceof NotificationEmitter) {
         NotificationEmitter emitter = (NotificationEmitter) gcBean;
-        emitter.addNotificationListener(new FullGCListener(), null, null);
+        emitter.addNotificationListener(new OldGenGCListener(), null, null);
       }
     }
   }
 
-  private static class FullGCListener implements NotificationListener {
+  private static class OldGenGCListener implements NotificationListener {
     @Override
     public void handleNotification(Notification notification, Object handback) {
       if (notification
@@ -74,7 +74,6 @@ public class GCedMemoryUsage implements MemoryUsage {
         GarbageCollectionNotificationInfo info = GarbageCollectionNotificationInfo.from(cd);
 
         String gcAction = info.getGcAction();
-        LOG.info("gcAction: {}", gcAction);
         if (gcAction.contains("major")
             || gcAction.contains("concurrent")
             || gcAction.contains("old")
@@ -86,7 +85,10 @@ public class GCedMemoryUsage implements MemoryUsage {
             java.lang.management.MemoryUsage oldGenUsage =
                 memoryUsageAfterGc.get(possibleOldGenKey);
             getInstance().setUsage(oldGenUsage.getUsed());
-            LOG.info("Full GC detected, memory usage after GC is {} bytes.", getInstance().usage());
+            if (LOG.isDebugEnabled()) {
+              LOG.debug(
+                  "Old Gen GC detected, memory usage after GC is {} bytes.", getInstance().usage());
+            }
           }
         }
       }
