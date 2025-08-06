@@ -20,9 +20,7 @@ jobs:
     needs: Get-CI-Image-Tag
     strategy:
       matrix:
-        java:
-          - 21
-          - 23
+        java: [21, 24]
     runs-on: ubuntu-latest
     container:
       # using the same image which is used by opensearch-build team to build the OpenSearch Distribution

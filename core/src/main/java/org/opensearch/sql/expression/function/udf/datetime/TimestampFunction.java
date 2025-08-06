@@ -51,12 +51,12 @@ public class TimestampFunction extends ImplementorUDF {
   public UDFOperandMetadata getOperandMetadata() {
     return UDFOperandMetadata.wrap(
         (CompositeOperandTypeChecker)
-            OperandTypes.STRING
+            OperandTypes.CHARACTER
                 .or(OperandTypes.DATETIME)
-                .or(OperandTypes.STRING_STRING)
+                .or(OperandTypes.CHARACTER_CHARACTER)
                 .or(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME))
-                .or(OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.DATETIME))
-                .or(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING)));
+                .or(OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.DATETIME))
+                .or(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.CHARACTER)));
   }
 
   public static class TimestampImplementor implements NotNullImplementor {
