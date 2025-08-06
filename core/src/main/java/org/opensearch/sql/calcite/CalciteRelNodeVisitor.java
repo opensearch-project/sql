@@ -70,6 +70,7 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.PatternMethod;
 import org.opensearch.sql.ast.expression.PatternMode;
+import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFrame;
 import org.opensearch.sql.ast.expression.WindowFrame.FrameType;
@@ -1221,76 +1222,36 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitTimechart(
-      org.opensearch.sql.ast.tree.Timechart node, CalcitePlanContext context) {
+          org.opensearch.sql.ast.tree.Timechart node, CalcitePlanContext context) {
     visitChildren(node, context);
-    
-    // Build aggregation list with the provided aggregate function
-    List<UnresolvedExpression> aggExprList = List.of(node.getAggregateFunction());
-    
-    // Build group by list - span first, then by field if present
+
+    // Build group by list with proper span expression
     List<UnresolvedExpression> groupExprList = new ArrayList<>();
-    
-    // Add span - use @timestamp field
+
+    // Add span expression for time bucketing (this is essential for timechart)
     UnresolvedExpression spanExpr;
     if (node.getSpanExpression() != null) {
       spanExpr = node.getSpanExpression();
     } else {
       // Default to 1 minute span if not specified
-      spanExpr = AstDSL.span(AstDSL.field("@timestamp"), AstDSL.stringLiteral("1"), null);
+      spanExpr = AstDSL.span(AstDSL.field("@timestamp"), AstDSL.stringLiteral("1m"), null);
     }
     groupExprList.add(spanExpr);
-    
-    // Add by field if present
+
+    // Add by field if present (for multi-series timechart)
     if (node.getByField() != null) {
       groupExprList.add(node.getByField());
     }
-    
-    // Perform aggregation with trimming
-    Pair<List<RexNode>, List<AggCall>> aggregationAttributes =
-        aggregateWithTrimming(groupExprList, aggExprList, context);
-    
-    // Schema reordering - aggregation results first, then group by columns
-    List<RexNode> outputFields = context.relBuilder.fields();
-    int numOfOutputFields = outputFields.size();
-    int numOfAggList = aggExprList.size();
-    List<RexNode> reordered = new ArrayList<>(numOfOutputFields);
-    
-    // Add aggregation results first
-    List<RexNode> aggRexList =
-        outputFields.subList(numOfOutputFields - numOfAggList, numOfOutputFields);
-    reordered.addAll(aggRexList);
-    
-    // Add group by columns (timestamp and host)
-    for (int i = 0; i < numOfOutputFields - numOfAggList; i++) {
-      reordered.add(outputFields.get(i));
-    }
-    
-    // Create proper field names
-    List<String> fieldNames = new ArrayList<>();
-    
-    // Get aggregation function name
-    UnresolvedExpression aggFunc = node.getAggregateFunction();
-    String aggName = "aggr"; // default
-    if (aggFunc instanceof org.opensearch.sql.ast.expression.AggregateFunction) {
-      aggName = ((org.opensearch.sql.ast.expression.AggregateFunction) aggFunc).getFuncName();
-    }
-    fieldNames.add(aggName);
-    
-    // Add by field name first (matches data order)
-    if (node.getByField() != null) {
-      String byFieldName = node.getByField() instanceof org.opensearch.sql.ast.expression.Field ? 
-          ((org.opensearch.sql.ast.expression.Field) node.getByField()).getField().toString() : "host";
-      fieldNames.add(byFieldName);
-    }
-    
-    // Add timestamp field name last
-    fieldNames.add("@timestamp");
-    
-    context.relBuilder.project(reordered, fieldNames);
-    
-    // Sort by time (span field) - always first group by field
+
+    // Build aggregation list
+    List<UnresolvedExpression> aggExprList = List.of(node.getAggregateFunction());
+
+    // Perform aggregation with time-based grouping
+    aggregateWithTrimming(groupExprList, aggExprList, context);
+
+    // Sort by the first field (which should be the time span)
     context.relBuilder.sort(context.relBuilder.field(0));
-    
+
     return context.relBuilder.peek();
   }
 

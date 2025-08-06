@@ -50,6 +50,7 @@ import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.PatternMethod;
 import org.opensearch.sql.ast.expression.PatternMode;
 import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFunction;
@@ -397,7 +398,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       spanExpression = AstDSL.span(
           AstDSL.field("@timestamp"), 
           AstDSL.intLiteral(1),
-          org.opensearch.sql.ast.expression.SpanUnit.of("m"));
+          SpanUnit.of("m"));
     }
     UnresolvedExpression aggregateFunction = internalVisitExpression(ctx.statsFunction());
     UnresolvedExpression byField = ctx.fieldExpression() != null 
