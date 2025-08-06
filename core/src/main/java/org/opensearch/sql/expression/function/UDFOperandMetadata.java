@@ -27,6 +27,24 @@ import org.opensearch.sql.data.type.ExprType;
 public interface UDFOperandMetadata extends SqlOperandMetadata {
   SqlOperandTypeChecker getInnerTypeChecker();
 
+  /**
+   * Check if this UDFOperandMetadata has a direct PPLTypeChecker.
+   *
+   * @return true if PPLTypeChecker is available, false if using wrapped SqlOperandTypeChecker
+   */
+  default boolean hasPPLTypeChecker() {
+    return false;
+  }
+
+  /**
+   * Get the direct PPLTypeChecker if available.
+   *
+   * @return PPLTypeChecker or null if not available
+   */
+  default PPLTypeChecker getPPLTypeChecker() {
+    return null;
+  }
+
   static UDFOperandMetadata wrap(FamilyOperandTypeChecker typeChecker) {
     return new UDFOperandMetadata() {
       @Override
@@ -102,6 +120,58 @@ public interface UDFOperandMetadata extends SqlOperandMetadata {
       @Override
       public String getAllowedSignatures(SqlOperator op, String opName) {
         return typeChecker.getAllowedSignatures(op, opName);
+      }
+    };
+  }
+
+  static UDFOperandMetadata wrap(PPLTypeChecker pplTypeChecker) {
+    return new UDFOperandMetadata() {
+      @Override
+      public SqlOperandTypeChecker getInnerTypeChecker() {
+        return this;
+      }
+
+      @Override
+      public boolean hasPPLTypeChecker() {
+        return true;
+      }
+
+      @Override
+      public PPLTypeChecker getPPLTypeChecker() {
+        return pplTypeChecker;
+      }
+
+      @Override
+      public List<RelDataType> paramTypes(RelDataTypeFactory typeFactory) {
+        return Collections.emptyList();
+      }
+
+      @Override
+      public List<String> paramNames() {
+        return Collections.emptyList();
+      }
+
+      @Override
+      public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
+        // Convert SqlCallBinding to List<RelDataType> and use PPLTypeChecker
+        List<RelDataType> types = callBinding.collectOperandTypes();
+        return pplTypeChecker.checkOperandTypes(types);
+      }
+
+      @Override
+      public SqlOperandCountRange getOperandCountRange() {
+        // Extract operandCountRange from PPLSameTypeChecker if possible
+        if (pplTypeChecker instanceof PPLTypeChecker.PPLSameTypeChecker) {
+          PPLTypeChecker.PPLSameTypeChecker sameTypeChecker =
+              (PPLTypeChecker.PPLSameTypeChecker) pplTypeChecker;
+          return sameTypeChecker.getOperandCountRange();
+        }
+        return null;
+      }
+
+      @Override
+      public String getAllowedSignatures(SqlOperator op, String opName) {
+        return pplTypeChecker.getAllowedSignatures();
       }
     };
   }

@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
 import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
@@ -246,6 +247,121 @@ public interface PPLTypeChecker {
     }
   }
 
+  class PPLSameTypeChecker implements PPLTypeChecker {
+    private final SqlOperandCountRange operandCountRange;
+    private final SqlTypeFamily expectedFamily; // null means no family enforcement
+    private final boolean enforceExactType; // true = exact SqlTypeName, false = same family only
+
+    // Constructor for family enforcement with exact type control
+    public PPLSameTypeChecker(
+        SqlOperandCountRange operandCountRange,
+        SqlTypeFamily expectedFamily,
+        boolean enforceExactType) {
+      this.operandCountRange = operandCountRange;
+      this.expectedFamily = expectedFamily;
+      this.enforceExactType = enforceExactType;
+    }
+
+    // Constructor for family enforcement (same family, different types allowed)
+    public PPLSameTypeChecker(
+        SqlOperandCountRange operandCountRange, SqlTypeFamily expectedFamily) {
+      this(operandCountRange, expectedFamily, false);
+    }
+
+    // Constructor for no enforcement
+    public PPLSameTypeChecker(SqlOperandCountRange operandCountRange) {
+      this(operandCountRange, null, false);
+    }
+
+    @Override
+    public boolean checkOperandTypes(List<RelDataType> types) {
+      if (!operandCountRange.isValidCount(types.size())) {
+        return false;
+      }
+
+      if (types.isEmpty()) return true;
+
+      SqlTypeFamily firstFamily = null;
+      SqlTypeName firstTypeName = null;
+
+      for (RelDataType type : types) {
+        SqlTypeName typeName = UserDefinedFunctionUtils.convertRelDataTypeToSqlTypeName(type);
+        SqlTypeFamily family = typeName.getFamily();
+
+        if (firstFamily == null) {
+          firstFamily = family;
+          firstTypeName = typeName;
+
+          // Check expected family if specified
+          if (expectedFamily != null && !expectedFamily.getTypeNames().contains(typeName)) {
+            return false;
+          }
+        } else {
+          // Check based on enforcement level
+          if (enforceExactType) {
+            // Must be exact same type
+            if (typeName != firstTypeName) return false;
+          } else {
+            // Must be same family (different types within family allowed)
+            if (family != firstFamily) return false;
+          }
+        }
+      }
+      return true;
+    }
+
+    @Override
+    public String getAllowedSignatures() {
+      int min = operandCountRange.getMin();
+      int max = operandCountRange.getMax();
+
+      String typeLabel;
+      if (expectedFamily != null) {
+        typeLabel = expectedFamily.name();
+      } else {
+        typeLabel = enforceExactType ? "SQL_TYPE" : "SQL_TYPE_FAMILY";
+      }
+
+      if (min == -1 || max == -1) {
+        return String.format("[%s, %s, %s, ...]", typeLabel, typeLabel, typeLabel);
+      } else {
+        List<String> signatures = new ArrayList<>();
+        final int MAX_ARGS = 10;
+        max = Math.min(MAX_ARGS, max);
+        for (int i = min; i <= max; i++) {
+          signatures.add("[" + String.join(",", Collections.nCopies(i, typeLabel)) + "]");
+        }
+        return String.join(",", signatures);
+      }
+    }
+
+    @Override
+    public List<List<ExprType>> getParameterTypes() {
+      if (expectedFamily != null) {
+        List<ExprType> exprTypes = getExprTypes(expectedFamily);
+        int minArgs = operandCountRange.getMin();
+
+        if (enforceExactType) {
+          // Each type gets its own signature
+          return exprTypes.stream()
+              .map(type -> Collections.nCopies(minArgs, type))
+              .collect(Collectors.toList());
+        } else {
+          // One signature with all possible types from the family
+          return List.of(
+              new ArrayList<>(exprTypes.subList(0, Math.min(minArgs, exprTypes.size()))));
+        }
+      } else {
+        return List.of(List.of(ExprCoreType.UNKNOWN, ExprCoreType.UNKNOWN));
+      }
+    }
+
+    // Getter for operandCountRange to be used by UDFOperandMetadata
+    public SqlOperandCountRange getOperandCountRange() {
+      return operandCountRange;
+    }
+  }
+
   @RequiredArgsConstructor
   class PPLComparableTypeChecker implements PPLTypeChecker {
     private final SameOperandTypeChecker innerTypeChecker;
@@ -416,6 +532,19 @@ public interface PPLTypeChecker {
 
   static PPLComparableTypeChecker wrapComparable(SameOperandTypeChecker typeChecker) {
     return new PPLComparableTypeChecker(typeChecker);
+  }
+
+  // Same family, different types allowed (e.g., INTEGER + DOUBLE for NUMERIC)
+  static PPLSameTypeChecker wrapSameFamily(
+      SqlOperandCountRange operandCountRange, SqlTypeFamily expectedFamily) {
+    return new PPLSameTypeChecker(operandCountRange, expectedFamily, false);
+  }
+
+  static PPLSameTypeChecker wrapPPLSameTypeChecker(
+      SqlOperandCountRange operandCountRange,
+      SqlTypeFamily expectedFamily,
+      boolean enforceExactType) {
+    return new PPLSameTypeChecker(operandCountRange, expectedFamily, enforceExactType);
   }
 
   /**

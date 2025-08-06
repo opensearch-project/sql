@@ -698,6 +698,8 @@ mathematicalFunctionName
    | SIGN
    | SQRT
    | TRUNCATE
+   | SUM
+   | AVG
    | trigonometricFunctionName
    ;
 
