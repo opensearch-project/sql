@@ -94,4 +94,44 @@ public class CalciteExplainIT extends ExplainIT {
     String expected = loadFromFile("expectedOutput/calcite/explain_partial_filter_push2.json");
     assertJsonEqualsIgnoreId(expected, result);
   }
+
+  // Bin command tests - Only for Calcite
+  @Test
+  public void testBinCommandBasicSpan() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | bin age span=10 | stats count() by age";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_bin_span.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testBinCommandBinsParameter() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | bin balance bins=4 | stats count() by balance |"
+            + " sort balance";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_bin_bins.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testBinCommandMinspan() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | bin age minspan=11 | stats count() by age |"
+            + " sort age";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_bin_minspan.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testBinCommandStartEnd() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | bin balance start=1000 end=50000 | stats"
+            + " count() by balance | sort balance";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_bin_start_end.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
 }
