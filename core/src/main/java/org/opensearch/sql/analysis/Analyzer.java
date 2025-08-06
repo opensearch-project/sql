@@ -283,13 +283,6 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     return new LogicalFilter(child, optimized);
   }
 
-  /**
-   * Ensure NESTED function is not used in GROUP BY, and HAVING clauses. Fallback to legacy engine.
-   * Can remove when support is added for NESTED function in WHERE, GROUP BY, ORDER BY, and HAVING
-   * clauses.
-   *
-   * @param condition : Filter condition
-   */
   private void verifySupportsCondition(Expression condition) {
     if (condition instanceof FunctionExpression) {
       if (((FunctionExpression) condition)
@@ -385,22 +378,18 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   public LogicalPlan visitProject(Project node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
 
-    // Handle field exclusion (fields - field1, field2)
     if (node.hasArgument() && isExcludeMode(node)) {
       return buildLogicalRemove(node, child, context);
     }
 
-    // Process window and highlight expressions
-    child = processWindowAndHighlightExpressions(node.getProjectList(), child, context);
+    child = processWindowExpressions(node.getProjectList(), child, context);
+    child = processHighlightExpressions(node.getProjectList(), child, context);
 
-    // Resolve field expressions based on wildcard presence
     List<NamedExpression> namedExpressions =
         resolveFieldExpressions(node.getProjectList(), child, context);
 
-    // Process nested field analysis
     child = processNestedAnalysis(node.getProjectList(), namedExpressions, child, context);
 
-    // Create new type environment with projected fields
     context.push();
     TypeEnvironment newEnv = context.peek();
     namedExpressions.forEach(
@@ -410,12 +399,6 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     return new LogicalProject(child, namedExpressions, context.getNamedParseExpressions());
   }
 
-  /**
-   * Safely checks if the project node is in exclusion mode.
-   *
-   * @param node the project node to check
-   * @return true if the first argument is a boolean true value, false otherwise
-   */
   private boolean isExcludeMode(Project node) {
     try {
       Argument argument = node.getArgExprList().get(0);
@@ -426,62 +409,32 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     }
   }
 
-  /**
-   * Builds a LogicalRemove operation for PPL field exclusion.
-   *
-   * <p>Processes both regular fields and wildcard patterns, resolving wildcards to their actual
-   * field names before creating the removal operation.
-   *
-   * @param node the project node containing fields to exclude
-   * @param child the child logical plan
-   * @param context the analysis context
-   * @return LogicalRemove operation with fields to exclude
-   */
   private LogicalRemove buildLogicalRemove(
       Project node, LogicalPlan child, AnalysisContext context) {
     TypeEnvironment curEnv = context.peek();
     List<ReferenceExpression> referenceExpressions =
         collectExclusionFields(node.getProjectList(), context);
 
-    // Remove excluded fields from type environment
     referenceExpressions.forEach(curEnv::remove);
     return new LogicalRemove(child, ImmutableSet.copyOf(referenceExpressions));
   }
 
-  /**
-   * Processes window functions and highlight expressions for each field in the PPL fields command.
-   *
-   * <p>For each expression, this method sequentially applies WindowExpressionAnalyzer and
-   * HighlightAnalyzer, potentially inserting LogicalWindow and highlight operators into the logical
-   * plan if the expressions contain relevant functions.
-   *
-   * @param projectList list of unresolved expressions to analyze
-   * @param child the current logical plan
-   * @param context the analysis context
-   * @return updated logical plan with window and highlight operators inserted
-   */
-  private LogicalPlan processWindowAndHighlightExpressions(
+  private LogicalPlan processWindowExpressions(
       List<UnresolvedExpression> projectList, LogicalPlan child, AnalysisContext context) {
     for (UnresolvedExpression expr : projectList) {
-      // Analyze for window functions
       child = new WindowExpressionAnalyzer(expressionAnalyzer, child).analyze(expr, context);
-      // Analyze for highlight expressions
+    }
+    return child;
+  }
+
+  private LogicalPlan processHighlightExpressions(
+      List<UnresolvedExpression> projectList, LogicalPlan child, AnalysisContext context) {
+    for (UnresolvedExpression expr : projectList) {
       child = new HighlightAnalyzer(expressionAnalyzer, child).analyze(expr, context);
     }
     return child;
   }
 
-  /**
-   * Resolves field expressions using appropriate resolver based on wildcard presence.
-   *
-   * <p>Uses WildcardFieldResolver for expressions containing wildcards, otherwise uses
-   * selectExpressionAnalyzer with optimization.
-   *
-   * @param projectList list of unresolved expressions to resolve
-   * @param child the current logical plan for optimization
-   * @param context the analysis context
-   * @return list of resolved named expressions
-   */
   private List<NamedExpression> resolveFieldExpressions(
       List<UnresolvedExpression> projectList, LogicalPlan child, AnalysisContext context) {
     return WildcardFieldResolver.hasWildcards(projectList)
@@ -492,18 +445,6 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
             new ExpressionReferenceOptimizer(expressionAnalyzer.getRepository(), child));
   }
 
-  /**
-   * Processes nested field analysis for each expression in the project list.
-   *
-   * <p>Applies NestedAnalyzer to handle nested field structures, potentially modifying the logical
-   * plan to support nested field access patterns.
-   *
-   * @param projectList list of unresolved expressions to analyze
-   * @param namedExpressions resolved named expressions for context
-   * @param child the current logical plan
-   * @param context the analysis context
-   * @return updated logical plan with nested field support
-   */
   private LogicalPlan processNestedAnalysis(
       List<UnresolvedExpression> projectList,
       List<NamedExpression> namedExpressions,
@@ -516,18 +457,8 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     return child;
   }
 
-  /**
-   * Collects reference expressions for fields to be excluded.
-   *
-   * <p>Reuses the wildcard resolution logic and converts the results to reference expressions.
-   *
-   * @param projectList list of unresolved expressions representing fields to exclude
-   * @param context the analysis context
-   * @return list of reference expressions for excluded fields
-   */
   private List<ReferenceExpression> collectExclusionFields(
       List<UnresolvedExpression> projectList, AnalysisContext context) {
-    // Reuse existing wildcard resolution logic
     List<NamedExpression> namedExpressions =
         WildcardFieldResolver.hasWildcards(projectList)
             ? WildcardFieldResolver.resolveWildcards(projectList, context, expressionAnalyzer)
@@ -536,7 +467,6 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
                 .map(DSL::named)
                 .collect(Collectors.toList());
 
-    // Convert to reference expressions
     return namedExpressions.stream()
         .map(field -> (ReferenceExpression) field.getDelegated())
         .collect(Collectors.toList());
@@ -847,10 +777,6 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     return new LogicalSort(child, sortList);
   }
 
-  /**
-   * The first argument is always "asc", others are optional. Given nullFirst argument, use its
-   * value. Otherwise just use DEFAULT_ASC/DESC.
-   */
   private SortOption analyzeSortOption(List<Argument> fieldArgs) {
     Boolean asc = (Boolean) fieldArgs.get(0).getValue().getValue();
     Optional<Argument> nullFirst =

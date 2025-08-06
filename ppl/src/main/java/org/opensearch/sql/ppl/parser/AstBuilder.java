@@ -266,30 +266,14 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return joinType;
   }
 
-  /**
-   * Processes the PPL 'fields' command supporting comma-delimited, space-delimited,
-   * mixed-delimited, and wildcard syntax. Examples: "fields field1, field2", "fields field1
-   * field2", "fields field1, field2 field3", "fields account*", "fields *name"
-   */
   @Override
   public UnresolvedPlan visitFieldsCommand(FieldsCommandContext ctx) {
     return buildProjectCommand(ctx.fieldsCommandBody(), ArgumentFactory.getArgumentList(ctx));
   }
 
-  /**
-   * Processes the PPL 'table' command as an alias for 'fields' command.
-   *
-   * <p>The table command is functionally identical to the fields command, both using
-   * fieldsCommandBody() to specify field selection. This method creates the exclude argument inline
-   * rather than delegating to ArgumentFactory to avoid code duplication.
-   *
-   * @param ctx TableCommandContext instance from ANTLR parser
-   * @return UnresolvedPlan representing the project operation
-   */
+  /** Table command as an alias for fields command. */
   @Override
   public UnresolvedPlan visitTableCommand(TableCommandContext ctx) {
-    // Table command uses the same fieldsCommandBody as fields command
-    // Create exclude argument based on MINUS token presence
     return buildProjectCommand(
         ctx.fieldsCommandBody(),
         Collections.singletonList(
@@ -298,61 +282,31 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
                 : new Argument("exclude", new Literal(false, DataType.BOOLEAN))));
   }
 
-  /**
-   * Builds a Project AST node from PPL field command body supporting multiple syntax formats.
-   *
-   * <p>This method unifies three different PPL field list syntax variations: - Comma-delimited:
-   * fields field1, field2, field3 - Space-delimited: fields field1 field2 field3 - Mixed-delimited:
-   * fields field1, field2 field3
-   *
-   * <p>All syntax formats support wildcards (e.g., account*, *name, *id*) and the method
-   * automatically removes duplicate field references.
-   *
-   * @param bodyCtx ANTLR parser context containing the field list in one of the supported formats
-   * @param arguments List of command arguments (e.g., exclude flag for field exclusion)
-   * @return Project AST node with unified field list and arguments
-   */
   private UnresolvedPlan buildProjectCommand(
       OpenSearchPPLParser.FieldsCommandBodyContext bodyCtx, List<Argument> arguments) {
     List<UnresolvedExpression> fields = extractFieldExpressions(bodyCtx);
     return new Project(fields, arguments);
   }
 
-  /**
-   * Extracts field expressions from different field list syntax formats.
-   *
-   * @param bodyCtx ANTLR parser context containing the field list
-   * @return List of field expressions with duplicates removed
-   */
   private List<UnresolvedExpression> extractFieldExpressions(
       OpenSearchPPLParser.FieldsCommandBodyContext bodyCtx) {
-    // Handle comma-delimited field list: fields field1, field2, field3
     if (bodyCtx.wcFieldList() != null) {
       return processFieldExpressions(bodyCtx.wcFieldList().wcFieldExpression());
     }
-    // Handle space-delimited field list: fields field1 field2 field3
     if (bodyCtx.wcSpaceSeparatedFieldList() != null) {
       return processFieldExpressions(bodyCtx.wcSpaceSeparatedFieldList().wcFieldExpression());
     }
-    // Handle mixed-delimited field list: fields field1, field2 field3
     if (bodyCtx.wcMixedFieldList() != null) {
       return processFieldExpressions(bodyCtx.wcMixedFieldList().wcFieldExpression());
     }
-    // No fields specified - return empty list
     return Collections.emptyList();
   }
 
-  /**
-   * Processes field expressions by converting to UnresolvedExpression and removing duplicates.
-   *
-   * @param fieldExpressions List of field expression contexts from ANTLR parser
-   * @return List of processed UnresolvedExpression objects with duplicates removed
-   */
   private List<UnresolvedExpression> processFieldExpressions(
       List<OpenSearchPPLParser.WcFieldExpressionContext> fieldExpressions) {
     return fieldExpressions.stream()
         .map(this::internalVisitExpression)
-        .distinct() // Remove duplicate field references
+        .distinct()
         .collect(Collectors.toList());
   }
 
