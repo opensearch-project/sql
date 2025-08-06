@@ -127,8 +127,8 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testBinCommandStartEnd() throws IOException {
     String query =
-            "source=opensearch-sql_test_index_account | bin balance start=1000 end=50000 | stats"
-                    + " count() by balance | sort balance";
+        "source=opensearch-sql_test_index_account | bin balance start=1000 end=50000 | stats"
+            + " count() by balance | sort balance";
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_bin_start_end.json");
     assertJsonEqualsIgnoreId(expected, result);
