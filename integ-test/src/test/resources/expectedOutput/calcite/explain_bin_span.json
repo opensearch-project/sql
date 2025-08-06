@@ -1,0 +1,6 @@
+{
+  "calcite": {
+    "logical": "LogicalProject(count()=[$1], age=[$0])\n  LogicalAggregate(group=[{0}], count()=[COUNT()])\n    LogicalProject(age=[||(||(CAST(FLOOR(+(*(FLOOR(/(-($8, 0), 10)), 10), 0))):VARCHAR NOT NULL, '-'), CAST(FLOOR(+(+(*(FLOOR(/(-($8, 0), 10)), 10), 0), 10))):VARCHAR NOT NULL)])\n      CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
+    "physical": "EnumerableCalc(expr#0..1=[{inputs}], count()=[$t1], age=[$t0])\n  EnumerableAggregate(group=[{0}], count()=[COUNT()])\n    EnumerableCalc(expr#0=[{inputs}], expr#1=[0], expr#2=[-($t0, $t1)], expr#3=[10], expr#4=[/($t2, $t3)], expr#5=[FLOOR($t4)], expr#6=[*($t5, $t3)], expr#7=[+($t6, $t1)], expr#8=[FLOOR($t7)], expr#9=[CAST($t8):VARCHAR NOT NULL], expr#10=['-'], expr#11=[||($t9, $t10)], expr#12=[+($t7, $t3)], expr#13=[FLOOR($t12)], expr#14=[CAST($t13):VARCHAR NOT NULL], expr#15=[||($t11, $t14)], $f0=[$t15])\n      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[age]], OpenSearchRequestBuilder(sourceBuilder={\"from\":0,\"timeout\":\"1m\",\"_source\":{\"includes\":[\"age\"],\"excludes\":[]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])\n"
+  }
+}

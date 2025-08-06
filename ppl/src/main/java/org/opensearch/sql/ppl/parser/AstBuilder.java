@@ -9,6 +9,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BinCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DescribeCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalCommandContext;
@@ -56,6 +57,7 @@ import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.AppendCol;
+import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.DescribeRelation;
 import org.opensearch.sql.ast.tree.Eval;
@@ -365,6 +367,45 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     Integer size = ctx.number != null ? Integer.parseInt(ctx.number.getText()) : 10;
     Integer from = ctx.from != null ? Integer.parseInt(ctx.from.getText()) : 0;
     return new Head(size, from);
+  }
+
+  /** Bin command visitor. */
+  @Override
+  public UnresolvedPlan visitBinCommand(BinCommandContext ctx) {
+    UnresolvedExpression field = internalVisitExpression(ctx.fieldExpression());
+
+    // Handle the new spanValue structure that supports log-based and extended time spans
+    UnresolvedExpression span = null;
+    if (ctx.span != null) {
+      // ctx.span is now a spanValue, which could be numericSpanValue, logBasedSpanValue, or
+      // extendedTimeSpanValue
+      span = internalVisitExpression(ctx.span);
+    }
+
+    Integer bins = ctx.bins != null ? Integer.parseInt(ctx.bins.getText()) : null;
+
+    // CRITICAL FIX: Also handle minspan with time unit
+    UnresolvedExpression minspan = null;
+    if (ctx.minspan != null) {
+      String minspanValue = ctx.minspan.getText();
+      String minspanUnit = ctx.minspanUnit != null ? ctx.minspanUnit.getText() : null;
+
+      if (minspanUnit != null) {
+        // Create combined minspan like "1h", "30m", etc.
+        minspan = org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(minspanValue + minspanUnit);
+      } else {
+        minspan = internalVisitExpression(ctx.minspan);
+      }
+    }
+
+    UnresolvedExpression aligntime = null;
+    if (ctx.aligntime != null) {
+      aligntime = internalVisitExpression(ctx.aligntime);
+    }
+    UnresolvedExpression start = ctx.start != null ? internalVisitExpression(ctx.start) : null;
+    UnresolvedExpression end = ctx.end != null ? internalVisitExpression(ctx.end) : null;
+    String alias = ctx.alias != null ? StringUtils.unquoteIdentifier(ctx.alias.getText()) : null;
+    return new Bin(field, span, bins, minspan, aligntime, start, end, alias);
   }
 
   /** Sort command. */
