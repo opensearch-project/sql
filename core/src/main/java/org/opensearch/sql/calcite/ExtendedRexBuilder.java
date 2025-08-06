@@ -150,16 +150,11 @@ public class ExtendedRexBuilder extends RexBuilder {
             String.format(Locale.ROOT, "Cannot cast from %s to %s", argExprType, udt.name()));
       };
     }
-    // If casting an approximate numeric (e.g. double) to a character type and no format is
-    // specified,
-    // use the custom double format to ensure non-scientific notation with up to 16 decimal digits.
+    // Use a custom operator when casting an approximate numeric (e.g. double) to a character type.
     // This patch is necessary because Calcite's built-in CAST converts 0.0 to 0E0 as string.
-    else if (SqlTypeUtil.isApproximateNumeric(exp.getType())
-        && SqlTypeUtil.isCharacter(type)
-        && format.getType().getSqlTypeName() == SqlTypeName.NULL) {
-      // Use a custom FORMAT_NUMBER which first convert the number to a BigDecimal, then
-      // calls SqlFunctions.formatNumber
-      return makeCall(type, PPLBuiltinOperators.FORMAT_NUMBER, List.of(exp));
+    else if (SqlTypeUtil.isApproximateNumeric(exp.getType()) && SqlTypeUtil.isCharacter(type)) {
+      // NUMBER_TO_STRING first box the number, then invoke its toString method
+      return makeCall(type, PPLBuiltinOperators.NUMBER_TO_STRING, List.of(exp));
     }
     return super.makeCast(pos, type, exp, matchNullability, safe, format);
   }
