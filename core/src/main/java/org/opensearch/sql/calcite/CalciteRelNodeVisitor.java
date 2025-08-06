@@ -413,6 +413,28 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
+  private static final String REVERSE_ROW_NUM = "__reverse_row_num__";
+
+  @Override
+  public RelNode visitReverse(
+      org.opensearch.sql.ast.tree.Reverse node, CalcitePlanContext context) {
+    visitChildren(node, context);
+    // Add ROW_NUMBER() column
+    RexNode rowNumber =
+        context
+            .relBuilder
+            .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+            .over()
+            .rowsTo(RexWindowBounds.CURRENT_ROW)
+            .as(REVERSE_ROW_NUM);
+    context.relBuilder.projectPlus(rowNumber);
+    // Sort by row number descending
+    context.relBuilder.sort(context.relBuilder.desc(context.relBuilder.field(REVERSE_ROW_NUM)));
+    // Remove row number column
+    context.relBuilder.projectExcept(context.relBuilder.field(REVERSE_ROW_NUM));
+    return context.relBuilder.peek();
+  }
+
   @Override
   public RelNode visitParse(Parse node, CalcitePlanContext context) {
     visitChildren(node, context);
