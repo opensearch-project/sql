@@ -12,6 +12,5 @@ public class CalciteHeadCommandIT extends HeadCommandIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 }

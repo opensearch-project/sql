@@ -13,6 +13,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.temporal.IsoFields;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -137,7 +138,7 @@ class ExtractTest extends ExpressionTestBase {
   public void testExtractWeekPartWithTimeType(String arg) {
 
     // setup default date/time properties for the extract function
-    ZoneId currentZoneId = ZoneId.systemDefault();
+    ZoneId currentZoneId = ZoneOffset.UTC;
     Instant nowInstant =
         LocalDate.parse(arg).atTime(LocalTime.parse(timeInput)).atZone(currentZoneId).toInstant();
     FunctionProperties properties = new FunctionProperties(nowInstant, currentZoneId);

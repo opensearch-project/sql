@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.Period;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
@@ -96,7 +97,7 @@ public class NowLikeFunctionIT extends SQLIntegTestCase {
                 false,
                 false,
                 true,
-                (Supplier<Temporal>) LocalDateTime::now,
+                (Supplier<Temporal>) () -> LocalDateTime.now(ZoneOffset.UTC),
                 (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse,
                 "uuuu-MM-dd HH:mm:ss"),
             $(
@@ -104,7 +105,7 @@ public class NowLikeFunctionIT extends SQLIntegTestCase {
                 false,
                 false,
                 true,
-                (Supplier<Temporal>) LocalDateTime::now,
+                (Supplier<Temporal>) () -> LocalDateTime.now(ZoneOffset.UTC),
                 (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse,
                 "uuuu-MM-dd HH:mm:ss"),
             $(
@@ -112,7 +113,7 @@ public class NowLikeFunctionIT extends SQLIntegTestCase {
                 false,
                 false,
                 true,
-                (Supplier<Temporal>) LocalDateTime::now,
+                (Supplier<Temporal>) () -> LocalDateTime.now(ZoneOffset.UTC),
                 (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse,
                 "uuuu-MM-dd HH:mm:ss"),
             $(
@@ -120,7 +121,7 @@ public class NowLikeFunctionIT extends SQLIntegTestCase {
                 false,
                 false,
                 true,
-                (Supplier<Temporal>) LocalDateTime::now,
+                (Supplier<Temporal>) () -> LocalDateTime.now(ZoneOffset.UTC),
                 (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse,
                 "uuuu-MM-dd HH:mm:ss"),
             $(
@@ -128,7 +129,7 @@ public class NowLikeFunctionIT extends SQLIntegTestCase {
                 true,
                 false,
                 false,
-                (Supplier<Temporal>) LocalDateTime::now,
+                (Supplier<Temporal>) () -> LocalDateTime.now(ZoneOffset.UTC),
                 (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse,
                 "uuuu-MM-dd HH:mm:ss"),
             $(
@@ -136,7 +137,7 @@ public class NowLikeFunctionIT extends SQLIntegTestCase {
                 false,
                 false,
                 false,
-                (Supplier<Temporal>) LocalTime::now,
+                (Supplier<Temporal>) () -> LocalTime.now(ZoneOffset.UTC),
                 (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalTime::parse,
                 "HH:mm:ss"),
             $(
@@ -144,7 +145,7 @@ public class NowLikeFunctionIT extends SQLIntegTestCase {
                 false,
                 false,
                 false,
-                (Supplier<Temporal>) LocalTime::now,
+                (Supplier<Temporal>) () -> LocalTime.now(ZoneOffset.UTC),
                 (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalTime::parse,
                 "HH:mm:ss"),
             $(
@@ -152,7 +153,7 @@ public class NowLikeFunctionIT extends SQLIntegTestCase {
                 false,
                 false,
                 false,
-                (Supplier<Temporal>) LocalDate::now,
+                (Supplier<Temporal>) () -> LocalDate.now(ZoneOffset.UTC),
                 (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDate::parse,
                 "uuuu-MM-dd"),
             $(
@@ -160,7 +161,7 @@ public class NowLikeFunctionIT extends SQLIntegTestCase {
                 false,
                 false,
                 false,
-                (Supplier<Temporal>) LocalDate::now,
+                (Supplier<Temporal>) () -> LocalDate.now(ZoneOffset.UTC),
                 (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDate::parse,
                 "uuuu-MM-dd"),
             $(
@@ -197,7 +198,7 @@ public class NowLikeFunctionIT extends SQLIntegTestCase {
   }
 
   public static LocalDateTime utcDateTimeNow() {
-    ZonedDateTime zonedDateTime = LocalDateTime.now().atZone(TimeZone.getDefault().toZoneId());
+    ZonedDateTime zonedDateTime = LocalDateTime.now(ZoneOffset.UTC).atZone(ZoneOffset.UTC);
     return zonedDateTime.withZoneSameInstant(ZoneId.of("UTC")).toLocalDateTime();
   }
 

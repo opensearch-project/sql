@@ -15,7 +15,7 @@ import java.io.IOException;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
-import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalcitePPLBuiltinFunctionsNullIT extends PPLIntegTestCase {
@@ -23,7 +23,6 @@ public class CalcitePPLBuiltinFunctionsNullIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
 
     loadIndex(Index.STATE_COUNTRY);
     loadIndex(Index.STATE_COUNTRY_WITH_NULL);
@@ -353,17 +352,16 @@ public class CalcitePPLBuiltinFunctionsNullIT extends PPLIntegTestCase {
 
   @Test
   public void testDateInvalid() {
-    Throwable semanticException =
+    Throwable t =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
                         "source=%s  | eval d1 = DATE('2020-08-26'), d2 = DATE('2020-15-26') |"
                             + " fields d1, d2",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
-    verifyErrorMessageContains(
-        semanticException, "date:2020-15-26 in unsupported format, please use 'yyyy-MM-dd'");
+    verifyErrorMessageContains(t, "date:2020-15-26 in unsupported format, please use 'yyyy-MM-dd'");
   }
 
   /** STRING/TIME/TIMESTAMP -> INTEGER */
@@ -380,24 +378,23 @@ public class CalcitePPLBuiltinFunctionsNullIT extends PPLIntegTestCase {
 
   @Test
   public void testHourInvalid() {
-    Throwable semanticException =
+    Throwable t =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
                         "source=%s  | eval h1 = HOUR('2020-08-26') | fields h1",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(
-        semanticException,
-        "time:2020-08-26 in unsupported format, please use 'HH:mm:ss[.SSSSSSSSS]'");
+        t, "time:2020-08-26 in unsupported format, please use 'HH:mm:ss[.SSSSSSSSS]'");
   }
 
   @Test
   public void testDayInvalid() {
     Throwable malformMonthException =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
@@ -406,22 +403,22 @@ public class CalcitePPLBuiltinFunctionsNullIT extends PPLIntegTestCase {
     verifyErrorMessageContains(
         malformMonthException, "date:2020-13-26 in unsupported format, please use 'yyyy-MM-dd'");
 
-    Throwable dateAsTimeException =
+    Throwable timeAsDateException =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
                         "source=%s  | eval d2 = DAY('12:00:00') | fields d2",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(
-        dateAsTimeException, "date:12:00:00 in unsupported format, please use 'yyyy-MM-dd'");
+        timeAsDateException, "date:12:00:00 in unsupported format, please use 'yyyy-MM-dd'");
   }
 
   @Test
   public void testTimeInvalid() {
     assertThrowsWithReplace(
-        SemanticCheckException.class,
+        ExpressionEvaluationException.class,
         () ->
             executeQuery(
                 String.format(

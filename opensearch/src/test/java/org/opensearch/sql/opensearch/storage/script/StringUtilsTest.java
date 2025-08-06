@@ -26,4 +26,25 @@ public class StringUtilsTest {
     assertEquals("?_?", StringUtils.convertSqlWildcardToLucene("_\\__"));
     assertEquals("%\\*_\\?", StringUtils.convertSqlWildcardToLucene("\\%\\*\\_\\?"));
   }
+
+  @Test
+  public void test_escape_sql_wildcards_safe() {
+    assertEquals("%", StringUtils.convertSqlWildcardToLuceneSafe("\\%"));
+    assertEquals("\\*", StringUtils.convertSqlWildcardToLuceneSafe("\\*"));
+    assertEquals("_", StringUtils.convertSqlWildcardToLuceneSafe("\\_"));
+    assertEquals("\\?", StringUtils.convertSqlWildcardToLuceneSafe("\\?"));
+    assertEquals("%*", StringUtils.convertSqlWildcardToLuceneSafe("\\%%"));
+    assertEquals("*%", StringUtils.convertSqlWildcardToLuceneSafe("%\\%"));
+    assertEquals("%*%", StringUtils.convertSqlWildcardToLuceneSafe("\\%%\\%"));
+    assertEquals("*%*", StringUtils.convertSqlWildcardToLuceneSafe("%\\%%"));
+    assertEquals("_?", StringUtils.convertSqlWildcardToLuceneSafe("\\__"));
+    assertEquals("?_", StringUtils.convertSqlWildcardToLuceneSafe("_\\_"));
+    assertEquals("_?_", StringUtils.convertSqlWildcardToLuceneSafe("\\__\\_"));
+    assertEquals("?_?", StringUtils.convertSqlWildcardToLuceneSafe("_\\__"));
+    assertEquals("%\\*_\\?", StringUtils.convertSqlWildcardToLuceneSafe("\\%\\*\\_\\?"));
+    assertEquals("\\*", StringUtils.convertSqlWildcardToLuceneSafe("*"));
+    assertEquals("\\?", StringUtils.convertSqlWildcardToLuceneSafe("?"));
+    assertEquals("foo\\*bar", StringUtils.convertSqlWildcardToLuceneSafe("foo*bar"));
+    assertEquals("foo\\?bar", StringUtils.convertSqlWildcardToLuceneSafe("foo?bar"));
+  }
 }

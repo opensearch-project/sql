@@ -9,12 +9,14 @@ import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.linq4j.tree.ConstantExpression;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.data.model.ExprIpValue;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
@@ -66,7 +68,7 @@ public class CompareIpFunction extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    return new UDFOperandMetadata.IPOperandMetadata();
+    return UDFOperandMetadata.wrapUDT(List.of(List.of(ExprCoreType.IP, ExprCoreType.IP)));
   }
 
   public static class CompareImplementor implements NotNullImplementor {
@@ -91,14 +93,14 @@ public class CompareIpFunction extends ImplementorUDF {
 
     private static Expression generateComparisonExpression(
         Expression compareResult, ComparisonType comparisonType) {
+      final ConstantExpression zero = Expressions.constant(0);
       return switch (comparisonType) {
-        case EQUALS -> Expressions.equal(compareResult, Expressions.constant(0));
-        case NOT_EQUALS -> Expressions.notEqual(compareResult, Expressions.constant(0));
-        case LESS -> Expressions.lessThan(compareResult, Expressions.constant(0));
-        case LESS_OR_EQUAL -> Expressions.lessThanOrEqual(compareResult, Expressions.constant(0));
-        case GREATER -> Expressions.greaterThan(compareResult, Expressions.constant(0));
-        case GREATER_OR_EQUAL -> Expressions.greaterThanOrEqual(
-            compareResult, Expressions.constant(0));
+        case EQUALS -> Expressions.equal(compareResult, zero);
+        case NOT_EQUALS -> Expressions.notEqual(compareResult, zero);
+        case LESS -> Expressions.lessThan(compareResult, zero);
+        case LESS_OR_EQUAL -> Expressions.lessThanOrEqual(compareResult, zero);
+        case GREATER -> Expressions.greaterThan(compareResult, zero);
+        case GREATER_OR_EQUAL -> Expressions.greaterThanOrEqual(compareResult, zero);
       };
     }
 

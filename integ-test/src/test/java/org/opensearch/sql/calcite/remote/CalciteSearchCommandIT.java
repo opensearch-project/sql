@@ -12,6 +12,5 @@ public class CalciteSearchCommandIT extends SearchCommandIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 }

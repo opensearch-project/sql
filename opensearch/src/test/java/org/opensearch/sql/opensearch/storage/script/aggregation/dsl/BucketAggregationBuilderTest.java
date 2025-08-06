@@ -42,7 +42,7 @@ import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
-import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
+import org.opensearch.sql.opensearch.storage.serde.ExpressionSerializer;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
@@ -79,8 +79,9 @@ class BucketAggregationBuilderTest {
         "{\n"
             + "  \"terms\" : {\n"
             + "    \"script\" : {\n"
-            + "      \"source\" : \"mock-serialize\",\n"
-            + "      \"lang\" : \"opensearch_query_expression\"\n"
+            + "      \"source\" :"
+            + " \"{\\\"langType\\\":\\\"v2\\\",\\\"script\\\":\\\"mock-serialize\\\"}\",\n"
+            + "      \"lang\" : \"opensearch_compounded_script\"\n"
             + "    },\n"
             + "    \"missing_bucket\" : true,\n"
             + "    \"missing_order\" : \"first\",\n"
@@ -124,8 +125,9 @@ class BucketAggregationBuilderTest {
         "{\n"
             + "  \"terms\" : {\n"
             + "    \"script\" : {\n"
-            + "      \"source\" : \"mock-serialize\",\n"
-            + "      \"lang\" : \"opensearch_query_expression\"\n"
+            + "      \"source\" :"
+            + " \"{\\\"langType\\\":\\\"v2\\\",\\\"script\\\":\\\"mock-serialize\\\"}\",\n"
+            + "      \"lang\" : \"opensearch_compounded_script\"\n"
             + "    },\n"
             + "    \"missing_bucket\" : true,\n"
             + "    \"missing_order\" : \"first\",\n"

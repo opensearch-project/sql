@@ -19,7 +19,6 @@ public class CalciteSortCommandIT extends SortCommandIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 
   // TODO: Move this test to SortCommandIT once head-then-sort is fixed in v2.

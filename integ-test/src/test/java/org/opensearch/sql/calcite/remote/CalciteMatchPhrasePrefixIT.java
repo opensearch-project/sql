@@ -12,6 +12,5 @@ public class CalciteMatchPhrasePrefixIT extends MatchPhrasePrefixIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 }

@@ -117,7 +117,7 @@ public class GrokCompiler implements Serializable {
   }
 
   public Grok compile(final String pattern, boolean namedOnly) throws IllegalArgumentException {
-    return compile(pattern, ZoneOffset.systemDefault(), namedOnly);
+    return compile(pattern, ZoneOffset.UTC, namedOnly);
   }
 
   /**

@@ -12,6 +12,5 @@ public class CalcitePPLPluginIT extends PPLPluginIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 }

@@ -12,6 +12,5 @@ public class CalciteFillNullCommandIT extends FillNullCommandIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 }

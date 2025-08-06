@@ -220,6 +220,10 @@ public class OpenSearchExprValueFactory {
     if (content.isNumber()) {
       if (content.isInt()) {
         return new ExprIntegerValue(content.intValue());
+      } else if (content.isShort()) {
+        return new ExprShortValue(content.shortValue());
+      } else if (content.isByte()) {
+        return new ExprByteValue(content.byteValue());
       } else if (content.isLong()) {
         return new ExprLongValue(content.longValue());
       } else if (content.isFloat()) {

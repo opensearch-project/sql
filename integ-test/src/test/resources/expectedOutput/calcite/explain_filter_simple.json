@@ -1,5 +1,5 @@
 {
-  "calcite" : {
-    "logical" : "LogicalProject\n  LogicalFilter\n    CalciteLogicalIndexScan\n"
+  "calcite": {
+    "logical": "LogicalSystemLimit\n  LogicalProject\n    LogicalFilter\n      CalciteLogicalIndexScan\n"
   }
 }

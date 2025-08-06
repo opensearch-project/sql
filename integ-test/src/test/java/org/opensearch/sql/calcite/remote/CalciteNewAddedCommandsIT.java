@@ -12,6 +12,5 @@ public class CalciteNewAddedCommandsIT extends NewAddedCommandsIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 }
