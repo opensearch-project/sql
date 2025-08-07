@@ -191,6 +191,19 @@ public class BinUtils {
     }
   }
 
+  /**
+   * Determines if the bin command uses window functions that cause script size issues. Window
+   * functions (MIN() OVER(), MAX() OVER()) are used by bins, minspan, start/end, and default
+   * parameters to calculate data ranges dynamically.
+   */
+  public static boolean usesWindowFunctions(Bin node) {
+    return node.getBins() != null
+        || node.getMinspan() != null
+        || node.getStart() != null
+        || node.getEnd() != null
+        || (node.getSpan() == null); // default behavior also uses window functions
+  }
+
   /** Creates minspan-based range strings using SPL's magnitude-based minspan algorithm. */
   public static RexNode createMinspanBasedRangeStrings(
       Bin node,
