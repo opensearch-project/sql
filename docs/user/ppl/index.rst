@@ -104,6 +104,8 @@ The query start with search command and then flowing a set of command delimited 
 
   - `subquery (aka subsearch) command <cmd/subquery.rst>`_
 
+  - `reverse command <cmd/reverse.rst>`_
+
   - `top command <cmd/top.rst>`_
 
   - `trendline command <cmd/trendline.rst>`_
