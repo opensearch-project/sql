@@ -19,16 +19,23 @@ public class OpenSearchMemoryHealthy {
 
   public OpenSearchMemoryHealthy(Settings settings) {
     randomFail = new RandomFail();
-    memoryUsage =
-        isCalciteEnabled(settings)
-            ? GCedMemoryUsage.getInstance()
-            : RuntimeMemoryUsage.getInstance();
+    memoryUsage = buildMemoryUsage(settings);
   }
 
   @VisibleForTesting
   public OpenSearchMemoryHealthy(RandomFail randomFail, MemoryUsage memoryUsage) {
     this.randomFail = randomFail;
     this.memoryUsage = memoryUsage;
+  }
+
+  private MemoryUsage buildMemoryUsage(Settings settings) {
+    try {
+      return isCalciteEnabled(settings)
+          ? GCedMemoryUsage.getInstance()
+          : RuntimeMemoryUsage.getInstance();
+    } catch (MemoryUsageException e) {
+      return RuntimeMemoryUsage.getInstance();
+    }
   }
 
   private boolean isCalciteEnabled(Settings settings) {
@@ -63,8 +70,11 @@ public class OpenSearchMemoryHealthy {
   }
 
   @NoArgsConstructor
-  public static class MemoryUsageExceedFastFailureException extends RuntimeException {}
+  public static class MemoryUsageExceedFastFailureException extends MemoryUsageException {}
 
   @NoArgsConstructor
-  public static class MemoryUsageExceedException extends RuntimeException {}
+  public static class MemoryUsageExceedException extends MemoryUsageException {}
+
+  @NoArgsConstructor
+  public static class MemoryUsageException extends RuntimeException {}
 }
