@@ -141,8 +141,7 @@ public class CalciteExplainIT extends ExplainIT {
         "source=opensearch-sql_test_index_account | patterns address method=BRAIN  | stats count()"
             + " by patterns_field";
     var result = explainQueryToString(query);
-    String expected =
-        loadFromFile("expectedOutput/calcite/explain_partial_filter_script_push.json");
+    String expected = loadFromFile("expectedOutput/calcite/explain_agg_on_window.json");
     assertJsonEqualsIgnoreId(expected, result);
   }
 

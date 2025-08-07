@@ -293,8 +293,6 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Cannot pushdown the sort {}", getCollationNames(collations), e);
-      } else {
-        LOG.info("Cannot pushdown the sort {}, ", getCollationNames(collations));
       }
     }
     return null;
