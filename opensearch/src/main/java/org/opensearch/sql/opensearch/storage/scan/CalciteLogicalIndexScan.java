@@ -24,6 +24,7 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.hint.RelHint;
@@ -32,6 +33,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.commons.lang3.tuple.Pair;
@@ -239,6 +241,16 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               cloneWithoutSort(pushDownContext));
       Map<String, ExprType> fieldTypes = this.osIndex.getFieldTypes();
       List<String> outputFields = aggregate.getRowType().getFieldNames();
+      
+      // CRITICAL: Disable pushdown for aggregations that use window functions
+      // Window functions cannot be pushed down to OpenSearch and cause script size limit issues
+      if (containsWindowFunctions(aggregate, project)) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Cannot pushdown aggregate with window functions: {}", aggregate);
+        }
+        return null;
+      }
+      
       final Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder =
           AggregateAnalyzer.analyze(
               aggregate, project, getRowType(), fieldTypes, outputFields, getCluster());
@@ -422,5 +434,69 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       }
     }
     return newContext;
+  }
+  
+  /**
+   * Check if the aggregation contains window functions that cannot be pushed down to OpenSearch.
+   * Window functions (MIN() OVER(), MAX() OVER()) are used by bin operations with bins, minspan, 
+   * start/end, and default parameters to calculate data ranges dynamically. These functions cause 
+   * script size limit issues when serialized and must be executed at the Calcite level.
+   * 
+   * @param aggregate The aggregate operation to check
+   * @param project The project containing the group expressions
+   * @return true if window functions are detected, false otherwise
+   */
+  private boolean containsWindowFunctions(Aggregate aggregate, Project project) {
+    // Check group expressions for window functions
+    for (int groupIndex : aggregate.getGroupSet()) {
+      RexNode groupExpr = project.getProjects().get(groupIndex);
+      if (hasWindowFunctions(groupExpr)) {
+        return true;
+      }
+    }
+    
+    // Check aggregate function expressions for window functions  
+    for (AggregateCall aggCall : aggregate.getAggCallList()) {
+      for (int argIndex : aggCall.getArgList()) {
+        RexNode argExpr = project.getProjects().get(argIndex);
+        if (hasWindowFunctions(argExpr)) {
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  }
+  
+  /**
+   * Recursively check if a RexNode expression contains window functions.
+   * This detects OVER clauses and other window function patterns.
+   * 
+   * @param rexNode The expression to check
+   * @return true if window functions are found, false otherwise
+   */
+  private boolean hasWindowFunctions(RexNode rexNode) {
+    if (rexNode == null) {
+      return false;
+    }
+    
+    // Check if this is a window function call
+    if (rexNode instanceof RexCall call) {
+      // Check for OVER clause (window functions)
+      if (call.getOperator().getName().contains("OVER") 
+          || call.getKind().name().contains("OVER")
+          || call.toString().contains("OVER")) {
+        return true;
+      }
+      
+      // Recursively check operands
+      for (RexNode operand : call.getOperands()) {
+        if (hasWindowFunctions(operand)) {
+          return true;
+        }
+      }
+    }
+    
+    return false;
   }
 }
