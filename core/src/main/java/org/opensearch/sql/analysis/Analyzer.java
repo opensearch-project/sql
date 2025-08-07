@@ -31,6 +31,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -414,6 +415,15 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     TypeEnvironment curEnv = context.peek();
     List<ReferenceExpression> referenceExpressions =
         collectExclusionFields(node.getProjectList(), context);
+
+    Set<String> allFields = curEnv.lookupAllFields(Namespace.FIELD_NAME).keySet();
+    Set<String> fieldsToExclude =
+        referenceExpressions.stream().map(ReferenceExpression::getAttr).collect(Collectors.toSet());
+
+    if (allFields.equals(fieldsToExclude)) {
+      throw new IllegalArgumentException(
+          "Invalid field exclusion: operation would exclude all fields from the result set");
+    }
 
     referenceExpressions.forEach(curEnv::remove);
     return new LogicalRemove(child, ImmutableSet.copyOf(referenceExpressions));
