@@ -6,13 +6,11 @@
 package org.opensearch.sql.expression.function.udf.math;
 
 import java.util.List;
-import java.util.Objects;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
-import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
@@ -23,8 +21,8 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
 /**
  * A custom implementation of number to string cast.
  *
- * <p>This operator is necessary because Calcite's built-in CAST converts 0.0 to 0E0 when casting it
- * to string.
+ * <p>This operator is necessary because Calcite's built-in CAST converts floating point 0.0 to 0E0,
+ * and converts decimal 0.123 to .123 when casting them to string.
  */
 public class NumberToStringFunction extends ImplementorUDF {
   public NumberToStringFunction() {
@@ -47,9 +45,7 @@ public class NumberToStringFunction extends ImplementorUDF {
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
       Expression operand = translatedOperands.get(0);
-      Primitive primitive = Primitive.of(operand.getType());
-      Objects.requireNonNull(primitive);
-      return Expressions.call(primitive.getBoxClass(), "toString", operand);
+      return Expressions.call(Expressions.box(operand), "toString");
     }
   }
 }
