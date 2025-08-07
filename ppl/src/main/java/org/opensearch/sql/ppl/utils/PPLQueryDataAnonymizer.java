@@ -70,6 +70,7 @@ import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
+import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
@@ -349,6 +350,12 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String child = node.getChild().get(0).accept(this, context);
     Integer size = node.getSize();
     return StringUtils.format("%s | head %d", child, size);
+  }
+
+  @Override
+  public String visitReverse(Reverse node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    return StringUtils.format("%s | reverse", child);
   }
 
   @Override

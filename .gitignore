@@ -51,3 +51,6 @@ http-client.env.json
 /doctest/sql-cli/
 /doctest/opensearch-job-scheduler/
 .factorypath
+
+# Claude Code files
+.claude/
