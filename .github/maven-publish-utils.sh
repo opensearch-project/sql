@@ -91,6 +91,7 @@ generate_checksums() {
 publish_to_maven() {
   echo "Publishing artifacts to Maven repository..."
 
+  # Make a temp directory for publish-snapshot.sh
   mkdir -p build/resources/publish/
   cp build/publish/publish-snapshot.sh build/resources/publish/
   chmod +x build/resources/publish/publish-snapshot.sh
