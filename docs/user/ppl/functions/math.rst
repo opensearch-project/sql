@@ -701,6 +701,103 @@ Example::
     +---------+------------+
 
 
+SUM
+---
+
+Description
+>>>>>>>>>>>
+
+Limitation: Only works when plugins.calcite.enabled=true
+
+Usage: sum(x1, x2, ...) calculates the sum of multiple numeric values in eval/where contexts.
+
+This function enables row-wise addition calculations for multiple arguments, different from aggregation sum() which operates across rows.
+
+Argument type: INTEGER/LONG/FLOAT/DOUBLE (one or more arguments)
+
+Return type: Returns the LEAST_RESTRICTIVE type among arguments (widest numeric type for automatic type promotion)
+
+Example::
+
+    #os> source=people | eval `SUM(1, 2, 3)` = SUM(1, 2, 3) | fields `SUM(1, 2, 3)`
+    fetched rows / total rows = 1/1
+    +-------------+
+    | SUM(1, 2, 3)|
+    |-------------|
+    | 6           |
+    +-------------+
+
+    #os> source=accounts | eval `SUM(age, balance)` = SUM(age, balance) | fields age, balance, `SUM(age, balance)`
+    fetched rows / total rows = 4/4
+    +-----+---------+------------------+
+    | age | balance | SUM(age, balance)|
+    |-----+---------+------------------|
+    | 32  | 39225   | 39257            |
+    | 36  | 5686    | 5722             |
+    | 28  | 32838   | 32866            |
+    | 33  | 4180    | 4213             |
+    +-----+---------+------------------+
+
+    #os> source=accounts | eval `SUM(account_number, age, 10)` = SUM(account_number, age, 10) | fields account_number, age, `SUM(account_number, age, 10)`
+    fetched rows / total rows = 4/4
+    +----------------+-----+-----------------------------+
+    | account_number | age | SUM(account_number, age, 10)|
+    |----------------+-----+-----------------------------|
+    | 1              | 32  | 43                          |
+    | 6              | 36  | 52                          |
+    | 13             | 28  | 51                          |
+    | 18             | 33  | 61                          |
+    +----------------+-----+-----------------------------+
+
+AVG
+---
+
+Description
+>>>>>>>>>>>
+
+Limitation: Only works when plugins.calcite.enabled=true
+
+Usage: avg(x1, x2, ...) calculates the average (arithmetic mean) of multiple numeric values in eval/where contexts.
+
+This function enables row-wise average calculations for multiple arguments, different from aggregation avg() which operates across rows.
+
+Argument type: INTEGER/LONG/FLOAT/DOUBLE (one or more arguments)
+
+Return type: DOUBLE (always returns DOUBLE to preserve decimal precision)
+
+Example::
+
+    #os> source=people | eval `AVG(1, 2, 3)` = AVG(1, 2, 3) | fields `AVG(1, 2, 3)`
+    fetched rows / total rows = 1/1
+    +-------------+
+    | AVG(1, 2, 3)|
+    |-------------|
+    | 2.0         |
+    +-------------+
+
+    #os> source=accounts | eval `AVG(account_number, age)` = AVG(account_number, age) | fields account_number, age, `AVG(account_number, age)`
+    fetched rows / total rows = 4/4
+    +----------------+-----+-----------------------+
+    | account_number | age | AVG(account_number, age) |
+    |----------------+-----+-----------------------|
+    | 1              | 32  | 16.5                  |
+    | 6              | 36  | 21.0                  |
+    | 13             | 28  | 20.5                  |
+    | 18             | 33  | 25.5                  |
+    +----------------+-----+-----------------------+
+
+    #os> source=accounts | eval `AVG(age, 100)` = AVG(age, 100) | fields age, `AVG(age, 100)`
+    fetched rows / total rows = 4/4
+    +-----+---------------+
+    | age | AVG(age, 100) |
+    |-----+---------------|
+    | 32  | 66.0          |
+    | 36  | 68.0          |
+    | 28  | 64.0          |
+    | 33  | 66.5          |
+    +-----+---------------+
+
+
 CBRT
 ----
 

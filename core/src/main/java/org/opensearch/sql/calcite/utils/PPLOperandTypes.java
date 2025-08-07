@@ -7,10 +7,8 @@
 
 package org.opensearch.sql.calcite.utils;
 
-import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
-import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
-import org.apache.calcite.sql.type.OperandTypes;
-import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.*;
+import org.opensearch.sql.expression.function.PPLTypeChecker;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 /**
@@ -33,6 +31,9 @@ public class PPLOperandTypes {
   public static final UDFOperandMetadata NUMERIC =
       UDFOperandMetadata.wrap((FamilyOperandTypeChecker) OperandTypes.NUMERIC);
 
+  public static final UDFOperandMetadata VARIADIC_NUMERIC =
+      UDFOperandMetadata.wrap(
+          PPLTypeChecker.wrapSameFamily(SqlOperandCountRanges.from(1), SqlTypeFamily.NUMERIC));
   public static final UDFOperandMetadata NUMERIC_OPTIONAL_STRING =
       UDFOperandMetadata.wrap(
           (CompositeOperandTypeChecker)
