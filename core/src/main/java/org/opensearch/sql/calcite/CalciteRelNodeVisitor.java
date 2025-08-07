@@ -191,73 +191,81 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitProject(Project node, CalcitePlanContext context) {
     visitChildren(node, context);
-    List<RexNode> projectList;
 
     if (node.getProjectList().size() == 1
-        && node.getProjectList().getFirst() instanceof AllFields allFields) {
+        && node.getProjectList().getFirst() instanceof AllFields) {
+      if (node.isExcluded()) {
+        throw new IllegalArgumentException(
+            "Invalid field exclusion: operation would exclude all fields from the result set");
+      }
+      AllFields allFields = (AllFields) node.getProjectList().getFirst();
       tryToRemoveNestedFields(context);
       tryToRemoveMetaFields(context, allFields instanceof AllFieldsExcludeMeta);
       return context.relBuilder.peek();
-    } else {
-
-      projectList = expandWildcardsInProjectList(node.getProjectList(), context);
     }
 
-    if (node.isExcluded()) {
-
-      context.relBuilder.projectExcept(projectList);
-    } else {
-
-      if (!context.isResolvingSubquery()) {
-        context.setProjectVisited(true);
-      }
-      context.relBuilder.project(projectList);
-    }
-    return context.relBuilder.peek();
-  }
-
-  private List<RexNode> expandWildcardsInProjectList(
-      List<UnresolvedExpression> projectList, CalcitePlanContext context) {
     List<RexNode> expandedList = new ArrayList<>();
     Set<String> addedFields = new HashSet<>();
     List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
 
-    for (UnresolvedExpression expr : projectList) {
-      if (expr instanceof Field field) {
-        String fieldName = field.getField().toString();
-        if (WildcardUtils.containsWildcard(fieldName)) {
-
-          List<String> matchingFields =
-              WildcardUtils.expandWildcardPattern(fieldName, currentFields).stream()
-                  .filter(f -> !isMetadataField(f))
-                  .collect(Collectors.toList());
-
-          if (matchingFields.isEmpty()) {
-            throw new IllegalArgumentException(
-                String.format(
-                    "wildcard pattern [%s] matches no fields; input fields are: %s",
-                    fieldName, currentFields));
-          }
-
-          for (String matchingField : matchingFields) {
-            if (addedFields.add(matchingField)) {
-              expandedList.add(context.relBuilder.field(matchingField));
+    for (UnresolvedExpression expr : node.getProjectList()) {
+      switch (expr) {
+        case Field field -> {
+          String fieldName = field.getField().toString();
+          if (WildcardUtils.containsWildcard(fieldName)) {
+            List<String> allMatchingFields =
+                WildcardUtils.expandWildcardPattern(fieldName, currentFields).stream()
+                    .filter(f -> !isMetadataField(f))
+                    .toList();
+            if (allMatchingFields.isEmpty()) {
+              throw new IllegalArgumentException(
+                  String.format(
+                      "wildcard pattern [%s] matches no fields; input fields are: %s",
+                      fieldName, currentFields));
             }
-          }
-        } else {
-
-          if (addedFields.add(fieldName)) {
-            expandedList.add(rexVisitor.analyze(expr, context));
+            List<String> newMatchingFields =
+                allMatchingFields.stream().filter(addedFields::add).toList();
+            newMatchingFields.forEach(f -> expandedList.add(context.relBuilder.field(f)));
+          } else if (addedFields.add(fieldName)) {
+            expandedList.add(rexVisitor.analyze(field, context));
           }
         }
-      } else {
-
-        throw new IllegalStateException(
+        case AllFields ignored -> {
+          currentFields.stream()
+              .filter(field -> !isMetadataField(field))
+              .filter(addedFields::add)
+              .forEach(field -> expandedList.add(context.relBuilder.field(field)));
+        }
+        default -> throw new IllegalStateException(
             "Unexpected non-field expression in project list: " + expr.getClass().getSimpleName());
       }
     }
 
-    return expandedList;
+    if (node.isExcluded()) {
+      Set<String> nonMetaFields =
+          currentFields.stream()
+              .filter(field -> !isMetadataField(field))
+              .collect(Collectors.toSet());
+
+      Set<String> fieldsToExclude =
+          expandedList.stream()
+              .filter(RexInputRef.class::isInstance)
+              .map(rex -> currentFields.get(((RexInputRef) rex).getIndex()))
+              .collect(Collectors.toSet());
+
+      if (nonMetaFields.equals(fieldsToExclude)) {
+        throw new IllegalArgumentException(
+            "Invalid field exclusion: operation would exclude all fields from the result set");
+      }
+
+      context.relBuilder.projectExcept(expandedList);
+    } else {
+      if (!context.isResolvingSubquery()) {
+        context.setProjectVisited(true);
+      }
+      context.relBuilder.project(expandedList);
+    }
+    return context.relBuilder.peek();
   }
 
   private boolean isMetadataField(String fieldName) {

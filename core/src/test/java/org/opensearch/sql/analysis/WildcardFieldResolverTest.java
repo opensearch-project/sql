@@ -16,6 +16,7 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.analysis.symbol.Namespace;
+import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
@@ -72,6 +73,28 @@ class WildcardFieldResolverTest {
   }
 
   @Test
+  void testWildcardPatterns() {
+    // Test prefix wildcard
+    testWildcard(ImmutableList.of("account*"), ImmutableList.of("account_number"));
+
+    // Test suffix wildcard
+    testWildcard(ImmutableList.of("*name"), ImmutableList.of("firstname", "lastname"));
+
+    // Test contains wildcard
+    testWildcard(
+        ImmutableList.of("*a*"),
+        ImmutableList.of("account_number", "age", "balance", "firstname", "lastname", "state"));
+
+    // Test complex pattern
+    testWildcard(
+        ImmutableList.of("*a*e"),
+        ImmutableList.of("balance", "firstname", "lastname", "age", "state"));
+
+    // Test no matching wildcard
+    testWildcard(ImmutableList.of("XYZ*"), ImmutableList.of());
+  }
+
+  @Test
   void testFieldOrdering() {
     Field field1 = new Field(QualifiedName.of("balance"));
     Field field2 = new Field(QualifiedName.of("account*"));
@@ -96,23 +119,6 @@ class WildcardFieldResolverTest {
   }
 
   @Test
-  void testPrefixWildcard() {
-    testWildcard(ImmutableList.of("account*"), ImmutableList.of("account_number"));
-  }
-
-  @Test
-  void testSuffixWildcard() {
-    testWildcard(ImmutableList.of("*name"), ImmutableList.of("firstname", "lastname"));
-  }
-
-  @Test
-  void testContainsWildcard() {
-    testWildcard(
-        ImmutableList.of("*a*"),
-        ImmutableList.of("account_number", "age", "balance", "firstname", "lastname", "state"));
-  }
-
-  @Test
   void testMixedWildcardAndRegularFields() {
     Field wildcardField = new Field(QualifiedName.of("*name"));
     Field regularField = new Field(QualifiedName.of("age"));
@@ -134,33 +140,136 @@ class WildcardFieldResolverTest {
   }
 
   @Test
-  void testComplexWildcardPattern() {
-    testWildcard(
-        ImmutableList.of("*a*e"),
-        ImmutableList.of("balance", "firstname", "lastname", "age", "state"));
-  }
-
-  @Test
-  void testNoMatchingWildcard() {
-    testWildcard(ImmutableList.of("XYZ*"), ImmutableList.of());
-  }
-
-  @Test
-  void testMultipleOverlappingWildcards() {
+  void testWildcardDeduplication() {
+    // Test multiple overlapping wildcards
     testWildcard(
         ImmutableList.of("*a*", "*name"),
         ImmutableList.of("account_number", "firstname", "lastname", "balance", "age", "state"));
-  }
 
-  @Test
-  void testDuplicateWildcardMatches() {
+    // Test duplicate wildcard matches
     testWildcard(
         ImmutableList.of("account*", "account_number"), ImmutableList.of("account_number"));
+
+    // Test overlapping wildcards deduplication
+    testWildcard(
+        ImmutableList.of("*name", "first*", "last*"), ImmutableList.of("firstname", "lastname"));
   }
 
   @Test
-  void testOverlappingWildcardsDeduplication() {
-    testWildcard(
-        ImmutableList.of("*name", "first*", "last*"), ImmutableList.of("firstname", "lastname"));
+  void testAllFieldsWildcard() {
+    List<UnresolvedExpression> projectList = Arrays.asList(AllFields.of());
+
+    List<NamedExpression> result =
+        WildcardFieldResolver.resolveWildcards(projectList, context, expressionAnalyzer);
+
+    ImmutableList<String> resultNames =
+        ImmutableList.copyOf(result.stream().map(NamedExpression::getNameOrAlias).toList());
+    ImmutableList<String> expected = ImmutableList.copyOf(availableFields.keySet());
+
+    if (resultNames.size() != expected.size() || !resultNames.containsAll(expected)) {
+      throw new AssertionError("Expected all fields: " + expected + ", but got: " + resultNames);
+    }
+  }
+
+  @Test
+  void testWildcardDetection() {
+    // Test isWildcardField with AllFields
+    if (!WildcardFieldResolver.isWildcardField(AllFields.of())) {
+      throw new AssertionError("AllFields should be considered a wildcard field");
+    }
+
+    // Test hasWildcards with AllFields
+    List<UnresolvedExpression> expressions =
+        Arrays.asList(AllFields.of(), new Field(QualifiedName.of("firstname")));
+
+    if (!WildcardFieldResolver.hasWildcards(expressions)) {
+      throw new AssertionError("Should detect wildcards when AllFields is present");
+    }
+  }
+
+  @Test
+  void testFieldDeduplication() {
+    // Test star with explicit fields deduplication
+    Field field1 = new Field(QualifiedName.of("account_number"));
+    Field field2 = new Field(QualifiedName.of("firstname"));
+    List<UnresolvedExpression> starProjectList =
+        Arrays.asList(AllFields.of(), field1, field2, AllFields.of());
+
+    when(expressionAnalyzer.analyze(field1, context))
+        .thenReturn(new ReferenceExpression("account_number", ExprCoreType.INTEGER));
+    when(expressionAnalyzer.analyze(field2, context))
+        .thenReturn(new ReferenceExpression("firstname", ExprCoreType.STRING));
+
+    List<NamedExpression> starResult =
+        WildcardFieldResolver.resolveWildcards(starProjectList, context, expressionAnalyzer);
+
+    ImmutableList<String> starResultNames =
+        ImmutableList.copyOf(starResult.stream().map(NamedExpression::getNameOrAlias).toList());
+    ImmutableList<String> expectedStar = ImmutableList.copyOf(availableFields.keySet());
+
+    if (starResultNames.size() != expectedStar.size()
+        || !starResultNames.containsAll(expectedStar)) {
+      throw new AssertionError(
+          "Star with explicit fields should not duplicate. Expected: "
+              + expectedStar
+              + ", but got: "
+              + starResultNames);
+    }
+
+    // Test explicit fields without star deduplication
+    Field field3 = new Field(QualifiedName.of("account_number")); // duplicate
+    List<UnresolvedExpression> explicitProjectList = Arrays.asList(field1, field2, field3);
+
+    when(expressionAnalyzer.analyze(field3, context))
+        .thenReturn(new ReferenceExpression("account_number", ExprCoreType.INTEGER));
+
+    List<NamedExpression> explicitResult =
+        WildcardFieldResolver.resolveWildcards(explicitProjectList, context, expressionAnalyzer);
+
+    ImmutableList<String> explicitResultNames =
+        ImmutableList.copyOf(explicitResult.stream().map(NamedExpression::getNameOrAlias).toList());
+    ImmutableList<String> expectedExplicit = ImmutableList.of("account_number", "firstname");
+
+    if (!explicitResultNames.equals(expectedExplicit)) {
+      throw new AssertionError(
+          "Explicit fields should be deduplicated. Expected: "
+              + expectedExplicit
+              + ", but got: "
+              + explicitResultNames);
+    }
+  }
+
+  @Test
+  void testComplexMixedScenario() {
+    Field field1 = new Field(QualifiedName.of("firstname"));
+    Field field2 = new Field(QualifiedName.of("balance"));
+    List<UnresolvedExpression> projectList =
+        Arrays.asList(
+            field1,
+            AllFields.of(),
+            new Field(QualifiedName.of("*name")),
+            field2,
+            AllFields.of(),
+            new Field(QualifiedName.of("account*")));
+
+    when(expressionAnalyzer.analyze(field1, context))
+        .thenReturn(new ReferenceExpression("firstname", ExprCoreType.STRING));
+    when(expressionAnalyzer.analyze(field2, context))
+        .thenReturn(new ReferenceExpression("balance", ExprCoreType.DOUBLE));
+
+    List<NamedExpression> result =
+        WildcardFieldResolver.resolveWildcards(projectList, context, expressionAnalyzer);
+
+    ImmutableList<String> resultNames =
+        ImmutableList.copyOf(result.stream().map(NamedExpression::getNameOrAlias).toList());
+    ImmutableList<String> expected = ImmutableList.copyOf(availableFields.keySet());
+
+    if (resultNames.size() != expected.size() || !resultNames.containsAll(expected)) {
+      throw new AssertionError(
+          "Complex mixed scenario should not duplicate. Expected: "
+              + expected
+              + ", but got: "
+              + resultNames);
+    }
   }
 }

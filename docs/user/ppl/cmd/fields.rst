@@ -16,6 +16,7 @@ Using ``fields`` command to keep or remove fields from the search result. The ``
 The ``fields`` and ``table`` command supports multiple field specification formats:
 
 * **Space-delimited syntax**: Fields can be separated by spaces (``firstname lastname age``)
+* **Full wildcard selection**: Use ``*`` to select all available fields
 * **Wildcard pattern matching**: Use ``*`` for prefix (``account*``), suffix (``*name``), or contains (``*a*``) patterns
 * **Mixed delimiters**: Combine spaces and commas (``firstname lastname, age``)
 * **Field deduplication**: Automatically prevents duplicate columns when wildcards expand to already specified fields
@@ -27,6 +28,7 @@ table [+|-] <field-list>
 
 * prefix: optional. if the plus (+) is used, only the fields specified in the field list will be kept. if the minus (-) is used, all the fields specified in the field list will be removed. **Default** +
 * field-list: mandatory. Fields can be specified using:
+  - Full wildcard: ``*`` (selects all fields)
   - Comma-delimited: ``field1, field2, field3``
   - Space-delimited: ``field1 field2 field3``
   - Mixed delimiters: ``field1 field2, field3``
@@ -256,7 +258,32 @@ PPL query::
     | Dale      | Adams    | 33  |
     +-----------+----------+-----+
 
-Example 7: Wildcard exclusion
+Example 7: Full wildcard selection
+==================================
+
+Select all available fields using ``*``.
+
+PPL query::
+
+    os> source=accounts | fields * | head 1;
+    fetched rows / total rows = 1/1
+    +----------------+-----------+-----------------+---------+--------+--------+----------+-------+-----+----------------------+----------+
+    | account_number | firstname | address         | balance | gender | city   | employer | state | age | email                | lastname |
+    |----------------+-----------+-----------------+---------+--------+--------+----------+-------+-----+----------------------+----------|
+    | 1              | Amber     | 880 Holmes Lane | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com | Duke     |
+    +----------------+-----------+-----------------+---------+--------+--------+----------+-------+-----+----------------------+----------+
+
+Using ``table`` command::
+
+    os> source=accounts | table * | head 1;
+    fetched rows / total rows = 1/1
+    +----------------+-----------+-----------------+---------+--------+--------+----------+-------+-----+----------------------+----------+
+    | account_number | firstname | address         | balance | gender | city   | employer | state | age | email                | lastname |
+    |----------------+-----------+-----------------+---------+--------+--------+----------+-------+-----+----------------------+----------|
+    | 1              | Amber     | 880 Holmes Lane | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com | Duke     |
+    +----------------+-----------+-----------------+---------+--------+--------+----------+-------+-----+----------------------+----------+
+
+Example 8: Wildcard exclusion
 =============================
 
 Remove fields using wildcard patterns.
@@ -286,6 +313,3 @@ Using ``table`` command::
     | 13             | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  |
     | 18             | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   |
     +----------------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+
-
-
-

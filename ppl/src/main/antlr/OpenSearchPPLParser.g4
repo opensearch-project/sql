@@ -565,6 +565,7 @@ fieldExpression
 
 wcFieldExpression
    : wcQualifiedName
+   | STAR
    ;
 
 // functions
