@@ -1,0 +1,30 @@
+{ "index": {} }
+{ "@timestamp": "2024-07-01T00:00:00Z", "host": "web-01", "service": "nginx", "response_time": 120, "status_code": 200, "bytes_sent": 1024, "cpu_usage": 45.2, "memory_usage": 67.8, "region": "us-east", "environment": "prod" }
+{ "index": {} }
+{ "@timestamp": "2024-07-01T00:00:00Z", "host": "web-02", "service": "nginx", "response_time": 85, "status_code": 200, "bytes_sent": 2048, "cpu_usage": 38.7, "memory_usage": 72.1, "region": "us-west", "environment": "prod" }
+{ "index": {} }
+{ "@timestamp": "2024-07-01T00:00:00Z", "host": "web-03", "service": "nginx", "response_time": 200, "status_code": 500, "bytes_sent": 512, "cpu_usage": 55.3, "memory_usage": 81.4, "region": "us-east", "environment": "prod" }
+{ "index": {} }
+{ "@timestamp": "2024-07-01T00:00:00Z", "host": "web-04", "service": "apache", "response_time": 150, "status_code": 200, "bytes_sent": 4096, "cpu_usage": 42.1, "memory_usage": 58.9, "region": "eu-west", "environment": "prod" }
+{ "index": {} }
+{ "@timestamp": "2024-07-01T00:00:00Z", "host": "web-05", "service": "nginx", "response_time": 95, "status_code": 404, "bytes_sent": 256, "cpu_usage": 41.8, "memory_usage": 69.2, "region": "us-west", "environment": "prod" }
+{ "index": {} }
+{ "@timestamp": "2024-07-01T00:00:00Z", "host": "web-06", "service": "nginx", "response_time": 75, "status_code": 200, "bytes_sent": 8192, "cpu_usage": 39.4, "memory_usage": 63.5, "region": "us-east", "environment": "prod" }
+{ "index": {} }
+{ "@timestamp": "2024-07-01T00:00:00Z", "host": "web-07", "service": "apache", "response_time": 180, "status_code": 301, "bytes_sent": 128, "cpu_usage": 48.6, "memory_usage": 75.3, "region": "eu-west", "environment": "prod" }
+{ "index": {} }
+{ "@timestamp": "2024-07-01T00:00:00Z", "host": "web-08", "service": "nginx", "response_time": 110, "status_code": 200, "bytes_sent": 3072, "cpu_usage": 44.2, "memory_usage": 71.7, "region": "us-west", "environment": "prod" }
+{ "index": {} }
+{ "@timestamp": "2024-07-01T00:00:00Z", "host": "web-09", "service": "nginx", "response_time": 160, "status_code": 503, "bytes_sent": 64, "cpu_usage": 67.8, "memory_usage": 89.1, "region": "us-east", "environment": "prod" }
+{ "index": {} }
+{ "@timestamp": "2024-07-01T00:00:00Z", "host": "web-10", "service": "apache", "response_time": 90, "status_code": 200, "bytes_sent": 1536, "cpu_usage": 35.9, "memory_usage": 52.6, "region": "eu-west", "environment": "prod" }
+{ "index": {} }
+{ "@timestamp": "2024-07-01T00:00:00Z", "host": "web-11", "service": "nginx", "response_time": 125, "status_code": 200, "bytes_sent": 2560, "cpu_usage": 43.1, "memory_usage": 68.4, "region": "us-west", "environment": "prod" }
+{ "index": {} }
+{ "@timestamp": "2024-07-01T00:00:00Z", "host": "web-12", "service": "nginx", "response_time": 88, "status_code": 200, "bytes_sent": 4608, "cpu_usage": 37.5, "memory_usage": 61.2, "region": "us-east", "environment": "prod" }
+{ "index": {} }
+{ "@timestamp": "2024-07-01T00:00:00Z", "host": "web-13", "service": "apache", "response_time": 220, "status_code": 500, "bytes_sent": 256, "cpu_usage": 59.7, "memory_usage": 82.8, "region": "eu-west", "environment": "prod" }
+{ "index": {} }
+{ "@timestamp": "2024-07-01T00:00:00Z", "host": "web-14", "service": "nginx", "response_time": 65, "status_code": 200, "bytes_sent": 1280, "cpu_usage": 32.4, "memory_usage": 55.7, "region": "us-west", "environment": "prod" }
+{ "index": {} }
+{ "@timestamp": "2024-07-01T00:00:00Z", "host": "web-15", "service": "nginx", "response_time": 145, "status_code": 403, "bytes_sent": 128, "cpu_usage": 49.8, "memory_usage": 74.9, "region": "us-east", "environment": "prod" }
