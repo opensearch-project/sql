@@ -27,7 +27,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlExplainLevel;
-import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
@@ -46,7 +45,6 @@ import org.opensearch.sql.executor.Explain;
 import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
-import org.opensearch.sql.expression.function.PPLTypeChecker;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
 import org.opensearch.sql.opensearch.functions.DistinctCountApproxAggFunction;
@@ -265,13 +263,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
   /** Registers opensearch-dependent functions */
   private void registerOpenSearchFunctions() {
     SqlUserDefinedFunction geoIpFunction = new GeoIpFunction(client.getNodeClient()).toUDF("GEOIP");
-    PPLFuncImpTable.FunctionImp geoIpImpl =
-        (builder, args) -> builder.makeCall(geoIpFunction, args);
-    PPLFuncImpTable.INSTANCE.registerExternalFunction(
-        BuiltinFunctionName.GEOIP,
-        geoIpImpl,
-        PPLTypeChecker.wrapComposite(
-            (CompositeOperandTypeChecker) geoIpFunction.getOperandTypeChecker(), false));
+    PPLFuncImpTable.INSTANCE.registerExternalOperator(BuiltinFunctionName.GEOIP, geoIpFunction);
 
     PPLFuncImpTable.INSTANCE.registerExternalAggFunction(
         DISTINCT_COUNT_APPROX,

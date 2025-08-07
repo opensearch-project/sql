@@ -361,24 +361,24 @@ public class PPLFuncImpTable {
   }
 
   /**
-   * Register a function implementation from external services dynamically.
+   * Register an operator from external services dynamically.
    *
    * @param functionName the name of the function, has to be defined in BuiltinFunctionName
-   * @param functionImp the implementation of the function
-   * @param typeChecker the type checker of the function. If null, type checking will be skipped for
-   *     this function.
+   * @param operator a SqlOperator representing an externally implemented function
    */
-  public void registerExternalFunction(
-      BuiltinFunctionName functionName,
-      FunctionImp functionImp,
-      @Nullable PPLTypeChecker typeChecker) {
+  public void registerExternalOperator(BuiltinFunctionName functionName, SqlOperator operator) {
+    PPLTypeChecker typeChecker =
+        wrapSqlOperandTypeChecker(
+            operator.getOperandTypeChecker(),
+            operator.getName(),
+            operator instanceof SqlUserDefinedFunction);
     CalciteFuncSignature signature = new CalciteFuncSignature(functionName.getName(), typeChecker);
     externalFunctionRegistry.compute(
         functionName,
         (name, existingList) -> {
           List<Pair<CalciteFuncSignature, FunctionImp>> list =
               existingList == null ? new ArrayList<>() : new ArrayList<>(existingList);
-          list.add(Pair.of(signature, functionImp));
+          list.add(Pair.of(signature, (builder, args) -> builder.makeCall(operator, args)));
           return list;
         });
   }
@@ -528,6 +528,12 @@ public class PPLFuncImpTable {
     return null;
   }
 
+  /**
+   * Get a string representation of the argument types expressed in ExprType for error messages.
+   *
+   * @param argTypes the list of argument types as {@link RelDataType}
+   * @return a string in the format [type1,type2,...] representing the argument types
+   */
   private static String getActualSignature(List<RelDataType> argTypes) {
     return "["
         + argTypes.stream()
@@ -535,6 +541,58 @@ public class PPLFuncImpTable {
             .map(Objects::toString)
             .collect(Collectors.joining(","))
         + "]";
+  }
+
+  /**
+   * Wraps a {@link SqlOperandTypeChecker} into a {@link PPLTypeChecker} for use in function
+   * signature validation.
+   *
+   * @param typeChecker the original SQL operand type checker
+   * @param functionName the name of the function for error reporting
+   * @param isUserDefinedFunction true if the function is user-defined, false otherwise
+   * @return a {@link PPLTypeChecker} that delegates to the provided {@code typeChecker}
+   */
+  private static PPLTypeChecker wrapSqlOperandTypeChecker(
+      SqlOperandTypeChecker typeChecker, String functionName, boolean isUserDefinedFunction) {
+    PPLTypeChecker pplTypeChecker;
+    // Only the composite operand type checker for UDFs are concerned here.
+    if (isUserDefinedFunction
+        && typeChecker instanceof CompositeOperandTypeChecker compositeTypeChecker) {
+      // UDFs implement their own composite type checkers, which always use OR logic for
+      // argument
+      // types. Verifying the composition type would require accessing a protected field in
+      // CompositeOperandTypeChecker. If access to this field is not allowed, type checking will
+      // be skipped, so we avoid checking the composition type here.
+      pplTypeChecker = PPLTypeChecker.wrapComposite(compositeTypeChecker, false);
+    } else if (typeChecker instanceof ImplicitCastOperandTypeChecker implicitCastTypeChecker) {
+      pplTypeChecker = PPLTypeChecker.wrapFamily(implicitCastTypeChecker);
+    } else if (typeChecker instanceof CompositeOperandTypeChecker compositeTypeChecker) {
+      // If compositeTypeChecker contains operand checkers other than family type checkers or
+      // other than OR compositions, the function with be registered with a null type checker,
+      // which means the function will not be type checked.
+      try {
+        pplTypeChecker = PPLTypeChecker.wrapComposite(compositeTypeChecker, true);
+      } catch (IllegalArgumentException | UnsupportedOperationException e) {
+        logger.debug(
+            String.format(
+                "Failed to create composite type checker for operator: %s. Will skip its type"
+                    + " checking",
+                functionName),
+            e);
+        pplTypeChecker = null;
+      }
+    } else if (typeChecker instanceof SameOperandTypeChecker comparableTypeChecker) {
+      // Comparison operators like EQUAL, GREATER_THAN, LESS_THAN, etc.
+      // SameOperandTypeCheckers like COALESCE, IFNULL, etc.
+      pplTypeChecker = PPLTypeChecker.wrapComparable(comparableTypeChecker);
+    } else if (typeChecker instanceof UDFOperandMetadata.UDTOperandMetadata udtOperandMetadata) {
+      pplTypeChecker = PPLTypeChecker.wrapUDT(udtOperandMetadata.allowedParamTypes());
+    } else {
+      logger.info(
+          "Cannot create type checker for function: {}. Will skip its type checking", functionName);
+      pplTypeChecker = null;
+    }
+    return pplTypeChecker;
   }
 
   @SuppressWarnings({"UnusedReturnValue", "SameParameterValue"})
@@ -565,46 +623,9 @@ public class PPLFuncImpTable {
           typeChecker = operator.getOperandTypeChecker();
         }
 
-        PPLTypeChecker pplTypeChecker;
-        // Only the composite operand type checker for UDFs are concerned here.
-        if (operator instanceof SqlUserDefinedFunction
-            && typeChecker instanceof CompositeOperandTypeChecker compositeTypeChecker) {
-          // UDFs implement their own composite type checkers, which always use OR logic for
-          // argument
-          // types. Verifying the composition type would require accessing a protected field in
-          // CompositeOperandTypeChecker. If access to this field is not allowed, type checking will
-          // be skipped, so we avoid checking the composition type here.
-          pplTypeChecker = PPLTypeChecker.wrapComposite(compositeTypeChecker, false);
-        } else if (typeChecker instanceof ImplicitCastOperandTypeChecker implicitCastTypeChecker) {
-          pplTypeChecker = PPLTypeChecker.wrapFamily(implicitCastTypeChecker);
-        } else if (typeChecker instanceof CompositeOperandTypeChecker compositeTypeChecker) {
-          // If compositeTypeChecker contains operand checkers other than family type checkers or
-          // other than OR compositions, the function with be registered with a null type checker,
-          // which means the function will not be type checked.
-          try {
-            pplTypeChecker = PPLTypeChecker.wrapComposite(compositeTypeChecker, true);
-          } catch (IllegalArgumentException | UnsupportedOperationException e) {
-            logger.debug(
-                String.format(
-                    "Failed to create composite type checker for operator: %s. Will skip its type"
-                        + " checking",
-                    operator.getName()),
-                e);
-            pplTypeChecker = null;
-          }
-        } else if (typeChecker instanceof SameOperandTypeChecker comparableTypeChecker) {
-          // Comparison operators like EQUAL, GREATER_THAN, LESS_THAN, etc.
-          // SameOperandTypeCheckers like COALESCE, IFNULL, etc.
-          pplTypeChecker = PPLTypeChecker.wrapComparable(comparableTypeChecker);
-        } else if (typeChecker
-            instanceof UDFOperandMetadata.UDTOperandMetadata udtOperandMetadata) {
-          pplTypeChecker = PPLTypeChecker.wrapUDT(udtOperandMetadata.allowedParamTypes());
-        } else {
-          logger.info(
-              "Cannot create type checker for function: {}. Will skip its type checking",
-              functionName);
-          pplTypeChecker = null;
-        }
+        PPLTypeChecker pplTypeChecker =
+            wrapSqlOperandTypeChecker(
+                typeChecker, operator.getName(), operator instanceof SqlUserDefinedFunction);
         register(
             functionName,
             (RexBuilder builder, RexNode... args) -> builder.makeCall(operator, args),
