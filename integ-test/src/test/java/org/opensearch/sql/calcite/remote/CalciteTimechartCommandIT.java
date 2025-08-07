@@ -29,6 +29,12 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
       createIndexByRestClient(client(), "events", eventsMapping);
       loadDataByRestClient(client(), "events", "src/test/resources/events_test.json");
     }
+    
+    // Create events_many_hosts index with many distinct host values
+    if (!isIndexExist(client(), "events_many_hosts")) {
+      createIndexByRestClient(client(), "events_many_hosts", eventsMapping);
+      loadDataByRestClient(client(), "events_many_hosts", "src/test/resources/events_many_hosts.json");
+    }
   }
 
   @Test
@@ -62,12 +68,12 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
     });
   }
   
-//  @Test
-//  public void testTimechartWithMinuteSpanNoGroupBy() throws IOException {
-//    JSONObject result = executeQuery("source=events | timechart span=1m avg(cpu_usage)");
-//    verifySchema(result, schema("$f2", "timestamp"), schema("$f1", "double"));
-//    assertEquals(21, result.getInt("total"));
-//  }
+  @Test
+  public void testTimechartWithMinuteSpanNoGroupBy() throws IOException {
+    JSONObject result = executeQuery("source=events | timechart span=1m avg(cpu_usage)");
+    verifySchema(result, schema("$f2", "timestamp"), schema("$f1", "double"));
+    assertEquals(21, result.getInt("total"));
+  }
   
   @Test
   public void testTimechartWithSecondSpanAndRegionGroupBy() throws IOException {
@@ -97,5 +103,28 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
         rows("2024-07-01 00:20:00", null, 1, null)
     );
     assertEquals(21, result.getInt("total"));
+  }
+  
+  @Test
+  public void testTimechartWithOtherCategory() throws IOException {
+    // This test verifies that when there are more than 10 distinct values in the split-by field,
+    // the top 10 values get their own columns and the rest are grouped into an "OTHER" column
+    JSONObject result = executeQuery("source=events_many_hosts | timechart span=1h avg(cpu_usage) by host");
+    
+    // Verify schema has 12 columns: timestamp + 10 hosts + OTHER
+    assertEquals(12, result.getJSONArray("schema").length());
+    
+    // First column should be timestamp
+    assertEquals("$f3", result.getJSONArray("schema").getJSONObject(0).getString("name"));
+    
+    // Last column should be OTHER
+    assertEquals("OTHER", result.getJSONArray("schema").getJSONObject(11).getString("name"));
+    
+    // Verify we have 1 data row (all events are at the same hour)
+    assertEquals(1, result.getJSONArray("datarows").length());
+    
+    // Verify the OTHER column has a value (not null)
+    Object otherValue = result.getJSONArray("datarows").getJSONArray(0).get(11);
+    assertTrue("OTHER column should have a numeric value", otherValue instanceof Number);
   }
 }
