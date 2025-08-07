@@ -27,6 +27,9 @@ import org.opensearch.search.SearchHits;
 import org.opensearch.sql.legacy.domain.Field;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.executor.ElasticHitsExecutor;
+import org.opensearch.sql.legacy.metrics.MetricName;
+import org.opensearch.sql.legacy.metrics.Metrics;
+import org.opensearch.sql.legacy.pit.PointInTimeHandlerImpl;
 import org.opensearch.sql.legacy.query.SqlElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.join.HashJoinElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.join.JoinRequestBuilder;
@@ -84,12 +87,21 @@ public abstract class ElasticJoinExecutor extends ElasticHitsExecutor {
   public void run() throws IOException, SqlParseException {
     try {
       long timeBefore = System.currentTimeMillis();
+      pit = new PointInTimeHandlerImpl(client, indices);
+      pit.create();
       results = innerRun();
       long joinTimeInMilli = System.currentTimeMillis() - timeBefore;
       this.metaResults.setTookImMilli(joinTimeInMilli);
     } catch (Exception e) {
       LOG.error("Failed during join query run.", e);
       throw new IllegalStateException("Error occurred during join query run", e);
+    } finally {
+      try {
+        pit.delete();
+      } catch (RuntimeException e) {
+        Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
+        LOG.info("Error deleting point in time {} ", pit);
+      }
     }
   }
 
