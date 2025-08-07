@@ -8,10 +8,9 @@ package org.opensearch.sql.opensearch.monitor;
 import com.sun.management.GarbageCollectionNotificationInfo;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.management.Notification;
 import javax.management.NotificationEmitter;
@@ -23,6 +22,8 @@ import org.apache.logging.log4j.Logger;
 /** Get memory usage from GC notification listener, which is used in Calcite engine. */
 public class GCedMemoryUsage implements MemoryUsage {
   private static final Logger LOG = LogManager.getLogger();
+  private static final List<String> OLD_GEN_GC_ACTION_KEYWORDS =
+      List.of("major", "concurrent", "old", "full", "marksweep");
 
   private GCedMemoryUsage() {
     registerGCListener();
@@ -57,53 +58,50 @@ public class GCedMemoryUsage implements MemoryUsage {
   private void registerGCListener() {
     List<GarbageCollectorMXBean> gcBeans = ManagementFactory.getGarbageCollectorMXBeans();
     for (GarbageCollectorMXBean gcBean : gcBeans) {
-      if (gcBean instanceof NotificationEmitter) {
+      if (gcBean instanceof NotificationEmitter && isOldGenGc(gcBean.getName())) {
+        LOG.info("{} listener registered for memory usage monitor.", gcBean.getName());
         NotificationEmitter emitter = (NotificationEmitter) gcBean;
-        emitter.addNotificationListener(new OldGenGCListener(), null, null);
+        emitter.addNotificationListener(
+            new OldGenGCListener(),
+            notification -> {
+              if (!notification
+                  .getType()
+                  .equals(GarbageCollectionNotificationInfo.GARBAGE_COLLECTION_NOTIFICATION)) {
+                return false;
+              }
+              CompositeData cd = (CompositeData) notification.getUserData();
+              GarbageCollectionNotificationInfo info = GarbageCollectionNotificationInfo.from(cd);
+              return isOldGenGc(info.getGcAction());
+            },
+            null);
       }
     }
+  }
+
+  private boolean isOldGenGc(String gcKeyword) {
+    String keyword = gcKeyword.toLowerCase(Locale.ROOT);
+    return OLD_GEN_GC_ACTION_KEYWORDS.stream().anyMatch(keyword::contains);
   }
 
   private static class OldGenGCListener implements NotificationListener {
     @Override
     public void handleNotification(Notification notification, Object handback) {
-      if (notification
-          .getType()
-          .equals(GarbageCollectionNotificationInfo.GARBAGE_COLLECTION_NOTIFICATION)) {
-        CompositeData cd = (CompositeData) notification.getUserData();
-        GarbageCollectionNotificationInfo info = GarbageCollectionNotificationInfo.from(cd);
-
-        String gcAction = info.getGcAction();
-        if (gcAction.contains("major")
-            || gcAction.contains("concurrent")
-            || gcAction.contains("old")
-            || gcAction.contains("full")) {
-          Map<String, java.lang.management.MemoryUsage> memoryUsageAfterGc =
-              info.getGcInfo().getMemoryUsageAfterGc();
-          String possibleOldGenKey = findOldGenKey(memoryUsageAfterGc.keySet());
-          if (possibleOldGenKey != null) {
-            java.lang.management.MemoryUsage oldGenUsage =
-                memoryUsageAfterGc.get(possibleOldGenKey);
-            getInstance().setUsage(oldGenUsage.getUsed());
-            if (LOG.isDebugEnabled()) {
-              LOG.debug(
-                  "Old Gen GC detected, memory usage after GC is {} bytes.", getInstance().usage());
-            }
-          }
-        }
+      CompositeData cd = (CompositeData) notification.getUserData();
+      GarbageCollectionNotificationInfo info = GarbageCollectionNotificationInfo.from(cd);
+      Map<String, java.lang.management.MemoryUsage> memoryUsageAfterGc =
+          info.getGcInfo().getMemoryUsageAfterGc();
+      // Skip Metaspace and CodeHeap spaces which the GC scope is out of stack GC.
+      long totalStackUsed =
+          memoryUsageAfterGc.entrySet().stream()
+              .filter(
+                  entry ->
+                      !entry.getKey().equals("Metaspace") && !entry.getKey().startsWith("CodeHeap"))
+              .mapToLong(entry -> entry.getValue().getUsed())
+              .sum();
+      getInstance().setUsage(totalStackUsed);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Old Gen GC detected, memory usage after GC is {} bytes.", totalStackUsed);
       }
-    }
-
-    private String findOldGenKey(Set<String> memoryPoolNames) {
-      LOG.info("Memory pool names: {}", memoryPoolNames);
-      List<String> possibleOldGenKeys =
-          Arrays.asList("G1 Old Gen", "PS Old Gen", "CMS Old Gen", "Tenured Gen", "Old Gen");
-      for (String key : possibleOldGenKeys) {
-        if (memoryPoolNames.contains(key)) {
-          return key;
-        }
-      }
-      return null;
     }
   }
 }
