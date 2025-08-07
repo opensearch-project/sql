@@ -275,6 +275,24 @@ public class CastFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testCastDecimal() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval s = cast(0.99 as string), f = cast(12.9 as float), "
+                    + "d = cast(100.00 as double), i = cast(2.9 as int) "
+                    + "| fields s, f, d, i",
+                TEST_INDEX_DATATYPE_NONNUMERIC));
+    verifySchema(
+        actual,
+        schema("s", "string"),
+        schema("f", "float"),
+        schema("d", "double"),
+        schema("i", "int"));
+    verifyDataRows(actual, rows("0.99", 12.9f, 100.0d, 2));
+  }
+
+  @Test
   public void testCastDate() throws IOException {
     JSONObject actual =
         executeQuery(
