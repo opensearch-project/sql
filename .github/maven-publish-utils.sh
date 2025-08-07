@@ -91,11 +91,13 @@ generate_checksums() {
 publish_to_maven() {
   echo "Publishing artifacts to Maven repository..."
 
-  # Navigate to build directory and copy artifacts
+  mkdir -p build/resources/publish/
+  cp build/publish/publish-snapshot.sh build/resources/publish/
+  chmod +x build/resources/publish/publish-snapshot.sh
+
+  # Continue with the original flow
   cd build/resources/publish/
   cp -a $HOME/.m2/repository/* ./
-
-  # Run the publish script
   ./publish-snapshot.sh ./
 
   echo "Maven publishing completed"
