@@ -199,6 +199,17 @@ public class OpenSearchExprValueFactory {
 
     final ExprType type = fieldType.get();
 
+    // CRITICAL FIX: Handle range strings from bin operations
+    // Range strings like "20-30" should always be treated as strings regardless of original field
+    // type
+    if (content.objectValue() instanceof String) {
+      String stringValue = (String) content.objectValue();
+      if (stringValue.contains("-") && stringValue.matches("\\d+-\\d+")) {
+        // This is a range string from bin operation - treat as string value
+        return new ExprStringValue(stringValue);
+      }
+    }
+
     if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.GeoPoint))) {
       return parseGeoPoint(content, supportArrays);
     } else if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.Nested))
