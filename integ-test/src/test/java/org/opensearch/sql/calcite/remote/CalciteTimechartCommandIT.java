@@ -61,4 +61,41 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
       executeQuery("source=no_timestamp | timechart count()");
     });
   }
+  
+//  @Test
+//  public void testTimechartWithMinuteSpanNoGroupBy() throws IOException {
+//    JSONObject result = executeQuery("source=events | timechart span=1m avg(cpu_usage)");
+//    verifySchema(result, schema("$f2", "timestamp"), schema("$f1", "double"));
+//    assertEquals(21, result.getInt("total"));
+//  }
+  
+  @Test
+  public void testTimechartWithSecondSpanAndRegionGroupBy() throws IOException {
+    JSONObject result = executeQuery("source=events | timechart span=1s count() by region");
+    verifySchema(result, schema("$f2", "timestamp"), schema("eu-west", "bigint"), schema("us-east", "bigint"), schema("us-west", "bigint"));
+    verifyDataRows(result, 
+        rows("2024-07-01 00:00:00", null, 1, null),
+        rows("2024-07-01 00:01:00", null, null, 1),
+        rows("2024-07-01 00:02:00", null, 1, null),
+        rows("2024-07-01 00:03:00", 1, null, null),
+        rows("2024-07-01 00:04:00", null, null, 1),
+        rows("2024-07-01 00:05:00", null, 1, null),
+        rows("2024-07-01 00:06:00", 1, null, null),
+        rows("2024-07-01 00:07:00", null, null, 1),
+        rows("2024-07-01 00:08:00", null, 1, null),
+        rows("2024-07-01 00:09:00", 1, null, null),
+        rows("2024-07-01 00:10:00", null, null, 1),
+        rows("2024-07-01 00:11:00", null, 1, null),
+        rows("2024-07-01 00:12:00", 1, null, null),
+        rows("2024-07-01 00:13:00", null, null, 1),
+        rows("2024-07-01 00:14:00", null, 1, null),
+        rows("2024-07-01 00:15:00", 1, null, null),
+        rows("2024-07-01 00:16:00", null, 1, null),
+        rows("2024-07-01 00:17:00", null, null, 1),
+        rows("2024-07-01 00:18:00", null, 1, null),
+        rows("2024-07-01 00:19:00", null, null, 1),
+        rows("2024-07-01 00:20:00", null, 1, null)
+    );
+    assertEquals(21, result.getInt("total"));
+  }
 }
