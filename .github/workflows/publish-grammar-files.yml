@@ -70,7 +70,7 @@ jobs:
 
       - uses: actions/checkout@v4
         with:
-          repository: 'opensearch-project/opensearch-build-libraries'
+          repository: 'opensearch-project/opensearch-build'
           path: 'build'
 
       - name: Install required tools
