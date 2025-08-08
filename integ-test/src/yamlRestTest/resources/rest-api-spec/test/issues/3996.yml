@@ -4,7 +4,6 @@ setup:
         body:
           transient:
             plugins.calcite.enabled : true
-            plugins.calcite.fallback.allowed : false
 
   - do:
       indices.create:
@@ -25,7 +24,6 @@ teardown:
         body:
           transient:
             plugins.calcite.enabled : false
-            plugins.calcite.fallback.allowed : true
 
 ---
 "Fix incorrectly push down aggregate with filter":
