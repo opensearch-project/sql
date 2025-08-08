@@ -11,7 +11,8 @@ import java.util.Map;
 import lombok.EqualsAndHashCode;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.function.Function1;
-import org.opensearch.search.lookup.LeafSearchLookup;
+import org.opensearch.index.fielddata.ScriptDocValues;
+import org.opensearch.search.lookup.SourceLookup;
 import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.ScriptDataContext;
 
 /**
@@ -35,11 +36,13 @@ public class CalciteScript {
   /**
    * Evaluate on the doc generate by the doc provider.
    *
-   * @param lookup LeafSearchLookup
+   * @param docProvider doc look up
+   * @param sourceLookup source look up
    * @return expr value
    */
-  public Object[] execute(LeafSearchLookup lookup) {
+  public Object[] execute(Map<String, ScriptDocValues<?>> docProvider, SourceLookup sourceLookup) {
     return AccessController.doPrivileged(
-        (PrivilegedAction<Object[]>) () -> function.apply(new ScriptDataContext(lookup, params)));
+        (PrivilegedAction<Object[]>)
+            () -> function.apply(new ScriptDataContext(docProvider, sourceLookup, params)));
   }
 }

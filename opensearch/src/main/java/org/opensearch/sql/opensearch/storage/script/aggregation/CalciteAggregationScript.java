@@ -18,8 +18,8 @@ import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.lucene.index.LeafReaderContext;
 import org.opensearch.script.AggregationScript;
-import org.opensearch.search.lookup.LeafSearchLookup;
 import org.opensearch.search.lookup.SearchLookup;
+import org.opensearch.search.lookup.SourceLookup;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -33,7 +33,7 @@ class CalciteAggregationScript extends AggregationScript {
   /** Calcite Script. */
   private final CalciteScript calciteScript;
 
-  private final LeafSearchLookup searchLookup;
+  private final SourceLookup sourceLookup;
 
   private final RelDataType type;
 
@@ -45,13 +45,13 @@ class CalciteAggregationScript extends AggregationScript {
       Map<String, Object> params) {
     super(params, lookup, context);
     this.calciteScript = new CalciteScript(function, params);
-    this.searchLookup = lookup.getLeafSearchLookup(context);
+    this.sourceLookup = lookup.getLeafSearchLookup(context).source();
     this.type = type;
   }
 
   @Override
   public Object execute() {
-    Object value = calciteScript.execute(this.searchLookup)[0];
+    Object value = calciteScript.execute(this.getDoc(), this.sourceLookup)[0];
     ExprType exprType = OpenSearchTypeFactory.convertRelDataTypeToExprType(type);
     // See logic in {@link ExpressionAggregationScript::execute}
     return switch ((ExprCoreType) exprType) {

@@ -78,7 +78,7 @@ import org.opensearch.script.AggregationScript;
 import org.opensearch.script.FilterScript;
 import org.opensearch.script.ScriptContext;
 import org.opensearch.script.ScriptEngine;
-import org.opensearch.search.lookup.LeafSearchLookup;
+import org.opensearch.search.lookup.SourceLookup;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -219,11 +219,16 @@ public class CalciteScriptEngine implements ScriptEngine {
 
   public static class ScriptDataContext implements DataContext {
 
-    private final LeafSearchLookup lookup;
+    private final Map<String, ScriptDocValues<?>> docProvider;
+    private final SourceLookup sourceLookup;
     private final Map<String, Object> params;
 
-    public ScriptDataContext(LeafSearchLookup lookup, Map<String, Object> params) {
-      this.lookup = lookup;
+    public ScriptDataContext(
+        Map<String, ScriptDocValues<?>> docProvider,
+        SourceLookup sourceLookup,
+        Map<String, Object> params) {
+      this.docProvider = docProvider;
+      this.sourceLookup = sourceLookup;
       this.params = params;
     }
 
@@ -248,7 +253,7 @@ public class CalciteScriptEngine implements ScriptEngine {
       if (Variable.UTC_TIMESTAMP.camelName.equals(name))
         return params.get(Variable.UTC_TIMESTAMP.camelName);
 
-      ScriptDocValues<?> docValue = this.lookup.doc().get(name);
+      ScriptDocValues<?> docValue = this.docProvider.get(name);
       if (docValue == null || docValue.isEmpty()) {
         return null; // No way to differentiate null and missing from doc value
       }
@@ -264,7 +269,7 @@ public class CalciteScriptEngine implements ScriptEngine {
     }
 
     public Object getFromSource(String name) {
-      return this.lookup.source().get(name);
+      return this.sourceLookup.get(name);
     }
   }
 

@@ -140,6 +140,7 @@ public class CalciteExplainIT extends ExplainIT {
   // Only for Calcite
   @Test
   public void supportPushDownScriptOnTextField() throws IOException {
+    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
     String result =
         explainQueryToString(
             "explain source=opensearch-sql_test_index_account | where length(address) > 0 | eval"
