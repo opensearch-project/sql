@@ -102,7 +102,9 @@ public class GCedMemoryUsage implements MemoryUsage {
           memoryUsageAfterGc.entrySet().stream()
               .filter(
                   entry ->
-                      !entry.getKey().equals("Metaspace") && !entry.getKey().startsWith("CodeHeap"))
+                      !entry.getKey().equals("Metaspace")
+                          && !entry.getKey().equals("Compressed Class Space")
+                          && !entry.getKey().startsWith("CodeHeap"))
               .mapToLong(entry -> entry.getValue().getUsed())
               .sum();
       getInstance().setUsage(totalStackUsed);
