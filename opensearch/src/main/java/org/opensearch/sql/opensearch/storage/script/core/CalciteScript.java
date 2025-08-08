@@ -8,11 +8,11 @@ package org.opensearch.sql.opensearch.storage.script.core;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Map;
-import java.util.function.Supplier;
 import lombok.EqualsAndHashCode;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.function.Function1;
 import org.opensearch.index.fielddata.ScriptDocValues;
+import org.opensearch.search.lookup.SourceLookup;
 import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.ScriptDataContext;
 
 /**
@@ -36,12 +36,13 @@ public class CalciteScript {
   /**
    * Evaluate on the doc generate by the doc provider.
    *
-   * @param docProvider doc provider.
+   * @param docProvider doc look up
+   * @param sourceLookup source look up
    * @return expr value
    */
-  public Object[] execute(Supplier<Map<String, ScriptDocValues<?>>> docProvider) {
+  public Object[] execute(Map<String, ScriptDocValues<?>> docProvider, SourceLookup sourceLookup) {
     return AccessController.doPrivileged(
         (PrivilegedAction<Object[]>)
-            () -> function.apply(new ScriptDataContext(docProvider, params)));
+            () -> function.apply(new ScriptDataContext(docProvider, sourceLookup, params)));
   }
 }
