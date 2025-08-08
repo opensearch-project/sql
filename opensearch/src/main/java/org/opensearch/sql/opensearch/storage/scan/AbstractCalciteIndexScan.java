@@ -121,7 +121,8 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                 switch (action.type) {
                       case AGGREGATION -> mq.getRowCount((RelNode) action.digest);
                       case PROJECT, SORT -> rowCount;
-                      case COLLAPSE -> NumberUtil.multiply(rowCount, estimateRowCountFactor);
+                        // Refer the org.apache.calcite.rel.core.Aggregate.estimateRowCount
+                      case COLLAPSE -> rowCount * (1.0 - Math.pow(.5, 1));
                       case FILTER -> NumberUtil.multiply(
                           rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest));
                       case SCRIPT -> NumberUtil.multiply(

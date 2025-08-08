@@ -4,13 +4,18 @@
  */
 package org.opensearch.sql.opensearch.planner.physical;
 
+import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_DEDUP;
+
 import java.util.List;
 import java.util.function.Predicate;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.logging.log4j.LogManager;
@@ -33,14 +38,7 @@ public class OpenSearchDedupPushdownRule extends RelRule<OpenSearchDedupPushdown
     final LogicalFilter numOfDedupFilter = call.rel(1);
     final LogicalProject projectWithWindow = call.rel(2);
     final CalciteLogicalIndexScan scan = call.rel(3);
-    RexLiteral numLiteral =
-        PlanUtils.findLiterals(numOfDedupFilter.getCondition(), true).getFirst();
-    Integer num = numLiteral.getValueAs(Integer.class);
-    if (num == null || num > 1) {
-      // TODO leverage inner_hits for num > 1
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Cannot pushdown the dedup since number of duplicate events is larger than 1");
-      }
+    if (!validFilter(numOfDedupFilter)) {
       return;
     }
     List<RexWindow> windows = PlanUtils.getRexWindowFromProject(projectWithWindow);
@@ -59,6 +57,43 @@ public class OpenSearchDedupPushdownRule extends RelRule<OpenSearchDedupPushdown
     if (newScan != null) {
       call.transformTo(newScan);
     }
+  }
+
+  private static boolean validFilter(LogicalFilter filter) {
+    // The condition kind is LESS_THAN_OR_EQUAL, safe to convert to RexCall
+    List<RexNode> operandsOfCondition = ((RexCall) filter.getCondition()).getOperands();
+    RexNode leftOperand = operandsOfCondition.getFirst();
+    if (!(leftOperand instanceof RexInputRef ref)) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Cannot pushdown the dedup since the left operand is not RexInputRef");
+      }
+      return false;
+    }
+    String referenceName = filter.getRowType().getFieldNames().get(ref.getIndex());
+    if (!referenceName.equals(ROW_NUMBER_COLUMN_FOR_DEDUP)) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(
+            "Cannot pushdown the dedup since the left operand is not {}",
+            ROW_NUMBER_COLUMN_FOR_DEDUP);
+      }
+      return false;
+    }
+    RexNode rightOperand = operandsOfCondition.getLast();
+    if (!(rightOperand instanceof RexLiteral numLiteral)) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Cannot pushdown the dedup since the right operand is not RexLiteral");
+      }
+      return false;
+    }
+    Integer num = numLiteral.getValueAs(Integer.class);
+    if (num == null || num > 1) {
+      // TODO leverage inner_hits for num > 1
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Cannot pushdown the dedup since number of duplicate events is larger than 1");
+      }
+      return false;
+    }
+    return true;
   }
 
   /**
