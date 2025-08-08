@@ -428,6 +428,26 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testDedupPushdown() throws IOException {
+    String expected = loadExpectedPlan("explain_dedup_push.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | fields account_number, gender, age"
+                + " | dedup 1 gender"));
+  }
+
+  @Test
+  public void testDedupKeepEmptyPushdown() throws IOException {
+    String expected = loadExpectedPlan("explain_dedup_keepempty_push.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | fields account_number, gender, age"
+                + " | dedup gender KEEPEMPTY=true"));
+  }
+
+  @Test
   public void testSingleFieldRelevanceQueryFunctionExplain() throws IOException {
     // This test is only applicable if pushdown is enabled
     if (!isPushdownEnabled()) {

@@ -37,8 +37,10 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.planner.physical.EnumerableIndexScanRule;
 import org.opensearch.sql.opensearch.planner.physical.OpenSearchIndexRules;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer;
@@ -153,6 +155,44 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     return conditions.size() > 1
         ? rexBuilder.makeCall(SqlStdOperatorTable.AND, conditions)
         : conditions.get(0);
+  }
+
+  public CalciteLogicalIndexScan pushDownCollapse(Project finalOutput, String fieldName) {
+    ExprType fieldType = osIndex.getFieldTypes().get(fieldName);
+    if (fieldType == null) {
+      // the fieldName must be one of index fields
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Cannot pushdown the dedup '{}' due to it is not a index field", fieldName);
+      }
+      return null;
+    }
+    ExprType originalExprType = fieldType.getOriginalExprType();
+    String originalFieldName = originalExprType.getOriginalPath().orElse(fieldName);
+    if (!ExprCoreType.numberTypes().contains(originalExprType)
+        && !originalExprType.legacyTypeName().equals("KEYWORD")
+        && !originalExprType.legacyTypeName().equals("TEXT")) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(
+            "Cannot pushdown the dedup '{}' due to only keyword and number type are accepted, but"
+                + " its type is {}",
+            originalFieldName,
+            originalExprType.legacyTypeName());
+      }
+      return null;
+    }
+    // For text, use its subfield if exists.
+    String field = OpenSearchTextType.toKeywordSubField(originalFieldName, fieldType);
+    if (field == null) {
+      LOG.debug("Cannot pushdown the dedup due to no keyword subfield for {}.", fieldName);
+      return null;
+    }
+    CalciteLogicalIndexScan newScan = this.copyWithNewSchema(finalOutput.getRowType());
+    newScan.pushDownContext.add(
+        PushDownAction.of(
+            PushDownType.COLLAPSE,
+            fieldName,
+            requestBuilder -> requestBuilder.pushDownCollapse(field)));
+    return newScan;
   }
 
   /**

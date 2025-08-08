@@ -22,6 +22,8 @@ public class OpenSearchIndexRules {
       OpenSearchLimitIndexScanRule.Config.DEFAULT.toRule();
   private static final OpenSearchSortIndexScanRule SORT_INDEX_SCAN =
       OpenSearchSortIndexScanRule.Config.DEFAULT.toRule();
+  private static final OpenSearchDedupPushdownRule DEDUP_PUSH_DOWN =
+      OpenSearchDedupPushdownRule.Config.DEFAULT.toRule();
 
   public static final List<RelOptRule> OPEN_SEARCH_INDEX_SCAN_RULES =
       ImmutableList.of(
@@ -30,7 +32,8 @@ public class OpenSearchIndexRules {
           AGGREGATE_INDEX_SCAN,
           COUNT_STAR_INDEX_SCAN,
           LIMIT_INDEX_SCAN,
-          SORT_INDEX_SCAN);
+          SORT_INDEX_SCAN,
+          DEDUP_PUSH_DOWN);
 
   // prevent instantiation
   private OpenSearchIndexRules() {}

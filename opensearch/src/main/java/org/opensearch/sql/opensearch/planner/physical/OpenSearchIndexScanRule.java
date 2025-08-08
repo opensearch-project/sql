@@ -26,6 +26,14 @@ public interface OpenSearchIndexScanRule {
     return table.unwrap(OpenSearchIndex.class) != null;
   }
 
+  static boolean isAggregatePushed(AbstractCalciteIndexScan scan) {
+    return !noAggregatePushed(scan);
+  }
+
+  static boolean isProjectPushed(AbstractCalciteIndexScan scan) {
+    return scan.getPushDownContext().isProjectPushed();
+  }
+
   static boolean isLimitPushed(AbstractCalciteIndexScan scan) {
     return scan.getPushDownContext().isLimitPushed();
   }
