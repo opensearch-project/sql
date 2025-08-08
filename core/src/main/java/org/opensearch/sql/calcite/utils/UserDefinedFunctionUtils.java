@@ -228,6 +228,47 @@ public class UserDefinedFunctionUtils {
     };
   }
 
+  /**
+   * Adapt a static math function (e.g., Math.expm1, Math.rint) to a UserDefinedFunctionBuilder.
+   * This method generates a Calcite-compatible UDF by boxing the operand, converting it to a
+   * double, and then calling the corresponding method in {@link Math}.
+   *
+   * <p>It assumes the math method has the signature: {@code double method(double)}. This utility is
+   * specifically designed for single-operand Math methods.
+   *
+   * @param methodName the name of the static method in {@link Math} to be invoked
+   * @param returnTypeInference the return type inference of the UDF
+   * @param nullPolicy the null policy of the UDF
+   * @param operandMetadata type checker
+   * @return an adapted ImplementorUDF with the math method, which is a UserDefinedFunctionBuilder
+   */
+  public static ImplementorUDF adaptMathFunctionToUDF(
+      String methodName,
+      SqlReturnTypeInference returnTypeInference,
+      NullPolicy nullPolicy,
+      UDFOperandMetadata operandMetadata) {
+
+    NotNullImplementor implementor =
+        (translator, call, translatedOperands) -> {
+          Expression operand = translatedOperands.get(0);
+          operand = Expressions.box(operand);
+          operand = Expressions.call(operand, "doubleValue");
+          return Expressions.call(Math.class, methodName, operand);
+        };
+
+    return new ImplementorUDF(implementor, nullPolicy) {
+      @Override
+      public SqlReturnTypeInference getReturnTypeInference() {
+        return returnTypeInference;
+      }
+
+      @Override
+      public UDFOperandMetadata getOperandMetadata() {
+        return operandMetadata;
+      }
+    };
+  }
+
   public static List<Expression> prependFunctionProperties(
       List<Expression> operands, RexToLixTranslator translator) {
     List<Expression> operandsWithProperties = new ArrayList<>(operands);

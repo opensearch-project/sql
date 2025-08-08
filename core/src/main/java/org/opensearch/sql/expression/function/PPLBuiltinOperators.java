@@ -7,6 +7,7 @@ package org.opensearch.sql.expression.function;
 
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.adaptExprMethodToUDF;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.adaptExprMethodWithPropertiesToUDF;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.adaptMathFunctionToUDF;
 
 import com.google.common.base.Suppliers;
 import java.lang.reflect.InvocationTargetException;
@@ -106,6 +107,26 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator DIVIDE = new DivideFunction().toUDF("DIVIDE");
   public static final SqlOperator SHA2 = CryptographicFunction.sha2().toUDF("SHA2");
   public static final SqlOperator CIDRMATCH = new CidrMatchFunction().toUDF("CIDRMATCH");
+
+  public static final SqlOperator COSH =
+      adaptMathFunctionToUDF(
+              "cosh", ReturnTypes.DOUBLE_FORCE_NULLABLE, NullPolicy.ANY, PPLOperandTypes.NUMERIC)
+          .toUDF("COSH");
+
+  public static final SqlOperator SINH =
+      adaptMathFunctionToUDF(
+              "sinh", ReturnTypes.DOUBLE_FORCE_NULLABLE, NullPolicy.ANY, PPLOperandTypes.NUMERIC)
+          .toUDF("SINH");
+
+  public static final SqlOperator RINT =
+      adaptMathFunctionToUDF(
+              "rint", ReturnTypes.DOUBLE_FORCE_NULLABLE, NullPolicy.ANY, PPLOperandTypes.NUMERIC)
+          .toUDF("RINT");
+
+  public static final SqlOperator EXPM1 =
+      adaptMathFunctionToUDF(
+              "expm1", ReturnTypes.DOUBLE_FORCE_NULLABLE, NullPolicy.ANY, PPLOperandTypes.NUMERIC)
+          .toUDF("EXPM1");
 
   // IP comparing functions
   public static final SqlOperator NOT_EQUALS_IP =
