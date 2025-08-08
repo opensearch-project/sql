@@ -65,7 +65,7 @@ public class OpenSearchPluginModule extends AbstractModule {
 
   @Provides
   public ResourceMonitor resourceMonitor(Settings settings) {
-    return new OpenSearchResourceMonitor(settings, new OpenSearchMemoryHealthy());
+    return new OpenSearchResourceMonitor(settings, new OpenSearchMemoryHealthy(settings));
   }
 
   @Provides

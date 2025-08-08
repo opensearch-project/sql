@@ -28,7 +28,7 @@ public class OpenSearchStorageEngine implements StorageEngine {
   @Override
   public Table getTable(DataSourceSchemaName dataSourceSchemaName, String name) {
     if (isSystemIndex(name)) {
-      return new OpenSearchSystemIndex(client, name);
+      return new OpenSearchSystemIndex(client, settings, name);
     } else {
       return new OpenSearchIndex(client, settings, name);
     }

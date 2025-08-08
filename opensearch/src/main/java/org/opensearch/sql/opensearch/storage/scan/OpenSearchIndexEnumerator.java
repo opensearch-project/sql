@@ -120,13 +120,19 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
 
   @Override
   public void reset() {
-    iterator = Collections.emptyIterator();
+    OpenSearchResponse response = client.search(request);
+    if (!response.isEmpty()) {
+      iterator = response.iterator();
+    } else {
+      iterator = Collections.emptyIterator();
+    }
     queryCount = 0;
   }
 
   @Override
   public void close() {
-    reset();
+    iterator = Collections.emptyIterator();
+    queryCount = 0;
     client.cleanup(request);
   }
 }
