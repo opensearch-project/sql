@@ -69,6 +69,7 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   // Only for Calcite
+  @Ignore("We've supported script push down on text field")
   @Test
   public void supportPartialPushDown() throws IOException {
     Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
@@ -82,6 +83,7 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   // Only for Calcite
+  @Ignore("We've supported script push down on text field")
   @Test
   public void supportPartialPushDown_NoPushIfAllFailed() throws IOException {
     Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
@@ -94,6 +96,7 @@ public class CalciteExplainIT extends ExplainIT {
     assertJsonEqualsIgnoreId(expected, result);
   }
 
+  @Ignore("We've supported script push down on text field")
   @Test
   public void supportPartialPushDownScript() throws IOException {
     Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
@@ -132,6 +135,17 @@ public class CalciteExplainIT extends ExplainIT {
     // Verify that reverse added a ROW_NUMBER and another sort (descending)
     assertTrue(result.contains("ROW_NUMBER()"));
     assertTrue(result.contains("dir0=[DESC]"));
+  }
+
+  // Only for Calcite
+  @Test
+  public void supportPushDownScriptOnTextField() throws IOException {
+    String result =
+        explainQueryToString(
+            "explain source=opensearch-sql_test_index_account | where length(address) > 0 | eval"
+                + " address_length = length(address) | stats count() by address_length");
+    String expected = loadFromFile("expectedOutput/calcite/explain_script_push_on_text.json");
+    assertJsonEqualsIgnoreId(expected, result);
   }
 
   /**

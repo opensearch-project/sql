@@ -11,6 +11,7 @@ import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.lucene.index.LeafReaderContext;
 import org.opensearch.script.FilterScript;
+import org.opensearch.search.lookup.LeafSearchLookup;
 import org.opensearch.search.lookup.SearchLookup;
 import org.opensearch.sql.opensearch.storage.script.core.CalciteScript;
 
@@ -24,6 +25,8 @@ class CalciteFilterScript extends FilterScript {
   /** Calcite Script. */
   private final CalciteScript calciteScript;
 
+  private final LeafSearchLookup searchLookup;
+
   public CalciteFilterScript(
       Function1<DataContext, Object[]> function,
       SearchLookup lookup,
@@ -31,11 +34,12 @@ class CalciteFilterScript extends FilterScript {
       Map<String, Object> params) {
     super(params, lookup, context);
     this.calciteScript = new CalciteScript(function, params);
+    this.searchLookup = lookup.getLeafSearchLookup(context);
   }
 
   @Override
   public boolean execute() {
-    Object result = calciteScript.execute(this::getDoc)[0];
+    Object result = calciteScript.execute(this.searchLookup)[0];
     // The result should be type of BOOLEAN_NULLABLE. Treat it as false if null
     return result != null && (boolean) result;
   }
