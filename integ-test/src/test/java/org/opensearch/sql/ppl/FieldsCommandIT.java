@@ -32,31 +32,106 @@ public class FieldsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testFieldsWithOneField() throws IOException {
-    JSONObject result =
-        executeQuery(String.format("source=%s | fields firstname", TEST_INDEX_ACCOUNT));
-    verifyColumn(result, columnName("firstname"));
-  }
-
-  @Test
-  public void testFieldsWithMultiFields() throws IOException {
+  public void testBasicFieldSelection() throws IOException {
     JSONObject result =
         executeQuery(String.format("source=%s | fields firstname, lastname", TEST_INDEX_ACCOUNT));
     verifyColumn(result, columnName("firstname"), columnName("lastname"));
+    verifySchema(result, schema("firstname", "string"), schema("lastname", "string"));
   }
 
-  @Ignore(
-      "Cannot resolve wildcard yet. Enable once"
-          + " https://github.com/opensearch-project/sql/issues/787 is resolved.")
   @Test
-  public void testFieldsWildCard() throws IOException {
+  public void testDelimiterEquivalence() throws IOException {
+    JSONObject commaResult =
+        executeQuery(
+            String.format(
+                "source=%s | fields firstname, lastname, age | head 3", TEST_INDEX_ACCOUNT));
+    JSONObject spaceResult =
+        executeQuery(
+            String.format(
+                "source=%s | fields firstname lastname age | head 3", TEST_INDEX_ACCOUNT));
+    JSONObject mixedResult =
+        executeQuery(
+            String.format(
+                "source=%s | fields firstname lastname, age | head 3", TEST_INDEX_ACCOUNT));
+
+    verifySchema(
+        commaResult,
+        schema("firstname", "string"),
+        schema("lastname", "string"),
+        schema("age", "bigint"));
+    verifySchema(
+        spaceResult,
+        schema("firstname", "string"),
+        schema("lastname", "string"),
+        schema("age", "bigint"));
+    verifySchema(
+        mixedResult,
+        schema("firstname", "string"),
+        schema("lastname", "string"),
+        schema("age", "bigint"));
+
+    verifyDataRows(
+        commaResult,
+        rows("Amber", "Duke", 32),
+        rows("Hattie", "Bond", 36),
+        rows("Nanette", "Bates", 28));
+    verifyDataRows(
+        spaceResult,
+        rows("Amber", "Duke", 32),
+        rows("Hattie", "Bond", 36),
+        rows("Nanette", "Bates", 28));
+    verifyDataRows(
+        mixedResult,
+        rows("Amber", "Duke", 32),
+        rows("Hattie", "Bond", 36),
+        rows("Nanette", "Bates", 28));
+  }
+
+  @Test
+  public void testWildcardPatterns() throws IOException {
+    // Test prefix wildcard
+    JSONObject prefixResult =
+        executeQuery(String.format("source=%s | fields account*", TEST_INDEX_ACCOUNT));
+    verifyColumn(prefixResult, columnName("account_number"));
+    verifySchema(prefixResult, schema("account_number", "bigint"));
+
+    // Test suffix wildcard
+    JSONObject suffixResult =
+        executeQuery(String.format("source=%s | fields *name", TEST_INDEX_ACCOUNT));
+    verifyColumn(suffixResult, columnName("firstname"), columnName("lastname"));
+    verifySchema(suffixResult, schema("firstname", "string"), schema("lastname", "string"));
+
+    // Test contains wildcard
+    JSONObject containsResult =
+        executeQuery(String.format("source=%s | fields *a* | head 1", TEST_INDEX_ACCOUNT));
+    verifySchema(
+        containsResult,
+        schema("account_number", "bigint"),
+        schema("balance", "bigint"),
+        schema("firstname", "string"),
+        schema("lastname", "string"),
+        schema("age", "bigint"),
+        schema("address", "string"),
+        schema("email", "string"),
+        schema("state", "string"));
+  }
+
+  @Test
+  public void testMixedWildcards() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | fields ", TEST_INDEX_ACCOUNT) + "firstnam%");
-    verifyColumn(result, columnPattern("^firstnam.*"));
+        executeQuery(
+            String.format("source=%s | fields firstname, account*, *name", TEST_INDEX_ACCOUNT));
+    verifyColumn(
+        result, columnName("firstname"), columnName("account_number"), columnName("lastname"));
+    verifySchema(
+        result,
+        schema("firstname", "string"),
+        schema("account_number", "bigint"),
+        schema("lastname", "string"));
   }
 
   @Test
-  public void testSelectDateTypeField() throws IOException {
+  public void testSpecialDataTypes() throws IOException {
     JSONObject result =
         executeQuery(String.format("source=%s | fields birthdate", TEST_INDEX_BANK));
     verifySchema(result, schema("birthdate", null, "timestamp"));
@@ -74,29 +149,33 @@ public class FieldsCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testMetadataFields() throws IOException {
-    JSONObject result =
+    // Test basic metadata fields
+    JSONObject basicResult =
         executeQuery(String.format("source=%s | fields firstname, _index", TEST_INDEX_ACCOUNT));
-    verifyColumn(result, columnName("firstname"), columnName("_index"));
-  }
+    verifyColumn(basicResult, columnName("firstname"), columnName("_index"));
+    verifySchema(basicResult, schema("firstname", "string"), schema("_index", "string"));
 
-  @Test
-  public void testDelimitedMetadataFields() throws IOException {
-    JSONObject result =
+    // Test delimited metadata fields
+    JSONObject delimitedResult =
         executeQuery(
             String.format("source=%s | fields firstname, `_id`, `_index`", TEST_INDEX_ACCOUNT));
-    verifyColumn(result, columnName("firstname"), columnName("_id"), columnName("_index"));
-  }
+    verifyColumn(delimitedResult, columnName("firstname"), columnName("_id"), columnName("_index"));
+    verifySchema(
+        delimitedResult,
+        schema("firstname", "string"),
+        schema("_id", "string"),
+        schema("_index", "string"));
 
-  @Test
-  public void testMetadataFieldsWithEval() throws IOException {
-    JSONObject result =
+    // Test metadata fields with eval
+    JSONObject evalResult =
         executeQuery(
             String.format("source=%s | eval a = 1 | fields firstname, _index", TEST_INDEX_ACCOUNT));
-    verifyColumn(result, columnName("firstname"), columnName("_index"));
+    verifyColumn(evalResult, columnName("firstname"), columnName("_index"));
+    verifySchema(evalResult, schema("firstname", "string"), schema("_index", "string"));
   }
 
   @Test
-  public void testMetadataFieldsWithEvalMetaField() {
+  public void testMetadataFieldsWithEvalError() {
     Exception e =
         assertThrows(
             Exception.class,
@@ -108,7 +187,7 @@ public class FieldsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testFieldsMergedObject() throws IOException {
+  public void testMergedObjectFields() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -130,5 +209,59 @@ public class FieldsCommandIT extends PPLIntegTestCase {
         result,
         rows("linux", null, "linux", null, 1, null, "os1", null),
         rows(null, "linux", null, "linux", null, 2, null, "os2"));
+  }
+
+  @Test
+  public void testFieldsExcludeAllScenarios() {
+    String[] excludeAllQueries = {
+      "source=%s | fields - *",
+      "source=%s | fields - account* firstname lastname, *",
+      "source=%s | fields account* firstname lastname, * | fields - *",
+      "source=%s | fields account* firstname lastname, * | fields + * | fields - *",
+      "source=%s | fields account* firstname lastname, * | fields - * | fields + *"
+    };
+
+    for (String query : excludeAllQueries) {
+      Exception e =
+          assertThrows(
+              Exception.class, () -> executeQuery(String.format(query, TEST_INDEX_ACCOUNT)));
+      verifyErrorMessageContains(
+          e, "Invalid field exclusion: operation would exclude all fields from the result set");
+    }
+  }
+
+  @Test
+  public void testFieldsIncludeAllVariations() throws IOException {
+    String[] includeQueries = {
+      "source=%s | fields + * | head 1",
+      "source=%s | fields account* firstname lastname, * | fields + * | fields + * | head 1"
+    };
+
+    for (String query : includeQueries) {
+      JSONObject result = executeQuery(String.format(query, TEST_INDEX_ACCOUNT));
+      verifySchema(
+          result,
+          schema("account_number", "bigint"),
+          schema("firstname", "string"),
+          schema("gender", "string"),
+          schema("city", "string"),
+          schema("balance", "bigint"),
+          schema("employer", "string"),
+          schema("state", "string"),
+          schema("age", "bigint"),
+          schema("email", "string"),
+          schema("address", "string"),
+          schema("lastname", "string"));
+    }
+  }
+
+  @Ignore(
+      "Cannot resolve wildcard yet. Enable once"
+          + " https://github.com/opensearch-project/sql/issues/787 is resolved.")
+  @Test
+  public void testFieldsWildCard() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source=%s | fields ", TEST_INDEX_ACCOUNT) + "firstnam%");
+    verifyColumn(result, columnPattern("^firstnam.*"));
   }
 }

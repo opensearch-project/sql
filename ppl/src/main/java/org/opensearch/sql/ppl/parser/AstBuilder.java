@@ -18,6 +18,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameComm
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchFromContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableFunctionContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WhereCommandContext;
@@ -41,6 +42,8 @@ import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.And;
+import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
@@ -264,14 +267,48 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return joinType;
   }
 
-  /** Fields command. */
   @Override
   public UnresolvedPlan visitFieldsCommand(FieldsCommandContext ctx) {
-    return new Project(
-        ctx.fieldList().fieldExpression().stream()
-            .map(this::internalVisitExpression)
-            .collect(Collectors.toList()),
-        ArgumentFactory.getArgumentList(ctx));
+    return buildProjectCommand(ctx.fieldsCommandBody(), ArgumentFactory.getArgumentList(ctx));
+  }
+
+  /** Table command as an alias for fields command. */
+  @Override
+  public UnresolvedPlan visitTableCommand(TableCommandContext ctx) {
+    return buildProjectCommand(
+        ctx.fieldsCommandBody(),
+        Collections.singletonList(
+            ctx.fieldsCommandBody().MINUS() != null
+                ? new Argument("exclude", new Literal(true, DataType.BOOLEAN))
+                : new Argument("exclude", new Literal(false, DataType.BOOLEAN))));
+  }
+
+  private UnresolvedPlan buildProjectCommand(
+      OpenSearchPPLParser.FieldsCommandBodyContext bodyCtx, List<Argument> arguments) {
+    List<UnresolvedExpression> fields = extractFieldExpressions(bodyCtx);
+    return new Project(fields, arguments);
+  }
+
+  private List<UnresolvedExpression> extractFieldExpressions(
+      OpenSearchPPLParser.FieldsCommandBodyContext bodyCtx) {
+    if (bodyCtx.wcFieldList() != null) {
+      return processFieldExpressions(bodyCtx.wcFieldList().wcFieldExpression());
+    }
+    if (bodyCtx.wcSpaceSeparatedFieldList() != null) {
+      return processFieldExpressions(bodyCtx.wcSpaceSeparatedFieldList().wcFieldExpression());
+    }
+    if (bodyCtx.wcMixedFieldList() != null) {
+      return processFieldExpressions(bodyCtx.wcMixedFieldList().wcFieldExpression());
+    }
+    return Collections.emptyList();
+  }
+
+  private List<UnresolvedExpression> processFieldExpressions(
+      List<OpenSearchPPLParser.WcFieldExpressionContext> fieldExpressions) {
+    return fieldExpressions.stream()
+        .map(this::internalVisitExpression)
+        .distinct()
+        .collect(Collectors.toList());
   }
 
   /** Rename command. */

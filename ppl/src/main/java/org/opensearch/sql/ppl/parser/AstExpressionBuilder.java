@@ -191,6 +191,9 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitWcFieldExpression(WcFieldExpressionContext ctx) {
+    if (ctx.STAR() != null) {
+      return AllFields.of();
+    }
     return new Field((QualifiedName) visit(ctx.wcQualifiedName()));
   }
 
