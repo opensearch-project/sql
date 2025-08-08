@@ -5,12 +5,16 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.legacy.TestUtils.createIndexByRestClient;
+import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
+import static org.opensearch.sql.legacy.TestUtils.loadDataByRestClient;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 
 import java.io.IOException;
 import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.ppl.ExplainIT;
 
 public class CalciteExplainIT extends ExplainIT {
@@ -132,6 +136,27 @@ public class CalciteExplainIT extends ExplainIT {
     // Verify that reverse added a ROW_NUMBER and another sort (descending)
     assertTrue(result.contains("ROW_NUMBER()"));
     assertTrue(result.contains("dir0=[DESC]"));
+  }
+
+  @Test
+  public void testExplainWithTimechart() throws IOException {
+    // Create events index with timestamp data for timechart test
+    String eventsMapping = TestUtils.getMappingFile("events_index_mapping.json");
+    if (!isIndexExist(client(), "events")) {
+      createIndexByRestClient(client(), "events", eventsMapping);
+      loadDataByRestClient(client(), "events", "src/test/resources/events_test.json");
+    }
+    String result = executeWithReplace(
+        "explain source=events | timechart span=1m avg(status_code) by host");
+    
+    // Verify that the plan contains LogicalAggregate for the timechart operation
+    assertTrue(result.contains("LogicalAggregate"));
+    
+    // Verify that the plan contains a date_histogram aggregation for the span parameter
+    assertTrue(result.contains("date_histogram"));
+    
+    // Verify that the plan contains the avg aggregation
+    assertTrue(result.contains("avg"));
   }
 
   /**

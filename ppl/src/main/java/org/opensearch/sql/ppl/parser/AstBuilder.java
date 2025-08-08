@@ -50,6 +50,7 @@ import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.PatternMethod;
 import org.opensearch.sql.ast.expression.PatternMode;
 import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFunction;
@@ -79,6 +80,7 @@ import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Timechart;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
@@ -380,6 +382,29 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitReverseCommand(OpenSearchPPLParser.ReverseCommandContext ctx) {
     return new Reverse();
+  }
+
+  /** Timechart command. */
+  @Override
+  public UnresolvedPlan visitTimechartCommand(OpenSearchPPLParser.TimechartCommandContext ctx) {
+    UnresolvedExpression spanExpression = null;
+    if (ctx.spanClause() != null) {
+      spanExpression = internalVisitExpression(ctx.spanClause());
+    } else if (ctx.spanLiteral() != null) {
+      // Convert span=1h to span(@timestamp, 1h)
+      spanExpression = internalVisitExpression(ctx.spanLiteral());
+    } else {
+      // Default span if none specified
+      spanExpression = AstDSL.span(
+          AstDSL.field("@timestamp"), 
+          AstDSL.intLiteral(1),
+          SpanUnit.of("m"));
+    }
+    UnresolvedExpression aggregateFunction = internalVisitExpression(ctx.statsFunction());
+    UnresolvedExpression byField = ctx.fieldExpression() != null 
+        ? internalVisitExpression(ctx.fieldExpression()) 
+        : null;
+    return new Timechart(null, spanExpression, aggregateFunction, byField);
   }
 
   /** Eval command. */

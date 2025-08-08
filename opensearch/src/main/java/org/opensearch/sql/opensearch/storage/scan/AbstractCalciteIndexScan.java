@@ -389,7 +389,8 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
           Pair.of(
               Collections.singletonList(
                   AggregationBuilders.composite("composite_buckets", newBuckets)
-                      .subAggregations(newAggBuilder)),
+                      .subAggregations(newAggBuilder)
+                      .size(org.opensearch.sql.opensearch.storage.script.aggregation.AggregationQueryBuilder.AGGREGATION_BUCKET_SIZE)),
               aggregationBuilder.getRight());
     }
   }

@@ -40,6 +40,7 @@ import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.RawResponseFormatter;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
+import org.opensearch.sql.protocol.response.format.TimechartResponseFormatter;
 import org.opensearch.sql.protocol.response.format.VisualizationResponseFormatter;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
@@ -156,7 +157,12 @@ public class TransportPPLQueryAction
     } else if (format.equals(Format.VIZ)) {
       formatter = new VisualizationResponseFormatter(pplRequest.style());
     } else {
-      formatter = new SimpleJsonResponseFormatter(JsonResponseFormatter.Style.PRETTY);
+      // Check if this is a timechart query
+      if (pplRequest.getRequest().toLowerCase().contains("timechart")) {
+        formatter = new TimechartResponseFormatter(JsonResponseFormatter.Style.PRETTY);
+      } else {
+        formatter = new SimpleJsonResponseFormatter(JsonResponseFormatter.Style.PRETTY);
+      }
     }
 
     return new ResponseListener<ExecutionEngine.QueryResponse>() {
