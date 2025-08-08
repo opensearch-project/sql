@@ -12,6 +12,5 @@ public class CalciteFieldsCommandIT extends FieldsCommandIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 }
