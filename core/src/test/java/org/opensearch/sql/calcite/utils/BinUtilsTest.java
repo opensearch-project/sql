@@ -84,12 +84,36 @@ public class BinUtilsTest {
     assertEquals(BinUtils.SpanType.TIME, spanInfo.type);
     assertEquals(15.0, spanInfo.value, 0.001);
     assertEquals("minutes", spanInfo.unit);
+
+    // Test specific case: 1mon
+    spanInfo = BinUtils.parseSpanString("1mon");
+    assertEquals(BinUtils.SpanType.TIME, spanInfo.type);
+    assertEquals(1.0, spanInfo.value, 0.001);
+    assertEquals("mon", spanInfo.unit);
   }
 
   // Note: Validation tests removed as parseSpanString doesn't throw exceptions for invalid inputs
   // It returns SpanInfo objects that may contain invalid values but doesn't validate during parsing
 
   // Note: Base validation test also removed - parseSpanString doesn't validate inputs
+
+  @Test 
+  public void testMonthUnitDetection() {
+    // Specifically test that 1mon is detected as "mon" not "m"
+    String result = BinUtils.extractTimeUnit("1mon");
+    System.out.println("Result for '1mon': " + result);
+    assertEquals("mon", result);
+  }
+
+  @Test
+  public void testFullMonthParsingChain() {
+    // Test the full parsing chain for 1mon
+    var spanInfo = BinUtils.parseSpanString("1mon");
+    System.out.println("SpanInfo: type=" + spanInfo.type + ", value=" + spanInfo.value + ", unit=" + spanInfo.unit);
+    assertEquals(BinUtils.SpanType.TIME, spanInfo.type);
+    assertEquals(1.0, spanInfo.value, 0.001);
+    assertEquals("mon", spanInfo.unit);
+  }
 
   @Test
   public void testTimeUnitExtraction() {

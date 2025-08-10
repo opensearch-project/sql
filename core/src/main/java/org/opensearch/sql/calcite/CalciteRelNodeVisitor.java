@@ -474,10 +474,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RexNode fieldExpr = rexVisitor.analyze(node.getField(), context);
     String fieldName = BinUtils.extractFieldName(node);
 
-    // Early validation for @timestamp field existence (SPL compatibility)
-    BinUtils.validateTimestampFieldExists(fieldName, context);
-
-    // CRITICAL: Early validation for time-based operations on non-@timestamp fields
+    // Validation for time-based operations (now supports any time-based field)
     BinUtils.validateTimeBasedOperations(node, fieldName);
 
     RexNode alignTimeValue =
