@@ -35,7 +35,7 @@ public class BinSpanFunction {
 
   /** Time unit configuration for different span types. */
   private enum TimeUnitConfig {
-    MICROSECONDS("us", 1, MICROS_PER_MILLI, true),
+    MICROSECONDS("us", 1, -1, true), // Special case: multiply by 1000
     MILLISECONDS("ms", 1, 1, true),
     CENTISECONDS("cs", 1, MILLIS_PER_CENTISECOND, true),
     DECISECONDS("ds", 1, MILLIS_PER_DECISECOND, true),
@@ -126,6 +126,9 @@ public class BinSpanFunction {
     if (config == null) {
       throw new IllegalArgumentException("Unsupported time unit for bin span: " + unit);
     }
+    
+    // Validate sub-second span constraints
+    validateSubSecondSpan(config, intervalValue);
 
     return switch (config) {
       case MICROSECONDS,
@@ -162,6 +165,9 @@ public class BinSpanFunction {
     if (config == null) {
       throw new IllegalArgumentException("Unsupported time unit for bin span: " + unit);
     }
+    
+    // Validate sub-second span constraints
+    validateSubSecondSpan(config, intervalValue);
 
     // DEBUG: Log that this method is being called
     System.out.println("DEBUG: BinSpanFunction.createBinTimeSpanExpressionWithTimeModifier called with timeModifier: " + timeModifier);
@@ -406,45 +412,98 @@ public class BinSpanFunction {
   /** Converts timestamp to the target time unit. */
   private static RexNode convertToTargetUnit(
       RexNode fieldExpr, TimeUnitConfig config, CalcitePlanContext context) {
-    RexNode epochMillis =
+    // UNIX_TIMESTAMP returns seconds, not milliseconds!
+    RexNode epochSeconds =
         context.rexBuilder.makeCall(PPLBuiltinOperators.UNIX_TIMESTAMP, fieldExpr);
 
-    if (config.divisionFactor == 1) {
-      return epochMillis;
-    } else if (config.divisionFactor > 1) {
-      // For sub-second units or conversion to larger units
-      return context.relBuilder.call(
-          SqlStdOperatorTable.DIVIDE,
-          epochMillis,
-          context.relBuilder.literal(config.divisionFactor));
+    // For sub-second units (ms, us, cs, ds), we need to work in milliseconds
+    if (config == TimeUnitConfig.MILLISECONDS || 
+        config == TimeUnitConfig.MICROSECONDS ||
+        config == TimeUnitConfig.CENTISECONDS ||
+        config == TimeUnitConfig.DECISECONDS) {
+      // Convert seconds to milliseconds for sub-second precision
+      RexNode epochMillis = context.relBuilder.call(
+          SqlStdOperatorTable.MULTIPLY, epochSeconds, context.relBuilder.literal(1000L));
+      
+      if (config.divisionFactor == 1) {
+        return epochMillis; // milliseconds
+      } else if (config.divisionFactor > 1) {
+        // For sub-millisecond units, divide milliseconds by the factor
+        return context.relBuilder.call(
+            SqlStdOperatorTable.DIVIDE,
+            epochMillis,
+            context.relBuilder.literal(config.divisionFactor));
+      } else {
+        // For microseconds (multiply milliseconds by 1000)
+        return context.relBuilder.call(
+            SqlStdOperatorTable.MULTIPLY, epochMillis, context.relBuilder.literal(MICROS_PER_MILLI));
+      }
     } else {
-      // For microseconds (multiply by 1000)
-      return context.relBuilder.call(
-          SqlStdOperatorTable.MULTIPLY, epochMillis, context.relBuilder.literal(MICROS_PER_MILLI));
+      // For second and larger units, work in seconds
+      if (config.divisionFactor == 1) {
+        return epochSeconds;
+      } else if (config.divisionFactor > 1) {
+        // For larger units, divide seconds by the factor
+        return context.relBuilder.call(
+            SqlStdOperatorTable.DIVIDE,
+            epochSeconds,
+            context.relBuilder.literal(config.divisionFactor));
+      } else {
+        return epochSeconds;
+      }
     }
   }
 
   /** Converts from target unit back to timestamp. */
   private static RexNode convertFromTargetUnit(
       RexNode binValue, TimeUnitConfig config, CalcitePlanContext context) {
-    RexNode binMillis;
-
-    if (config.divisionFactor == 1) {
-      binMillis = binValue;
-    } else if (config.divisionFactor > 1) {
-      binMillis =
-          context.relBuilder.call(
-              SqlStdOperatorTable.MULTIPLY,
-              binValue,
-              context.relBuilder.literal(config.divisionFactor));
+    
+    // For sub-second units, binValue is in milliseconds, need to convert to seconds
+    if (config == TimeUnitConfig.MILLISECONDS || 
+        config == TimeUnitConfig.MICROSECONDS ||
+        config == TimeUnitConfig.CENTISECONDS ||
+        config == TimeUnitConfig.DECISECONDS) {
+      
+      RexNode binMillis;
+      if (config.divisionFactor == 1) {
+        binMillis = binValue; // already in milliseconds
+      } else if (config.divisionFactor > 1) {
+        binMillis =
+            context.relBuilder.call(
+                SqlStdOperatorTable.MULTIPLY,
+                binValue,
+                context.relBuilder.literal(config.divisionFactor));
+      } else {
+        // For microseconds (divide by 1000)
+        binMillis =
+            context.relBuilder.call(
+                SqlStdOperatorTable.DIVIDE, binValue, context.relBuilder.literal(MICROS_PER_MILLI));
+      }
+      
+      // Convert milliseconds back to seconds for FROM_UNIXTIME
+      RexNode binSeconds = context.relBuilder.call(
+          SqlStdOperatorTable.DIVIDE, binMillis, context.relBuilder.literal(1000L));
+      
+      return context.rexBuilder.makeCall(PPLBuiltinOperators.FROM_UNIXTIME, binSeconds);
+      
     } else {
-      // For microseconds (divide by 1000)
-      binMillis =
-          context.relBuilder.call(
-              SqlStdOperatorTable.DIVIDE, binValue, context.relBuilder.literal(MICROS_PER_MILLI));
-    }
+      // For second and larger units, binValue is already in seconds
+      RexNode binSeconds;
+      
+      if (config.divisionFactor == 1) {
+        binSeconds = binValue;
+      } else if (config.divisionFactor > 1) {
+        binSeconds =
+            context.relBuilder.call(
+                SqlStdOperatorTable.MULTIPLY,
+                binValue,
+                context.relBuilder.literal(config.divisionFactor));
+      } else {
+        binSeconds = binValue;
+      }
 
-    return context.rexBuilder.makeCall(PPLBuiltinOperators.FROM_UNIXTIME, binMillis);
+      return context.rexBuilder.makeCall(PPLBuiltinOperators.FROM_UNIXTIME, binSeconds);
+    }
   }
 
   /** Applies alignment offset to the epoch value. */
@@ -601,6 +660,43 @@ public class BinSpanFunction {
         context.relBuilder.call(
             SqlStdOperatorTable.MOD, binStartMonths, context.relBuilder.literal(12)),
         context.relBuilder.literal(1));
+  }
+
+  /**
+   * Validates sub-second span constraints.
+   * When span is expressed using a sub-second unit (ds, cs, ms, us), the span value needs to be < 1 second,
+   * and 1 second must be evenly divisible by the span value.
+   */
+  private static void validateSubSecondSpan(TimeUnitConfig config, int intervalValue) {
+    if (config == TimeUnitConfig.MICROSECONDS || 
+        config == TimeUnitConfig.MILLISECONDS ||
+        config == TimeUnitConfig.CENTISECONDS ||
+        config == TimeUnitConfig.DECISECONDS) {
+      
+      // Convert interval to microseconds for comparison
+      long intervalMicros;
+      switch (config) {
+        case MICROSECONDS -> intervalMicros = intervalValue;
+        case MILLISECONDS -> intervalMicros = intervalValue * 1000L;
+        case CENTISECONDS -> intervalMicros = intervalValue * 10000L; // 1cs = 10ms = 10000us
+        case DECISECONDS -> intervalMicros = intervalValue * 100000L; // 1ds = 100ms = 100000us
+        default -> intervalMicros = 0; // Should never reach here
+      }
+      
+      long oneSecondMicros = 1000000L; // 1 second = 1,000,000 microseconds
+      
+      // Constraint 1: span value must be < 1 second
+      if (intervalMicros >= oneSecondMicros) {
+        throw new IllegalArgumentException(
+            String.format("Sub-second span %d%s must be less than 1 second", intervalValue, config.unit));
+      }
+      
+      // Constraint 2: 1 second must be evenly divisible by the span value
+      if (oneSecondMicros % intervalMicros != 0) {
+        throw new IllegalArgumentException(
+            String.format("1 second must be evenly divisible by span %d%s", intervalValue, config.unit));
+      }
+    }
   }
 
   // TODO: Implement proper month string formatting later
