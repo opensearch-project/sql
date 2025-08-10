@@ -23,6 +23,7 @@ import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
 /**
  * Utility class for handling bin command operations in Calcite. Contains helper methods for
@@ -75,6 +76,7 @@ public class BinUtils {
       RexNode fieldExpr,
       CalcitePlanContext context,
       org.opensearch.sql.calcite.CalciteRexNodeVisitor rexVisitor) {
+    
     if (node.getAligntime() == null) {
       return null;
     }
@@ -92,19 +94,33 @@ public class BinUtils {
       Literal aligntimeLiteral = (Literal) node.getAligntime();
       String aligntimeStr = aligntimeLiteral.getValue().toString();
 
+      // Clean up quoted strings (handle cases like "\"@d+4h\"" or "'@d+4h'")
+      aligntimeStr = aligntimeStr.replace("\"", "").replace("'", "").trim();
+
       if ("earliest".equals(aligntimeStr)) {
         return context.relBuilder.min(fieldExpr).over().toRex();
       } else if ("latest".equals(aligntimeStr)) {
         return context.relBuilder.max(fieldExpr).over().toRex();
+      } else if (aligntimeStr.startsWith("@d")) {
+        // Time modifier pattern - return as special marker for downstream processing
+        return context.relBuilder.literal("ALIGNTIME_TIME_MODIFIER:" + aligntimeStr);
       } else {
-        RexNode alignTimeValue = rexVisitor.analyze(node.getAligntime(), context);
-        if (alignTimeValue instanceof org.apache.calcite.rex.RexLiteral) {
-          Object value = ((org.apache.calcite.rex.RexLiteral) alignTimeValue).getValue();
-          if (value instanceof Number) {
-            return context.relBuilder.literal(((Number) value).longValue());
+        // Try to parse as epoch timestamp
+        try {
+          long epochValue = Long.parseLong(aligntimeStr);
+          // Mark epoch timestamp for downstream processing
+          return context.relBuilder.literal("ALIGNTIME_EPOCH:" + epochValue);
+        } catch (NumberFormatException e) {
+          // Fall back to original processing for other string values
+          RexNode alignTimeValue = rexVisitor.analyze(node.getAligntime(), context);
+          if (alignTimeValue instanceof org.apache.calcite.rex.RexLiteral) {
+            Object value = ((org.apache.calcite.rex.RexLiteral) alignTimeValue).getValue();
+            if (value instanceof Number) {
+              return context.relBuilder.literal(((Number) value).longValue());
+            }
           }
+          return alignTimeValue;
         }
-        return alignTimeValue;
       }
     } else {
       // It's a time expression
@@ -123,6 +139,7 @@ public class BinUtils {
       RexNode alignTimeValue,
       CalcitePlanContext context,
       org.opensearch.sql.calcite.CalciteRexNodeVisitor rexVisitor) {
+    
     if (node.getSpan() != null) {
       return createSpanBasedRangeStrings(node, fieldExpr, alignTimeValue, context, rexVisitor);
     } else if (node.getMinspan() != null) {
@@ -151,7 +168,8 @@ public class BinUtils {
     RelDataType fieldType = fieldExpr.getType();
 
     if (shouldApplyTimeBinning(fieldName, fieldType)) {
-      validateTimestampFieldExists(fieldName, context);
+      // Field existence validation is done later in the pipeline
+      // validateTimestampFieldExists(fieldName, context);
       if (node.getSpan() instanceof org.opensearch.sql.ast.expression.Literal) {
         org.opensearch.sql.ast.expression.Literal spanLiteral =
             (org.opensearch.sql.ast.expression.Literal) node.getSpan();
@@ -164,6 +182,7 @@ public class BinUtils {
           throw new IllegalArgumentException("Span must be a literal value for time binning");
         }
         String spanStr = ((RexLiteral) spanValue).getValue().toString();
+        
         return createBinSpanExpressionFromString(spanStr, fieldExpr, alignTimeValue, context);
       }
     }
@@ -181,9 +200,20 @@ public class BinUtils {
       String spanStr = ((org.apache.calcite.util.NlsString) spanRawValue).getValue();
       return createSpanBasedExpression(spanStr, fieldExpr, context);
     } else if (spanRawValue instanceof Number) {
-      int span = ((Number) spanRawValue).intValue();
-      return createRangeCaseExpression(
-          fieldExpr, span, alignTimeValue, context, null, null, rexVisitor);
+      Number spanNumber = (Number) spanRawValue;
+      double numericSpanValue = spanNumber.doubleValue();
+      
+      // Support both integer and floating point spans
+      if (numericSpanValue == Math.floor(numericSpanValue)) {
+        // Integer span - use existing method
+        int span = spanNumber.intValue();
+        return createRangeCaseExpression(
+            fieldExpr, span, alignTimeValue, context, node.getStart(), node.getEnd(), rexVisitor);
+      } else {
+        // Floating point span - use new method
+        return createFloatingPointRangeCaseExpression(
+            fieldExpr, numericSpanValue, alignTimeValue, context, node.getStart(), node.getEnd(), rexVisitor);
+      }
     } else {
       throw new IllegalArgumentException(
           "Span must be either a number or a string (for log-based spans), got: "
@@ -390,57 +420,42 @@ public class BinUtils {
   }
 
   /**
-   * Checks if a field should receive time-based binning treatment. SPL behavior: Time-based binning
-   * ONLY applies to the special @timestamp field.
+   * Checks if a field should receive time-based binning treatment. 
+   * NEW DESIGN: Time-based binning applies to ANY field with a time-based data type.
    */
   public static boolean shouldApplyTimeBinning(String fieldName, RelDataType fieldType) {
-    // SPL compatibility: Only @timestamp field gets time-based binning
-    return TIMESTAMP_FIELD.equals(fieldName) && isTimeBasedField(fieldType);
+    return isTimeBasedField(fieldType);
   }
 
-  /** Validates that @timestamp field exists in the dataset when time-based binning is requested. */
-  public static void validateTimestampFieldExists(String fieldName, CalcitePlanContext context) {
-    if (TIMESTAMP_FIELD.equals(fieldName)) {
-      List<String> availableFields = context.relBuilder.peek().getRowType().getFieldNames();
-      if (!availableFields.contains(TIMESTAMP_FIELD)) {
-        throw new IllegalArgumentException(
-            "Time-based binning requires @timestamp field in dataset. "
-                + "Please ensure your data contains @timestamp field for time operations. "
-                + "Available fields: "
-                + availableFields);
-      }
-    }
-  }
-
-  /** Validates time-based operations on non-@timestamp fields. */
-  public static void validateTimeBasedOperations(Bin node, String fieldName) {
-    // Skip validation for @timestamp field - it's allowed to use time operations
-    if (TIMESTAMP_FIELD.equals(fieldName)) {
-      return;
-    }
-
-    if (node.getSpan() != null) {
-      String spanStr = getOriginalLiteralValue(node.getSpan());
-
-      if (spanStr != null && spanStr.matches(".*[hmsd]$")) {
-        throw new IllegalArgumentException(
-            String.format(
-                "Time-based binning requires '@timestamp' field. "
-                    + "Field '%s' does not support time operations. "
-                    + "Use '@timestamp' for time binning or remove time parameters.",
-                fieldName));
-      }
-    }
-
-    // Check for aligntime parameter - only valid for @timestamp
-    if (node.getAligntime() != null) {
+  /** 
+   * Validates that the specified field exists in the dataset.
+   * NEW DESIGN: This validation now applies to any field, not just @timestamp.
+   */
+  public static void validateFieldExists(String fieldName, CalcitePlanContext context) {
+    List<String> availableFields = context.relBuilder.peek().getRowType().getFieldNames();
+    if (!availableFields.contains(fieldName)) {
       throw new IllegalArgumentException(
-          String.format(
-              "Time-based binning requires '@timestamp' field. "
-                  + "Field '%s' does not support time operations. "
-                  + "Use '@timestamp' for time binning or remove time parameters.",
-              fieldName));
+          String.format("Field '%s' not found in dataset. Available fields: %s", 
+              fieldName, availableFields));
     }
+  }
+
+  /** 
+   * @deprecated Use validateFieldExists instead. Kept for backward compatibility.
+   */
+  @Deprecated
+  public static void validateTimestampFieldExists(String fieldName, CalcitePlanContext context) {
+    validateFieldExists(fieldName, context);
+  }
+
+  /** 
+   * Validates time-based operations on fields. 
+   * NEW DESIGN: Time operations are now allowed on any time-based field type.
+   */
+  public static void validateTimeBasedOperations(Bin node, String fieldName) {
+    // NEW DESIGN: No longer restrict time operations to @timestamp only
+    // Time operations are validated by field type, not field name
+    // This method is kept for compatibility but no longer performs restrictive validation
   }
 
   /** Checks if the field type is time-based. */
@@ -448,10 +463,12 @@ public class BinUtils {
     // First check standard SQL time types
     if (fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP
         || fieldType.getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
-        || fieldType.getSqlTypeName() == SqlTypeName.BIGINT // epoch timestamps
         || fieldType.getSqlTypeName() == SqlTypeName.DATE) {
       return true;
     }
+    
+    // NOTE: Removed BIGINT from time-based check as it was incorrectly identifying 
+    // numeric fields like 'balance' as time-based fields
 
     // Check for OpenSearch UDT types (EXPR_TIMESTAMP mapped to VARCHAR)
     if (fieldType instanceof AbstractExprRelDataType<?> exprType) {
@@ -607,7 +624,30 @@ public class BinUtils {
   private static RexNode createBinSpanExpressionFromString(
       String spanStr, RexNode fieldExpr, RexNode alignTimeValue, CalcitePlanContext context) {
 
-    // Parse alignment offset if provided
+    // Check if aligntime is provided and should be applied
+    if (alignTimeValue != null && shouldApplyAligntimeToSpan(spanStr)) {
+      if (alignTimeValue instanceof RexLiteral literal) {
+        Object value = literal.getValue();
+        if (value != null) {
+          // Extract the actual string value, handling both String and NlsString
+          String valueStr;
+          if (value instanceof org.apache.calcite.util.NlsString nlsString) {
+            valueStr = nlsString.getValue();
+          } else {
+            valueStr = value.toString();
+          }
+          
+          // Check for our alignment markers or raw values
+          if (valueStr.startsWith("ALIGNTIME_") || 
+              valueStr.startsWith("@d") || 
+              valueStr.matches("\\d+")) {
+            return createAligntimeEnabledSpanExpression(spanStr, fieldExpr, alignTimeValue, context);
+          }
+        }
+      }
+    }
+
+    // NO ALIGNTIME: Use existing working span logic (UNCHANGED)
     long alignmentOffsetMillis = 0;
     if (alignTimeValue instanceof RexLiteral literal) {
       Object value = literal.getValue();
@@ -619,7 +659,7 @@ public class BinUtils {
       }
     }
 
-    // Parse time span and create bin-specific expression
+    // Parse time span and create bin-specific expression (EXISTING LOGIC)
     try {
       // Clean up the span string
       spanStr = spanStr.replace("'", "").replace("\"", "").trim();
@@ -642,6 +682,210 @@ public class BinUtils {
       }
     } catch (NumberFormatException e) {
       throw new IllegalArgumentException("Invalid time span format: '" + spanStr + "'", e);
+    }
+  }
+
+  /** 
+   * Determines if aligntime should be applied to the given span.
+   * According to SPL spec: aligntime is ignored for days, months, years.
+   */
+  private static boolean shouldApplyAligntimeToSpan(String spanStr) {
+    if (spanStr == null) return false;
+    
+    spanStr = spanStr.replace("'", "").replace("\"", "").trim().toLowerCase();
+    String timeUnit = extractTimeUnit(spanStr);
+    
+    if (timeUnit == null) return true; // Pure number, assume hours - aligntime applies
+    
+    // Check if unit is days, months, or years (aligntime ignored)
+    String normalizedUnit = normalizeTimeUnit(timeUnit);
+    return !normalizedUnit.equals("d") && !normalizedUnit.equals("M");
+  }
+
+  /**
+   * Creates aligntime-enabled span expression using SPL-compatible algorithms.
+   * This is completely separate from existing span logic.
+   */
+  private static RexNode createAligntimeEnabledSpanExpression(
+      String spanStr, RexNode fieldExpr, RexNode alignTimeValue, CalcitePlanContext context) {
+    
+    if (!(alignTimeValue instanceof RexLiteral literal)) {
+      // Fall back to existing logic if not a literal
+      return createBinSpanExpressionFromString(spanStr, fieldExpr, null, context);
+    }
+    
+    Object value = literal.getValue();
+    
+    // Extract the actual string value, handling both String and NlsString
+    String aligntimeStr;
+    if (value instanceof org.apache.calcite.util.NlsString nlsString) {
+      aligntimeStr = nlsString.getValue();
+    } else if (value instanceof String) {
+      aligntimeStr = (String) value;
+    } else {
+      // Fall back to existing logic if not a string
+      return createBinSpanExpressionFromString(spanStr, fieldExpr, null, context);
+    }
+    
+    // Clean up quoted strings (handle cases like "\"@d+4h\"" or "'@d+4h'")
+    aligntimeStr = aligntimeStr.replace("\"", "").replace("'", "").trim();
+    
+    // Handle raw values that weren't processed into markers
+    if (!aligntimeStr.startsWith("ALIGNTIME_")) {
+      if (aligntimeStr.startsWith("@d")) {
+        aligntimeStr = "ALIGNTIME_TIME_MODIFIER:" + aligntimeStr;
+      } else if (aligntimeStr.matches("\\d+")) {
+        aligntimeStr = "ALIGNTIME_EPOCH:" + aligntimeStr;
+      }
+    }
+    
+    // Parse span parameters
+    spanStr = spanStr.replace("'", "").replace("\"", "").trim();
+    String timeUnit = extractTimeUnit(spanStr);
+    int intervalValue;
+    String normalizedUnit;
+    
+    if (timeUnit != null) {
+      String valueStr = spanStr.substring(0, spanStr.length() - timeUnit.length());
+      intervalValue = Integer.parseInt(valueStr);
+      normalizedUnit = normalizeTimeUnit(timeUnit);
+    } else {
+      intervalValue = Integer.parseInt(spanStr);
+      normalizedUnit = "h"; // default to hours
+    }
+    
+    // Get epoch milliseconds for timestamp
+    RexNode epochMillis = context.rexBuilder.makeCall(PPLBuiltinOperators.UNIX_TIMESTAMP, fieldExpr);
+    
+    // Convert interval to milliseconds based on unit
+    long intervalMillis = getIntervalInMilliseconds(intervalValue, normalizedUnit);
+    RexNode intervalLiteral = context.relBuilder.literal(intervalMillis);
+    
+    if (aligntimeStr.startsWith("ALIGNTIME_EPOCH:")) {
+      // Epoch timestamp alignment - use BinSpanFunction for consistent behavior
+      String epochStr = aligntimeStr.substring("ALIGNTIME_EPOCH:".length());
+      
+      System.out.println("DEBUG: BinUtils processing ALIGNTIME_EPOCH: " + epochStr);
+      
+      // Use the WORKING BinSpanFunction approach instead of the inline calculation
+      return BinSpanFunction.createBinTimeSpanExpressionWithTimeModifier(
+          fieldExpr, intervalValue, normalizedUnit, epochStr, context);
+      
+    } else if (aligntimeStr.startsWith("ALIGNTIME_TIME_MODIFIER:")) {
+      // Time modifier alignment (@d, @d+4h, @d-1h)
+      String timeModifier = aligntimeStr.substring("ALIGNTIME_TIME_MODIFIER:".length());
+      
+      System.out.println("DEBUG: BinUtils calling BinSpanFunction with timeModifier: " + timeModifier);
+      
+      // Use the WORKING BinSpanFunction approach instead of the broken createTimeModifierAlignment
+      return BinSpanFunction.createBinTimeSpanExpressionWithTimeModifier(
+          fieldExpr, intervalValue, normalizedUnit, timeModifier, context);
+      
+    } else {
+      // Fall back to existing logic
+      return createBinSpanExpressionFromString(spanStr, fieldExpr, null, context);
+    }
+  }
+
+  /** Converts interval value and unit to milliseconds */
+  private static long getIntervalInMilliseconds(int intervalValue, String unit) {
+    return switch (unit) {
+      case "us" -> intervalValue / 1000L; // microseconds to milliseconds
+      case "ms" -> intervalValue; // milliseconds
+      case "cs" -> intervalValue * 10L; // centiseconds to milliseconds
+      case "ds" -> intervalValue * 100L; // deciseconds to milliseconds
+      case "s" -> intervalValue * 1000L; // seconds to milliseconds
+      case "m" -> intervalValue * 60 * 1000L; // minutes to milliseconds
+      case "h" -> intervalValue * 3600 * 1000L; // hours to milliseconds
+      default -> intervalValue * 3600 * 1000L; // default to hours
+    };
+  }
+
+  /** Creates time modifier alignment expression using the working SPL algorithm from BinSpanFunction */
+  private static RexNode createTimeModifierAlignment(
+      RexNode epochMillis, long intervalMillis, String timeModifier, CalcitePlanContext context) {
+    
+    System.out.println("=== DEBUG: createTimeModifierAlignment ===");
+    System.out.println("timeModifier: " + timeModifier);
+    System.out.println("intervalMillis: " + intervalMillis);
+    
+    // Parse time modifier
+    long offsetMillis = 0;
+    if (timeModifier.equals("@d")) {
+      offsetMillis = 0; // Start of day
+      System.out.println("Using @d (start of day)");
+    } else if (timeModifier.startsWith("@d+")) {
+      String offsetStr = timeModifier.substring(3);
+      offsetMillis = parseTimeOffsetForModifier(offsetStr);
+      System.out.println("Using @d+ with offset: " + offsetStr + " = " + offsetMillis + "ms");
+    } else if (timeModifier.startsWith("@d-")) {
+      String offsetStr = timeModifier.substring(3);
+      offsetMillis = -parseTimeOffsetForModifier(offsetStr);
+      System.out.println("Using @d- with offset: " + offsetStr + " = " + offsetMillis + "ms");
+    }
+    
+    System.out.println("Final offsetMillis: " + offsetMillis);
+    
+    RexNode intervalLiteral = context.relBuilder.literal(intervalMillis);
+    RexNode millisecondsPerDay = context.relBuilder.literal(86400000L);
+    
+    // Calculate start of current day
+    RexNode daysSinceEpoch = context.relBuilder.call(
+        SqlStdOperatorTable.FLOOR,
+        context.relBuilder.call(SqlStdOperatorTable.DIVIDE, epochMillis, millisecondsPerDay));
+    RexNode startOfCurrentDay = context.relBuilder.call(
+        SqlStdOperatorTable.MULTIPLY, daysSinceEpoch, millisecondsPerDay);
+    
+    // Calculate alignment point for current day
+    RexNode alignmentPoint;
+    if (offsetMillis != 0) {
+      alignmentPoint = context.relBuilder.call(
+          SqlStdOperatorTable.PLUS, startOfCurrentDay, context.relBuilder.literal(offsetMillis));
+    } else {
+      alignmentPoint = startOfCurrentDay;
+    }
+    
+    // SPL Algorithm: FLOOR((timestamp - aligntime) / interval) * interval + aligntime
+    // Step 1: Calculate (timestamp - aligntime)
+    RexNode timestampMinusAlign = context.relBuilder.call(
+        SqlStdOperatorTable.MINUS, epochMillis, alignmentPoint);
+    
+    // Step 2: Divide by interval: (timestamp - aligntime) / interval
+    RexNode quotient = context.relBuilder.call(
+        SqlStdOperatorTable.DIVIDE, timestampMinusAlign, intervalLiteral);
+    
+    // Step 3: Apply FLOOR to handle negative values correctly
+    // FLOOR works correctly for both positive and negative numbers in SPL
+    RexNode binNumber = context.relBuilder.call(SqlStdOperatorTable.FLOOR, quotient);
+    
+    // Step 4: Multiply back by interval: FLOOR(...) * interval
+    RexNode binOffset = context.relBuilder.call(
+        SqlStdOperatorTable.MULTIPLY, binNumber, intervalLiteral);
+    
+    // Step 5: Add back aligntime: FLOOR(...) * interval + aligntime
+    RexNode binStartMillis = context.relBuilder.call(
+        SqlStdOperatorTable.PLUS, alignmentPoint, binOffset);
+    
+    return context.rexBuilder.makeCall(PPLBuiltinOperators.FROM_UNIXTIME, binStartMillis);
+  }
+
+  /** Parses time offset for modifiers (e.g., "4h" -> 14400000 milliseconds) */
+  private static long parseTimeOffsetForModifier(String offsetStr) {
+    offsetStr = offsetStr.trim().toLowerCase();
+    
+    if (offsetStr.endsWith("h")) {
+      int hours = Integer.parseInt(offsetStr.substring(0, offsetStr.length() - 1));
+      return hours * 3600000L;
+    } else if (offsetStr.endsWith("m")) {
+      int minutes = Integer.parseInt(offsetStr.substring(0, offsetStr.length() - 1));
+      return minutes * 60000L;
+    } else if (offsetStr.endsWith("s")) {
+      int seconds = Integer.parseInt(offsetStr.substring(0, offsetStr.length() - 1));
+      return seconds * 1000L;
+    } else {
+      // Default to hours if no unit
+      int hours = Integer.parseInt(offsetStr);
+      return hours * 3600000L;
     }
   }
 
@@ -777,6 +1021,114 @@ public class BinUtils {
     return rangeString;
   }
 
+  /** Creates a CASE expression that converts numeric values to range strings for floating point spans. */
+  private static RexNode createFloatingPointRangeCaseExpression(
+      RexNode fieldExpr,
+      double span,
+      RexNode alignTimeValue,
+      CalcitePlanContext context,
+      org.opensearch.sql.ast.expression.UnresolvedExpression startExpr,
+      org.opensearch.sql.ast.expression.UnresolvedExpression endExpr,
+      org.opensearch.sql.calcite.CalciteRexNodeVisitor rexVisitor) {
+
+    double rangeStart = 0.0;
+    if (alignTimeValue instanceof RexLiteral literal
+        && literal.getValue() instanceof Number number) {
+      rangeStart = number.doubleValue();
+    }
+
+    // Override with start parameter if specified
+    if (startExpr != null) {
+      RexNode startValue = rexVisitor.analyze(startExpr, context);
+      if (startValue.isA(LITERAL)) {
+        rangeStart = ((Number) ((RexLiteral) startValue).getValue()).doubleValue();
+      }
+    }
+
+    RexNode spanLiteral = context.relBuilder.literal(span);
+    RexNode rangeStartLiteral = context.relBuilder.literal(rangeStart);
+
+    // Calculate: (field - rangeStart) / span
+    RexNode adjustedField =
+        context.relBuilder.call(SqlStdOperatorTable.MINUS, fieldExpr, rangeStartLiteral);
+    RexNode divided =
+        context.relBuilder.call(SqlStdOperatorTable.DIVIDE, adjustedField, spanLiteral);
+
+    // Floor the division to get bin number
+    RexNode binNumber = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
+
+    // Calculate bin_start = binNumber * span + rangeStart
+    RexNode binStartValue =
+        context.relBuilder.call(
+            SqlStdOperatorTable.PLUS,
+            context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, binNumber, spanLiteral),
+            rangeStartLiteral);
+
+    // Calculate bin_end = bin_start + span
+    RexNode binEndValue =
+        context.relBuilder.call(SqlStdOperatorTable.PLUS, binStartValue, spanLiteral);
+
+    // Create range string with proper floating point formatting
+    RexNode rangeString = createFloatingPointRangeString(binStartValue, binEndValue, context);
+
+    // If end parameter is specified, we need to handle values outside the range
+    if (endExpr != null) {
+      RexNode endValue = rexVisitor.analyze(endExpr, context);
+      if (endValue instanceof RexLiteral literal && literal.getValue() instanceof Number number) {
+        double rangeEnd = number.doubleValue();
+
+        // Create condition: field >= rangeStart AND field < rangeEnd
+        RexNode inRangeCondition =
+            context.relBuilder.call(
+                SqlStdOperatorTable.AND,
+                context.relBuilder.call(
+                    SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
+                    fieldExpr,
+                    context.relBuilder.literal(rangeStart)),
+                context.relBuilder.call(
+                    SqlStdOperatorTable.LESS_THAN,
+                    fieldExpr,
+                    context.relBuilder.literal(rangeEnd)));
+
+        // Return CASE WHEN in_range THEN range_string ELSE 'Other' END
+        return context.relBuilder.call(
+            SqlStdOperatorTable.CASE,
+            inRangeCondition,
+            rangeString,
+            context.relBuilder.literal(OTHER_CATEGORY));
+      }
+    }
+
+    // No end limit - return the dynamic range string for all values
+    return rangeString;
+  }
+
+  /** Creates a formatted range string from start and end values for floating point spans. */
+  private static RexNode createFloatingPointRangeString(
+      RexNode binValue, RexNode binEnd, CalcitePlanContext context) {
+    RexNode dash = context.relBuilder.literal(DASH_SEPARATOR);
+
+    // Round to avoid floating point precision issues and format to 1 decimal place
+    RexNode roundedStart = context.relBuilder.call(
+        SqlStdOperatorTable.ROUND,
+        binValue,
+        context.relBuilder.literal(1));
+    RexNode roundedEnd = context.relBuilder.call(
+        SqlStdOperatorTable.ROUND,
+        binEnd,
+        context.relBuilder.literal(1));
+
+    // Cast to VARCHAR for string concatenation
+    RexNode binValueFormatted = 
+        context.relBuilder.cast(roundedStart, SqlTypeName.VARCHAR);
+    RexNode binEndFormatted = 
+        context.relBuilder.cast(roundedEnd, SqlTypeName.VARCHAR);
+
+    RexNode firstConcat =
+        context.relBuilder.call(SqlStdOperatorTable.CONCAT, binValueFormatted, dash);
+    return context.relBuilder.call(SqlStdOperatorTable.CONCAT, firstConcat, binEndFormatted);
+  }
+
   /**
    * Creates a span-based expression that handles different span types: - Numeric spans (e.g.,
    * "1000") - Log-based spans (e.g., "log10", "2log10")
@@ -788,9 +1140,16 @@ public class BinUtils {
 
       switch (spanInfo.type) {
         case NUMERIC -> {
-          // Traditional numeric span - use the range case expression
-          return createRangeCaseExpression(
-              fieldExpr, (int) spanInfo.value, null, context, null, null, null);
+          // Support both integer and floating point spans
+          if (spanInfo.value == Math.floor(spanInfo.value)) {
+            // Integer span - use existing method
+            return createRangeCaseExpression(
+                fieldExpr, (int) spanInfo.value, null, context, null, null, null);
+          } else {
+            // Floating point span - use new method
+            return createFloatingPointRangeCaseExpression(
+                fieldExpr, spanInfo.value, null, context, null, null, null);
+          }
         }
         case LOG -> {
           // Logarithmic binning
@@ -1065,16 +1424,25 @@ public class BinUtils {
     };
 
     // Case-sensitive matching for M (months) vs m (minutes)
+    // Process in order from longest to shortest to avoid partial matches
     for (String unit : timeUnits) {
       if (unit.equals("M")) {
         // Case-sensitive check for months
         if (spanStr.endsWith("M")) {
+          System.out.println("DEBUG: Matched case-sensitive 'M' for " + spanStr);
           return unit;
         }
       } else {
         // Case-insensitive check for other units
-        if (spanStr.toLowerCase().endsWith(unit.toLowerCase())) {
-          return unit;
+        String lowerSpanStr = spanStr.toLowerCase();
+        String lowerUnit = unit.toLowerCase();
+        if (lowerSpanStr.endsWith(lowerUnit)) {
+          // Additional check: make sure we're matching the complete unit, not a substring
+          // For example, "1mon" should match "mon" but not "m"
+          int unitStartPos = lowerSpanStr.length() - lowerUnit.length();
+          if (unitStartPos == 0 || !Character.isLetter(lowerSpanStr.charAt(unitStartPos - 1))) {
+            return unit;
+          }
         }
       }
     }

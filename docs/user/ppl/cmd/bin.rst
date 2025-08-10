@@ -355,6 +355,39 @@ PPL query::
 
 This demonstrates SPL's magnitude-based algorithm that automatically selects appropriate bin widths based on the data range.
 
+Time Field Support
+==================
+
+The bin command supports time-based binning on **any field with a time-based data type**, not just the traditional ``@timestamp`` field. Supported time field types include:
+
+* **timestamp** - Full datetime with timezone information
+* **datetime** - Date and time without timezone 
+* **date** - Date only (year, month, day)
+* **time** - Time only (hour, minute, second)
+
+**Examples of valid time field binning:**
+
+.. code-block:: ppl
+
+   # Using custom timestamp field
+   source=events | bin event_time span=1h | stats count() by event_time
+   
+   # Using date field
+   source=transactions | bin transaction_date span=1d | stats sum(amount) by transaction_date
+   
+   # Using datetime field  
+   source=logs | bin created_at span=30m aligntime="@d" | stats count() by created_at
+   
+   # Using time field for daily patterns
+   source=activity | bin activity_time span=2h | stats avg(duration) by activity_time
+
+**Key Benefits:**
+
+* **Flexibility**: Work with your existing field names and schemas
+* **Multi-field Support**: Bin different time fields in the same dataset
+* **Type Safety**: Automatic detection of time-based fields for appropriate binning
+* **Consistent Behavior**: Same aligntime and span functionality across all time field types
+
 Example 8: Time-based binning with real data
 ===========================================
 
@@ -660,7 +693,7 @@ The bin command is designed to be compatible with Splunk Processing Language (SP
 **Key Differences from Standard SQL:**
 * PPL bin command transforms the original field in-place (SPL behavior)
 * Time modifier expressions provide flexible time alignment
-* Aligntime works specifically with ``@timestamp`` and other time-based fields
+* Aligntime works with any time-based fields (timestamp, date, time, datetime types)
 * Binned timestamp values show the bin start time (e.g., "2025-07-28 03:00")
 
 Best Practices
@@ -676,7 +709,7 @@ Choosing Bin Parameters
 
 Time-Based Binning Best Practices
 ----------------------------------
-* For timestamp fields, always consider using ``aligntime`` to ensure meaningful bin boundaries
+* For any time-based fields (timestamp, date, time, datetime), always consider using ``aligntime`` to ensure meaningful bin boundaries
 * Use ``@d`` aligntime for daily patterns starting at midnight
 * Use ``@d+3h`` for business hours analysis (e.g., 3 AM to 3 PM, 3 PM to 3 AM)
 * Combine appropriate span values with aligntime (e.g., ``span=12h aligntime="@d+3h"``)
@@ -698,7 +731,7 @@ Performance Considerations
 Common Use Cases
 ================
 * **Histograms**: Combine with ``stats count()`` to create frequency distributions
-* **Time-series Analysis**: Bin timestamp fields with aligntime for consistent time boundaries
+* **Time-series Analysis**: Bin any time-based fields with aligntime for consistent time boundaries
 * **Business Hours Analysis**: Use ``aligntime="@d+9h"`` with appropriate spans for business day patterns
 * **Daily/Weekly Patterns**: Align bins to meaningful time boundaries (midnight, noon, etc.)
 * **Data Categorization**: Group continuous values into discrete categories
@@ -949,14 +982,14 @@ Technical Implementation Details
 * MIN/MAX values determined from actual field data using window functions
 
 **Field Type Support:**
-* **@timestamp and datetime fields**: Full aligntime support with time modifiers, daily/monthly binning
+* **Time-based fields (timestamp, date, time, datetime)**: Full aligntime support with time modifiers, daily/monthly binning
 * **Numeric fields**: Standard binning without aligntime, logarithmic binning support
 * **String fields**: Not supported for binning operations
 
 Limitations
 ===========
 * The ``span``, ``minspan``, and ``bins`` parameters are mutually exclusive
-* The ``aligntime`` parameter is only valid for time-based fields (@timestamp, datetime, timestamp)
+* The ``aligntime`` parameter is only valid for time-based fields (timestamp, date, time, datetime types)
 * For non-time fields, ``aligntime`` is ignored without error
 * Only numeric and time fields can be binned
 * Requires Calcite engine (not supported in legacy engine)
