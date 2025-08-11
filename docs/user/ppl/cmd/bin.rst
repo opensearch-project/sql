@@ -63,8 +63,8 @@ Specifies the width of each bin interval with support for multiple span types:
 - **Seconds**: ``s``, ``sec``, ``secs``, ``second``, ``seconds``
 - **Minutes**: ``m``, ``min``, ``mins``, ``minute``, ``minutes``
 - **Hours**: ``h``, ``hr``, ``hrs``, ``hour``, ``hours``
-- **Days**: ``d``, ``day``, ``days`` - **Uses SPL's exact daily binning algorithm**
-- **Months**: ``M``, ``mon``, ``month``, ``months`` - **Uses SPL's exact monthly binning algorithm**
+- **Days**: ``d``, ``day``, ``days`` - **Uses precise daily binning algorithm**
+- **Months**: ``M``, ``mon``, ``month``, ``months`` - **Uses precise monthly binning algorithm**
 - **Examples**:
   - ``span=30seconds``
   - ``span=15minutes``
@@ -76,9 +76,9 @@ Specifies the width of each bin interval with support for multiple span types:
   - ``span=50cs`` (centiseconds)
   - ``span=2ds`` (deciseconds)
 
-**SPL Daily Binning Algorithm (for day-based spans)**
+**Daily Binning Algorithm (for day-based spans)**
 
-For daily spans (``1days``, ``7days``, ``30days``), the implementation uses **SPL's exact daily binning algorithm** with Unix epoch reference:
+For daily spans (``1days``, ``7days``, ``30days``), the implementation uses a **precise daily binning algorithm** with Unix epoch reference:
 
 1. **Unix Epoch Reference**: Uses January 1, 1970 as the fixed reference point for all daily calculations
 2. **Modular Arithmetic**: Calculates ``days_since_epoch % span_days`` to find position within span cycle
@@ -89,9 +89,9 @@ For daily spans (``1days``, ``7days``, ``30days``), the implementation uses **SP
 - ``span=6days``: 20,297 % 6 = 5 → bin starts July 23, 2025 (``"2025-07-23"``)
 - ``span=7days``: 20,297 % 7 = 4 → bin starts July 24, 2025 (``"2025-07-24"``)
 
-**SPL Monthly Binning Algorithm (for month-based spans)**
+**Monthly Binning Algorithm (for month-based spans)**
 
-For monthly spans (``1months``, ``4months``, ``6months``), the implementation uses **SPL's exact monthly binning algorithm** with Unix epoch reference:
+For monthly spans (``1months``, ``4months``, ``6months``), the implementation uses a **precise monthly binning algorithm** with Unix epoch reference:
 
 1. **Unix Epoch Reference**: Uses January 1970 as the fixed reference point for all monthly calculations
 2. **Modular Arithmetic**: Calculates ``months_since_epoch % span_months`` to find position within span cycle
@@ -102,11 +102,11 @@ For monthly spans (``1months``, ``4months``, ``6months``), the implementation us
 - ``span=4months``: 666 % 4 = 2 → bin starts at month 664 = May 2025 (``"2025-05"``)
 - ``span=6months``: 666 % 6 = 0 → bin starts at month 666 = July 2025 (``"2025-07"``)
 
-This ensures perfect SPL compatibility for both daily and monthly binning operations.
+This ensures precise and consistent behavior for both daily and monthly binning operations.
 
 minspan Parameter
 -----------------
-Specifies the minimum allowed interval size using SPL's magnitude-based algorithm. The algorithm works as follows:
+Specifies the minimum allowed interval size using a magnitude-based algorithm. The algorithm works as follows:
 
 1. **Calculate default width**: ``10^FLOOR(LOG10(data_range))`` - the largest power of 10 that fits within the data range
 2. **Apply minspan constraint**: 
@@ -124,16 +124,16 @@ aligntime Parameter
 -------------------
 For time-based fields, aligntime allows you to specify how bins should be aligned. This parameter is essential for creating consistent time-based bins that align to meaningful boundaries like start of day, hour, etc.
 
-**IMPORTANT: SPL Compatibility Rule**
+**IMPORTANT: Alignment Rule**
 
-**Aligntime is ignored when span is in days, months, or years.** This matches SPL behavior where longer-term spans (``1d``, ``2M``, ``1y``) automatically align to natural boundaries (midnight, month start, year start) regardless of aligntime settings.
+**Aligntime is ignored when span is in days, months, or years.** Longer-term spans (``1d``, ``2M``, ``1y``) automatically align to natural boundaries (midnight, month start, year start) regardless of aligntime settings.
 
 **Alignment Options:**
 
 * ``earliest``: Aligns bins to the earliest timestamp in the dataset
 * ``latest``: Aligns bins to the latest timestamp in the dataset
 * ``<epoch-timestamp>``: Aligns bins to a specific epoch timestamp (e.g., 1640995200)
-* ``<time-modifier>``: Aligns bins using time modifier expressions (SPL-compatible)
+* ``<time-modifier>``: Aligns bins using time modifier expressions (standard-compatible)
 
 **Time Modifier Expressions:**
 
@@ -152,21 +152,21 @@ Time modifiers provide a flexible way to align bins to specific time boundaries:
 * ``h``, ``hr``, ``hrs``, ``hours``: Hours
 
 **Aligntime ignored for:**
-* ``d``, ``days``: Days - automatically aligns to midnight using SPL daily binning algorithm
-* ``M``, ``months``: Months - automatically aligns to month start using SPL monthly binning algorithm
+* ``d``, ``days``: Days - automatically aligns to midnight using daily binning algorithm
+* ``M``, ``months``: Months - automatically aligns to month start using monthly binning algorithm
 
 **How Aligntime Works:**
 
 The aligntime parameter modifies the binning calculation:
 * **Without aligntime**: ``floor(timestamp / span) * span``
 * **With aligntime**: ``floor((timestamp - aligntime) / span) * span + aligntime``
-* **With day/month spans**: Aligntime is ignored, natural boundaries used via SPL algorithms
+* **With day/month spans**: Aligntime is ignored, natural boundaries used via specialized algorithms
 
 This ensures that bins are aligned to meaningful time boundaries rather than arbitrary epoch-based intervals.
 
 bins Parameter
 --------------
-Automatically calculates the span using SPL's "nice number" algorithm to create human-readable bin widths. 
+Automatically calculates the span using a "nice number" algorithm to create human-readable bin widths. 
 
 **Validation**: The bins parameter must be between 2 and 50000 (inclusive). Values outside this range will result in an error.
 
@@ -191,7 +191,7 @@ This prioritizes creating the **maximum number of bins** within the requested li
 
 start and end Parameters
 -------------------------
-Define the range for binning using SPL's effective range expansion algorithm. The key insight is that start/end parameters affect the **width calculation**, not just the binning boundaries.
+Define the range for binning using an effective range expansion algorithm. The key insight is that start/end parameters affect the **width calculation**, not just the binning boundaries.
 
 **Algorithm:**
 1. **Calculate effective range**: Only expand, never shrink the data range
@@ -260,7 +260,7 @@ PPL query::
 Example 3: Binning with bins parameter
 =======================================
 
-The example shows creating bins using SPL's nice number algorithm for age field.
+The example shows creating bins using nice number algorithm for age field.
 
 PPL query::
 
@@ -315,7 +315,7 @@ PPL query::
 Example 6: Binning with minspan parameter
 ==========================================
 
-The example shows binning with SPL's magnitude-based minspan algorithm.
+The example shows binning with magnitude-based minspan algorithm.
 
 PPL query::
 
@@ -335,7 +335,7 @@ PPL query::
 Example 7: Default binning behavior (magnitude-based algorithm)
 ==============================================================
 
-The example shows bin command without parameters using SPL's magnitude-based default width algorithm.
+The example shows bin command without parameters using magnitude-based default width algorithm.
 
 PPL query::
 
@@ -353,7 +353,7 @@ PPL query::
 - Default width = 10^FLOOR(LOG10(20)) = 10^1 = 10
 - Creates bins with width=10: "20-30", "30-40", "40-50"
 
-This demonstrates SPL's magnitude-based algorithm that automatically selects appropriate bin widths based on the data range.
+This demonstrates magnitude-based algorithm that automatically selects appropriate bin widths based on the data range.
 
 Time Field Support
 ==================
@@ -588,10 +588,10 @@ PPL query::
 
 **Explanation**: This shows how to create time-series aggregations by binning timestamps into 5-minute intervals and counting events in each bin.
 
-Example 20: SPL Daily Binning Algorithm
-========================================
+Example 20: Daily Binning Algorithm
+===================================
 
-The example shows SPL's exact daily binning algorithm with Unix epoch reference.
+The example shows precise daily binning algorithm with Unix epoch reference.
 
 PPL query::
 
@@ -625,7 +625,7 @@ PPL query::
 - **6-day binning**: Day 20,297 % 6 = 5 → bin starts at day 20,292 = **2025-07-23**
 - **7-day binning**: Day 20,297 % 7 = 4 → bin starts at day 20,293 = **2025-07-24**
 
-This demonstrates SPL's exact daily binning algorithm using Unix epoch (1970-01-01) as reference point for consistent bin alignment across all dates.
+This demonstrates precise daily binning algorithm using Unix epoch (1970-01-01) as reference point for consistent bin alignment across all dates.
 
 Example 19: Daily vs Hourly Binning Comparison
 ===============================================
@@ -659,39 +659,39 @@ PPL query (hourly binning - returns timestamps)::
 - **Daily spans** (``1days``, ``7days``) align timestamps to midnight (00:00:00) of each day
 - **Hour spans** (``1hour``, ``24hours``) create regular hourly intervals
 
-SPL Compatibility
-==================
+Standard Compatibility
+======================
 
-The bin command is designed to be compatible with Splunk Processing Language (SPL) syntax and behavior:
+The bin command implements industry-standard syntax and behavior patterns:
 
-**Supported SPL Features:**
+**Supported Features:**
 * Time modifier expressions (``@d``, ``@d+3h``, ``@d-1h``)
 * Aligntime parameter for timestamp alignment
 * In-place field transformation (original field is replaced with binned values)
 * SPAN function for time-based binning
 * Consistent binning behavior across multiple rows
-* **SPL's Exact Daily Binning Algorithm**:
+* **Precise Daily Binning Algorithm**:
   - Unix epoch (1970-01-01) reference point for all daily calculations
   - Modular arithmetic for consistent bin alignment: ``days_since_epoch % span_days``
   - Date string output format (``YYYY-MM-DD``) for daily spans
-  - Perfect compatibility with SPL daily binning behavior
-* **SPL's Exact Monthly Binning Algorithm**:
+  - Ensures consistent daily binning behavior
+* **Precise Monthly Binning Algorithm**:
   - Unix epoch (January 1970) reference point for all monthly calculations
   - Modular arithmetic for consistent bin alignment: ``months_since_epoch % span_months``
   - Month string output format (``YYYY-MM``) for monthly spans
-  - Perfect compatibility with SPL monthly binning behavior
+  - Ensures consistent monthly binning behavior
 * **Extended span options**:
   - Logarithmic binning (``span=log10``, ``span=2log10``, ``span=log3``, arbitrary bases)
   - **Comprehensive time scale units**: ``seconds``, ``minutes``, ``hours``, ``days``, ``months``
-  - **Full SPL timescale specification support**: ``us``, ``ms``, ``cs``, ``ds``, ``sec``, ``secs``, ``seconds``, ``min``, ``mins``, ``minutes``, ``hr``, ``hrs``, ``hours``, ``day``, ``days``, ``mon``, ``month``, ``months``
+  - **Full timescale specification support**: ``us``, ``ms``, ``cs``, ``ds``, ``sec``, ``secs``, ``seconds``, ``min``, ``mins``, ``minutes``, ``hr``, ``hrs``, ``hours``, ``day``, ``days``, ``mon``, ``month``, ``months``
   - Subsecond precision (``us``, ``ms``, ``cs``, ``ds``)
   - Case-sensitive month/minute distinction (``M`` = months, ``m`` = minutes)
-* **SPL algorithm compatibility**: ``aligntime``, ``bins``, ``minspan``, ``start``, ``end``
-* **SPL's Nice Number Algorithm**: Identical width selection logic for ``bins`` parameter
-* **SPL's Magnitude-Based Algorithms**: For ``minspan``, ``start/end``, and default binning
+* **Standard algorithm compatibility**: ``aligntime``, ``bins``, ``minspan``, ``start``, ``end``
+* **Nice Number Algorithm**: Optimal width selection logic for ``bins`` parameter
+* **Magnitude-Based Algorithms**: For ``minspan``, ``start/end``, and default binning
 
 **Key Differences from Standard SQL:**
-* PPL bin command transforms the original field in-place (SPL behavior)
+* PPL bin command transforms the original field in-place (industry-standard behavior)
 * Time modifier expressions provide flexible time alignment
 * Aligntime works with any time-based fields (timestamp, date, time, datetime types)
 * Binned timestamp values show the bin start time (e.g., "2025-07-28 03:00")
@@ -773,14 +773,14 @@ Both approaches create similar results, but ``bin`` provides more flexibility fo
 Algorithm Details
 ==================
 
-SPL-Compatible Binning Algorithms
-----------------------------------
+Standard Binning Algorithms
+---------------------------
 
-The bin command implements seven distinct SPL-compatible algorithms depending on the parameters used:
+The bin command implements seven distinct algorithms depending on the parameters used:
 
 **1. Bins Parameter Algorithm (Nice Number Selection)**
 
-The bins parameter uses SPL's "nice number" algorithm to create human-readable bin widths:
+The bins parameter uses a "nice number" algorithm to create human-readable bin widths:
 
 .. code-block:: none
 
@@ -799,7 +799,7 @@ The bins parameter uses SPL's "nice number" algorithm to create human-readable b
 
 **2. Minspan Parameter Algorithm (Magnitude-Based Selection)**
 
-The minspan parameter uses SPL's magnitude-based algorithm for default width calculation:
+The minspan parameter uses a magnitude-based algorithm for default width calculation:
 
 .. code-block:: none
 
@@ -827,7 +827,7 @@ The span parameter uses a simple fixed-width algorithm:
 
 **4. Default Binning Algorithm (Magnitude-Based Width)**
 
-When no parameters are specified, uses SPL's magnitude-based default width algorithm:
+When no parameters are specified, uses a magnitude-based default width algorithm:
 
 .. code-block:: none
 
@@ -866,9 +866,9 @@ The start/end parameters use effective range expansion with boundary handling:
    - end=100000: effective_range=100,000 → width=10,000 (5 bins)
    - end=100001: effective_range=100,001 → width=100,000 (1 bin)
 
-**6. SPL Daily Binning Algorithm (for day-based spans)**
+**6. Daily Binning Algorithm (for day-based spans)**
 
-For daily spans (``1days``, ``7days``, ``30days``), uses SPL's exact daily binning algorithm:
+For daily spans (``1days``, ``7days``, ``30days``), uses a precise daily binning algorithm:
 
 .. code-block:: none
 
@@ -888,11 +888,11 @@ For daily spans (``1days``, ``7days``, ``30days``), uses SPL's exact daily binni
    - Uses Unix epoch (1970-01-01) as fixed reference point
    - Modular arithmetic ensures consistent bin alignment
    - Returns date strings instead of timestamps
-   - Perfect SPL compatibility for daily binning
+   - Ensures consistent daily binning behavior
 
-**7. SPL Monthly Binning Algorithm (for month-based spans)**
+**7. Monthly Binning Algorithm (for month-based spans)**
 
-For monthly spans (``1months``, ``4months``, ``6months``), uses SPL's exact monthly binning algorithm:
+For monthly spans (``1months``, ``4months``, ``6months``), uses a precise monthly binning algorithm:
 
 .. code-block:: none
 
@@ -912,7 +912,7 @@ For monthly spans (``1months``, ``4months``, ``6months``), uses SPL's exact mont
    - Uses Unix epoch (January 1970) as fixed reference point
    - Modular arithmetic ensures consistent bin alignment
    - Returns month strings instead of timestamps
-   - Perfect SPL compatibility for monthly binning
+   - Ensures consistent monthly binning behavior
 
 **8. Logarithmic Binning Algorithm (for log-based spans)**
 
@@ -951,8 +951,8 @@ Most algorithms use the standard binning formula:
    bin_range = "bin_value-(bin_value + width)"
 
 **Exceptions**: 
-- Daily spans use the specialized SPL daily binning algorithm
-- Monthly spans use the specialized SPL monthly binning algorithm  
+- Daily spans use the specialized daily binning algorithm
+- Monthly spans use the specialized monthly binning algorithm  
 - Log spans use logarithmic boundary calculation
 
 **Range String Format**
@@ -971,7 +971,7 @@ Technical Implementation Details
 
 **Architecture:**
 * Uses Apache Calcite query planning engine for optimized execution
-* Implements SPL-compatible SPAN function for time-based binning
+* Implements standard SPAN function for time-based binning
 * Dynamic MIN/MAX calculation using window functions: ``MIN() OVER()`` and ``MAX() OVER()``
 * Thread-local storage ensures consistent aligntime across multiple rows
 * TimestampRounding class handles complex time alignment calculations
@@ -1003,20 +1003,20 @@ Limitations
 * **Time scale units**: Case-sensitive for ``M`` (months) vs ``m`` (minutes)
 * **Subsecond units**: Converted to millisecond precision internally, may have rounding limitations
 
-**Supported Time Units (Full SPL Timescale Specification):**
+**Supported Time Units (Full Timescale Specification):**
 * **Subseconds**: ``us`` (microseconds), ``ms`` (milliseconds), ``cs`` (centiseconds), ``ds`` (deciseconds)
 * **Seconds**: ``s``, ``sec``, ``secs``, ``second``, ``seconds``
 * **Minutes**: ``m``, ``min``, ``mins``, ``minute``, ``minutes``
 * **Hours**: ``h``, ``hr``, ``hrs``, ``hour``, ``hours``
-* **Days**: ``d``, ``day``, ``days`` (uses SPL's exact daily binning algorithm)
-* **Months**: ``M``, ``mon``, ``month``, ``months`` (uses SPL's exact monthly binning algorithm, case-sensitive: ``M`` = months, ``m`` = minutes)
+* **Days**: ``d``, ``day``, ``days`` (uses precise daily binning algorithm)
+* **Months**: ``M``, ``mon``, ``month``, ``months`` (uses precise monthly binning algorithm, case-sensitive: ``M`` = months, ``m`` = minutes)
 
 **Daily and Monthly Binning Special Behavior:**
-* **Daily spans** (``1days``, ``7days``, ``30days``) use SPL's exact daily binning algorithm
+* **Daily spans** (``1days``, ``7days``, ``30days``) use precise daily binning algorithm
   - Returns date strings (``YYYY-MM-DD``) instead of timestamps
   - Uses Unix epoch (1970-01-01) as reference point for consistent alignment
   - Modular arithmetic ensures identical results for identical input dates
-* **Monthly spans** (``1months``, ``4months``, ``6months``) use SPL's exact monthly binning algorithm
+* **Monthly spans** (``1months``, ``4months``, ``6months``) use precise monthly binning algorithm
   - Returns month strings (``YYYY-MM``) instead of timestamps
   - Uses Unix epoch (January 1970) as reference point for consistent alignment
   - Modular arithmetic ensures identical results for identical input months

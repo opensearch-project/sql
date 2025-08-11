@@ -184,4 +184,22 @@ public class BinCommandIT extends PPLIntegTestCase {
         rows("2025-07-28 00:00:00"),
         rows("2025-07-28 00:00:00"));
   }
+
+  @Test
+  public void testBinWithMonthlySpan() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=opensearch-sql_test_index_time_data | bin @timestamp span=4mon as cate | fields"
+                + " cate, @timestamp | head 5");
+    verifySchema(result, schema("cate", null, "string"), schema("@timestamp", null, "timestamp"));
+
+    // With 4-month spans using 'mon' unit
+    verifyDataRows(
+        result,
+        rows("2025-05", "2025-07-28 00:15:23"),
+        rows("2025-05", "2025-07-28 01:42:15"),
+        rows("2025-05", "2025-07-28 02:28:45"),
+        rows("2025-05", "2025-07-28 03:56:20"),
+        rows("2025-05", "2025-07-28 04:33:10"));
+  }
 }
