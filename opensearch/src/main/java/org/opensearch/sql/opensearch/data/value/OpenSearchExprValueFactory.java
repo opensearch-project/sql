@@ -202,12 +202,15 @@ public class OpenSearchExprValueFactory {
     // CRITICAL FIX: Handle range strings from bin operations
     // Range strings like "20-30" or "1000.0-10000.0" should always be treated as strings regardless
     // of original field
-    // type
+    // type. But exclude date formats like "1984-103" (ordinal date) or "1984-04-12" (ISO date)
     if (content.objectValue() instanceof String) {
       String stringValue = (String) content.objectValue();
       if (stringValue.contains("-") && stringValue.matches("\\d+\\.?\\d*-\\d+\\.?\\d*")) {
-        // This is a range string from bin operation - treat as string value
-        return new ExprStringValue(stringValue);
+        // Exclude date formats: YYYY-MM-DD and YYYY-DDD (ordinal date)
+        if (!stringValue.matches("\\d{4}-\\d{1,3}") && !stringValue.matches("\\d{4}-\\d{2}-\\d{2}")) {
+          // This is a range string from bin operation - treat as string value
+          return new ExprStringValue(stringValue);
+        }
       }
     }
 
