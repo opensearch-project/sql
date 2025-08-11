@@ -61,6 +61,8 @@ public abstract class Settings {
     SESSION_INACTIVITY_TIMEOUT_MILLIS(
         "plugins.query.executionengine.spark.session_inactivity_timeout_millis"),
 
+    SCRIPT_FILTER_MAX_COMPILATIONS_RATE("script.context.filter.max_compilations_rate"),
+
     /** Async query Settings * */
     ASYNC_QUERY_ENABLED("plugins.query.executionengine.async_query.enabled"),
     ASYNC_QUERY_EXTERNAL_SCHEDULER_ENABLED(

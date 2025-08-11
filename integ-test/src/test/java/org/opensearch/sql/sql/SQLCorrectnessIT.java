@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.function.Function;
 import org.junit.Test;
+import org.opensearch.sql.common.setting.Settings.Key;
 
 /** SQL integration test automated by comparison test framework. */
 public class SQLCorrectnessIT extends CorrectnessTestBase {
@@ -23,6 +24,8 @@ public class SQLCorrectnessIT extends CorrectnessTestBase {
   @Override
   protected void init() throws Exception {
     super.init();
+    // Increate compilation rate since this test include large volume of scripts
+    updateClusterSetting(Key.SCRIPT_FILTER_MAX_COMPILATIONS_RATE.getKeyValue(), "100/1m");
   }
 
   @Test
