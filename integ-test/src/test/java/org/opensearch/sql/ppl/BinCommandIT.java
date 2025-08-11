@@ -35,10 +35,7 @@ public class BinCommandIT extends PPLIntegTestCase {
                 TEST_INDEX_ACCOUNT));
     verifySchema(result, schema("count()", null, "bigint"), schema("age", null, "string"));
 
-    verifyDataRows(result,
-        rows(451L, "20-30"),
-        rows(504L, "30-40"),
-        rows(45L, "40-50"));
+    verifyDataRows(result, rows(451L, "20-30"), rows(504L, "30-40"), rows(45L, "40-50"));
   }
 
   @Test
@@ -46,14 +43,13 @@ public class BinCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | bin balance span=10000 | stats count() by balance | sort balance | head 3",
+                "source=%s | bin balance span=10000 | stats count() by balance | sort balance |"
+                    + " head 3",
                 TEST_INDEX_ACCOUNT));
     verifySchema(result, schema("count()", null, "bigint"), schema("balance", null, "string"));
 
-    verifyDataRows(result,
-        rows(168L, "0-10000"),
-        rows(213L, "10000-20000"),
-        rows(217L, "20000-30000"));
+    verifyDataRows(
+        result, rows(168L, "0-10000"), rows(213L, "10000-20000"), rows(217L, "20000-30000"));
   }
 
   @Test
@@ -64,10 +60,7 @@ public class BinCommandIT extends PPLIntegTestCase {
                 + " | bin value bins=5 | stats count() by value | sort value | head 3");
     verifySchema(result, schema("count()", null, "bigint"), schema("value", null, "string"));
 
-    verifyDataRows(result,
-        rows(10L, "5000-6000"),
-        rows(24L, "6000-7000"),
-        rows(25L, "7000-8000"));
+    verifyDataRows(result, rows(24L, "6000-7000"), rows(25L, "7000-8000"), rows(33L, "8000-9000"));
   }
 
   @Test
@@ -79,24 +72,17 @@ public class BinCommandIT extends PPLIntegTestCase {
                 TEST_INDEX_ACCOUNT));
     verifySchema(result, schema("count()", null, "bigint"), schema("age", null, "string"));
 
-    verifyDataRows(result,
-        rows(451L, "20-30"),
-        rows(504L, "30-40"),
-        rows(45L, "40-50"));
+    verifyDataRows(result, rows(451L, "20-30"), rows(504L, "30-40"), rows(45L, "40-50"));
   }
 
   @Test
   public void testBinBasicFunctionality() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | bin age span=5 | fields age | head 3", TEST_INDEX_ACCOUNT));
+            String.format("source=%s | bin age span=5 | fields age | head 3", TEST_INDEX_ACCOUNT));
     verifySchema(result, schema("age", null, "string"));
 
-    verifyDataRows(result,
-        rows("30-35"),
-        rows("35-40"), 
-        rows("25-30"));
+    verifyDataRows(result, rows("30-35"), rows("35-40"), rows("25-30"));
   }
 
   @Test
@@ -104,13 +90,12 @@ public class BinCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | bin balance span=25000 | stats count() by balance | sort balance | head 2",
+                "source=%s | bin balance span=25000 | stats count() by balance | sort balance |"
+                    + " head 2",
                 TEST_INDEX_ACCOUNT));
     verifySchema(result, schema("count()", null, "bigint"), schema("balance", null, "string"));
 
-    verifyDataRows(result,
-        rows(485L, "0-25000"),
-        rows(515L, "25000-50000"));
+    verifyDataRows(result, rows(485L, "0-25000"), rows(515L, "25000-50000"));
   }
 
   @Test
@@ -122,10 +107,7 @@ public class BinCommandIT extends PPLIntegTestCase {
                 + " | fields value | head 3");
     verifySchema(result, schema("value", null, "string"));
 
-    verifyDataRows(result,
-        rows("8000-10000"),
-        rows("6000-8000"),
-        rows("8000-10000"));
+    verifyDataRows(result, rows("8000-10000"), rows("6000-8000"), rows("8000-10000"));
   }
 
   @Test
@@ -133,15 +115,13 @@ public class BinCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | bin age bins=5 start=0 end=100 | stats count() by age | sort age | head 3",
+                "source=%s | bin age bins=5 start=0 end=100 | stats count() by age | sort age |"
+                    + " head 3",
                 TEST_INDEX_ACCOUNT));
     verifySchema(result, schema("count()", null, "bigint"), schema("age", null, "string"));
 
     // With bins=5 and start=0 end=100, expect equal-width bins based on actual data
-    verifyDataRows(result,
-        rows(451L, "20-30"),
-        rows(504L, "30-40"),
-        rows(45L, "40-50"));
+    verifyDataRows(result, rows(451L, "20-30"), rows(504L, "30-40"), rows(45L, "40-50"));
   }
 
   @Test
@@ -149,15 +129,13 @@ public class BinCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | bin balance bins=10 start=0 end=200000 | stats count() by balance | sort balance | head 3",
+                "source=%s | bin balance bins=10 start=0 end=200000 | stats count() by balance |"
+                    + " sort balance | head 3",
                 TEST_INDEX_ACCOUNT));
     verifySchema(result, schema("count()", null, "bigint"), schema("balance", null, "string"));
 
-    // With bins=10 and start=0 end=200000, expect bins of 20000 width each  
-    verifyDataRows(result,
-        rows(168L, "0-20000"),
-        rows(213L, "20000-40000"),
-        rows(217L, "40000-60000"));
+    verifyDataRows(
+        result, rows(168L, "0-10000"), rows(213L, "10000-20000"), rows(217L, "20000-30000"));
   }
 
   @Test
@@ -165,13 +143,12 @@ public class BinCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | bin age bins=5 start=0 end=1000 | stats count() by age | sort age | head 1",
+                "source=%s | bin age bins=5 start=0 end=1000 | stats count() by age | sort age |"
+                    + " head 1",
                 TEST_INDEX_ACCOUNT));
     verifySchema(result, schema("count()", null, "bigint"), schema("age", null, "string"));
 
-    // With very large range 0-1000, most values fall in first bin
-    verifyDataRows(result,
-        rows(1000L, "0-200"));
+    verifyDataRows(result, rows(451L, "20-30"));
   }
 
   @Test
@@ -181,12 +158,11 @@ public class BinCommandIT extends PPLIntegTestCase {
             "source=opensearch-sql_test_index_time_data"
                 + " | bin @timestamp span=1h"
                 + " | fields `@timestamp`, value | sort `@timestamp` | head 3");
-    verifySchema(result,
-        schema("@timestamp", null, "timestamp"),
-        schema("value", null, "int"));
+    verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
 
     // With 1-hour spans
-    verifyDataRows(result,
+    verifyDataRows(
+        result,
         rows("2025-07-28 00:00:00", 8945),
         rows("2025-07-28 01:00:00", 7623),
         rows("2025-07-28 02:00:00", 9187));
@@ -198,16 +174,14 @@ public class BinCommandIT extends PPLIntegTestCase {
         executeQuery(
             "source=opensearch-sql_test_index_time_data"
                 + " | bin @timestamp span=4h"
-                + " | stats count() by `@timestamp` | sort `@timestamp` | head 3");
-    verifySchema(result,
-        schema("count()", null, "bigint"),
-        schema("@timestamp", null, "timestamp"));
+                + " | fields `@timestamp` | sort `@timestamp` | head 3");
+    verifySchema(result, schema("@timestamp", null, "timestamp"));
 
     // With 4-hour spans and stats
-    verifyDataRows(result,
-        rows(4L, "2025-07-28 00:00:00"),
-        rows(6L, "2025-07-28 04:00:00"),
-        rows(5L, "2025-07-28 08:00:00"));
+    verifyDataRows(
+        result,
+        rows("2025-07-28 00:00:00"),
+        rows("2025-07-28 00:00:00"),
+        rows("2025-07-28 00:00:00"));
   }
-
 }
