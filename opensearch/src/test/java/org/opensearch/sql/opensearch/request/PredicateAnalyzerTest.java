@@ -48,6 +48,7 @@ import org.opensearch.index.query.SimpleQueryStringBuilder;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.index.query.TermsQueryBuilder;
 import org.opensearch.index.query.WildcardQueryBuilder;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
@@ -723,7 +724,32 @@ public class PredicateAnalyzerTest {
     final RexInputRef field3 =
         builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.VARCHAR), 2);
     RexNode call = builder.makeCall(SqlStdOperatorTable.EQUALS, field3, stringLiteral);
+    Hook.CURRENT_TIME.addThread((Consumer<Holder<Long>>) h -> h.set(0L));
     QueryBuilder builder = PredicateAnalyzer.analyze(call, schema, fieldTypes, rowType, cluster);
+    assert (builder.toString().contains("\"lang\" : \"opensearch_compounded_script\""));
+  }
+
+  @Test
+  void equals_scriptPushDown_Struct() throws ExpressionNotAnalyzableException {
+    final RelDataType mapType =
+        typeFactory.createMapType(
+            typeFactory.createSqlType(SqlTypeName.VARCHAR),
+            typeFactory.createSqlType(SqlTypeName.VARCHAR));
+    final RelDataType rowType =
+        builder
+            .getTypeFactory()
+            .builder()
+            .kind(StructKind.FULLY_QUALIFIED)
+            .add("d", mapType)
+            .build();
+    final RexInputRef field4 = builder.makeInputRef(mapType, 3);
+    final Map<String, ExprType> newFieldTypes =
+        Map.of("d", OpenSearchDataType.of(ExprCoreType.STRUCT));
+    final List<String> newSchema = List.of("d");
+    RexNode call = builder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, field4);
+    Hook.CURRENT_TIME.addThread((Consumer<Holder<Long>>) h -> h.set(0L));
+    QueryBuilder builder =
+        PredicateAnalyzer.analyze(call, newSchema, newFieldTypes, rowType, cluster);
     assert (builder.toString().contains("\"lang\" : \"opensearch_compounded_script\""));
   }
 
