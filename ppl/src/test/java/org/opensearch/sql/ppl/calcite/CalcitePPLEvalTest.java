@@ -354,4 +354,24 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
             + "GROUP BY `DEPTNO`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  @Test
+  public void testEvalStringConcatenationWithPlus() {
+    String ppl =
+        "source=EMP | eval full_name = ENAME + ' ' + JOB | fields EMPNO, ENAME, JOB, full_name |"
+            + " head 3";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(fetch=[3])\n"
+            + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], full_name=[||(||($1, ' '),"
+            + " $2)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `ENAME` || ' ' || `JOB` `full_name`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 3";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
 }
