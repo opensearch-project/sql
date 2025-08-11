@@ -35,12 +35,10 @@ public class OpenSearchDedupPushdownRule extends RelRule<OpenSearchDedupPushdown
   @Override
   public void onMatch(RelOptRuleCall call) {
     final LogicalProject finalOutput = call.rel(0);
+    // TODO Used when number of duplication is more than 1
     final LogicalFilter numOfDedupFilter = call.rel(1);
     final LogicalProject projectWithWindow = call.rel(2);
     final CalciteLogicalIndexScan scan = call.rel(3);
-    if (!validFilter(numOfDedupFilter)) {
-      return;
-    }
     List<RexWindow> windows = PlanUtils.getRexWindowFromProject(projectWithWindow);
     if (windows.isEmpty() || windows.stream().anyMatch(w -> w.partitionKeys.size() > 1)) {
       // TODO leverage inner_hits for multiple partition keys
@@ -60,7 +58,9 @@ public class OpenSearchDedupPushdownRule extends RelRule<OpenSearchDedupPushdown
   }
 
   private static boolean validFilter(LogicalFilter filter) {
-    // The condition kind is LESS_THAN_OR_EQUAL, safe to convert to RexCall
+    if (filter.getCondition().getKind() != SqlKind.LESS_THAN_OR_EQUAL) {
+      return false;
+    }
     List<RexNode> operandsOfCondition = ((RexCall) filter.getCondition()).getOperands();
     RexNode leftOperand = operandsOfCondition.getFirst();
     if (!(leftOperand instanceof RexInputRef ref)) {
@@ -114,10 +114,7 @@ public class OpenSearchDedupPushdownRule extends RelRule<OpenSearchDedupPushdown
                         .oneInput(
                             b1 ->
                                 b1.operand(LogicalFilter.class)
-                                    .predicate(
-                                        f ->
-                                            f.getCondition().getKind()
-                                                == SqlKind.LESS_THAN_OR_EQUAL)
+                                    .predicate(OpenSearchDedupPushdownRule::validFilter)
                                     .oneInput(
                                         b2 ->
                                             b2.operand(LogicalProject.class)
