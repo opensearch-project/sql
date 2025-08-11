@@ -241,7 +241,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               cloneWithoutSort(pushDownContext));
       Map<String, ExprType> fieldTypes = this.osIndex.getFieldTypes();
       List<String> outputFields = aggregate.getRowType().getFieldNames();
-      
+
       // CRITICAL: Disable pushdown for aggregations that use window functions
       // Window functions cannot be pushed down to OpenSearch and cause script size limit issues
       if (containsWindowFunctions(aggregate, project)) {
@@ -250,7 +250,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         }
         return null;
       }
-      
+
       final Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder =
           AggregateAnalyzer.analyze(
               aggregate, project, getRowType(), fieldTypes, outputFields, getCluster());
@@ -435,13 +435,13 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     }
     return newContext;
   }
-  
+
   /**
    * Check if the aggregation contains window functions that cannot be pushed down to OpenSearch.
-   * Window functions (MIN() OVER(), MAX() OVER()) are used by bin operations with bins, minspan, 
-   * start/end, and default parameters to calculate data ranges dynamically. These functions cause 
+   * Window functions (MIN() OVER(), MAX() OVER()) are used by bin operations with bins, minspan,
+   * start/end, and default parameters to calculate data ranges dynamically. These functions cause
    * script size limit issues when serialized and must be executed at the Calcite level.
-   * 
+   *
    * @param aggregate The aggregate operation to check
    * @param project The project containing the group expressions
    * @return true if window functions are detected, false otherwise
@@ -454,8 +454,8 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         return true;
       }
     }
-    
-    // Check aggregate function expressions for window functions  
+
+    // Check aggregate function expressions for window functions
     for (AggregateCall aggCall : aggregate.getAggCallList()) {
       for (int argIndex : aggCall.getArgList()) {
         RexNode argExpr = project.getProjects().get(argIndex);
@@ -464,14 +464,14 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         }
       }
     }
-    
+
     return false;
   }
-  
+
   /**
-   * Recursively check if a RexNode expression contains window functions.
-   * This detects OVER clauses and other window function patterns.
-   * 
+   * Recursively check if a RexNode expression contains window functions. This detects OVER clauses
+   * and other window function patterns.
+   *
    * @param rexNode The expression to check
    * @return true if window functions are found, false otherwise
    */
@@ -479,16 +479,16 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     if (rexNode == null) {
       return false;
     }
-    
+
     // Check if this is a window function call
     if (rexNode instanceof RexCall call) {
       // Check for OVER clause (window functions)
-      if (call.getOperator().getName().contains("OVER") 
+      if (call.getOperator().getName().contains("OVER")
           || call.getKind().name().contains("OVER")
           || call.toString().contains("OVER")) {
         return true;
       }
-      
+
       // Recursively check operands
       for (RexNode operand : call.getOperands()) {
         if (hasWindowFunctions(operand)) {
@@ -496,7 +496,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         }
       }
     }
-    
+
     return false;
   }
 }

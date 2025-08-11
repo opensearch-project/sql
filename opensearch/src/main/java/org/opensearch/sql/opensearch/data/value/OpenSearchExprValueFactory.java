@@ -200,7 +200,8 @@ public class OpenSearchExprValueFactory {
     final ExprType type = fieldType.get();
 
     // CRITICAL FIX: Handle range strings from bin operations
-    // Range strings like "20-30" or "1000.0-10000.0" should always be treated as strings regardless of original field
+    // Range strings like "20-30" or "1000.0-10000.0" should always be treated as strings regardless
+    // of original field
     // type
     if (content.objectValue() instanceof String) {
       String stringValue = (String) content.objectValue();

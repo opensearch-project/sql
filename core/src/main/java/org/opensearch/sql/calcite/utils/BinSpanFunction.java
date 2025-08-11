@@ -8,7 +8,6 @@ package org.opensearch.sql.calcite.utils;
 import java.util.Map;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
@@ -126,7 +125,7 @@ public class BinSpanFunction {
     if (config == null) {
       throw new IllegalArgumentException("Unsupported time unit for bin span: " + unit);
     }
-    
+
     // Validate sub-second span constraints
     validateSubSecondSpan(config, intervalValue);
 
@@ -143,10 +142,10 @@ public class BinSpanFunction {
       case MONTHS -> createMonthsSpan(fieldExpr, intervalValue, context);
     };
   }
-  
+
   /**
-   * Creates a bin-specific time span expression with time modifier alignment.
-   * This handles SPL time modifiers like @d, @d+4h, @d-1h and epoch timestamps.
+   * Creates a bin-specific time span expression with time modifier alignment. This handles SPL time
+   * modifiers like @d, @d+4h, @d-1h and epoch timestamps.
    */
   public static RexNode createBinTimeSpanExpressionWithTimeModifier(
       RexNode fieldExpr,
@@ -165,13 +164,16 @@ public class BinSpanFunction {
     if (config == null) {
       throw new IllegalArgumentException("Unsupported time unit for bin span: " + unit);
     }
-    
+
     // Validate sub-second span constraints
     validateSubSecondSpan(config, intervalValue);
 
     // DEBUG: Log that this method is being called
-    System.out.println("DEBUG: BinSpanFunction.createBinTimeSpanExpressionWithTimeModifier called with timeModifier: " + timeModifier);
-    
+    System.out.println(
+        "DEBUG: BinSpanFunction.createBinTimeSpanExpressionWithTimeModifier called with"
+            + " timeModifier: "
+            + timeModifier);
+
     // Check if this is an epoch timestamp alignment
     try {
       long epochTimestamp = Long.parseLong(timeModifier);
@@ -181,14 +183,13 @@ public class BinSpanFunction {
     } catch (NumberFormatException e) {
       // Not a number, treat as time modifier
       System.out.println("DEBUG: Processing as time modifier: " + timeModifier);
-      return createTimeModifierAlignedSpan(
-          fieldExpr, intervalValue, config, timeModifier, context);
+      return createTimeModifierAlignedSpan(fieldExpr, intervalValue, config, timeModifier, context);
     }
   }
 
   /**
-   * Creates time span with SPL time modifier alignment (@d, @d+4h, @d-1h).
-   * This properly handles alignment points and negative relative positions.
+   * Creates time span with SPL time modifier alignment (@d, @d+4h, @d-1h). This properly handles
+   * alignment points and negative relative positions.
    */
   private static RexNode createTimeModifierAlignedSpan(
       RexNode fieldExpr,
@@ -196,16 +197,23 @@ public class BinSpanFunction {
       TimeUnitConfig config,
       String timeModifier,
       CalcitePlanContext context) {
-    
-    System.out.println("DEBUG: createTimeModifierAlignedSpan called with timeModifier=" + timeModifier + ", intervalValue=" + intervalValue + ", unit=" + config.unit);
-    
+
+    System.out.println(
+        "DEBUG: createTimeModifierAlignedSpan called with timeModifier="
+            + timeModifier
+            + ", intervalValue="
+            + intervalValue
+            + ", unit="
+            + config.unit);
+
     // UNIX_TIMESTAMP returns seconds, not milliseconds
-    RexNode epochSeconds = context.rexBuilder.makeCall(PPLBuiltinOperators.UNIX_TIMESTAMP, fieldExpr);
-    
+    RexNode epochSeconds =
+        context.rexBuilder.makeCall(PPLBuiltinOperators.UNIX_TIMESTAMP, fieldExpr);
+
     // Parse the time modifier
     long offsetMillis = 0;
     boolean alignToDay = false;
-    
+
     if (timeModifier != null) {
       timeModifier = timeModifier.trim();
       if (timeModifier.equals("@d")) {
@@ -220,7 +228,7 @@ public class BinSpanFunction {
         offsetMillis = -parseTimeOffsetForModifier(offsetStr);
       }
     }
-    
+
     // Convert interval to seconds based on the time unit (not milliseconds!)
     long intervalSeconds;
     switch (config) {
@@ -233,77 +241,86 @@ public class BinSpanFunction {
       case DECISECONDS -> intervalSeconds = intervalValue / 10L;
       default -> intervalSeconds = intervalValue * 3600L; // Default to hours
     }
-    
+
     RexNode intervalLiteral = context.relBuilder.literal(intervalSeconds);
-    
+
     if (alignToDay) {
       // SPL @d+offset alignment: Use EARLIEST timestamp in dataset to determine reference
       // Per SPL spec: "@d calculates the start of day for the earliest timestamp in dataset"
-      
+
       RexNode secondsPerDay = context.relBuilder.literal(86400L);
-      
+
       // TEMPORARY: Use a hardcoded earliest timestamp for debugging
       // This should be 2025-07-28T00:15:23 = 1753661723 seconds (not milliseconds!)
       RexNode earliestTimestamp = context.relBuilder.literal(1753661723L);
-      
-      System.out.println("DEBUG: Using hardcoded earliest timestamp 1753661723 seconds (2025-07-28T00:15:23)");
-      
+
+      System.out.println(
+          "DEBUG: Using hardcoded earliest timestamp 1753661723 seconds (2025-07-28T00:15:23)");
+
       // Calculate start of day for the EARLIEST timestamp (not current row)
-      RexNode daysSinceEpoch = context.relBuilder.call(
-          SqlStdOperatorTable.FLOOR,
-          context.relBuilder.call(SqlStdOperatorTable.DIVIDE, earliestTimestamp, secondsPerDay));
-      
-      // Calculate the start of day for earliest timestamp  
-      RexNode startOfEarliestDay = context.relBuilder.call(
-          SqlStdOperatorTable.MULTIPLY, daysSinceEpoch, secondsPerDay);
-      
-      // Calculate the alignment reference point  
+      RexNode daysSinceEpoch =
+          context.relBuilder.call(
+              SqlStdOperatorTable.FLOOR,
+              context.relBuilder.call(
+                  SqlStdOperatorTable.DIVIDE, earliestTimestamp, secondsPerDay));
+
+      // Calculate the start of day for earliest timestamp
+      RexNode startOfEarliestDay =
+          context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, daysSinceEpoch, secondsPerDay);
+
+      // Calculate the alignment reference point
       RexNode alignmentReference;
       if (offsetMillis != 0) {
         // Convert offset from milliseconds to seconds
         long offsetSeconds = offsetMillis / 1000L;
-        alignmentReference = context.relBuilder.call(
-            SqlStdOperatorTable.PLUS, startOfEarliestDay, context.relBuilder.literal(offsetSeconds));
+        alignmentReference =
+            context.relBuilder.call(
+                SqlStdOperatorTable.PLUS,
+                startOfEarliestDay,
+                context.relBuilder.literal(offsetSeconds));
       } else {
         alignmentReference = startOfEarliestDay;
       }
-      
+
       // SPL @d+offset algorithm:
       // For @d+4h with span=12h: creates bins [04:00-16:00], [16:00-04:00 next day]
-      
-      System.out.println("DEBUG @d+offset: Using earliest timestamp from dataset for reference calculation");
-      
+
+      System.out.println(
+          "DEBUG @d+offset: Using earliest timestamp from dataset for reference calculation");
+
       // 1. Calculate which bin relative to alignment point (all in seconds now)
-      RexNode timeOffset = context.relBuilder.call(
-          SqlStdOperatorTable.MINUS, epochSeconds, alignmentReference);
-      RexNode binNumber = context.relBuilder.call(SqlStdOperatorTable.FLOOR,
-          context.relBuilder.call(SqlStdOperatorTable.DIVIDE, timeOffset, intervalLiteral));
-      
+      RexNode timeOffset =
+          context.relBuilder.call(SqlStdOperatorTable.MINUS, epochSeconds, alignmentReference);
+      RexNode binNumber =
+          context.relBuilder.call(
+              SqlStdOperatorTable.FLOOR,
+              context.relBuilder.call(SqlStdOperatorTable.DIVIDE, timeOffset, intervalLiteral));
+
       // 2. Apply SPL Universal Formula directly: reference + (binNumber * span)
       //    This follows the exact SPL specification without additional adjustments
-      RexNode binOffset = context.relBuilder.call(
-          SqlStdOperatorTable.MULTIPLY, binNumber, intervalLiteral);
-      RexNode binStartSeconds = context.relBuilder.call(
-          SqlStdOperatorTable.PLUS, alignmentReference, binOffset);
-      
+      RexNode binOffset =
+          context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, binNumber, intervalLiteral);
+      RexNode binStartSeconds =
+          context.relBuilder.call(SqlStdOperatorTable.PLUS, alignmentReference, binOffset);
+
       // Convert back to timestamp (FROM_UNIXTIME expects seconds)
       return context.rexBuilder.makeCall(PPLBuiltinOperators.FROM_UNIXTIME, binStartSeconds);
-      
+
     } else {
       // No day alignment, use the original timestamp as reference (all in seconds)
-      RexNode divided = context.relBuilder.call(
-          SqlStdOperatorTable.DIVIDE, epochSeconds, intervalLiteral);
+      RexNode divided =
+          context.relBuilder.call(SqlStdOperatorTable.DIVIDE, epochSeconds, intervalLiteral);
       RexNode binNumber = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
-      RexNode binStartSeconds = context.relBuilder.call(
-          SqlStdOperatorTable.MULTIPLY, binNumber, intervalLiteral);
-      
+      RexNode binStartSeconds =
+          context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, binNumber, intervalLiteral);
+
       return context.rexBuilder.makeCall(PPLBuiltinOperators.FROM_UNIXTIME, binStartSeconds);
     }
   }
-  
+
   /**
-   * Creates time span with epoch timestamp alignment (aligntime=<epoch_number>).
-   * Uses the SPL Universal Formula: bin_start = reference + floor((timestamp - reference) / span) * span
+   * Creates time span with epoch timestamp alignment (aligntime=<epoch_number>). Uses the SPL
+   * Universal Formula: bin_start = reference + floor((timestamp - reference) / span) * span
    */
   private static RexNode createEpochTimestampAlignedSpan(
       RexNode fieldExpr,
@@ -311,13 +328,14 @@ public class BinSpanFunction {
       TimeUnitConfig config,
       long referenceEpochSeconds,
       CalcitePlanContext context) {
-    
+
     // UNIX_TIMESTAMP returns seconds, not milliseconds
-    RexNode epochSeconds = context.rexBuilder.makeCall(PPLBuiltinOperators.UNIX_TIMESTAMP, fieldExpr);
-    
+    RexNode epochSeconds =
+        context.rexBuilder.makeCall(PPLBuiltinOperators.UNIX_TIMESTAMP, fieldExpr);
+
     // Reference is already in seconds, use directly
     RexNode referenceTimestamp = context.relBuilder.literal(referenceEpochSeconds);
-    
+
     // Convert interval to seconds based on the time unit (not milliseconds!)
     long intervalSeconds;
     switch (config) {
@@ -330,37 +348,38 @@ public class BinSpanFunction {
       case DECISECONDS -> intervalSeconds = intervalValue / 10L;
       default -> intervalSeconds = intervalValue * 3600L; // Default to hours
     }
-    
+
     RexNode intervalLiteral = context.relBuilder.literal(intervalSeconds);
-    
+
     // SPL Universal Formula: bin_start = reference + floor((timestamp - reference) / span) * span
-    System.out.println("DEBUG EPOCH: reference=" + referenceEpochSeconds + "s, interval=" + intervalSeconds + "s");
-    
+    System.out.println(
+        "DEBUG EPOCH: reference=" + referenceEpochSeconds + "s, interval=" + intervalSeconds + "s");
+
     // Step 1: Calculate time offset from reference (all in seconds)
-    RexNode timeOffset = context.relBuilder.call(
-        SqlStdOperatorTable.MINUS, epochSeconds, referenceTimestamp);
-        
-    // Step 2: Find which bin this timestamp belongs to  
-    RexNode binNumber = context.relBuilder.call(SqlStdOperatorTable.FLOOR,
-        context.relBuilder.call(SqlStdOperatorTable.DIVIDE, timeOffset, intervalLiteral));
-    
+    RexNode timeOffset =
+        context.relBuilder.call(SqlStdOperatorTable.MINUS, epochSeconds, referenceTimestamp);
+
+    // Step 2: Find which bin this timestamp belongs to
+    RexNode binNumber =
+        context.relBuilder.call(
+            SqlStdOperatorTable.FLOOR,
+            context.relBuilder.call(SqlStdOperatorTable.DIVIDE, timeOffset, intervalLiteral));
+
     // Step 3: Calculate bin start time = reference + (bin_number * span)
     // Apply SPL Universal Formula directly without adjustments
-    RexNode binOffset = context.relBuilder.call(
-        SqlStdOperatorTable.MULTIPLY, binNumber, intervalLiteral);
-    RexNode binStartSeconds = context.relBuilder.call(
-        SqlStdOperatorTable.PLUS, referenceTimestamp, binOffset);
-    
+    RexNode binOffset =
+        context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, binNumber, intervalLiteral);
+    RexNode binStartSeconds =
+        context.relBuilder.call(SqlStdOperatorTable.PLUS, referenceTimestamp, binOffset);
+
     // Convert back to timestamp (FROM_UNIXTIME expects seconds)
     return context.rexBuilder.makeCall(PPLBuiltinOperators.FROM_UNIXTIME, binStartSeconds);
   }
-  
-  /**
-   * Parses time offset for modifiers (e.g., "4h" -> 14400000 milliseconds).
-   */
+
+  /** Parses time offset for modifiers (e.g., "4h" -> 14400000 milliseconds). */
   private static long parseTimeOffsetForModifier(String offsetStr) {
     offsetStr = offsetStr.trim().toLowerCase();
-    
+
     if (offsetStr.endsWith("h")) {
       int hours = Integer.parseInt(offsetStr.substring(0, offsetStr.length() - 1));
       return hours * 3600000L; // hours to milliseconds
@@ -417,14 +436,15 @@ public class BinSpanFunction {
         context.rexBuilder.makeCall(PPLBuiltinOperators.UNIX_TIMESTAMP, fieldExpr);
 
     // For sub-second units (ms, us, cs, ds), we need to work in milliseconds
-    if (config == TimeUnitConfig.MILLISECONDS || 
-        config == TimeUnitConfig.MICROSECONDS ||
-        config == TimeUnitConfig.CENTISECONDS ||
-        config == TimeUnitConfig.DECISECONDS) {
+    if (config == TimeUnitConfig.MILLISECONDS
+        || config == TimeUnitConfig.MICROSECONDS
+        || config == TimeUnitConfig.CENTISECONDS
+        || config == TimeUnitConfig.DECISECONDS) {
       // Convert seconds to milliseconds for sub-second precision
-      RexNode epochMillis = context.relBuilder.call(
-          SqlStdOperatorTable.MULTIPLY, epochSeconds, context.relBuilder.literal(1000L));
-      
+      RexNode epochMillis =
+          context.relBuilder.call(
+              SqlStdOperatorTable.MULTIPLY, epochSeconds, context.relBuilder.literal(1000L));
+
       if (config.divisionFactor == 1) {
         return epochMillis; // milliseconds
       } else if (config.divisionFactor > 1) {
@@ -436,7 +456,9 @@ public class BinSpanFunction {
       } else {
         // For microseconds (multiply milliseconds by 1000)
         return context.relBuilder.call(
-            SqlStdOperatorTable.MULTIPLY, epochMillis, context.relBuilder.literal(MICROS_PER_MILLI));
+            SqlStdOperatorTable.MULTIPLY,
+            epochMillis,
+            context.relBuilder.literal(MICROS_PER_MILLI));
       }
     } else {
       // For second and larger units, work in seconds
@@ -457,13 +479,13 @@ public class BinSpanFunction {
   /** Converts from target unit back to timestamp. */
   private static RexNode convertFromTargetUnit(
       RexNode binValue, TimeUnitConfig config, CalcitePlanContext context) {
-    
+
     // For sub-second units, binValue is in milliseconds, need to convert to seconds
-    if (config == TimeUnitConfig.MILLISECONDS || 
-        config == TimeUnitConfig.MICROSECONDS ||
-        config == TimeUnitConfig.CENTISECONDS ||
-        config == TimeUnitConfig.DECISECONDS) {
-      
+    if (config == TimeUnitConfig.MILLISECONDS
+        || config == TimeUnitConfig.MICROSECONDS
+        || config == TimeUnitConfig.CENTISECONDS
+        || config == TimeUnitConfig.DECISECONDS) {
+
       RexNode binMillis;
       if (config.divisionFactor == 1) {
         binMillis = binValue; // already in milliseconds
@@ -479,17 +501,18 @@ public class BinSpanFunction {
             context.relBuilder.call(
                 SqlStdOperatorTable.DIVIDE, binValue, context.relBuilder.literal(MICROS_PER_MILLI));
       }
-      
+
       // Convert milliseconds back to seconds for FROM_UNIXTIME
-      RexNode binSeconds = context.relBuilder.call(
-          SqlStdOperatorTable.DIVIDE, binMillis, context.relBuilder.literal(1000L));
-      
+      RexNode binSeconds =
+          context.relBuilder.call(
+              SqlStdOperatorTable.DIVIDE, binMillis, context.relBuilder.literal(1000L));
+
       return context.rexBuilder.makeCall(PPLBuiltinOperators.FROM_UNIXTIME, binSeconds);
-      
+
     } else {
       // For second and larger units, binValue is already in seconds
       RexNode binSeconds;
-      
+
       if (config.divisionFactor == 1) {
         binSeconds = binValue;
       } else if (config.divisionFactor > 1) {
@@ -569,9 +592,9 @@ public class BinSpanFunction {
   }
 
   /**
-   * Create months-based span expression using SPL Monthly Binning Algorithm.
-   * Uses Unix epoch (January 1970) as reference point with modular arithmetic.
-   * Returns YYYY-MM formatted strings for bin start months.
+   * Create months-based span expression using SPL Monthly Binning Algorithm. Uses Unix epoch
+   * (January 1970) as reference point with modular arithmetic. Returns YYYY-MM formatted strings
+   * for bin start months.
    */
   private static RexNode createMonthsSpan(
       RexNode fieldExpr, int intervalMonths, CalcitePlanContext context) {
@@ -579,41 +602,38 @@ public class BinSpanFunction {
     // Extract year and month from the input timestamp
     RexNode inputYear = context.rexBuilder.makeCall(PPLBuiltinOperators.YEAR, fieldExpr);
     RexNode inputMonth = context.rexBuilder.makeCall(PPLBuiltinOperators.MONTH, fieldExpr);
-    
+
     // SPL Monthly Binning Algorithm:
     // Step 1: Calculate months since Unix epoch (January 1970)
     // months_since_epoch = (year - 1970) * 12 + (month - 1)
     RexNode monthsSinceEpoch = calculateMonthsSinceEpoch(inputYear, inputMonth, context);
-    
+
     // Step 2: Find bin start using modular arithmetic
     // bin_start_months = months_since_epoch - (months_since_epoch % interval)
     RexNode binStartMonths = calculateBinStart(monthsSinceEpoch, intervalMonths, context);
-    
+
     // Step 3: Convert bin start months back to year and month
     RexNode binStartYear = calculateBinStartYear(binStartMonths, context);
     RexNode binStartMonth = calculateBinStartMonth(binStartMonths, context);
-    
+
     // Step 4: Format as YYYY-MM string
     // Create a temporary date from the bin start year/month to format it
-    RexNode tempDate = context.rexBuilder.makeCall(
-        PPLBuiltinOperators.MAKEDATE,
-        binStartYear,
+    RexNode tempDate =
         context.rexBuilder.makeCall(
-            SqlStdOperatorTable.PLUS,
+            PPLBuiltinOperators.MAKEDATE,
+            binStartYear,
             context.rexBuilder.makeCall(
-                SqlStdOperatorTable.MULTIPLY,
+                SqlStdOperatorTable.PLUS,
                 context.rexBuilder.makeCall(
-                    SqlStdOperatorTable.MINUS,
-                    binStartMonth,
-                    context.relBuilder.literal(1)),
-                context.relBuilder.literal(31)),
-            context.relBuilder.literal(1)));
-    
+                    SqlStdOperatorTable.MULTIPLY,
+                    context.rexBuilder.makeCall(
+                        SqlStdOperatorTable.MINUS, binStartMonth, context.relBuilder.literal(1)),
+                    context.relBuilder.literal(31)),
+                context.relBuilder.literal(1)));
+
     // Format the date as YYYY-MM string
     return context.rexBuilder.makeCall(
-        PPLBuiltinOperators.DATE_FORMAT,
-        tempDate,
-        context.relBuilder.literal("%Y-%m"));
+        PPLBuiltinOperators.DATE_FORMAT, tempDate, context.relBuilder.literal("%Y-%m"));
   }
 
   // === HELPER METHODS FOR CALCULATIONS ===
@@ -663,16 +683,16 @@ public class BinSpanFunction {
   }
 
   /**
-   * Validates sub-second span constraints.
-   * When span is expressed using a sub-second unit (ds, cs, ms, us), the span value needs to be < 1 second,
-   * and 1 second must be evenly divisible by the span value.
+   * Validates sub-second span constraints. When span is expressed using a sub-second unit (ds, cs,
+   * ms, us), the span value needs to be < 1 second, and 1 second must be evenly divisible by the
+   * span value.
    */
   private static void validateSubSecondSpan(TimeUnitConfig config, int intervalValue) {
-    if (config == TimeUnitConfig.MICROSECONDS || 
-        config == TimeUnitConfig.MILLISECONDS ||
-        config == TimeUnitConfig.CENTISECONDS ||
-        config == TimeUnitConfig.DECISECONDS) {
-      
+    if (config == TimeUnitConfig.MICROSECONDS
+        || config == TimeUnitConfig.MILLISECONDS
+        || config == TimeUnitConfig.CENTISECONDS
+        || config == TimeUnitConfig.DECISECONDS) {
+
       // Convert interval to microseconds for comparison
       long intervalMicros;
       switch (config) {
@@ -682,19 +702,21 @@ public class BinSpanFunction {
         case DECISECONDS -> intervalMicros = intervalValue * 100000L; // 1ds = 100ms = 100000us
         default -> intervalMicros = 0; // Should never reach here
       }
-      
+
       long oneSecondMicros = 1000000L; // 1 second = 1,000,000 microseconds
-      
+
       // Constraint 1: span value must be < 1 second
       if (intervalMicros >= oneSecondMicros) {
         throw new IllegalArgumentException(
-            String.format("Sub-second span %d%s must be less than 1 second", intervalValue, config.unit));
+            String.format(
+                "Sub-second span %d%s must be less than 1 second", intervalValue, config.unit));
       }
-      
+
       // Constraint 2: 1 second must be evenly divisible by the span value
       if (oneSecondMicros % intervalMicros != 0) {
         throw new IllegalArgumentException(
-            String.format("1 second must be evenly divisible by span %d%s", intervalValue, config.unit));
+            String.format(
+                "1 second must be evenly divisible by span %d%s", intervalValue, config.unit));
       }
     }
   }
