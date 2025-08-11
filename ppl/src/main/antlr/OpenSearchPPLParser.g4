@@ -70,6 +70,7 @@ commands
    | appendcolCommand
    | expandCommand
    | flattenCommand
+   | reverseCommand
    ;
 
 commandName
@@ -100,6 +101,7 @@ commandName
    | FLATTEN
    | TRENDLINE
    | EXPLAIN
+   | REVERSE
    ;
 
 searchCommand
@@ -140,6 +142,10 @@ dedupCommand
 
 sortCommand
    : SORT sortbyClause
+   ;
+
+reverseCommand
+   : REVERSE
    ;
 
 evalCommand
@@ -695,6 +701,10 @@ relevanceArgValue
 
 mathematicalFunctionName
    : ABS
+   | PLUS_FUCTION
+   | MINUS_FUCTION
+   | STAR_FUNCTION
+   | DIVIDE_FUNCTION
    | CBRT
    | CEIL
    | CEILING
@@ -702,12 +712,14 @@ mathematicalFunctionName
    | CRC32
    | E
    | EXP
+   | EXPM1
    | FLOOR
    | LN
    | LOG
    | LOG10
    | LOG2
    | MOD
+   | MODULUS
    | PI
    | POW
    | POWER
@@ -716,6 +728,8 @@ mathematicalFunctionName
    | SIGN
    | SQRT
    | TRUNCATE
+   | RINT
+   | SIGNUM
    | trigonometricFunctionName
    ;
 
@@ -740,10 +754,12 @@ trigonometricFunctionName
    | ATAN
    | ATAN2
    | COS
+   | COSH
    | COT
    | DEGREES
    | RADIANS
    | SIN
+   | SINH
    | TAN
    ;
 

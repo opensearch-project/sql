@@ -7,6 +7,7 @@ package org.opensearch.sql.legacy.query.join;
 
 import java.util.List;
 import org.opensearch.action.search.SearchRequestBuilder;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.legacy.domain.Field;
 import org.opensearch.sql.legacy.domain.Select;
 
@@ -17,6 +18,7 @@ public class TableInJoinRequestBuilder {
   private List<Field> returnedFields;
   private Select originalSelect;
   private Integer hintLimit;
+  private TimeValue hintJoinTimeout;
 
   public TableInJoinRequestBuilder() {}
 
@@ -58,5 +60,13 @@ public class TableInJoinRequestBuilder {
 
   public void setHintLimit(Integer hintLimit) {
     this.hintLimit = hintLimit;
+  }
+
+  public TimeValue getHintJoinTimeout() {
+    return hintJoinTimeout;
+  }
+
+  public void setHintJoinTimeout(TimeValue hintJoinTimeout) {
+    this.hintJoinTimeout = hintJoinTimeout;
   }
 }

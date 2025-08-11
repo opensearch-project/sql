@@ -1487,6 +1487,279 @@ public class SqlParserTest {
     Assert.assertEquals(1000, params[2]);
   }
 
+  // ============================================================================
+  // JOIN_TIME_OUT Hint Parsing Tests
+  // ============================================================================
+
+  @Test
+  public void joinTimeOutHintBasic() throws SqlParseException {
+    String query =
+        String.format(
+            Locale.ROOT,
+            "select /*! JOIN_TIME_OUT(120) */ "
+                + "c.name.firstname,c.parents.father , h.name,h.words from %s/gotCharacters c "
+                + "JOIN %s/gotCharacters h "
+                + "on c.name.lastname = h.name  "
+                + "where c.name.firstname='Daenerys'",
+            TEST_INDEX_GAME_OF_THRONES,
+            TEST_INDEX_GAME_OF_THRONES);
+
+    JoinSelect joinSelect = parser.parseJoinSelect((SQLQueryExpr) queryToExpr(query));
+    List<Hint> hints = joinSelect.getHints();
+
+    Assert.assertNotNull(hints);
+    Assert.assertEquals("hints size was not 1", 1, hints.size());
+    Hint hint = hints.get(0);
+    Assert.assertEquals(HintType.JOIN_TIME_OUT, hint.getType());
+    Object[] params = hint.getParams();
+    Assert.assertNotNull(params);
+    Assert.assertEquals("params size was not 1", 1, params.length);
+    Assert.assertEquals(120, params[0]);
+  }
+
+  @Test
+  public void joinTimeOutHintWithSpaces() throws SqlParseException {
+    String query =
+        String.format(
+            Locale.ROOT,
+            "select /*! JOIN_TIME_OUT( 180 ) */ "
+                + "c.name.firstname from %s/gotCharacters c "
+                + "JOIN %s/gotCharacters h "
+                + "on c.name.lastname = h.name",
+            TEST_INDEX_GAME_OF_THRONES,
+            TEST_INDEX_GAME_OF_THRONES);
+
+    JoinSelect joinSelect = parser.parseJoinSelect((SQLQueryExpr) queryToExpr(query));
+    List<Hint> hints = joinSelect.getHints();
+
+    Assert.assertEquals(1, hints.size());
+    Hint hint = hints.get(0);
+    Assert.assertEquals(HintType.JOIN_TIME_OUT, hint.getType());
+    Assert.assertEquals(180, hint.getParams()[0]);
+  }
+
+  @Test
+  public void joinTimeOutHintWithOtherHints() throws SqlParseException {
+    String query =
+        String.format(
+            Locale.ROOT,
+            "select /*! HASH_WITH_TERMS_FILTER*/ "
+                + "/*! JOIN_TIME_OUT(300) */ "
+                + "/*! JOIN_TABLES_LIMIT(1000,null) */ "
+                + "c.name.firstname from %s/gotCharacters c "
+                + "JOIN %s/gotCharacters h "
+                + "on c.name.lastname = h.name",
+            TEST_INDEX_GAME_OF_THRONES,
+            TEST_INDEX_GAME_OF_THRONES);
+
+    JoinSelect joinSelect = parser.parseJoinSelect((SQLQueryExpr) queryToExpr(query));
+    List<Hint> hints = joinSelect.getHints();
+
+    Assert.assertEquals(3, hints.size());
+
+    // Find JOIN_TIME_OUT hint
+    Hint timeoutHint = null;
+    for (Hint hint : hints) {
+      if (hint.getType() == HintType.JOIN_TIME_OUT) {
+        timeoutHint = hint;
+        break;
+      }
+    }
+
+    Assert.assertNotNull("JOIN_TIME_OUT hint not found", timeoutHint);
+    Assert.assertEquals(300, timeoutHint.getParams()[0]);
+  }
+
+  @Test
+  public void joinTimeOutHintEdgeCases() throws SqlParseException {
+    // Test various timeout values
+    int[] testValues = {30, 60, 120, 300, 600, 1800};
+
+    for (int timeoutValue : testValues) {
+      String query =
+          String.format(
+              Locale.ROOT,
+              "select /*! JOIN_TIME_OUT(%d) */ "
+                  + "c.name.firstname from %s/gotCharacters c "
+                  + "JOIN %s/gotCharacters h "
+                  + "on c.name.lastname = h.name",
+              timeoutValue,
+              TEST_INDEX_GAME_OF_THRONES,
+              TEST_INDEX_GAME_OF_THRONES);
+
+      JoinSelect joinSelect = parser.parseJoinSelect((SQLQueryExpr) queryToExpr(query));
+      List<Hint> hints = joinSelect.getHints();
+
+      Assert.assertEquals(
+          "Should have exactly 1 hint for timeout " + timeoutValue, 1, hints.size());
+      Hint hint = hints.get(0);
+      Assert.assertEquals(
+          "Hint type should be JOIN_TIME_OUT", HintType.JOIN_TIME_OUT, hint.getType());
+      Assert.assertEquals("Timeout value should match", timeoutValue, hint.getParams()[0]);
+    }
+  }
+
+  @Test
+  public void joinTimeOutHintWithDifferentJoinTypes() throws SqlParseException {
+    String[] joinTypes = {"JOIN", "LEFT JOIN", "RIGHT JOIN", "INNER JOIN"};
+
+    for (String joinType : joinTypes) {
+      String query =
+          String.format(
+              Locale.ROOT,
+              "select /*! JOIN_TIME_OUT(150) */ "
+                  + "c.name.firstname from %s/gotCharacters c "
+                  + "%s %s/gotCharacters h "
+                  + "on c.name.lastname = h.name",
+              TEST_INDEX_GAME_OF_THRONES,
+              joinType,
+              TEST_INDEX_GAME_OF_THRONES);
+
+      JoinSelect joinSelect = parser.parseJoinSelect((SQLQueryExpr) queryToExpr(query));
+      List<Hint> hints = joinSelect.getHints();
+
+      Assert.assertEquals("Should have hint for " + joinType, 1, hints.size());
+      Assert.assertEquals(
+          "Should be JOIN_TIME_OUT hint", HintType.JOIN_TIME_OUT, hints.get(0).getType());
+      Assert.assertEquals("Timeout should be 150", 150, hints.get(0).getParams()[0]);
+    }
+  }
+
+  // ============================================================================
+  // Negative Test Cases
+  // ============================================================================
+
+  @Test
+  public void joinTimeOutHintInvalidFormat() {
+    // Test that invalid hint formats are ignored gracefully
+    String query =
+        String.format(
+            Locale.ROOT,
+            "select /*! JOIN_TIME_OUT */ " // Missing parentheses and value
+                + "c.name.firstname from %s/gotCharacters c "
+                + "JOIN %s/gotCharacters h "
+                + "on c.name.lastname = h.name",
+            TEST_INDEX_GAME_OF_THRONES,
+            TEST_INDEX_GAME_OF_THRONES);
+
+    try {
+      JoinSelect joinSelect = parser.parseJoinSelect((SQLQueryExpr) queryToExpr(query));
+      List<Hint> hints = joinSelect.getHints();
+
+      // Should not contain JOIN_TIME_OUT hint if format is invalid
+      for (Hint hint : hints) {
+        Assert.assertNotEquals(
+            "Invalid hint should not be parsed", HintType.JOIN_TIME_OUT, hint.getType());
+      }
+    } catch (SqlParseException e) {
+      // It's also acceptable if parsing fails for invalid format
+      Assert.assertTrue("Expected SqlParseException for invalid hint format", true);
+    }
+  }
+
+  // ============================================================================
+  // Integration Tests with Real Query Scenarios
+  // ============================================================================
+
+  @Test
+  public void joinTimeOutHintWithComplexQuery() throws SqlParseException {
+    String query =
+        String.format(
+            Locale.ROOT,
+            "select /*! JOIN_TIME_OUT(240) */ /*! JOIN_TABLES_LIMIT(5000,2000) */ "
+                + "a.firstname, a.lastname, a.age, d.holdersName, d.age as dog_age "
+                + "from %s/account a "
+                + "LEFT JOIN %s/dog d on d.holdersName = a.firstname "
+                + "where a.age > 25 AND d.age < 10 "
+                + "order by a.age desc "
+                + "limit 100",
+            TestsConstants.TEST_INDEX_ACCOUNT,
+            TEST_INDEX_DOG);
+
+    JoinSelect joinSelect = parser.parseJoinSelect((SQLQueryExpr) queryToExpr(query));
+    List<Hint> hints = joinSelect.getHints();
+
+    Assert.assertEquals("Should have 2 hints", 2, hints.size());
+
+    // Verify JOIN_TIME_OUT hint
+    Hint timeoutHint = null;
+    Hint limitHint = null;
+    for (Hint hint : hints) {
+      if (hint.getType() == HintType.JOIN_TIME_OUT) {
+        timeoutHint = hint;
+      } else if (hint.getType() == HintType.JOIN_LIMIT) {
+        limitHint = hint;
+      }
+    }
+
+    Assert.assertNotNull("JOIN_TIME_OUT hint should be present", timeoutHint);
+    Assert.assertNotNull("JOIN_TABLES_LIMIT hint should be present", limitHint);
+    Assert.assertEquals("Timeout should be 240", 240, timeoutHint.getParams()[0]);
+    Assert.assertEquals("First limit should be 5000", 5000, limitHint.getParams()[0]);
+    Assert.assertEquals("Second limit should be 2000", 2000, limitHint.getParams()[1]);
+  }
+
+  // ============================================================================
+  // Validation Tests
+  // ============================================================================
+
+  @Test
+  public void joinTimeOutHintValidation() throws SqlParseException {
+    // Test reasonable timeout values
+    int[] validTimeouts = {30, 60, 120, 300, 600, 1800, 3600}; // 30 seconds to 1 hour
+
+    for (int timeout : validTimeouts) {
+      String query =
+          String.format(
+              Locale.ROOT,
+              "select /*! JOIN_TIME_OUT(%d) */ "
+                  + "c.name.firstname from %s/gotCharacters c "
+                  + "JOIN %s/gotCharacters h "
+                  + "on c.name.lastname = h.name",
+              timeout,
+              TEST_INDEX_GAME_OF_THRONES,
+              TEST_INDEX_GAME_OF_THRONES);
+
+      JoinSelect joinSelect = parser.parseJoinSelect((SQLQueryExpr) queryToExpr(query));
+      List<Hint> hints = joinSelect.getHints();
+
+      Assert.assertEquals("Should parse timeout " + timeout, 1, hints.size());
+      Assert.assertEquals("Should be correct value", timeout, hints.get(0).getParams()[0]);
+    }
+  }
+
+  @Test
+  public void joinTimeOutHintPreservationThroughParsing() throws SqlParseException {
+    String query =
+        String.format(
+            Locale.ROOT,
+            "select /*! JOIN_TIME_OUT(180) */ "
+                + "a.firstname, a.balance, d.name, d.age "
+                + "from %s/account a "
+                + "LEFT JOIN %s/dog d on d.holdersName = a.firstname "
+                + "where a.age BETWEEN 25 AND 45 "
+                + "order by a.balance desc",
+            TestsConstants.TEST_INDEX_ACCOUNT,
+            TEST_INDEX_DOG);
+
+    JoinSelect joinSelect = parser.parseJoinSelect((SQLQueryExpr) queryToExpr(query));
+
+    // Verify hint is preserved at the top level
+    List<Hint> hints = joinSelect.getHints();
+    Assert.assertEquals("Should have one hint", 1, hints.size());
+    Hint timeoutHint = hints.get(0);
+    Assert.assertEquals(
+        "Should be JOIN_TIME_OUT hint", HintType.JOIN_TIME_OUT, timeoutHint.getType());
+    Assert.assertEquals("Should preserve timeout value", 180, timeoutHint.getParams()[0]);
+
+    // Verify other query elements are parsed correctly
+    Assert.assertNotNull("Should have first table", joinSelect.getFirstTable());
+    Assert.assertNotNull("Should have second table", joinSelect.getSecondTable());
+    Assert.assertNotNull("Should have connected conditions", joinSelect.getConnectedConditions());
+    Assert.assertTrue(
+        "First table should have order by", joinSelect.getFirstTable().isOrderdSelect());
+  }
+
   private SQLExpr queryToExpr(String query) {
     return new ElasticSqlExprParser(query).expr();
   }

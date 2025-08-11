@@ -52,5 +52,4 @@ http-client.env.json
 /doctest/opensearch-job-scheduler/
 .factorypath
 
-# Claude Code files
 .claude/
