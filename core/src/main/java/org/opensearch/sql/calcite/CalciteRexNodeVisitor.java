@@ -488,6 +488,22 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       }
     }
 
+    // Handle string concatenation with + operator
+    if ("+".equals(node.getFuncName()) && arguments.size() == 2) {
+      RexNode left = arguments.get(0);
+      RexNode right = arguments.get(1);
+
+      // Check if both operands are strings
+      if (left.getType().getSqlTypeName() == SqlTypeName.VARCHAR
+          || left.getType().getSqlTypeName() == SqlTypeName.CHAR) {
+        if (right.getType().getSqlTypeName() == SqlTypeName.VARCHAR
+            || right.getType().getSqlTypeName() == SqlTypeName.CHAR) {
+          // Convert to CONCAT operation for string concatenation
+          return context.rexBuilder.makeCall(SqlStdOperatorTable.CONCAT, left, right);
+        }
+      }
+    }
+
     RexNode resolvedNode =
         PPLFuncImpTable.INSTANCE.resolve(
             context.rexBuilder, node.getFuncName(), arguments.toArray(new RexNode[0]));
