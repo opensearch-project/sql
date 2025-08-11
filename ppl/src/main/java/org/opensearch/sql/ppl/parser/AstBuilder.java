@@ -292,19 +292,16 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   private List<UnresolvedExpression> extractFieldExpressions(
       OpenSearchPPLParser.FieldsCommandBodyContext bodyCtx) {
     if (bodyCtx.wcFieldList() != null) {
-      return processFieldExpressions(bodyCtx.wcFieldList().wcFieldExpression());
-    }
-    if (bodyCtx.wcSpaceSeparatedFieldList() != null) {
-      return processFieldExpressions(bodyCtx.wcSpaceSeparatedFieldList().wcFieldExpression());
+      return processFieldExpressions(bodyCtx.wcFieldList().selectFieldExpression());
     }
     if (bodyCtx.wcMixedFieldList() != null) {
-      return processFieldExpressions(bodyCtx.wcMixedFieldList().wcFieldExpression());
+      return processFieldExpressions(bodyCtx.wcMixedFieldList().selectFieldExpression());
     }
     return Collections.emptyList();
   }
 
   private List<UnresolvedExpression> processFieldExpressions(
-      List<OpenSearchPPLParser.WcFieldExpressionContext> fieldExpressions) {
+      List<OpenSearchPPLParser.SelectFieldExpressionContext> fieldExpressions) {
     return fieldExpressions.stream()
         .map(this::internalVisitExpression)
         .distinct()
