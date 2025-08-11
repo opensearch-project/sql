@@ -132,18 +132,12 @@ tableCommand
 
 fieldsCommandBody
    : (PLUS | MINUS)? wcFieldList
-   | (PLUS | MINUS)? wcSpaceSeparatedFieldList
    | (PLUS | MINUS)? wcMixedFieldList
-   ;
-
-// Space-separated wildcard field list: fields field1 field2 field3
-wcSpaceSeparatedFieldList
-   : wcFieldExpression (wcFieldExpression)+
    ;
 
 // Mixed delimiter wildcard field list: fields field1 field2, field3 field4
 wcMixedFieldList
-   : wcFieldExpression (COMMA? wcFieldExpression)+
+   : selectFieldExpression (COMMA? selectFieldExpression)+
    ;
 
 renameCommand
@@ -550,7 +544,7 @@ fieldList
    ;
 
 wcFieldList
-   : wcFieldExpression (COMMA wcFieldExpression)*
+   : selectFieldExpression (COMMA selectFieldExpression)*
    ;
 
 sortField
@@ -570,6 +564,10 @@ fieldExpression
    ;
 
 wcFieldExpression
+   : wcQualifiedName
+   ;
+
+selectFieldExpression
    : wcQualifiedName
    | STAR
    ;
