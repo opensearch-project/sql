@@ -5,9 +5,9 @@
 
 package org.opensearch.sql.expression.function.udf.ip;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.function.Supplier;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -15,14 +15,20 @@ import org.apache.calcite.linq4j.tree.ConstantExpression;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.data.model.ExprIpValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 /**
@@ -38,50 +44,10 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
  */
 public class CompareIpFunction extends ImplementorUDF {
   private final SqlKind kind;
-  private Supplier<SqlOperator> reverse;
 
   private CompareIpFunction(SqlKind kind) {
     super(new CompareImplementor(kind), NullPolicy.ANY);
     this.kind = kind;
-    // Will be set later
-    this.reverse = null;
-  }
-
-  @Override
-  public SqlSyntax getSqlSyntax() {
-    return SqlSyntax.BINARY;
-  }
-
-  @Override
-  public SqlKind getKind() {
-    return kind;
-  }
-
-  @Override
-  public Supplier<SqlOperator> getReverse() {
-    return reverse;
-  }
-
-  /**
-   * Sets the reverse operator supplier for this comparison function.
-   *
-   * <p>This method is used to establish the reversed relationship between comparison operators
-   * (e.g., "less than" and "greater than"). When the query optimizer normalizes expressions, it may
-   * need to transform "b > a" to "a < b".
-   *
-   * <p>E.g. in the {@code hashCode} method of {@link org.apache.calcite.rex.RexNormalize}#L115, it
-   * always converts <i>B [comparator] A</i> to <i>A [reverse_comparator] B</i> if the ordinal of
-   * the reverse of the comparator is smaller.
-   *
-   * <p>IP comparison functions use this to inform the optimizer that ip_less_than is the reverse of
-   * ip_greater_than, allowing for proper query normalization.
-   *
-   * @param supplier The supplier that provides the reverse SQL operator
-   * @return This CompareIpFunction instance for method chaining
-   */
-  public CompareIpFunction withReverse(Supplier<SqlOperator> supplier) {
-    this.reverse = supplier;
-    return this;
   }
 
   public static CompareIpFunction less() {
@@ -106,6 +72,44 @@ public class CompareIpFunction extends ImplementorUDF {
 
   public static CompareIpFunction notEquals() {
     return new CompareIpFunction(SqlKind.NOT_EQUALS);
+  }
+
+  @Override
+  public SqlUserDefinedFunction toUDF(String functionName, boolean isDeterministic) {
+    SqlIdentifier udfIdentifier =
+        new SqlIdentifier(Collections.singletonList(functionName), null, SqlParserPos.ZERO, null);
+    return new SqlUserDefinedFunction(
+        udfIdentifier,
+        kind,
+        getReturnTypeInference(),
+        InferTypes.ANY_NULLABLE,
+        getOperandMetadata(),
+        getFunction()) {
+      @Override
+      public boolean isDeterministic() {
+        return isDeterministic;
+      }
+
+      @Override
+      public @Nullable SqlOperator reverse() {
+        return switch (kind) {
+          case LESS_THAN -> PPLBuiltinOperators.GREATER_IP;
+          case GREATER_THAN -> PPLBuiltinOperators.LESS_IP;
+          case LESS_THAN_OR_EQUAL -> PPLBuiltinOperators.GTE_IP;
+          case GREATER_THAN_OR_EQUAL -> PPLBuiltinOperators.LTE_IP;
+          case EQUALS -> PPLBuiltinOperators.EQUALS_IP;
+          case NOT_EQUALS -> PPLBuiltinOperators.NOT_EQUALS_IP;
+          default -> throw new IllegalArgumentException(
+              String.format(
+                  Locale.ROOT, "CompareIpFunction is not supposed to be of kind: %s", kind));
+        };
+      }
+
+      @Override
+      public SqlSyntax getSyntax() {
+        return SqlSyntax.BINARY;
+      }
+    };
   }
 
   @Override

@@ -6,17 +6,13 @@
 package org.opensearch.sql.expression.function;
 
 import java.util.Collections;
-import java.util.function.Supplier;
 import org.apache.calcite.schema.ImplementableFunction;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * The interface helps to construct a SqlUserDefinedFunction
@@ -36,18 +32,6 @@ public interface UserDefinedFunctionBuilder {
 
   UDFOperandMetadata getOperandMetadata();
 
-  default SqlKind getKind() {
-    return SqlKind.OTHER_FUNCTION;
-  }
-
-  default SqlSyntax getSqlSyntax() {
-    return SqlSyntax.FUNCTION;
-  }
-
-  default Supplier<SqlOperator> getReverse() {
-    return null;
-  }
-
   default SqlUserDefinedFunction toUDF(String functionName) {
     return toUDF(functionName, true);
   }
@@ -66,7 +50,7 @@ public interface UserDefinedFunctionBuilder {
         new SqlIdentifier(Collections.singletonList(functionName), null, SqlParserPos.ZERO, null);
     return new SqlUserDefinedFunction(
         udfLtrimIdentifier,
-        getKind(),
+        SqlKind.OTHER_FUNCTION,
         getReturnTypeInference(),
         InferTypes.ANY_NULLABLE,
         getOperandMetadata(),
@@ -74,19 +58,6 @@ public interface UserDefinedFunctionBuilder {
       @Override
       public boolean isDeterministic() {
         return isDeterministic;
-      }
-
-      @Override
-      public @Nullable SqlOperator reverse() {
-        if (getReverse() == null) {
-          return null;
-        }
-        return getReverse().get();
-      }
-
-      @Override
-      public SqlSyntax getSyntax() {
-        return getSqlSyntax();
       }
     };
   }
