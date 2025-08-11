@@ -38,6 +38,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.ViewExpanders;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -567,19 +569,29 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitReverse(
       org.opensearch.sql.ast.tree.Reverse node, CalcitePlanContext context) {
     visitChildren(node, context);
-    // Add ROW_NUMBER() column
-    RexNode rowNumber =
-        context
-            .relBuilder
-            .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
-            .over()
-            .rowsTo(RexWindowBounds.CURRENT_ROW)
-            .as(REVERSE_ROW_NUM);
-    context.relBuilder.projectPlus(rowNumber);
-    // Sort by row number descending
-    context.relBuilder.sort(context.relBuilder.desc(context.relBuilder.field(REVERSE_ROW_NUM)));
-    // Remove row number column
-    context.relBuilder.projectExcept(context.relBuilder.field(REVERSE_ROW_NUM));
+    
+    RelCollation collation = context.relBuilder.peek().getTraitSet().getCollation();
+    if (collation == null || collation == RelCollations.EMPTY) {
+      // If no collation exists, use the traditional row_number approach
+      // Add ROW_NUMBER() column
+      RexNode rowNumber =
+          context
+              .relBuilder
+              .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+              .over()
+              .rowsTo(RexWindowBounds.CURRENT_ROW)
+              .as(REVERSE_ROW_NUM);
+      context.relBuilder.projectPlus(rowNumber);
+      // Sort by row number descending
+      context.relBuilder.sort(context.relBuilder.desc(context.relBuilder.field(REVERSE_ROW_NUM)));
+      // Remove row number column
+      context.relBuilder.projectExcept(context.relBuilder.field(REVERSE_ROW_NUM));
+    } else {
+      // If collation exists, reverse the sort direction
+      RelCollation reversedCollation = PlanUtils.reverseCollation(collation);
+      context.relBuilder.sort(reversedCollation);
+    }
+    
     return context.relBuilder.peek();
   }
 

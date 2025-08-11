@@ -16,6 +16,9 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nullable;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
@@ -355,40 +358,29 @@ public interface PlanUtils {
     return rexNode;
   }
 
-  /** Check if contains RexOver */
-  static boolean containsRowNumberDedup(LogicalProject project) {
-    return project.getProjects().stream()
-        .anyMatch(p -> p instanceof RexOver && p.getKind() == SqlKind.ROW_NUMBER);
-  }
+  /**
+   * Reverses the direction of a RelCollation.
+   *
+   * @param original The original collation to reverse
+   * @return A new RelCollation with reversed directions
+   */
+  public static RelCollation reverseCollation(RelCollation original) {
+    if (original == null || original.getFieldCollations().isEmpty()) {
+      return original;
+    }
 
-  /** Get all RexWindow list from LogicalProject */
-  static List<RexWindow> getRexWindowFromProject(LogicalProject project) {
-    final List<RexWindow> res = new ArrayList<>();
-    final RexVisitorImpl<Void> visitor =
-        new RexVisitorImpl<>(true) {
-          @Override
-          public Void visitOver(RexOver over) {
-            res.add(over.getWindow());
-            return null;
-          }
-        };
-    visitor.visitEach(project.getProjects());
-    return res;
-  }
+    List<RelFieldCollation> reversedFields = new ArrayList<>();
+    for (RelFieldCollation field : original.getFieldCollations()) {
+      RelFieldCollation.Direction reversedDirection = field.direction.reverse();
+      
+      RelFieldCollation reversedField = new RelFieldCollation(
+          field.getFieldIndex(),
+          reversedDirection,
+          field.nullDirection
+      );
+      reversedFields.add(reversedField);
+    }
 
-  static List<Integer> getSelectColumns(List<RexNode> rexNodes) {
-    final List<Integer> selectedColumns = new ArrayList<>();
-    final RexVisitorImpl<Void> visitor =
-        new RexVisitorImpl<Void>(true) {
-          @Override
-          public Void visitInputRef(RexInputRef inputRef) {
-            if (!selectedColumns.contains(inputRef.getIndex())) {
-              selectedColumns.add(inputRef.getIndex());
-            }
-            return null;
-          }
-        };
-    visitor.visitEach(rexNodes);
-    return selectedColumns;
+    return RelCollations.of(reversedFields);
   }
 }

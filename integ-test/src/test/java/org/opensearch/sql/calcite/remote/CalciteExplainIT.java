@@ -207,7 +207,7 @@ public class CalciteExplainIT extends ExplainIT {
   public void testExplainWithReverse() throws IOException {
     String result =
         executeWithReplace(
-            "explain source=opensearch-sql_test_index_account | sort age | reverse | head 5");
+            "explain source=opensearch-sql_test_index_account | reverse | head 5");
 
     // Verify that the plan contains a LogicalSort with fetch (from head 5)
     assertTrue(result.contains("LogicalSort") && result.contains("fetch=[5]"));
@@ -215,6 +215,37 @@ public class CalciteExplainIT extends ExplainIT {
     // Verify that reverse added a ROW_NUMBER and another sort (descending)
     assertTrue(result.contains("ROW_NUMBER()"));
     assertTrue(result.contains("dir0=[DESC]"));
+  }
+  
+  @Test
+  public void testExplainWithReversePushdown() throws IOException {
+    // Test with a sort operation that should use the reverse pushdown optimization
+    String result =
+        executeWithReplace(
+            "explain source=opensearch-sql_test_index_account | sort - age | reverse");
+
+    // Verify that the plan contains a LogicalSort with ascending direction (reversed from DESC)
+    assertTrue(result.contains("LogicalSort"));
+    assertTrue(result.contains("dir0=[ASC]"));
+    
+    // Verify that ROW_NUMBER is NOT used (since we're using the collation-based optimization)
+    assertFalse(result.contains("ROW_NUMBER()"));
+  }
+  
+  @Test
+  public void testExplainWithReversePushdownMultipleFields() throws IOException {
+    // Test with multiple sort fields that should use the reverse pushdown optimization
+    String result =
+        executeWithReplace(
+            "explain source=opensearch-sql_test_index_account | sort - age, + firstname | reverse");
+
+    // Verify that the plan contains a LogicalSort with reversed directions
+    assertTrue(result.contains("LogicalSort"));
+    assertTrue(result.contains("dir0=[ASC]")); // age was DESC, now ASC
+    assertTrue(result.contains("dir1=[DESC]")); // firstname was ASC, now DESC
+    
+    // Verify that ROW_NUMBER is NOT used (since we're using the collation-based optimization)
+    assertFalse(result.contains("ROW_NUMBER()"));
   }
 
   @Test
