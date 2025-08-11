@@ -6,6 +6,7 @@
 package org.opensearch.sql.legacy;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
+import static org.opensearch.sql.common.setting.Settings.Key.SCRIPT_CONTEXT_MAX_COMPILATIONS_RATE_PATTERN;
 import static org.opensearch.sql.legacy.TestUtils.createIndexByRestClient;
 import static org.opensearch.sql.legacy.TestUtils.getAccountIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getAliasIndexMapping;
@@ -63,8 +64,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import javax.management.MBeanServerInvocationHandler;
 import javax.management.ObjectName;
@@ -218,9 +222,50 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         indexName, "{ \"index\": { \"max_result_window\": " + DEFAULT_MAX_RESULT_WINDOW + " } }");
   }
 
+  /**
+   * Increases the maximum script compilation rate for all script contexts for tests. This method
+   * sets an unlimited compilation rate for each script context when the
+   * script.disable_max_compilations_rate setting is not enabled, allowing tests to run without
+   * hitting compilation rate limits.
+   *
+   * @throws IOException if there is an error retrieving cluster settings or updating them
+   */
+  protected void increaseMaxCompilationsRate() throws IOException {
+    // When script.disable_max_compilations_rate is set, custom context compilation rates cannot be
+    // set
+    if (!Objects.equals(
+        getClusterSetting(
+            Settings.Key.SCRIPT_DISABLE_MAX_COMPILATIONS_RATE.getKeyValue(), "persistent"),
+        "true")) {
+      List<String> contexts = getScriptContexts();
+      for (String context : contexts) {
+        String contextCompilationsRate =
+            SCRIPT_CONTEXT_MAX_COMPILATIONS_RATE_PATTERN.getKeyValue().replace("*", context);
+        updateClusterSettings(
+            new ClusterSetting("persistent", contextCompilationsRate, "unlimited"));
+      }
+    }
+  }
+
+  protected List<String> getScriptContexts() throws IOException {
+    Request request = new Request("GET", "/_script_context");
+    Response response = client().performRequest(request);
+    String responseBody = getResponseBody(response);
+    JSONObject jsonResponse = new JSONObject(responseBody);
+    JSONArray contexts = jsonResponse.getJSONArray("contexts");
+    List<String> contextNames = new ArrayList<>();
+    for (int i = 0; i < contexts.length(); i++) {
+      JSONObject context = contexts.getJSONObject(i);
+      String contextName = context.getString("name");
+      contextNames.add(contextName);
+    }
+    return contextNames;
+  }
+
   /** Provide for each test to load test index, data and other setup work */
   protected void init() throws Exception {
     disableCalcite();
+    increaseMaxCompilationsRate();
   }
 
   /**

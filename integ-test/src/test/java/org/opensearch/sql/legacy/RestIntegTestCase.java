@@ -23,6 +23,7 @@ import static org.opensearch.sql.legacy.TestUtils.getOdbcIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getOrderIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getPeople2IndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getPhraseIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 import static org.opensearch.sql.legacy.TestUtils.getWeblogsIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
 import static org.opensearch.sql.legacy.TestUtils.loadDataByRestClient;
@@ -33,19 +34,27 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import javax.management.MBeanServerInvocationHandler;
 import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
+import org.apache.commons.lang3.StringUtils;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.opensearch.client.Request;
+import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.sql.common.setting.Settings;
 
 /**
  *
@@ -148,7 +157,9 @@ public abstract class RestIntegTestCase extends OpenSearchSQLRestTestCase {
   }
 
   /** Provide for each test to load test index, data and other setup work */
-  protected void init() throws Exception {}
+  protected void init() throws Exception {
+    increaseMaxCompilationsRate();
+  }
 
   protected static void updateClusterSetting(String settingKey, Object value) throws IOException {
     updateClusterSetting(settingKey, value, true);
@@ -169,6 +180,66 @@ public abstract class RestIntegTestCase extends OpenSearchSQLRestTestCase {
     Response response = client().performRequest(request);
     Assert.assertEquals(
         RestStatus.OK, RestStatus.fromCode(response.getStatusLine().getStatusCode()));
+  }
+
+  /**
+   * Increases the maximum script compilation rate for all script contexts for tests. This method
+   * sets an unlimited compilation rate for each script context when the
+   * script.disable_max_compilations_rate setting is not enabled, allowing tests to run without
+   * hitting compilation rate limits.
+   *
+   * @throws IOException if there is an error retrieving cluster settings or updating them
+   */
+  protected void increaseMaxCompilationsRate() throws IOException {
+    // When script.disable_max_compilations_rate is set, custom context compilation rates cannot be
+    // set
+    if (!Objects.equals(
+        getClusterSetting(
+            Settings.Key.SCRIPT_DISABLE_MAX_COMPILATIONS_RATE.getKeyValue(), "persistent"),
+        "true")) {
+      List<String> contexts = getScriptContexts();
+      for (String context : contexts) {
+        String contextCompilationsRate =
+            Settings.Key.SCRIPT_CONTEXT_MAX_COMPILATIONS_RATE_PATTERN
+                .getKeyValue()
+                .replace("*", context);
+        updateClusterSetting(contextCompilationsRate, "unlimited", true);
+      }
+    }
+  }
+
+  protected List<String> getScriptContexts() throws IOException {
+    Request request = new Request("GET", "/_script_context");
+    Response response = client().performRequest(request);
+    String responseBody = getResponseBody(response);
+    JSONObject jsonResponse = new JSONObject(responseBody);
+    JSONArray contexts = jsonResponse.getJSONArray("contexts");
+    List<String> contextNames = new ArrayList<>();
+    for (int i = 0; i < contexts.length(); i++) {
+      JSONObject context = contexts.getJSONObject(i);
+      String contextName = context.getString("name");
+      contextNames.add(contextName);
+    }
+    return contextNames;
+  }
+
+  protected static String getClusterSetting(String settingPath, String type) throws IOException {
+    JSONObject settings = getAllClusterSettings();
+    String value = settings.optJSONObject(type).optString(settingPath);
+    if (StringUtils.isEmpty(value)) {
+      return settings.optJSONObject("defaults").optString(settingPath);
+    } else {
+      return value;
+    }
+  }
+
+  protected static JSONObject getAllClusterSettings() throws IOException {
+    Request request = new Request("GET", "/_cluster/settings?flat_settings&include_defaults");
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    request.setOptions(restOptionsBuilder);
+    Response response = client().performRequest(request);
+    return new JSONObject(getResponseBody(response));
   }
 
   protected static void wipeAllClusterSettings() throws IOException {
