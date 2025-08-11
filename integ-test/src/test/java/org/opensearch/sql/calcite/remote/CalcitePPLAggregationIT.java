@@ -30,6 +30,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
 
   @Override
   public void init() throws Exception {
+    GlobalPushdownConfig.enabled = false;
     super.init();
     enableCalcite();
 
