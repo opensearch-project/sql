@@ -6,7 +6,7 @@
 package org.opensearch.sql.analysis;
 
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -32,7 +32,7 @@ public class WildcardFieldResolver {
     Map<String, ExprType> availableFields = environment.lookupAllFields(Namespace.FIELD_NAME);
 
     List<NamedExpression> resolvedFields = new ArrayList<>();
-    Set<String> seenFields = new LinkedHashSet<>();
+    Set<String> seenFields = new HashSet<>();
     boolean hasAllFields = projectList.stream().anyMatch(expr -> expr instanceof AllFields);
 
     for (UnresolvedExpression expr : projectList) {
