@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.util.Set;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -94,6 +95,7 @@ import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
@@ -133,6 +135,7 @@ import org.opensearch.sql.planner.logical.LogicalWindow;
 import org.opensearch.sql.planner.physical.datasource.DataSourceTable;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.utils.ParseUtils;
+import org.opensearch.sql.utils.WildcardRenameUtils;
 
 /**
  * Analyze the {@link UnresolvedPlan} in the {@link AnalysisContext} to construct the {@link
@@ -306,20 +309,27 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitRename(Rename node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
+    
+    // Get available fields from current schema
+    Set<String> availableFields = getAvailableFieldNames(context);
+    
     ImmutableMap.Builder<ReferenceExpression, ReferenceExpression> renameMapBuilder =
         new ImmutableMap.Builder<>();
     for (Map renameMap : node.getRenameList()) {
-      Expression origin = expressionAnalyzer.analyze(renameMap.getOrigin(), context);
-      // We should define the new target field in the context instead of analyze it.
+      String originPattern = ((Field) renameMap.getOrigin()).getField().toString();
+      
       if (renameMap.getTarget() instanceof Field) {
-        ReferenceExpression target =
-            new ReferenceExpression(
-                ((Field) renameMap.getTarget()).getField().toString(), origin.type());
-        ReferenceExpression originExpr = DSL.ref(origin.toString(), origin.type());
-        TypeEnvironment curEnv = context.peek();
-        curEnv.remove(originExpr);
-        curEnv.define(target);
-        renameMapBuilder.put(originExpr, target);
+        String targetPattern = ((Field) renameMap.getTarget()).getField().toString();
+        
+        // Validate pattern compatibility for wildcards
+        if (WildcardRenameUtils.isWildcardPattern(originPattern) && 
+            !WildcardRenameUtils.validatePatternCompatibility(originPattern, targetPattern)) {
+          throw new SemanticCheckException(String.format(
+              "Wildcard count mismatch between source '%s' and target '%s' patterns", 
+              originPattern, targetPattern));
+        }
+
+        expandWildcardRename(originPattern, targetPattern, availableFields, renameMapBuilder, context);
       } else {
         throw new SemanticCheckException(
             String.format("the target expected to be field, but is %s", renameMap.getTarget()));
@@ -894,5 +904,58 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     groupByList.add(patternsField);
     groupByList.addAll(node.getPartitionByList());
     return new Aggregation(aggExprs, ImmutableList.of(), groupByList);
+  }
+
+  /**
+   * Get available field names from current type environment.
+   *
+   * @param context the analysis context
+   * @return set of available field names
+   */
+  private Set<String> getAvailableFieldNames(AnalysisContext context) {
+    TypeEnvironment currentEnv = context.peek();
+    return currentEnv.lookupAllFields(Namespace.FIELD_NAME).keySet();
+  }
+
+  /**
+   * Expand wildcard rename patterns to concrete field mappings.
+   *
+   * @param sourcePattern the source wildcard pattern
+   * @param targetPattern the target wildcard pattern
+   * @param availableFields set of available field names
+   * @param renameMapBuilder builder for rename mappings
+   * @param context the analysis context
+   */
+  private void expandWildcardRename(
+      String sourcePattern,
+      String targetPattern,
+      Set<String> availableFields,
+      ImmutableMap.Builder<ReferenceExpression, ReferenceExpression> renameMapBuilder,
+      AnalysisContext context) {
+
+    List<String> matchingFields = WildcardRenameUtils.matchFieldNames(sourcePattern, availableFields);
+
+    if (matchingFields.isEmpty()) {
+      throw new SemanticCheckException(
+          String.format("No fields match the wildcard pattern '%s'", sourcePattern));
+    }
+
+    TypeEnvironment curEnv = context.peek();
+
+    for (String fieldName : matchingFields) {
+      String newName = WildcardRenameUtils.applyWildcardTransformation(
+          sourcePattern, targetPattern, fieldName);
+
+      Symbol fieldSymbol = new Symbol(Namespace.FIELD_NAME, fieldName);
+      ExprType fieldType = curEnv.resolve(fieldSymbol);
+
+      ReferenceExpression origin = DSL.ref(fieldName, fieldType);
+      ReferenceExpression target = new ReferenceExpression(newName, fieldType);
+
+      curEnv.remove(origin);
+      curEnv.define(target);
+
+      renameMapBuilder.put(origin, target);
+    }
   }
 }
