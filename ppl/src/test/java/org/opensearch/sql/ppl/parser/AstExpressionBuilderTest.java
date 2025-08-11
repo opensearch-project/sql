@@ -961,6 +961,49 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   }
 
   @Test
+  public void canBuildMulti_matchRelevanceFunctionWithoutFields() {
+    // Test multi_match with only query parameter (no fields)
+    assertEqual(
+        "source=test | where multi_match('test query')",
+        filter(
+            relation("test"),
+            function("multi_match", unresolvedArg("query", stringLiteral("test query")))));
+  }
+
+  @Test
+  public void canBuildMulti_matchRelevanceFunctionWithoutFieldsButWithOptions() {
+    // Test multi_match with query and optional parameters but no fields
+    assertEqual(
+        "source=test | where multi_match('test query', analyzer='keyword')",
+        filter(
+            relation("test"),
+            function(
+                "multi_match",
+                unresolvedArg("query", stringLiteral("test query")),
+                unresolvedArg("analyzer", stringLiteral("keyword")))));
+  }
+
+  @Test
+  public void canBuildSimple_query_stringRelevanceFunctionWithoutFields() {
+    // Test simple_query_string with only query parameter (no fields)
+    assertEqual(
+        "source=test | where simple_query_string('test query')",
+        filter(
+            relation("test"),
+            function("simple_query_string", unresolvedArg("query", stringLiteral("test query")))));
+  }
+
+  @Test
+  public void canBuildQuery_stringRelevanceFunctionWithoutFields() {
+    // Test query_string with only query parameter (no fields)
+    assertEqual(
+        "source=test | where query_string('test query')",
+        filter(
+            relation("test"),
+            function("query_string", unresolvedArg("query", stringLiteral("test query")))));
+  }
+
+  @Test
   public void functionNameCanBeUsedAsIdentifier() {
     assertFunctionNameCouldBeId(
         "AVG | COUNT | SUM | MIN | MAX | VAR_SAMP | VAR_POP | STDDEV_SAMP | STDDEV_POP |"
