@@ -28,6 +28,7 @@ public class ExplainIT extends PPLIntegTestCase {
     loadIndex(Index.BANK);
     loadIndex(Index.DATE_FORMATS);
     loadIndex(Index.WEBLOG);
+    loadIndex(Index.TIME_TEST_DATA);
   }
 
   @Test
