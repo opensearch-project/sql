@@ -488,20 +488,10 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       }
     }
 
-    // Handle string concatenation with + operator
-    if ("+".equals(node.getFuncName()) && arguments.size() == 2) {
-      RexNode left = arguments.get(0);
-      RexNode right = arguments.get(1);
-
-      // Check if both operands are strings
-      if (left.getType().getSqlTypeName() == SqlTypeName.VARCHAR
-          || left.getType().getSqlTypeName() == SqlTypeName.CHAR) {
-        if (right.getType().getSqlTypeName() == SqlTypeName.VARCHAR
-            || right.getType().getSqlTypeName() == SqlTypeName.CHAR) {
-          // Convert to CONCAT operation for string concatenation
-          return context.rexBuilder.makeCall(SqlStdOperatorTable.CONCAT, left, right);
-        }
-      }
+    // Try to handle special operator cases first
+    RexNode specialCase = tryHandleSpecialOperators(node, arguments, context);
+    if (specialCase != null) {
+      return specialCase;
     }
 
     RexNode resolvedNode =
@@ -511,6 +501,64 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       return resolvedNode;
     }
     throw new IllegalArgumentException("Unsupported operator: " + node.getFuncName());
+  }
+
+  /**
+   * Handles special operator cases that need custom logic before delegating to PPLFuncImpTable.
+   * This method uses a dispatch pattern to handle different operators cleanly.
+   *
+   * @param node the function node
+   * @param arguments the processed arguments
+   * @param context the plan context
+   * @return RexNode if handled, null otherwise
+   */
+  private RexNode tryHandleSpecialOperators(
+      Function node, List<RexNode> arguments, CalcitePlanContext context) {
+    switch (node.getFuncName()) {
+      case "+":
+        return tryHandleStringConcatenation(arguments, context);
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * Handles string concatenation with the + operator by converting to CONCAT operation when both
+   * operands are string types.
+   *
+   * @param arguments the function arguments (should be exactly 2 for + operator)
+   * @param context the plan context
+   * @return RexNode with CONCAT operation if both operands are strings, null otherwise
+   */
+  private RexNode tryHandleStringConcatenation(
+      List<RexNode> arguments, CalcitePlanContext context) {
+    if (arguments.size() != 2) {
+      return null;
+    }
+
+    RexNode left = arguments.get(0);
+    RexNode right = arguments.get(1);
+
+    // Check if both operands are string types (VARCHAR or CHAR)
+    boolean leftIsString = isStringType(left.getType().getSqlTypeName());
+    boolean rightIsString = isStringType(right.getType().getSqlTypeName());
+
+    if (leftIsString && rightIsString) {
+      // Convert to CONCAT operation for string concatenation
+      return context.rexBuilder.makeCall(SqlStdOperatorTable.CONCAT, left, right);
+    }
+
+    return null;
+  }
+
+  /**
+   * Checks if the given SQL type name represents a string type.
+   *
+   * @param typeName the SQL type name to check
+   * @return true if the type is VARCHAR or CHAR, false otherwise
+   */
+  private boolean isStringType(SqlTypeName typeName) {
+    return typeName == SqlTypeName.VARCHAR || typeName == SqlTypeName.CHAR;
   }
 
   @Override
