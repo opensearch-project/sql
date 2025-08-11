@@ -55,6 +55,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.calcite.DataContext.Variable;
@@ -1349,8 +1350,9 @@ public class PredicateAnalyzer {
   }
 
   public static class ScriptQueryExpression extends QueryExpression {
-    private final String code;
     private RexNode analyzedNode;
+    // use lambda to generate code lazily to avoid store generated code
+    private final Supplier<String> codeGenerator;
 
     public ScriptQueryExpression(
         RexNode rexNode,
@@ -1362,9 +1364,10 @@ public class PredicateAnalyzer {
       // pushdown
       validator.visitEach(List.of(rexNode));
       RelJsonSerializer serializer = new RelJsonSerializer(cluster);
-      this.code =
-          SerializationWrapper.wrapWithLangType(
-              ScriptEngineType.CALCITE, serializer.serialize(rexNode, rowType, fieldTypes));
+      this.codeGenerator =
+          () ->
+              SerializationWrapper.wrapWithLangType(
+                  ScriptEngineType.CALCITE, serializer.serialize(rexNode, rowType, fieldTypes));
     }
 
     @Override
@@ -1381,7 +1384,7 @@ public class PredicateAnalyzer {
       return new Script(
           DEFAULT_SCRIPT_TYPE,
           COMPOUNDED_LANG_NAME,
-          code,
+          codeGenerator.get(),
           Collections.emptyMap(),
           Map.of(Variable.UTC_TIMESTAMP.camelName, currentTime));
     }
