@@ -2191,25 +2191,6 @@ public class DateTimeFunctions {
         return value.dateValue().toEpochSecond(LocalTime.MIN, ZoneOffset.UTC) + 0d;
       case TIMESTAMP:
         return value.timestampValue().getEpochSecond() + value.timestampValue().getNano() / 1E9;
-      case STRING:
-        // Handle string representations of timestamps (e.g., "2025-07-28 00:00:00")
-        // This is common when timestamp fields are processed in aggregation contexts
-        String timestampStr = value.stringValue();
-        try {
-          // Try to parse as timestamp string
-          ExprTimestampValue parsedTimestamp = new ExprTimestampValue(timestampStr);
-          return parsedTimestamp.timestampValue().getEpochSecond()
-              + parsedTimestamp.timestampValue().getNano() / 1E9;
-        } catch (Exception e) {
-          // If timestamp parsing fails, try numeric parsing as fallback
-          try {
-            double numericValue = Double.parseDouble(timestampStr);
-            return transferUnixTimeStampFromDoubleInput(numericValue);
-          } catch (NumberFormatException nfe) {
-            // If both timestamp and numeric parsing fail, return null
-            return null;
-          }
-        }
       default:
         //     ... or a number in YYMMDD, YYMMDDhhmmss, YYYYMMDD, or YYYYMMDDhhmmss format.
         //     If the argument includes a time part, it may optionally include a fractional
