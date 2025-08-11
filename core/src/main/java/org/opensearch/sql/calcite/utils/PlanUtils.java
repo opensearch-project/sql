@@ -23,7 +23,6 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexVisitorImpl;
@@ -354,17 +353,6 @@ public interface PlanUtils {
       }
     }
     return rexNode;
-  }
-
-  static List<RexLiteral> findLiterals(RexNode node, boolean deep) {
-    final RexVisitorImpl<RexLiteral> visitor =
-        new RexVisitorImpl<>(deep) {
-          @Override
-          public RexLiteral visitLiteral(RexLiteral literal) {
-            return literal;
-          }
-        };
-    return visitor.visitList(List.of(node));
   }
 
   /** Check if contains RexOver */
