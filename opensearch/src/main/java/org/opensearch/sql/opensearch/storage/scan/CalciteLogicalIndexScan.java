@@ -238,7 +238,6 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       Map<String, ExprType> fieldTypes = this.osIndex.getFieldTypes();
       List<String> outputFields = aggregate.getRowType().getFieldNames();
 
-
       final Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder =
           AggregateAnalyzer.analyze(
               aggregate, project, getRowType(), fieldTypes, outputFields, getCluster());
@@ -419,5 +418,4 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     }
     return newContext;
   }
-
 }

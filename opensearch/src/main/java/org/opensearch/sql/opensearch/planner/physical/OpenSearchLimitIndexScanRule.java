@@ -33,6 +33,12 @@ public class OpenSearchLimitIndexScanRule extends RelRule<OpenSearchLimitIndexSc
     Integer limitValue = extractLimitValue(sort.fetch);
     Integer offsetValue = extractOffsetValue(sort.offset);
     if (limitValue != null && offsetValue != null) {
+      // Don't push down system limits (10000) when there are multiple sort collations
+      // This prevents interference with multi-sort operations
+      if (limitValue == 10000 && sort.getCollation().getFieldCollations().size() > 1) {
+        return;
+      }
+
       CalciteLogicalIndexScan newScan = scan.pushDownLimit(limitValue, offsetValue);
       if (newScan != null) {
         call.transformTo(newScan);

@@ -207,7 +207,8 @@ public class OpenSearchExprValueFactory {
       String stringValue = (String) content.objectValue();
       if (stringValue.contains("-") && stringValue.matches("\\d+\\.?\\d*-\\d+\\.?\\d*")) {
         // Exclude date formats: YYYY-MM-DD and YYYY-DDD (ordinal date)
-        if (!stringValue.matches("\\d{4}-\\d{1,3}") && !stringValue.matches("\\d{4}-\\d{2}-\\d{2}")) {
+        if (!stringValue.matches("\\d{4}-\\d{1,3}")
+            && !stringValue.matches("\\d{4}-\\d{2}-\\d{2}")) {
           // This is a range string from bin operation - treat as string value
           return new ExprStringValue(stringValue);
         }
