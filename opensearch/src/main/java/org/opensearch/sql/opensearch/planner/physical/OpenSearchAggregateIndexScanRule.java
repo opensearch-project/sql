@@ -7,6 +7,7 @@ package org.opensearch.sql.opensearch.planner.physical;
 import java.util.function.Predicate;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.sql.SqlKind;
@@ -64,10 +65,17 @@ public class OpenSearchAggregateIndexScanRule
             .withOperandSupplier(
                 b0 ->
                     b0.operand(LogicalAggregate.class)
+                        .predicate(
+                            agg ->
+                                // Cannot push down aggregation with inner filter
+                                agg.getAggCallList().stream().noneMatch(AggregateCall::hasFilter))
                         .oneInput(
                             b1 ->
                                 b1.operand(LogicalProject.class)
-                                    .predicate(OpenSearchIndexScanRule::distinctProjectList)
+                                    .predicate(
+                                        // Don't push down aggregate on window function
+                                        Predicate.not(OpenSearchIndexScanRule::containsRexOver)
+                                            .and(OpenSearchIndexScanRule::distinctProjectList))
                                     .oneInput(
                                         b2 ->
                                             b2.operand(CalciteLogicalIndexScan.class)
@@ -92,7 +100,8 @@ public class OpenSearchAggregateIndexScanRule
                                         .allMatch(
                                             call ->
                                                 call.getAggregation().kind == SqlKind.COUNT
-                                                    && call.getArgList().isEmpty()))
+                                                    && call.getArgList().isEmpty()
+                                                    && !call.hasFilter()))
                         .oneInput(
                             b1 ->
                                 b1.operand(CalciteLogicalIndexScan.class)

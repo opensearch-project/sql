@@ -153,8 +153,6 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Cannot pushdown the filter condition.", e);
-      } else {
-        LOG.info("Cannot pushdown the filter condition.");
       }
     }
     return null;
@@ -269,8 +267,6 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Cannot pushdown the aggregate {}", aggregate, e);
-      } else {
-        LOG.info("Cannot pushdown the aggregate {}, ", aggregate);
       }
     }
     return null;
@@ -288,8 +284,6 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Cannot pushdown limit {} with offset {}", limit, offset, e);
-      } else {
-        LOG.info("Cannot pushdown limit {} with offset {}", limit, offset);
       }
     }
     return null;
