@@ -157,26 +157,26 @@ class MultiMatchTest {
   }
 
   @Test
-  public void test_SyntaxCheckException_when_one_argument_multiMatch() {
+  public void test_SemanticCheckException_when_missing_query_multiMatch() {
     List<Expression> arguments = List.of(namedArgument("fields", fields_value));
     assertThrows(
-        SyntaxCheckException.class,
+        SemanticCheckException.class,
         () -> multiMatchQuery.build(new MultiMatchExpression(arguments)));
   }
 
   @Test
-  public void test_SyntaxCheckException_when_one_argument_multi_match() {
+  public void test_SemanticCheckException_when_missing_query_multi_match() {
     List<Expression> arguments = List.of(namedArgument("fields", fields_value));
     assertThrows(
-        SyntaxCheckException.class,
+        SemanticCheckException.class,
         () -> multiMatchQuery.build(new MultiMatchExpression(arguments, snakeCaseMultiMatchName)));
   }
 
   @Test
-  public void test_SyntaxCheckException_when_one_argument_multiMatchQuery() {
+  public void test_SemanticCheckException_when_missing_query_multiMatchQuery() {
     List<Expression> arguments = List.of(namedArgument("fields", fields_value));
     assertThrows(
-        SyntaxCheckException.class,
+        SemanticCheckException.class,
         () -> multiMatchQuery.build(new MultiMatchExpression(arguments, multiMatchQueryName)));
   }
 
@@ -216,8 +216,48 @@ class MultiMatchTest {
         () -> multiMatchQuery.build(new MultiMatchExpression(arguments, multiMatchQueryName)));
   }
 
+  @Test
+  public void test_multiMatch_without_fields_parameter() {
+    // Test that multi_match works without fields parameter
+    List<Expression> arguments = List.of(namedArgument("query", query_value));
+    // Should not throw any exception
+    multiMatchQuery.build(new MultiMatchExpression(arguments));
+  }
+
+  @Test
+  public void test_multi_match_without_fields_parameter() {
+    // Test that multi_match works without fields parameter (snake_case)
+    List<Expression> arguments = List.of(namedArgument("query", query_value));
+    // Should not throw any exception
+    multiMatchQuery.build(new MultiMatchExpression(arguments, snakeCaseMultiMatchName));
+  }
+
+  @Test
+  public void test_multiMatchQuery_without_fields_parameter() {
+    // Test that multiMatchQuery works without fields parameter
+    List<Expression> arguments = List.of(namedArgument("query", query_value));
+    // Should not throw any exception
+    multiMatchQuery.build(new MultiMatchExpression(arguments, multiMatchQueryName));
+  }
+
+  @Test
+  public void test_multiMatch_with_optional_parameters_no_fields() {
+    // Test multi_match with optional parameters but no fields
+    List<Expression> arguments =
+        List.of(
+            namedArgument("query", query_value),
+            namedArgument("analyzer", literal("standard")),
+            namedArgument("operator", literal("AND")));
+    // Should not throw any exception
+    multiMatchQuery.build(new MultiMatchExpression(arguments));
+  }
+
   private NamedArgumentExpression namedArgument(String name, LiteralExpression value) {
     return DSL.namedArgument(name, value);
+  }
+
+  private LiteralExpression literal(String value) {
+    return DSL.literal(value);
   }
 
   private class MultiMatchExpression extends FunctionExpression {

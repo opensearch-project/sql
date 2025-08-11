@@ -32,8 +32,11 @@ public class RelevanceQueryFunction extends ImplementorUDF {
   }
 
   /*
-   * Starting from the 3rd parameter, they are optional parameters for relevance queries.
-   * Different query has different parameter set, which will be validated in dedicated query builder
+   * The first parameter is always required (either fields or query).
+   * The second parameter is query when fields are present, otherwise it's the first parameter.
+   * Starting from the 3rd parameter (or 2nd when no fields), they are optional parameters for relevance queries.
+   * Different query has different parameter set, which will be validated in dedicated query builder.
+   * Query parameter is always required and cannot be null.
    */
   @Override
   public UDFOperandMetadata getOperandMetadata() {
@@ -55,7 +58,7 @@ public class RelevanceQueryFunction extends ImplementorUDF {
                         SqlTypeFamily.MAP,
                         SqlTypeFamily.MAP,
                         SqlTypeFamily.MAP),
-                    i -> i > 1 && i < 14) // Parameters 3-14 are optional
+                    i -> i > 0 && i < 14) // Parameters 3-14 are optional
                 .or(
                     OperandTypes.family(
                         ImmutableList.of(
@@ -84,7 +87,7 @@ public class RelevanceQueryFunction extends ImplementorUDF {
                             SqlTypeFamily.MAP,
                             SqlTypeFamily.MAP,
                             SqlTypeFamily.MAP),
-                        i -> i > 1 && i < 25))); // Parameters 3-25 are optional
+                        i -> i > 0 && i < 25))); // Parameters 3-25 are optional
   }
 
   public static class RelevanceQueryImplementor implements NotNullImplementor {

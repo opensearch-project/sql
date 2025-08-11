@@ -79,12 +79,23 @@ public abstract class RelevanceQuery<T extends QueryBuilder> extends LuceneQuery
         func.getArguments().stream()
             .map(a -> (NamedArgumentExpression) a)
             .collect(Collectors.toList());
-    if (arguments.size() < 2) {
+    if (arguments.size() < getMinimumParameterCount()) {
       throw new SyntaxCheckException(
-          String.format("%s requires at least two parameters", getQueryName()));
+          String.format(
+              "%s requires at least %d parameter(s)", getQueryName(), getMinimumParameterCount()));
     }
 
     return loadArguments(arguments);
+  }
+
+  /**
+   * Returns the minimum number of parameters required by the query. Subclasses can override this
+   * method to allow different minimum parameter counts.
+   *
+   * @return minimum parameter count
+   */
+  protected int getMinimumParameterCount() {
+    return 2; // Default: requires both fields and query
   }
 
   /**
