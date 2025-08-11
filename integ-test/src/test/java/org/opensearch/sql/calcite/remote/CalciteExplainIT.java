@@ -98,7 +98,8 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testBinCommandBasicSpan() throws IOException {
     String query =
-        "source=opensearch-sql_test_index_account | bin age span=10 | stats count() by age";
+        "source=opensearch-sql_test_index_account | bin age span=10 | stats count() by age | head"
+            + " 5";
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_bin_span.json");
     assertJsonEqualsIgnoreId(expected, result);
@@ -107,8 +108,7 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testBinCommandBinsParameter() throws IOException {
     String query =
-        "source=opensearch-sql_test_index_account | bin balance bins=4 | stats count() by balance |"
-            + " sort balance";
+        "source=opensearch-sql_test_index_account | bin age bins=3 | stats count() by age | head 5";
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_bin_bins.json");
     assertJsonEqualsIgnoreId(expected, result);
@@ -117,8 +117,8 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testBinCommandMinspan() throws IOException {
     String query =
-        "source=opensearch-sql_test_index_account | bin age minspan=11 | stats count() by age |"
-            + " sort age";
+        "source=opensearch-sql_test_index_account | bin balance minspan=5000 | stats count() by"
+            + " balance | head 5";
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_bin_minspan.json");
     assertJsonEqualsIgnoreId(expected, result);
@@ -127,10 +127,20 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testBinCommandStartEnd() throws IOException {
     String query =
-        "source=opensearch-sql_test_index_account | bin balance start=1000 end=50000 | stats"
-            + " count() by balance | sort balance";
+        "source=opensearch-sql_test_index_account | bin balance span=10000 start=5000 end=45000 |"
+            + " stats count() by balance | head 5";
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_bin_start_end.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testBinCommandAlignTime() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_time_data | bin @timestamp span=1hour"
+            + " aligntime=\\\"@d+3h\\\" | fields @timestamp | head 5";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_bin_aligntime.json");
     assertJsonEqualsIgnoreId(expected, result);
   }
 
