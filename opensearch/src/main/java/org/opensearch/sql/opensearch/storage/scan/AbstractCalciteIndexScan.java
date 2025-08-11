@@ -385,12 +385,10 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
           .forEach(i -> newBuckets.add(buckets.get(i)));
       Builder newAggBuilder = new Builder();
       compositeAggregationBuilder.getSubAggregations().forEach(newAggBuilder::addAggregator);
-      int originalSize = compositeAggregationBuilder.size();
       aggregationBuilder =
           Pair.of(
               Collections.singletonList(
                   AggregationBuilders.composite("composite_buckets", newBuckets)
-                      .size(originalSize)
                       .subAggregations(newAggBuilder)),
               aggregationBuilder.getRight());
     }
