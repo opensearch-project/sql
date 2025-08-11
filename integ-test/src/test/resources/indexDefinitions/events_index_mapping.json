@@ -1,0 +1,24 @@
+{
+  "mappings": {
+    "properties": {
+      "@timestamp": {
+        "type": "date"
+      },
+      "host": {
+        "type": "keyword"
+      },
+      "url": {
+        "type": "keyword"
+      },
+      "status": {
+        "type": "keyword"
+      },
+      "action": {
+        "type": "keyword"
+      },
+      "method": {
+        "type": "keyword"
+      }
+    }
+  }
+}

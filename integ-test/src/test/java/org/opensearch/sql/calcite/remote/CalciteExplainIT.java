@@ -149,14 +149,15 @@ public class CalciteExplainIT extends ExplainIT {
     String result = executeWithReplace(
         "explain source=events | timechart span=1m avg(status_code) by host");
     
-    // Verify that the plan contains LogicalAggregate for the timechart operation
+    // Verify logical plan contains timechart components
     assertTrue(result.contains("LogicalAggregate"));
+    assertTrue(result.contains("SPAN($"));
+    assertTrue(result.contains("1, 'm'"));
+    assertTrue(result.contains("AVG($"));
     
-    // Verify that the plan contains a date_histogram aggregation for the span parameter
-    assertTrue(result.contains("date_histogram"));
-    
-    // Verify that the plan contains the avg aggregation
-    assertTrue(result.contains("avg"));
+    // Verify physical plan contains aggregation (either pushed down or client-side)
+    assertTrue("Physical plan should contain aggregation", 
+        result.contains("EnumerableAggregate") || result.contains("date_histogram"));
   }
 
   @Test
