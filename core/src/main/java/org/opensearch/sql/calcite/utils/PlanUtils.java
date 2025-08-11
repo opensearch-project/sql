@@ -16,6 +16,9 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nullable;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
@@ -346,5 +349,31 @@ public interface PlanUtils {
       }
     }
     return rexNode;
+  }
+
+  /**
+   * Reverses the direction of a RelCollation.
+   *
+   * @param original The original collation to reverse
+   * @return A new RelCollation with reversed directions
+   */
+  public static RelCollation reverseCollation(RelCollation original) {
+    if (original == null || original.getFieldCollations().isEmpty()) {
+      return original;
+    }
+
+    List<RelFieldCollation> reversedFields = new ArrayList<>();
+    for (RelFieldCollation field : original.getFieldCollations()) {
+      RelFieldCollation.Direction reversedDirection = field.direction.reverse();
+      
+      RelFieldCollation reversedField = new RelFieldCollation(
+          field.getFieldIndex(),
+          reversedDirection,
+          field.nullDirection
+      );
+      reversedFields.add(reversedField);
+    }
+
+    return RelCollations.of(reversedFields);
   }
 }
