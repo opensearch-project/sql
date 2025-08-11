@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.legacy;
 
-import static org.opensearch.sql.common.setting.Settings.Key;
 import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 import static org.opensearch.sql.legacy.TestsConstants.PERSISTENT;
 import static org.opensearch.sql.legacy.TestsConstants.TRANSIENT;
@@ -49,6 +48,7 @@ import org.opensearch.common.util.io.IOUtils;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.script.ScriptService;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
 
 /**
@@ -75,7 +75,8 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
           + "  }"
           + "}"
           + "}";
-
+  private static final String SCRIPT_CONTEXT_MAX_COMPILATIONS_RATE_PATTERN =
+      "script.context.*.max_compilations_rate";
   private static RestClient remoteClient;
 
   /**
@@ -152,7 +153,7 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
       builder.put(CLIENT_PATH_PREFIX, System.getProperty("tests.rest.client_path_prefix"));
     }
     // Disable max compilations rate to avoid hitting compilations threshold during tests
-    builder.put(Key.SCRIPT_DISABLE_MAX_COMPILATIONS_RATE.getKeyValue(), "true");
+    builder.put(ScriptService.SCRIPT_DISABLE_MAX_COMPILATIONS_RATE_SETTING.getKey(), "true");
     return buildClient(builder.build(), hosts.toArray(new HttpHost[0]));
   }
 
@@ -333,17 +334,12 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
     // set
     if (!Objects.equals(
         getClusterSetting(
-            org.opensearch.sql.common.setting.Settings.Key.SCRIPT_DISABLE_MAX_COMPILATIONS_RATE
-                .getKeyValue(),
-            "persistent"),
+            ScriptService.SCRIPT_DISABLE_MAX_COMPILATIONS_RATE_SETTING.getKey(), "persistent"),
         "true")) {
       List<String> contexts = getScriptContexts();
       for (String context : contexts) {
         String contextCompilationsRate =
-            org.opensearch.sql.common.setting.Settings.Key
-                .SCRIPT_CONTEXT_MAX_COMPILATIONS_RATE_PATTERN
-                .getKeyValue()
-                .replace("*", context);
+            SCRIPT_CONTEXT_MAX_COMPILATIONS_RATE_PATTERN.replace("*", context);
         updateClusterSetting(contextCompilationsRate, "unlimited", true);
       }
     }
