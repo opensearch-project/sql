@@ -640,13 +640,6 @@ public class PPLFuncImpTable {
       return (udfOperandMetadata == null) ? null : udfOperandMetadata.getInnerTypeChecker();
     }
 
-    // Such wrapWith*TypeChecker methods are useful in that we don't have to create explicit
-    // overrides of resolve function for different number of operands.
-    // I.e. we don't have to explicitly call
-    //  (FuncImp1) (builder, arg1) -> builder.makeCall(operator, arg1);
-    // (FuncImp2) (builder, arg1, arg2) -> builder.makeCall(operator, arg1, arg2);
-    // etc.
-
     void populate() {
       // register operators for comparison
       registerOperator(NOTEQUAL, PPLBuiltinOperators.NOT_EQUALS_IP, SqlStdOperatorTable.NOT_EQUALS);
@@ -1040,17 +1033,6 @@ public class PPLFuncImpTable {
       } else {
         map.put(functionName, new ArrayList<>(List.of(Pair.of(signature, implement))));
       }
-    }
-  }
-
-  // -------------------------------------------------------------
-  //                   FUNCTIONS
-  // -------------------------------------------------------------
-  /** Implement XOR via NOT_EQUAL, and limit the arguments' type to boolean only */
-  private static class XOR_FUNC implements FunctionImp2 {
-    @Override
-    public RexNode resolve(RexBuilder builder, RexNode arg1, RexNode arg2) {
-      return builder.makeCall(SqlStdOperatorTable.NOT_EQUALS, arg1, arg2);
     }
   }
 

@@ -30,6 +30,8 @@ import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.ast.statement.Explain.ExplainFormat;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
@@ -46,6 +48,7 @@ import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.client.OpenSearchNodeClient;
 import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
 import org.opensearch.sql.opensearch.functions.DistinctCountApproxAggFunction;
 import org.opensearch.sql.opensearch.functions.GeoIpFunction;
@@ -55,6 +58,7 @@ import org.opensearch.sql.storage.TableScanOperator;
 
 /** OpenSearch execution engine implementation. */
 public class OpenSearchExecutionEngine implements ExecutionEngine {
+  private static final Logger logger = LogManager.getLogger(OpenSearchExecutionEngine.class);
 
   private final OpenSearchClient client;
 
@@ -262,8 +266,15 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
 
   /** Registers opensearch-dependent functions */
   private void registerOpenSearchFunctions() {
-    SqlUserDefinedFunction geoIpFunction = new GeoIpFunction(client.getNodeClient()).toUDF("GEOIP");
-    PPLFuncImpTable.INSTANCE.registerExternalOperator(BuiltinFunctionName.GEOIP, geoIpFunction);
+    if (client instanceof OpenSearchNodeClient) {
+      SqlUserDefinedFunction geoIpFunction =
+          new GeoIpFunction(client.getNodeClient()).toUDF("GEOIP");
+      PPLFuncImpTable.INSTANCE.registerExternalOperator(BuiltinFunctionName.GEOIP, geoIpFunction);
+    } else {
+      logger.info(
+          "Function [GEOIP] not registered: incompatible client type {}",
+          client.getClass().getName());
+    }
 
     PPLFuncImpTable.INSTANCE.registerExternalAggFunction(
         DISTINCT_COUNT_APPROX,
