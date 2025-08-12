@@ -146,17 +146,18 @@ public class CalciteExplainIT extends ExplainIT {
       createIndexByRestClient(client(), "events", eventsMapping);
       loadDataByRestClient(client(), "events", "src/test/resources/events_test.json");
     }
-    String result = executeWithReplace(
-        "explain source=events | timechart span=1m avg(status_code) by host");
-    
+    String result =
+        executeWithReplace("explain source=events | timechart span=1m avg(status_code) by host");
+
     // Verify logical plan contains timechart components
     assertTrue(result.contains("LogicalAggregate"));
     assertTrue(result.contains("SPAN($"));
     assertTrue(result.contains("1, 'm'"));
     assertTrue(result.contains("AVG($"));
-    
+
     // Verify physical plan contains aggregation (either pushed down or client-side)
-    assertTrue("Physical plan should contain aggregation", 
+    assertTrue(
+        "Physical plan should contain aggregation",
         result.contains("EnumerableAggregate") || result.contains("date_histogram"));
   }
 
