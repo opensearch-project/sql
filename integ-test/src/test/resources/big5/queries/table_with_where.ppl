@@ -1,0 +1,4 @@
+source = big5
+| where `metrics.size` > 1000
+| table `@timestamp`, `metrics.size`, `host.name`
+| head 10
