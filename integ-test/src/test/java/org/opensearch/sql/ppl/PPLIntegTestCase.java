@@ -155,6 +155,23 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
             "persistent", Settings.Key.CALCITE_ENGINE_ENABLED.getKeyValue(), "false"));
   }
 
+  public static void withCalciteEnabled(Runnable f) throws IOException {
+    boolean isCalciteEnabled = isCalciteEnabled();
+    if (isCalciteEnabled) f.run();
+    else {
+      try {
+        updateClusterSettings(
+            new SQLIntegTestCase.ClusterSetting(
+                "persistent", Key.CALCITE_ENGINE_ENABLED.getKeyValue(), "true"));
+        f.run();
+      } finally {
+        updateClusterSettings(
+            new SQLIntegTestCase.ClusterSetting(
+                "persistent", Settings.Key.CALCITE_ENGINE_ENABLED.getKeyValue(), "false"));
+      }
+    }
+  }
+
   public static void allowCalciteFallback() throws IOException {
     updateClusterSettings(
         new SQLIntegTestCase.ClusterSetting(

@@ -171,22 +171,79 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
 
   @Test
   public void testCrossClusterJoinSyntax1() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | inner join left=l right=r on l.account_number ="
-                    + " r.account_number %s",
-                TEST_INDEX_BANK, TEST_INDEX_BANK_REMOTE));
-    verifyColumn(result, columnName("dog_name"), columnName("holdersName"), columnName("age"));
+    withCalciteEnabled(
+        () -> {
+          JSONObject result = null;
+          try {
+            result =
+                executeQuery(
+                    String.format(
+                        "search source=%s | inner join left=l right=r on l.account_number ="
+                            + " r.account_number %s",
+                        TEST_INDEX_BANK, TEST_INDEX_BANK_REMOTE));
+          } catch (IOException e) {
+            fail();
+          }
+          verifyColumn(
+              result,
+              columnName("l.account_number"),
+              columnName("l.address"),
+              columnName("l.age"),
+              columnName("l.balance"),
+              columnName("l.birthdate"),
+              columnName("l.city"),
+              columnName("l.email"),
+              columnName("l.employer"),
+              columnName("l.firstname"),
+              columnName("l.gender"),
+              columnName("l.lastname"),
+              columnName("l.male"),
+              columnName("l.state"),
+              columnName("r.account_number"),
+              columnName("r.address"),
+              columnName("r.age"),
+              columnName("r.balance"),
+              columnName("r.birthdate"),
+              columnName("r.city"),
+              columnName("r.email"),
+              columnName("r.employer"),
+              columnName("r.firstname"),
+              columnName("r.gender"),
+              columnName("r.lastname"),
+              columnName("r.male"),
+              columnName("r.state"));
+        });
   }
 
   @Test
   public void testCrossClusterJoinSyntax2() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | join type=inner account_number %s",
-                TEST_INDEX_BANK, TEST_INDEX_BANK_REMOTE));
-    verifyColumn(result, columnName("dog_name"), columnName("holdersName"), columnName("age"));
+    withCalciteEnabled(
+        () -> {
+          JSONObject result = null;
+          try {
+            result =
+                executeQuery(
+                    String.format(
+                        "search source=%s | join type=inner account_number %s",
+                        TEST_INDEX_BANK, TEST_INDEX_BANK_REMOTE));
+          } catch (IOException e) {
+            fail();
+          }
+          verifyColumn(
+              result,
+              columnName("account_number"),
+              columnName("address"),
+              columnName("age"),
+              columnName("balance"),
+              columnName("birthdate"),
+              columnName("city"),
+              columnName("email"),
+              columnName("employer"),
+              columnName("firstname"),
+              columnName("gender"),
+              columnName("lastname"),
+              columnName("male"),
+              columnName("state"));
+        });
   }
 }
