@@ -246,10 +246,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                     .filter(addedFields::add)
                     .toList();
             if (matchingFields.isEmpty()) {
-              throw new IllegalArgumentException(
-                  String.format(
-                      "wildcard pattern [%s] matches no fields; input fields are: %s",
-                      fieldName, currentFields));
+              continue;
             }
             matchingFields.forEach(f -> expandedFields.add(context.relBuilder.field(f)));
           } else if (addedFields.add(fieldName)) {
@@ -264,6 +261,25 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         }
         default -> throw new IllegalStateException(
             "Unexpected expression type in project list: " + expr.getClass().getSimpleName());
+      }
+    }
+
+    if (expandedFields.isEmpty()) {
+      String firstWildcardPattern =
+          projectList.stream()
+              .filter(
+                  expr ->
+                      expr instanceof Field field
+                          && WildcardUtils.containsWildcard(field.getField().toString()))
+              .map(expr -> ((Field) expr).getField().toString())
+              .findFirst()
+              .orElse(null);
+
+      if (firstWildcardPattern != null) {
+        throw new IllegalArgumentException(
+            String.format(
+                "wildcard pattern [%s] matches no fields; input fields are: %s",
+                firstWildcardPattern, currentFields));
       }
     }
 
