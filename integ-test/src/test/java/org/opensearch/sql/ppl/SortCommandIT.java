@@ -177,17 +177,26 @@ public class SortCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | sort 0 - account_number | fields account_number", TEST_INDEX_BANK));
-    verifyOrder(result, rows(32), rows(25), rows(20), rows(18), rows(13), rows(6), rows(1));
+                "source=%s | sort 0 account_number | fields account_number", TEST_INDEX_BANK));
+    verifyOrder(result, rows(1), rows(6), rows(13), rows(18), rows(20), rows(25), rows(32));
   }
 
   @Test
-  public void testSortWithDescSuffix() throws IOException {
+  public void testSortWithDesc() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
                 "source=%s | sort account_number desc | fields account_number", TEST_INDEX_BANK));
     verifyOrder(result, rows(32), rows(25), rows(20), rows(18), rows(13), rows(6), rows(1));
+  }
+
+  @Test
+  public void testSortWithDescMultipleFields() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | sort 4 age, - account_number desc | fields age, account_number", TEST_INDEX_BANK));
+    verifyOrder(result, rows(39, 25), rows(36, 6), rows(36, 20), rows(34, 32));
   }
 
   @Test

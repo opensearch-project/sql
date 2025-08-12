@@ -31,12 +31,10 @@ public class Sort extends UnresolvedPlan {
 
   private final List<Field> sortList;
 
-  /** Sort Constructor without count. */
   public Sort(List<Field> sortList) {
     this(null, sortList);
   }
 
-  /** Sort Constructor. */
   public Sort(Integer count, List<Field> sortList) {
     this.count = count;
     this.sortList = sortList;
