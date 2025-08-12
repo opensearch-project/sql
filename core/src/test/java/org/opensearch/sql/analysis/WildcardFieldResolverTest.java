@@ -22,8 +22,10 @@ import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.expression.function.FunctionProperties;
 
 class WildcardFieldResolverTest {
 
@@ -31,14 +33,18 @@ class WildcardFieldResolverTest {
   private TypeEnvironment typeEnvironment;
   private ExpressionAnalyzer expressionAnalyzer;
   private Map<String, ExprType> availableFields;
+  private FunctionProperties functionProperties;
 
   @BeforeEach
   void setUp() {
     context = mock(AnalysisContext.class);
     typeEnvironment = mock(TypeEnvironment.class);
     expressionAnalyzer = mock(ExpressionAnalyzer.class);
+    functionProperties = mock(FunctionProperties.class);
 
     when(context.peek()).thenReturn(typeEnvironment);
+    when(context.getFunctionProperties()).thenReturn(functionProperties);
+    when(functionProperties.getQueryType()).thenReturn(QueryType.PPL);
 
     availableFields = new HashMap<>();
     availableFields.put("account_number", ExprCoreType.INTEGER);

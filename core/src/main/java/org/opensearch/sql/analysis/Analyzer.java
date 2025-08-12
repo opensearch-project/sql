@@ -448,7 +448,12 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   private List<NamedExpression> resolveFieldExpressions(
       List<UnresolvedExpression> projectList, LogicalPlan child, AnalysisContext context) {
-    return WildcardFieldResolver.hasWildcards(projectList)
+    boolean isPPL =
+        context.getFunctionProperties() != null
+            && context.getFunctionProperties().getQueryType()
+                == org.opensearch.sql.executor.QueryType.PPL;
+
+    return isPPL && WildcardFieldResolver.hasWildcards(projectList)
         ? WildcardFieldResolver.resolveWildcards(projectList, context, expressionAnalyzer)
         : selectExpressionAnalyzer.analyze(
             projectList,
