@@ -192,80 +192,98 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitProject(Project node, CalcitePlanContext context) {
     visitChildren(node, context);
 
-    if (node.getProjectList().size() == 1
-        && node.getProjectList().getFirst() instanceof AllFields) {
-      if (node.isExcluded()) {
-        throw new IllegalArgumentException(
-            "Invalid field exclusion: operation would exclude all fields from the result set");
-      }
-      AllFields allFields = (AllFields) node.getProjectList().getFirst();
-      tryToRemoveNestedFields(context);
-      tryToRemoveMetaFields(context, allFields instanceof AllFieldsExcludeMeta);
-      return context.relBuilder.peek();
+    if (isSingleAllFieldsProject(node)) {
+      return handleAllFieldsProject(node, context);
     }
 
-    List<RexNode> expandedList = new ArrayList<>();
-    Set<String> addedFields = new HashSet<>();
     List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
+    List<RexNode> expandedFields =
+        expandProjectFields(node.getProjectList(), currentFields, context);
 
-    for (UnresolvedExpression expr : node.getProjectList()) {
+    if (node.isExcluded()) {
+      validateExclusion(expandedFields, currentFields);
+      context.relBuilder.projectExcept(expandedFields);
+    } else {
+      if (!context.isResolvingSubquery()) {
+        context.setProjectVisited(true);
+      }
+      context.relBuilder.project(expandedFields);
+    }
+    return context.relBuilder.peek();
+  }
+
+  private boolean isSingleAllFieldsProject(Project node) {
+    return node.getProjectList().size() == 1
+        && node.getProjectList().getFirst() instanceof AllFields;
+  }
+
+  private RelNode handleAllFieldsProject(Project node, CalcitePlanContext context) {
+    if (node.isExcluded()) {
+      throw new IllegalArgumentException(
+          "Invalid field exclusion: operation would exclude all fields from the result set");
+    }
+    AllFields allFields = (AllFields) node.getProjectList().getFirst();
+    tryToRemoveNestedFields(context);
+    tryToRemoveMetaFields(context, allFields instanceof AllFieldsExcludeMeta);
+    return context.relBuilder.peek();
+  }
+
+  private List<RexNode> expandProjectFields(
+      List<UnresolvedExpression> projectList,
+      List<String> currentFields,
+      CalcitePlanContext context) {
+    List<RexNode> expandedFields = new ArrayList<>();
+    Set<String> addedFields = new HashSet<>();
+
+    for (UnresolvedExpression expr : projectList) {
       switch (expr) {
         case Field field -> {
           String fieldName = field.getField().toString();
           if (WildcardUtils.containsWildcard(fieldName)) {
-            List<String> allMatchingFields =
+            List<String> matchingFields =
                 WildcardUtils.expandWildcardPattern(fieldName, currentFields).stream()
                     .filter(f -> !isMetadataField(f))
+                    .filter(addedFields::add)
                     .toList();
-            if (allMatchingFields.isEmpty()) {
+            if (matchingFields.isEmpty()) {
               throw new IllegalArgumentException(
                   String.format(
                       "wildcard pattern [%s] matches no fields; input fields are: %s",
                       fieldName, currentFields));
             }
-            List<String> newMatchingFields =
-                allMatchingFields.stream().filter(addedFields::add).toList();
-            newMatchingFields.forEach(f -> expandedList.add(context.relBuilder.field(f)));
+            matchingFields.forEach(f -> expandedFields.add(context.relBuilder.field(f)));
           } else if (addedFields.add(fieldName)) {
-            expandedList.add(rexVisitor.analyze(field, context));
+            expandedFields.add(rexVisitor.analyze(field, context));
           }
         }
         case AllFields ignored -> {
           currentFields.stream()
               .filter(field -> !isMetadataField(field))
               .filter(addedFields::add)
-              .forEach(field -> expandedList.add(context.relBuilder.field(field)));
+              .forEach(field -> expandedFields.add(context.relBuilder.field(field)));
         }
         default -> throw new IllegalStateException(
-            "Unexpected non-field expression in project list: " + expr.getClass().getSimpleName());
+            "Unexpected expression type in project list: " + expr.getClass().getSimpleName());
       }
     }
 
-    if (node.isExcluded()) {
-      Set<String> nonMetaFields =
-          currentFields.stream()
-              .filter(field -> !isMetadataField(field))
-              .collect(Collectors.toSet());
+    return expandedFields;
+  }
 
-      Set<String> fieldsToExclude =
-          expandedList.stream()
-              .filter(RexInputRef.class::isInstance)
-              .map(rex -> currentFields.get(((RexInputRef) rex).getIndex()))
-              .collect(Collectors.toSet());
+  private void validateExclusion(List<RexNode> fieldsToExclude, List<String> currentFields) {
+    Set<String> nonMetaFields =
+        currentFields.stream().filter(field -> !isMetadataField(field)).collect(Collectors.toSet());
 
-      if (nonMetaFields.equals(fieldsToExclude)) {
-        throw new IllegalArgumentException(
-            "Invalid field exclusion: operation would exclude all fields from the result set");
-      }
+    Set<String> excludedFields =
+        fieldsToExclude.stream()
+            .filter(RexInputRef.class::isInstance)
+            .map(rex -> currentFields.get(((RexInputRef) rex).getIndex()))
+            .collect(Collectors.toSet());
 
-      context.relBuilder.projectExcept(expandedList);
-    } else {
-      if (!context.isResolvingSubquery()) {
-        context.setProjectVisited(true);
-      }
-      context.relBuilder.project(expandedList);
+    if (nonMetaFields.equals(excludedFields)) {
+      throw new IllegalArgumentException(
+          "Invalid field exclusion: operation would exclude all fields from the result set");
     }
-    return context.relBuilder.peek();
   }
 
   private boolean isMetadataField(String fieldName) {

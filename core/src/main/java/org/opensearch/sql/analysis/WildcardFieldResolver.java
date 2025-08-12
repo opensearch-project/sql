@@ -34,17 +34,21 @@ public class WildcardFieldResolver {
     List<NamedExpression> resolvedFields = new ArrayList<>();
     Set<String> seenFields = new HashSet<>();
     boolean hasAllFields = projectList.stream().anyMatch(expr -> expr instanceof AllFields);
+    boolean isPPL =
+        context.getFunctionProperties() != null
+            && context.getFunctionProperties().getQueryType()
+                == org.opensearch.sql.executor.QueryType.PPL;
 
     for (UnresolvedExpression expr : projectList) {
       if (expr instanceof AllFields) {
-        resolveAllFields(availableFields, resolvedFields, seenFields);
+        resolveAllFields(availableFields, resolvedFields, seenFields, isPPL);
       } else if (expr instanceof Field) {
         Field field = (Field) expr;
         String fieldName = field.getField().toString();
 
         if (WildcardUtils.containsWildcard(fieldName)) {
           resolveWildcardField(
-              fieldName, availableFields, resolvedFields, seenFields, hasAllFields);
+              fieldName, availableFields, resolvedFields, seenFields, hasAllFields, isPPL);
         } else {
           resolveRegularField(
               expr,
@@ -53,7 +57,8 @@ public class WildcardFieldResolver {
               expressionAnalyzer,
               resolvedFields,
               seenFields,
-              hasAllFields);
+              hasAllFields,
+              isPPL);
         }
       }
     }
@@ -64,10 +69,11 @@ public class WildcardFieldResolver {
   private static void resolveAllFields(
       Map<String, ExprType> availableFields,
       List<NamedExpression> resolvedFields,
-      Set<String> seenFields) {
+      Set<String> seenFields,
+      boolean isPPL) {
     availableFields.forEach(
         (fieldName, fieldType) -> {
-          if (seenFields.add(fieldName)) {
+          if (!isPPL || seenFields.add(fieldName)) {
             resolvedFields.add(DSL.named(fieldName, new ReferenceExpression(fieldName, fieldType)));
           }
         });
@@ -78,10 +84,11 @@ public class WildcardFieldResolver {
       Map<String, ExprType> availableFields,
       List<NamedExpression> resolvedFields,
       Set<String> seenFields,
-      boolean hasAllFields) {
+      boolean hasAllFields,
+      boolean isPPL) {
     List<String> matchingFields = matchWildcardPattern(fieldName, availableFields.keySet());
     for (String matchedField : matchingFields) {
-      if (seenFields.add(matchedField)) {
+      if (!isPPL || seenFields.add(matchedField)) {
         ExprType fieldType = availableFields.get(matchedField);
         resolvedFields.add(
             DSL.named(matchedField, new ReferenceExpression(matchedField, fieldType)));
@@ -96,8 +103,9 @@ public class WildcardFieldResolver {
       ExpressionAnalyzer expressionAnalyzer,
       List<NamedExpression> resolvedFields,
       Set<String> seenFields,
-      boolean hasAllFields) {
-    if (seenFields.add(fieldName)) {
+      boolean hasAllFields,
+      boolean isPPL) {
+    if (!isPPL || seenFields.add(fieldName)) {
       org.opensearch.sql.expression.Expression analyzedExpr =
           expressionAnalyzer.analyze(expr, context);
       resolvedFields.add(DSL.named(analyzedExpr));

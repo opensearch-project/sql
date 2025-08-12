@@ -41,6 +41,8 @@ public class SelectAnalyzeTest extends AnalyzerTestBase {
             LogicalPlanDSL.relation("schema", table),
             DSL.named("integer_value", DSL.ref("integer_value", INTEGER)),
             DSL.named("double_value", DSL.ref("double_value", DOUBLE)),
+            DSL.named("integer_value", DSL.ref("integer_value", INTEGER)),
+            DSL.named("double_value", DSL.ref("double_value", DOUBLE)),
             DSL.named("string_value", DSL.ref("string_value", STRING))),
         AstDSL.projectWithArg(
             AstDSL.relation("schema"),

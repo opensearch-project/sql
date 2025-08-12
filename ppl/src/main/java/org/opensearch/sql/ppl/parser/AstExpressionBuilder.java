@@ -195,7 +195,8 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   }
 
   @Override
-  public UnresolvedExpression visitSelectFieldExpression(OpenSearchPPLParser.SelectFieldExpressionContext ctx) {
+  public UnresolvedExpression visitSelectFieldExpression(
+      OpenSearchPPLParser.SelectFieldExpressionContext ctx) {
     if (ctx.STAR() != null) {
       return AllFields.of();
     }
