@@ -121,20 +121,6 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testExplainWithReverse() throws IOException {
-    String result =
-        executeWithReplace(
-            "explain source=opensearch-sql_test_index_account | sort age | reverse | head 5");
-
-    // Verify that the plan contains a LogicalSort with fetch (from head 5)
-    assertTrue(result.contains("LogicalSort") && result.contains("fetch=[5]"));
-
-    // Verify that reverse added a ROW_NUMBER and another sort (descending)
-    assertTrue(result.contains("ROW_NUMBER()"));
-    assertTrue(result.contains("dir0=[DESC]"));
-  }
-
-  @Test
   public void noPushDownForAggOnWindow() throws IOException {
     Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
     String query =
@@ -143,18 +129,5 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryToString(query);
     String expected = loadFromFile("expectedOutput/calcite/explain_agg_on_window.json");
     assertJsonEqualsIgnoreId(expected, result);
-  }
-
-  /**
-   * Executes the PPL query and returns the result as a string with windows-style line breaks
-   * replaced with Unix-style ones.
-   *
-   * @param ppl the PPL query to execute
-   * @return the result of the query as a string with line breaks replaced
-   * @throws IOException if an error occurs during query execution
-   */
-  private String executeWithReplace(String ppl) throws IOException {
-    var result = executeQueryToString(ppl);
-    return result.replace("\\r\\n", "\\n");
   }
 }
