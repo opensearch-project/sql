@@ -5,10 +5,6 @@
 
 package org.opensearch.sql.opensearch.executor;
 
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.convertRelDataTypeToExprType;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedAggFunction;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.DISTINCT_COUNT_APPROX;
-
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.sql.PreparedStatement;
@@ -29,12 +25,15 @@ import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.ast.statement.Explain.ExplainFormat;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -255,7 +254,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
           exprType = ExprCoreType.UNDEFINED;
         }
       } else {
-        exprType = convertRelDataTypeToExprType(fieldType);
+        exprType = OpenSearchTypeFactory.convertRelDataTypeToExprType(fieldType);
       }
       columns.add(new Column(columnName, null, exprType));
     }
@@ -276,15 +275,12 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
           client.getClass().getName());
     }
 
-    PPLFuncImpTable.INSTANCE.registerExternalAggFunction(
-        DISTINCT_COUNT_APPROX,
-        (distinct, field, argList, ctx) ->
-            TransferUserDefinedAggFunction(
-                DistinctCountApproxAggFunction.class,
-                "APPROX_DISTINCT_COUNT",
-                ReturnTypes.BIGINT_FORCE_NULLABLE,
-                List.of(field),
-                argList,
-                ctx.relBuilder));
+    SqlUserDefinedAggFunction approxDistinctCountFunction =
+        UserDefinedFunctionUtils.createUserDefinedAggFunction(
+            DistinctCountApproxAggFunction.class,
+            "APPROX_DISTINCT_COUNT",
+            ReturnTypes.BIGINT_FORCE_NULLABLE);
+    PPLFuncImpTable.INSTANCE.registerExternalAggOperator(
+        BuiltinFunctionName.DISTINCT_COUNT_APPROX, approxDistinctCountFunction);
   }
 }

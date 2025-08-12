@@ -250,6 +250,7 @@ import org.apache.calcite.sql.type.SameOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.commons.lang3.tuple.Pair;
@@ -337,14 +338,16 @@ public class PPLFuncImpTable {
    * implementations are independent of any specific data storage, should be registered here
    * internally.
    */
-  private final ImmutableMap<BuiltinFunctionName, AggHandler> aggFunctionRegistry;
+  private final ImmutableMap<BuiltinFunctionName, Pair<CalciteFuncSignature, AggHandler>>
+      aggFunctionRegistry;
 
   /**
    * The external agg function registry. Agg Functions whose implementations depend on a specific
    * data engine should be registered here. This reduces coupling between the core module and
    * particular storage backends.
    */
-  private final Map<BuiltinFunctionName, AggHandler> aggExternalFunctionRegistry;
+  private final Map<BuiltinFunctionName, Pair<CalciteFuncSignature, AggHandler>>
+      aggExternalFunctionRegistry;
 
   private PPLFuncImpTable(Builder builder, AggBuilder aggBuilder) {
     final ImmutableMap.Builder<BuiltinFunctionName, List<Pair<CalciteFuncSignature, FunctionImp>>>
@@ -353,8 +356,8 @@ public class PPLFuncImpTable {
     this.functionRegistry = ImmutableMap.copyOf(mapBuilder.build());
     this.externalFunctionRegistry = new ConcurrentHashMap<>();
 
-    final ImmutableMap.Builder<BuiltinFunctionName, AggHandler> aggMapBuilder =
-        ImmutableMap.builder();
+    final ImmutableMap.Builder<BuiltinFunctionName, Pair<CalciteFuncSignature, AggHandler>>
+        aggMapBuilder = ImmutableMap.builder();
     aggBuilder.map.forEach(aggMapBuilder::put);
     this.aggFunctionRegistry = ImmutableMap.copyOf(aggMapBuilder.build());
     this.aggExternalFunctionRegistry = new ConcurrentHashMap<>();
@@ -370,7 +373,7 @@ public class PPLFuncImpTable {
     PPLTypeChecker typeChecker =
         wrapSqlOperandTypeChecker(
             operator.getOperandTypeChecker(),
-            operator.getName(),
+            functionName.name(),
             operator instanceof SqlUserDefinedFunction);
     CalciteFuncSignature signature = new CalciteFuncSignature(functionName.getName(), typeChecker);
     externalFunctionRegistry.compute(
@@ -384,14 +387,22 @@ public class PPLFuncImpTable {
   }
 
   /**
-   * Register a function implementation from external services dynamically.
+   * Register an external aggregate operator dynamically.
    *
    * @param functionName the name of the function, has to be defined in BuiltinFunctionName
-   * @param functionImp the implementation of the agg function
+   * @param aggFunction a SqlUserDefinedAggFunction representing the aggregate function
+   *     implementation
    */
-  public void registerExternalAggFunction(
-      BuiltinFunctionName functionName, AggHandler functionImp) {
-    aggExternalFunctionRegistry.put(functionName, functionImp);
+  public void registerExternalAggOperator(
+      BuiltinFunctionName functionName, SqlUserDefinedAggFunction aggFunction) {
+    PPLTypeChecker typeChecker =
+        wrapSqlOperandTypeChecker(aggFunction.getOperandTypeChecker(), functionName.name(), true);
+    CalciteFuncSignature signature = new CalciteFuncSignature(functionName.getName(), typeChecker);
+    AggHandler handler =
+        (distinct, field, argList, ctx) ->
+            UserDefinedFunctionUtils.convertUDAFToAggCall(
+                aggFunction, List.of(field), argList, ctx.relBuilder);
+    aggExternalFunctionRegistry.put(functionName, Pair.of(signature, handler));
   }
 
   public RelBuilder.AggCall resolveAgg(
@@ -400,13 +411,24 @@ public class PPLFuncImpTable {
       RexNode field,
       List<RexNode> argList,
       CalcitePlanContext context) {
-    AggHandler handler = aggExternalFunctionRegistry.get(functionName);
-    if (handler == null) {
-      handler = aggFunctionRegistry.get(functionName);
+    var implementation = aggExternalFunctionRegistry.get(functionName);
+    if (implementation == null) {
+      implementation = aggFunctionRegistry.get(functionName);
     }
-    if (handler == null) {
+    if (implementation == null) {
       throw new IllegalStateException(String.format("Cannot resolve function: %s", functionName));
     }
+    CalciteFuncSignature signature = implementation.getKey();
+    RelDataType fieldType = field.getType();
+    if (!signature.match(functionName.getName(), List.of(fieldType))) {
+      throw new ExpressionEvaluationException(
+          String.format(
+              "Aggregation function %s expects field type {%s}, but got %s",
+              functionName,
+              signature.typeChecker().getAllowedSignatures(),
+              getActualSignature(List.of(fieldType))));
+    }
+    var handler = implementation.getValue();
     return handler.apply(distinct, field, argList, context);
   }
 
@@ -1037,43 +1059,66 @@ public class PPLFuncImpTable {
   }
 
   private static class AggBuilder {
-    private final Map<BuiltinFunctionName, AggHandler> map = new HashMap<>();
+    private final Map<BuiltinFunctionName, Pair<CalciteFuncSignature, AggHandler>> map =
+        new HashMap<>();
 
-    void register(BuiltinFunctionName functionName, AggHandler aggHandler) {
-      map.put(functionName, aggHandler);
+    void register(
+        BuiltinFunctionName functionName, AggHandler aggHandler, PPLTypeChecker typeChecker) {
+      CalciteFuncSignature signature =
+          new CalciteFuncSignature(functionName.getName(), typeChecker);
+      map.put(functionName, Pair.of(signature, aggHandler));
+    }
+
+    void registerOperator(BuiltinFunctionName functionName, SqlUserDefinedAggFunction aggFunction) {
+      PPLTypeChecker typeChecker =
+          wrapSqlOperandTypeChecker(aggFunction.getOperandTypeChecker(), functionName.name(), true);
+      AggHandler handler =
+          (distinct, field, argList, ctx) ->
+              UserDefinedFunctionUtils.convertUDAFToAggCall(
+                  aggFunction, List.of(field), argList, ctx.relBuilder);
+      register(functionName, handler, typeChecker);
     }
 
     void populate() {
-      register(MAX, (distinct, field, argList, ctx) -> ctx.relBuilder.max(field));
-      register(MIN, (distinct, field, argList, ctx) -> ctx.relBuilder.min(field));
+      register(MAX, (distinct, field, argList, ctx) -> ctx.relBuilder.max(field), null);
+      register(MIN, (distinct, field, argList, ctx) -> ctx.relBuilder.min(field), null);
 
-      register(AVG, (distinct, field, argList, ctx) -> ctx.relBuilder.avg(distinct, null, field));
+      register(
+          AVG, (distinct, field, argList, ctx) -> ctx.relBuilder.avg(distinct, null, field), null);
 
       register(
           COUNT,
           (distinct, field, argList, ctx) ->
               ctx.relBuilder.count(
-                  distinct, null, field == null ? ImmutableList.of() : ImmutableList.of(field)));
-      register(SUM, (distinct, field, argList, ctx) -> ctx.relBuilder.sum(distinct, null, field));
+                  distinct, null, field == null ? ImmutableList.of() : ImmutableList.of(field)),
+          null);
+      register(
+          SUM,
+          (distinct, field, argList, ctx) ->
+              ctx.relBuilder.aggregateCall(SqlStdOperatorTable.SUM, field),
+          null);
 
       register(
           VARSAMP,
-          (distinct, field, argList, ctx) ->
-              ctx.relBuilder.aggregateCall(VAR_SAMP_NULLABLE, field));
+          (distinct, field, argList, ctx) -> ctx.relBuilder.aggregateCall(VAR_SAMP_NULLABLE, field),
+          null);
 
       register(
           VARPOP,
-          (distinct, field, argList, ctx) -> ctx.relBuilder.aggregateCall(VAR_POP_NULLABLE, field));
+          (distinct, field, argList, ctx) -> ctx.relBuilder.aggregateCall(VAR_POP_NULLABLE, field),
+          null);
 
       register(
           STDDEV_SAMP,
           (distinct, field, argList, ctx) ->
-              ctx.relBuilder.aggregateCall(STDDEV_SAMP_NULLABLE, field));
+              ctx.relBuilder.aggregateCall(STDDEV_SAMP_NULLABLE, field),
+          null);
 
       register(
           STDDEV_POP,
           (distinct, field, argList, ctx) ->
-              ctx.relBuilder.aggregateCall(STDDEV_POP_NULLABLE, field));
+              ctx.relBuilder.aggregateCall(STDDEV_POP_NULLABLE, field),
+          null);
 
       register(
           TAKE,
@@ -1087,7 +1132,8 @@ public class PPLFuncImpTable {
                 List.of(field),
                 newArgList,
                 ctx.relBuilder);
-          });
+          },
+          null);
 
       register(
           PERCENTILE_APPROX,
@@ -1102,7 +1148,8 @@ public class PPLFuncImpTable {
                 List.of(field),
                 newArgList,
                 ctx.relBuilder);
-          });
+          },
+          null);
 
       register(
           INTERNAL_PATTERN,
@@ -1113,7 +1160,8 @@ public class PPLFuncImpTable {
                   ReturnTypes.explicit(UserDefinedFunctionUtils.nullablePatternAggList),
                   List.of(field),
                   argList,
-                  ctx.relBuilder));
+                  ctx.relBuilder),
+          null);
     }
   }
 }

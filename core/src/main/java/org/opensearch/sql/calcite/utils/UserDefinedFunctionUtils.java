@@ -77,27 +77,42 @@ public class UserDefinedFunctionUtils {
   public static Set<String> MULTI_FIELDS_RELEVANCE_FUNCTION_SET =
       ImmutableSet.of("simple_query_string", "query_string", "multi_match");
 
+  public static SqlUserDefinedAggFunction createUserDefinedAggFunction(
+      Class<? extends UserDefinedAggFunction<?>> udafClass,
+      String functionName,
+      SqlReturnTypeInference returnType) {
+    return new SqlUserDefinedAggFunction(
+        new SqlIdentifier(functionName, SqlParserPos.ZERO),
+        SqlKind.OTHER_FUNCTION,
+        returnType,
+        null,
+        null,
+        AggregateFunctionImpl.create(udafClass),
+        false,
+        false,
+        Optionality.FORBIDDEN);
+  }
+
+  public static RelBuilder.AggCall convertUDAFToAggCall(
+      SqlUserDefinedAggFunction udaf,
+      List<RexNode> fields,
+      List<RexNode> argList,
+      RelBuilder relBuilder) {
+    List<RexNode> addArgList = new ArrayList<>(fields);
+    addArgList.addAll(argList);
+    return relBuilder.aggregateCall(udaf, addArgList);
+  }
+
   public static RelBuilder.AggCall TransferUserDefinedAggFunction(
-      Class<? extends UserDefinedAggFunction> UDAF,
+      Class<? extends UserDefinedAggFunction<?>> udafClass,
       String functionName,
       SqlReturnTypeInference returnType,
       List<RexNode> fields,
       List<RexNode> argList,
       RelBuilder relBuilder) {
-    SqlUserDefinedAggFunction sqlUDAF =
-        new SqlUserDefinedAggFunction(
-            new SqlIdentifier(functionName, SqlParserPos.ZERO),
-            SqlKind.OTHER_FUNCTION,
-            returnType,
-            null,
-            null,
-            AggregateFunctionImpl.create(UDAF),
-            false,
-            false,
-            Optionality.FORBIDDEN);
-    List<RexNode> addArgList = new ArrayList<>(fields);
-    addArgList.addAll(argList);
-    return relBuilder.aggregateCall(sqlUDAF, addArgList);
+    SqlUserDefinedAggFunction udaf =
+        createUserDefinedAggFunction(udafClass, functionName, returnType);
+    return convertUDAFToAggCall(udaf, fields, argList, relBuilder);
   }
 
   public static SqlReturnTypeInference getReturnTypeInferenceForArray() {
