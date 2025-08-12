@@ -693,7 +693,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitTimechart(Timechart node, AnalysisContext context) {
     throw new UnsupportedOperationException(
-            "TIMECHART is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+        "TIMECHART is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
   }
 
   @Override

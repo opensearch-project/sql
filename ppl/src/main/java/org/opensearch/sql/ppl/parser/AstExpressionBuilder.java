@@ -462,22 +462,20 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   public UnresolvedExpression visitSpanLiteral(OpenSearchPPLParser.SpanLiteralContext ctx) {
     if (ctx.integerLiteral() != null && ctx.timespanUnit() != null) {
       return new Span(
-              AstDSL.field("@timestamp"),
-              new Literal(Integer.parseInt(ctx.integerLiteral().getText()), DataType.INTEGER),
-              SpanUnit.of(ctx.timespanUnit().getText()));
+          AstDSL.field("@timestamp"),
+          new Literal(Integer.parseInt(ctx.integerLiteral().getText()), DataType.INTEGER),
+          SpanUnit.of(ctx.timespanUnit().getText()));
     }
 
     if (ctx.integerLiteral() != null) {
       return new Span(
-              AstDSL.field("@timestamp"),
-              new Literal(Integer.parseInt(ctx.integerLiteral().getText()), DataType.INTEGER),
-              SpanUnit.of(""));
+          AstDSL.field("@timestamp"),
+          new Literal(Integer.parseInt(ctx.integerLiteral().getText()), DataType.INTEGER),
+          SpanUnit.of(""));
     }
 
     return new Span(
-            AstDSL.field("@timestamp"),
-            new Literal(ctx.getText(), DataType.STRING),
-            SpanUnit.of(""));
+        AstDSL.field("@timestamp"), new Literal(ctx.getText(), DataType.STRING), SpanUnit.of(""));
   }
 
   @Override

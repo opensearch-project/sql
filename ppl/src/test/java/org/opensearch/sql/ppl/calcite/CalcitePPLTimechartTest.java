@@ -7,10 +7,10 @@ package org.opensearch.sql.ppl.calcite;
 
 import static org.junit.Assert.assertNotNull;
 
-import org.opensearch.sql.ast.tree.UnresolvedPlan;
-import org.opensearch.sql.ppl.parser.AstBuilder;
-import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.junit.Test;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
+import org.opensearch.sql.ppl.parser.AstBuilder;
 
 public class CalcitePPLTimechartTest {
 

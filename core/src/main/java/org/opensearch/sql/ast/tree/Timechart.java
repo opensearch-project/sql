@@ -12,12 +12,9 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
-import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
-/**
- * AST node represent Timechart operation.
- */
+/** AST node represent Timechart operation. */
 @Getter
 @ToString
 @EqualsAndHashCode(callSuper = false)

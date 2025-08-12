@@ -395,15 +395,12 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       spanExpression = internalVisitExpression(ctx.spanLiteral());
     } else {
       // Default span if none specified
-      spanExpression = AstDSL.span(
-          AstDSL.field("@timestamp"), 
-          AstDSL.intLiteral(1),
-          SpanUnit.of("m"));
+      spanExpression =
+          AstDSL.span(AstDSL.field("@timestamp"), AstDSL.intLiteral(1), SpanUnit.of("m"));
     }
     UnresolvedExpression aggregateFunction = internalVisitExpression(ctx.statsFunction());
-    UnresolvedExpression byField = ctx.fieldExpression() != null 
-        ? internalVisitExpression(ctx.fieldExpression()) 
-        : null;
+    UnresolvedExpression byField =
+        ctx.fieldExpression() != null ? internalVisitExpression(ctx.fieldExpression()) : null;
     return new Timechart(null, spanExpression, aggregateFunction, byField);
   }
 
