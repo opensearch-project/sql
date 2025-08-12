@@ -114,6 +114,7 @@ ANOMALY_SCORE_THRESHOLD:            'ANOMALY_SCORE_THRESHOLD';
 APPEND:                             'APPEND';
 COUNTFIELD:                         'COUNTFIELD';
 SHOWCOUNT:                          'SHOWCOUNT';
+LIMIT:                              'LIMIT';
 
 // COMPARISON FUNCTION KEYWORDS
 CASE:                               'CASE';

@@ -150,7 +150,7 @@ reverseCommand
    ;
 
 timechartCommand
-   : TIMECHART (spanClause | SPAN EQUAL spanLiteral)? statsFunction (BY fieldExpression)?
+   : TIMECHART (spanClause | SPAN EQUAL spanLiteral)? (LIMIT EQUAL limit = integerLiteral)? statsFunction (BY fieldExpression)?
    ;
 
 spanLiteral

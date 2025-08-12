@@ -24,10 +24,19 @@ public class Timechart extends UnresolvedPlan {
   private UnresolvedExpression spanExpression;
   private UnresolvedExpression aggregateFunction;
   private UnresolvedExpression byField;
+  private Integer limit;
+
+  public Timechart(
+      UnresolvedPlan child,
+      UnresolvedExpression spanExpression,
+      UnresolvedExpression aggregateFunction,
+      UnresolvedExpression byField) {
+    this(child, spanExpression, aggregateFunction, byField, null);
+  }
 
   @Override
   public Timechart attach(UnresolvedPlan child) {
-    return new Timechart(child, spanExpression, aggregateFunction, byField);
+    return new Timechart(child, spanExpression, aggregateFunction, byField, limit);
   }
 
   @Override

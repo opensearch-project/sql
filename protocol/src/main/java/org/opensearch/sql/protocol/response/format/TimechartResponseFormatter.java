@@ -26,16 +26,24 @@ import org.opensearch.sql.protocol.response.QueryResult;
 public class TimechartResponseFormatter extends JsonResponseFormatter<QueryResult> {
 
   /**
-   * Maximum number of distinct values to display in the timechart. Values beyond this limit will be
-   * grouped into an "OTHER" category.
+   * Default maximum number of distinct values to display in the timechart. Values beyond this limit
+   * will be grouped into an "OTHER" category.
    */
-  private static final int MAX_DISTINCT_VALUES = 10;
+  private static final int DEFAULT_MAX_DISTINCT_VALUES = 10;
 
   /** Constant for the "OTHER" category name. */
   private static final String OTHER_CATEGORY = "OTHER";
 
+  private final Integer maxDistinctValues;
+
   public TimechartResponseFormatter(Style style) {
+    this(style, null);
+  }
+
+  public TimechartResponseFormatter(Style style, Integer maxDistinctValues) {
     super(style);
+    this.maxDistinctValues =
+        maxDistinctValues != null ? maxDistinctValues : DEFAULT_MAX_DISTINCT_VALUES;
   }
 
   @Override
@@ -108,13 +116,13 @@ public class TimechartResponseFormatter extends JsonResponseFormatter<QueryResul
     JsonResponse.JsonResponseBuilder json = JsonResponse.builder();
     json.column(new Column(timeField, response.columnNameTypes().get(timeField)));
 
-    // Check if we need to create an "OTHER" category (more than MAX_DISTINCT_VALUES distinct
+    // Check if we need to create an "OTHER" category (more than maxDistinctValues distinct
     // values)
-    boolean needsOtherCategory = distinctByValues.size() > MAX_DISTINCT_VALUES;
+    boolean needsOtherCategory = distinctByValues.size() > maxDistinctValues;
 
     if (needsOtherCategory) {
       // Get the top N distinct values based on their scores
-      List<Object> topValues = getTopValuesByScore(valueScores, MAX_DISTINCT_VALUES);
+      List<Object> topValues = getTopValuesByScore(valueScores, maxDistinctValues);
 
       // Add columns for top values
       for (Object byValue : topValues) {

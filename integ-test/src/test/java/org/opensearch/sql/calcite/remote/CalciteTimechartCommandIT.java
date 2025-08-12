@@ -180,4 +180,46 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
     Object otherValue = result.getJSONArray("datarows").getJSONArray(0).get(11);
     assertTrue("OTHER column should have a numeric value", otherValue instanceof Number);
   }
+
+  @Test
+  public void testTimechartWithLimit() throws IOException {
+    JSONObject result =
+        executeQuery("source=events | timechart span=1m limit=3 avg(cpu_usage) by host");
+
+    // Verify schema has 5 columns: timestamp + 3 limited hosts + OTHER
+    verifySchema(
+        result,
+        schema("$f3", "timestamp"),
+        schema("web-01", "double"),
+        schema("web-03", "double"),
+        schema("web-02", "double"),
+        schema("OTHER", "double"));
+
+    // Verify exact data rows match expected output
+    verifyDataRows(
+        result,
+        rows("2024-07-01 00:00:00", 45.2, null, null, null),
+        rows("2024-07-01 00:01:00", null, null, 38.7, null),
+        rows("2024-07-01 00:02:00", 55.3, null, null, null),
+        rows("2024-07-01 00:03:00", null, 42.1, null, null),
+        rows("2024-07-01 00:04:00", null, null, 41.8, null),
+        rows("2024-07-01 00:05:00", 39.4, null, null, null),
+        rows("2024-07-01 00:06:00", null, 48.6, null, null),
+        rows("2024-07-01 00:07:00", null, null, 44.2, null),
+        rows("2024-07-01 00:08:00", 67.8, null, null, null),
+        rows("2024-07-01 00:09:00", null, 35.9, null, null),
+        rows("2024-07-01 00:10:00", null, null, 43.1, null),
+        rows("2024-07-01 00:11:00", 37.5, null, null, null),
+        rows("2024-07-01 00:12:00", null, 59.7, null, null),
+        rows("2024-07-01 00:13:00", null, null, 32.4, null),
+        rows("2024-07-01 00:14:00", 49.8, null, null, null),
+        rows("2024-07-01 00:15:00", null, 40.3, null, null),
+        rows("2024-07-01 00:16:00", null, null, null, 78.2),
+        rows("2024-07-01 00:17:00", null, null, null, 71.6),
+        rows("2024-07-01 00:18:00", null, null, null, 15.8),
+        rows("2024-07-01 00:19:00", null, null, null, 12.4),
+        rows("2024-07-01 00:20:00", null, null, null, 8.9));
+
+    assertEquals(21, result.getInt("total"));
+  }
 }

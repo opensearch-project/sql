@@ -37,6 +37,8 @@ timechart [span=<time_interval>] [limit=<number>] <aggregation_function> [by <fi
 * limit: optional. Specifies the maximum number of distinct values to display when using the "by" clause.
   * Default: 10
   * When there are more distinct values than the limit, the additional values are grouped into an "OTHER" category.
+  * Position: Should be specified after the span parameter and before the aggregation function if both are used.
+  * Only applies when using the "by" clause to group results.
 
 * aggregation_function: mandatory. The aggregation function to apply to each time bucket.
   * Currently, only a single aggregation function is supported.
@@ -127,3 +129,18 @@ PPL query::
     source=events_many_hosts | timechart span=1h limit=5 avg(cpu_usage) by host
 
 This query will display the top 5 hosts with the highest CPU usage values, and group the remaining hosts into an "OTHER" category.
+
+Note: The limit parameter must be specified after the span parameter. The following syntax is correct::
+
+    source=events | timechart span=1m limit=3 avg(cpu_usage) by host
+
+Result (partial)::
+
+    +---------------------+--------+--------+--------+-------+
+    | $f3                 | web-01 | web-03 | web-02 | OTHER |
+    +---------------------+--------+--------+--------+-------+
+    | 2024-07-01 00:00:00 | 45.2   | null   | null   | null  |
+    | 2024-07-01 00:01:00 | null   | null   | 38.7   | null  |
+    | 2024-07-01 00:02:00 | 55.3   | null   | null   | null  |
+    | ...                 | ...    | ...    | ...    | ...   |
+    +---------------------+--------+--------+--------+-------+
