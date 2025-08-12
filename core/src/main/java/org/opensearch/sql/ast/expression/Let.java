@@ -21,14 +21,6 @@ public class Let extends UnresolvedExpression {
   private final Field var;
   private final UnresolvedExpression expression;
 
-  public Field getVar() {
-    return var;
-  }
-
-  public UnresolvedExpression getExpression() {
-    return expression;
-  }
-
   public Let(Field var, UnresolvedExpression expression) {
     String varName = var.getField().toString();
     if (OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(varName)) {

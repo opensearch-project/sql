@@ -62,10 +62,6 @@ public class QualifiedName extends UnresolvedExpression {
     return parts.get(parts.size() - 1);
   }
 
-  public List<String> getParts() {
-    return parts;
-  }
-
   /**
    * Get first part of the qualified name.
    *

@@ -20,6 +20,7 @@ import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.CalciteRexNodeVisitor;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -32,14 +33,13 @@ import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 public class BinUtils {
 
   // Constants
-  private static final String TIMESTAMP_FIELD = "@timestamp";
   private static final String DASH_SEPARATOR = "-";
   private static final String OTHER_CATEGORY = "Other";
   private static final String INVALID_CATEGORY = "Invalid";
   private static final int DEFAULT_BINS = 100;
   private static final int MIN_BINS = 2;
   private static final int MAX_BINS = 50000;
-  private static final double[] SPL_NICE_WIDTHS = {
+  private static final double[] NICE_WIDTHS = {
     0.001,
     0.01,
     0.1,
@@ -72,10 +72,7 @@ public class BinUtils {
 
   /** Processes the aligntime parameter and returns the corresponding RexNode. */
   public static RexNode processAligntimeParameter(
-      Bin node,
-      RexNode fieldExpr,
-      CalcitePlanContext context,
-      org.opensearch.sql.calcite.CalciteRexNodeVisitor rexVisitor) {
+      Bin node, RexNode fieldExpr, CalcitePlanContext context, CalciteRexNodeVisitor rexVisitor) {
 
     if (node.getAligntime() == null) {
       return null;
@@ -84,11 +81,11 @@ public class BinUtils {
     RelDataType fieldType = fieldExpr.getType();
     String fieldName = extractFieldName(node);
 
-    if (!shouldApplyTimeBinning(fieldName, fieldType)) {
+    if (!isTimeBasedField(fieldType)) {
       return null;
     }
 
-    validateTimestampFieldExists(fieldName, context);
+    validateFieldExists(fieldName, context);
 
     if (node.getAligntime() instanceof Literal) {
       Literal aligntimeLiteral = (Literal) node.getAligntime();
@@ -130,15 +127,15 @@ public class BinUtils {
 
   /**
    * Creates the appropriate bin expression that transforms field values to range strings. This is
-   * the core SPL-compatible implementation that generates expressions like: CASE WHEN field >= 30
-   * AND field < 35 THEN '30-35' WHEN field >= 35 AND field < 40 THEN '35-40' ELSE 'Other' END
+   * the core implementation that generates expressions like: CASE WHEN field >= 30 AND field < 35
+   * THEN '30-35' WHEN field >= 35 AND field < 40 THEN '35-40' ELSE 'Other' END
    */
   public static RexNode createBinExpression(
       Bin node,
       RexNode fieldExpr,
       RexNode alignTimeValue,
       CalcitePlanContext context,
-      org.opensearch.sql.calcite.CalciteRexNodeVisitor rexVisitor) {
+      CalciteRexNodeVisitor rexVisitor) {
 
     if (node.getSpan() != null) {
       return createSpanBasedRangeStrings(node, fieldExpr, alignTimeValue, context, rexVisitor);
@@ -155,21 +152,20 @@ public class BinUtils {
 
   /**
    * Creates span-based range strings like "30-35", "35-40". This replaces the old numeric binning
-   * with SPL-compatible string ranges.
+   * with string ranges.
    */
   public static RexNode createSpanBasedRangeStrings(
       Bin node,
       RexNode fieldExpr,
       RexNode alignTimeValue,
       CalcitePlanContext context,
-      org.opensearch.sql.calcite.CalciteRexNodeVisitor rexVisitor) {
+      CalciteRexNodeVisitor rexVisitor) {
 
-    String fieldName = extractFieldName(node);
     RelDataType fieldType = fieldExpr.getType();
 
-    if (shouldApplyTimeBinning(fieldName, fieldType)) {
+    if (isTimeBasedField(fieldType)) {
       // Field existence validation is done later in the pipeline
-      // validateTimestampFieldExists(fieldName, context);
+      // validateFieldExists(fieldName, context);
       if (node.getSpan() instanceof org.opensearch.sql.ast.expression.Literal) {
         org.opensearch.sql.ast.expression.Literal spanLiteral =
             (org.opensearch.sql.ast.expression.Literal) node.getSpan();
@@ -240,12 +236,9 @@ public class BinUtils {
         || (node.getSpan() == null); // default behavior also uses window functions
   }
 
-  /** Creates minspan-based range strings using SPL's magnitude-based minspan algorithm. */
+  /** Creates minspan-based range strings using magnitude-based minspan algorithm. */
   public static RexNode createMinspanBasedRangeStrings(
-      Bin node,
-      RexNode fieldExpr,
-      CalcitePlanContext context,
-      org.opensearch.sql.calcite.CalciteRexNodeVisitor rexVisitor) {
+      Bin node, RexNode fieldExpr, CalcitePlanContext context, CalciteRexNodeVisitor rexVisitor) {
 
     RexNode minspanValue = rexVisitor.analyze(node.getMinspan(), context);
 
@@ -299,7 +292,7 @@ public class BinUtils {
     return createRangeString(binValue, binEnd, selectedWidth, context);
   }
 
-  /** Creates bins-based range strings using SPL's exact "nice number" algorithm. */
+  /** Creates bins-based range strings using exact "nice number" algorithm. */
   public static RexNode createBinsBasedRangeStrings(
       Bin node, RexNode fieldExpr, CalcitePlanContext context) {
 
@@ -323,10 +316,7 @@ public class BinUtils {
 
   /** Creates range strings when only start/end parameters are specified (without bins). */
   public static RexNode createStartEndRangeStrings(
-      Bin node,
-      RexNode fieldExpr,
-      CalcitePlanContext context,
-      org.opensearch.sql.calcite.CalciteRexNodeVisitor rexVisitor) {
+      Bin node, RexNode fieldExpr, CalcitePlanContext context, CalciteRexNodeVisitor rexVisitor) {
 
     RexNode minValue = context.relBuilder.min(fieldExpr).over().toRex();
     RexNode maxValue = context.relBuilder.max(fieldExpr).over().toRex();
@@ -398,8 +388,8 @@ public class BinUtils {
     RelDataType fieldType = fieldExpr.getType();
     String fieldName = extractFieldName(node);
 
-    if (shouldApplyTimeBinning(fieldName, fieldType)) {
-      validateTimestampFieldExists(fieldName, context);
+    if (isTimeBasedField(fieldType)) {
+      validateFieldExists(fieldName, context);
 
       return BinSpanFunction.createBinTimeSpanExpression(fieldExpr, 1, "h", 0, context);
     }
@@ -426,14 +416,6 @@ public class BinUtils {
   }
 
   /**
-   * Checks if a field should receive time-based binning treatment. NEW DESIGN: Time-based binning
-   * applies to ANY field with a time-based data type.
-   */
-  public static boolean shouldApplyTimeBinning(String fieldName, RelDataType fieldType) {
-    return isTimeBasedField(fieldType);
-  }
-
-  /**
    * Validates that the specified field exists in the dataset. NEW DESIGN: This validation now
    * applies to any field, not just @timestamp.
    */
@@ -444,24 +426,6 @@ public class BinUtils {
           String.format(
               "Field '%s' not found in dataset. Available fields: %s", fieldName, availableFields));
     }
-  }
-
-  /**
-   * @deprecated Use validateFieldExists instead. Kept for backward compatibility.
-   */
-  @Deprecated
-  public static void validateTimestampFieldExists(String fieldName, CalcitePlanContext context) {
-    validateFieldExists(fieldName, context);
-  }
-
-  /**
-   * Validates time-based operations on fields. NEW DESIGN: Time operations are now allowed on any
-   * time-based field type.
-   */
-  public static void validateTimeBasedOperations(Bin node, String fieldName) {
-    // NEW DESIGN: No longer restrict time operations to @timestamp only
-    // Time operations are validated by field type, not field name
-    // This method is kept for compatibility but no longer performs restrictive validation
   }
 
   /** Checks if the field type is time-based. */
@@ -560,7 +524,7 @@ public class BinUtils {
         SqlStdOperatorTable.CASE, isIntegerWidth, integerValue, decimalValue);
   }
 
-  /** Creates a binning expression that implements SPL's nice number algorithm. */
+  /** Creates a binning expression that implements nice number algorithm. */
   private static RexNode createFallbackBinningExpression(
       RexNode fieldExpr, int requestedBins, CalcitePlanContext context) {
 
@@ -575,7 +539,7 @@ public class BinUtils {
     return createRangeString(binValue, binEnd, selectedWidth, context);
   }
 
-  /** Creates dynamic width selection that implements SPL's exact nice number algorithm. */
+  /** Creates dynamic width selection that implements exact nice number algorithm. */
   private static RexNode createDynamicWidthSelection(
       RexNode fieldExpr, int requestedBins, CalcitePlanContext context) {
 
@@ -586,7 +550,7 @@ public class BinUtils {
 
     List<RexNode> caseOperands = new ArrayList<>();
 
-    for (double width : SPL_NICE_WIDTHS) {
+    for (double width : NICE_WIDTHS) {
       RexNode widthLiteral = context.relBuilder.literal(width);
 
       RexNode theoreticalBins =
@@ -693,8 +657,8 @@ public class BinUtils {
   }
 
   /**
-   * Determines if aligntime should be applied to the given span. According to SPL spec: aligntime
-   * is ignored for days, months, years.
+   * Determines if aligntime should be applied to the given span. According to spec: aligntime is
+   * ignored for days, months, years.
    */
   private static boolean shouldApplyAligntimeToSpan(String spanStr) {
     if (spanStr == null) return false;
@@ -710,7 +674,7 @@ public class BinUtils {
   }
 
   /**
-   * Creates aligntime-enabled span expression using SPL-compatible algorithms. This is completely
+   * Creates aligntime-enabled span expression using compatible algorithms. This is completely
    * separate from existing span logic.
    */
   private static RexNode createAligntimeEnabledSpanExpression(
@@ -810,9 +774,7 @@ public class BinUtils {
     };
   }
 
-  /**
-   * Creates time modifier alignment expression using the working SPL algorithm from BinSpanFunction
-   */
+  /** Creates time modifier alignment expression using the working algorithm from BinSpanFunction */
   private static RexNode createTimeModifierAlignment(
       RexNode epochMillis, long intervalMillis, String timeModifier, CalcitePlanContext context) {
 
@@ -860,7 +822,7 @@ public class BinUtils {
       alignmentPoint = startOfCurrentDay;
     }
 
-    // SPL Algorithm: FLOOR((timestamp - aligntime) / interval) * interval + aligntime
+    // Algorithm: FLOOR((timestamp - aligntime) / interval) * interval + aligntime
     // Step 1: Calculate (timestamp - aligntime)
     RexNode timestampMinusAlign =
         context.relBuilder.call(SqlStdOperatorTable.MINUS, epochMillis, alignmentPoint);
@@ -870,7 +832,7 @@ public class BinUtils {
         context.relBuilder.call(SqlStdOperatorTable.DIVIDE, timestampMinusAlign, intervalLiteral);
 
     // Step 3: Apply FLOOR to handle negative values correctly
-    // FLOOR works correctly for both positive and negative numbers in SPL
+    // FLOOR works correctly for both positive and negative numbers
     RexNode binNumber = context.relBuilder.call(SqlStdOperatorTable.FLOOR, quotient);
 
     // Step 4: Multiply back by interval: FLOOR(...) * interval
@@ -962,7 +924,7 @@ public class BinUtils {
       CalcitePlanContext context,
       org.opensearch.sql.ast.expression.UnresolvedExpression startExpr,
       org.opensearch.sql.ast.expression.UnresolvedExpression endExpr,
-      org.opensearch.sql.calcite.CalciteRexNodeVisitor rexVisitor) {
+      CalciteRexNodeVisitor rexVisitor) {
 
     int rangeStart = 0;
     if (alignTimeValue instanceof RexLiteral literal
@@ -1047,7 +1009,7 @@ public class BinUtils {
       CalcitePlanContext context,
       org.opensearch.sql.ast.expression.UnresolvedExpression startExpr,
       org.opensearch.sql.ast.expression.UnresolvedExpression endExpr,
-      org.opensearch.sql.calcite.CalciteRexNodeVisitor rexVisitor) {
+      CalciteRexNodeVisitor rexVisitor) {
 
     double rangeStart = 0.0;
     if (alignTimeValue instanceof RexLiteral literal
@@ -1176,7 +1138,7 @@ public class BinUtils {
     }
   }
 
-  /** Create logarithmic span expression using SPL-compatible data-driven approach */
+  /** Create logarithmic span expression using data-driven approach */
   private static RexNode createLogSpanExpression(
       RexNode fieldExpr, SpanInfo spanInfo, CalcitePlanContext context) {
     double base = spanInfo.base;
@@ -1388,9 +1350,9 @@ public class BinUtils {
     }
   }
 
-  /** Extract time unit from span string following SPL timescale specification. */
+  /** Extract time unit from span string following timescale specification. */
   public static String extractTimeUnit(String spanStr) {
-    // SPL Timescale units in order of precedence (longest first to avoid partial matches)
+    // Timescale units in order of precedence (longest first to avoid partial matches)
     String[] timeUnits = {
       // Order by length (longest first) to avoid partial matches
 

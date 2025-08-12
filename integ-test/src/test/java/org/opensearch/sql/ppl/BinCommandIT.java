@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.ppl;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -14,6 +16,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.client.ResponseException;
 
 public class BinCommandIT extends PPLIntegTestCase {
 
@@ -259,5 +262,24 @@ public class BinCommandIT extends PPLIntegTestCase {
         rows("2025-05", "2025-07-28 02:28:45"),
         rows("2025-05", "2025-07-28 03:56:20"),
         rows("2025-05", "2025-07-28 04:33:10"));
+  }
+
+  @Test
+  public void testBinWithNonExistentField() {
+    // Test that bin command throws an error when field doesn't exist in schema
+    ResponseException exception =
+        assertThrows(
+            ResponseException.class,
+            () -> {
+              executeQuery(
+                  String.format(
+                      "source=%s | bin non_existent_field span=10 | head 1", TEST_INDEX_ACCOUNT));
+            });
+
+    // Verify the error message contains information about the missing field
+    String errorMessage = exception.getMessage();
+    assertTrue(
+        "Error message should mention the non-existent field: " + errorMessage,
+        errorMessage.contains("non_existent_field") || errorMessage.contains("not found"));
   }
 }

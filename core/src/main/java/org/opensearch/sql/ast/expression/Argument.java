@@ -23,14 +23,6 @@ public class Argument extends UnresolvedExpression {
   private final String argName;
   private final Literal value;
 
-  public String getArgName() {
-    return argName;
-  }
-
-  public Literal getValue() {
-    return value;
-  }
-
   //    private final DataType valueType;
   @Override
   public List<UnresolvedExpression> getChild() {
