@@ -12,10 +12,9 @@ import static org.opensearch.sql.ast.dsl.AstDSL.projectWithArg;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 
 import java.util.Collections;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
+import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
@@ -28,14 +27,9 @@ import org.opensearch.sql.ppl.parser.AstStatementBuilder;
 @RunWith(MockitoJUnitRunner.class)
 public class PPLQueryDataAnonymizerTest {
 
-  private final Settings settings = Mockito.mock(Settings.class);
+  private final PPLSyntaxParser parser = new PPLSyntaxParser();
 
-  @Before
-  public void setup() {
-    when(settings.getSettingValue(Key.SPL_COMPATIBLE_GRAMMAR_ENABLED)).thenReturn(true);
-  }
-
-  private final PPLSyntaxParser parser = new PPLSyntaxParser(settings);
+  @Mock private Settings settings;
 
   @Test
   public void testSearchCommand() {
@@ -328,7 +322,7 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
-  public void testSplCompatibleJoin() {
+  public void testJoinWithFieldList() {
     assertEquals(
         "source=t | join type=inner overwrite=true  s | fields + id",
         anonymize("source=t | join s | fields id"));

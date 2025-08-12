@@ -793,15 +793,3 @@ If Calcite pushdown optimization is enabled, this setting is used to estimate th
 1. The default value is 0.9 since 3.1.0.
 2. This setting is node scope.
 3. This setting can be updated dynamically.
-
-plugins.ppl.spl_compatible.enabled
-==================================
-
-Description
------------
-
-This setting is present from 3.2.0. Enabling Calcite is a prerequisite. You can use this setting to decide whether to allow parsing a query of Splunk SPL compatible grammar.
-
-1. The default value is false.
-2. This setting is node scope.
-3. This setting can be updated dynamically.

@@ -168,4 +168,25 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
         columnName("IS_AUTOINCREMENT"),
         columnName("IS_GENERATEDCOLUMN"));
   }
+
+  @Test
+  public void testCrossClusterJoinSyntax1() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | inner join left=l right=r on l.account_number ="
+                    + " r.account_number %s",
+                TEST_INDEX_BANK, TEST_INDEX_BANK_REMOTE));
+    verifyColumn(result, columnName("dog_name"), columnName("holdersName"), columnName("age"));
+  }
+
+  @Test
+  public void testCrossClusterJoinSyntax2() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | join type=inner account_number %s",
+                TEST_INDEX_BANK, TEST_INDEX_BANK_REMOTE));
+    verifyColumn(result, columnName("dog_name"), columnName("holdersName"), columnName("age"));
+  }
 }

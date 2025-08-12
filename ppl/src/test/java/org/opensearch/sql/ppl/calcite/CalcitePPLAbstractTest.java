@@ -49,15 +49,14 @@ public class CalcitePPLAbstractTest {
   private final CalciteRelNodeVisitor planTransformer;
   private final RelToSqlConverter converter;
   protected final Settings settings;
-  public PPLSyntaxParser pplParser;
+  public PPLSyntaxParser pplParser = new PPLSyntaxParser();
+  ;
 
   public CalcitePPLAbstractTest(CalciteAssert.SchemaSpec... schemaSpecs) {
     this.config = config(schemaSpecs);
     this.planTransformer = new CalciteRelNodeVisitor();
     this.converter = new RelToSqlConverter(SparkSqlDialect.DEFAULT);
     this.settings = mock(Settings.class);
-    doReturn(true).when(settings).getSettingValue(Key.SPL_COMPATIBLE_GRAMMAR_ENABLED);
-    this.pplParser = new PPLSyntaxParser(settings);
   }
 
   protected Frameworks.ConfigBuilder config(CalciteAssert.SchemaSpec... schemaSpecs) {
@@ -79,10 +78,7 @@ public class CalcitePPLAbstractTest {
   private CalcitePlanContext createBuilderContext(UnaryOperator<RelBuilder.Config> transform) {
     config.context(Contexts.of(transform.apply(RelBuilder.Config.DEFAULT)));
     return CalcitePlanContext.create(
-        config.build(),
-        settings.getSettingValue(Key.QUERY_SIZE_LIMIT),
-        PPL,
-        settings.getSettingValue(Key.SPL_COMPATIBLE_GRAMMAR_ENABLED));
+        config.build(), settings.getSettingValue(Key.QUERY_SIZE_LIMIT), PPL);
   }
 
   /** Get the root RelNode of the given PPL query */

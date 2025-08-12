@@ -538,23 +538,25 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
             + "      LogicalJoin(condition=[=($2, $12)], joinType=[left])\n"
             + "        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], r.DEPTNO=[$8], DNAME=[$9], LOC=[$10])\n"
-            + "        LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
-            + "          LogicalSort(fetch=[10])\n"
-            + "            LogicalTableScan(table=[[scott, EMP]])\n"
-            + "          LogicalFilter(condition=[AND(>($0, 10), =($2, 'CHICAGO':VARCHAR))])\n"
-            + "            LogicalTableScan(table=[[scott, DEPT]])\n"
-            + "      LogicalFilter(condition=[=($1, 'SALESMAN':VARCHAR)])\n"
-            + "        LogicalTableScan(table=[[scott, BONUS]])\n"
-            + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
-            + "    LogicalFilter(condition=[<=($1, 1500)])\n"
-            + "      LogicalTableScan(table=[[scott, SALGRADE]])\n";
+            + "          LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "            LogicalSort(fetch=[10])\n"
+            + "              LogicalTableScan(table=[[scott, EMP]])\n"
+            + "            LogicalFilter(condition=[AND(>($0, 10), =($2, 'CHICAGO':VARCHAR))])\n"
+            + "              LogicalTableScan(table=[[scott, DEPT]])\n"
+            + "        LogicalFilter(condition=[=($1, 'SALESMAN':VARCHAR)])\n"
+            + "          LogicalTableScan(table=[[scott, BONUS]])\n"
+            + "    LogicalProject(GRADE=[$0], LOSAL=[$1], SAL=[$2])\n"
+            + "      LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
+            + "        LogicalFilter(condition=[<=($1, 1500)])\n"
+            + "          LogicalTableScan(table=[[scott, SALGRADE]])\n";
     verifyLogical(root, expectedLogical);
     verifyResultCount(root, 5);
 
     String expectedSparkSql =
         "SELECT `t3`.`EMPNO`, `t3`.`ENAME`, `t3`.`JOB`, `t3`.`MGR`, `t3`.`HIREDATE`, `t3`.`COMM`,"
             + " `t3`.`DEPTNO`, `t3`.`r.DEPTNO`, `t3`.`DNAME`, `t3`.`LOC`, `t3`.`r.ENAME`,"
-            + " `t3`.`r.JOB`, `t3`.`r.SAL`, `t3`.`r.COMM`, `t6`.`GRADE`, `t6`.`LOSAL`, `t6`.`SAL`\n"
+            + " `t3`.`r.JOB`, `t3`.`r.SAL`, `t3`.`r.COMM`, `t6`.`GRADE`, `t6`.`LOSAL`,"
+            + " `t6`.`SAL`\n"
             + "FROM (SELECT `t1`.`EMPNO`, `t1`.`ENAME`, `t1`.`JOB`, `t1`.`MGR`, `t1`.`HIREDATE`,"
             + " `t1`.`SAL`, `t1`.`COMM`, `t1`.`DEPTNO`, `t1`.`r.DEPTNO`, `t1`.`DNAME`, `t1`.`LOC`,"
             + " `t2`.`ENAME` `r.ENAME`, `t2`.`JOB` `r.JOB`, `t2`.`SAL` `r.SAL`, `t2`.`COMM`"
@@ -575,7 +577,7 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
             + "LEFT JOIN (SELECT `GRADE`, `LOSAL`, `HISAL` `SAL`\n"
             + "FROM `scott`.`SALGRADE`\n"
             + "WHERE `LOSAL` <= 1500\n"
-            + "ORDER BY `GRADE` DESC) `t5`";
+            + "ORDER BY `GRADE` DESC) `t6` ON `t3`.`SAL` = `t6`.`SAL`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -617,16 +619,17 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
             + "      LogicalJoin(condition=[=($2, $12)], joinType=[left])\n"
             + "        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], DEPT.DEPTNO=[$8], DNAME=[$9], LOC=[$10])\n"
-            + "        LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
-            + "          LogicalSort(fetch=[10])\n"
-            + "            LogicalTableScan(table=[[scott, EMP]])\n"
-            + "          LogicalFilter(condition=[AND(>($0, 10), =($2, 'CHICAGO':VARCHAR))])\n"
-            + "            LogicalTableScan(table=[[scott, DEPT]])\n"
-            + "      LogicalFilter(condition=[=($1, 'SALESMAN':VARCHAR)])\n"
-            + "        LogicalTableScan(table=[[scott, BONUS]])\n"
-            + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
-            + "    LogicalFilter(condition=[<=($1, 1500)])\n"
-            + "      LogicalTableScan(table=[[scott, SALGRADE]])\n";
+            + "          LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "            LogicalSort(fetch=[10])\n"
+            + "              LogicalTableScan(table=[[scott, EMP]])\n"
+            + "            LogicalFilter(condition=[AND(>($0, 10), =($2, 'CHICAGO':VARCHAR))])\n"
+            + "              LogicalTableScan(table=[[scott, DEPT]])\n"
+            + "        LogicalFilter(condition=[=($1, 'SALESMAN':VARCHAR)])\n"
+            + "          LogicalTableScan(table=[[scott, BONUS]])\n"
+            + "    LogicalProject(GRADE=[$0], LOSAL=[$1], SAL=[$2])\n"
+            + "      LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
+            + "        LogicalFilter(condition=[<=($1, 1500)])\n"
+            + "          LogicalTableScan(table=[[scott, SALGRADE]])\n";
     verifyLogical(root, expectedLogical);
 
     verifyResultCount(root, 5);
@@ -656,7 +659,7 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
             + "LEFT JOIN (SELECT `GRADE`, `LOSAL`, `HISAL` `SAL`\n"
             + "FROM `scott`.`SALGRADE`\n"
             + "WHERE `LOSAL` <= 1500\n"
-            + "ORDER BY `GRADE` DESC) `t5`";
+            + "ORDER BY `GRADE` DESC) `t6` ON `t3`.`SAL` = `t6`.`SAL`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -696,16 +699,17 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
             + "      LogicalJoin(condition=[=($2, $12)], joinType=[left])\n"
             + "        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], r.DEPTNO=[$8], DNAME=[$9], LOC=[$10])\n"
-            + "        LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
-            + "          LogicalSort(fetch=[10])\n"
-            + "            LogicalTableScan(table=[[scott, EMP]])\n"
-            + "          LogicalFilter(condition=[AND(>($0, 10), =($2, 'CHICAGO':VARCHAR))])\n"
-            + "            LogicalTableScan(table=[[scott, DEPT]])\n"
-            + "      LogicalFilter(condition=[=($1, 'SALESMAN':VARCHAR)])\n"
-            + "        LogicalTableScan(table=[[scott, BONUS]])\n"
-            + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
-            + "    LogicalFilter(condition=[<=($1, 1500)])\n"
-            + "      LogicalTableScan(table=[[scott, SALGRADE]])\n";
+            + "          LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "            LogicalSort(fetch=[10])\n"
+            + "              LogicalTableScan(table=[[scott, EMP]])\n"
+            + "            LogicalFilter(condition=[AND(>($0, 10), =($2, 'CHICAGO':VARCHAR))])\n"
+            + "              LogicalTableScan(table=[[scott, DEPT]])\n"
+            + "        LogicalFilter(condition=[=($1, 'SALESMAN':VARCHAR)])\n"
+            + "          LogicalTableScan(table=[[scott, BONUS]])\n"
+            + "    LogicalProject(GRADE=[$0], LOSAL=[$1], SAL=[$2])\n"
+            + "      LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
+            + "        LogicalFilter(condition=[<=($1, 1500)])\n"
+            + "          LogicalTableScan(table=[[scott, SALGRADE]])\n";
     verifyLogical(root, expectedLogical);
 
     verifyResultCount(root, 5);
@@ -734,7 +738,135 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
             + "LEFT JOIN (SELECT `GRADE`, `LOSAL`, `HISAL` `SAL`\n"
             + "FROM `scott`.`SALGRADE`\n"
             + "WHERE `LOSAL` <= 1500\n"
-            + "ORDER BY `GRADE` DESC) `t5`";
+            + "ORDER BY `GRADE` DESC) `t6` ON `t3`.`SAL` = `t6`.`SAL`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testJoinWithFieldList() {
+    String ppl = "source=EMP | join DEPTNO DEPT";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$8], DNAME=[$9], LOC=[$10])\n"
+            + "  LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 14);
+
+    String expectedSparkSql =
+        "SELECT `EMP`.`EMPNO`, `EMP`.`ENAME`, `EMP`.`JOB`, `EMP`.`MGR`, `EMP`.`HIREDATE`,"
+            + " `EMP`.`SAL`, `EMP`.`COMM`, `DEPT`.`DEPTNO`, `DEPT`.`DNAME`, `DEPT`.`LOC`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "INNER JOIN `scott`.`DEPT` ON `EMP`.`DEPTNO` = `DEPT`.`DEPTNO`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testSplJoinWithJoinArguments() {
+    String ppl = "source=EMP | join type=inner overwrite=false DEPTNO DEPT";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], DNAME=[$9], LOC=[$10])\n"
+            + "  LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 14);
+    String expectedSparkSql =
+        "SELECT `EMP`.`EMPNO`, `EMP`.`ENAME`, `EMP`.`JOB`, `EMP`.`MGR`, `EMP`.`HIREDATE`,"
+            + " `EMP`.`SAL`, `EMP`.`COMM`, `EMP`.`DEPTNO`, `DEPT`.`DNAME`, `DEPT`.`LOC`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "INNER JOIN `scott`.`DEPT` ON `EMP`.`DEPTNO` = `DEPT`.`DEPTNO`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testJoinWithFieldListAndJoinArguments2() {
+    String ppl = "source=EMP | join type=left overwrite=false DEPTNO DEPT";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], DNAME=[$9], LOC=[$10])\n"
+            + "  LogicalJoin(condition=[=($7, $8)], joinType=[left])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 14);
+
+    String expectedSparkSql =
+        "SELECT `EMP`.`EMPNO`, `EMP`.`ENAME`, `EMP`.`JOB`, `EMP`.`MGR`, `EMP`.`HIREDATE`,"
+            + " `EMP`.`SAL`, `EMP`.`COMM`, `EMP`.`DEPTNO`, `DEPT`.`DNAME`, `DEPT`.`LOC`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LEFT JOIN `scott`.`DEPT` ON `EMP`.`DEPTNO` = `DEPT`.`DEPTNO`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testSemiJoinWithFieldList() {
+    String ppl = "source=EMP | join type=semi overwrite=true DEPTNO DEPT";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalJoin(condition=[=($7, $8)], joinType=[semi])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n"
+            + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 14);
+
+    String expectedSparkSql =
+        "SELECT *\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE EXISTS (SELECT 1\n"
+            + "FROM `scott`.`DEPT`\n"
+            + "WHERE `EMP`.`DEPTNO` = `DEPT`.`DEPTNO`)";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testJoinWithoutFieldList() {
+    String ppl = "source=EMP | join DEPT";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$8], DNAME=[$9], LOC=[$10])\n"
+            + "  LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 14);
+
+    String expectedSparkSql =
+        "SELECT `EMP`.`EMPNO`, `EMP`.`ENAME`, `EMP`.`JOB`, `EMP`.`MGR`, `EMP`.`HIREDATE`,"
+            + " `EMP`.`SAL`, `EMP`.`COMM`, `DEPT`.`DEPTNO`, `DEPT`.`DNAME`, `DEPT`.`LOC`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "INNER JOIN `scott`.`DEPT` ON `EMP`.`DEPTNO` = `DEPT`.`DEPTNO`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testJoinWithoutFieldListSelfJoin() {
+    String ppl = "source=EMP | join EMP";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$8], ENAME=[$9], JOB=[$10], MGR=[$11], HIREDATE=[$12], SAL=[$13],"
+            + " COMM=[$14], DEPTNO=[$15])\n"
+            + "  LogicalJoin(condition=[AND(=($0, $8), =($1, $9), =($2, $10), =($3, $11), =($4,"
+            + " $12), =($5, $13), =($6, $14), =($7, $15))], joinType=[inner])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 4);
+
+    String expectedSparkSql =
+        "SELECT `EMP0`.`EMPNO`, `EMP0`.`ENAME`, `EMP0`.`JOB`, `EMP0`.`MGR`, `EMP0`.`HIREDATE`,"
+            + " `EMP0`.`SAL`, `EMP0`.`COMM`, `EMP0`.`DEPTNO`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "INNER JOIN `scott`.`EMP` `EMP0` ON `EMP`.`EMPNO` = `EMP0`.`EMPNO` AND `EMP`.`ENAME`"
+            + " = `EMP0`.`ENAME` AND (`EMP`.`JOB` = `EMP0`.`JOB` AND `EMP`.`MGR` = `EMP0`.`MGR`)"
+            + " AND (`EMP`.`HIREDATE` = `EMP0`.`HIREDATE` AND `EMP`.`SAL` = `EMP0`.`SAL` AND"
+            + " (`EMP`.`COMM` = `EMP0`.`COMM` AND `EMP`.`DEPTNO` = `EMP0`.`DEPTNO`))";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }

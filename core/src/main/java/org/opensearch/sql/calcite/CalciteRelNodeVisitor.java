@@ -676,7 +676,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitJoin(Join node, CalcitePlanContext context) {
     List<UnresolvedPlan> children = node.getChildren();
     children.forEach(c -> analyze(c, context));
-    if (context.splCompatible && node.getJoinCondition().isEmpty()) {
+    if (node.getJoinCondition().isEmpty()) {
       // For spl compatible grammar
       List<String> leftColumns = context.relBuilder.peek(1).getRowType().getFieldNames();
       List<String> rightColumns = context.relBuilder.peek().getRowType().getFieldNames();
@@ -722,9 +722,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       }
       return context.relBuilder.peek();
     }
-    // For PPL native grammar
-    // not allowed: node.getJoinCondition().isEmpty() = true && context.splCompatible = false
-    // here is: node.getJoinCondition().isEmpty() = false
+    // The join old grammar doesn't allow empty join condition
     RexNode joinCondition =
         node.getJoinCondition()
             .map(c -> rexVisitor.analyzeJoinCondition(c, context))

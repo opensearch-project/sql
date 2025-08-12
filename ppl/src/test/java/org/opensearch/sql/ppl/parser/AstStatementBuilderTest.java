@@ -9,7 +9,6 @@
 package org.opensearch.sql.ppl.parser;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.when;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
@@ -18,11 +17,10 @@ import static org.opensearch.sql.ast.dsl.AstDSL.project;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 import static org.opensearch.sql.executor.QueryType.PPL;
 
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.mockito.Mockito;
+import org.mockito.Mock;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.statement.Explain;
@@ -35,14 +33,9 @@ public class AstStatementBuilderTest {
 
   @Rule public ExpectedException exceptionRule = ExpectedException.none();
 
-  private final Settings settings = Mockito.mock(Settings.class);
+  @Mock private Settings settings;
 
-  @Before
-  public void setup() {
-    when(settings.getSettingValue(Settings.Key.SPL_COMPATIBLE_GRAMMAR_ENABLED)).thenReturn(true);
-  }
-
-  private final PPLSyntaxParser parser = new PPLSyntaxParser(settings);
+  private final PPLSyntaxParser parser = new PPLSyntaxParser();
 
   @Test
   public void buildQueryStatement() {

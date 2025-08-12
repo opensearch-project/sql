@@ -55,7 +55,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.tuple.Pair;
-import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -85,12 +84,7 @@ public class AstBuilderTest {
 
   private final Settings settings = Mockito.mock(Settings.class);
 
-  @Before
-  public void setup() {
-    when(settings.getSettingValue(Key.SPL_COMPATIBLE_GRAMMAR_ENABLED)).thenReturn(true);
-  }
-
-  private final PPLSyntaxParser parser = new PPLSyntaxParser(settings);
+  private final PPLSyntaxParser parser = new PPLSyntaxParser();
 
   @Test
   public void testSearchCommand() {

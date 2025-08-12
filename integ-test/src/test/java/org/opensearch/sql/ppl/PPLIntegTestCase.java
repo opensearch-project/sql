@@ -195,11 +195,6 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     }
   }
 
-  /** run with supporting Splunk SPL compatible grammar. */
-  public static void withSplCompatible(Runnable f) throws IOException {
-    withSettings(Key.SPL_COMPATIBLE_GRAMMAR_ENABLED, "true", f);
-  }
-
   public static void withSettings(Key setting, String value, Runnable f) throws IOException {
     String originalValue = getClusterSetting(setting.getKeyValue(), "transient");
     if (originalValue.equals(value)) f.run();

@@ -45,7 +45,6 @@ public class PPLQueryValidator {
         new OpenSearchPPLParser(
             new CommonTokenStream(new OpenSearchPPLLexer(new CaseInsensitiveCharStream(pplQuery))));
     sqlBaseParser.addErrorListener(new SyntaxAnalysisErrorListener());
-    // TODO add SPL compatible grammar supporting in Async Q?
     return sqlBaseParser;
   }
 }

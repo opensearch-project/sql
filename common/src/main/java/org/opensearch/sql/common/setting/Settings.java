@@ -29,7 +29,6 @@ public abstract class Settings {
     PATTERN_MODE("plugins.ppl.pattern.mode"),
     PATTERN_MAX_SAMPLE_COUNT("plugins.ppl.pattern.max.sample.count"),
     PATTERN_BUFFER_LIMIT("plugins.ppl.pattern.buffer.limit"),
-    SPL_COMPATIBLE_GRAMMAR_ENABLED("plugins.ppl.spl_compatible.enabled"),
 
     /** Enable Calcite as execution engine */
     CALCITE_ENGINE_ENABLED("plugins.calcite.enabled"),

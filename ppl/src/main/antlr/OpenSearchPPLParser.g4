@@ -9,13 +9,6 @@ parser grammar OpenSearchPPLParser;
 
 options { tokenVocab = OpenSearchPPLLexer; }
 
-@members {
-  /**
-   * When true, support parse Splunk SPL-compatible grammar
-   */
-  public boolean SPL_compatible_grammar_enabled = false;
-}
-
 root
    : pplStatement? EOF
    ;
@@ -324,7 +317,7 @@ tableSourceClause
 // join
 joinCommand
    : joinType JOIN sideAlias joinHintList? joinCriteria right = tableOrSubqueryClause
-   | {SPL_compatible_grammar_enabled}? JOIN (joinOption)* (fieldList)? right = tableOrSubqueryClause
+   | JOIN (joinOption)* (fieldList)? right = tableOrSubqueryClause
    ;
 
 joinType
