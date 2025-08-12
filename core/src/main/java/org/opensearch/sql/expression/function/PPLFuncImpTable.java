@@ -12,7 +12,7 @@ import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.VAR_POP_NULLAB
 import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.VAR_SAMP_NULLABLE;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getLegacyTypeName;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedAggFunction;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.createAggregateFunction;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ABS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ACOS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ADD;
@@ -238,6 +238,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLambda;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -400,7 +401,7 @@ public class PPLFuncImpTable {
     CalciteFuncSignature signature = new CalciteFuncSignature(functionName.getName(), typeChecker);
     AggHandler handler =
         (distinct, field, argList, ctx) ->
-            UserDefinedFunctionUtils.convertUDAFToAggCall(
+            UserDefinedFunctionUtils.makeAggregateCall(
                 aggFunction, List.of(field), argList, ctx.relBuilder);
     aggExternalFunctionRegistry.put(functionName, Pair.of(signature, handler));
   }
@@ -419,14 +420,27 @@ public class PPLFuncImpTable {
       throw new IllegalStateException(String.format("Cannot resolve function: %s", functionName));
     }
     CalciteFuncSignature signature = implementation.getKey();
-    RelDataType fieldType = field.getType();
-    if (!signature.match(functionName.getName(), List.of(fieldType))) {
+    List<RelDataType> argTypes = new ArrayList<>();
+    if (field != null) {
+      argTypes.add(field.getType());
+    }
+    // Currently only PERCENTILE_APPROX and TAKE have additional arguments.
+    // Their additional arguments will always come as a map of <argName, value>
+    List<RelDataType> additionalArgTypes =
+        argList.stream().map(PlanUtils::derefMapCall).map(RexNode::getType).toList();
+    argTypes.addAll(additionalArgTypes);
+    if (!signature.match(functionName.getName(), argTypes)) {
+      String errorMessagePattern =
+          argTypes.size() <= 1
+              ? "Aggregation function %s expects field type {%s}, but got %s"
+              : "Aggregation function %s expects field type and additional arguments {%s}, but got"
+                  + " %s";
       throw new ExpressionEvaluationException(
           String.format(
-              "Aggregation function %s expects field type {%s}, but got %s",
+              errorMessagePattern,
               functionName,
               signature.typeChecker().getAllowedSignatures(),
-              getActualSignature(List.of(fieldType))));
+              getActualSignature(argTypes)));
     }
     var handler = implementation.getValue();
     return handler.apply(distinct, field, argList, context);
@@ -1069,63 +1083,67 @@ public class PPLFuncImpTable {
       map.put(functionName, Pair.of(signature, aggHandler));
     }
 
-    void registerOperator(BuiltinFunctionName functionName, SqlUserDefinedAggFunction aggFunction) {
+    void registerOperator(BuiltinFunctionName functionName, SqlAggFunction aggFunction) {
       PPLTypeChecker typeChecker =
           wrapSqlOperandTypeChecker(aggFunction.getOperandTypeChecker(), functionName.name(), true);
       AggHandler handler =
           (distinct, field, argList, ctx) ->
-              UserDefinedFunctionUtils.convertUDAFToAggCall(
+              UserDefinedFunctionUtils.makeAggregateCall(
                   aggFunction, List.of(field), argList, ctx.relBuilder);
       register(functionName, handler, typeChecker);
     }
 
     void populate() {
-      register(MAX, (distinct, field, argList, ctx) -> ctx.relBuilder.max(field), null);
-      register(MIN, (distinct, field, argList, ctx) -> ctx.relBuilder.min(field), null);
+      registerOperator(MAX, SqlStdOperatorTable.MAX);
+      registerOperator(MIN, SqlStdOperatorTable.MIN);
+      registerOperator(SUM, SqlStdOperatorTable.SUM);
 
       register(
-          AVG, (distinct, field, argList, ctx) -> ctx.relBuilder.avg(distinct, null, field), null);
+          AVG,
+          (distinct, field, argList, ctx) -> ctx.relBuilder.avg(distinct, null, field),
+          wrapSqlOperandTypeChecker(
+              SqlStdOperatorTable.AVG.getOperandTypeChecker(), AVG.name(), false));
 
       register(
           COUNT,
           (distinct, field, argList, ctx) ->
               ctx.relBuilder.count(
                   distinct, null, field == null ? ImmutableList.of() : ImmutableList.of(field)),
-          null);
-      register(
-          SUM,
-          (distinct, field, argList, ctx) ->
-              ctx.relBuilder.aggregateCall(SqlStdOperatorTable.SUM, field),
-          null);
+          wrapSqlOperandTypeChecker(
+              SqlStdOperatorTable.COUNT.getOperandTypeChecker(), COUNT.name(), false));
 
       register(
           VARSAMP,
           (distinct, field, argList, ctx) -> ctx.relBuilder.aggregateCall(VAR_SAMP_NULLABLE, field),
-          null);
+          wrapSqlOperandTypeChecker(
+              SqlStdOperatorTable.VAR_SAMP.getOperandTypeChecker(), VARSAMP.name(), false));
 
       register(
           VARPOP,
           (distinct, field, argList, ctx) -> ctx.relBuilder.aggregateCall(VAR_POP_NULLABLE, field),
-          null);
+          wrapSqlOperandTypeChecker(
+              SqlStdOperatorTable.VAR_POP.getOperandTypeChecker(), VARPOP.name(), false));
 
       register(
           STDDEV_SAMP,
           (distinct, field, argList, ctx) ->
               ctx.relBuilder.aggregateCall(STDDEV_SAMP_NULLABLE, field),
-          null);
+          wrapSqlOperandTypeChecker(
+              SqlStdOperatorTable.STDDEV_SAMP.getOperandTypeChecker(), STDDEV_SAMP.name(), false));
 
       register(
           STDDEV_POP,
           (distinct, field, argList, ctx) ->
               ctx.relBuilder.aggregateCall(STDDEV_POP_NULLABLE, field),
-          null);
+          wrapSqlOperandTypeChecker(
+              SqlStdOperatorTable.STDDEV_POP.getOperandTypeChecker(), STDDEV_POP.name(), false));
 
       register(
           TAKE,
           (distinct, field, argList, ctx) -> {
             List<RexNode> newArgList =
                 argList.stream().map(PlanUtils::derefMapCall).collect(Collectors.toList());
-            return TransferUserDefinedAggFunction(
+            return createAggregateFunction(
                 TakeAggFunction.class,
                 "TAKE",
                 UserDefinedFunctionUtils.getReturnTypeInferenceForArray(),
@@ -1133,7 +1151,11 @@ public class PPLFuncImpTable {
                 newArgList,
                 ctx.relBuilder);
           },
-          null);
+          PPLTypeChecker.wrapComposite(
+              (CompositeOperandTypeChecker)
+                  OperandTypes.ANY.or(
+                      OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.INTEGER)),
+              false));
 
       register(
           PERCENTILE_APPROX,
@@ -1141,7 +1163,7 @@ public class PPLFuncImpTable {
             List<RexNode> newArgList =
                 argList.stream().map(PlanUtils::derefMapCall).collect(Collectors.toList());
             newArgList.add(ctx.rexBuilder.makeFlag(field.getType().getSqlTypeName()));
-            return TransferUserDefinedAggFunction(
+            return createAggregateFunction(
                 PercentileApproxFunction.class,
                 "percentile_approx",
                 ReturnTypes.ARG0_FORCE_NULLABLE,
@@ -1149,12 +1171,17 @@ public class PPLFuncImpTable {
                 newArgList,
                 ctx.relBuilder);
           },
-          null);
+          PPLTypeChecker.wrapComposite(
+              (CompositeOperandTypeChecker)
+                  OperandTypes.NUMERIC_NUMERIC.or(
+                      OperandTypes.family(
+                          SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC)),
+              false));
 
       register(
           INTERNAL_PATTERN,
           (distinct, field, argList, ctx) ->
-              TransferUserDefinedAggFunction(
+              createAggregateFunction(
                   LogPatternAggFunction.class,
                   "pattern",
                   ReturnTypes.explicit(UserDefinedFunctionUtils.nullablePatternAggList),
