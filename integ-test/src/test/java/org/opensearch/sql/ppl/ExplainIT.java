@@ -155,26 +155,26 @@ public class ExplainIT extends PPLIntegTestCase {
     String expected = loadExpectedPlan("explain_sort_count_push.json");
     assertJsonEqualsIgnoreId(
         expected,
-        explainQueryToString(
-            "source=opensearch-sql_test_index_account | sort 5 age | fields age"));
+        explainQueryToString("source=opensearch-sql_test_index_account | sort 5 age | fields age"));
   }
 
   @Test
   public void testSortWithDescPushDownExplain() throws IOException {
     String expected = loadExpectedPlan("explain_sort_desc_push.json");
     assertJsonEqualsIgnoreId(
-            expected,
-            explainQueryToString(
-                    "source=opensearch-sql_test_index_account | sort age, - firstname desc | fields age, firstname"));
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | sort age, - firstname desc | fields age,"
+                + " firstname"));
   }
 
   @Test
   public void testSortWithTypePushDownExplain() throws IOException {
     String expected = loadExpectedPlan("explain_sort_type_push.json");
     assertJsonEqualsIgnoreId(
-            expected,
-            explainQueryToString(
-                    "source=opensearch-sql_test_index_account | sort num(age) | fields age"));
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | sort num(age) | fields age"));
   }
 
   @Test

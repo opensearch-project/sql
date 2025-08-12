@@ -195,7 +195,8 @@ public class SortCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | sort 4 age, - account_number desc | fields age, account_number", TEST_INDEX_BANK));
+                "source=%s | sort 4 age, - account_number desc | fields age, account_number",
+                TEST_INDEX_BANK));
     verifyOrder(result, rows(39, 25), rows(36, 6), rows(36, 20), rows(34, 32));
   }
 
