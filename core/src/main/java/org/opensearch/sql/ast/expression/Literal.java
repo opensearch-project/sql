@@ -23,14 +23,6 @@ public class Literal extends UnresolvedExpression {
   private final Object value;
   private final DataType type;
 
-  public Object getValue() {
-    return value;
-  }
-
-  public DataType getType() {
-    return type;
-  }
-
   public Literal(Object value, DataType dataType) {
     if (dataType == DataType.DECIMAL && value instanceof Double) {
       this.value = BigDecimal.valueOf((Double) value);

@@ -7,7 +7,6 @@ package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +21,6 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 @ToString
 @EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
-@AllArgsConstructor
 public class Bin extends UnresolvedPlan {
 
   private UnresolvedPlan child;

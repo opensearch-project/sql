@@ -54,6 +54,7 @@ import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.AppendCol;
+import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.DescribeRelation;
 import org.opensearch.sql.ast.tree.Eval;
@@ -242,6 +243,37 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     return StringUtils.format(
         "%s | stats %s",
         child, String.join(" ", visitExpressionList(node.getAggExprList()), groupBy(group)).trim());
+  }
+
+  @Override
+  public String visitBin(Bin node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    StringBuilder binCommand = new StringBuilder();
+    binCommand.append(" | bin ").append(visitExpression(node.getField()));
+
+    if (node.getSpan() != null) {
+      binCommand.append(" span=").append(visitExpression(node.getSpan()));
+    }
+    if (node.getBins() != null) {
+      binCommand.append(" bins=").append(MASK_LITERAL);
+    }
+    if (node.getMinspan() != null) {
+      binCommand.append(" minspan=").append(visitExpression(node.getMinspan()));
+    }
+    if (node.getAligntime() != null) {
+      binCommand.append(" aligntime=").append(visitExpression(node.getAligntime()));
+    }
+    if (node.getStart() != null) {
+      binCommand.append(" start=").append(visitExpression(node.getStart()));
+    }
+    if (node.getEnd() != null) {
+      binCommand.append(" end=").append(visitExpression(node.getEnd()));
+    }
+    if (node.getAlias() != null) {
+      binCommand.append(" as ").append(node.getAlias());
+    }
+
+    return StringUtils.format("%s%s", child, binCommand.toString());
   }
 
   @Override

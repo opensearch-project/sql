@@ -319,6 +319,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .map(field -> (RexNode) context.relBuilder.field(field))
             .toList();
     if (!duplicatedNestedFields.isEmpty()) {
+      // This is a workaround to avoid the bug in Calcite:
+      // In {@link RelBuilder#project_(Iterable, Iterable, Iterable, boolean, Iterable)},
+      // the check `RexUtil.isIdentity(nodeList, inputRowType)` will pass when the input
+      // and the output nodeList refer to the same fields, even if the field name list
+      // is different. As a result, renaming operation will not be applied. This makes
+      // the logical plan for the flatten command incorrect, where the operation is
+      // equivalent to renaming the flattened sub-fields. E.g. emp.name -> name.
       forceProjectExcept(context.relBuilder, duplicatedNestedFields);
     }
   }
@@ -474,9 +481,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RexNode fieldExpr = rexVisitor.analyze(node.getField(), context);
     String fieldName = BinUtils.extractFieldName(node);
 
-    // Validation for time-based operations (now supports any time-based field)
-    BinUtils.validateTimeBasedOperations(node, fieldName);
-
     RexNode alignTimeValue =
         BinUtils.processAligntimeParameter(node, fieldExpr, context, rexVisitor);
     RexNode binExpression =
@@ -505,7 +509,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       }
 
       // CRITICAL FIX: If field wasn't found in current schema, this indicates a schema mismatch
-      // In SPL, bin should always operate on existing fields, so this is an error condition
+      // The bin command should always operate on existing fields, so this is an error condition
       if (!fieldTransformed) {
         throw new IllegalArgumentException(
             String.format(

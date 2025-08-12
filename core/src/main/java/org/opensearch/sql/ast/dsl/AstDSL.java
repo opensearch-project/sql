@@ -563,6 +563,14 @@ public class AstDSL {
     return FillNull.ofVariousValue(replacementsBuilder.build()).attach(input);
   }
 
+  /**
+   * Creates a Bin node for binning field values into discrete buckets.
+   *
+   * @param field the field expression to bin
+   * @param arguments optional arguments for bin configuration (span, bins, minspan, aligntime,
+   *     start, end, alias)
+   * @return Bin node with the specified field and configuration
+   */
   public static Bin bin(UnresolvedExpression field, Argument... arguments) {
     UnresolvedExpression span = null;
     Integer bins = null;

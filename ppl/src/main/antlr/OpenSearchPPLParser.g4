@@ -89,6 +89,7 @@ commandName
    | SORT
    | EVAL
    | HEAD
+   | BIN
    | TOP
    | RARE
    | GROK
@@ -1177,20 +1178,6 @@ keywordsCanBeId
    | collectionFunctionName
    | comparisonOperator
    | explainMode
-   | SEC
-   | SECS  
-   | SECONDS
-   | MINS
-   | MINUTES
-   | HR
-   | HRS
-   | HOURS
-   | DAYS
-   | MON
-   | MONTHS
-   | US
-   | CS
-   | DS
    // commands assist keywords
    | CASE
    | ELSE

@@ -155,6 +155,20 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testBinCommandBasic() {
+    assertEquals("source=t | bin f span=***", anonymize("source=t | bin f span=10"));
+  }
+
+  @Test
+  public void testBinCommandWithAllParameters() {
+    assertEquals(
+        "source=t | bin f span=*** bins=*** minspan=*** aligntime=*** start=*** end=*** as alias",
+        anonymize(
+            "source=t | bin f span=10 bins=100 minspan=5 aligntime=earliest start=0 end=1000 as"
+                + " alias"));
+  }
+
+  @Test
   public void testDedupCommand() {
     assertEquals(
         "source=t | dedup f1,f2 1 keepempty=false consecutive=false",
