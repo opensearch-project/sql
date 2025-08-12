@@ -15,9 +15,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalComman
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.HeadCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameCommandContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchFilterFromContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchFromContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchFromFilterContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableFunctionContext;
@@ -42,6 +40,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
+import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
@@ -77,6 +76,7 @@ import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
+import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
@@ -140,19 +140,16 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   /** Search command. */
   @Override
   public UnresolvedPlan visitSearchFrom(SearchFromContext ctx) {
-    return visitFromClause(ctx.fromClause());
-  }
-
-  @Override
-  public UnresolvedPlan visitSearchFromFilter(SearchFromFilterContext ctx) {
-    return new Filter(internalVisitExpression(ctx.logicalExpression()))
-        .attach(visit(ctx.fromClause()));
-  }
-
-  @Override
-  public UnresolvedPlan visitSearchFilterFrom(SearchFilterFromContext ctx) {
-    return new Filter(internalVisitExpression(ctx.logicalExpression()))
-        .attach(visit(ctx.fromClause()));
+    if (ctx.logicalExpression().isEmpty()) {
+      return visitFromClause(ctx.fromClause());
+    } else {
+      return new Filter(
+              ctx.logicalExpression().stream()
+                  .map(this::internalVisitExpression)
+                  .reduce(And::new)
+                  .get())
+          .attach(visit(ctx.fromClause()));
+    }
   }
 
   /**
@@ -423,6 +420,12 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         ctx.sortbyClause().sortField().stream()
             .map(sort -> (Field) internalVisitExpression(sort))
             .collect(Collectors.toList()));
+  }
+
+  /** Reverse command. */
+  @Override
+  public UnresolvedPlan visitReverseCommand(OpenSearchPPLParser.ReverseCommandContext ctx) {
+    return new Reverse();
   }
 
   /** Eval command. */

@@ -18,6 +18,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.ABS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ACOS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ADD;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ADDDATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ADDFUNCTION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ADDTIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.AND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ARRAY;
@@ -37,6 +38,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.CONCAT_
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CONV;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CONVERT_TZ;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.COS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.COSH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.COT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.COUNT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CRC32;
@@ -61,11 +63,13 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY_OF_
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY_OF_YEAR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DEGREES;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDEFUNCTION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.E;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EARLIEST;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EQUAL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXISTS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXPM1;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXTRACT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FILTER;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FLOOR;
@@ -119,6 +123,10 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.LTE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LTRIM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAKEDATE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAKETIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_BOOL_PREFIX;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_PHRASE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_PHRASE_PREFIX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MD5;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MICROSECOND;
@@ -133,6 +141,8 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTHNAME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTH_OF_YEAR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLYFUNCTION;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTI_MATCH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOTEQUAL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOW;
@@ -146,6 +156,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.POSITIO
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.POW;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.POWER;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.QUARTER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.QUERY_STRING;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RADIANS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RAND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REDUCE;
@@ -153,6 +164,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.REGEXP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REPLACE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REVERSE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RIGHT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.RINT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ROUND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RTRIM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SECOND;
@@ -161,7 +173,10 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.SEC_TO_
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SHA1;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SHA2;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SIGN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SIGNUM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SIMPLE_QUERY_STRING;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SIN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SINH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SPAN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SQRT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.STDDEV_POP;
@@ -173,6 +188,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBSTR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBSTRING;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBTIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBTRACT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBTRACTFUNCTION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SYSDATE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TAKE;
@@ -219,8 +235,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.annotation.Nullable;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexLambda;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -245,6 +263,7 @@ import org.opensearch.sql.calcite.udf.udaf.LogPatternAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.PercentileApproxFunction;
 import org.opensearch.sql.calcite.udf.udaf.TakeAggFunction;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.executor.QueryType;
@@ -262,7 +281,6 @@ public class PPLFuncImpTable {
   public interface FunctionImp {
     RelDataType ANY_TYPE = TYPE_FACTORY.createSqlType(SqlTypeName.ANY);
 
-    // TODO: Support argument coercion and casting
     RexNode resolve(RexBuilder builder, RexNode... args);
 
     /**
@@ -434,12 +452,25 @@ public class PPLFuncImpTable {
     if (implementList == null || implementList.isEmpty()) {
       throw new IllegalStateException(String.format("Cannot resolve function: %s", functionName));
     }
+
+    // Make compulsory casts for some functions that require specific casting of arguments.
+    // For example, the REDUCE function requires the second argument to be cast to the
+    // return type of the lambda function.
+    compulsoryCast(builder, functionName, args);
+
     List<RelDataType> argTypes = Arrays.stream(args).map(RexNode::getType).toList();
     try {
       for (Map.Entry<CalciteFuncSignature, FunctionImp> implement : implementList) {
         if (implement.getKey().match(functionName.getName(), argTypes)) {
           return implement.getValue().resolve(builder, args);
         }
+      }
+
+      // If no implementation found with exact match, try to cast arguments to match the
+      // signatures.
+      RexNode coerced = resolveWithCoercion(builder, functionName, implementList, args);
+      if (coerced != null) {
+        return coerced;
       }
     } catch (Exception e) {
       throw new ExpressionEvaluationException(
@@ -450,12 +481,72 @@ public class PPLFuncImpTable {
     }
     StringJoiner allowedSignatures = new StringJoiner(",");
     for (var implement : implementList) {
-      allowedSignatures.add(implement.getKey().typeChecker().getAllowedSignatures());
+      String signature = implement.getKey().typeChecker().getAllowedSignatures();
+      if (!signature.isEmpty()) {
+        allowedSignatures.add(signature);
+      }
     }
     throw new ExpressionEvaluationException(
         String.format(
             "%s function expects {%s}, but got %s",
             functionName, allowedSignatures, getActualSignature(argTypes)));
+  }
+
+  /**
+   * Ad-hoc coercion for some functions that require specific casting of arguments. Now it only
+   * applies to the REDUCE function.
+   */
+  private void compulsoryCast(
+      final RexBuilder builder, final BuiltinFunctionName functionName, RexNode... args) {
+
+    //noinspection SwitchStatementWithTooFewBranches
+    switch (functionName) {
+      case BuiltinFunctionName.REDUCE:
+        // Set the second argument to the return type of the lambda function, so that
+        // code generated with linq4j can correctly accumulate the result.
+        RexLambda call = (RexLambda) args[2];
+        args[1] = builder.makeCast(call.getType(), args[1], true, true);
+        break;
+      default:
+        break;
+    }
+  }
+
+  private @Nullable RexNode resolveWithCoercion(
+      final RexBuilder builder,
+      final BuiltinFunctionName functionName,
+      List<Pair<CalciteFuncSignature, FunctionImp>> implementList,
+      RexNode... args) {
+    if (BuiltinFunctionName.COMPARATORS.contains(functionName)) {
+      for (Map.Entry<CalciteFuncSignature, FunctionImp> implement : implementList) {
+        var widenedArgs = CoercionUtils.widenArguments(builder, List.of(args));
+        if (widenedArgs != null) {
+          boolean matchSignature =
+              implement
+                  .getKey()
+                  .typeChecker()
+                  .checkOperandTypes(widenedArgs.stream().map(RexNode::getType).toList());
+          if (matchSignature) {
+            return implement.getValue().resolve(builder, widenedArgs.toArray(new RexNode[0]));
+          }
+        }
+      }
+    } else {
+      for (Map.Entry<CalciteFuncSignature, FunctionImp> implement : implementList) {
+        var signature = implement.getKey();
+        var castedArgs =
+            CoercionUtils.castArguments(builder, signature.typeChecker(), List.of(args));
+        if (castedArgs != null) {
+          // If compatible function is found, replace the original RexNode with cast node
+          // TODO: check - this is a return-once-found implementation, rest possible combinations
+          //  will be skipped.
+          //  Maybe can be improved to return the best match? E.g. convert to timestamp when date,
+          //  time, and timestamp are all possible.
+          return implement.getValue().resolve(builder, castedArgs.toArray(new RexNode[0]));
+        }
+      }
+    }
+    return null;
   }
 
   private static String getActualSignature(List<RelDataType> argTypes) {
@@ -473,40 +564,61 @@ public class PPLFuncImpTable {
     /** Maps an operator to an implementation. */
     abstract void register(BuiltinFunctionName functionName, FunctionImp functionImp);
 
-    void registerOperator(BuiltinFunctionName functionName, SqlOperator operator) {
-      SqlOperandTypeChecker typeChecker;
-      if (operator instanceof SqlUserDefinedFunction udfOperator) {
-        typeChecker = extractTypeCheckerFromUDF(udfOperator);
-      } else {
-        typeChecker = operator.getOperandTypeChecker();
-      }
+    /**
+     * Register one or multiple operators under a single function name. This allows function
+     * overloading based on operand types.
+     *
+     * <p>When a function is called, the system will try each registered operator in sequence,
+     * checking if the provided arguments match the operator's type requirements. The first operator
+     * whose type checker accepts the arguments will be used to execute the function.
+     *
+     * @param functionName the built-in function name under which to register the operators
+     * @param operators the operators to associate with this function name, tried in sequence until
+     *     one matches the argument types during resolution
+     */
+    public void registerOperator(BuiltinFunctionName functionName, SqlOperator... operators) {
+      for (SqlOperator operator : operators) {
+        SqlOperandTypeChecker typeChecker;
+        if (operator instanceof SqlUserDefinedFunction udfOperator) {
+          typeChecker = extractTypeCheckerFromUDF(udfOperator);
+        } else {
+          typeChecker = operator.getOperandTypeChecker();
+        }
 
-      // Only the composite operand type checker for UDFs are concerned here.
-      if (operator instanceof SqlUserDefinedFunction
-          && typeChecker instanceof CompositeOperandTypeChecker compositeTypeChecker) {
-        // UDFs implement their own composite type checkers, which always use OR logic for argument
-        // types. Verifying the composition type would require accessing a protected field in
-        // CompositeOperandTypeChecker. If access to this field is not allowed, type checking will
-        // be skipped, so we avoid checking the composition type here.
-        register(functionName, wrapWithCompositeTypeChecker(operator, compositeTypeChecker, false));
-      } else if (typeChecker instanceof ImplicitCastOperandTypeChecker implicitCastTypeChecker) {
-        register(functionName, wrapWithImplicitCastTypeChecker(operator, implicitCastTypeChecker));
-      } else if (typeChecker instanceof CompositeOperandTypeChecker compositeTypeChecker) {
-        // If compositeTypeChecker contains operand checkers other than family type checkers or
-        // other than OR compositions, the function with be registered with a null type checker,
-        // which means the function will not be type checked.
-        register(functionName, wrapWithCompositeTypeChecker(operator, compositeTypeChecker, true));
-      } else if (typeChecker instanceof SameOperandTypeChecker comparableTypeChecker) {
-        // Comparison operators like EQUAL, GREATER_THAN, LESS_THAN, etc.
-        // SameOperandTypeCheckers like COALESCE, IFNULL, etc.
-        register(functionName, wrapWithComparableTypeChecker(operator, comparableTypeChecker));
-      } else {
-        logger.info(
-            "Cannot create type checker for function: {}. Will skip its type checking",
-            functionName);
-        register(
-            functionName,
-            (RexBuilder builder, RexNode... node) -> builder.makeCall(operator, node));
+        // Only the composite operand type checker for UDFs are concerned here.
+        if (operator instanceof SqlUserDefinedFunction
+            && typeChecker instanceof CompositeOperandTypeChecker compositeTypeChecker) {
+          // UDFs implement their own composite type checkers, which always use OR logic for
+          // argument
+          // types. Verifying the composition type would require accessing a protected field in
+          // CompositeOperandTypeChecker. If access to this field is not allowed, type checking will
+          // be skipped, so we avoid checking the composition type here.
+          register(
+              functionName, wrapWithCompositeTypeChecker(operator, compositeTypeChecker, false));
+        } else if (typeChecker instanceof ImplicitCastOperandTypeChecker implicitCastTypeChecker) {
+          register(
+              functionName, wrapWithImplicitCastTypeChecker(operator, implicitCastTypeChecker));
+        } else if (typeChecker instanceof CompositeOperandTypeChecker compositeTypeChecker) {
+          // If compositeTypeChecker contains operand checkers other than family type checkers or
+          // other than OR compositions, the function with be registered with a null type checker,
+          // which means the function will not be type checked.
+          register(
+              functionName, wrapWithCompositeTypeChecker(operator, compositeTypeChecker, true));
+        } else if (typeChecker instanceof SameOperandTypeChecker comparableTypeChecker) {
+          // Comparison operators like EQUAL, GREATER_THAN, LESS_THAN, etc.
+          // SameOperandTypeCheckers like COALESCE, IFNULL, etc.
+          register(functionName, wrapWithComparableTypeChecker(operator, comparableTypeChecker));
+        } else if (typeChecker
+            instanceof UDFOperandMetadata.UDTOperandMetadata udtOperandMetadata) {
+          register(functionName, wrapWithUdtTypeChecker(operator, udtOperandMetadata));
+        } else {
+          logger.info(
+              "Cannot create type checker for function: {}. Will skip its type checking",
+              functionName);
+          register(
+              functionName,
+              (RexBuilder builder, RexNode... node) -> builder.makeCall(operator, node));
+        }
       }
     }
 
@@ -516,6 +628,13 @@ public class PPLFuncImpTable {
           (UDFOperandMetadata) udfOperator.getOperandTypeChecker();
       return (udfOperandMetadata == null) ? null : udfOperandMetadata.getInnerTypeChecker();
     }
+
+    // Such wrapWith*TypeChecker methods are useful in that we don't have to create explicit
+    // overrides of resolve function for different number of operands.
+    // I.e. we don't have to explicitly call
+    //  (FuncImp1) (builder, arg1) -> builder.makeCall(operator, arg1);
+    // (FuncImp2) (builder, arg1, arg2) -> builder.makeCall(operator, arg1, arg2);
+    // etc.
 
     /**
      * Wrap a SqlOperator into a FunctionImp with a composite type checker.
@@ -583,6 +702,21 @@ public class PPLFuncImpTable {
       };
     }
 
+    private static FunctionImp wrapWithUdtTypeChecker(
+        SqlOperator operator, UDFOperandMetadata.UDTOperandMetadata udtOperandMetadata) {
+      return new FunctionImp() {
+        @Override
+        public RexNode resolve(RexBuilder builder, RexNode... args) {
+          return builder.makeCall(operator, args);
+        }
+
+        @Override
+        public PPLTypeChecker getTypeChecker() {
+          return PPLTypeChecker.wrapUDT(udtOperandMetadata.allowedParamTypes());
+        }
+      };
+    }
+
     private static FunctionImp createFunctionImpWithTypeChecker(
         BiFunction<RexBuilder, RexNode, RexNode> resolver, PPLTypeChecker typeChecker) {
       return new FunctionImp1() {
@@ -614,19 +748,24 @@ public class PPLFuncImpTable {
     }
 
     void populate() {
+      // register operators for comparison
+      registerOperator(NOTEQUAL, PPLBuiltinOperators.NOT_EQUALS_IP, SqlStdOperatorTable.NOT_EQUALS);
+      registerOperator(EQUAL, PPLBuiltinOperators.EQUALS_IP, SqlStdOperatorTable.EQUALS);
+      registerOperator(GREATER, PPLBuiltinOperators.GREATER_IP, SqlStdOperatorTable.GREATER_THAN);
+      registerOperator(GTE, PPLBuiltinOperators.GTE_IP, SqlStdOperatorTable.GREATER_THAN_OR_EQUAL);
+      registerOperator(LESS, PPLBuiltinOperators.LESS_IP, SqlStdOperatorTable.LESS_THAN);
+      registerOperator(LTE, PPLBuiltinOperators.LTE_IP, SqlStdOperatorTable.LESS_THAN_OR_EQUAL);
+
       // Register std operator
       registerOperator(AND, SqlStdOperatorTable.AND);
       registerOperator(OR, SqlStdOperatorTable.OR);
       registerOperator(NOT, SqlStdOperatorTable.NOT);
-      registerOperator(NOTEQUAL, SqlStdOperatorTable.NOT_EQUALS);
-      registerOperator(EQUAL, SqlStdOperatorTable.EQUALS);
-      registerOperator(GREATER, SqlStdOperatorTable.GREATER_THAN);
-      registerOperator(GTE, SqlStdOperatorTable.GREATER_THAN_OR_EQUAL);
-      registerOperator(LESS, SqlStdOperatorTable.LESS_THAN);
-      registerOperator(LTE, SqlStdOperatorTable.LESS_THAN_OR_EQUAL);
       registerOperator(ADD, SqlStdOperatorTable.PLUS);
+      registerOperator(ADDFUNCTION, SqlStdOperatorTable.PLUS);
       registerOperator(SUBTRACT, SqlStdOperatorTable.MINUS);
+      registerOperator(SUBTRACTFUNCTION, SqlStdOperatorTable.MINUS);
       registerOperator(MULTIPLY, SqlStdOperatorTable.MULTIPLY);
+      registerOperator(MULTIPLYFUNCTION, SqlStdOperatorTable.MULTIPLY);
       registerOperator(TRUNCATE, SqlStdOperatorTable.TRUNCATE);
       registerOperator(ASCII, SqlStdOperatorTable.ASCII);
       registerOperator(LENGTH, SqlStdOperatorTable.CHAR_LENGTH);
@@ -656,6 +795,7 @@ public class PPLFuncImpTable {
       registerOperator(RAND, SqlStdOperatorTable.RAND);
       registerOperator(ROUND, SqlStdOperatorTable.ROUND);
       registerOperator(SIGN, SqlStdOperatorTable.SIGN);
+      registerOperator(SIGNUM, SqlStdOperatorTable.SIGN);
       registerOperator(SIN, SqlStdOperatorTable.SIN);
       registerOperator(CBRT, SqlStdOperatorTable.CBRT);
       registerOperator(IS_NOT_NULL, SqlStdOperatorTable.IS_NOT_NULL);
@@ -670,7 +810,6 @@ public class PPLFuncImpTable {
       registerOperator(REGEXP, SqlLibraryOperators.REGEXP);
       registerOperator(CONCAT, SqlLibraryOperators.CONCAT_FUNCTION);
       registerOperator(CONCAT_WS, SqlLibraryOperators.CONCAT_WS);
-      registerOperator(LIKE, SqlLibraryOperators.ILIKE);
       registerOperator(CONCAT_WS, SqlLibraryOperators.CONCAT_WS);
       registerOperator(REVERSE, SqlLibraryOperators.REVERSE);
       registerOperator(RIGHT, SqlLibraryOperators.RIGHT);
@@ -682,6 +821,10 @@ public class PPLFuncImpTable {
       registerOperator(INTERNAL_REGEXP_REPLACE_3, SqlLibraryOperators.REGEXP_REPLACE_3);
 
       // Register PPL UDF operator
+      registerOperator(COSH, PPLBuiltinOperators.COSH);
+      registerOperator(SINH, PPLBuiltinOperators.SINH);
+      registerOperator(EXPM1, PPLBuiltinOperators.EXPM1);
+      registerOperator(RINT, PPLBuiltinOperators.RINT);
       registerOperator(SPAN, PPLBuiltinOperators.SPAN);
       registerOperator(E, PPLBuiltinOperators.E);
       registerOperator(CONV, PPLBuiltinOperators.CONV);
@@ -690,9 +833,17 @@ public class PPLFuncImpTable {
       registerOperator(MODULUSFUNCTION, PPLBuiltinOperators.MOD);
       registerOperator(CRC32, PPLBuiltinOperators.CRC32);
       registerOperator(DIVIDE, PPLBuiltinOperators.DIVIDE);
+      registerOperator(DIVIDEFUNCTION, PPLBuiltinOperators.DIVIDE);
       registerOperator(SHA2, PPLBuiltinOperators.SHA2);
       registerOperator(CIDRMATCH, PPLBuiltinOperators.CIDRMATCH);
       registerOperator(INTERNAL_GROK, PPLBuiltinOperators.GROK);
+      registerOperator(MATCH, PPLBuiltinOperators.MATCH);
+      registerOperator(MATCH_PHRASE, PPLBuiltinOperators.MATCH_PHRASE);
+      registerOperator(MATCH_BOOL_PREFIX, PPLBuiltinOperators.MATCH_BOOL_PREFIX);
+      registerOperator(MATCH_PHRASE_PREFIX, PPLBuiltinOperators.MATCH_PHRASE_PREFIX);
+      registerOperator(SIMPLE_QUERY_STRING, PPLBuiltinOperators.SIMPLE_QUERY_STRING);
+      registerOperator(QUERY_STRING, PPLBuiltinOperators.QUERY_STRING);
+      registerOperator(MULTI_MATCH, PPLBuiltinOperators.MULTI_MATCH);
 
       // Register PPL Datetime UDF operator
       registerOperator(TIMESTAMP, PPLBuiltinOperators.TIMESTAMP);
@@ -810,7 +961,7 @@ public class PPLFuncImpTable {
                       builder.makeFlag(Flag.BOTH),
                       builder.makeLiteral(" "),
                       arg),
-              PPLTypeChecker.family(SqlTypeFamily.STRING)));
+              PPLTypeChecker.family(SqlTypeFamily.CHARACTER)));
 
       register(
           LTRIM,
@@ -821,7 +972,7 @@ public class PPLFuncImpTable {
                       builder.makeFlag(Flag.LEADING),
                       builder.makeLiteral(" "),
                       arg),
-              PPLTypeChecker.family(SqlTypeFamily.STRING)));
+              PPLTypeChecker.family(SqlTypeFamily.CHARACTER)));
       register(
           RTRIM,
           createFunctionImpWithTypeChecker(
@@ -831,7 +982,7 @@ public class PPLFuncImpTable {
                       builder.makeFlag(Flag.TRAILING),
                       builder.makeLiteral(" "),
                       arg),
-              PPLTypeChecker.family(SqlTypeFamily.STRING)));
+              PPLTypeChecker.family(SqlTypeFamily.CHARACTER)));
       register(
           ATAN,
           createFunctionImpWithTypeChecker(
@@ -841,7 +992,7 @@ public class PPLFuncImpTable {
           STRCMP,
           createFunctionImpWithTypeChecker(
               (builder, arg1, arg2) -> builder.makeCall(SqlLibraryOperators.STRCMP, arg2, arg1),
-              PPLTypeChecker.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING)));
+              PPLTypeChecker.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER)));
       // SqlStdOperatorTable.SUBSTRING.getOperandTypeChecker is null. We manually create a type
       // checker for it.
       register(
@@ -849,14 +1000,24 @@ public class PPLFuncImpTable {
           wrapWithCompositeTypeChecker(
               SqlStdOperatorTable.SUBSTRING,
               (CompositeOperandTypeChecker)
-                  OperandTypes.STRING_INTEGER.or(OperandTypes.STRING_INTEGER_INTEGER),
+                  OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.INTEGER)
+                      .or(
+                          OperandTypes.family(
+                              SqlTypeFamily.CHARACTER,
+                              SqlTypeFamily.INTEGER,
+                              SqlTypeFamily.INTEGER)),
               false));
       register(
           SUBSTR,
           wrapWithCompositeTypeChecker(
               SqlStdOperatorTable.SUBSTRING,
               (CompositeOperandTypeChecker)
-                  OperandTypes.STRING_INTEGER.or(OperandTypes.STRING_INTEGER_INTEGER),
+                  OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.INTEGER)
+                      .or(
+                          OperandTypes.family(
+                              SqlTypeFamily.CHARACTER,
+                              SqlTypeFamily.INTEGER,
+                              SqlTypeFamily.INTEGER)),
               false));
       // SqlStdOperatorTable.ITEM.getOperandTypeChecker() checks only the first operand instead of
       // all operands. Therefore, we wrap it with a custom CompositeOperandTypeChecker to check both
@@ -942,6 +1103,18 @@ public class PPLFuncImpTable {
                               builder.makeLiteral(" "),
                               arg))),
               PPLTypeChecker.family(SqlTypeFamily.ANY)));
+      register(
+          LIKE,
+          createFunctionImpWithTypeChecker(
+              (builder, arg1, arg2) ->
+                  builder.makeCall(
+                      SqlLibraryOperators.ILIKE,
+                      arg1,
+                      arg2,
+                      // TODO: Figure out escaping solution. '\\' is used for JSON input but is not
+                      // necessary for SQL function input
+                      builder.makeLiteral("\\")),
+              PPLTypeChecker.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING)));
     }
   }
 
@@ -1019,19 +1192,23 @@ public class PPLFuncImpTable {
 
       register(
           TAKE,
-          (distinct, field, argList, ctx) ->
-              TransferUserDefinedAggFunction(
-                  TakeAggFunction.class,
-                  "TAKE",
-                  UserDefinedFunctionUtils.getReturnTypeInferenceForArray(),
-                  List.of(field),
-                  argList,
-                  ctx.relBuilder));
+          (distinct, field, argList, ctx) -> {
+            List<RexNode> newArgList =
+                argList.stream().map(PlanUtils::derefMapCall).collect(Collectors.toList());
+            return TransferUserDefinedAggFunction(
+                TakeAggFunction.class,
+                "TAKE",
+                UserDefinedFunctionUtils.getReturnTypeInferenceForArray(),
+                List.of(field),
+                newArgList,
+                ctx.relBuilder);
+          });
 
       register(
           PERCENTILE_APPROX,
           (distinct, field, argList, ctx) -> {
-            List<RexNode> newArgList = new ArrayList<>(argList);
+            List<RexNode> newArgList =
+                argList.stream().map(PlanUtils::derefMapCall).collect(Collectors.toList());
             newArgList.add(ctx.rexBuilder.makeFlag(field.getType().getSqlTypeName()));
             return TransferUserDefinedAggFunction(
                 PercentileApproxFunction.class,

@@ -10,12 +10,14 @@ import static org.apache.calcite.sql.type.SqlTypeUtil.createMapType;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.*;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.*;
 
+import com.google.common.collect.ImmutableSet;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.TimeZone;
+import java.util.Set;
 import javax.annotation.Nullable;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
@@ -70,6 +72,10 @@ public class UserDefinedFunctionUtils {
       TYPE_FACTORY.createMapType(
           TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),
           createArrayType(TYPE_FACTORY, TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR), false));
+  public static Set<String> SINGLE_FIELD_RELEVANCE_FUNCTION_SET =
+      ImmutableSet.of("match", "match_phrase", "match_bool_prefix", "match_phrase_prefix");
+  public static Set<String> MULTI_FIELDS_RELEVANCE_FUNCTION_SET =
+      ImmutableSet.of("simple_query_string", "query_string", "multi_match");
 
   public static RelBuilder.AggCall TransferUserDefinedAggFunction(
       Class<? extends UserDefinedAggFunction> UDAF,
@@ -115,7 +121,9 @@ public class UserDefinedFunctionUtils {
         case EXPR_DATE -> SqlTypeName.DATE;
         case EXPR_TIME -> SqlTypeName.TIME;
         case EXPR_TIMESTAMP -> SqlTypeName.TIMESTAMP;
-        case EXPR_IP -> SqlTypeName.VARCHAR;
+          // EXPR_IP is mapped to SqlTypeName.OTHER since there is no
+          // corresponding SqlTypeName in Calcite.
+        case EXPR_IP -> SqlTypeName.OTHER;
         case EXPR_BINARY -> SqlTypeName.VARBINARY;
         default -> type.getSqlTypeName();
       };
@@ -128,8 +136,7 @@ public class UserDefinedFunctionUtils {
     Instant instant =
         Instant.ofEpochSecond(
             currentTimeInNanos / 1_000_000_000, currentTimeInNanos % 1_000_000_000);
-    TimeZone timeZone = TimeZone.getDefault();
-    ZoneId zoneId = timeZone.toZoneId();
+    ZoneId zoneId = ZoneOffset.UTC;
     return new FunctionProperties(instant, zoneId, QueryType.PPL);
   }
 
@@ -199,6 +206,47 @@ public class UserDefinedFunctionUtils {
           Expression exprResult = Expressions.call(type, methodName, operands);
           return Expressions.call(exprResult, "valueForCalcite");
         };
+    return new ImplementorUDF(implementor, nullPolicy) {
+      @Override
+      public SqlReturnTypeInference getReturnTypeInference() {
+        return returnTypeInference;
+      }
+
+      @Override
+      public UDFOperandMetadata getOperandMetadata() {
+        return operandMetadata;
+      }
+    };
+  }
+
+  /**
+   * Adapt a static math function (e.g., Math.expm1, Math.rint) to a UserDefinedFunctionBuilder.
+   * This method generates a Calcite-compatible UDF by boxing the operand, converting it to a
+   * double, and then calling the corresponding method in {@link Math}.
+   *
+   * <p>It assumes the math method has the signature: {@code double method(double)}. This utility is
+   * specifically designed for single-operand Math methods.
+   *
+   * @param methodName the name of the static method in {@link Math} to be invoked
+   * @param returnTypeInference the return type inference of the UDF
+   * @param nullPolicy the null policy of the UDF
+   * @param operandMetadata type checker
+   * @return an adapted ImplementorUDF with the math method, which is a UserDefinedFunctionBuilder
+   */
+  public static ImplementorUDF adaptMathFunctionToUDF(
+      String methodName,
+      SqlReturnTypeInference returnTypeInference,
+      NullPolicy nullPolicy,
+      UDFOperandMetadata operandMetadata) {
+
+    NotNullImplementor implementor =
+        (translator, call, translatedOperands) -> {
+          Expression operand = translatedOperands.get(0);
+          operand = Expressions.box(operand);
+          operand = Expressions.call(operand, "doubleValue");
+          return Expressions.call(Math.class, methodName, operand);
+        };
+
     return new ImplementorUDF(implementor, nullPolicy) {
       @Override
       public SqlReturnTypeInference getReturnTypeInference() {

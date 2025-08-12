@@ -24,7 +24,7 @@ import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
-import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
+import org.opensearch.sql.opensearch.storage.serde.ExpressionSerializer;
 
 /** Bucket Aggregation Builder. */
 public class BucketAggregationBuilder {
@@ -76,7 +76,7 @@ public class BucketAggregationBuilder {
     }
   }
 
-  private CompositeValuesSourceBuilder<?> buildHistogram(
+  public static CompositeValuesSourceBuilder<?> buildHistogram(
       String name, String field, Double value, SpanUnit unit, MissingOrder missingOrder) {
     switch (unit) {
       case NONE:
@@ -92,7 +92,7 @@ public class BucketAggregationBuilder {
     }
   }
 
-  private CompositeValuesSourceBuilder<?> buildDateHistogram(
+  public static CompositeValuesSourceBuilder<?> buildDateHistogram(
       String name, String field, Integer value, SpanUnit unit, MissingOrder missingOrder) {
     String spanValue = value + unit.getName();
     switch (unit) {

@@ -403,7 +403,11 @@ public class MatcherUtils {
   }
 
   private static String cleanUpId(String s) {
-    return eliminatePid(eliminateRelId(s));
+    return eliminateTimeStamp(eliminatePid(eliminateRelId(s)));
+  }
+
+  private static String eliminateTimeStamp(String s) {
+    return s.replaceAll("\\\\\"utcTimestamp\\\\\":\\d+", "\\\\\"utcTimestamp\\\\\":*");
   }
 
   private static String eliminateRelId(String s) {

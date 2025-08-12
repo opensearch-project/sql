@@ -15,7 +15,6 @@ setup:
         body:
           transient:
             plugins.calcite.enabled : true
-            plugins.calcite.fallback.allowed : false
 
 ---
 teardown:
@@ -24,13 +23,13 @@ teardown:
         body:
           transient:
             plugins.calcite.enabled : false
-            plugins.calcite.fallback.allowed : true
 
 ---
 "Handle epoch field in string format":
   - skip:
       features:
         - headers
+        - allowed_warnings
   - do:
       bulk:
         index: test
@@ -39,6 +38,8 @@ teardown:
           - '{"index": {}}'
           - '{"timestamp": "1705642934886"}'
   - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
       headers:
         Content-Type: 'application/json'
       ppl:
@@ -47,4 +48,3 @@ teardown:
   - match: {"total": 1}
   - match: {"schema": [{"name": "timestamp", "type": "timestamp"}]}
   - match: {"datarows": [["2024-01-19 05:42:14.886"]]}
-

@@ -320,11 +320,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 expr -> {
                   RexNode sortField = rexVisitor.analyze(expr, context);
                   SortOption sortOption = analyzeSortOption(expr.getFieldArgs());
-                  if (sortOption == DEFAULT_DESC) {
-                    return context.relBuilder.desc(sortField);
-                  } else {
-                    return sortField;
+                  // Default is ASC
+                  if (sortOption.getSortOrder() == DESC) {
+                    sortField = context.relBuilder.desc(sortField);
                   }
+                  if (sortOption.getNullOrder() == NULL_LAST) {
+                    sortField = context.relBuilder.nullsLast(sortField);
+                  } else {
+                    sortField = context.relBuilder.nullsFirst(sortField);
+                  }
+                  return sortField;
                 })
             .collect(Collectors.toList());
     context.relBuilder.sort(sortList);
@@ -347,6 +352,28 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitHead(Head node, CalcitePlanContext context) {
     visitChildren(node, context);
     context.relBuilder.limit(node.getFrom(), node.getSize());
+    return context.relBuilder.peek();
+  }
+
+  private static final String REVERSE_ROW_NUM = "__reverse_row_num__";
+
+  @Override
+  public RelNode visitReverse(
+      org.opensearch.sql.ast.tree.Reverse node, CalcitePlanContext context) {
+    visitChildren(node, context);
+    // Add ROW_NUMBER() column
+    RexNode rowNumber =
+        context
+            .relBuilder
+            .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+            .over()
+            .rowsTo(RexWindowBounds.CURRENT_ROW)
+            .as(REVERSE_ROW_NUM);
+    context.relBuilder.projectPlus(rowNumber);
+    // Sort by row number descending
+    context.relBuilder.sort(context.relBuilder.desc(context.relBuilder.field(REVERSE_ROW_NUM)));
+    // Remove row number column
+    context.relBuilder.projectExcept(context.relBuilder.field(REVERSE_ROW_NUM));
     return context.relBuilder.peek();
   }
 
@@ -551,6 +578,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     //        \- Project([c, b])
     //           \- Filter(a > 1)
     //              \- Scan t
+    // Example 3: source=t | stats count(): no project added for count()
+    // Before: Aggregate(count)
+    //           \- Scan t
+    // After: Aggregate(count)
+    //           \- Scan t
     Pair<List<RexNode>, List<AggCall>> resolved =
         resolveAttributesForAggregation(groupExprList, aggExprList, context);
     List<RexInputRef> trimmedRefs = new ArrayList<>();

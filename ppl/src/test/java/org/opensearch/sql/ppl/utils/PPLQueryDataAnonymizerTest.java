@@ -137,6 +137,11 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals("source=t | head 3", anonymize("source=t | head 3"));
   }
 
+  @Test
+  public void testReverseCommand() {
+    assertEquals("source=t | reverse", anonymize("source=t | reverse"));
+  }
+
   // todo, sort order is ignored, it doesn't impact the log analysis.
   @Test
   public void testSortCommandWithOptions() {

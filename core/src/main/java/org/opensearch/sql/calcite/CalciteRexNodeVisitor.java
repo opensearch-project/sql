@@ -28,7 +28,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexLambda;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
@@ -59,6 +58,7 @@ import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.RelevanceFieldList;
 import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.SpanUnit;
+import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.When;
 import org.opensearch.sql.ast.expression.WindowFunction;
@@ -67,7 +67,6 @@ import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
-import org.opensearch.sql.calcite.type.ExprSqlType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -75,7 +74,6 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
-import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
 @RequiredArgsConstructor
@@ -214,28 +212,9 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
 
   @Override
   public RexNode visitCompare(Compare node, CalcitePlanContext context) {
-    RexNode leftCandidate = analyze(node.getLeft(), context);
-    RexNode rightCandidate = analyze(node.getRight(), context);
-    Boolean whetherCompareByTime =
-        leftCandidate.getType() instanceof ExprSqlType
-            || rightCandidate.getType() instanceof ExprSqlType;
-
-    final RexNode left =
-        transferCompareForDateRelated(leftCandidate, context, whetherCompareByTime);
-    final RexNode right =
-        transferCompareForDateRelated(rightCandidate, context, whetherCompareByTime);
+    RexNode left = analyze(node.getLeft(), context);
+    RexNode right = analyze(node.getRight(), context);
     return PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, node.getOperator(), left, right);
-  }
-
-  private RexNode transferCompareForDateRelated(
-      RexNode candidate, CalcitePlanContext context, boolean whetherCompareByTime) {
-    if (whetherCompareByTime) {
-      RexNode transferredStringNode =
-          context.rexBuilder.makeCall(PPLBuiltinOperators.TIMESTAMP, candidate);
-      return transferredStringNode;
-    } else {
-      return candidate;
-    }
   }
 
   @Override
@@ -483,19 +462,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     }
   }
 
-  private List<RexNode> castArgument(
-      List<RexNode> originalArguments, String functionName, ExtendedRexBuilder rexBuilder) {
-    switch (functionName.toUpperCase(Locale.ROOT)) {
-      case "REDUCE":
-        RexLambda call = (RexLambda) originalArguments.get(2);
-        originalArguments.set(
-            1, rexBuilder.makeCast(call.getType(), originalArguments.get(1), true, true));
-        return originalArguments;
-      default:
-        return originalArguments;
-    }
-  }
-
   @Override
   public RexNode visitFunction(Function node, CalcitePlanContext context) {
     List<UnresolvedExpression> args = node.getFuncArgs();
@@ -521,8 +487,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
         arguments.add(analyze(arg, context));
       }
     }
-
-    arguments = castArgument(arguments, node.getFuncName(), context.rexBuilder);
 
     RexNode resolvedNode =
         PPLFuncImpTable.INSTANCE.resolve(
@@ -575,23 +539,22 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     List<RexNode> nodes = node.getChild().stream().map(child -> analyze(child, context)).toList();
     UnresolvedPlan subquery = node.getQuery();
     RelNode subqueryRel = resolveSubqueryPlan(subquery, context);
-    try {
-      return context.relBuilder.in(subqueryRel, nodes);
-      // TODO
-      // The {@link org.apache.calcite.tools.RelBuilder#in(RexNode,java.util.function.Function)}
-      // only support one expression. Change to follow code after calcite fixed.
-      //    return context.relBuilder.in(
-      //        nodes.getFirst(),
-      //        b -> {
-      //          RelNode subqueryRel = subquery.accept(planVisitor, context);
-      //          b.build();
-      //          return subqueryRel;
-      //        });
-    } catch (AssertionError e) {
+    if (subqueryRel.getRowType().getFieldCount() != nodes.size()) {
       throw new SemanticCheckException(
           "The number of columns in the left hand side of an IN subquery does not match the number"
               + " of columns in the output of subquery");
     }
+    // TODO
+    //  The {@link org.apache.calcite.tools.RelBuilder#in(RexNode,java.util.function.Function)}
+    //  only support one expression. Change to follow code after calcite fixed.
+    //    return context.relBuilder.in(
+    //        nodes.getFirst(),
+    //        b -> {
+    //          RelNode subqueryRel = subquery.accept(planVisitor, context);
+    //          b.build();
+    //          return subqueryRel;
+    //        });
+    return context.relBuilder.in(subqueryRel, nodes);
   }
 
   @Override
@@ -669,6 +632,35 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
 
   @Override
   public RexNode visitRelevanceFieldList(RelevanceFieldList node, CalcitePlanContext context) {
-    throw new CalciteUnsupportedException("Relevance fields expression is unsupported in Calcite");
+    List<RexNode> varArgRexNodeList = new ArrayList<>();
+    node.getFieldList()
+        .forEach(
+            (k, v) -> {
+              varArgRexNodeList.add(
+                  context.rexBuilder.makeLiteral(
+                      k,
+                      context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
+                      true));
+              varArgRexNodeList.add(
+                  context.rexBuilder.makeLiteral(
+                      v,
+                      context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.DOUBLE),
+                      true));
+            });
+    return context.rexBuilder.makeCall(
+        SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR, varArgRexNodeList);
+  }
+
+  @Override
+  public RexNode visitUnresolvedArgument(UnresolvedArgument node, CalcitePlanContext context) {
+    RexNode value = analyze(node.getValue(), context);
+    /*
+     * Calcite SqlStdOperatorTable.AS doesn't have implementor registration in RexImpTable.
+     * To not block ReduceExpressionsRule constants reduction optimization, use MAP_VALUE_CONSTRUCTOR instead to achieve the same effect.
+     */
+    return context.rexBuilder.makeCall(
+        SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
+        context.rexBuilder.makeLiteral(node.getArgName()),
+        value);
   }
 }

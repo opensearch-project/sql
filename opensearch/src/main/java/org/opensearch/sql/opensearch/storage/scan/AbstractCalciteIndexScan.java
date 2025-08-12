@@ -7,28 +7,60 @@ package org.opensearch.sql.opensearch.storage.scan;
 
 import static java.util.Objects.requireNonNull;
 import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR;
+import static org.opensearch.sql.opensearch.request.AggregateAnalyzer.AGGREGATION_BUCKET_SIZE;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import lombok.Getter;
+import org.apache.calcite.adapter.enumerable.EnumerableMergeJoin;
+import org.apache.calcite.adapter.enumerable.EnumerableSort;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelFieldCollation.Direction;
+import org.apache.calcite.rel.RelFieldCollation.NullDirection;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.NumberUtil;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.search.aggregations.AggregationBuilder;
+import org.opensearch.search.aggregations.AggregationBuilders;
+import org.opensearch.search.aggregations.AggregatorFactories.Builder;
+import org.opensearch.search.aggregations.bucket.composite.CompositeAggregationBuilder;
+import org.opensearch.search.aggregations.bucket.composite.CompositeValuesSourceBuilder;
+import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
+import org.opensearch.search.sort.ScoreSortBuilder;
+import org.opensearch.search.sort.SortBuilder;
+import org.opensearch.search.sort.SortBuilders;
+import org.opensearch.search.sort.SortOrder;
+import org.opensearch.sql.common.setting.Settings.Key;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
+import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 
 /** An abstract relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
 public abstract class AbstractCalciteIndexScan extends TableScan {
+  private static final Logger LOG = LogManager.getLogger(AbstractCalciteIndexScan.class);
   public final OpenSearchIndex osIndex;
   // The schema of this scan operator, it's initialized with the row type of the table, but may be
   // changed by push down operations.
@@ -68,6 +100,10 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
         .itemIf("PushDownContext", explainString, !pushDownContext.isEmpty());
   }
 
+  protected Integer getQuerySizeLimit() {
+    return osIndex.getSettings().getSettingValue(Key.QUERY_SIZE_LIMIT);
+  }
+
   @Override
   public double estimateRowCount(RelMetadataQuery mq) {
     /*
@@ -85,10 +121,13 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
             (rowCount, action) ->
                 switch (action.type) {
                       case AGGREGATION -> mq.getRowCount((RelNode) action.digest);
-                      case PROJECT -> rowCount;
+                      case PROJECT, SORT -> rowCount;
                       case FILTER -> NumberUtil.multiply(
                           rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest));
-                      case LIMIT -> (Integer) action.digest;
+                      case SCRIPT -> NumberUtil.multiply(
+                              rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest))
+                          * 1.1;
+                      case LIMIT -> Math.min(rowCount, (Integer) action.digest);
                     }
                     * estimateRowCountFactor,
             (a, b) -> null);
@@ -98,7 +137,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
   public static class PushDownContext extends ArrayDeque<PushDownAction> {
 
     private boolean isAggregatePushed = false;
-    private boolean isLimitPushed = false;
+    @Getter private boolean isLimitPushed = false;
 
     @Override
     public PushDownContext clone() {
@@ -107,8 +146,6 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
 
     @Override
     public boolean add(PushDownAction pushDownAction) {
-      // Defense check. It should never do push down to this context after aggregate push-down.
-      assert !isAggregatePushed : "Aggregate has already been pushed!";
       if (pushDownAction.type == PushDownType.AGGREGATION) {
         isAggregatePushed = true;
       }
@@ -123,22 +160,163 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
       isAggregatePushed = !isEmpty() && super.peekLast().type == PushDownType.AGGREGATION;
       return isAggregatePushed;
     }
+  }
 
-    public boolean isLimitPushed() {
-      return isLimitPushed;
+  protected abstract AbstractCalciteIndexScan buildScan(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      List<RelHint> hints,
+      RelOptTable table,
+      OpenSearchIndex osIndex,
+      RelDataType schema,
+      PushDownContext pushDownContext);
+
+  private List<String> getCollationNames(List<RelFieldCollation> collations) {
+    return collations.stream()
+        .map(collation -> getRowType().getFieldNames().get(collation.getFieldIndex()))
+        .toList();
+  }
+
+  /**
+   * Check if the sort by collations contains any aggregators that are pushed down. E.g. In `stats
+   * avg(age) as avg_age by state | sort avg_age`, the sort clause has `avg_age` which is an
+   * aggregator. The function will return true in this case.
+   *
+   * @param collations List of collation names to check against aggregators.
+   * @return True if any collation name matches an aggregator output, false otherwise.
+   */
+  private boolean hasAggregatorInSortBy(List<String> collations) {
+    Stream<LogicalAggregate> aggregates =
+        pushDownContext.stream()
+            .filter(action -> action.type() == PushDownType.AGGREGATION)
+            .map(action -> ((LogicalAggregate) action.digest()));
+    return aggregates
+        .map(aggregate -> isAnyCollationNameInAggregateOutput(aggregate, collations))
+        .reduce(false, Boolean::logicalOr);
+  }
+
+  private static boolean isAnyCollationNameInAggregateOutput(
+      LogicalAggregate aggregate, List<String> collations) {
+    List<String> fieldNames = aggregate.getRowType().getFieldNames();
+    // The output fields of the aggregate are in the format of
+    // [...grouping fields, ...aggregator fields], so we set an offset to skip
+    // the grouping fields.
+    int groupOffset = aggregate.getGroupSet().cardinality();
+    List<String> fieldsWithoutGrouping = fieldNames.subList(groupOffset, fieldNames.size());
+    return collations.stream()
+        .map(fieldsWithoutGrouping::contains)
+        .reduce(false, Boolean::logicalOr);
+  }
+
+  /**
+   * Create a new {@link PushDownContext} without the collation action.
+   *
+   * @param pushDownContext The original push-down context.
+   * @return A new push-down context without the collation action.
+   */
+  protected PushDownContext cloneWithoutSort(PushDownContext pushDownContext) {
+    PushDownContext newContext = new PushDownContext();
+    for (PushDownAction action : pushDownContext) {
+      if (action.type() != PushDownType.SORT) {
+        newContext.add(action);
+      }
     }
+    return newContext;
+  }
+
+  /**
+   * The sort pushdown is not only applied in logical plan side, but also should be applied in
+   * physical plan side. Because we could push down the {@link EnumerableSort} of {@link
+   * EnumerableMergeJoin} to OpenSearch.
+   */
+  public AbstractCalciteIndexScan pushDownSort(List<RelFieldCollation> collations) {
+    try {
+      List<String> collationNames = getCollationNames(collations);
+      if (getPushDownContext().isAggregatePushed() && hasAggregatorInSortBy(collationNames)) {
+        // If aggregation is pushed down, we cannot push down sorts where its by fields contain
+        // aggregators.
+        return null;
+      }
+
+      // Propagate the sort to the new scan
+      RelTraitSet traitsWithCollations = getTraitSet().plus(RelCollations.of(collations));
+      AbstractCalciteIndexScan newScan =
+          buildScan(
+              getCluster(),
+              traitsWithCollations,
+              hints,
+              table,
+              osIndex,
+              getRowType(),
+              // Existing collations are overridden (discarded) by the new collations,
+              cloneWithoutSort(pushDownContext));
+
+      AbstractAction action;
+      Object digest;
+      if (pushDownContext.isAggregatePushed) {
+        // Push down the sort into the aggregation bucket
+        ((AggPushDownAction) requireNonNull(pushDownContext.peekLast()).action)
+            .pushDownSortIntoAggBucket(collations);
+        action = requestBuilder -> {};
+        digest = collations;
+      } else {
+        List<SortBuilder<?>> builders = new ArrayList<>();
+        for (RelFieldCollation collation : collations) {
+          int index = collation.getFieldIndex();
+          String fieldName = this.getRowType().getFieldNames().get(index);
+          Direction direction = collation.getDirection();
+          NullDirection nullDirection = collation.nullDirection;
+          // Default sort order is ASCENDING
+          SortOrder order = Direction.DESCENDING.equals(direction) ? SortOrder.DESC : SortOrder.ASC;
+          // TODO: support script sort and distance sort
+          SortBuilder<?> sortBuilder;
+          if (ScoreSortBuilder.NAME.equals(fieldName)) {
+            sortBuilder = SortBuilders.scoreSort();
+          } else {
+            String missing =
+                switch (nullDirection) {
+                  case FIRST -> "_first";
+                  case LAST -> "_last";
+                  default -> null;
+                };
+            // Keyword field is optimized for sorting in OpenSearch
+            ExprType fieldType = osIndex.getFieldTypes().get(fieldName);
+            String field = OpenSearchTextType.toKeywordSubField(fieldName, fieldType);
+            sortBuilder = SortBuilders.fieldSort(field).missing(missing);
+          }
+          builders.add(sortBuilder.order(order));
+        }
+        action = requestBuilder -> requestBuilder.pushDownSort(builders);
+        digest = builders.toString();
+      }
+      newScan.pushDownContext.add(PushDownAction.of(PushDownType.SORT, digest, action));
+      return newScan;
+    } catch (Exception e) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Cannot pushdown the sort {}", getCollationNames(collations), e);
+      }
+    }
+    return null;
   }
 
   protected enum PushDownType {
     FILTER,
     PROJECT,
     AGGREGATION,
-    // SORT,
+    SORT,
     LIMIT,
+    SCRIPT
     // HIGHLIGHT,
     // NESTED
   }
 
+  /**
+   * Represents a push down action that can be applied to an OpenSearchRequestBuilder.
+   *
+   * @param type PushDownType enum
+   * @param digest the digest of the pushed down operator
+   * @param action the lambda action to apply on the OpenSearchRequestBuilder
+   */
   public record PushDownAction(PushDownType type, Object digest, AbstractAction action) {
     static PushDownAction of(PushDownType type, Object digest, AbstractAction action) {
       return new PushDownAction(type, digest, action);
@@ -155,5 +333,64 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
 
   public interface AbstractAction {
     void apply(OpenSearchRequestBuilder requestBuilder);
+  }
+
+  public static class AggPushDownAction implements AbstractAction {
+
+    private Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder;
+    private final Map<String, OpenSearchDataType> extendedTypeMapping;
+
+    public AggPushDownAction(
+        Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder,
+        Map<String, OpenSearchDataType> extendedTypeMapping) {
+      this.aggregationBuilder = aggregationBuilder;
+      this.extendedTypeMapping = extendedTypeMapping;
+    }
+
+    @Override
+    public void apply(OpenSearchRequestBuilder requestBuilder) {
+      requestBuilder.pushDownAggregation(aggregationBuilder);
+      requestBuilder.pushTypeMapping(extendedTypeMapping);
+    }
+
+    public void pushDownSortIntoAggBucket(List<RelFieldCollation> collations) {
+      // It will always use a single CompositeAggregationBuilder for the aggregation with GroupBy
+      // See {@link AggregateAnalyzer}
+      CompositeAggregationBuilder compositeAggregationBuilder =
+          (CompositeAggregationBuilder) aggregationBuilder.getLeft().getFirst();
+      List<CompositeValuesSourceBuilder<?>> buckets =
+          ((CompositeAggregationBuilder) aggregationBuilder.getLeft().getFirst()).sources();
+      List<CompositeValuesSourceBuilder<?>> newBuckets = new ArrayList<>(buckets.size());
+      List<Integer> selected = new ArrayList<>(collations.size());
+      // Have to put the collation required buckets first, then the rest of buckets.
+      collations.forEach(
+          collation -> {
+            CompositeValuesSourceBuilder<?> bucket = buckets.get(collation.getFieldIndex());
+            Direction direction = collation.getDirection();
+            NullDirection nullDirection = collation.nullDirection;
+            SortOrder order =
+                Direction.DESCENDING.equals(direction) ? SortOrder.DESC : SortOrder.ASC;
+            MissingOrder missingOrder =
+                switch (nullDirection) {
+                  case FIRST -> MissingOrder.FIRST;
+                  case LAST -> MissingOrder.LAST;
+                  default -> MissingOrder.DEFAULT;
+                };
+            newBuckets.add(bucket.order(order).missingOrder(missingOrder));
+            selected.add(collation.getFieldIndex());
+          });
+      IntStream.range(0, buckets.size())
+          .filter(i -> !selected.contains(i))
+          .forEach(i -> newBuckets.add(buckets.get(i)));
+      Builder newAggBuilder = new Builder();
+      compositeAggregationBuilder.getSubAggregations().forEach(newAggBuilder::addAggregator);
+      aggregationBuilder =
+          Pair.of(
+              Collections.singletonList(
+                  AggregationBuilders.composite("composite_buckets", newBuckets)
+                      .subAggregations(newAggBuilder)
+                      .size(AGGREGATION_BUCKET_SIZE)),
+              aggregationBuilder.getRight());
+    }
   }
 }

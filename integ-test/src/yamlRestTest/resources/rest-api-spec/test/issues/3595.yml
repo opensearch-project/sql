@@ -4,7 +4,6 @@ setup:
         body:
           transient:
             plugins.calcite.enabled : true
-            plugins.calcite.fallback.allowed : false
             plugins.query.size_limit : 1
 
 ---
@@ -14,13 +13,13 @@ teardown:
         body:
           transient:
             plugins.calcite.enabled : false
-            plugins.calcite.fallback.allowed : true
 
 ---
 "Handle lookup command with query size limit is 1":
   - skip:
       features:
         - headers
+        - allowed_warnings
   - do:
       bulk:
         refresh: true
@@ -38,6 +37,8 @@ teardown:
              {"index": {"_index": "region_info"}}
              {"regionId": "2", "regionName": "us-west-2"}'
   - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
       headers:
         Content-Type: 'application/json'
       ppl:

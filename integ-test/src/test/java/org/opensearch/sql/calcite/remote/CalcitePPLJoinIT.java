@@ -31,7 +31,6 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
 
     loadIndex(Index.STATE_COUNTRY);
     loadIndex(Index.OCCUPATION);
@@ -242,12 +241,12 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
         schema("salary", "int"));
     verifyDataRowsInOrder(
         actual,
-        rows("Jane", 20, "Quebec", "Canada", "Scientist", "Canada", 90000),
-        rows("John", 25, "Ontario", "Canada", "Doctor", "Canada", 120000),
         rows(null, null, null, null, "Engineer", "England", 100000),
         rows(null, null, null, null, "Artist", "USA", 70000),
         rows(null, null, null, null, "Doctor", "USA", 120000),
-        rows(null, null, null, null, "Unemployed", "Canada", 0));
+        rows(null, null, null, null, "Unemployed", "Canada", 0),
+        rows("Jane", 20, "Quebec", "Canada", "Scientist", "Canada", 90000),
+        rows("John", 25, "Ontario", "Canada", "Doctor", "Canada", 120000));
   }
 
   @Test

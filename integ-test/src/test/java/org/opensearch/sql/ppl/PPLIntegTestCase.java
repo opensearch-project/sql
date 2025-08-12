@@ -24,6 +24,7 @@ import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
+import org.opensearch.common.collect.MapBuilder;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
@@ -67,6 +68,15 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
 
   protected String executeCsvQuery(String query) throws IOException {
     return executeCsvQuery(query, true);
+  }
+
+  protected void timing(MapBuilder<String, Long> builder, String query, String ppl)
+      throws IOException {
+    executeQuery(ppl); // warm-up
+    long start = System.currentTimeMillis();
+    executeQuery(ppl);
+    long duration = System.currentTimeMillis() - start;
+    builder.put(query, duration);
   }
 
   protected void failWithMessage(String query, String message) {
@@ -257,6 +267,17 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
               Settings.Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(),
               String.valueOf(GlobalPushdownConfig.enabled)));
     }
+  }
+
+  /**
+   * Sanitizes the PPL query by removing block comments and replacing new lines with spaces.
+   *
+   * @param ppl the PPL query string
+   * @return the sanitized PPL query string
+   */
+  protected static String sanitize(String ppl) {
+    String withoutComments = ppl.replaceAll("(?s)/\\*.*?\\*/", "");
+    return withoutComments.replaceAll("\\r\\n", " ").replaceAll("\\n", " ").trim();
   }
 
   // Utility methods
