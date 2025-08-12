@@ -14,16 +14,19 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
 import org.opensearch.search.aggregations.AggregatorFactories;
+import org.opensearch.search.aggregations.BucketOrder;
 import org.opensearch.search.aggregations.bucket.filter.FilterAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.CardinalityAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.ExtendedStats;
 import org.opensearch.search.aggregations.metrics.PercentilesAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.TopHitsAggregationBuilder;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
+import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionNodeVisitor;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.opensearch.response.agg.*;
 import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder;
@@ -167,6 +170,21 @@ public class MetricAggregationBuilder
             condition,
             name,
             new SinglePercentileParser(name));
+      case "list":
+        return make(
+            AggregationBuilders.topHits(name),
+            expression,
+            new LiteralExpression(ExprValueUtils.integerValue(100)), // RFC specifies 100 item limit  
+            condition,
+            name,
+            new TopHitsParser(name));
+      case "values":
+        return make(
+            AggregationBuilders.terms(name).size(10000).order(BucketOrder.key(true)), // No limit, lexicographical ordering
+            expression,
+            condition,
+            name,
+            new TermsParser(name));
       default:
         throw new IllegalStateException(
             String.format("unsupported aggregator %s", node.getFunctionName().getFunctionName()));
@@ -240,6 +258,23 @@ public class MetricAggregationBuilder
       aggregationBuilder.compression(compression.valueOf().doubleValue());
     }
     aggregationBuilder.percentiles(percent.valueOf().doubleValue());
+    if (condition != null) {
+      return Pair.of(
+          makeFilterAggregation(aggregationBuilder, condition, name),
+          FilterParser.builder().name(name).metricsParser(parser).build());
+    }
+    return Pair.of(aggregationBuilder, parser);
+  }
+
+  /** Make {@link TermsAggregationBuilder} for list and values aggregations. */
+  private Pair<AggregationBuilder, MetricParser> make(
+      TermsAggregationBuilder builder,
+      Expression expression,
+      Expression condition,
+      String name,
+      MetricParser parser) {
+    TermsAggregationBuilder aggregationBuilder =
+        helper.build(expression, builder::field, builder::script);
     if (condition != null) {
       return Pair.of(
           makeFilterAggregation(aggregationBuilder, condition, name),

@@ -429,6 +429,8 @@ statsFunctionName
    | PERCENTILE_APPROX
    | EARLIEST
    | LATEST
+   | LIST
+   | VALUES
    ;
 
 takeAggFunction

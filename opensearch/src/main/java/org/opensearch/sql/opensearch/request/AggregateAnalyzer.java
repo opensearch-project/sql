@@ -53,6 +53,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.script.Script;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
+import org.opensearch.search.aggregations.BucketOrder;
 import org.opensearch.search.aggregations.AggregatorFactories;
 import org.opensearch.search.aggregations.AggregatorFactories.Builder;
 import org.opensearch.search.aggregations.bucket.composite.CompositeValuesSourceBuilder;
@@ -75,6 +76,7 @@ import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseP
 import org.opensearch.sql.opensearch.response.agg.SinglePercentileParser;
 import org.opensearch.sql.opensearch.response.agg.SingleValueParser;
 import org.opensearch.sql.opensearch.response.agg.StatsParser;
+import org.opensearch.sql.opensearch.response.agg.TermsParser;
 import org.opensearch.sql.opensearch.response.agg.TopHitsParser;
 import org.opensearch.sql.opensearch.storage.script.aggregation.dsl.BucketAggregationBuilder;
 
@@ -312,6 +314,17 @@ public class AggregateAnalyzer {
             }
             yield Pair.of(aggBuilder, new SinglePercentileParser(aggFieldName));
           }
+          case LIST -> Pair.of(
+              AggregationBuilders.topHits(aggFieldName)
+                  .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)
+                  .size(100)
+                  .from(0),
+              new TopHitsParser(aggFieldName));
+          case VALUES -> Pair.of(
+              helper.build(args.getFirst(), AggregationBuilders.terms(aggFieldName)
+                  .size(AGGREGATION_BUCKET_SIZE)
+                  .order(BucketOrder.key(true))), // Sort by key (lexicographically) ascending
+              new TermsParser(aggFieldName));
           default -> throw new AggregateAnalyzer.AggregateAnalyzerException(
               String.format("Unsupported push-down aggregator %s", aggCall.getAggregation()));
         };
