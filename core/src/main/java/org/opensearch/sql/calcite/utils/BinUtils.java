@@ -415,10 +415,7 @@ public class BinUtils {
     return createRangeString(binStartValue, binEndValue, context);
   }
 
-  /**
-   * Validates that the specified field exists in the dataset. NEW DESIGN: This validation now
-   * applies to any field, not just @timestamp.
-   */
+  /** Validates that the specified field exists in the dataset. */
   public static void validateFieldExists(String fieldName, CalcitePlanContext context) {
     List<String> availableFields = context.relBuilder.peek().getRowType().getFieldNames();
     if (!availableFields.contains(fieldName)) {
