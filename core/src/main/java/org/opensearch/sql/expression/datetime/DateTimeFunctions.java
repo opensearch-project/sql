@@ -2191,6 +2191,26 @@ public class DateTimeFunctions {
         return value.dateValue().toEpochSecond(LocalTime.MIN, ZoneOffset.UTC) + 0d;
       case TIMESTAMP:
         return value.timestampValue().getEpochSecond() + value.timestampValue().getNano() / 1E9;
+      case STRING:
+        // Handle STRING timestamp inputs from bin operations
+        // When bin expressions use FROM_UNIXTIME, they produce timestamp strings that get passed
+        // back to UNIX_TIMESTAMP
+        // We need to parse these strings as timestamps, not as numeric inputs
+        String strValue = value.stringValue();
+        try {
+          // Try to parse as timestamp string first (YYYY-MM-DD HH:MM:SS format)
+          if (strValue.matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}(\\.\\d+)?")) {
+            return value.timestampValue().getEpochSecond() + value.timestampValue().getNano() / 1E9;
+          }
+        } catch (Exception e) {
+          // Fall through to numeric parsing
+        }
+        // Fall back to original numeric parsing for non-timestamp strings
+        try {
+          return transferUnixTimeStampFromDoubleInput(value.doubleValue());
+        } catch (Exception e) {
+          return null;
+        }
       default:
         //     ... or a number in YYMMDD, YYMMDDhhmmss, YYYYMMDD, or YYYYMMDDhhmmss format.
         //     If the argument includes a time part, it may optionally include a fractional

@@ -186,6 +186,64 @@ public class BinCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testSimpleTimestampAggregation() throws IOException {
+    // Test basic timestamp aggregation without binning to isolate the issue
+    JSONObject result =
+        executeQuery(
+            "source=opensearch-sql_test_index_time_data"
+                + " | stats count() by `@timestamp` | head 3");
+
+    verifySchema(
+        result, schema("count()", null, "bigint"), schema("@timestamp", null, "timestamp"));
+    // We expect each unique timestamp to have count=1
+    verifyDataRows(
+        result,
+        rows(1L, "2025-07-28 00:15:23"),
+        rows(1L, "2025-07-28 01:42:15"),
+        rows(1L, "2025-07-28 02:28:45"));
+  }
+
+  @Test
+  public void testBinOnlyWithoutAggregation() throws IOException {
+    // Test just the bin operation without aggregation
+    JSONObject binOnlyResult =
+        executeQuery(
+            "source=opensearch-sql_test_index_time_data"
+                + " | bin @timestamp span=4h"
+                + " | fields `@timestamp` | head 3");
+
+    // Verify schema and that binning works correctly
+    verifySchema(binOnlyResult, schema("@timestamp", null, "timestamp"));
+    verifyDataRows(
+        binOnlyResult,
+        rows("2025-07-28 00:00:00"),
+        rows("2025-07-28 00:00:00"),
+        rows("2025-07-28 00:00:00"));
+  }
+
+  @Test
+  public void testBinWithTimestampAggregation() throws IOException {
+    // Test bin operation with aggregation - this should now work correctly
+    JSONObject result =
+        executeQuery(
+            "source=opensearch-sql_test_index_time_data"
+                + " | bin @timestamp span=4h"
+                + " | stats count() by `@timestamp` | head 3");
+
+    // Verify schema
+    verifySchema(
+        result, schema("count()", null, "bigint"), schema("@timestamp", null, "timestamp"));
+
+    // Verify that we get proper 4-hour time bins with expected counts
+    // The time data spans across multiple 4-hour intervals
+    verifyDataRows(
+        result,
+        rows(4L, "2025-07-28 00:00:00"),
+        rows(4L, "2025-07-28 04:00:00"),
+        rows(4L, "2025-07-28 08:00:00"));
+  }
+
+  @Test
   public void testBinWithMonthlySpan() throws IOException {
     JSONObject result =
         executeQuery(

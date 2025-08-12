@@ -10,6 +10,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Map;
 import lombok.EqualsAndHashCode;
@@ -59,10 +60,74 @@ class CalciteAggregationScript extends AggregationScript {
       // Can't get timestamp from `ExprTimeValue`
       MILLIS.between(LocalTime.MIN, ExprValueUtils.fromObjectValue(value, TIME).timeValue());
       case DATE -> ExprValueUtils.fromObjectValue(value, DATE).timestampValue().toEpochMilli();
-      case TIMESTAMP -> ExprValueUtils.fromObjectValue(value, TIMESTAMP)
-          .timestampValue()
-          .toEpochMilli();
-      default -> value;
+      case TIMESTAMP -> {
+        // Handle timestamp strings from bin operations with FROM_UNIXTIME
+        // When bin command uses FROM_UNIXTIME, it produces timestamp strings that need special
+        // handling
+        // This prevents "AggregationExecutionException[Unsupported script value [...], expected a
+        // number, date, or boolean]"
+        if (value instanceof String) {
+          String strValue = (String) value;
+          // Check if this is a timestamp string from FROM_UNIXTIME (format: YYYY-MM-DD HH:MM:SS)
+          if (strValue.matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}(\\.\\d+)?")) {
+            // Parse manually using LocalDateTime - this is more reliable than ExprValueUtils
+            try {
+              LocalDateTime dateTime =
+                  LocalDateTime.parse(
+                      strValue,
+                      java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+              long epochMillis = dateTime.toInstant(java.time.ZoneOffset.UTC).toEpochMilli();
+              yield epochMillis;
+            } catch (Exception parseEx) {
+              // If direct parsing fails, fall back to ExprValueUtils
+              try {
+                long epochMillis =
+                    ExprValueUtils.fromObjectValue(strValue, TIMESTAMP)
+                        .timestampValue()
+                        .toEpochMilli();
+                yield epochMillis;
+              } catch (Exception e) {
+                // Last resort: return the original value (this will likely cause aggregation error)
+                yield value;
+              }
+            }
+          }
+        }
+        // Default handling for non-string timestamp values
+        long epochMillis =
+            ExprValueUtils.fromObjectValue(value, TIMESTAMP).timestampValue().toEpochMilli();
+        yield epochMillis;
+      }
+      default -> {
+        // Handle timestamp strings from bin operations with FROM_UNIXTIME
+        // When bin command uses FROM_UNIXTIME for grouping, it produces timestamp strings
+        // that need to be converted to epoch milliseconds for OpenSearch aggregation
+        if (value instanceof String) {
+          String strValue = (String) value;
+          // Check if this is a timestamp string from FROM_UNIXTIME (format: YYYY-MM-DD HH:MM:SS)
+          if (strValue.matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}(\\.\\d+)?")) {
+            // Parse manually using LocalDateTime - this is more reliable than ExprValueUtils
+            try {
+              LocalDateTime dateTime =
+                  LocalDateTime.parse(
+                      strValue,
+                      java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+              yield dateTime.toInstant(java.time.ZoneOffset.UTC).toEpochMilli();
+            } catch (Exception parseEx) {
+              // If direct parsing fails, fall back to ExprValueUtils
+              try {
+                yield ExprValueUtils.fromObjectValue(strValue, TIMESTAMP)
+                    .timestampValue()
+                    .toEpochMilli();
+              } catch (Exception e) {
+                // Last resort: return the original value
+                yield value;
+              }
+            }
+          }
+        }
+        yield value;
+      }
     };
   }
 }
