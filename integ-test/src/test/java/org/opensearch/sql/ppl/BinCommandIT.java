@@ -191,7 +191,7 @@ public class BinCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             "source=opensearch-sql_test_index_time_data"
-                + " | stats count() by `@timestamp` | head 3");
+                + " | stats count() by `@timestamp` | sort `@timestamp` | head 3");
 
     verifySchema(
         result, schema("count()", null, "bigint"), schema("@timestamp", null, "timestamp"));
@@ -228,7 +228,7 @@ public class BinCommandIT extends PPLIntegTestCase {
         executeQuery(
             "source=opensearch-sql_test_index_time_data"
                 + " | bin @timestamp span=4h"
-                + " | stats count() by `@timestamp` | head 3");
+                + " | stats count() by `@timestamp` | sort `@timestamp` | head 3");
 
     // Verify schema
     verifySchema(
