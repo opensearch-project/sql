@@ -388,7 +388,7 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         "LogicalSort(fetch=[5])\n"
             + "  LogicalProject(EMPNO=[$0], ENAME=[$1], COMM=[$6], "
-            + "comm_desc=[||('Commission: ':VARCHAR, SAFE_CAST($6))])\n"
+            + "comm_desc=[||('Commission: ':VARCHAR, NUMBER_TO_STRING($6))])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
