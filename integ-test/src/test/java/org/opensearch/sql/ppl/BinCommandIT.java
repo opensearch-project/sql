@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.ppl;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -265,6 +263,243 @@ public class BinCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testBinAgeSpan5() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | bin age span=5 | stats count() by age | sort age | head 3",
+                TEST_INDEX_ACCOUNT));
+    verifySchema(result, schema("count()", null, "bigint"), schema("age", null, "string"));
+    verifyDataRows(result, rows(225L, "20-25"), rows(226L, "25-30"), rows(259L, "30-35"));
+  }
+
+  @Test
+  public void testBinBalanceSpan1000() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | bin balance span=1000 | stats count() by balance | sort balance | head"
+                    + " 3",
+                TEST_INDEX_ACCOUNT));
+    verifySchema(result, schema("count()", null, "bigint"), schema("balance", null, "string"));
+    verifyDataRows(
+        result, rows(19L, "1000-2000"), rows(26L, "10000-11000"), rows(24L, "11000-12000"));
+  }
+
+  @Test
+  public void testBinAgeBins2() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | bin age bins=2 | stats count() by age | sort age | head 3",
+                TEST_INDEX_ACCOUNT));
+    verifySchema(result, schema("count()", null, "bigint"), schema("age", null, "string"));
+    verifyDataRows(result, rows(1000L, "0-100"));
+  }
+
+  @Test
+  public void testBinAgeBins21() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | bin age bins=21 | stats count() by age | sort age | head 3",
+                TEST_INDEX_ACCOUNT));
+    verifySchema(result, schema("count()", null, "bigint"), schema("age", null, "string"));
+    verifyDataRows(result, rows(44L, "20-21"), rows(46L, "21-22"), rows(51L, "22-23"));
+  }
+
+  @Test
+  public void testBinBalanceBins49() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | bin balance bins=49 | stats count() by balance | sort balance | head"
+                    + " 3",
+                TEST_INDEX_ACCOUNT));
+    verifySchema(result, schema("count()", null, "bigint"), schema("balance", null, "string"));
+    verifyDataRows(
+        result, rows(19L, "1000-2000"), rows(26L, "10000-11000"), rows(24L, "11000-12000"));
+  }
+
+  @Test
+  public void testBinAgeMinspan101() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | bin age minspan=101 | stats count() by age | sort age | head 3",
+                TEST_INDEX_ACCOUNT));
+    verifySchema(result, schema("count()", null, "bigint"), schema("age", null, "string"));
+    verifyDataRows(result, rows(1000L, "0-1000"));
+  }
+
+  @Test
+  public void testBinAgeStartEndRange() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | bin age start=0 end=101 | stats count() by age | sort age | head 3",
+                TEST_INDEX_ACCOUNT));
+    verifySchema(result, schema("count()", null, "bigint"), schema("age", null, "string"));
+    verifyDataRows(result, rows(1000L, "0-100"));
+  }
+
+  @Test
+  public void testBinBalanceStartEndRange() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | bin balance start=0 end=100001 | stats count() by balance | sort"
+                    + " balance | head 3",
+                TEST_INDEX_ACCOUNT));
+    verifySchema(result, schema("count()", null, "bigint"), schema("balance", null, "string"));
+    verifyDataRows(result, rows(1000L, "0-100000"));
+  }
+
+  @Test
+  public void testBinBalanceSpanLog10() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | bin balance span=log10 | stats count() by balance | sort balance |"
+                    + " head 3",
+                TEST_INDEX_ACCOUNT));
+    verifySchema(result, schema("count()", null, "bigint"), schema("balance", null, "string"));
+    verifyDataRows(result, rows(168L, "1000.0-10000.0"), rows(832L, "10000.0-100000.0"));
+  }
+
+  @Test
+  public void testBinBalanceSpan2Log10() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | bin balance span=2log10 | stats count() by balance | sort balance |"
+                    + " head 3",
+                TEST_INDEX_ACCOUNT));
+    verifySchema(result, schema("count()", null, "bigint"), schema("balance", null, "string"));
+    verifyDataRows(
+        result,
+        rows(19L, "200.0-2000.0"),
+        rows(362L, "2000.0-20000.0"),
+        rows(619L, "20000.0-200000.0"));
+  }
+
+  @Test
+  public void testBinBalanceSpanLog2() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | bin balance span=log2 | stats count() by balance | sort balance | head"
+                    + " 3",
+                TEST_INDEX_ACCOUNT));
+    verifySchema(result, schema("count()", null, "bigint"), schema("balance", null, "string"));
+    verifyDataRows(
+        result,
+        rows(19L, "1024.0-2048.0"),
+        rows(333L, "16384.0-32768.0"),
+        rows(45L, "2048.0-4096.0"));
+  }
+
+  @Test
+  public void testBinBalanceSpan1Point5Log3() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | bin balance span=1.5log10 | stats count() by balance | sort balance |"
+                    + " head 3",
+                TEST_INDEX_ACCOUNT));
+    verifySchema(result, schema("count()", null, "bigint"), schema("balance", null, "string"));
+    verifyDataRows(
+        result,
+        rows(13L, "150.0-1500.0"),
+        rows(266L, "1500.0-15000.0"),
+        rows(721L, "15000.0-150000.0"));
+  }
+
+  @Test
+  public void testBinTimestampSpan30Seconds() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=opensearch-sql_test_index_time_data | bin @timestamp span=30seconds | fields"
+                + " @timestamp, value | sort @timestamp | head 3");
+    verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
+    verifyDataRows(
+        result,
+        rows("2025-07-28 00:15:00", 8945),
+        rows("2025-07-28 01:42:00", 7623),
+        rows("2025-07-28 02:28:30", 9187));
+  }
+
+  @Test
+  public void testBinTimestampSpan45Minutes() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=opensearch-sql_test_index_time_data | bin @timestamp span=45minute | fields"
+                + " @timestamp, value | sort @timestamp | head 3");
+    verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
+    verifyDataRows(
+        result,
+        rows("2025-07-28 00:00:00", 8945),
+        rows("2025-07-28 01:30:00", 7623),
+        rows("2025-07-28 02:15:00", 9187));
+  }
+
+  @Test
+  public void testBinTimestampSpan7Days() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=opensearch-sql_test_index_time_data | bin @timestamp span=7day | fields"
+                + " @timestamp, value | sort @timestamp | head 3");
+    verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
+    verifyDataRows(
+        result,
+        rows("2025-07-24 00:00:00", 8945),
+        rows("2025-07-24 00:00:00", 7623),
+        rows("2025-07-24 00:00:00", 9187));
+  }
+
+  @Test
+  public void testBinTimestampSpan6Days() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=opensearch-sql_test_index_time_data | bin @timestamp span=6day | fields"
+                + " @timestamp, value | sort @timestamp | head 3");
+    verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
+    verifyDataRows(
+        result,
+        rows("2025-07-23 00:00:00", 8945),
+        rows("2025-07-23 00:00:00", 7623),
+        rows("2025-07-23 00:00:00", 9187));
+  }
+
+  @Test
+  public void testBinTimestampAligntimeHour() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=opensearch-sql_test_index_time_data | bin @timestamp span=2h"
+                + " aligntime='@d+3h' | fields @timestamp, value | sort @timestamp | head 3");
+    verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
+    verifyDataRows(
+        result,
+        rows("2025-07-27 23:00:00", 8945),
+        rows("2025-07-28 01:00:00", 7623),
+        rows("2025-07-28 01:00:00", 9187));
+  }
+
+  @Test
+  public void testBinTimestampAligntimeEpoch() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=opensearch-sql_test_index_time_data | bin @timestamp span=2h"
+                + " aligntime=1500000000 | fields @timestamp, value | sort @timestamp | head 3");
+    verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
+    verifyDataRows(
+        result,
+        rows("2025-07-27 22:40:00", 8945),
+        rows("2025-07-28 00:40:00", 7623),
+        rows("2025-07-28 00:40:00", 9187));
+  }
+
+  @Test
   public void testBinWithNonExistentField() {
     // Test that bin command throws an error when field doesn't exist in schema
     ResponseException exception =
@@ -281,5 +516,28 @@ public class BinCommandIT extends PPLIntegTestCase {
     assertTrue(
         "Error message should mention the non-existent field: " + errorMessage,
         errorMessage.contains("non_existent_field") || errorMessage.contains("not found"));
+  }
+
+  // Helper method to print query results for debugging
+  private void printQueryResult(String description, String query) throws IOException {
+    System.out.println("\n=== " + description + " ===");
+    System.out.println("Query: " + query);
+    JSONObject result = executeQuery(query);
+    System.out.println("Result:");
+    System.out.println(result.toString(2));
+
+    // Extract and print data rows if available
+    if (result.has("datarows")) {
+      System.out.println("\nData rows for verifyDataRows():");
+      try {
+        for (int i = 0; i < result.getJSONArray("datarows").length(); i++) {
+          System.out.println(
+              "  rows(" + result.getJSONArray("datarows").getJSONArray(i).toString() + ")");
+        }
+      } catch (Exception e) {
+        System.out.println("  Could not parse data rows: " + e.getMessage());
+      }
+    }
+    System.out.println("==========================================\n");
   }
 }
