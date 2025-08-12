@@ -73,7 +73,7 @@ public abstract class Rounding<T> {
     public ExprValue round(ExprValue var) {
       Instant instant =
           Instant.ofEpochMilli(
-              dateTimeUnit.wideRound(var.timestampValue().toEpochMilli(), interval.integerValue()));
+              dateTimeUnit.round(var.timestampValue().toEpochMilli(), interval.integerValue()));
       return new ExprTimestampValue(instant);
     }
   }
@@ -91,7 +91,7 @@ public abstract class Rounding<T> {
     public ExprValue round(ExprValue var) {
       Instant instant =
           Instant.ofEpochMilli(
-              dateTimeUnit.wideRound(
+              dateTimeUnit.round(
                   var.dateValue().atStartOfDay().atZone(ZoneOffset.UTC).toInstant().toEpochMilli(),
                   interval.integerValue()));
       return new ExprDateValue(instant.atZone(ZoneOffset.UTC).toLocalDate());
@@ -116,7 +116,7 @@ public abstract class Rounding<T> {
 
       Instant instant =
           Instant.ofEpochMilli(
-              dateTimeUnit.wideRound(
+              dateTimeUnit.round(
                   var.timeValue().getLong(ChronoField.MILLI_OF_DAY), interval.integerValue()));
       return new ExprTimeValue(instant.atZone(ZoneOffset.UTC).toLocalTime());
     }
@@ -230,11 +230,6 @@ public abstract class Rounding<T> {
     protected final long ratio;
 
     public abstract long round(long utcMillis, int interval);
-
-    public long wideRound(long utcMillis, int interval) {
-      long res = round(utcMillis, interval);
-      return (utcMillis < 0 && res != utcMillis) ? res - ratio * interval : res;
-    }
 
     /** Resolve the date time unit. */
     public static Rounding.DateTimeUnit resolve(String name) {
