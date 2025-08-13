@@ -222,4 +222,39 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
 
     assertEquals(21, result.getInt("total"));
   }
+  
+  @Test
+  public void testTimechartWithLimitZero() throws IOException {
+    // Test with limit=0 which means no limit (show all distinct values)
+    JSONObject result =
+        executeQuery("source=events_many_hosts | timechart span=1h limit=0 avg(cpu_usage) by host");
+
+    // Verify schema has 16 columns: timestamp + all 15 hosts (no OTHER column)
+    verifySchema(
+        result,
+        schema("$f3", "timestamp"),
+        schema("web-01", "double"),
+        schema("web-02", "double"),
+        schema("web-03", "double"),
+        schema("web-04", "double"),
+        schema("web-05", "double"),
+        schema("web-06", "double"),
+        schema("web-07", "double"),
+        schema("web-08", "double"),
+        schema("web-09", "double"),
+        schema("web-10", "double"),
+        schema("web-11", "double"),
+        schema("web-12", "double"),
+        schema("web-13", "double"),
+        schema("web-14", "double"),
+        schema("web-15", "double"));
+    
+    // Verify we have 1 data row with all hosts' values
+    verifyDataRows(
+        result,
+        rows("2024-07-01 00:00:00", 45.2, 38.7, 55.3, 42.1, 41.8, 39.4, 48.6, 44.2, 67.8, 35.9, 
+             43.1, 37.5, 59.7, 32.4, 49.8));
+    
+    assertEquals(1, result.getInt("total"));
+  }
 }

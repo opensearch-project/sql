@@ -118,7 +118,8 @@ public class TimechartResponseFormatter extends JsonResponseFormatter<QueryResul
 
     // Check if we need to create an "OTHER" category (more than maxDistinctValues distinct
     // values)
-    boolean needsOtherCategory = distinctByValues.size() > maxDistinctValues;
+    // If maxDistinctValues is 0, it means no limit, so we don't need an "OTHER" category
+    boolean needsOtherCategory = maxDistinctValues > 0 && distinctByValues.size() > maxDistinctValues;
 
     if (needsOtherCategory) {
       // Get the top N distinct values based on their scores
