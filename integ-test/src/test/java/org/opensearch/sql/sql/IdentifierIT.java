@@ -81,7 +81,7 @@ public class IdentifierIT extends SQLIntegTestCase {
 
     // Execute using field metadata values
     final JSONObject result =
-        new JSONObject(executeQuery("SELECT age, _id, _index, _sort " + "FROM " + index, "jdbc"));
+        new JSONObject(executeQuery("SELECT *, _id, _index, _sort " + "FROM " + index, "jdbc"));
 
     // Verify that the metadata values are returned when requested
     verifySchema(
