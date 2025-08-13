@@ -36,7 +36,8 @@ public class DateTimeUtils {
    * @return Rounded date/time value in utc millis
    */
   public static long roundFloor(long utcMillis, long unitMillis) {
-    return utcMillis - utcMillis % unitMillis;
+    long res = utcMillis - utcMillis % unitMillis;
+    return (utcMillis < 0 && res != utcMillis) ? res - unitMillis : res;
   }
 
   /**
@@ -65,7 +66,9 @@ public class DateTimeUtils {
         (zonedDateTime.getYear() - initDateTime.getYear()) * 12L
             + zonedDateTime.getMonthValue()
             - initDateTime.getMonthValue();
-    long monthToAdd = (monthDiff / interval - 1) * interval;
+    long multiplier = monthDiff / interval - 1;
+    if (monthDiff < 0 && monthDiff % interval != 0) --multiplier;
+    long monthToAdd = multiplier * interval;
     return initDateTime.plusMonths(monthToAdd).toInstant().toEpochMilli();
   }
 
@@ -84,7 +87,9 @@ public class DateTimeUtils {
         ((zonedDateTime.getYear() - initDateTime.getYear()) * 12L
             + zonedDateTime.getMonthValue()
             - initDateTime.getMonthValue());
-    long monthToAdd = (monthDiff / (interval * 3L) - 1) * interval * 3;
+    long multiplier = monthDiff / (interval * 3L) - 1;
+    if (monthDiff < 0 && monthDiff % (interval * 3L) != 0) --multiplier;
+    long monthToAdd = multiplier * interval * 3;
     return initDateTime.plusMonths(monthToAdd).toInstant().toEpochMilli();
   }
 
@@ -99,7 +104,9 @@ public class DateTimeUtils {
     ZonedDateTime initDateTime = ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, UTC_ZONE_ID);
     ZonedDateTime zonedDateTime = Instant.ofEpochMilli(utcMillis).atZone(UTC_ZONE_ID);
     int yearDiff = zonedDateTime.getYear() - initDateTime.getYear();
-    int yearToAdd = (yearDiff / interval) * interval;
+    int multiplier = yearDiff / interval;
+    if (yearDiff < 0 && yearDiff % interval != 0) --multiplier;
+    int yearToAdd = multiplier * interval;
     return initDateTime.plusYears(yearToAdd).toInstant().toEpochMilli();
   }
 
