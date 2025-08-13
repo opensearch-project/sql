@@ -409,12 +409,13 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     // Check if USEOTHER parameter is present
     Boolean useOther = true; // Default to true
     if (ctx.USEOTHER() != null && ctx.useother != null) {
-      useOther = Boolean.parseBoolean(ctx.useother.getText());
+      String useOtherValue = ctx.useother.getText().toLowerCase();
+      useOther = "true".equals(useOtherValue) || "t".equals(useOtherValue);
     }
-    
+
     // The limit and useOther parameters are stored in the Timechart AST node
     // and will be used by the TimechartResponseFormatter
-    
+
     return new Timechart(null, spanExpression, aggregateFunction, byField, limit, useOther);
   }
 

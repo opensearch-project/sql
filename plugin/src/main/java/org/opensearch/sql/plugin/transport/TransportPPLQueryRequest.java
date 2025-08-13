@@ -14,6 +14,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.json.JSONObject;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
@@ -21,7 +22,12 @@ import org.opensearch.core.common.io.stream.InputStreamStreamInput;
 import org.opensearch.core.common.io.stream.OutputStreamStreamOutput;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
+import org.opensearch.sql.ast.Node;
+import org.opensearch.sql.ast.tree.Timechart;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
+import org.opensearch.sql.ppl.parser.AstBuilder;
 import org.opensearch.sql.protocol.response.format.Format;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 
@@ -131,51 +137,48 @@ public class TransportPPLQueryRequest extends ActionRequest {
     PPLQueryRequest pplQueryRequest = new PPLQueryRequest(pplQuery, jsonContent, path, format);
     pplQueryRequest.sanitize(sanitize);
     pplQueryRequest.style(style);
-    
-    // Extract timechart parameters from AST if this is a timechart query
-    if (pplQuery != null && pplQuery.toLowerCase().contains("timechart")) {
-      extractTimechartParametersFromAST(pplQueryRequest);
-    }
-    
+
+    // Extract timechart parameters from AST
+    extractTimechartParametersFromAST(pplQueryRequest);
+
     return pplQueryRequest;
   }
-  
+
   private void extractTimechartParametersFromAST(PPLQueryRequest pplQueryRequest) {
+    if (pplQuery == null) {
+      return;
+    }
+
     try {
-      // Parse the query to get AST
-      org.opensearch.sql.ppl.antlr.PPLSyntaxParser parser = new org.opensearch.sql.ppl.antlr.PPLSyntaxParser();
-      org.antlr.v4.runtime.tree.ParseTree cst = parser.parse(pplQuery);
-      org.opensearch.sql.ppl.parser.AstBuilder astBuilder = new org.opensearch.sql.ppl.parser.AstBuilder(pplQuery);
-      org.opensearch.sql.ast.tree.UnresolvedPlan plan = astBuilder.visit(cst);
-      
-      // Find Timechart node in the AST
-      org.opensearch.sql.ast.tree.Timechart timechartNode = findTimechartNode(plan);
+      PPLSyntaxParser parser = new PPLSyntaxParser();
+      ParseTree cst = parser.parse(pplQuery);
+      AstBuilder astBuilder = new AstBuilder(pplQuery);
+      UnresolvedPlan plan = astBuilder.visit(cst);
+
+      Timechart timechartNode = findTimechartNode(plan);
       if (timechartNode != null) {
         pplQueryRequest.timechartLimit(timechartNode.getLimit());
         pplQueryRequest.timechartUseOther(timechartNode.getUseOther());
       }
-    } catch (Exception e) {
-      // Fallback to default values if AST parsing fails
-      pplQueryRequest.timechartLimit(null);
-      pplQueryRequest.timechartUseOther(true);
+    } catch (RuntimeException e) {
+      // Ignore parsing errors - not all queries are timechart queries
     }
   }
-  
-  private org.opensearch.sql.ast.tree.Timechart findTimechartNode(org.opensearch.sql.ast.tree.UnresolvedPlan plan) {
-    if (plan instanceof org.opensearch.sql.ast.tree.Timechart) {
-      return (org.opensearch.sql.ast.tree.Timechart) plan;
+
+  private Timechart findTimechartNode(UnresolvedPlan plan) {
+    if (plan instanceof Timechart) {
+      return (Timechart) plan;
     }
-    
-    // Search in child nodes
-    for (org.opensearch.sql.ast.Node child : plan.getChild()) {
-      if (child instanceof org.opensearch.sql.ast.tree.UnresolvedPlan) {
-        org.opensearch.sql.ast.tree.Timechart result = findTimechartNode((org.opensearch.sql.ast.tree.UnresolvedPlan) child);
+
+    for (Node child : plan.getChild()) {
+      if (child instanceof UnresolvedPlan) {
+        Timechart result = findTimechartNode((UnresolvedPlan) child);
         if (result != null) {
           return result;
         }
       }
     }
-    
+
     return null;
   }
 }

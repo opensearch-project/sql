@@ -159,10 +159,11 @@ public class TransportPPLQueryAction
     } else {
       // Check if this is a timechart query
       if (pplRequest.getRequest().toLowerCase().contains("timechart")) {
-        formatter = new TimechartResponseFormatter(
-            JsonResponseFormatter.Style.PRETTY,
-            pplRequest.timechartLimit(),
-            pplRequest.timechartUseOther());
+        formatter =
+            new TimechartResponseFormatter(
+                JsonResponseFormatter.Style.PRETTY,
+                pplRequest.timechartLimit(),
+                pplRequest.timechartUseOther());
       } else {
         formatter = new SimpleJsonResponseFormatter(JsonResponseFormatter.Style.PRETTY);
       }
@@ -195,5 +196,4 @@ public class TransportPPLQueryAction
           String.format(Locale.ROOT, "response in %s format is not supported.", format));
     }
   }
-
 }

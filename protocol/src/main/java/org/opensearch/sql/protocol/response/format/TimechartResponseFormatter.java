@@ -125,13 +125,20 @@ public class TimechartResponseFormatter extends JsonResponseFormatter<QueryResul
     // Check if we need to create an "OTHER" category (more than maxDistinctValues distinct
     // values)
     // If maxDistinctValues is 0 or useOther is false, we don't need an "OTHER" category
-    boolean needsOtherCategory = maxDistinctValues > 0 && distinctByValues.size() > maxDistinctValues && useOther;
+    boolean needsOtherCategory =
+        maxDistinctValues > 0 && distinctByValues.size() > maxDistinctValues && useOther;
 
     if (needsOtherCategory) {
-      // Get the top N distinct values based on their scores
-      List<Object> topValues = getTopValuesByScore(valueScores, maxDistinctValues);
+      // Get the top N distinct values based on their scores, but preserve original order
+      List<Object> topHosts = getTopValuesByScore(valueScores, maxDistinctValues);
+      List<Object> topValues = new ArrayList<>();
+      for (Object byValue : distinctByValues.keySet()) {
+        if (topHosts.contains(byValue)) {
+          topValues.add(byValue);
+        }
+      }
 
-      // Add columns for top values
+      // Add columns for top values in original order
       for (Object byValue : topValues) {
         json.column(new Column(byValue.toString(), response.columnNameTypes().get(valueField)));
       }
@@ -170,8 +177,25 @@ public class TimechartResponseFormatter extends JsonResponseFormatter<QueryResul
       json.total(dataRows.size()).size(dataRows.size());
       json.datarows(dataRows.toArray(new Object[0][]));
     } else {
-      // Original behavior for 10 or fewer distinct values
-      for (Object byValue : distinctByValues.keySet()) {
+      // Handle cases where we don't need OTHER category
+      List<Object> valuesToShow;
+
+      if (maxDistinctValues == 0) {
+        // Show all distinct values when limit=0
+        valuesToShow = new ArrayList<>(distinctByValues.keySet());
+      } else {
+        // Get top N hosts by score, but preserve original order for display
+        List<Object> topHosts =
+            getTopValuesByScore(valueScores, Math.min(maxDistinctValues, distinctByValues.size()));
+        valuesToShow = new ArrayList<>();
+        for (Object byValue : distinctByValues.keySet()) {
+          if (topHosts.contains(byValue)) {
+            valuesToShow.add(byValue);
+          }
+        }
+      }
+
+      for (Object byValue : valuesToShow) {
         json.column(new Column(byValue.toString(), response.columnNameTypes().get(valueField)));
       }
 
@@ -181,11 +205,11 @@ public class TimechartResponseFormatter extends JsonResponseFormatter<QueryResul
         Object timeValue = entry.getKey();
         Map<Object, Object> byValueMap = entry.getValue();
 
-        Object[] row = new Object[1 + distinctByValues.size()];
+        Object[] row = new Object[1 + valuesToShow.size()];
         row[0] = timeValue;
 
         int i = 1;
-        for (Object byValue : distinctByValues.keySet()) {
+        for (Object byValue : valuesToShow) {
           row[i++] = byValueMap.getOrDefault(byValue, null);
         }
 

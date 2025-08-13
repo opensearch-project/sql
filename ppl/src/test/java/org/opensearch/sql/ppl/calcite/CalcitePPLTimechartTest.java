@@ -56,6 +56,35 @@ public class CalcitePPLTimechartTest {
     assertNotNull(plan);
   }
 
+  @Test
+  public void testTimechartWithLimitAndUseOtherTrue() {
+    String ppl = "source=events | timechart span=1h limit=5 useother=true count() by host";
+    UnresolvedPlan plan = parsePPL(ppl);
+    assertNotNull(plan);
+  }
+
+  @Test
+  public void testTimechartWithLimitAndUseOtherFalse() {
+    String ppl = "source=events | timechart span=1h limit=3 useother=false avg(cpu_usage) by host";
+    UnresolvedPlan plan = parsePPL(ppl);
+    assertNotNull(plan);
+  }
+
+  @Test
+  public void testTimechartWithLimitAndUseOtherT() {
+    String ppl = "source=events | timechart span=1h limit=2 useother=t count() by region";
+    UnresolvedPlan plan = parsePPL(ppl);
+    assertNotNull(plan);
+  }
+
+  @Test
+  public void testTimechartWithLimitAndUseOtherF() {
+    String ppl =
+        "source=events | timechart span=1h limit=4 useother=f avg(response_time) by service";
+    UnresolvedPlan plan = parsePPL(ppl);
+    assertNotNull(plan);
+  }
+
   private UnresolvedPlan parsePPL(String query) {
     PPLSyntaxParser parser = new PPLSyntaxParser();
     AstBuilder astBuilder = new AstBuilder(query);

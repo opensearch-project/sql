@@ -48,15 +48,6 @@ public class Timechart extends UnresolvedPlan {
   public Timechart attach(UnresolvedPlan child) {
     return new Timechart(child, spanExpression, aggregateFunction, byField, limit, useOther);
   }
-  
-  /**
-   * Get the useOther parameter value.
-   *
-   * @return useOther parameter value
-   */
-  public Boolean getUseOther() {
-    return useOther;
-  }
 
   @Override
   public List<UnresolvedPlan> getChild() {
