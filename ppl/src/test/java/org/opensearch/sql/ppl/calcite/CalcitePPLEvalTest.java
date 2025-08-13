@@ -394,7 +394,7 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql =
         "SELECT `EMPNO`, `ENAME`, `COMM`, "
-            + "'Commission: ' || NUMBER_TO_STRING(`COMM` AS STRING) `comm_desc`\n"
+            + "'Commission: ' || `NUMBER_TO_STRING`(`COMM`) `comm_desc`\n"
             + "FROM `scott`.`EMP`\n"
             + "LIMIT 5";
     verifyPPLToSparkSQL(root, expectedSparkSql);
