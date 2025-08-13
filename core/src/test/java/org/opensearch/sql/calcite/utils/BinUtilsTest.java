@@ -43,6 +43,14 @@ public class BinUtilsTest {
   }
 
   @Test
+  public void testParseSpanStringWithCoefficientArbitraryBase() {
+    var spanInfo = BinUtils.parseSpanString("1.5log3");
+    assertEquals(BinUtils.SpanType.LOG, spanInfo.type);
+    assertEquals(1.5, spanInfo.coefficient, 0.001);
+    assertEquals(3.0, spanInfo.base, 0.001);
+  }
+
+  @Test
   public void testParseSpanStringWithTimeUnits() {
     var spanInfo = BinUtils.parseSpanString("30seconds");
     assertEquals(BinUtils.SpanType.TIME, spanInfo.type);

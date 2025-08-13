@@ -178,6 +178,7 @@ logSpanValue
    : (coefficient = numericLiteral)? LOG (base = numericLiteral)?     # logSpan
    | (coefficient = numericLiteral)? LOG10                           # log10Span
    | (coefficient = numericLiteral)? LOG2                            # log2Span
+   | LOG_WITH_BASE                                                   # logWithBaseSpan
    ;
 
 topCommand
@@ -719,6 +720,7 @@ mathematicalFunctionName
    | LOG
    | LOG10
    | LOG2
+   | LOG_WITH_BASE
    | MOD
    | MODULUS
    | PI

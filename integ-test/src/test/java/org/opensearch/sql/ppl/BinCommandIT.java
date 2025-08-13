@@ -400,7 +400,7 @@ public class BinCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testBinBalanceSpan1Point5Log3() throws IOException {
+  public void testBinBalanceSpan1Point5Log10() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -413,6 +413,22 @@ public class BinCommandIT extends PPLIntegTestCase {
         rows(13L, "150.0-1500.0"),
         rows(266L, "1500.0-15000.0"),
         rows(721L, "15000.0-150000.0"));
+  }
+
+  @Test
+  public void testBinBalanceSpanArbitraryLog() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | bin balance span=1.5log3 | stats count() by balance | sort balance |"
+                    + " head 3",
+                TEST_INDEX_ACCOUNT));
+    verifySchema(result, schema("count()", null, "bigint"), schema("balance", null, "string"));
+    verifyDataRows(
+        result,
+        rows(43L, "1093.0-3280.0"),
+        rows(417L, "29524.0-88573.0"),
+        rows(123L, "3280.0-9841.0"));
   }
 
   @Test
