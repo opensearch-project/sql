@@ -43,14 +43,25 @@ public class SQLQueryUtils {
   private static final Logger logger = LogManager.getLogger(SQLQueryUtils.class);
 
   public static List<FullyQualifiedTableName> extractFullyQualifiedTableNames(String sqlQuery) {
-    SqlBaseParser sqlBaseParser =
-        new SqlBaseParser(
-            new CommonTokenStream(new SqlBaseLexer(new CaseInsensitiveCharStream(sqlQuery))));
-    sqlBaseParser.addErrorListener(new SyntaxAnalysisErrorListener());
+    return extractFullyQualifiedTableNamesWithMetadata(sqlQuery).getFullyQualifiedTableNames();
+  }
+
+
+  public static TableExtractionResult extractFullyQualifiedTableNamesWithMetadata(String sqlQuery) {
+    SqlBaseParser sqlBaseParser = getBaseParser(sqlQuery);
     StatementContext statement = sqlBaseParser.statement();
-    SparkSqlTableNameVisitor sparkSqlTableNameVisitor = new SparkSqlTableNameVisitor();
-    statement.accept(sparkSqlTableNameVisitor);
-    return sparkSqlTableNameVisitor.getFullyQualifiedTableNames();
+    SparkSqlTableNameVisitor visitor = new SparkSqlTableNameVisitor();
+    statement.accept(visitor);
+    
+    // Remove duplicate table names
+    List<FullyQualifiedTableName> uniqueFullyQualifiedTableName = new LinkedList<>();
+    for (FullyQualifiedTableName fullyQualifiedTableName : visitor.getFullyQualifiedTableNames()) {
+      if (!uniqueFullyQualifiedTableName.contains(fullyQualifiedTableName)) {
+        uniqueFullyQualifiedTableName.add(fullyQualifiedTableName);
+      }
+    }
+    
+    return new TableExtractionResult(uniqueFullyQualifiedTableName, visitor.isCreateTable());
   }
 
   public static IndexQueryDetails extractIndexDetails(String sqlQuery) {
@@ -90,7 +101,9 @@ public class SQLQueryUtils {
 
   public static class SparkSqlTableNameVisitor extends SqlBaseParserBaseVisitor<Void> {
 
-    @Getter private List<FullyQualifiedTableName> fullyQualifiedTableNames = new LinkedList<>();
+    @Getter
+    private final List<FullyQualifiedTableName> fullyQualifiedTableNames = new LinkedList<>();
+    @Getter private boolean isCreateTable = false;
 
     public SparkSqlTableNameVisitor() {}
 
@@ -130,6 +143,13 @@ public class SQLQueryUtils {
       }
       return super.visitCreateTableHeader(ctx);
     }
+
+    @Override
+    public Void visitCreateTable(SqlBaseParser.CreateTableContext ctx) {
+      isCreateTable = true;
+      return super.visitCreateTable(ctx);
+    }
+
   }
 
   public static class FlintSQLIndexDetailsVisitor extends FlintSparkSqlExtensionsBaseVisitor<Void> {
@@ -378,6 +398,16 @@ public class SQLQueryUtils {
     // https://github.com/apache/spark/blob/v3.5.0/sql/api/src/main/scala/org/apache/spark/sql/catalyst/util/SparkParserUtils.scala#L35
     public String removeUnwantedQuotes(String input) {
       return input.replaceAll("^\"|\"$", "");
+    }
+  }
+
+  public static class TableExtractionResult {
+    @Getter private final List<FullyQualifiedTableName> fullyQualifiedTableNames;
+    @Getter private final boolean isCreateTableQuery;
+
+    public TableExtractionResult(List<FullyQualifiedTableName> fullyQualifiedTableNames, boolean isCreateTableQuery) {
+      this.fullyQualifiedTableNames = fullyQualifiedTableNames;
+      this.isCreateTableQuery = isCreateTableQuery;
     }
   }
 }
