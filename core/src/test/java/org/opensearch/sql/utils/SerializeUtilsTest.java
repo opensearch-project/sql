@@ -13,7 +13,6 @@ import com.google.gson.Gson;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceStatus;
-import org.opensearch.sql.datasource.model.DataSourceType;
 
 class SerializeUtilsTest {
   @Test

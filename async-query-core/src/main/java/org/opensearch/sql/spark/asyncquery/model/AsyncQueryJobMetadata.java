@@ -10,10 +10,10 @@ import lombok.Builder.Default;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.SuperBuilder;
+import org.opensearch.commons.ppl.serde.SerializeUtils;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
 import org.opensearch.sql.spark.execution.statestore.StateModel;
 import org.opensearch.sql.spark.rest.model.LangType;
-import org.opensearch.sql.utils.SerializeUtils;
 
 /** This class models all the metadata required for a job. */
 @Data

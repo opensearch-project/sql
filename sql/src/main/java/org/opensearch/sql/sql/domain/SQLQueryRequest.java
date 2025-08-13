@@ -18,7 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.Accessors;
 import org.json.JSONObject;
-import org.opensearch.sql.protocol.response.format.Format;
+import org.opensearch.commons.ppl.format.Format;
 
 /** SQL query request. */
 @ToString

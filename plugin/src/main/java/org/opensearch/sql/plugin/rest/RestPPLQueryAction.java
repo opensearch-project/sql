@@ -17,6 +17,10 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
+import org.opensearch.commons.ppl.action.PPLQueryAction;
+import org.opensearch.commons.ppl.action.TransportPPLQueryRequest;
+import org.opensearch.commons.ppl.action.TransportPPLQueryResponse;
+import org.opensearch.commons.ppl.util.PPLQueryRequestFactory;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.IndexNotFoundException;
@@ -32,10 +36,6 @@ import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.opensearch.response.error.ErrorMessageFactory;
-import org.opensearch.sql.plugin.request.PPLQueryRequestFactory;
-import org.opensearch.sql.plugin.transport.PPLQueryAction;
-import org.opensearch.sql.plugin.transport.TransportPPLQueryRequest;
-import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
 import org.opensearch.transport.client.node.NodeClient;
 
 public class RestPPLQueryAction extends BaseRestHandler {

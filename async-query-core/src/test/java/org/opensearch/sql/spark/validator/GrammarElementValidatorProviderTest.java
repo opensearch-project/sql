@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.google.common.collect.ImmutableMap;
 import org.junit.jupiter.api.Test;
-import org.opensearch.sql.datasource.model.DataSourceType;
 
 class GrammarElementValidatorProviderTest {
   final S3GlueSQLGrammarElementValidator s3GlueSQLGrammarElementValidator =

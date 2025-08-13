@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.protocol.response.format;
 
+import org.opensearch.commons.ppl.format.ErrorFormatter;
+import org.opensearch.commons.ppl.format.ResponseFormatter;
 import org.opensearch.sql.protocol.response.QueryResult;
 
 /** Response formatter to format response to csv format. */

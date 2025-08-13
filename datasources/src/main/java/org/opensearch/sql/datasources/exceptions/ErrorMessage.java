@@ -8,8 +8,8 @@ package org.opensearch.sql.datasources.exceptions;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import lombok.Getter;
+import org.opensearch.commons.ppl.serde.SerializeUtils;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.sql.utils.SerializeUtils;
 
 /** Error Message. */
 public class ErrorMessage {

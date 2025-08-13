@@ -28,7 +28,6 @@ import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
 import org.opensearch.sql.executor.pagination.Cursor;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
-import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PPLServiceTest {

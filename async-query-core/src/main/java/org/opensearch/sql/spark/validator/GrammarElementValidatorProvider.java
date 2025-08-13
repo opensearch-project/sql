@@ -7,7 +7,7 @@ package org.opensearch.sql.spark.validator;
 
 import java.util.Map;
 import lombok.AllArgsConstructor;
-import org.opensearch.sql.datasource.model.DataSourceType;
+import org.opensearch.commons.ppl.serde.DataSourceType;
 
 /** Provides GrammarElementValidator based on DataSourceType. */
 @AllArgsConstructor

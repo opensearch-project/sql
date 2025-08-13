@@ -5,15 +5,19 @@
 
 package org.opensearch.sql.legacy.plugin;
 
+import static org.opensearch.commons.ppl.format.JsonResponseFormatter.Style.PRETTY;
 import static org.opensearch.core.rest.RestStatus.OK;
 import static org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
-import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
+import static org.opensearch.commons.ppl.format.JsonResponseFormatter.Style.PRETTY;
 
 import java.util.List;
 import java.util.function.BiConsumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.inject.Injector;
+import org.opensearch.commons.ppl.format.Format;
+import org.opensearch.commons.ppl.format.JsonResponseFormatter;
+import org.opensearch.commons.ppl.format.ResponseFormatter;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
@@ -30,11 +34,8 @@ import org.opensearch.sql.opensearch.security.SecurityAccess;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.CommandResponseFormatter;
 import org.opensearch.sql.protocol.response.format.CsvResponseFormatter;
-import org.opensearch.sql.protocol.response.format.Format;
 import org.opensearch.sql.protocol.response.format.JdbcResponseFormatter;
-import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.RawResponseFormatter;
-import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.sql.SQLService;
 import org.opensearch.sql.sql.domain.SQLQueryRequest;
 import org.opensearch.transport.client.node.NodeClient;
