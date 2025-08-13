@@ -20,7 +20,7 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 
-/** Utility class for resolving wildcard patterns in field names for non-Calcite analysis. */
+/** Utility class for resolving wildcard patterns in field names for Calcite analysis only. */
 public class WildcardFieldResolver {
 
   public static List<NamedExpression> resolveWildcards(

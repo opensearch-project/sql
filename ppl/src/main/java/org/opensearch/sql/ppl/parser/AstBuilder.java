@@ -40,6 +40,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
+import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Argument;
@@ -85,6 +86,7 @@ import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.calcite.utils.WildcardUtils;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -275,17 +277,37 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   /** Table command as an alias for fields command. */
   @Override
   public UnresolvedPlan visitTableCommand(TableCommandContext ctx) {
-    return buildProjectCommand(
-        ctx.fieldsCommandBody(),
-        Collections.singletonList(
-            ctx.fieldsCommandBody().MINUS() != null
-                ? new Argument("exclude", new Literal(true, DataType.BOOLEAN))
-                : new Argument("exclude", new Literal(false, DataType.BOOLEAN))));
+    if (settings != null
+        && Boolean.TRUE.equals(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED))) {
+      // Table command uses the same structure as fields command
+      List<Argument> arguments =
+          Collections.singletonList(
+              ctx.fieldsCommandBody().MINUS() != null
+                  ? new Argument("exclude", new Literal(true, DataType.BOOLEAN))
+                  : new Argument("exclude", new Literal(false, DataType.BOOLEAN)));
+      return buildProjectCommand(ctx.fieldsCommandBody(), arguments);
+    }
+    throw new UnsupportedOperationException(
+        "Table command is supported only when "
+            + Key.CALCITE_ENGINE_ENABLED.getKeyValue()
+            + "=true");
   }
 
   private UnresolvedPlan buildProjectCommand(
       OpenSearchPPLParser.FieldsCommandBodyContext bodyCtx, List<Argument> arguments) {
     List<UnresolvedExpression> fields = extractFieldExpressions(bodyCtx);
+
+    // Check for enhanced field features when Calcite is disabled
+    if (settings != null
+        && !Boolean.TRUE.equals(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED))) {
+      if (hasEnhancedFieldFeatures(bodyCtx, fields)) {
+        throw new UnsupportedOperationException(
+            "Enhanced fields features (wildcards) are supported only when "
+                + Key.CALCITE_ENGINE_ENABLED.getKeyValue()
+                + "=true");
+      }
+    }
+
     return new Project(fields, arguments);
   }
 
@@ -769,5 +791,64 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
                     .collect(Collectors.toList()))
         .ifPresent(partExprListBuilder::addAll);
     return partExprListBuilder.build();
+  }
+
+  /** Check if field expressions contain enhanced features (wildcards or space delimiters). */
+  private boolean hasEnhancedFieldFeatures(
+      OpenSearchPPLParser.FieldsCommandBodyContext bodyCtx, List<UnresolvedExpression> fields) {
+    // Check for wildcards
+    if (fields.stream().anyMatch(this::isWildcardField)) {
+      return true;
+    }
+
+    // Check for space-delimited or mixed delimiter features
+    return hasSpaceDelimitedFields(bodyCtx);
+  }
+
+  /** Check if fields use space delimiters or mixed delimiters. */
+  private boolean hasSpaceDelimitedFields(OpenSearchPPLParser.FieldsCommandBodyContext bodyCtx) {
+    if (bodyCtx.wcFieldList() == null) {
+      return false;
+    }
+
+    String fieldsText = getTextInQuery(bodyCtx.wcFieldList());
+
+    // If there are multiple fields but no commas, it's space-delimited
+    if (bodyCtx.wcFieldList().selectFieldExpression().size() > 1 && !fieldsText.contains(",")) {
+      return true;
+    }
+
+    // If there are both commas and spaces between fields, it's mixed delimiters
+    if (fieldsText.contains(",") && hasSpacesBetweenFields(fieldsText)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /** Check if there are spaces between field names (indicating mixed delimiters). */
+  private boolean hasSpacesBetweenFields(String fieldsText) {
+    // Simple heuristic: if we have both commas and multiple consecutive spaces/words, it's mixed
+    String[] parts = fieldsText.split(",");
+    for (String part : parts) {
+      String trimmed = part.trim();
+      // If a part contains spaces and multiple words, it indicates space-separated fields
+      if (trimmed.contains(" ") && trimmed.split("\\s+").length > 1) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Check if a single field expression is a wildcard field. */
+  private boolean isWildcardField(UnresolvedExpression expr) {
+    if (expr instanceof AllFields) {
+      return true;
+    }
+    if (expr instanceof Field) {
+      String fieldName = ((Field) expr).getField().toString();
+      return WildcardUtils.containsWildcard(fieldName);
+    }
+    return false;
   }
 }
