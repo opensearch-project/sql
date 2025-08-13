@@ -281,6 +281,7 @@ LN:                                 'LN';
 LOG:                                'LOG';
 LOG10:                              'LOG10';
 LOG2:                               'LOG2';
+LOG_WITH_BASE:                      ([0-9]+ ('.' [0-9]+)?)? [lL][oO][gG] [0-9]+ ('.' [0-9]+)?;
 MOD:                                'MOD';
 MODULUS:                            'MODULUS';
 PI:                                 'PI';

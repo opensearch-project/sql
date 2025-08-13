@@ -690,6 +690,11 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   }
 
   @Override
+  public UnresolvedExpression visitLogWithBaseSpan(OpenSearchPPLParser.LogWithBaseSpanContext ctx) {
+    return org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(ctx.getText());
+  }
+
+  @Override
   public UnresolvedExpression visitIdentifierSpanValue(
       OpenSearchPPLParser.IdentifierSpanValueContext ctx) {
     // For identifier spans like "log3", "log5", etc., return as string literal
