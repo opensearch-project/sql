@@ -8,9 +8,11 @@ package org.opensearch.sql.opensearch.planner.physical;
 import java.util.HashSet;
 import java.util.Set;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
@@ -52,6 +54,10 @@ public interface OpenSearchIndexScanRule {
    */
   static boolean isLogicalSortLimit(LogicalSort sort) {
     return sort.fetch != null;
+  }
+
+  static boolean projectContainsExpr(Project project) {
+    return project.getProjects().stream().anyMatch(p -> p instanceof RexCall);
   }
 
   static boolean sortByFieldsOnly(Sort sort) {
