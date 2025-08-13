@@ -11,34 +11,23 @@ fields
 
 Description
 ============
-Using ``fields`` command to keep or remove fields from the search result. The ``table`` command is an alias for ``fields`` and provides identical functionality.
+Using ``field`` command to keep or remove fields from the search result.
 
-The ``fields`` and ``table`` command supports multiple field specification formats:
-
-* **Space-delimited syntax**: Fields can be separated by spaces (``firstname lastname age``)
-* **Full wildcard selection**: Use ``*`` to select all available fields
-* **Wildcard pattern matching**: Use ``*`` for prefix (``account*``), suffix (``*name``), or contains (``*a*``) patterns
-* **Mixed delimiters**: Combine spaces and commas (``firstname lastname, age``)
-* **Field deduplication**: Automatically prevents duplicate columns when wildcards expand to already specified fields
+.. note::
+   Enhanced field features are available when the Calcite engine is enabled. For detailed documentation on enhanced features, see :doc:`fields-enhanced`.
 
 Syntax
-======
-fields [+|-] <field-list>
-table [+|-] <field-list>
+============
+field [+|-] <field-list>
 
-* prefix: optional. if the plus (+) is used, only the fields specified in the field list will be kept. if the minus (-) is used, all the fields specified in the field list will be removed. **Default** +
-* field-list: mandatory. Fields can be specified using:
-  - Full wildcard: ``*`` (selects all fields)
-  - Comma-delimited: ``field1, field2, field3``
-  - Space-delimited: ``field1 field2 field3``
-  - Mixed delimiters: ``field1 field2, field3``
-  - Wildcard patterns: ``account*``, ``*name``, ``*a*``
+* index: optional. if the plus (+) is used, only the fields specified in the field list will be keep. if the minus (-) is used, all the fields specified in the field list will be removed. **Default** +
+* field list: mandatory. comma-delimited keep or remove fields.
 
 
 Example 1: Select specified fields from result
 ==============================================
 
-The example shows fetching account_number, firstname and lastname fields from search results.
+The example show fetch account_number, firstname and lastname fields from search results.
 
 PPL query::
 
@@ -53,27 +42,14 @@ PPL query::
     | 18             | Dale      | Adams    |
     +----------------+-----------+----------+
 
-Using ``table`` command::
-
-    os> source=accounts | table account_number, firstname, lastname;
-    fetched rows / total rows = 4/4
-    +----------------+-----------+----------+
-    | account_number | firstname | lastname |
-    |----------------+-----------+----------|
-    | 1              | Amber     | Duke     |
-    | 6              | Hattie    | Bond     |
-    | 13             | Nanette   | Bates    |
-    | 18             | Dale      | Adams    |
-    +----------------+-----------+----------+
-
 Example 2: Remove specified fields from result
 ==============================================
 
-The example shows removing the account_number field from search results.
+The example show fetch remove account_number field from search results.
 
 PPL query::
 
-    os> source=accounts | fields account_number, firstname, lastname | fields - account_number;
+    os> source=accounts | fields account_number, firstname, lastname | fields - account_number ;
     fetched rows / total rows = 4/4
     +-----------+----------+
     | firstname | lastname |
@@ -83,233 +59,3 @@ PPL query::
     | Nanette   | Bates    |
     | Dale      | Adams    |
     +-----------+----------+
-
-Using ``table`` command::
-
-    os> source=accounts | table account_number, firstname, lastname | table - account_number;
-    fetched rows / total rows = 4/4
-    +-----------+----------+
-    | firstname | lastname |
-    |-----------+----------|
-    | Amber     | Duke     |
-    | Hattie    | Bond     |
-    | Nanette   | Bates    |
-    | Dale      | Adams    |
-    +-----------+----------+
-
-Example 3: Space-delimited field syntax
-=======================================
-
-Fields can be specified using spaces instead of commas.
-
-PPL query::
-
-    os> source=accounts | fields firstname lastname age;
-    fetched rows / total rows = 4/4
-    +-----------+----------+-----+
-    | firstname | lastname | age |
-    |-----------+----------+-----|
-    | Amber     | Duke     | 32  |
-    | Hattie    | Bond     | 36  |
-    | Nanette   | Bates    | 28  |
-    | Dale      | Adams    | 33  |
-    +-----------+----------+-----+
-
-Using ``table`` command::
-
-    os> source=accounts | table firstname lastname age;
-    fetched rows / total rows = 4/4
-    +-----------+----------+-----+
-    | firstname | lastname | age |
-    |-----------+----------+-----|
-    | Amber     | Duke     | 32  |
-    | Hattie    | Bond     | 36  |
-    | Nanette   | Bates    | 28  |
-    | Dale      | Adams    | 33  |
-    +-----------+----------+-----+
-
-Example 4: Wildcard pattern matching
-====================================
-
-**Prefix wildcard** - Select all fields starting with "account":
-
-PPL query::
-
-    os> source=accounts | fields account*;
-    fetched rows / total rows = 4/4
-    +----------------+
-    | account_number |
-    |----------------|
-    | 1              |
-    | 6              |
-    | 13             |
-    | 18             |
-    +----------------+
-
-Using ``table`` command::
-
-    os> source=accounts | table account*;
-    fetched rows / total rows = 4/4
-    +----------------+
-    | account_number |
-    |----------------|
-    | 1              |
-    | 6              |
-    | 13             |
-    | 18             |
-    +----------------+
-
-**Suffix wildcard** - Select all fields ending with "name":
-
-PPL query::
-
-    os> source=accounts | fields *name;
-    fetched rows / total rows = 4/4
-    +-----------+----------+
-    | firstname | lastname |
-    |-----------+----------|
-    | Amber     | Duke     |
-    | Hattie    | Bond     |
-    | Nanette   | Bates    |
-    | Dale      | Adams    |
-    +-----------+----------+
-
-Using ``table`` command::
-
-    os> source=accounts | table *name;
-    fetched rows / total rows = 4/4
-    +-----------+----------+
-    | firstname | lastname |
-    |-----------+----------|
-    | Amber     | Duke     |
-    | Hattie    | Bond     |
-    | Nanette   | Bates    |
-    | Dale      | Adams    |
-    +-----------+----------+
-
-**Contains wildcard** - Select all fields containing "a":
-
-PPL query::
-
-    os> source=accounts | fields *a* | head 1;
-    fetched rows / total rows = 1/1
-    +----------------+-----------+-----------------+---------+-------+-----+----------------------+----------+
-    | account_number | firstname | address         | balance | state | age | email                | lastname |
-    |----------------+-----------+-----------------+---------+-------+-----+----------------------+----------|
-    | 1              | Amber     | 880 Holmes Lane | 39225   | IL    | 32  | amberduke@pyrami.com | Duke     |
-    +----------------+-----------+-----------------+---------+-------+-----+----------------------+----------+
-
-Using ``table`` command::
-
-    os> source=accounts | table *a* | head 1;
-    fetched rows / total rows = 1/1
-    +----------------+-----------+-----------------+---------+-------+-----+----------------------+----------+
-    | account_number | firstname | address         | balance | state | age | email                | lastname |
-    |----------------+-----------+-----------------+---------+-------+-----+----------------------+----------|
-    | 1              | Amber     | 880 Holmes Lane | 39225   | IL    | 32  | amberduke@pyrami.com | Duke     |
-    +----------------+-----------+-----------------+---------+-------+-----+----------------------+----------+
-
-Example 5: Mixed delimiters and wildcards
-=========================================
-
-Combine explicit fields, wildcards, and mixed delimiters.
-
-PPL query::
-
-    os> source=accounts | fields firstname, account* *name;
-    fetched rows / total rows = 4/4
-    +-----------+----------------+----------+
-    | firstname | account_number | lastname |
-    |-----------+----------------+----------|
-    | Amber     | 1              | Duke     |
-    | Hattie    | 6              | Bond     |
-    | Nanette   | 13             | Bates    |
-    | Dale      | 18             | Adams    |
-    +-----------+----------------+----------+
-
-Using ``table`` command::
-
-    os> source=accounts | table firstname, account* *name;
-    fetched rows / total rows = 4/4
-    +-----------+----------------+----------+
-    | firstname | account_number | lastname |
-    |-----------+----------------+----------|
-    | Amber     | 1              | Duke     |
-    | Hattie    | 6              | Bond     |
-    | Nanette   | 13             | Bates    |
-    | Dale      | 18             | Adams    |
-    +-----------+----------------+----------+
-
-Example 6: Table command alias
-=============================
-
-The ``table`` command works identically to ``fields``.
-
-PPL query::
-
-    os> source=accounts | table firstname, lastname, age;
-    fetched rows / total rows = 4/4
-    +-----------+----------+-----+
-    | firstname | lastname | age |
-    |-----------+----------+-----|
-    | Amber     | Duke     | 32  |
-    | Hattie    | Bond     | 36  |
-    | Nanette   | Bates    | 28  |
-    | Dale      | Adams    | 33  |
-    +-----------+----------+-----+
-
-Example 7: Full wildcard selection
-==================================
-
-Select all available fields using ``*``.
-
-PPL query::
-
-    os> source=accounts | fields * | head 1;
-    fetched rows / total rows = 1/1
-    +----------------+-----------+-----------------+---------+--------+--------+----------+-------+-----+----------------------+----------+
-    | account_number | firstname | address         | balance | gender | city   | employer | state | age | email                | lastname |
-    |----------------+-----------+-----------------+---------+--------+--------+----------+-------+-----+----------------------+----------|
-    | 1              | Amber     | 880 Holmes Lane | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com | Duke     |
-    +----------------+-----------+-----------------+---------+--------+--------+----------+-------+-----+----------------------+----------+
-
-Using ``table`` command::
-
-    os> source=accounts | table * | head 1;
-    fetched rows / total rows = 1/1
-    +----------------+-----------+-----------------+---------+--------+--------+----------+-------+-----+----------------------+----------+
-    | account_number | firstname | address         | balance | gender | city   | employer | state | age | email                | lastname |
-    |----------------+-----------+-----------------+---------+--------+--------+----------+-------+-----+----------------------+----------|
-    | 1              | Amber     | 880 Holmes Lane | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com | Duke     |
-    +----------------+-----------+-----------------+---------+--------+--------+----------+-------+-----+----------------------+----------+
-
-Example 8: Wildcard exclusion
-=============================
-
-Remove fields using wildcard patterns.
-
-PPL query::
-
-    os> source=accounts | fields - *name;
-    fetched rows / total rows = 4/4
-    +----------------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+
-    | account_number | address              | balance | gender | city   | employer | state | age | email                 |
-    |----------------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------|
-    | 1              | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  |
-    | 6              | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com |
-    | 13             | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  |
-    | 18             | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   |
-    +----------------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+
-
-Using ``table`` command::
-
-    os> source=accounts | table - *name;
-    fetched rows / total rows = 4/4
-    +----------------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+
-    | account_number | address              | balance | gender | city   | employer | state | age | email                 |
-    |----------------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------|
-    | 1              | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  |
-    | 6              | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com |
-    | 13             | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  |
-    | 18             | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   |
-    +----------------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+
