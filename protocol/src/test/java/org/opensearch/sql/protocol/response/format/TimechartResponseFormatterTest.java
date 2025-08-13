@@ -242,6 +242,65 @@ class TimechartResponseFormatterTest {
     assertEquals(1, response.getTotal());
   }
 
+  @Test
+  void testConstructorWithMaxDistinctValues() {
+    TimechartResponseFormatter formatter =
+        new TimechartResponseFormatter(JsonResponseFormatter.Style.COMPACT, 5);
+
+    QueryResult queryResult =
+        mockQueryResult(
+            Arrays.asList("timestamp", "value"),
+            Map.of("timestamp", "timestamp", "value", "double"),
+            Arrays.<Object[]>asList(new Object[] {"2024-01-01 00:00:00", 10.5}));
+
+    JsonResponse response = (JsonResponse) formatter.buildJsonObject(queryResult);
+    assertNotNull(response);
+    assertEquals(1, response.getTotal());
+  }
+
+  @Test
+  void testConvertToDoubleWithStringValue() {
+    QueryResult queryResult =
+        mockQueryResult(
+            Arrays.asList("timestamp", "host", "cpu_usage"),
+            Map.of("timestamp", "timestamp", "host", "keyword", "cpu_usage", "double"),
+            Arrays.<Object[]>asList(
+                new Object[] {"2024-01-01 00:00:00", "web-01", "45.5"},
+                new Object[] {"2024-01-01 00:00:00", "web-02", "invalid"}));
+
+    TimechartResponseFormatter formatter =
+        new TimechartResponseFormatter(JsonResponseFormatter.Style.COMPACT);
+    JsonResponse response = (JsonResponse) formatter.buildJsonObject(queryResult);
+
+    assertEquals(1, response.getTotal());
+    assertNotNull(response.getDatarows());
+  }
+
+  @Test
+  void testJsonResponseBuilder() {
+    TimechartResponseFormatter.JsonResponse response =
+        TimechartResponseFormatter.JsonResponse.builder()
+            .column(new TimechartResponseFormatter.Column("test", "string"))
+            .datarows(new Object[][] {{"value"}})
+            .total(1)
+            .size(1)
+            .build();
+
+    assertEquals(1, response.getTotal());
+    assertEquals(1, response.getSize());
+    assertEquals(1, response.getSchema().size());
+    assertEquals("test", response.getSchema().get(0).getName());
+    assertEquals("string", response.getSchema().get(0).getType());
+  }
+
+  @Test
+  void testColumnClass() {
+    TimechartResponseFormatter.Column column =
+        new TimechartResponseFormatter.Column("testName", "testType");
+    assertEquals("testName", column.getName());
+    assertEquals("testType", column.getType());
+  }
+
   @SuppressWarnings("unchecked")
   private QueryResult mockQueryResult(
       List<String> columnNames, Map<String, String> columnTypes, List<Object[]> rows) {
