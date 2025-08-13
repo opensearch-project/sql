@@ -73,6 +73,7 @@ public class PPLQueryDataAnonymizerTest {
 
   @Test
   public void testFieldsCommandWithWildcards() {
+    when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(true);
     assertEquals("source=t | fields + account*", anonymize("source=t | fields account*"));
     assertEquals("source=t | fields + *name", anonymize("source=t | fields *name"));
     assertEquals("source=t | fields + *a*", anonymize("source=t | fields *a*"));
@@ -81,6 +82,7 @@ public class PPLQueryDataAnonymizerTest {
 
   @Test
   public void testFieldsCommandWithDelimiters() {
+    when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(true);
     assertEquals(
         "source=t | fields + firstname,lastname,age",
         anonymize("source=t | fields firstname lastname age"));
@@ -93,6 +95,7 @@ public class PPLQueryDataAnonymizerTest {
 
   @Test
   public void testTableCommand() {
+    when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(true);
     assertEquals("source=t | fields + f,g", anonymize("source=t | table f,g"));
     assertEquals("source=t | fields + f,g", anonymize("source=t | table + f,g"));
     assertEquals("source=t | fields - f,g", anonymize("source=t | table - f,g"));
