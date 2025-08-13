@@ -257,4 +257,64 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
     
     assertEquals(1, result.getInt("total"));
   }
+  
+  @Test
+  public void testTimechartWithUseOtherFalse() throws IOException {
+    // Test with useother=false which should show all distinct values without an OTHER column
+    JSONObject result =
+        executeQuery("source=events_many_hosts | timechart span=1h useother=false avg(cpu_usage) by host");
+
+    // Verify schema has 16 columns: timestamp + all 15 hosts (no OTHER column)
+    verifySchema(
+        result,
+        schema("$f3", "timestamp"),
+        schema("web-01", "double"),
+        schema("web-02", "double"),
+        schema("web-03", "double"),
+        schema("web-04", "double"),
+        schema("web-05", "double"),
+        schema("web-06", "double"),
+        schema("web-07", "double"),
+        schema("web-08", "double"),
+        schema("web-09", "double"),
+        schema("web-10", "double"),
+        schema("web-11", "double"),
+        schema("web-12", "double"),
+        schema("web-13", "double"),
+        schema("web-14", "double"),
+        schema("web-15", "double"));
+    
+    // Verify we have 1 data row with all hosts' values
+    verifyDataRows(
+        result,
+        rows("2024-07-01 00:00:00", 45.2, 38.7, 55.3, 42.1, 41.8, 39.4, 48.6, 44.2, 67.8, 35.9, 
+             43.1, 37.5, 59.7, 32.4, 49.8));
+    
+    assertEquals(1, result.getInt("total"));
+  }
+  
+  @Test
+  public void testTimechartWithLimitAndUseOther() throws IOException {
+    // Test with limit=3 and useother=true (default) which should show top 3 hosts and an OTHER column
+    JSONObject result =
+        executeQuery("source=events_many_hosts | timechart span=1h limit=3 useother=true avg(cpu_usage) by host");
+
+    // Verify schema has 5 columns: timestamp + 3 limited hosts + OTHER
+    verifySchema(
+        result,
+        schema("$f3", "timestamp"),
+        schema("web-09", "double"),  // Assuming web-09 has highest value (67.8)
+        schema("web-13", "double"),  // Assuming web-13 has second highest value (59.7)
+        schema("web-03", "double"),  // Assuming web-03 has third highest value (55.3)
+        schema("OTHER", "double"));
+    
+    // Verify we have 1 data row with top 3 hosts' values and OTHER
+    // The OTHER value should be the sum of all other hosts' values
+    double otherSum = 45.2 + 38.7 + 42.1 + 41.8 + 39.4 + 48.6 + 44.2 + 35.9 + 43.1 + 37.5 + 32.4 + 49.8;
+    verifyDataRows(
+        result,
+        rows("2024-07-01 00:00:00", 67.8, 59.7, 55.3, otherSum));
+    
+    assertEquals(1, result.getInt("total"));
+  }
 }

@@ -35,15 +35,21 @@ public class TimechartResponseFormatter extends JsonResponseFormatter<QueryResul
   private static final String OTHER_CATEGORY = "OTHER";
 
   private final Integer maxDistinctValues;
+  private final Boolean useOther;
 
   public TimechartResponseFormatter(Style style) {
-    this(style, null);
+    this(style, null, true);
   }
 
   public TimechartResponseFormatter(Style style, Integer maxDistinctValues) {
+    this(style, maxDistinctValues, true);
+  }
+
+  public TimechartResponseFormatter(Style style, Integer maxDistinctValues, Boolean useOther) {
     super(style);
     this.maxDistinctValues =
         maxDistinctValues != null ? maxDistinctValues : DEFAULT_MAX_DISTINCT_VALUES;
+    this.useOther = useOther != null ? useOther : true;
   }
 
   @Override
@@ -118,8 +124,8 @@ public class TimechartResponseFormatter extends JsonResponseFormatter<QueryResul
 
     // Check if we need to create an "OTHER" category (more than maxDistinctValues distinct
     // values)
-    // If maxDistinctValues is 0, it means no limit, so we don't need an "OTHER" category
-    boolean needsOtherCategory = maxDistinctValues > 0 && distinctByValues.size() > maxDistinctValues;
+    // If maxDistinctValues is 0 or useOther is false, we don't need an "OTHER" category
+    boolean needsOtherCategory = maxDistinctValues > 0 && distinctByValues.size() > maxDistinctValues && useOther;
 
     if (needsOtherCategory) {
       // Get the top N distinct values based on their scores

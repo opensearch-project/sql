@@ -159,9 +159,10 @@ public class TransportPPLQueryAction
     } else {
       // Check if this is a timechart query
       if (pplRequest.getRequest().toLowerCase().contains("timechart")) {
-        // Extract limit parameter if present in the query
-        Integer limit = extractLimitFromTimechartQuery(pplRequest.getRequest());
-        formatter = new TimechartResponseFormatter(JsonResponseFormatter.Style.PRETTY, limit);
+        formatter = new TimechartResponseFormatter(
+            JsonResponseFormatter.Style.PRETTY,
+            pplRequest.timechartLimit(),
+            pplRequest.timechartUseOther());
       } else {
         formatter = new SimpleJsonResponseFormatter(JsonResponseFormatter.Style.PRETTY);
       }
@@ -195,43 +196,4 @@ public class TransportPPLQueryAction
     }
   }
 
-  /**
-   * Extract the limit parameter from a timechart query. This method parses the query string to find
-   * the limit parameter in the timechart command.
-   *
-   * @param query The PPL query string
-   * @return The limit value as an Integer, or null if not found
-   */
-  private Integer extractLimitFromTimechartQuery(String query) {
-    // Simple regex to extract limit value from timechart command
-    // Example: "source=t | timechart span=1h limit=20 count() by field"
-    String lowercaseQuery = query.toLowerCase();
-    int timechartIndex = lowercaseQuery.indexOf("timechart");
-    if (timechartIndex == -1) {
-      return null;
-    }
-
-    int limitIndex = lowercaseQuery.indexOf("limit=", timechartIndex);
-    if (limitIndex == -1) {
-      return null;
-    }
-
-    // Extract the number after limit=
-    int startIndex = limitIndex + 6; // "limit=".length()
-    int endIndex = startIndex;
-    while (endIndex < lowercaseQuery.length()
-        && Character.isDigit(lowercaseQuery.charAt(endIndex))) {
-      endIndex++;
-    }
-
-    if (startIndex == endIndex) {
-      return null;
-    }
-
-    try {
-      return Integer.parseInt(lowercaseQuery.substring(startIndex, endIndex));
-    } catch (NumberFormatException e) {
-      return null;
-    }
-  }
 }

@@ -406,7 +406,16 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     if (ctx.LIMIT() != null && ctx.EQUAL() != null && ctx.limit != null) {
       limit = Integer.parseInt(ctx.limit.getText());
     }
-    return new Timechart(null, spanExpression, aggregateFunction, byField, limit);
+    // Check if USEOTHER parameter is present
+    Boolean useOther = true; // Default to true
+    if (ctx.USEOTHER() != null && ctx.useother != null) {
+      useOther = Boolean.parseBoolean(ctx.useother.getText());
+    }
+    
+    // The limit and useOther parameters are stored in the Timechart AST node
+    // and will be used by the TimechartResponseFormatter
+    
+    return new Timechart(null, spanExpression, aggregateFunction, byField, limit, useOther);
   }
 
   /** Eval command. */

@@ -115,6 +115,7 @@ APPEND:                             'APPEND';
 COUNTFIELD:                         'COUNTFIELD';
 SHOWCOUNT:                          'SHOWCOUNT';
 LIMIT:                              'LIMIT';
+USEOTHER:                           'USEOTHER';
 
 // COMPARISON FUNCTION KEYWORDS
 CASE:                               'CASE';

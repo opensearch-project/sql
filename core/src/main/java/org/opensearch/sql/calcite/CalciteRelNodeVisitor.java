@@ -1283,6 +1283,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (node.getLimit() != null) {
       dynamicPivotInfo.put("limit", node.getLimit().toString());
     }
+    
+    // Store the useOther parameter
+    dynamicPivotInfo.put("useOther", node.getUseOther().toString());
 
     // Mark this node as a special "dynamic pivot" node that will be handled
     // by a custom execution engine

@@ -131,6 +131,51 @@ public class TransportPPLQueryRequest extends ActionRequest {
     PPLQueryRequest pplQueryRequest = new PPLQueryRequest(pplQuery, jsonContent, path, format);
     pplQueryRequest.sanitize(sanitize);
     pplQueryRequest.style(style);
+    
+    // Extract timechart parameters from AST if this is a timechart query
+    if (pplQuery != null && pplQuery.toLowerCase().contains("timechart")) {
+      extractTimechartParametersFromAST(pplQueryRequest);
+    }
+    
     return pplQueryRequest;
+  }
+  
+  private void extractTimechartParametersFromAST(PPLQueryRequest pplQueryRequest) {
+    try {
+      // Parse the query to get AST
+      org.opensearch.sql.ppl.antlr.PPLSyntaxParser parser = new org.opensearch.sql.ppl.antlr.PPLSyntaxParser();
+      org.antlr.v4.runtime.tree.ParseTree cst = parser.parse(pplQuery);
+      org.opensearch.sql.ppl.parser.AstBuilder astBuilder = new org.opensearch.sql.ppl.parser.AstBuilder(pplQuery);
+      org.opensearch.sql.ast.tree.UnresolvedPlan plan = astBuilder.visit(cst);
+      
+      // Find Timechart node in the AST
+      org.opensearch.sql.ast.tree.Timechart timechartNode = findTimechartNode(plan);
+      if (timechartNode != null) {
+        pplQueryRequest.timechartLimit(timechartNode.getLimit());
+        pplQueryRequest.timechartUseOther(timechartNode.getUseOther());
+      }
+    } catch (Exception e) {
+      // Fallback to default values if AST parsing fails
+      pplQueryRequest.timechartLimit(null);
+      pplQueryRequest.timechartUseOther(true);
+    }
+  }
+  
+  private org.opensearch.sql.ast.tree.Timechart findTimechartNode(org.opensearch.sql.ast.tree.UnresolvedPlan plan) {
+    if (plan instanceof org.opensearch.sql.ast.tree.Timechart) {
+      return (org.opensearch.sql.ast.tree.Timechart) plan;
+    }
+    
+    // Search in child nodes
+    for (org.opensearch.sql.ast.Node child : plan.getChild()) {
+      if (child instanceof org.opensearch.sql.ast.tree.UnresolvedPlan) {
+        org.opensearch.sql.ast.tree.Timechart result = findTimechartNode((org.opensearch.sql.ast.tree.UnresolvedPlan) child);
+        if (result != null) {
+          return result;
+        }
+      }
+    }
+    
+    return null;
   }
 }

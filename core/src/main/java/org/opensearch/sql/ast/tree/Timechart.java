@@ -25,18 +25,37 @@ public class Timechart extends UnresolvedPlan {
   private UnresolvedExpression aggregateFunction;
   private UnresolvedExpression byField;
   private Integer limit;
+  private Boolean useOther;
 
   public Timechart(
       UnresolvedPlan child,
       UnresolvedExpression spanExpression,
       UnresolvedExpression aggregateFunction,
       UnresolvedExpression byField) {
-    this(child, spanExpression, aggregateFunction, byField, null);
+    this(child, spanExpression, aggregateFunction, byField, null, true);
+  }
+
+  public Timechart(
+      UnresolvedPlan child,
+      UnresolvedExpression spanExpression,
+      UnresolvedExpression aggregateFunction,
+      UnresolvedExpression byField,
+      Integer limit) {
+    this(child, spanExpression, aggregateFunction, byField, limit, true);
   }
 
   @Override
   public Timechart attach(UnresolvedPlan child) {
-    return new Timechart(child, spanExpression, aggregateFunction, byField, limit);
+    return new Timechart(child, spanExpression, aggregateFunction, byField, limit, useOther);
+  }
+  
+  /**
+   * Get the useOther parameter value.
+   *
+   * @return useOther parameter value
+   */
+  public Boolean getUseOther() {
+    return useOther;
   }
 
   @Override
