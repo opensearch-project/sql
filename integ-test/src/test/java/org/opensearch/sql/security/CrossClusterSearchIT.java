@@ -168,4 +168,32 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
         columnName("IS_AUTOINCREMENT"),
         columnName("IS_GENERATEDCOLUMN"));
   }
+
+  @Test
+  public void testCrossClusterSortWithCount() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | sort 1 age | fields firstname, age", TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(result, rows("Nanette", 28));
+  }
+
+  @Test
+  public void testCrossClusterSortWithDesc() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | sort age desc | fields firstname, age", TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(result, rows("Hattie", 36), rows("Nanette", 28));
+  }
+
+  @Test
+  public void testCrossClusterSortWithTypeCasting() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | sort num(account_number) | fields account_number",
+                TEST_INDEX_BANK_REMOTE));
+    verifyColumn(result, columnName("account_number"));
+  }
 }
