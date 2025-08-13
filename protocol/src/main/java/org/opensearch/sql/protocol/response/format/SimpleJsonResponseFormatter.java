@@ -10,6 +10,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Singular;
+import org.opensearch.commons.ppl.format.JsonResponseFormatter;
 import org.opensearch.sql.protocol.response.QueryResult;
 
 /**

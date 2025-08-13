@@ -68,6 +68,8 @@ dependencies {
     annotationProcessor('org.immutables:value:2.8.8')
     compileOnly('org.immutables:value-annotations:2.8.8')
 
+    api "org.opensearch:common-utils:${common_utils_snapshot_version}@jar"
+
     testImplementation('org.junit.jupiter:junit-jupiter:5.9.3')
     testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: "${hamcrest_version}"
     testImplementation group: 'org.mockito', name: 'mockito-core', version: "${mockito_version}"

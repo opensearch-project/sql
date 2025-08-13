@@ -22,7 +22,6 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
-import org.opensearch.sql.datasource.model.DataSourceType;
 
 public class ShowDataSourcesCommandIT extends PPLIntegTestCase {
 

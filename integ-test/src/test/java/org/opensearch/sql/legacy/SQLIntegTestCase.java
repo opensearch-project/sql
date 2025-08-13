@@ -83,7 +83,6 @@ import org.opensearch.client.ResponseException;
 import org.opensearch.client.RestClient;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
-import org.opensearch.sql.utils.SerializeUtils;
 
 /** OpenSearch Rest integration test base for SQL testing */
 public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {

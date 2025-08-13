@@ -5,13 +5,15 @@
 
 package org.opensearch.sql.plugin.transport;
 
+import static org.opensearch.commons.ppl.format.JsonResponseFormatter.Style.PRETTY;
 import static org.opensearch.rest.BaseRestHandler.MULTI_ALLOW_EXPLICIT_INDEX;
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
-import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
 import java.util.Locale;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
+
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
@@ -19,6 +21,13 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.inject.Injector;
 import org.opensearch.common.inject.ModulesBuilder;
+import org.opensearch.commons.ppl.action.PPLQueryAction;
+import org.opensearch.commons.ppl.action.TransportPPLQueryRequest;
+import org.opensearch.commons.ppl.action.TransportPPLQueryResponse;
+import org.opensearch.commons.ppl.format.Format;
+import org.opensearch.commons.ppl.format.JsonResponseFormatter;
+import org.opensearch.commons.ppl.format.ResponseFormatter;
+import org.opensearch.commons.ppl.util.PPLQueryRequest;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
@@ -32,13 +41,9 @@ import org.opensearch.sql.opensearch.security.SecurityAccess;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.plugin.config.OpenSearchPluginModule;
 import org.opensearch.sql.ppl.PPLService;
-import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.CsvResponseFormatter;
-import org.opensearch.sql.protocol.response.format.Format;
-import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.RawResponseFormatter;
-import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.VisualizationResponseFormatter;
 import org.opensearch.tasks.Task;
@@ -83,19 +88,22 @@ public class TransportPPLQueryAction
                         .getSettingValue(Settings.Key.PPL_ENABLED);
   }
 
-  /**
-   * {@inheritDoc} Transform the request and call super.doExecute() to support call from other
-   * plugins.
-   */
   @Override
   protected void doExecute(
-      Task task, ActionRequest request, ActionListener<TransportPPLQueryResponse> listener) {
+          Task task, ActionRequest request, ActionListener<TransportPPLQueryResponse> listener) {
+    TransportPPLQueryRequest transformedRequest = TransportPPLQueryRequest.fromActionRequest(request);
+    try {
+      listener.onResponse(executeRequest(transformedRequest));
+    } catch (Exception e) {
+      listener.onFailure(e);
+    }
+  }
+
+  protected TransportPPLQueryResponse executeRequest(TransportPPLQueryRequest request) throws Exception {
     if (!pplEnabled.get()) {
-      listener.onFailure(
-          new IllegalAccessException(
+      throw new IllegalAccessException(
               "Either plugins.ppl.enabled or rest.action.multi.allow_explicit_index setting is"
-                  + " false"));
-      return;
+                  + " false");
     }
     Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_TOTAL).increment();
     Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_COUNT_TOTAL).increment();
@@ -104,17 +112,59 @@ public class TransportPPLQueryAction
 
     PPLService pplService =
         SecurityAccess.doPrivileged(() -> injector.getInstance(PPLService.class));
-    TransportPPLQueryRequest transportRequest = TransportPPLQueryRequest.fromActionRequest(request);
+//    TransportPPLQueryRequest transportRequest = TransportPPLQueryRequest.fromActionRequest(request);
     // in order to use PPL service, we need to convert TransportPPLQueryRequest to PPLQueryRequest
-    PPLQueryRequest transformedRequest = transportRequest.toPPLQueryRequest();
+    PPLQueryRequest transformedRequest = request.toPPLQueryRequest();
 
     if (transformedRequest.isExplainRequest()) {
-      pplService.explain(transformedRequest, createExplainResponseListener(listener));
+      return null; // dont ever call PPL explain for POC
+    }
+
+    Format format = format(transformedRequest);
+    ResponseFormatter<QueryResult> formatter;
+    if (format.equals(Format.CSV)) {
+      formatter = new CsvResponseFormatter(transformedRequest.sanitize());
+    } else if (format.equals(Format.RAW)) {
+      formatter = new RawResponseFormatter();
+    } else if (format.equals(Format.VIZ)) {
+      formatter = new VisualizationResponseFormatter(transformedRequest.style());
     } else {
+      formatter = new SimpleJsonResponseFormatter(PRETTY);
+    }
+
+    try {
+      CompletableFuture<TransportPPLQueryResponse> future = new CompletableFuture<>();
+
       pplService.execute(
-          transformedRequest,
-          createListener(transformedRequest, listener),
-          createExplainResponseListener(listener));
+        transformedRequest,
+        new ResponseListener<>() {
+          @Override
+          public void onResponse(ExecutionEngine.QueryResponse response) {
+            String responseContent = formatter.format(new QueryResult(response.getSchema(), response.getResults(), response.getCursor(), PPL_SPEC));
+            future.complete(new TransportPPLQueryResponse(responseContent));
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            future.completeExceptionally(e);
+          }
+        },
+        new ResponseListener<>() {
+          @Override
+          public void onResponse(ExecutionEngine.ExplainResponse response) {
+            future.complete(new TransportPPLQueryResponse("poc should never reach this point"));
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            future.completeExceptionally(e);
+          }
+        }
+      );
+
+      return future.get();
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to execute PPL query", e);
     }
   }
 
@@ -156,7 +206,7 @@ public class TransportPPLQueryAction
     } else if (format.equals(Format.VIZ)) {
       formatter = new VisualizationResponseFormatter(pplRequest.style());
     } else {
-      formatter = new SimpleJsonResponseFormatter(JsonResponseFormatter.Style.PRETTY);
+      formatter = new SimpleJsonResponseFormatter(PRETTY);
     }
 
     return new ResponseListener<ExecutionEngine.QueryResponse>() {

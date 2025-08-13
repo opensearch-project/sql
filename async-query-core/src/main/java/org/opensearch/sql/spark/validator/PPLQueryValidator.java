@@ -9,9 +9,9 @@ import lombok.AllArgsConstructor;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.commons.ppl.serde.DataSourceType;
 import org.opensearch.sql.common.antlr.CaseInsensitiveCharStream;
 import org.opensearch.sql.common.antlr.SyntaxAnalysisErrorListener;
-import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.spark.antlr.parser.OpenSearchPPLLexer;
 import org.opensearch.sql.spark.antlr.parser.OpenSearchPPLParser;
 

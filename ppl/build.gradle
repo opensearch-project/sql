@@ -45,6 +45,8 @@ configurations {
 dependencies {
     antlr "org.antlr:antlr4:4.7.1"
 
+    api "org.opensearch:common-utils:${common_utils_snapshot_version}@jar"
+
     runtimeOnly group: 'org.reflections', name: 'reflections', version: '0.9.12'
 
     implementation "org.antlr:antlr4-runtime:4.7.1"

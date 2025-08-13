@@ -21,6 +21,7 @@ import java.util.function.Function;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
+import org.opensearch.commons.ppl.serde.DataSourceType;
 import org.opensearch.sql.datasource.DataSourceService;
 
 @Getter

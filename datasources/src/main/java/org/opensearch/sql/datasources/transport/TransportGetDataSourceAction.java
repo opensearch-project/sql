@@ -12,13 +12,13 @@ import org.opensearch.action.ActionType;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
+import org.opensearch.commons.ppl.format.JsonResponseFormatter;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasources.model.transport.GetDataSourceActionRequest;
 import org.opensearch.sql.datasources.model.transport.GetDataSourceActionResponse;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
-import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 

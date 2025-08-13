@@ -25,15 +25,12 @@ import org.opensearch.action.support.ActionFilters;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
-import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasources.model.transport.GetDataSourceActionRequest;
 import org.opensearch.sql.datasources.model.transport.GetDataSourceActionResponse;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
-import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
-import org.opensearch.sql.utils.SerializeUtils;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 

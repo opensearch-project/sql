@@ -6,7 +6,7 @@
 package org.opensearch.sql.sql;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BEER;
-import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.CONTENT_TYPE;
+import static org.opensearch.commons.ppl.format.JsonResponseFormatter.CONTENT_TYPE;
 
 import java.io.IOException;
 import org.json.JSONObject;

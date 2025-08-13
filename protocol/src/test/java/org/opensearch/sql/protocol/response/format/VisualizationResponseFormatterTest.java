@@ -11,13 +11,14 @@ import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
 import static org.opensearch.sql.data.model.ExprValueUtils.tupleValue;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
-import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.CONTENT_TYPE;
+import static org.opensearch.commons.ppl.format.JsonResponseFormatter.CONTENT_TYPE;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonParser;
 import org.junit.jupiter.api.Test;
 import org.opensearch.OpenSearchException;
+import org.opensearch.commons.ppl.format.JsonResponseFormatter;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.executor.ExecutionEngine;

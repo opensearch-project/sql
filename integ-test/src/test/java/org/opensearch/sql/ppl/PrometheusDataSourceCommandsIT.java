@@ -38,7 +38,6 @@ import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceStatus;
-import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.util.TestUtils;
 
 public class PrometheusDataSourceCommandsIT extends PPLIntegTestCase {
