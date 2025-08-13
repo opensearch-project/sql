@@ -40,94 +40,21 @@ public class FieldsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testDelimiterEquivalence() throws IOException {
-    JSONObject commaResult =
+  public void testMultipleFieldSelection() throws IOException {
+    JSONObject result =
         executeQuery(
             String.format(
                 "source=%s | fields firstname, lastname, age | head 3", TEST_INDEX_ACCOUNT));
-    JSONObject spaceResult =
-        executeQuery(
-            String.format(
-                "source=%s | fields firstname lastname age | head 3", TEST_INDEX_ACCOUNT));
-    JSONObject mixedResult =
-        executeQuery(
-            String.format(
-                "source=%s | fields firstname lastname, age | head 3", TEST_INDEX_ACCOUNT));
-
-    verifySchema(
-        commaResult,
-        schema("firstname", "string"),
-        schema("lastname", "string"),
-        schema("age", "bigint"));
-    verifySchema(
-        spaceResult,
-        schema("firstname", "string"),
-        schema("lastname", "string"),
-        schema("age", "bigint"));
-    verifySchema(
-        mixedResult,
-        schema("firstname", "string"),
-        schema("lastname", "string"),
-        schema("age", "bigint"));
-
-    verifyDataRows(
-        commaResult,
-        rows("Amber", "Duke", 32),
-        rows("Hattie", "Bond", 36),
-        rows("Nanette", "Bates", 28));
-    verifyDataRows(
-        spaceResult,
-        rows("Amber", "Duke", 32),
-        rows("Hattie", "Bond", 36),
-        rows("Nanette", "Bates", 28));
-    verifyDataRows(
-        mixedResult,
-        rows("Amber", "Duke", 32),
-        rows("Hattie", "Bond", 36),
-        rows("Nanette", "Bates", 28));
-  }
-
-  @Test
-  public void testWildcardPatterns() throws IOException {
-    // Test prefix wildcard
-    JSONObject prefixResult =
-        executeQuery(String.format("source=%s | fields account*", TEST_INDEX_ACCOUNT));
-    verifyColumn(prefixResult, columnName("account_number"));
-    verifySchema(prefixResult, schema("account_number", "bigint"));
-
-    // Test suffix wildcard
-    JSONObject suffixResult =
-        executeQuery(String.format("source=%s | fields *name", TEST_INDEX_ACCOUNT));
-    verifyColumn(suffixResult, columnName("firstname"), columnName("lastname"));
-    verifySchema(suffixResult, schema("firstname", "string"), schema("lastname", "string"));
-
-    // Test contains wildcard
-    JSONObject containsResult =
-        executeQuery(String.format("source=%s | fields *a* | head 1", TEST_INDEX_ACCOUNT));
-    verifySchema(
-        containsResult,
-        schema("account_number", "bigint"),
-        schema("balance", "bigint"),
-        schema("firstname", "string"),
-        schema("lastname", "string"),
-        schema("age", "bigint"),
-        schema("address", "string"),
-        schema("email", "string"),
-        schema("state", "string"));
-  }
-
-  @Test
-  public void testMixedWildcards() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format("source=%s | fields firstname, account*, *name", TEST_INDEX_ACCOUNT));
-    verifyColumn(
-        result, columnName("firstname"), columnName("account_number"), columnName("lastname"));
     verifySchema(
         result,
         schema("firstname", "string"),
-        schema("account_number", "bigint"),
-        schema("lastname", "string"));
+        schema("lastname", "string"),
+        schema("age", "bigint"));
+    verifyDataRows(
+        result,
+        rows("Amber", "Duke", 32),
+        rows("Hattie", "Bond", 36),
+        rows("Nanette", "Bates", 28));
   }
 
   @Test
@@ -212,47 +139,53 @@ public class FieldsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testFieldsExcludeAllScenarios() {
-    String[] excludeAllQueries = {
-      "source=%s | fields - *",
-      "source=%s | fields - account* firstname lastname, *",
-      "source=%s | fields account* firstname lastname, * | fields - *",
-      "source=%s | fields account* firstname lastname, * | fields + * | fields - *",
-      "source=%s | fields account* firstname lastname, * | fields - * | fields + *"
-    };
+  public void testEnhancedFieldFeaturesBlockedWhenCalciteDisabled() {
+    // Test wildcards are blocked
+    Exception e1 =
+        assertThrows(
+            Exception.class,
+            () -> executeQuery(String.format("source=%s | fields *", TEST_INDEX_ACCOUNT)));
+    verifyErrorMessageContains(
+        e1,
+        "Enhanced fields features (wildcards) are supported only when"
+            + " plugins.calcite.enabled=true");
 
-    for (String query : excludeAllQueries) {
-      Exception e =
-          assertThrows(
-              Exception.class, () -> executeQuery(String.format(query, TEST_INDEX_ACCOUNT)));
-      verifyErrorMessageContains(
-          e, "Invalid field exclusion: operation would exclude all fields from the result set");
-    }
-  }
+    Exception e2 =
+        assertThrows(
+            Exception.class,
+            () -> executeQuery(String.format("source=%s | fields account_*", TEST_INDEX_ACCOUNT)));
+    verifyErrorMessageContains(
+        e2,
+        "Enhanced fields features (wildcards) are supported only when"
+            + " plugins.calcite.enabled=true");
 
-  @Test
-  public void testFieldsIncludeAllVariations() throws IOException {
-    String[] includeQueries = {
-      "source=%s | fields + * | head 1",
-      "source=%s | fields account* firstname lastname, * | fields + * | fields + * | head 1"
-    };
+    // Test space-delimited fields are blocked
+    Exception e3 =
+        assertThrows(
+            Exception.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | fields account_number balance firstname",
+                        TEST_INDEX_ACCOUNT)));
+    verifyErrorMessageContains(
+        e3,
+        "Enhanced fields features (wildcards) are supported only when"
+            + " plugins.calcite.enabled=true");
 
-    for (String query : includeQueries) {
-      JSONObject result = executeQuery(String.format(query, TEST_INDEX_ACCOUNT));
-      verifySchema(
-          result,
-          schema("account_number", "bigint"),
-          schema("firstname", "string"),
-          schema("gender", "string"),
-          schema("city", "string"),
-          schema("balance", "bigint"),
-          schema("employer", "string"),
-          schema("state", "string"),
-          schema("age", "bigint"),
-          schema("email", "string"),
-          schema("address", "string"),
-          schema("lastname", "string"));
-    }
+    // Test mixed delimiters are blocked
+    Exception e4 =
+        assertThrows(
+            Exception.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | fields account_number balance, firstname",
+                        TEST_INDEX_ACCOUNT)));
+    verifyErrorMessageContains(
+        e4,
+        "Enhanced fields features (wildcards) are supported only when"
+            + " plugins.calcite.enabled=true");
   }
 
   @Ignore(

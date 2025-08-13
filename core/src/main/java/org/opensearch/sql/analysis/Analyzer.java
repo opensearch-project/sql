@@ -448,17 +448,10 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   private List<NamedExpression> resolveFieldExpressions(
       List<UnresolvedExpression> projectList, LogicalPlan child, AnalysisContext context) {
-    boolean isPPL =
-        context.getFunctionProperties() != null
-            && context.getFunctionProperties().getQueryType()
-                == org.opensearch.sql.executor.QueryType.PPL;
-
-    return isPPL && WildcardFieldResolver.hasWildcards(projectList)
-        ? WildcardFieldResolver.resolveWildcards(projectList, context, expressionAnalyzer)
-        : selectExpressionAnalyzer.analyze(
-            projectList,
-            context,
-            new ExpressionReferenceOptimizer(expressionAnalyzer.getRepository(), child));
+    return selectExpressionAnalyzer.analyze(
+        projectList,
+        context,
+        new ExpressionReferenceOptimizer(expressionAnalyzer.getRepository(), child));
   }
 
   private LogicalPlan processNestedAnalysis(
@@ -476,12 +469,10 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   private List<ReferenceExpression> collectExclusionFields(
       List<UnresolvedExpression> projectList, AnalysisContext context) {
     List<NamedExpression> namedExpressions =
-        WildcardFieldResolver.hasWildcards(projectList)
-            ? WildcardFieldResolver.resolveWildcards(projectList, context, expressionAnalyzer)
-            : projectList.stream()
-                .map(expr -> expressionAnalyzer.analyze(expr, context))
-                .map(DSL::named)
-                .collect(Collectors.toList());
+        projectList.stream()
+            .map(expr -> expressionAnalyzer.analyze(expr, context))
+            .map(DSL::named)
+            .collect(Collectors.toList());
 
     return namedExpressions.stream()
         .map(field -> (ReferenceExpression) field.getDelegated())
