@@ -145,6 +145,17 @@ public class CalciteExplainIT extends ExplainIT {
     assertTrue(result.contains("dir0=[DESC]"));
   }
 
+  @Test
+  public void noPushDownForAggOnWindow() throws IOException {
+    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    String query =
+        "source=opensearch-sql_test_index_account | patterns address method=BRAIN  | stats count()"
+            + " by patterns_field";
+    var result = explainQueryToString(query);
+    String expected = loadFromFile("expectedOutput/calcite/explain_agg_on_window.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
   /**
    * Executes the PPL query and returns the result as a string with windows-style line breaks
    * replaced with Unix-style ones.
