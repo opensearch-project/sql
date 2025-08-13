@@ -533,27 +533,4 @@ public class BinCommandIT extends PPLIntegTestCase {
         "Error message should mention the non-existent field: " + errorMessage,
         errorMessage.contains("non_existent_field") || errorMessage.contains("not found"));
   }
-
-  // Helper method to print query results for debugging
-  private void printQueryResult(String description, String query) throws IOException {
-    System.out.println("\n=== " + description + " ===");
-    System.out.println("Query: " + query);
-    JSONObject result = executeQuery(query);
-    System.out.println("Result:");
-    System.out.println(result.toString(2));
-
-    // Extract and print data rows if available
-    if (result.has("datarows")) {
-      System.out.println("\nData rows for verifyDataRows():");
-      try {
-        for (int i = 0; i < result.getJSONArray("datarows").length(); i++) {
-          System.out.println(
-              "  rows(" + result.getJSONArray("datarows").getJSONArray(i).toString() + ")");
-        }
-      } catch (Exception e) {
-        System.out.println("  Could not parse data rows: " + e.getMessage());
-      }
-    }
-    System.out.println("==========================================\n");
-  }
 }
