@@ -146,18 +146,14 @@ public class FieldsCommandIT extends PPLIntegTestCase {
             Exception.class,
             () -> executeQuery(String.format("source=%s | fields *", TEST_INDEX_ACCOUNT)));
     verifyErrorMessageContains(
-        e1,
-        "Enhanced fields features (wildcards) are supported only when"
-            + " plugins.calcite.enabled=true");
+        e1, "Enhanced fields features are supported only when" + " plugins.calcite.enabled=true");
 
     Exception e2 =
         assertThrows(
             Exception.class,
             () -> executeQuery(String.format("source=%s | fields account_*", TEST_INDEX_ACCOUNT)));
     verifyErrorMessageContains(
-        e2,
-        "Enhanced fields features (wildcards) are supported only when"
-            + " plugins.calcite.enabled=true");
+        e2, "Enhanced fields features are supported only when" + " plugins.calcite.enabled=true");
 
     // Test space-delimited fields are blocked
     Exception e3 =
@@ -169,9 +165,7 @@ public class FieldsCommandIT extends PPLIntegTestCase {
                         "source=%s | fields account_number balance firstname",
                         TEST_INDEX_ACCOUNT)));
     verifyErrorMessageContains(
-        e3,
-        "Enhanced fields features (wildcards) are supported only when"
-            + " plugins.calcite.enabled=true");
+        e3, "Enhanced fields features are supported only when" + " plugins.calcite.enabled=true");
 
     // Test mixed delimiters are blocked
     Exception e4 =
@@ -183,9 +177,7 @@ public class FieldsCommandIT extends PPLIntegTestCase {
                         "source=%s | fields account_number balance, firstname",
                         TEST_INDEX_ACCOUNT)));
     verifyErrorMessageContains(
-        e4,
-        "Enhanced fields features (wildcards) are supported only when"
-            + " plugins.calcite.enabled=true");
+        e4, "Enhanced fields features are supported only when" + " plugins.calcite.enabled=true");
   }
 
   @Ignore(

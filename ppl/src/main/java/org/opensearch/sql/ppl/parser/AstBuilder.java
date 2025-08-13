@@ -295,12 +295,12 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       OpenSearchPPLParser.FieldsCommandBodyContext bodyCtx, List<Argument> arguments) {
     List<UnresolvedExpression> fields = extractFieldExpressions(bodyCtx);
 
-    // Check for enhanced field features when Calcite is disabled
+    // Check for enhanced field features when Calcite is explicitly disabled
     if (settings != null
-        && !Boolean.TRUE.equals(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED))) {
+        && Boolean.FALSE.equals(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED))) {
       if (hasEnhancedFieldFeatures(bodyCtx, fields)) {
         throw new UnsupportedOperationException(
-            "Enhanced fields features (wildcards) are supported only when "
+            "Enhanced fields features are supported only when "
                 + Key.CALCITE_ENGINE_ENABLED.getKeyValue()
                 + "=true");
       }
@@ -811,8 +811,13 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
     String fieldsText = getTextInQuery(bodyCtx.wcFieldList());
 
+    // If all fields are backtick-enclosed (like eval expressions), don't treat as enhanced
+    if (isAllFieldsBacktickEnclosed(bodyCtx)) {
+      return false;
+    }
+
     if (bodyCtx.wcFieldList().selectFieldExpression().size() > 1 && !fieldsText.contains(",")) {
-      return !isAllFieldsBacktickEnclosed(bodyCtx);
+      return true;
     }
 
     if (fieldsText.contains(",") && hasSpacesBetweenFields(fieldsText)) {
@@ -827,6 +832,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     for (String part : parts) {
       String trimmed = part.trim();
       if (trimmed.contains(" ") && trimmed.split("\\s+").length > 1) {
+        // If the field is backtick-enclosed, it's likely an eval expression, not space-delimited
         if (!trimmed.startsWith("`") || !trimmed.endsWith("`")) {
           return true;
         }
