@@ -40,7 +40,6 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
-import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Argument;
@@ -86,7 +85,6 @@ import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
-import org.opensearch.sql.calcite.utils.WildcardUtils;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -321,10 +319,14 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   private List<UnresolvedExpression> processFieldExpressions(
       List<OpenSearchPPLParser.SelectFieldExpressionContext> fieldExpressions) {
-    return fieldExpressions.stream()
-        .map(this::internalVisitExpression)
-        .distinct()
-        .collect(Collectors.toList());
+    var stream = fieldExpressions.stream().map(this::internalVisitExpression);
+
+    if (settings != null
+        && Boolean.TRUE.equals(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED))) {
+      stream = stream.distinct();
+    }
+
+    return stream.collect(Collectors.toList());
   }
 
   /** Rename command. */
@@ -793,19 +795,15 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return partExprListBuilder.build();
   }
 
-  /** Check if field expressions contain enhanced features (wildcards or space delimiters). */
   private boolean hasEnhancedFieldFeatures(
       OpenSearchPPLParser.FieldsCommandBodyContext bodyCtx, List<UnresolvedExpression> fields) {
-    // Check for wildcards
-    if (fields.stream().anyMatch(this::isWildcardField)) {
+    if (hasActualWildcards(bodyCtx)) {
       return true;
     }
 
-    // Check for space-delimited or mixed delimiter features
     return hasSpaceDelimitedFields(bodyCtx);
   }
 
-  /** Check if fields use space delimiters or mixed delimiters. */
   private boolean hasSpaceDelimitedFields(OpenSearchPPLParser.FieldsCommandBodyContext bodyCtx) {
     if (bodyCtx.wcFieldList() == null) {
       return false;
@@ -813,12 +811,10 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
     String fieldsText = getTextInQuery(bodyCtx.wcFieldList());
 
-    // If there are multiple fields but no commas, it's space-delimited
     if (bodyCtx.wcFieldList().selectFieldExpression().size() > 1 && !fieldsText.contains(",")) {
-      return true;
+      return !isAllFieldsBacktickEnclosed(bodyCtx);
     }
 
-    // If there are both commas and spaces between fields, it's mixed delimiters
     if (fieldsText.contains(",") && hasSpacesBetweenFields(fieldsText)) {
       return true;
     }
@@ -826,28 +822,48 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return false;
   }
 
-  /** Check if there are spaces between field names (indicating mixed delimiters). */
   private boolean hasSpacesBetweenFields(String fieldsText) {
-    // Simple heuristic: if we have both commas and multiple consecutive spaces/words, it's mixed
     String[] parts = fieldsText.split(",");
     for (String part : parts) {
       String trimmed = part.trim();
-      // If a part contains spaces and multiple words, it indicates space-separated fields
       if (trimmed.contains(" ") && trimmed.split("\\s+").length > 1) {
-        return true;
+        if (!trimmed.startsWith("`") || !trimmed.endsWith("`")) {
+          return true;
+        }
       }
     }
     return false;
   }
 
-  /** Check if a single field expression is a wildcard field. */
-  private boolean isWildcardField(UnresolvedExpression expr) {
-    if (expr instanceof AllFields) {
-      return true;
+  private boolean isAllFieldsBacktickEnclosed(
+      OpenSearchPPLParser.FieldsCommandBodyContext bodyCtx) {
+    for (var fieldExpr : bodyCtx.wcFieldList().selectFieldExpression()) {
+      if (fieldExpr.wcQualifiedName() != null) {
+        String originalText = getTextInQuery(fieldExpr.wcQualifiedName());
+        if (!originalText.startsWith("`") || !originalText.endsWith("`")) {
+          return false;
+        }
+      }
     }
-    if (expr instanceof Field) {
-      String fieldName = ((Field) expr).getField().toString();
-      return WildcardUtils.containsWildcard(fieldName);
+    return true;
+  }
+
+  private boolean hasActualWildcards(OpenSearchPPLParser.FieldsCommandBodyContext bodyCtx) {
+    if (bodyCtx.wcFieldList() == null) {
+      return false;
+    }
+
+    for (var fieldExpr : bodyCtx.wcFieldList().selectFieldExpression()) {
+      if (fieldExpr.STAR() != null) {
+        return true;
+      }
+
+      if (fieldExpr.wcQualifiedName() != null) {
+        String originalText = getTextInQuery(fieldExpr.wcQualifiedName());
+        if (originalText.contains("*") && !originalText.contains("`")) {
+          return true;
+        }
+      }
     }
     return false;
   }
