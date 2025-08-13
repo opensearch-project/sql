@@ -183,8 +183,16 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s | sort age desc | fields firstname, age", TEST_INDEX_BANK_REMOTE));
-    verifyDataRows(result, rows("Hattie", 36), rows("Nanette", 28));
+                "search source=%s | sort age desc | fields firstname", TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(
+        result,
+        rows("Virginia"),
+        rows("Hattie"),
+        rows("Elinor"),
+        rows("Dillard"),
+        rows("Dale"),
+        rows("Amber JOHnny"),
+        rows("Nanette"));
   }
 
   @Test
@@ -194,6 +202,6 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
             String.format(
                 "search source=%s | sort num(account_number) | fields account_number",
                 TEST_INDEX_BANK_REMOTE));
-    verifyColumn(result, columnName("account_number"));
+    verifyDataRows(result, rows(1), rows(6), rows(13), rows(18), rows(20), rows(25), rows(32));
   }
 }
