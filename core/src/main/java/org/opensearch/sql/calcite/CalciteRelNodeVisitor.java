@@ -290,13 +290,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     Set<String> nonMetaFields =
         currentFields.stream().filter(field -> !isMetadataField(field)).collect(Collectors.toSet());
 
-    Set<String> excludedFields =
-        fieldsToExclude.stream()
-            .filter(RexInputRef.class::isInstance)
-            .map(rex -> currentFields.get(((RexInputRef) rex).getIndex()))
-            .collect(Collectors.toSet());
-
-    if (nonMetaFields.equals(excludedFields)) {
+    if (fieldsToExclude.size() >= nonMetaFields.size()) {
       throw new IllegalArgumentException(
           "Invalid field exclusion: operation would exclude all fields from the result set");
     }

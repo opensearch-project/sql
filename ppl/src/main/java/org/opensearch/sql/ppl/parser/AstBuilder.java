@@ -294,9 +294,6 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     if (bodyCtx.wcFieldList() != null) {
       return processFieldExpressions(bodyCtx.wcFieldList().selectFieldExpression());
     }
-    if (bodyCtx.wcMixedFieldList() != null) {
-      return processFieldExpressions(bodyCtx.wcMixedFieldList().selectFieldExpression());
-    }
     return Collections.emptyList();
   }
 

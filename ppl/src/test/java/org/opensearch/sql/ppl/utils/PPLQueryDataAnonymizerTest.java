@@ -55,6 +55,7 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals("source=t | where a = ***", anonymize("search source=t | where a=1"));
   }
 
+  // Fields and Table Command Tests
   @Test
   public void testFieldsCommandWithoutArguments() {
     assertEquals("source=t | fields + f,g", anonymize("source=t | fields f,g"));
@@ -68,6 +69,44 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testFieldsCommandWithExcludeArguments() {
     assertEquals("source=t | fields - f,g", anonymize("source=t | fields - f,g"));
+  }
+
+  @Test
+  public void testFieldsCommandWithWildcards() {
+    assertEquals("source=t | fields + account*", anonymize("source=t | fields account*"));
+    assertEquals("source=t | fields + *name", anonymize("source=t | fields *name"));
+    assertEquals("source=t | fields + *a*", anonymize("source=t | fields *a*"));
+    assertEquals("source=t | fields - account*", anonymize("source=t | fields - account*"));
+  }
+
+  @Test
+  public void testFieldsCommandWithDelimiters() {
+    assertEquals(
+        "source=t | fields + firstname,lastname,age",
+        anonymize("source=t | fields firstname lastname age"));
+    assertEquals(
+        "source=t | fields + firstname,lastname,balance",
+        anonymize("source=t | fields firstname lastname, balance"));
+    assertEquals(
+        "source=t | fields + account*,*name", anonymize("source=t | fields account*, *name"));
+  }
+
+  @Test
+  public void testTableCommand() {
+    assertEquals("source=t | fields + f,g", anonymize("source=t | table f,g"));
+    assertEquals("source=t | fields + f,g", anonymize("source=t | table + f,g"));
+    assertEquals("source=t | fields - f,g", anonymize("source=t | table - f,g"));
+    assertEquals("source=t | fields + account*", anonymize("source=t | table account*"));
+    assertEquals(
+        "source=t | fields + firstname,lastname,age",
+        anonymize("source=t | table firstname lastname age"));
+  }
+
+  @Test
+  public void anonymizeFieldsNoArg() {
+    assertEquals(
+        "source=t | fields + f",
+        anonymize(projectWithArg(relation("t"), Collections.emptyList(), field("f"))));
   }
 
   @Test
@@ -255,13 +294,6 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testQuery() {
     assertEquals("source=t | fields + a", anonymizeStatement("source=t | fields a", false));
-  }
-
-  @Test
-  public void anonymizeFieldsNoArg() {
-    assertEquals(
-        "source=t | fields + f",
-        anonymize(projectWithArg(relation("t"), Collections.emptyList(), field("f"))));
   }
 
   @Test
