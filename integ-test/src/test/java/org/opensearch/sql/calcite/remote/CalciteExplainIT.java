@@ -108,6 +108,17 @@ public class CalciteExplainIT extends ExplainIT {
     assertJsonEqualsIgnoreId(expected, result);
   }
 
+  @Test
+  public void testSkipScriptEncodingOnExtendedFormat() throws IOException {
+    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    String query =
+        "source=opensearch-sql_test_index_account | where address = '671 Bristol Street' and age -"
+            + " 2 = 30 | fields firstname, age, address";
+    var result = explainQueryToString(query, true);
+    String expected = loadFromFile("expectedOutput/calcite/explain_skip_script_encoding.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
   // Only for Calcite, as v2 gets unstable serialized string for function
   @Test
   public void testFilterScriptPushDownExplain() throws Exception {
@@ -132,6 +143,17 @@ public class CalciteExplainIT extends ExplainIT {
     // Verify that reverse added a ROW_NUMBER and another sort (descending)
     assertTrue(result.contains("ROW_NUMBER()"));
     assertTrue(result.contains("dir0=[DESC]"));
+  }
+
+  @Test
+  public void noPushDownForAggOnWindow() throws IOException {
+    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    String query =
+        "source=opensearch-sql_test_index_account | patterns address method=BRAIN  | stats count()"
+            + " by patterns_field";
+    var result = explainQueryToString(query);
+    String expected = loadFromFile("expectedOutput/calcite/explain_agg_on_window.json");
+    assertJsonEqualsIgnoreId(expected, result);
   }
 
   /**
