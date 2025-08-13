@@ -119,4 +119,15 @@ public class CalciteExplainIT extends ExplainIT {
   public void testFilterFunctionScriptPushDownExplain() throws Exception {
     super.testFilterFunctionScriptPushDownExplain();
   }
+
+  @Test
+  public void noPushDownForAggOnWindow() throws IOException {
+    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    String query =
+        "source=opensearch-sql_test_index_account | patterns address method=BRAIN  | stats count()"
+            + " by patterns_field";
+    var result = explainQueryToString(query);
+    String expected = loadFromFile("expectedOutput/calcite/explain_agg_on_window.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
 }
