@@ -182,6 +182,7 @@ public OpenSearchExecutionEngine(
               try (Hook.Closeable closeable = getPhysicalPlanInHook(physical, level)) {
                 if (format == ExplainFormat.EXTENDED) {
                   getCodegenInHook(javaCode);
+                  CalcitePlanContext.skipEncoding.set(true);
                 }
                 // triggers the hook
                 AccessController.doPrivileged(
@@ -194,6 +195,8 @@ public OpenSearchExecutionEngine(
             }
           } catch (Exception e) {
             listener.onFailure(e);
+          } finally {
+            CalcitePlanContext.skipEncoding.remove();
           }
         });
   }
