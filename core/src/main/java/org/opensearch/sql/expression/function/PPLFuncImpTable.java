@@ -579,8 +579,17 @@ public class PPLFuncImpTable {
     public void registerOperator(BuiltinFunctionName functionName, SqlOperator... operators) {
       for (SqlOperator operator : operators) {
         SqlOperandTypeChecker typeChecker;
+
         if (operator instanceof SqlUserDefinedFunction udfOperator) {
-          typeChecker = extractTypeCheckerFromUDF(udfOperator);
+          UDFOperandMetadata udfMetadata = (UDFOperandMetadata) udfOperator.getOperandTypeChecker();
+
+          // Register directly if it has PPLTypeChecker.
+          if (udfMetadata != null && udfMetadata.hasPPLTypeChecker()) {
+            register(
+                functionName, wrapWithPPLTypeChecker(operator, udfMetadata.getPPLTypeChecker()));
+            return;
+          }
+          typeChecker = extractTypeCheckerFromUDF(udfMetadata);
         } else {
           typeChecker = operator.getOperandTypeChecker();
         }
@@ -623,9 +632,7 @@ public class PPLFuncImpTable {
     }
 
     private static SqlOperandTypeChecker extractTypeCheckerFromUDF(
-        SqlUserDefinedFunction udfOperator) {
-      UDFOperandMetadata udfOperandMetadata =
-          (UDFOperandMetadata) udfOperator.getOperandTypeChecker();
+        UDFOperandMetadata udfOperandMetadata) {
       return (udfOperandMetadata == null) ? null : udfOperandMetadata.getInnerTypeChecker();
     }
 
@@ -717,6 +724,25 @@ public class PPLFuncImpTable {
       };
     }
 
+    /**
+     * Wrap a SqlOperator into a FunctionImp with a direct PPLTypeChecker. This is the preferred
+     * path for UDFs that provide PPLTypeChecker directly.
+     */
+    private static FunctionImp wrapWithPPLTypeChecker(
+        SqlOperator operator, PPLTypeChecker pplTypeChecker) {
+      return new FunctionImp() {
+        @Override
+        public RexNode resolve(RexBuilder builder, RexNode... args) {
+          return builder.makeCall(operator, args);
+        }
+
+        @Override
+        public PPLTypeChecker getTypeChecker() {
+          return pplTypeChecker; // Direct PPL integration - no wrapping needed!
+        }
+      };
+    }
+
     private static FunctionImp createFunctionImpWithTypeChecker(
         BiFunction<RexBuilder, RexNode, RexNode> resolver, PPLTypeChecker typeChecker) {
       return new FunctionImp1() {
@@ -760,6 +786,8 @@ public class PPLFuncImpTable {
       registerOperator(AND, SqlStdOperatorTable.AND);
       registerOperator(OR, SqlStdOperatorTable.OR);
       registerOperator(NOT, SqlStdOperatorTable.NOT);
+      registerOperator(SUM, PPLBuiltinOperators.SUM);
+      registerOperator(AVG, PPLBuiltinOperators.AVG);
       registerOperator(ADD, SqlStdOperatorTable.PLUS);
       registerOperator(ADDFUNCTION, SqlStdOperatorTable.PLUS);
       registerOperator(SUBTRACT, SqlStdOperatorTable.MINUS);

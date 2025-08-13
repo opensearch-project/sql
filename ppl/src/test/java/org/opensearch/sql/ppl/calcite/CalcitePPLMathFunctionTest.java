@@ -306,4 +306,101 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
     String expectedSparkSql = "SELECT POWER(4, 5E-1) `SQRT`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  @Test
+  public void testEvalSumSingleArgument() {
+    RelNode root = getRelNode("source=EMP | eval RESULT = sum(42) | fields RESULT");
+    String expectedLogical =
+        "LogicalProject(RESULT=[SUM(42)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    String expectedSparkSql = "SELECT SUM(42) `RESULT`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testEvalSumMultipleArguments() {
+    RelNode root = getRelNode("source=EMP | eval RESULT = sum(1, 2, 3) | fields RESULT");
+    String expectedLogical =
+        "LogicalProject(RESULT=[SUM(1, 2, 3)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    String expectedSparkSql = "SELECT SUM(1, 2, 3) `RESULT`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testEvalSumWithFields() {
+    RelNode root = getRelNode("source=EMP | eval RESULT = sum(SAL, 100) | fields RESULT");
+    String expectedLogical =
+        "LogicalProject(RESULT=[SUM($5, 100)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    String expectedSparkSql = "SELECT SUM(`SAL`, 100) `RESULT`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testEvalSumMixedTypes() {
+    RelNode root = getRelNode("source=EMP | eval RESULT = sum(1, 2.5, 3) | fields RESULT");
+    String expectedLogical =
+        "LogicalProject(RESULT=[SUM(1, 2.5:DECIMAL(2, 1), 3)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    String expectedSparkSql = "SELECT SUM(1, 2.5, 3) `RESULT`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testEvalAvgSingleArgument() {
+    RelNode root = getRelNode("source=EMP | eval RESULT = avg(42) | fields RESULT");
+    String expectedLogical =
+        "LogicalProject(RESULT=[AVG(42)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    String expectedSparkSql = "SELECT AVG(42) `RESULT`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testEvalAvgMultipleArguments() {
+    RelNode root = getRelNode("source=EMP | eval RESULT = avg(1, 2, 3) | fields RESULT");
+    String expectedLogical =
+        "LogicalProject(RESULT=[AVG(1, 2, 3)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    String expectedSparkSql = "SELECT AVG(1, 2, 3) `RESULT`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testEvalAvgWithFields() {
+    RelNode root = getRelNode("source=EMP | eval RESULT = avg(SAL, 1000) | fields RESULT");
+    String expectedLogical =
+        "LogicalProject(RESULT=[AVG($5, 1000)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    String expectedSparkSql = "SELECT AVG(`SAL`, 1000) `RESULT`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testEvalAvgMixedTypes() {
+    RelNode root = getRelNode("source=EMP | eval RESULT = avg(1, 2.5, 4) | fields RESULT");
+    String expectedLogical =
+        "LogicalProject(RESULT=[AVG(1, 2.5:DECIMAL(2, 1), 4)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    String expectedSparkSql = "SELECT AVG(1, 2.5, 4) `RESULT`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testEvalSumAndAvgCombined() {
+    String ppl =
+        "source=EMP | eval TOTAL = sum(SAL, COMM), AVERAGE = avg(SAL, COMM) | fields TOTAL,"
+            + " AVERAGE";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(TOTAL=[SUM($5, $6)], AVERAGE=[AVG($5, $6)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    String expectedSparkSql =
+        "SELECT SUM(`SAL`, `COMM`) `TOTAL`, AVG(`SAL`, `COMM`) `AVERAGE`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
 }

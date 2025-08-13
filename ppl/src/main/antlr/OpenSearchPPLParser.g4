@@ -706,6 +706,8 @@ mathematicalFunctionName
    | TRUNCATE
    | RINT
    | SIGNUM
+   | SUM
+   | AVG
    | trigonometricFunctionName
    ;
 
