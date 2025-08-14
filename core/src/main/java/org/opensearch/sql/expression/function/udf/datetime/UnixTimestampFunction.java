@@ -18,6 +18,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
+import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
@@ -64,5 +65,13 @@ public class UnixTimestampFunction extends ImplementorUDF {
 
   public static double unixTimestamp(FunctionProperties properties) {
     return unixTimeStamp(properties.getQueryStartClock()).doubleValue();
+  }
+
+  public static double unixTimestamp(FunctionProperties ignored, ExprValue timestamp) {
+    // Follow @yuancu's guidance: use proper function chain for STRING inputs
+    if (timestamp.type().equals(org.opensearch.sql.data.type.ExprCoreType.STRING)) {
+      return unixTimeStampOfString(timestamp).doubleValue();
+    }
+    return unixTimeStampOf(timestamp).doubleValue();
   }
 }

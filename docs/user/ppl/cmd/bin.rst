@@ -64,7 +64,7 @@ Specifies the width of each bin interval with support for multiple span types:
 - **Minutes**: ``m``, ``min``, ``mins``, ``minute``, ``minutes``
 - **Hours**: ``h``, ``hr``, ``hrs``, ``hour``, ``hours``
 - **Days**: ``d``, ``day``, ``days`` - **Uses precise daily binning algorithm**
-- **Months**: ``M``, ``mon``, ``month``, ``months`` - **Uses precise monthly binning algorithm**
+- **Months**: ``mon``, ``month``, ``months`` - **Uses precise monthly binning algorithm**
 - **Examples**:
   - ``span=30seconds``
   - ``span=15minutes``
