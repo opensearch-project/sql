@@ -67,7 +67,7 @@ public class RegexMatchFunctionImpl extends ImplementorUDF {
       return null;
     }
 
-    // Use Java regex library for evaluation (same logic as RegexMatch)
+    // Match using find() for partial match semantics
     try {
       Pattern compiledPattern = Pattern.compile(pattern);
       java.util.regex.Matcher matcher = compiledPattern.matcher(field);
