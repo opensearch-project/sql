@@ -564,6 +564,21 @@ public class AstDSL {
   }
 
   /**
+   * Creates a Bin node with an input plan for binning field values into discrete buckets.
+   *
+   * @param input the input plan
+   * @param field the field expression to bin
+   * @param arguments optional arguments for bin configuration (span, bins, minspan, aligntime,
+   *     start, end, alias)
+   * @return Bin node attached to the input plan
+   */
+  public static Bin bin(UnresolvedPlan input, UnresolvedExpression field, Argument... arguments) {
+    Bin binNode = bin(field, arguments);
+    binNode.attach(input);
+    return binNode;
+  }
+
+  /**
    * Creates a Bin node for binning field values into discrete buckets.
    *
    * @param field the field expression to bin

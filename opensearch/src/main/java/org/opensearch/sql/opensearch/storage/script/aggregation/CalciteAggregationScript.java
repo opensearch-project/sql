@@ -10,7 +10,6 @@ import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Map;
 import lombok.EqualsAndHashCode;
@@ -22,9 +21,13 @@ import org.opensearch.script.AggregationScript;
 import org.opensearch.search.lookup.SearchLookup;
 import org.opensearch.search.lookup.SourceLookup;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.data.model.ExprNullValue;
+import org.opensearch.sql.data.model.ExprStringValue;
+import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.opensearch.storage.script.core.CalciteScript;
 
 /** Calcite script executor that executes the generated code on each document for aggregation. */
@@ -61,35 +64,30 @@ class CalciteAggregationScript extends AggregationScript {
       MILLIS.between(LocalTime.MIN, ExprValueUtils.fromObjectValue(value, TIME).timeValue());
       case DATE -> ExprValueUtils.fromObjectValue(value, DATE).timestampValue().toEpochMilli();
       case TIMESTAMP -> {
-        // Handle timestamp strings from bin operations with FROM_UNIXTIME
-        // When bin command uses FROM_UNIXTIME, it produces timestamp strings that need special
-        // handling
-        // This prevents "AggregationExecutionException[Unsupported script value [...], expected a
-        // number, date, or boolean]"
+        // Handle timestamp strings from bin operations using proper function chain
+        // When bin operations produce timestamp strings, they need to be converted to epoch
+        // milliseconds for OpenSearch aggregation (which expects primitive numeric values)
         if (value instanceof String) {
           String strValue = (String) value;
-          // Check if this is a timestamp string from FROM_UNIXTIME (format: YYYY-MM-DD HH:MM:SS)
-          if (strValue.matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}(\\.\\d+)?")) {
-            // Parse manually using LocalDateTime - this is more reliable than ExprValueUtils
-            try {
-              LocalDateTime dateTime =
-                  LocalDateTime.parse(
-                      strValue,
-                      java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-              long epochMillis = dateTime.toInstant(java.time.ZoneOffset.UTC).toEpochMilli();
+          // Use proper function chain: STRING -> TIMESTAMP() -> epoch milliseconds
+          try {
+            ExprValue timestampValue =
+                DateTimeFunctions.exprTimestampFromString(new ExprStringValue(strValue));
+            if (!timestampValue.equals(ExprNullValue.of())) {
+              long epochMillis = timestampValue.timestampValue().toEpochMilli();
               yield epochMillis;
-            } catch (Exception parseEx) {
-              // If direct parsing fails, fall back to ExprValueUtils
-              try {
-                long epochMillis =
-                    ExprValueUtils.fromObjectValue(strValue, TIMESTAMP)
-                        .timestampValue()
-                        .toEpochMilli();
-                yield epochMillis;
-              } catch (Exception e) {
-                // Last resort: return the original value (this will likely cause aggregation error)
-                yield value;
-              }
+            }
+          } catch (Exception e) {
+            // Fall back to ExprValueUtils parsing
+            try {
+              long epochMillis =
+                  ExprValueUtils.fromObjectValue(strValue, TIMESTAMP)
+                      .timestampValue()
+                      .toEpochMilli();
+              yield epochMillis;
+            } catch (Exception fallbackEx) {
+              // Last resort: return the original value
+              yield value;
             }
           }
         }
@@ -99,30 +97,27 @@ class CalciteAggregationScript extends AggregationScript {
         yield epochMillis;
       }
       default -> {
-        // Handle timestamp strings from bin operations with FROM_UNIXTIME
-        // When bin command uses FROM_UNIXTIME for grouping, it produces timestamp strings
-        // that need to be converted to epoch milliseconds for OpenSearch aggregation
+        // Handle timestamp strings from bin operations using proper function chain
+        // When bin operations produce timestamp strings, convert to epoch milliseconds for
+        // aggregation
         if (value instanceof String) {
           String strValue = (String) value;
-          // Check if this is a timestamp string from FROM_UNIXTIME (format: YYYY-MM-DD HH:MM:SS)
-          if (strValue.matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}(\\.\\d+)?")) {
-            // Parse manually using LocalDateTime - this is more reliable than ExprValueUtils
+          // Use proper function chain: STRING -> TIMESTAMP() -> epoch milliseconds
+          try {
+            ExprValue timestampValue =
+                DateTimeFunctions.exprTimestampFromString(new ExprStringValue(strValue));
+            if (!timestampValue.equals(ExprNullValue.of())) {
+              yield timestampValue.timestampValue().toEpochMilli();
+            }
+          } catch (Exception e) {
+            // Fall back to ExprValueUtils parsing
             try {
-              LocalDateTime dateTime =
-                  LocalDateTime.parse(
-                      strValue,
-                      java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-              yield dateTime.toInstant(java.time.ZoneOffset.UTC).toEpochMilli();
-            } catch (Exception parseEx) {
-              // If direct parsing fails, fall back to ExprValueUtils
-              try {
-                yield ExprValueUtils.fromObjectValue(strValue, TIMESTAMP)
-                    .timestampValue()
-                    .toEpochMilli();
-              } catch (Exception e) {
-                // Last resort: return the original value
-                yield value;
-              }
+              yield ExprValueUtils.fromObjectValue(strValue, TIMESTAMP)
+                  .timestampValue()
+                  .toEpochMilli();
+            } catch (Exception fallbackEx) {
+              // Last resort: return the original value
+              yield value;
             }
           }
         }

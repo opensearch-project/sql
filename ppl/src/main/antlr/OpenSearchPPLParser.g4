@@ -174,7 +174,17 @@ headCommand
    ;
 
 binCommand
-   : BIN fieldExpression (SPAN EQUAL span = spanValue)? (BINS EQUAL bins = integerLiteral)? (MINSPAN EQUAL minspan = literalValue (minspanUnit = timespanUnit)?)? (ALIGNTIME EQUAL aligntime = aligntimeValue)? (START EQUAL start = numericLiteral)? (END EQUAL end = numericLiteral)? (AS alias = qualifiedName)?
+   : BIN fieldExpression binOption*
+   ;
+
+binOption
+   : SPAN EQUAL span = spanValue
+   | BINS EQUAL bins = integerLiteral
+   | MINSPAN EQUAL minspan = literalValue (minspanUnit = timespanUnit)?
+   | ALIGNTIME EQUAL aligntime = aligntimeValue
+   | START EQUAL start = numericLiteral
+   | END EQUAL end = numericLiteral
+   | AS alias = qualifiedName
    ;
 
 aligntimeValue

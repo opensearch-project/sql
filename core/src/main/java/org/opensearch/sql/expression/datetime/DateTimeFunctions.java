@@ -896,6 +896,8 @@ public class DateTimeFunctions {
     return define(
         BuiltinFunctionName.TIMESTAMP.getName(),
         impl(nullMissingHandling(v -> v), TIMESTAMP, TIMESTAMP),
+        // Handle STRING to TIMESTAMP conversion for timestamp strings from bin operations
+        impl(nullMissingHandling(DateTimeFunctions::exprTimestampFromString), TIMESTAMP, STRING),
         // We can use FunctionProperties.None, because it is not used. It is required to convert
         // TIME to other datetime types, but arguments there are already converted.
         impl(
@@ -992,6 +994,8 @@ public class DateTimeFunctions {
             LONG),
         impl(nullMissingHandling(DateTimeFunctions::unixTimeStampOf), DOUBLE, TIMESTAMP),
         impl(nullMissingHandling(DateTimeFunctions::unixTimeStampOf), DOUBLE, DATE),
+        // STRING handling via delegation to TIMESTAMP function (proper function chain)
+        impl(nullMissingHandling(DateTimeFunctions::unixTimeStampOfString), DOUBLE, STRING),
         impl(nullMissingHandling(DateTimeFunctions::unixTimeStampOf), DOUBLE, DOUBLE));
   }
 
@@ -2017,6 +2021,38 @@ public class DateTimeFunctions {
   }
 
   /**
+   * TIMESTAMP string parsing implementation for timestamp strings from bin operations. Handles
+   * timestamp strings in YYYY-MM-DD HH:MM:SS format (with optional fractional seconds).
+   *
+   * @param stringValue ExprValue of String type containing timestamp string.
+   * @return ExprTimestampValue parsed from the string, or ExprNullValue if parsing fails.
+   */
+  public static ExprValue exprTimestampFromString(ExprValue stringValue) {
+    String strValue = stringValue.stringValue();
+
+    // Handle timestamp strings from bin operations with FROM_UNIXTIME format
+    if (strValue.matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}(\\.\\d+)?")) {
+      try {
+        // Parse using the standard timestamp parsing logic
+        return new ExprTimestampValue(stringValue.timestampValue());
+      } catch (Exception e) {
+        // If standard parsing fails, try manual parsing
+        try {
+          LocalDateTime dateTime =
+              LocalDateTime.parse(
+                  strValue, java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+          return new ExprTimestampValue(dateTime);
+        } catch (Exception parseEx) {
+          return ExprNullValue.of();
+        }
+      }
+    }
+
+    // For other string formats, return null (not supported)
+    return ExprNullValue.of();
+  }
+
+  /**
    * To_days implementation for ExprValue.
    *
    * @param date ExprValue of Date/String type.
@@ -2143,6 +2179,25 @@ public class DateTimeFunctions {
     return new ExprDoubleValue(res);
   }
 
+  /**
+   * Implementation of UNIX_TIMESTAMP for STRING inputs using proper function chain. Delegates to
+   * TIMESTAMP function first, then converts to epoch seconds.
+   */
+  public static ExprValue unixTimeStampOfString(ExprValue stringValue) {
+    // Use proper function chain: STRING -> TIMESTAMP() -> UNIX_TIMESTAMP()
+    ExprValue timestampValue = exprTimestampFromString(stringValue);
+    if (!timestampValue.equals(ExprNullValue.of())) {
+      return unixTimeStampOf(timestampValue);
+    }
+
+    // If timestamp parsing failed, fall back to numeric parsing for legacy formats
+    try {
+      return new ExprDoubleValue(transferUnixTimeStampFromDoubleInput(stringValue.doubleValue()));
+    } catch (Exception e) {
+      return ExprNullValue.of();
+    }
+  }
+
   public static Double transferUnixTimeStampFromDoubleInput(Double value) {
     var format = (DecimalFormat) DecimalFormat.getNumberInstance(Locale.ROOT);
     format.applyPattern("0.#");
@@ -2191,26 +2246,6 @@ public class DateTimeFunctions {
         return value.dateValue().toEpochSecond(LocalTime.MIN, ZoneOffset.UTC) + 0d;
       case TIMESTAMP:
         return value.timestampValue().getEpochSecond() + value.timestampValue().getNano() / 1E9;
-      case STRING:
-        // Handle STRING timestamp inputs from bin operations
-        // When bin expressions use FROM_UNIXTIME, they produce timestamp strings that get passed
-        // back to UNIX_TIMESTAMP
-        // We need to parse these strings as timestamps, not as numeric inputs
-        String strValue = value.stringValue();
-        try {
-          // Try to parse as timestamp string first (YYYY-MM-DD HH:MM:SS format)
-          if (strValue.matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}(\\.\\d+)?")) {
-            return value.timestampValue().getEpochSecond() + value.timestampValue().getNano() / 1E9;
-          }
-        } catch (Exception e) {
-          // Fall through to numeric parsing
-        }
-        // Fall back to original numeric parsing for non-timestamp strings
-        try {
-          return transferUnixTimeStampFromDoubleInput(value.doubleValue());
-        } catch (Exception e) {
-          return null;
-        }
       default:
         //     ... or a number in YYMMDD, YYMMDDhhmmss, YYYYMMDD, or YYYYMMDDhhmmss format.
         //     If the argument includes a time part, it may optionally include a fractional
