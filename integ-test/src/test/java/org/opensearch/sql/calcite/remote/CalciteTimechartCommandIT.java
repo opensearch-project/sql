@@ -45,15 +45,10 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
     verifySchema(
         result,
         schema("$f2", "timestamp"),
-        schema("cache-01", "bigint"),
-        schema("cache-02", "bigint"),
         schema("db-01", "bigint"),
-        schema("db-02", "bigint"),
-        schema("lb-01", "bigint"),
         schema("web-01", "bigint"),
-        schema("web-02", "bigint"),
-        schema("web-03", "bigint"));
-    verifyDataRows(result, rows("2024-07-01 00:00:00", 1, 1, 1, 1, 1, 6, 5, 5));
+        schema("web-02", "bigint"));
+    verifyDataRows(result, rows("2024-07-01 00:00:00", 1, 2, 2));
     assertEquals(1, result.getInt("total"));
   }
 
@@ -63,38 +58,17 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
     verifySchema(
         result,
         schema("$f2", "timestamp"),
-        schema("cache-01", "bigint"),
-        schema("cache-02", "bigint"),
         schema("db-01", "bigint"),
-        schema("db-02", "bigint"),
-        schema("lb-01", "bigint"),
         schema("web-01", "bigint"),
-        schema("web-02", "bigint"),
-        schema("web-03", "bigint"));
+        schema("web-02", "bigint"));
     verifyDataRows(
         result,
-        rows("2024-07-01 00:00:00", null, null, null, null, null, 1, null, null),
-        rows("2024-07-01 00:01:00", null, null, null, null, null, null, 1, null),
-        rows("2024-07-01 00:02:00", null, null, null, null, null, 1, null, null),
-        rows("2024-07-01 00:03:00", null, null, null, null, null, null, null, 1),
-        rows("2024-07-01 00:04:00", null, null, null, null, null, null, 1, null),
-        rows("2024-07-01 00:05:00", null, null, null, null, null, 1, null, null),
-        rows("2024-07-01 00:06:00", null, null, null, null, null, null, null, 1),
-        rows("2024-07-01 00:07:00", null, null, null, null, null, null, 1, null),
-        rows("2024-07-01 00:08:00", null, null, null, null, null, 1, null, null),
-        rows("2024-07-01 00:09:00", null, null, null, null, null, null, null, 1),
-        rows("2024-07-01 00:10:00", null, null, null, null, null, null, 1, null),
-        rows("2024-07-01 00:11:00", null, null, null, null, null, 1, null, null),
-        rows("2024-07-01 00:12:00", null, null, null, null, null, null, null, 1),
-        rows("2024-07-01 00:13:00", null, null, null, null, null, null, 1, null),
-        rows("2024-07-01 00:14:00", null, null, null, null, null, 1, null, null),
-        rows("2024-07-01 00:15:00", null, null, null, null, null, null, null, 1),
-        rows("2024-07-01 00:16:00", null, null, 1, null, null, null, null, null),
-        rows("2024-07-01 00:17:00", null, null, null, 1, null, null, null, null),
-        rows("2024-07-01 00:18:00", 1, null, null, null, null, null, null, null),
-        rows("2024-07-01 00:19:00", null, 1, null, null, null, null, null, null),
-        rows("2024-07-01 00:20:00", null, null, null, null, 1, null, null, null));
-    assertEquals(21, result.getInt("total"));
+        rows("2024-07-01 00:00:00", null, 1, null),
+        rows("2024-07-01 00:01:00", null, null, 1),
+        rows("2024-07-01 00:02:00", null, 1, null),
+        rows("2024-07-01 00:03:00", 1, null, null),
+        rows("2024-07-01 00:04:00", null, null, 1));
+    assertEquals(5, result.getInt("total"));
   }
 
   @Test
@@ -119,7 +93,7 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
   public void testTimechartWithMinuteSpanNoGroupBy() throws IOException {
     JSONObject result = executeQuery("source=events | timechart span=1m avg(cpu_usage)");
     verifySchema(result, schema("$f2", "timestamp"), schema("$f1", "double"));
-    assertEquals(21, result.getInt("total"));
+    assertEquals(5, result.getInt("total"));
   }
 
   @Test
@@ -137,30 +111,12 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
         rows("2024-07-01 00:01:00", null, null, 1),
         rows("2024-07-01 00:02:00", null, 1, null),
         rows("2024-07-01 00:03:00", 1, null, null),
-        rows("2024-07-01 00:04:00", null, null, 1),
-        rows("2024-07-01 00:05:00", null, 1, null),
-        rows("2024-07-01 00:06:00", 1, null, null),
-        rows("2024-07-01 00:07:00", null, null, 1),
-        rows("2024-07-01 00:08:00", null, 1, null),
-        rows("2024-07-01 00:09:00", 1, null, null),
-        rows("2024-07-01 00:10:00", null, null, 1),
-        rows("2024-07-01 00:11:00", null, 1, null),
-        rows("2024-07-01 00:12:00", 1, null, null),
-        rows("2024-07-01 00:13:00", null, null, 1),
-        rows("2024-07-01 00:14:00", null, 1, null),
-        rows("2024-07-01 00:15:00", 1, null, null),
-        rows("2024-07-01 00:16:00", null, 1, null),
-        rows("2024-07-01 00:17:00", null, null, 1),
-        rows("2024-07-01 00:18:00", null, 1, null),
-        rows("2024-07-01 00:19:00", null, null, 1),
-        rows("2024-07-01 00:20:00", null, 1, null));
-    assertEquals(21, result.getInt("total"));
+        rows("2024-07-01 00:04:00", null, null, 1));
+    assertEquals(5, result.getInt("total"));
   }
 
   @Test
   public void testTimechartWithOtherCategory() throws IOException {
-    // This test verifies that when there are more than 10 distinct values in the split-by field,
-    // the top 10 values get their own columns and the rest are grouped into an "OTHER" column
     JSONObject result =
         executeQuery("source=events_many_hosts | timechart span=1h avg(cpu_usage) by host");
 
@@ -176,62 +132,43 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
     // Verify we have 1 data row (all events are at the same hour)
     assertEquals(1, result.getJSONArray("datarows").length());
 
-    // Verify the OTHER column has a value (not null)
+    // Verify the OTHER column has a value (not null) - should contain web-10 (lowest value)
     Object otherValue = result.getJSONArray("datarows").getJSONArray(0).get(11);
-    assertTrue("OTHER column should have a numeric value", otherValue instanceof Number);
+    assertEquals(35.9, ((Number) otherValue).doubleValue(), 0.01);
   }
 
   @Test
   public void testTimechartWithLimit() throws IOException {
     JSONObject result =
-        executeQuery("source=events | timechart span=1m limit=3 avg(cpu_usage) by host");
+        executeQuery("source=events | timechart span=1m limit=2 avg(cpu_usage) by host");
 
-    // Verify schema has 5 columns: timestamp + 3 limited hosts in original order + OTHER
+    // Verify schema has 4 columns: timestamp + 2 limited hosts + OTHER
     verifySchema(
         result,
         schema("$f3", "timestamp"),
         schema("web-01", "double"),
         schema("web-02", "double"),
-        schema("web-03", "double"),
         schema("OTHER", "double"));
 
-    // Verify exact data rows match expected output
     verifyDataRows(
         result,
-        rows("2024-07-01 00:00:00", 45.2, null, null, null),
-        rows("2024-07-01 00:01:00", null, 38.7, null, null),
-        rows("2024-07-01 00:02:00", 55.3, null, null, null),
-        rows("2024-07-01 00:03:00", null, null, 42.1, null),
-        rows("2024-07-01 00:04:00", null, 41.8, null, null),
-        rows("2024-07-01 00:05:00", 39.4, null, null, null),
-        rows("2024-07-01 00:06:00", null, null, 48.6, null),
-        rows("2024-07-01 00:07:00", null, 44.2, null, null),
-        rows("2024-07-01 00:08:00", 67.8, null, null, null),
-        rows("2024-07-01 00:09:00", null, null, 35.9, null),
-        rows("2024-07-01 00:10:00", null, 43.1, null, null),
-        rows("2024-07-01 00:11:00", 37.5, null, null, null),
-        rows("2024-07-01 00:12:00", null, null, 59.7, null),
-        rows("2024-07-01 00:13:00", null, 32.4, null, null),
-        rows("2024-07-01 00:14:00", 49.8, null, null, null),
-        rows("2024-07-01 00:15:00", null, null, 40.3, null),
-        rows("2024-07-01 00:16:00", null, null, null, 78.2),
-        rows("2024-07-01 00:17:00", null, null, null, 71.6),
-        rows("2024-07-01 00:18:00", null, null, null, 15.8),
-        rows("2024-07-01 00:19:00", null, null, null, 12.4),
-        rows("2024-07-01 00:20:00", null, null, null, 8.9));
+        rows("2024-07-01 00:00:00", 45.2, null, null),
+        rows("2024-07-01 00:01:00", null, 38.7, null),
+        rows("2024-07-01 00:02:00", 55.3, null, null),
+        rows("2024-07-01 00:03:00", null, null, 42.1),
+        rows("2024-07-01 00:04:00", null, 41.8, null));
 
-    assertEquals(21, result.getInt("total"));
+    assertEquals(5, result.getInt("total"));
   }
 
   @Test
   public void testTimechartWithLimitZero() throws IOException {
-    // Test with limit=0 which means no limit (show all distinct values)
     JSONObject result =
         executeQuery(
             "source=events_many_hosts | timechart span=1h limit=0 useother=t avg(cpu_usage) by"
                 + " host");
 
-    // Verify schema has 16 columns: timestamp + all 15 hosts (no OTHER column)
+    // Verify schema has 12 columns: timestamp + all 11 hosts (no OTHER column)
     verifySchema(
         result,
         schema("$f3", "timestamp"),
@@ -245,13 +182,8 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
         schema("web-08", "double"),
         schema("web-09", "double"),
         schema("web-10", "double"),
-        schema("web-11", "double"),
-        schema("web-12", "double"),
-        schema("web-13", "double"),
-        schema("web-14", "double"),
-        schema("web-15", "double"));
+        schema("web-11", "double"));
 
-    // Verify we have 1 data row with all hosts' values
     verifyDataRows(
         result,
         rows(
@@ -266,76 +198,68 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
             44.2,
             67.8,
             35.9,
-            43.1,
-            37.5,
-            59.7,
-            32.4,
-            49.8));
+            43.1));
 
     assertEquals(1, result.getInt("total"));
   }
 
   @Test
   public void testTimechartWithUseOtherFalse() throws IOException {
-    // Test with useother=false which should show top 10 hosts without an OTHER column
     JSONObject result =
         executeQuery(
             "source=events_many_hosts | timechart span=1h useother=false avg(cpu_usage) by host");
 
-    // Verify schema has 11 columns: timestamp + top 10 hosts in original order (no OTHER column)
+    // Verify schema has 11 columns: timestamp + top 10 hosts (no OTHER column)
     verifySchema(
         result,
         schema("$f3", "timestamp"),
-        schema("web-01", "double"), // Original order, but top 10 by score
+        schema("web-01", "double"),
+        schema("web-02", "double"),
         schema("web-03", "double"),
         schema("web-04", "double"),
         schema("web-05", "double"),
+        schema("web-06", "double"),
         schema("web-07", "double"),
         schema("web-08", "double"),
         schema("web-09", "double"),
-        schema("web-11", "double"),
-        schema("web-13", "double"),
-        schema("web-15", "double"));
+        schema("web-11", "double"));
 
-    // Verify we have 1 data row with top 10 hosts' values in original order
     verifyDataRows(
         result,
         rows(
             "2024-07-01 00:00:00",
-            45.2, // web-01
-            55.3, // web-03
-            42.1, // web-04
-            41.8, // web-05
-            48.6, // web-07
-            44.2, // web-08
-            67.8, // web-09
-            43.1, // web-11
-            59.7, // web-13
-            49.8)); // web-15
+            45.2,
+            38.7,
+            55.3,
+            42.1,
+            41.8,
+            39.4,
+            48.6,
+            44.2,
+            67.8,
+            43.1));
 
     assertEquals(1, result.getInt("total"));
   }
 
   @Test
   public void testTimechartWithLimitAndUseOther() throws IOException {
-    // Test with limit=3 and useother=true (default) which should show top 3 hosts and an OTHER
-    // column
     JSONObject result =
         executeQuery(
             "source=events_many_hosts | timechart span=1h limit=3 useother=t avg(cpu_usage) by"
                 + " host");
 
-    // Verify schema has 5 columns: timestamp + 3 limited hosts in original order + OTHER
+    // Verify schema has 5 columns: timestamp + 3 limited hosts + OTHER
     verifySchema(
         result,
         schema("$f3", "timestamp"),
-        schema("web-03", "double"), // Original order: web-03 (55.3)
-        schema("web-09", "double"), // Original order: web-09 (67.8)
-        schema("web-13", "double"), // Original order: web-13 (59.7)
+        schema("web-03", "double"),
+        schema("web-07", "double"),
+        schema("web-09", "double"),
         schema("OTHER", "double"));
 
-    // Verify we have 1 data row with top 3 hosts' values in original order and OTHER
-    verifyDataRows(result, rows("2024-07-01 00:00:00", 55.3, 67.8, 59.7, 498.7));
+    // OTHER = sum of remaining 8 hosts = 330.4
+    verifyDataRows(result, rows("2024-07-01 00:00:00", 55.3, 48.6, 67.8, 330.4));
 
     assertEquals(1, result.getInt("total"));
   }
