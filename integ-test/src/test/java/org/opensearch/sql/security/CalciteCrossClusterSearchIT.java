@@ -90,7 +90,11 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
             String.format(
                 "search source=%s | fields dog_name, age holdersName", TEST_INDEX_DOG_REMOTE));
     verifyColumn(result, columnName("dog_name"), columnName("age"), columnName("holdersName"));
-    verifySchema(result, schema("dog_name", "string"), schema("age", "bigint"), schema("holdersName", "string"));
+    verifySchema(
+        result,
+        schema("dog_name", "string"),
+        schema("age", "bigint"),
+        schema("holdersName", "string"));
   }
 
   @Test
@@ -106,7 +110,11 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(String.format("search source=%s | fields *", TEST_INDEX_DOG_REMOTE));
     verifyColumn(result, columnName("dog_name"), columnName("holdersName"), columnName("age"));
-    verifySchema(result, schema("dog_name", "string"), schema("holdersName", "string"), schema("age", "bigint"));
+    verifySchema(
+        result,
+        schema("dog_name", "string"),
+        schema("holdersName", "string"),
+        schema("age", "bigint"));
   }
 
   @Test
