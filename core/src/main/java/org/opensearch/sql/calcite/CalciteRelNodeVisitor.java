@@ -421,6 +421,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             String.format("the target expected to be field, but is %s", renameMap.getTarget()));
       }
 
+      // Handle wildcards
       if (renameMap.getOrigin() instanceof Field
           && WildcardRenameUtils.isWildcardPattern(
               ((Field) renameMap.getOrigin()).getField().toString())) {
@@ -432,7 +433,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               "Source and target patterns have different wildcard counts");
         }
 
-        // Handle wildcard rename for Calcite
         Set<String> availableFields = new HashSet<>(originalNames);
         List<String> matchingFields =
             WildcardRenameUtils.matchFieldNames(sourcePattern, availableFields);

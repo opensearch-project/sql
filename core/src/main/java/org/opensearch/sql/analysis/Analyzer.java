@@ -314,6 +314,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     Set<String> availableFields = getAvailableFieldNames(context);
 
     for (Map renameMap : node.getRenameList()) {
+      if (!(renameMap.getTarget() instanceof Field)) {
+        throw new SemanticCheckException(
+            String.format("the target expected to be field, but is %s", renameMap.getTarget()));
+      }
+
       if (renameMap.getOrigin() instanceof Field
           && WildcardRenameUtils.isWildcardPattern(
               ((Field) renameMap.getOrigin()).getField().toString())) {
@@ -355,19 +360,14 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       } else {
         Expression origin = expressionAnalyzer.analyze(renameMap.getOrigin(), context);
         // We should define the new target field in the context instead of analyze it.
-        if (renameMap.getTarget() instanceof Field) {
-          ReferenceExpression target =
-              new ReferenceExpression(
-                  ((Field) renameMap.getTarget()).getField().toString(), origin.type());
-          ReferenceExpression originExpr = DSL.ref(origin.toString(), origin.type());
-          TypeEnvironment curEnv = context.peek();
-          curEnv.remove(originExpr);
-          curEnv.define(target);
-          renameMapBuilder.put(originExpr, target);
-        } else {
-          throw new SemanticCheckException(
-              String.format("the target expected to be field, but is %s", renameMap.getTarget()));
-        }
+        ReferenceExpression target =
+            new ReferenceExpression(
+                ((Field) renameMap.getTarget()).getField().toString(), origin.type());
+        ReferenceExpression originExpr = DSL.ref(origin.toString(), origin.type());
+        TypeEnvironment curEnv = context.peek();
+        curEnv.remove(originExpr);
+        curEnv.define(target);
+        renameMapBuilder.put(originExpr, target);
       }
     }
 
