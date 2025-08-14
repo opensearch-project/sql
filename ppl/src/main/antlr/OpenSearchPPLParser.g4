@@ -73,6 +73,7 @@ commands
    | expandCommand
    | flattenCommand
    | reverseCommand
+   | regexCommand
    ;
 
 commandName
@@ -106,6 +107,7 @@ commandName
    | TRENDLINE
    | EXPLAIN
    | REVERSE
+   | REGEX
    ;
 
 searchCommand
@@ -241,6 +243,15 @@ pathElement
 pathArrayAccess
    : LT_CURLY (INTEGER_LITERAL)? RT_CURLY
    ;
+regexCommand
+    : REGEX regexExpr
+    ;
+
+regexExpr
+    : pattern=stringLiteral
+    | field=qualifiedName EQUAL pattern=stringLiteral
+    | field=qualifiedName NOT_EQUAL pattern=stringLiteral
+    ;
 
 patternsMethod
    : PUNCT

@@ -429,6 +429,9 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
           "pattern",
           ReturnTypes.explicit(UserDefinedFunctionUtils.nullablePatternAggList),
           null);
+  // Custom PCRE2 regex operator for Calcite engine
+  public static final SqlOperator REGEX_MATCH =
+      new org.opensearch.sql.expression.function.udf.RegexMatchFunctionImpl().toUDF("REGEX_MATCH");
 
   public static final SqlOperator ENHANCED_COALESCE =
       new EnhancedCoalesceFunction().toUDF("COALESCE");
