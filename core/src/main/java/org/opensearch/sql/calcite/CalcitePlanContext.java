@@ -38,6 +38,7 @@ public class CalcitePlanContext {
 
   @Getter @Setter private boolean isResolvingJoinCondition = false;
   @Getter @Setter private boolean isResolvingSubquery = false;
+  @Getter @Setter private boolean inCoalesceFunction = false;
 
   /**
    * The flag used to determine whether we do metadata field projection for user 1. If a project is
