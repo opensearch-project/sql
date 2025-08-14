@@ -293,7 +293,7 @@ public class AggregatorFunctions {
                             new FunctionSignature(functionName, Collections.singletonList(type)),
                         type ->
                             (functionProperties, arguments) ->
-                                new ListAggregator(arguments, ARRAY))));
+                                new CalciteOnlyAggregator("list", arguments, ARRAY))));
     return functionResolver;
   }
 
@@ -309,7 +309,7 @@ public class AggregatorFunctions {
                             new FunctionSignature(functionName, Collections.singletonList(type)),
                         type ->
                             (functionProperties, arguments) ->
-                                new ValuesAggregator(arguments, ARRAY))));
+                                new CalciteOnlyAggregator("values", arguments, ARRAY))));
     return functionResolver;
   }
 }

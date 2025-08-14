@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.calcite.udf.udaf;
 
-import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -14,14 +13,10 @@ import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 
 /**
  * Values aggregation function that collects unique values into a lexicographically sorted array.
- * Implements SPL-compatible behavior:
- * - Converts all input values to strings
- * - Removes duplicates
- * - Returns results in lexicographical (dictionary) order
- * - No limit on number of unique values
- * - Filters out null values
+ * SPL-compatible behavior: removes duplicates, sorts lexicographically, filters nulls.
  */
-public class ValuesAggFunction implements UserDefinedAggFunction<ValuesAggFunction.ValuesAccumulator> {
+public class ValuesAggFunction
+    implements UserDefinedAggFunction<ValuesAggFunction.ValuesAccumulator> {
 
   @Override
   public ValuesAccumulator init() {
@@ -35,15 +30,20 @@ public class ValuesAggFunction implements UserDefinedAggFunction<ValuesAggFuncti
 
   @Override
   public ValuesAccumulator add(ValuesAccumulator acc, Object... values) {
+    // Handle case where no values are passed
+    if (values == null || values.length == 0) {
+      return acc;
+    }
+
     Object value = values[0];
-    
+
     // Filter out null values (SPL behavior)
     if (value != null) {
-      // Convert to string (SPL behavior)
-      String stringValue = value.toString();
+      // Convert value to string, handling all types safely
+      String stringValue = String.valueOf(value);
       acc.add(stringValue);
     }
-    
+
     return acc;
   }
 
@@ -57,9 +57,7 @@ public class ValuesAggFunction implements UserDefinedAggFunction<ValuesAggFuncti
     @Override
     public Object value(Object... argList) {
       // Return sorted list in lexicographical order (SPL behavior)
-      List<String> sortedValues = uniqueValues.stream()
-          .sorted()
-          .collect(Collectors.toList());
+      List<String> sortedValues = uniqueValues.stream().sorted().collect(Collectors.toList());
       return sortedValues;
     }
 

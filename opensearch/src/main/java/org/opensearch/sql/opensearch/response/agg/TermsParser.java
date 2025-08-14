@@ -25,15 +25,17 @@ public class TermsParser implements MetricParser {
   @Override
   public Map<String, Object> parse(Aggregation agg) {
     Terms terms = (Terms) agg;
-    List<String> values = terms.getBuckets().stream()
-        .map(bucket -> String.valueOf(bucket.getKey())) // Convert all keys to strings
-        .collect(Collectors.toList());
-    
+    List<String> values =
+        terms.getBuckets().stream()
+            .map(bucket -> String.valueOf(bucket.getKey())) // Convert all keys to strings
+            .collect(Collectors.toList());
+
     // Note: OpenSearch terms aggregation returns results in order by doc_count (desc) by default
     // For list() function: preserve this order and limit to 100 (handled by .size(100) in builder)
-    // For values() function: sort lexicographically (OpenSearch doesn't guarantee lexicographic order by default)
+    // For values() function: sort lexicographically (OpenSearch doesn't guarantee lexicographic
+    // order by default)
     // The specific behavior (sort/no-sort) is determined by the aggregation builder configuration
-    
+
     return Collections.singletonMap(agg.getName(), values);
   }
 }

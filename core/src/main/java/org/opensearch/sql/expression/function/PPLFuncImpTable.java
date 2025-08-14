@@ -210,8 +210,8 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.UPPER;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.UTC_DATE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.UTC_TIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.UTC_TIMESTAMP;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.VARPOP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.VALUES;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.VARPOP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.VARSAMP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEK;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEKDAY;
@@ -1200,7 +1200,7 @@ public class PPLFuncImpTable {
               createAggregateFunction(
                   ListAggFunction.class,
                   "list",
-                  UserDefinedFunctionUtils.getReturnTypeInferenceForArray(),
+                  UserDefinedFunctionUtils.getReturnTypeInferenceForStringArray(),
                   List.of(field),
                   argList,
                   ctx.relBuilder),
@@ -1212,7 +1212,7 @@ public class PPLFuncImpTable {
               createAggregateFunction(
                   ValuesAggFunction.class,
                   "values",
-                  UserDefinedFunctionUtils.getReturnTypeInferenceForArray(),
+                  UserDefinedFunctionUtils.getReturnTypeInferenceForStringArray(),
                   List.of(field),
                   argList,
                   ctx.relBuilder),
