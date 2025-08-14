@@ -25,7 +25,6 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
-import org.apache.calcite.util.BuiltInMethod;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -88,7 +87,6 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   private static final Supplier<PPLBuiltinOperators> INSTANCE =
       Suppliers.memoize(() -> (PPLBuiltinOperators) new PPLBuiltinOperators().init());
 
-  // Json Functions
   public static final SqlOperator JSON = new JsonFunctionImpl().toUDF("JSON");
   public static final SqlOperator JSON_ARRAY_LENGTH =
       new JsonArrayLengthFunctionImpl().toUDF("JSON_ARRAY_LENGTH");
@@ -100,7 +98,6 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator JSON_APPEND = new JsonAppendFunctionImpl().toUDF("JSON_APPEND");
   public static final SqlOperator JSON_EXTEND = new JsonExtendFunctionImpl().toUDF("JSON_EXTEND");
 
-  // Math functions
   public static final SqlOperator SPAN = new SpanFunction().toUDF("SPAN");
   public static final SqlOperator E = new EulerFunction().toUDF("E");
   public static final SqlOperator CONV = new ConvFunction().toUDF("CONVERT");
@@ -130,7 +127,6 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               "expm1", ReturnTypes.DOUBLE_FORCE_NULLABLE, NullPolicy.ANY, PPLOperandTypes.NUMERIC)
           .toUDF("EXPM1");
 
-  // IP comparing functions
   public static final SqlOperator NOT_EQUALS_IP =
       CompareIpFunction.notEquals().toUDF("NOT_EQUALS_IP");
   public static final SqlOperator EQUALS_IP = CompareIpFunction.equals().toUDF("EQUALS_IP");
@@ -139,11 +135,9 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator LESS_IP = CompareIpFunction.less().toUDF("LESS_IP");
   public static final SqlOperator LTE_IP = CompareIpFunction.lessOrEquals().toUDF("LTE_IP");
 
-  // Condition function
   public static final SqlOperator EARLIEST = new EarliestFunction().toUDF("EARLIEST");
   public static final SqlOperator LATEST = new LatestFunction().toUDF("LATEST");
 
-  // Datetime function
   public static final SqlOperator TIMESTAMP = new TimestampFunction().toUDF("TIMESTAMP");
   public static final SqlOperator DATE =
       adaptExprMethodToUDF(
@@ -299,7 +293,6 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               PPLOperandTypes.DATETIME_OR_STRING)
           .toUDF("TIME");
 
-  // IP cast function
   public static final SqlOperator IP = new IPFunction().toUDF("IP");
   public static final SqlOperator TIME_TO_SEC =
       adaptExprMethodToUDF(
@@ -381,23 +374,13 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator NUMBER_TO_STRING =
       new NumberToStringFunction().toUDF("NUMBER_TO_STRING");
 
-  public static final SqlOperator ENHANCED_COALESCE = 
+  public static final SqlOperator ENHANCED_COALESCE =
       new EnhancedCoalesceFunction().toUDF("COALESCE");
 
-  /**
-   * Returns the PPL specific operator table, creating it if necessary.
-   *
-   * @return PPLBuiltinOperators operator table
-   */
   public static PPLBuiltinOperators instance() {
     return INSTANCE.get();
   }
 
-  /**
-   * Invoking an implementor registered in {@link RexImpTable}, need to use reflection since they're
-   * all private Use method directly in {@link BuiltInMethod} if possible, most operators'
-   * implementor could be substituted by a single method.
-   */
   private static Expression invokeCalciteImplementor(
       RexToLixTranslator translator, RexCall call, SqlOperator operator, Expression field)
       throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {

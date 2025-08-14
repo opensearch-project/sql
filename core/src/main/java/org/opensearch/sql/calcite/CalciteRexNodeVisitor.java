@@ -244,35 +244,31 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     return context.rexBuilder.equals(left, right);
   }
 
-  /** Resolve qualified name. Note, the name should be case-sensitive. */
   @Override
   public RexNode visitQualifiedName(QualifiedName node, CalcitePlanContext context) {
-    // 1. resolve QualifiedName in join condition
+
     if (context.isResolvingJoinCondition()) {
       List<String> parts = node.getParts();
       if (parts.size() == 1) {
-        // 1.1 Handle the case of `id = cid`
+
         try {
           return context.relBuilder.field(2, 0, parts.getFirst());
         } catch (IllegalArgumentException ee) {
           return context.relBuilder.field(2, 1, parts.getFirst());
         }
       } else if (parts.size() == 2) {
-        // 1.2 Handle the case of `t1.id = t2.id` or `alias1.id = alias2.id`
         try {
           return context.relBuilder.field(2, parts.get(0), parts.get(1));
         } catch (IllegalArgumentException e) {
-          // Similar to the step 2.3.
+
           List<String> candidates =
               context.relBuilder.peek(1).getRowType().getFieldNames().stream()
                   .filter(col -> substringAfterLast(col, ".").equals(parts.getLast()))
                   .toList();
           for (String candidate : candidates) {
             try {
-              // field("nation2", "n2.n_name"); // pass
               return context.relBuilder.field(2, parts.get(0), candidate);
             } catch (IllegalArgumentException e1) {
-              // field("nation2", "n_name"); // do nothing when fail (n_name is field of nation1)
             }
           }
           throw new UnsupportedOperationException("Unsupported qualified name: " + node);
@@ -282,59 +278,47 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       }
     }
 
-    // TODO: Need to support nested fields https://github.com/opensearch-project/sql/issues/3459
-    // 2. resolve QualifiedName in non-join condition
     String qualifiedName = node.toString();
     if (context.getRexLambdaRefMap().containsKey(qualifiedName)) {
       return context.getRexLambdaRefMap().get(qualifiedName);
     }
     List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
-    
-    // For coalesce function, allow non-existent fields (treated as null)
+
     if (!currentFields.contains(qualifiedName) && context.isInCoalesceFunction()) {
       return context.rexBuilder.makeNullLiteral(
           context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR));
     }
-    
+
     if (currentFields.contains(qualifiedName)) {
-      // 2.1 resolve QualifiedName from stack top
-      // Note: QualifiedName with multiple parts also could be applied in step 2.1,
-      // for example `n2.n_name` or `nation2.n_name` in the output of join can be resolved here.
+
       return context.relBuilder.field(qualifiedName);
     } else if (node.getParts().size() == 2) {
-      // 2.2 resolve QualifiedName with an alias or table name
+
       List<String> parts = node.getParts();
       try {
         return context.relBuilder.field(1, parts.get(0), parts.get(1));
       } catch (IllegalArgumentException e) {
-        // 2.3 For field which renamed with <alias.field>, to resolve the field with table
-        // identifier
-        // `nation2.n_name`,
-        // we convert it to resolve <table.alias.field>, e.g. `nation2.n2.n_name`
-        // `n2.n_name` was the renamed field name from the duplicated field `(nation2.)n_name0` of
-        // join output.
-        // Build the candidates which contains `n_name`: e.g. `(nation1.)n_name`, `n2.n_name`
+
         List<String> candidates =
             context.relBuilder.peek().getRowType().getFieldNames().stream()
                 .filter(col -> substringAfterLast(col, ".").equals(parts.getLast()))
                 .toList();
         for (String candidate : candidates) {
           try {
-            // field("nation2", "n2.n_name"); // pass
+
             return context.relBuilder.field(parts.get(0), candidate);
           } catch (IllegalArgumentException e1) {
-            // field("nation2", "n_name"); // do nothing when fail (n_name is field of nation1)
+
           }
         }
-        // 2.4 resolve QualifiedName with outer alias
-        // check existing of parts.get(0)
+
         return context
             .peekCorrelVar()
             .map(correlVar -> context.relBuilder.field(correlVar, parts.get(1)))
-            .orElseThrow(() -> e); // Re-throw the exception if no correlated variable exists
+            .orElseThrow(() -> e);
       }
     } else if (currentFields.stream().noneMatch(f -> f.startsWith(qualifiedName))) {
-      // 2.5 try resolving combination of 2.1 and 2.4 to resolve rest cases
+
       return context
           .peekCorrelVar()
           .map(correlVar -> context.relBuilder.field(correlVar, qualifiedName))
@@ -349,7 +333,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   @Override
   public RexNode visitAlias(Alias node, CalcitePlanContext context) {
     RexNode expr = analyze(node.getDelegated(), context);
-    // Only OpenSearch SQL uses node.getAlias, OpenSearch PPL uses node.getName.
+
     return context.relBuilder.alias(
         expr, Strings.isEmpty(node.getAlias()) ? node.getName() : node.getAlias());
   }
@@ -399,11 +383,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     return context.relBuilder.alias(expr, node.getVar().getField().toString());
   }
 
-  /**
-   * The function will clone a context for lambda function. For lambda like (x, y, z) -> ..., we
-   * will map type for each lambda argument by the order of previous argument. Also, the function
-   * will add these variables to the context so they can pass visitQualifiedName
-   */
   public CalcitePlanContext prepareLambdaContext(
       CalcitePlanContext context,
       LambdaFunction node,
@@ -413,9 +392,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     try {
       CalcitePlanContext lambdaContext = context.clone();
       List<RelDataType> candidateType = new ArrayList<>();
-      candidateType.add(
-          ((ArraySqlType) previousArgument.get(0).getType())
-              .getComponentType()); // The first argument should be array type
+      candidateType.add(((ArraySqlType) previousArgument.get(0).getType()).getComponentType());
       candidateType.addAll(previousArgument.stream().skip(1).map(RexNode::getType).toList());
       candidateType =
           modifyLambdaTypeByFunction(functionName, candidateType, defaultTypeForReduceAcc);
@@ -429,9 +406,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
           type = candidateType.get(candidateIndex);
           candidateIndex++;
         } else {
-          type =
-              TYPE_FACTORY.createSqlType(
-                  SqlTypeName.INTEGER); // For transform function, the i is missing in input.
+          type = TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER);
         }
         lambdaTypes.put(
             argNames.get(i).toString(), new RexLambdaRef(i, argNames.get(i).toString(), type));
@@ -443,19 +418,12 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     }
   }
 
-  /**
-   * @param functionName function name
-   * @param originalType the argument type by order
-   * @return a modified types. Different functions need to implement its own order. Currently, only
-   *     reduce has special logic.
-   */
   private List<RelDataType> modifyLambdaTypeByFunction(
       String functionName,
       List<RelDataType> originalType,
       @Nullable RelDataType defaultTypeForReduceAcc) {
     switch (functionName.toUpperCase(Locale.ROOT)) {
-      case "REDUCE": // For reduce case, the first type is acc should be any since it is the output
-        // of accumulator lambda function
+      case "REDUCE":
         if (originalType.size() == 2) {
           if (defaultTypeForReduceAcc != null) {
             return List.of(defaultTypeForReduceAcc, originalType.get(0));
@@ -473,12 +441,12 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   public RexNode visitFunction(Function node, CalcitePlanContext context) {
     List<UnresolvedExpression> args = node.getFuncArgs();
     List<RexNode> arguments = new ArrayList<>();
-    
+
     boolean isCoalesce = "coalesce".equalsIgnoreCase(node.getFuncName());
     if (isCoalesce) {
       context.setInCoalesceFunction(true);
     }
-    
+
     try {
       for (UnresolvedExpression arg : args) {
         if (arg instanceof LambdaFunction) {
@@ -486,7 +454,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
               prepareLambdaContext(
                   context, (LambdaFunction) arg, arguments, node.getFuncName(), null);
           RexNode lambdaNode = analyze(arg, lambdaContext);
-          if (node.getFuncName().equalsIgnoreCase("reduce")) { // analyze again with calculate type
+          if (node.getFuncName().equalsIgnoreCase("reduce")) {
             lambdaContext =
                 prepareLambdaContext(
                     context,
@@ -543,7 +511,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
                     "Unexpected window function: " + windowFunction.getFuncName()));
   }
 
-  /** extract the expression of Alias from a node */
   private RexNode extractRexNodeFromAlias(RexNode node) {
     requireNonNull(node);
     if (node.getKind() == AS) {
@@ -563,16 +530,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
           "The number of columns in the left hand side of an IN subquery does not match the number"
               + " of columns in the output of subquery");
     }
-    // TODO
-    //  The {@link org.apache.calcite.tools.RelBuilder#in(RexNode,java.util.function.Function)}
-    //  only support one expression. Change to follow code after calcite fixed.
-    //    return context.relBuilder.in(
-    //        nodes.getFirst(),
-    //        b -> {
-    //          RelNode subqueryRel = subquery.accept(planVisitor, context);
-    //          b.build();
-    //          return subqueryRel;
-    //        });
+
     return context.relBuilder.in(subqueryRel, nodes);
   }
 
@@ -597,20 +555,19 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   private RelNode resolveSubqueryPlan(UnresolvedPlan subquery, CalcitePlanContext context) {
     boolean isNestedSubquery = context.isResolvingSubquery();
     context.setResolvingSubquery(true);
-    // clear and store the outer state
+
     boolean isResolvingJoinConditionOuter = context.isResolvingJoinCondition();
     if (isResolvingJoinConditionOuter) {
       context.setResolvingJoinCondition(false);
     }
     RelNode subqueryRel = subquery.accept(planVisitor, context);
-    // pop the inner plan
+
     context.relBuilder.build();
-    // clear the exists subquery resolving state
-    // restore to the previous state
+
     if (isResolvingJoinConditionOuter) {
       context.setResolvingJoinCondition(true);
     }
-    // Only need to set isResolvingSubquery to false if it's not nested subquery.
+
     if (!isNestedSubquery) {
       context.setResolvingSubquery(false);
     }
@@ -624,7 +581,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
         OpenSearchTypeFactory.convertExprTypeToRelDataType(node.getDataType().getCoreType());
     RelDataType nullableType =
         context.rexBuilder.getTypeFactory().createTypeWithNullability(type, true);
-    // call makeCast() instead of cast() because the saft parameter is true could avoid exception.
+
     return context.rexBuilder.makeCast(nullableType, expr, true, true);
   }
 
@@ -641,9 +598,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     return context.rexBuilder.makeCall(SqlStdOperatorTable.CASE, caseOperands);
   }
 
-  /*
-   * Unsupported Expressions of PPL with Calcite for OpenSearch 3.0.0-beta
-   */
   @Override
   public RexNode visitWhen(When node, CalcitePlanContext context) {
     throw new CalciteUnsupportedException("CastWhen function is unsupported in Calcite");
@@ -673,10 +627,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   @Override
   public RexNode visitUnresolvedArgument(UnresolvedArgument node, CalcitePlanContext context) {
     RexNode value = analyze(node.getValue(), context);
-    /*
-     * Calcite SqlStdOperatorTable.AS doesn't have implementor registration in RexImpTable.
-     * To not block ReduceExpressionsRule constants reduction optimization, use MAP_VALUE_CONSTRUCTOR instead to achieve the same effect.
-     */
+
     return context.rexBuilder.makeCall(
         SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
         context.rexBuilder.makeLiteral(node.getArgName()),

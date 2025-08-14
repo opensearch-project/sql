@@ -6,16 +6,16 @@
 package org.opensearch.sql.expression.function.udf.condition;
 
 import java.util.List;
-import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.data.model.ExprValueUtils;
-import org.opensearch.sql.expression.function.ImplementorUDF;
-import org.opensearch.sql.expression.function.UDFOperandMetadata;
-import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 public class EnhancedCoalesceFunction extends ImplementorUDF {
 
@@ -25,22 +25,24 @@ public class EnhancedCoalesceFunction extends ImplementorUDF {
 
   private static NotNullImplementor createImplementor() {
     return (translator, call, translatedOperands) -> {
+      List<Expression> exprValues =
+          translatedOperands.stream()
+              .map(operand -> Expressions.convert_(operand, Object.class))
+              .map(
+                  operand ->
+                      (Expression)
+                          Expressions.call(ExprValueUtils.class, "fromObjectValue", operand))
+              .collect(java.util.stream.Collectors.toList());
 
-      List<Expression> exprValues = translatedOperands.stream()
-          .map(operand -> Expressions.convert_(operand, Object.class))
-          .map(operand -> (Expression) Expressions.call(
-              ExprValueUtils.class, "fromObjectValue", operand))
-          .collect(java.util.stream.Collectors.toList());
-
-
-      Expression result = Expressions.call(
-          EnhancedCoalesceFunction.class, "enhancedCoalesce", 
-          Expressions.newArrayInit(ExprValue.class, exprValues));
+      Expression result =
+          Expressions.call(
+              EnhancedCoalesceFunction.class,
+              "enhancedCoalesce",
+              Expressions.newArrayInit(ExprValue.class, exprValues));
 
       return Expressions.call(result, "valueForCalcite");
     };
   }
-
 
   public static ExprValue enhancedCoalesce(ExprValue... args) {
     for (ExprValue arg : args) {
