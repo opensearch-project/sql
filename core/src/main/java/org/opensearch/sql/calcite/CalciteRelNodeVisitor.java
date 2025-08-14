@@ -414,35 +414,39 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     visitChildren(node, context);
     List<String> originalNames = context.relBuilder.peek().getRowType().getFieldNames();
     List<String> newNames = new ArrayList<>(originalNames);
-    
+
     for (org.opensearch.sql.ast.expression.Map renameMap : node.getRenameList()) {
       if (!(renameMap.getTarget() instanceof Field)) {
         throw new SemanticCheckException(
             String.format("the target expected to be field, but is %s", renameMap.getTarget()));
       }
-      
-      if (renameMap.getOrigin() instanceof Field && 
-          WildcardRenameUtils.isWildcardPattern(((Field) renameMap.getOrigin()).getField().toString())) {
+
+      if (renameMap.getOrigin() instanceof Field
+          && WildcardRenameUtils.isWildcardPattern(
+              ((Field) renameMap.getOrigin()).getField().toString())) {
         String sourcePattern = ((Field) renameMap.getOrigin()).getField().toString();
         String targetPattern = ((Field) renameMap.getTarget()).getField().toString();
-        
+
         if (!WildcardRenameUtils.validatePatternCompatibility(sourcePattern, targetPattern)) {
-          throw new SemanticCheckException("Source and target patterns have different wildcard counts");
+          throw new SemanticCheckException(
+              "Source and target patterns have different wildcard counts");
         }
-        
+
         // Handle wildcard rename for Calcite
         Set<String> availableFields = new HashSet<>(originalNames);
-        List<String> matchingFields = WildcardRenameUtils.matchFieldNames(sourcePattern, availableFields);
-        
+        List<String> matchingFields =
+            WildcardRenameUtils.matchFieldNames(sourcePattern, availableFields);
+
         if (matchingFields.isEmpty()) {
           throw new SemanticCheckException(
-                  String.format("No fields match the pattern '%s'", sourcePattern));
+              String.format("No fields match the pattern '%s'", sourcePattern));
         }
-        
+
         for (String fieldName : matchingFields) {
-          String newName = WildcardRenameUtils.applyWildcardTransformation(
+          String newName =
+              WildcardRenameUtils.applyWildcardTransformation(
                   sourcePattern, targetPattern, fieldName);
-          
+
           int fieldIndex = originalNames.indexOf(fieldName);
           if (fieldIndex >= 0) {
             newNames.set(fieldIndex, newName);

@@ -7,12 +7,10 @@ package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
-import static org.opensearch.sql.util.MatcherUtils.columnPattern;
 import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
 
 import java.io.IOException;
 import org.json.JSONObject;
-import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 
 public class RenameCommandIT extends PPLIntegTestCase {
@@ -45,35 +43,49 @@ public class RenameCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testRenameWildcardFields() throws IOException {
-    JSONObject result = executeQuery("source=" + TEST_INDEX_ACCOUNT + " | fields firstname, lastname | rename *name as *NAME");
+    JSONObject result =
+        executeQuery(
+            "source="
+                + TEST_INDEX_ACCOUNT
+                + " | fields firstname, lastname | rename *name as *NAME");
     verifyColumn(result, columnName("firstNAME"), columnName("lastNAME"));
   }
 
   @Test
   public void testRenameMultipleWildcardFields() throws IOException {
-    JSONObject result = executeQuery(
-        "source=" + TEST_INDEX_ACCOUNT + " | fields firstname, lastname, age | rename *name as new_*");
+    JSONObject result =
+        executeQuery(
+            "source="
+                + TEST_INDEX_ACCOUNT
+                + " | fields firstname, lastname, age | rename *name as new_*");
     verifyColumn(result, columnName("new_first"), columnName("new_last"), columnName("age"));
   }
 
-  @Test  
+  @Test
   public void testRenameWildcardPrefix() throws IOException {
-    JSONObject result = executeQuery(
-        "source=" + TEST_INDEX_ACCOUNT + " | fields firstname, lastname, age | rename first* as FIRST*");
+    JSONObject result =
+        executeQuery(
+            "source="
+                + TEST_INDEX_ACCOUNT
+                + " | fields firstname, lastname, age | rename first* as FIRST*");
     verifyColumn(result, columnName("FIRSTname"), columnName("lastname"), columnName("age"));
   }
 
   @Test
   public void testRenameFullWildcard() throws IOException {
-    JSONObject result = executeQuery(
-        "source=" + TEST_INDEX_ACCOUNT + " | fields firstname, lastname | rename * as old_*");
+    JSONObject result =
+        executeQuery(
+            "source=" + TEST_INDEX_ACCOUNT + " | fields firstname, lastname | rename * as old_*");
     verifyColumn(result, columnName("old_firstname"), columnName("old_lastname"));
   }
 
   @Test
   public void testRenameWildcardWithMultipleCaptures() throws IOException {
-    JSONObject result = executeQuery(
-        "source=" + TEST_INDEX_ACCOUNT + " | fields firstname, lastname | rename *first* as *FIRST*");
+    JSONObject result =
+        executeQuery(
+            "source="
+                + TEST_INDEX_ACCOUNT
+                + " | fields firstname, lastname | rename *first* as *FIRST*");
     verifyColumn(result, columnName("FIRSTname"), columnName("lastname"));
   }
 }

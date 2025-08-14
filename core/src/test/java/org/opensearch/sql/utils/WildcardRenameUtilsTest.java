@@ -12,7 +12,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class WildcardRenameUtilsTest {
@@ -25,7 +24,7 @@ class WildcardRenameUtilsTest {
     assertFalse(WildcardRenameUtils.isWildcardPattern("name"));
     assertFalse(WildcardRenameUtils.isWildcardPattern(""));
   }
-  
+
   @Test
   void testIsFullWildcardPattern() {
     assertTrue(WildcardRenameUtils.isFullWildcardPattern("*"));
@@ -38,7 +37,8 @@ class WildcardRenameUtilsTest {
   void testWildcardToRegex() {
     assertEquals("\\Q\\E(.*)\\Qname\\E", WildcardRenameUtils.wildcardToRegex("*name"));
     assertEquals("\\Qname\\E(.*)\\Q\\E", WildcardRenameUtils.wildcardToRegex("name*"));
-    assertEquals("\\Q\\E(.*)\\Q_\\E(.*)\\Q_field\\E", WildcardRenameUtils.wildcardToRegex("*_*_field"));
+    assertEquals(
+        "\\Q\\E(.*)\\Q_\\E(.*)\\Q_field\\E", WildcardRenameUtils.wildcardToRegex("*_*_field"));
   }
 
   @Test
@@ -72,29 +72,35 @@ class WildcardRenameUtilsTest {
 
   @Test
   void testApplyWildcardTransformation() {
-    assertEquals("firstNAME", 
+    assertEquals(
+        "firstNAME",
         WildcardRenameUtils.applyWildcardTransformation("*name", "*NAME", "firstname"));
-    assertEquals("FIRSTname",
-            WildcardRenameUtils.applyWildcardTransformation("first*", "FIRST*", "firstname"));
-    assertEquals("user_profile",
+    assertEquals(
+        "FIRSTname",
+        WildcardRenameUtils.applyWildcardTransformation("first*", "FIRST*", "firstname"));
+    assertEquals(
+        "user_profile",
         WildcardRenameUtils.applyWildcardTransformation("*_*_field", "*_*", "user_profile_field"));
-    assertEquals("prefixfirst",
+    assertEquals(
+        "prefixfirst",
         WildcardRenameUtils.applyWildcardTransformation("*name", "prefix*", "firstname"));
 
     // Test full wildcard transformations
-    assertEquals("firstname", 
-        WildcardRenameUtils.applyWildcardTransformation("*", "*", "firstname"));
-    assertEquals("new_firstname", 
+    assertEquals(
+        "firstname", WildcardRenameUtils.applyWildcardTransformation("*", "*", "firstname"));
+    assertEquals(
+        "new_firstname",
         WildcardRenameUtils.applyWildcardTransformation("*", "new_*", "firstname"));
-    assertEquals("first",
-        WildcardRenameUtils.applyWildcardTransformation("*name", "*", "firstname"));
+    assertEquals(
+        "first", WildcardRenameUtils.applyWildcardTransformation("*name", "*", "firstname"));
   }
 
   @Test
   void testApplyWildcardTransformationErrors() {
     // Test pattern mismatch - field doesn't match source pattern
-    assertThrows(IllegalArgumentException.class, () ->
-        WildcardRenameUtils.applyWildcardTransformation("*name", "*NAME", "age"));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> WildcardRenameUtils.applyWildcardTransformation("*name", "*NAME", "age"));
   }
 
   @Test
@@ -104,7 +110,7 @@ class WildcardRenameUtilsTest {
     assertTrue(WildcardRenameUtils.validatePatternCompatibility("*_*", "*_*"));
     assertTrue(WildcardRenameUtils.validatePatternCompatibility("prefix*suffix", "PREFIX*SUFFIX"));
     assertTrue(WildcardRenameUtils.validatePatternCompatibility("name", "NAME"));
-    
+
     // Valid full wildcard patterns
     assertTrue(WildcardRenameUtils.validatePatternCompatibility("*", "*"));
     assertTrue(WildcardRenameUtils.validatePatternCompatibility("*", "new_*"));

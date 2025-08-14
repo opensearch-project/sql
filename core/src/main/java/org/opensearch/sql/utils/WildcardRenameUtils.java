@@ -13,11 +13,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-/**
- * Utility class for handling wildcard patterns in rename operations.
- */
+/** Utility class for handling wildcard patterns in rename operations. */
 public class WildcardRenameUtils {
-  
+
   /**
    * Check if pattern contains any supported wildcards.
    *
@@ -27,7 +25,7 @@ public class WildcardRenameUtils {
   public static boolean isWildcardPattern(String pattern) {
     return pattern.contains("*");
   }
-  
+
   /**
    * Check if pattern is a single wildcard that matches all fields.
    *
@@ -46,11 +44,9 @@ public class WildcardRenameUtils {
    */
   public static String wildcardToRegex(String pattern) {
     String[] parts = pattern.split("\\*", -1);
-    return Arrays.stream(parts)
-        .map(Pattern::quote)
-        .collect(Collectors.joining("(.*)"));
+    return Arrays.stream(parts).map(Pattern::quote).collect(Collectors.joining("(.*)"));
   }
-  
+
   /**
    * Match field names against wildcard pattern.
    *
@@ -63,15 +59,15 @@ public class WildcardRenameUtils {
     if (isFullWildcardPattern(wildcardPattern)) {
       return new ArrayList<>(availableFields);
     }
-    
+
     String regexPattern = "^" + wildcardToRegex(wildcardPattern) + "$";
     Pattern pattern = Pattern.compile(regexPattern);
-    
+
     return availableFields.stream()
         .filter(field -> pattern.matcher(field).matches())
         .collect(Collectors.toList());
   }
-  
+
   /**
    * Apply wildcard transformation to get new field name.
    *
@@ -82,10 +78,8 @@ public class WildcardRenameUtils {
    * @throws IllegalArgumentException if patterns don't match or are invalid
    */
   public static String applyWildcardTransformation(
-      String sourcePattern, 
-      String targetPattern, 
-      String actualFieldName) {
-    
+      String sourcePattern, String targetPattern, String actualFieldName) {
+
     // Both are full wildcards
     if (isFullWildcardPattern(sourcePattern) && isFullWildcardPattern(targetPattern)) {
       return actualFieldName;
@@ -99,11 +93,10 @@ public class WildcardRenameUtils {
     String sourceRegex = "^" + wildcardToRegex(sourcePattern) + "$";
     Pattern sourceP = Pattern.compile(sourceRegex);
     Matcher matcher = sourceP.matcher(actualFieldName);
-    
+
     if (!matcher.matches()) {
       throw new IllegalArgumentException(
-          String.format("Field '%s' does not match pattern '%s'", 
-              actualFieldName, sourcePattern));
+          String.format("Field '%s' does not match pattern '%s'", actualFieldName, sourcePattern));
     }
 
     String result = targetPattern;
@@ -116,10 +109,10 @@ public class WildcardRenameUtils {
         result = result.substring(0, index) + capturedValue + result.substring(index + 1);
       }
     }
-    
+
     return result;
   }
-  
+
   /**
    * Validate that source and target patterns have matching wildcard counts.
    *
@@ -132,7 +125,7 @@ public class WildcardRenameUtils {
     int targetWildcards = countWildcards(targetPattern);
     return sourceWildcards == targetWildcards;
   }
-  
+
   /**
    * Count the number of wildcards in a pattern.
    *
@@ -142,5 +135,4 @@ public class WildcardRenameUtils {
   private static int countWildcards(String pattern) {
     return (int) pattern.chars().filter(ch -> ch == '*').count();
   }
-  
 }
