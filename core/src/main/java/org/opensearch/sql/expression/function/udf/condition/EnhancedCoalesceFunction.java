@@ -47,9 +47,6 @@ public class EnhancedCoalesceFunction extends ImplementorUDF {
   public static ExprValue enhancedCoalesce(ExprValue... args) {
     for (ExprValue arg : args) {
       if (arg != null && !arg.isNull() && !arg.isMissing()) {
-        if (arg.type().typeName().equals("STRING") && arg.stringValue().trim().isEmpty()) {
-          continue;
-        }
         return arg;
       }
     }
@@ -61,14 +58,6 @@ public class EnhancedCoalesceFunction extends ImplementorUDF {
     return opBinding -> {
       for (int i = 0; i < opBinding.getOperandCount(); i++) {
         if (!opBinding.isOperandNull(i, false)) {
-          if (opBinding.getOperandType(i).getSqlTypeName() == SqlTypeName.VARCHAR) {
-            if (opBinding.isOperandLiteral(i, false)) {
-              String literalValue = opBinding.getOperandLiteralValue(i, String.class);
-              if (literalValue != null && literalValue.trim().isEmpty()) {
-                continue;
-              }
-            }
-          }
           return opBinding.getOperandType(i);
         }
       }

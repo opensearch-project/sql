@@ -174,4 +174,44 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
     verifySchema(actual, schema("name", "string"), schema("result", "string"));
     verifyDataRows(actual, rows("Jake", null));
   }
+
+  @Test
+  public void testCoalesceWithEmptyString() throws IOException {
+
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval result = coalesce('', name) | fields name, result | head 1",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(actual, schema("name", "string"), schema("result", "string"));
+    verifyDataRows(actual, rows("Jake", ""));
+  }
+
+  @Test
+  public void testCoalesceWithSpaceString() throws IOException {
+
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval result = coalesce(' ', name) | fields name, result | head 1",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(actual, schema("name", "string"), schema("result", "string"));
+    verifyDataRows(actual, rows("Jake", " "));
+  }
+
+  @Test
+  public void testCoalesceEmptyFieldWithFallback() throws IOException {
+
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval empty_field = '' | eval result = coalesce(empty_field, name) |"
+                    + " fields name, result | head 1",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(actual, schema("name", "string"), schema("result", "string"));
+    verifyDataRows(actual, rows("Jake", ""));
+  }
 }
