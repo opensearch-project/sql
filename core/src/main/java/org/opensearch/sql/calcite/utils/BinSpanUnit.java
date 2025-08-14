@@ -31,8 +31,6 @@ public enum BinSpanUnit {
   D("d"),
   WEEK("w"),
   W("w"),
-  MONTH("M"),
-  M("M"),
   QUARTER("q"),
   Q("q"),
   YEAR("y"),
@@ -52,71 +50,27 @@ public enum BinSpanUnit {
       return NONE;
     }
 
-    // Handle case-sensitive distinctions
-    switch (unit) {
-      case "M":
-        return M; // Months (uppercase)
-      case "m":
-        return m; // Minutes (lowercase)
-      default:
-        // Try exact match first (case-sensitive)
-        for (BinSpanUnit binUnit : BIN_SPAN_UNITS) {
-          if (unit.equals(binUnit.name())) {
-            return binUnit;
-          }
-        }
-
-        // Try case-insensitive match for other units
-        return BIN_SPAN_UNITS.stream()
-            .filter(v -> unit.equalsIgnoreCase(v.name()))
-            .findFirst()
-            .orElse(UNKNOWN);
+    // Handle case-sensitive distinction for minutes
+    if (unit.equals("m")) {
+      return m; // Minutes (lowercase)
     }
+
+    // Try exact match first (case-sensitive)
+    for (BinSpanUnit binUnit : BIN_SPAN_UNITS) {
+      if (unit.equals(binUnit.name())) {
+        return binUnit;
+      }
+    }
+
+    // Try case-insensitive match for other units
+    return BIN_SPAN_UNITS.stream()
+        .filter(v -> unit.equalsIgnoreCase(v.name()))
+        .findFirst()
+        .orElse(UNKNOWN);
   }
 
   /** Get the string name of the bin span unit. */
   public static String getName(BinSpanUnit unit) {
     return unit.name;
-  }
-
-  /** Check if the unit represents time-based span. */
-  public boolean isTimeUnit() {
-    return switch (this) {
-      case MILLISECOND,
-          MS,
-          SECOND,
-          S,
-          MINUTE,
-          m,
-          HOUR,
-          H,
-          DAY,
-          D,
-          WEEK,
-          W,
-          MONTH,
-          M,
-          QUARTER,
-          Q,
-          YEAR,
-          Y -> true;
-      default -> false;
-    };
-  }
-
-  /** Check if the unit represents sub-day time spans (seconds, minutes, hours). */
-  public boolean isSubDayUnit() {
-    return switch (this) {
-      case MILLISECOND, MS, SECOND, S, MINUTE, m, HOUR, H -> true;
-      default -> false;
-    };
-  }
-
-  /** Check if the unit represents daily or longer spans. */
-  public boolean isDayOrLongerUnit() {
-    return switch (this) {
-      case DAY, D, WEEK, W, MONTH, M, QUARTER, Q, YEAR, Y -> true;
-      default -> false;
-    };
   }
 }

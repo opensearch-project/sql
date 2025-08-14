@@ -38,21 +38,6 @@ public class BinUtils {
   private static final int DEFAULT_BINS = 100;
   private static final int MIN_BINS = 2;
   private static final int MAX_BINS = 50000;
-  private static final double[] NICE_WIDTHS = {
-    0.001,
-    0.01,
-    0.1,
-    1.0,
-    10.0,
-    100.0,
-    1000.0,
-    10000.0,
-    100000.0,
-    1000000.0,
-    10000000.0,
-    100000000.0,
-    1000000000.0
-  };
 
   // Time unit constants
   private static final long MILLISECONDS_PER_SECOND = 1000L;

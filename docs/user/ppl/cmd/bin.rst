@@ -27,7 +27,7 @@ bin <field> [span=<interval>] [minspan=<interval>] [bins=<count>] [aligntime=(ea
   - <time-specifier>: Align bins to a specific epoch time value or time modifier expression
 * start: optional. The starting value for binning range. If not specified, uses the minimum field value.
 * end: optional. The ending value for binning range. If not specified, uses the maximum field value.
-* alias: optional. Custom name for the binned field. **Default:** <field>_bin
+* alias: optional. Custom name for the binned field. **Default:** The original field will be replaced by the binned field
 
 Parameters
 ============
