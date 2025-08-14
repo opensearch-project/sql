@@ -57,16 +57,16 @@ public class EnhancedCoalesceFunction extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-
     return opBinding -> {
-
+      if (opBinding.getOperandCount() > 0) {
+        return opBinding.getOperandType(0);
+      }
       return opBinding.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
     };
   }
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-
-    return null; // This allows variadic arguments of any type
+    return null;
   }
 }
