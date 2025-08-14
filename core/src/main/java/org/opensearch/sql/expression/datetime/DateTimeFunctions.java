@@ -896,8 +896,6 @@ public class DateTimeFunctions {
     return define(
         BuiltinFunctionName.TIMESTAMP.getName(),
         impl(nullMissingHandling(v -> v), TIMESTAMP, TIMESTAMP),
-        // Handle STRING to TIMESTAMP conversion for timestamp strings from bin operations
-        impl(nullMissingHandling(DateTimeFunctions::exprTimestampFromString), TIMESTAMP, STRING),
         // We can use FunctionProperties.None, because it is not used. It is required to convert
         // TIME to other datetime types, but arguments there are already converted.
         impl(
@@ -2028,28 +2026,9 @@ public class DateTimeFunctions {
    * @return ExprTimestampValue parsed from the string, or ExprNullValue if parsing fails.
    */
   public static ExprValue exprTimestampFromString(ExprValue stringValue) {
-    String strValue = stringValue.stringValue();
-
-    // Handle timestamp strings from bin operations with FROM_UNIXTIME format
-    if (strValue.matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}(\\.\\d+)?")) {
-      try {
-        // Parse using the standard timestamp parsing logic
-        return new ExprTimestampValue(stringValue.timestampValue());
-      } catch (Exception e) {
-        // If standard parsing fails, try manual parsing
-        try {
-          LocalDateTime dateTime =
-              LocalDateTime.parse(
-                  strValue, java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-          return new ExprTimestampValue(dateTime);
-        } catch (Exception parseEx) {
-          return ExprNullValue.of();
-        }
-      }
-    }
-
-    // For other string formats, return null (not supported)
-    return ExprNullValue.of();
+    // Use the same validation logic as the original TIMESTAMP function
+    // This will throw ExpressionEvaluationException for invalid dates
+    return new ExprTimestampValue(stringValue.stringValue());
   }
 
   /**
