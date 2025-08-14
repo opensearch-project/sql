@@ -22,8 +22,8 @@ import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 /**
- * REGEX_MATCH UDF implementation for Calcite engine. 
- * This function provides Java regex matching via script query pushdown.
+ * REGEX_MATCH UDF implementation for Calcite engine. This function provides Java regex matching via
+ * script query pushdown.
  */
 public class RegexMatchFunctionImpl extends ImplementorUDF {
 

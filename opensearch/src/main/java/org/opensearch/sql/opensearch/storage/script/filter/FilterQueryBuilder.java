@@ -114,7 +114,7 @@ public class FilterQueryBuilder extends ExpressionNodeVisitor<QueryBuilder, Obje
             "Invalid syntax used for nested function in WHERE clause: "
                 + "nested(field | field, path) OPERATOR LITERAL");
       case "REGEX_MATCH":
-        // Handle our custom PCRE2 regex operator from Calcite engine
+        // Handle our custom regex operator from Calcite engine
         return buildScriptQueryForRegex(createRegexMatchFromFunction(func));
       default:
         {
@@ -159,7 +159,7 @@ public class FilterQueryBuilder extends ExpressionNodeVisitor<QueryBuilder, Obje
   }
 
   /**
-   * Visit RegexMatch expression and convert to script query. This allows PCRE regex evaluation to
+   * Visit RegexMatch expression and convert to script query. This allows Java regex evaluation to
    * be pushed down to OpenSearch data nodes.
    */
   public QueryBuilder visitRegex(RegexMatch regexMatch, Object context) {
@@ -183,8 +183,8 @@ public class FilterQueryBuilder extends ExpressionNodeVisitor<QueryBuilder, Obje
   }
 
   /**
-   * Convert a REGEX_MATCH function from Calcite to our PCRE2 RegexMatch expression. This ensures
-   * the Calcite engine uses the same PCRE2 implementation as the legacy engine.
+   * Convert a REGEX_MATCH function from Calcite to our Java regex RegexMatch expression. This
+   * ensures the Calcite engine uses the same Java regex implementation as the legacy engine.
    */
   private RegexMatch createRegexMatchFromFunction(FunctionExpression func) {
     if (func.getArguments().size() != 2) {
@@ -194,7 +194,7 @@ public class FilterQueryBuilder extends ExpressionNodeVisitor<QueryBuilder, Obje
     Expression fieldExpr = func.getArguments().get(0);
     Expression patternExpr = func.getArguments().get(1);
 
-    // Create RegexMatch with PCRE2 support
+    // Create RegexMatch with Java regex support
     return new RegexMatch(fieldExpr, patternExpr, false);
   }
 }
