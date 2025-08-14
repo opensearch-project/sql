@@ -57,7 +57,8 @@ public class CrossClusterCoalesceIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s | eval result = coalesce(holdersName, dog_name, 'unknown') | fields dog_name, holdersName, result | head 1",
+                "search source=%s | eval result = coalesce(holdersName, dog_name, 'unknown') |"
+                    + " fields dog_name, holdersName, result | head 1",
                 TEST_INDEX_DOG_REMOTE));
     verifyColumn(result, columnName("dog_name"), columnName("holdersName"), columnName("result"));
   }
@@ -67,7 +68,8 @@ public class CrossClusterCoalesceIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s | eval result = coalesce(age, holdersName, 'fallback') | fields age, holdersName, result | head 1",
+                "search source=%s | eval result = coalesce(age, holdersName, 'fallback') | fields"
+                    + " age, holdersName, result | head 1",
                 TEST_INDEX_DOG_REMOTE));
     verifyColumn(result, columnName("age"), columnName("holdersName"), columnName("result"));
   }
@@ -77,7 +79,8 @@ public class CrossClusterCoalesceIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s | eval result = coalesce(missing_field, dog_name) | fields dog_name, result | head 1",
+                "search source=%s | eval result = coalesce(missing_field, dog_name) | fields"
+                    + " dog_name, result | head 1",
                 TEST_INDEX_DOG_REMOTE));
     verifyColumn(result, columnName("dog_name"), columnName("result"));
   }
@@ -87,7 +90,8 @@ public class CrossClusterCoalesceIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s | eval result = coalesce('', dog_name) | fields dog_name, result | head 1",
+                "search source=%s | eval result = coalesce('', dog_name) | fields dog_name, result"
+                    + " | head 1",
                 TEST_INDEX_DOG_REMOTE));
     verifyColumn(result, columnName("dog_name"), columnName("result"));
   }

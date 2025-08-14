@@ -168,5 +168,4 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
         columnName("IS_AUTOINCREMENT"),
         columnName("IS_GENERATEDCOLUMN"));
   }
-
 }
