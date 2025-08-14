@@ -47,7 +47,6 @@ public class EnhancedCoalesceFunction extends ImplementorUDF {
   public static ExprValue enhancedCoalesce(ExprValue... args) {
     for (ExprValue arg : args) {
       if (arg != null && !arg.isNull() && !arg.isMissing()) {
-
         if (arg.type().typeName().equals("STRING") && arg.stringValue().trim().isEmpty()) {
           continue;
         }
@@ -60,10 +59,22 @@ public class EnhancedCoalesceFunction extends ImplementorUDF {
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
     return opBinding -> {
-      if (opBinding.getOperandCount() > 0) {
-        return opBinding.getOperandType(0);
+      for (int i = 0; i < opBinding.getOperandCount(); i++) {
+        if (!opBinding.isOperandNull(i, false)) {
+          if (opBinding.getOperandType(i).getSqlTypeName() == SqlTypeName.VARCHAR) {
+            if (opBinding.isOperandLiteral(i, false)) {
+              String literalValue = opBinding.getOperandLiteralValue(i, String.class);
+              if (literalValue != null && literalValue.trim().isEmpty()) {
+                continue;
+              }
+            }
+          }
+          return opBinding.getOperandType(i);
+        }
       }
-      return opBinding.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+      return opBinding.getOperandCount() > 0
+          ? opBinding.getOperandType(0)
+          : opBinding.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
     };
   }
 
