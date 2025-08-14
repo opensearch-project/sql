@@ -183,22 +183,29 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   @Override
   public UnresolvedPlan visitJoinCommand(OpenSearchPPLParser.JoinCommandContext ctx) {
-    Join.JoinType joinType = getJoinType(ctx.joinType());
+    // a sql-like syntax if join criteria existed
+    boolean sqlLike = ctx.joinCriteria() != null;
+    Join.JoinType joinType = null;
+    if (sqlLike) {
+      joinType = ArgumentFactory.getJoinType(ctx.sqlLikeJoinType());
+    }
     List<Argument> arguments =
         ctx.joinOption().stream().map(o -> (Argument) expressionBuilder.visit(o)).toList();
     Argument.ArgumentMap argumentMap = Argument.ArgumentMap.of(arguments);
     if (argumentMap.get("type") != null) {
-      Join.JoinType joinTypeFromArgument = getJoinType(argumentMap.get("type").toString());
-      if (ctx.joinType() == null) {
-        joinType = joinTypeFromArgument;
-      } else {
-        if (joinType != joinTypeFromArgument) {
-          throw new SemanticCheckException(
-              "Join type is ambiguous, please remove the join type before JOIN keyword or 'type='"
-                  + " option.");
-        }
+      Join.JoinType joinTypeFromArgument = ArgumentFactory.getJoinType(argumentMap);
+      if (sqlLike && joinType != joinTypeFromArgument) {
+        throw new SemanticCheckException(
+            "Join type is ambiguous, remove either the join type before JOIN keyword or 'type='"
+                + " option.");
       }
+      joinType = joinTypeFromArgument;
     }
+    if (!sqlLike && argumentMap.get("type") == null) {
+      joinType = Join.JoinType.INNER;
+    }
+    validateJoinType(joinType);
+
     Join.JoinHint joinHint = getJoinHint(ctx.joinHintList());
     Optional<String> leftAlias = Optional.empty();
     Optional<String> rightAlias = Optional.empty();
@@ -264,50 +271,16 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return joinHint;
   }
 
-  private Join.JoinType getJoinType(OpenSearchPPLParser.JoinTypeContext ctx) {
-    Join.JoinType joinType;
-    if (ctx == null) {
-      joinType = Join.JoinType.INNER;
-    } else if (ctx.INNER() != null) {
-      joinType = Join.JoinType.INNER;
-    } else if (ctx.SEMI() != null) {
-      joinType = Join.JoinType.SEMI;
-    } else if (ctx.ANTI() != null) {
-      joinType = Join.JoinType.ANTI;
-    } else if (ctx.LEFT() != null) {
-      joinType = Join.JoinType.LEFT;
-    } else if (ctx.RIGHT() != null) {
-      joinType = Join.JoinType.RIGHT;
-    } else if (ctx.CROSS() != null) {
-      joinType = Join.JoinType.CROSS;
-    } else if (ctx.FULL() != null) {
-      joinType = Join.JoinType.FULL;
-    } else {
-      joinType = Join.JoinType.INNER;
+  private void validateJoinType(Join.JoinType joinType) {
+    Object config = settings.getSettingValue(Key.CALCITE_SUPPORT_ALL_JOIN_TYPES);
+    if (config != null && !((Boolean) config)) {
+      if (Join.highCostJoinTypes().contains(joinType)) {
+        throw new SemanticCheckException(
+            String.format(
+                "Join type %s is performance sensitive. Set %s to true to enable it.",
+                joinType.name(), Key.CALCITE_SUPPORT_ALL_JOIN_TYPES.getKeyValue()));
+      }
     }
-    return joinType;
-  }
-
-  private Join.JoinType getJoinType(String type) {
-    Join.JoinType joinType;
-    if (type.equalsIgnoreCase(Join.JoinType.INNER.name())) {
-      joinType = Join.JoinType.INNER;
-    } else if (type.equalsIgnoreCase(Join.JoinType.SEMI.name())) {
-      joinType = Join.JoinType.SEMI;
-    } else if (type.equalsIgnoreCase(Join.JoinType.ANTI.name())) {
-      joinType = Join.JoinType.ANTI;
-    } else if (type.equalsIgnoreCase(Join.JoinType.LEFT.name())) {
-      joinType = Join.JoinType.LEFT;
-    } else if (type.equalsIgnoreCase(Join.JoinType.RIGHT.name())) {
-      joinType = Join.JoinType.RIGHT;
-    } else if (type.equalsIgnoreCase(Join.JoinType.CROSS.name())) {
-      joinType = Join.JoinType.CROSS;
-    } else if (type.equalsIgnoreCase(Join.JoinType.FULL.name())) {
-      joinType = Join.JoinType.FULL;
-    } else {
-      joinType = Join.JoinType.INNER;
-    }
-    return joinType;
   }
 
   /** Fields command. */

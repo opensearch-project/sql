@@ -332,6 +332,9 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=t | join type=left overwrite=false id1,id2 s | fields + id1",
         anonymize("source=t | join type=left overwrite=false id1,id2 s | fields id1"));
+    assertEquals(
+        "source=t | join type=left overwrite=false id1,id2 s | fields + id1",
+        anonymize("source=t | join type=outer overwrite=false id1 id2 s | fields id1"));
   }
 
   @Test

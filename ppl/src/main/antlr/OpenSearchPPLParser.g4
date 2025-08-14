@@ -316,18 +316,29 @@ tableSourceClause
 
 // join
 joinCommand
-   : joinType JOIN sideAlias joinHintList? joinCriteria right = tableOrSubqueryClause
-   | JOIN (joinOption)* (fieldList)? right = tableOrSubqueryClause
+   : JOIN (joinOption)* (fieldList)? right = tableOrSubqueryClause
+   | sqlLikeJoinType? JOIN (joinOption)* sideAlias joinHintList? joinCriteria right = tableOrSubqueryClause
    ;
 
-joinType
-   : INNER?
+sqlLikeJoinType
+   : INNER
    | CROSS
-   | LEFT OUTER?
+   | (LEFT OUTER? | OUTER)
    | RIGHT OUTER?
    | FULL OUTER?
    | LEFT? SEMI
    | LEFT? ANTI
+   ;
+
+joinType
+   : INNER
+   | CROSS
+   | OUTER
+   | LEFT
+   | RIGHT
+   | FULL
+   | SEMI
+   | ANTI
    ;
 
 sideAlias
@@ -335,7 +346,7 @@ sideAlias
    ;
 
 joinCriteria
-   : ON logicalExpression
+   : (ON | WHERE) logicalExpression
    ;
 
 joinHintList
@@ -350,6 +361,7 @@ hintPair
 joinOption
    : OVERWRITE EQUAL booleanLiteral                     # overwriteOption
    | TYPE EQUAL joinType                                # typeOption
+   | MAX EQUAL integerLiteral                           # maxOption
    ;
 
 renameClasue
@@ -530,7 +542,7 @@ tableFunction
 
 // fields
 fieldList
-   : fieldExpression (COMMA fieldExpression)*
+   : fieldExpression ((COMMA)? fieldExpression)*
    ;
 
 wcFieldList
@@ -1118,8 +1130,8 @@ keywordsCanBeId
    | multiFieldRelevanceFunctionName
    | commandName
    | collectionFunctionName
-   | comparisonOperator
    | explainMode
+   | REGEXP
    // commands assist keywords
    | CASE
    | ELSE

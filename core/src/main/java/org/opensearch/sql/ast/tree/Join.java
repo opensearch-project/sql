@@ -97,6 +97,11 @@ public class Join extends UnresolvedPlan {
     FULL
   }
 
+  /** RIGHT, CROSS, FULL are performance sensitive join types */
+  public static List<JoinType> highCostJoinTypes() {
+    return List.of(JoinType.RIGHT, JoinType.CROSS, JoinType.FULL);
+  }
+
   @Getter
   @RequiredArgsConstructor
   public static class JoinHint {

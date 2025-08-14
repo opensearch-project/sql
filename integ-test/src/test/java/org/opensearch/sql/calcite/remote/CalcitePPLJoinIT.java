@@ -29,6 +29,7 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     enableCalcite();
+    supportAllJoinTypes();
 
     loadIndex(Index.STATE_COUNTRY);
     loadIndex(Index.OCCUPATION);

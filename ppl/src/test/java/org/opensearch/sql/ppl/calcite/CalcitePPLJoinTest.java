@@ -5,9 +5,14 @@
 
 package org.opensearch.sql.ppl.calcite;
 
+import static org.mockito.Mockito.doReturn;
+
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
+import org.junit.Assert;
 import org.junit.Test;
+import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.exception.SemanticCheckException;
 
 public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
 
@@ -868,5 +873,189 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
             + " AND (`EMP`.`HIREDATE` = `EMP0`.`HIREDATE` AND `EMP`.`SAL` = `EMP0`.`SAL` AND"
             + " (`EMP`.`COMM` = `EMP0`.`COMM` AND `EMP`.`DEPTNO` = `EMP0`.`DEPTNO`))";
     verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testJoinWithMultiplePredicatesWithWhere() {
+    String ppl =
+        "source=EMP | join left = l right = r where l.DEPTNO = r.DEPTNO AND l.DEPTNO > 10 AND"
+            + " EMP.SAL < 3000 DEPT";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], r.DEPTNO=[$8], DNAME=[$9], LOC=[$10])\n"
+            + "  LogicalJoin(condition=[AND(=($7, $8), >($7, 10), <($5, 3000))],"
+            + " joinType=[inner])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 9);
+
+    String expectedSparkSql =
+        "SELECT `EMP`.`EMPNO`, `EMP`.`ENAME`, `EMP`.`JOB`, `EMP`.`MGR`, `EMP`.`HIREDATE`,"
+            + " `EMP`.`SAL`, `EMP`.`COMM`, `EMP`.`DEPTNO`, `DEPT`.`DEPTNO` `r.DEPTNO`,"
+            + " `DEPT`.`DNAME`, `DEPT`.`LOC`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "INNER JOIN `scott`.`DEPT` ON `EMP`.`DEPTNO` = `DEPT`.`DEPTNO` AND `EMP`.`DEPTNO` >"
+            + " 10 AND `EMP`.`SAL` < 3000";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testJoinWithFieldListSelfJoinOverrideIsFalse() {
+    String ppl = "source=EMP | join type=outer overwrite=false EMPNO ENAME JOB, MGR EMP";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7])\n"
+            + "  LogicalJoin(condition=[AND(=($0, $8), =($1, $9), =($2, $10), =($3, $11))],"
+            + " joinType=[left])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 14);
+
+    String expectedSparkSql =
+        "SELECT `EMP`.`EMPNO`, `EMP`.`ENAME`, `EMP`.`JOB`, `EMP`.`MGR`, `EMP`.`HIREDATE`,"
+            + " `EMP`.`SAL`, `EMP`.`COMM`, `EMP`.`DEPTNO`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LEFT JOIN `scott`.`EMP` `EMP0` ON `EMP`.`EMPNO` = `EMP0`.`EMPNO` AND `EMP`.`ENAME` ="
+            + " `EMP0`.`ENAME` AND `EMP`.`JOB` = `EMP0`.`JOB` AND `EMP`.`MGR` = `EMP0`.`MGR`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testJoinWithFieldListSelfJoinOverrideIsTrue() {
+    String ppl = "source=EMP | join type=outer overwrite=true EMPNO ENAME JOB, MGR EMP";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$8], ENAME=[$9], JOB=[$10], MGR=[$11], HIREDATE=[$12], SAL=[$13],"
+            + " COMM=[$14], DEPTNO=[$15])\n"
+            + "  LogicalJoin(condition=[AND(=($0, $8), =($1, $9), =($2, $10), =($3, $11))],"
+            + " joinType=[left])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 14);
+
+    String expectedSparkSql =
+        "SELECT `EMP0`.`EMPNO`, `EMP0`.`ENAME`, `EMP0`.`JOB`, `EMP0`.`MGR`, `EMP0`.`HIREDATE`,"
+            + " `EMP0`.`SAL`, `EMP0`.`COMM`, `EMP0`.`DEPTNO`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LEFT JOIN `scott`.`EMP` `EMP0` ON `EMP`.`EMPNO` = `EMP0`.`EMPNO` AND `EMP`.`ENAME` ="
+            + " `EMP0`.`ENAME` AND `EMP`.`JOB` = `EMP0`.`JOB` AND `EMP`.`MGR` = `EMP0`.`MGR`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testJoinWithFieldListSelfJoin() {
+    String ppl = "source=EMP | join type=outer EMPNO ENAME JOB, MGR EMP";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$8], ENAME=[$9], JOB=[$10], MGR=[$11], HIREDATE=[$12], SAL=[$13],"
+            + " COMM=[$14], DEPTNO=[$15])\n"
+            + "  LogicalJoin(condition=[AND(=($0, $8), =($1, $9), =($2, $10), =($3, $11))],"
+            + " joinType=[left])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 14);
+
+    String expectedSparkSql =
+        "SELECT `EMP0`.`EMPNO`, `EMP0`.`ENAME`, `EMP0`.`JOB`, `EMP0`.`MGR`, `EMP0`.`HIREDATE`,"
+            + " `EMP0`.`SAL`, `EMP0`.`COMM`, `EMP0`.`DEPTNO`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LEFT JOIN `scott`.`EMP` `EMP0` ON `EMP`.`EMPNO` = `EMP0`.`EMPNO` AND `EMP`.`ENAME` ="
+            + " `EMP0`.`ENAME` AND `EMP`.`JOB` = `EMP0`.`JOB` AND `EMP`.`MGR` = `EMP0`.`MGR`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testDisableHighCostJoinTypes() {
+    String ppl1 = "source=EMP as e | full join on e.DEPTNO = d.DEPTNO DEPT as d";
+    String ppl2 = "source=EMP | join type=full overwrite=false EMPNO ENAME JOB, MGR EMP";
+    String err =
+        "Join type FULL is performance sensitive. Set plugins.calcite.all_join_types.allowed to"
+            + " true to enable it.";
+
+    // disable high cost join types
+    doReturn(false).when(settings).getSettingValue(Settings.Key.CALCITE_SUPPORT_ALL_JOIN_TYPES);
+    Throwable t = Assert.assertThrows(SemanticCheckException.class, () -> getRelNode(ppl1));
+    verifyErrorMessageContains(t, err);
+    t = Assert.assertThrows(SemanticCheckException.class, () -> getRelNode(ppl2));
+    verifyErrorMessageContains(t, err);
+    // enable high cost types
+    doReturn(true).when(settings).getSettingValue(Settings.Key.CALCITE_SUPPORT_ALL_JOIN_TYPES);
+    getRelNode(ppl1);
+    getRelNode(ppl2);
+  }
+
+  @Test
+  public void testJoinWithMaxGreaterThanZero() {
+    String ppl = "source=EMP | join type=outer max=1 EMPNO ENAME JOB, MGR EMP";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$8], ENAME=[$9], JOB=[$10], MGR=[$11], HIREDATE=[$12], SAL=[$13],"
+            + " COMM=[$14], DEPTNO=[$15])\n"
+            + "  LogicalJoin(condition=[AND(=($0, $8), =($1, $9), =($2, $10), =($3, $11))],"
+            + " joinType=[left])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+            + "      LogicalFilter(condition=[<=($8, 1)])\n"
+            + "        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], _row_number_=[ROW_NUMBER() OVER (PARTITION BY $0,"
+            + " $1, $2, $3 ORDER BY $0, $1, $2, $3)])\n"
+            + "          LogicalFilter(condition=[AND(IS NOT NULL($1), IS NOT NULL($2), IS NOT"
+            + " NULL($3))])\n"
+            + "            LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 14);
+
+    String expectedSparkSql =
+        "SELECT `t2`.`EMPNO`, `t2`.`ENAME`, `t2`.`JOB`, `t2`.`MGR`, `t2`.`HIREDATE`, `t2`.`SAL`,"
+            + " `t2`.`COMM`, `t2`.`DEPTNO`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LEFT JOIN (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`,"
+            + " `DEPTNO`\n"
+            + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
+            + " ROW_NUMBER() OVER (PARTITION BY `EMPNO`, `ENAME`, `JOB`, `MGR` ORDER BY `EMPNO`"
+            + " NULLS LAST, `ENAME` NULLS LAST, `JOB` NULLS LAST, `MGR` NULLS LAST)"
+            + " `_row_number_`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE `ENAME` IS NOT NULL AND `JOB` IS NOT NULL AND `MGR` IS NOT NULL) `t0`\n"
+            + "WHERE `_row_number_` <= 1) `t2` ON `EMP`.`EMPNO` = `t2`.`EMPNO` AND `EMP`.`ENAME` ="
+            + " `t2`.`ENAME` AND `EMP`.`JOB` = `t2`.`JOB` AND `EMP`.`MGR` = `t2`.`MGR`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testJoinWithMaxEqualsZero() {
+    String ppl = "source=EMP | join type=outer max=0 EMPNO ENAME JOB, MGR EMP";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$8], ENAME=[$9], JOB=[$10], MGR=[$11], HIREDATE=[$12], SAL=[$13],"
+            + " COMM=[$14], DEPTNO=[$15])\n"
+            + "  LogicalJoin(condition=[AND(=($0, $8), =($1, $9), =($2, $10), =($3, $11))],"
+            + " joinType=[left])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 14);
+
+    String expectedSparkSql =
+        "SELECT `EMP0`.`EMPNO`, `EMP0`.`ENAME`, `EMP0`.`JOB`, `EMP0`.`MGR`, `EMP0`.`HIREDATE`,"
+            + " `EMP0`.`SAL`, `EMP0`.`COMM`, `EMP0`.`DEPTNO`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LEFT JOIN `scott`.`EMP` `EMP0` ON `EMP`.`EMPNO` = `EMP0`.`EMPNO` AND `EMP`.`ENAME` ="
+            + " `EMP0`.`ENAME` AND `EMP`.`JOB` = `EMP0`.`JOB` AND `EMP`.`MGR` = `EMP0`.`MGR`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testJoinWithMaxLessThanZero() {
+    String ppl = "source=EMP | join type=outer max=-1 EMPNO ENAME JOB, MGR EMP";
+    Throwable t = Assert.assertThrows(SemanticCheckException.class, () -> getRelNode(ppl));
+    verifyErrorMessageContains(t, "max option must be a positive integer");
   }
 }

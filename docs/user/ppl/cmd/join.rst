@@ -19,22 +19,24 @@ Version
 
 Syntax-1
 ========
-| [joinType] join [leftAlias] [rightAlias] on <joinCriteria> <right-dataset>
+| [joinType] join [max=n] [leftAlias] [rightAlias] (on | where) <joinCriteria> <right-dataset>
 
-* joinType: optional. The type of join to perform. The default is ``INNER`` if not specified. Other option is ``LEFT [OUTER]``, ``RIGHT [OUTER]``, ``FULL [OUTER]``, ``CROSS``, ``[LEFT] SEMI``, ``[LEFT] ANTI``.
+* joinType: optional. The type of join to perform. The default is ``inner`` if not specified. Other option is ``left``, ``outer``(alias of ``left``), ``semi``, ``anti`` and performance sensitive types ``right``, ``full`` and ``cross``.
+* max=n: optional. Controls how many subsearch results could be joined against to each row in main search. The default value is 0, means unlimited.
 * leftAlias: optional. The subsearch alias to use with the left join side, to avoid ambiguous naming. Fixed pattern: ``left = <leftAlias>``
 * rightAlias: optional. The subsearch alias to use with the right join side, to avoid ambiguous naming. Fixed pattern: ``right = <rightAlias>``
-* joinCriteria: mandatory. It could be any comparison expression.
+* joinCriteria: mandatory. It could be any comparison expression. Must follow with ``on`` (since 3.0.0) or ``where`` (since 3.3.0) keyword.
 * right-dataset: mandatory. Right dataset could be either an ``index`` or a ``subsearch`` with/without alias.
 
 Syntax-2
 ========
 | (Since 3.3.0)
-| join [type=<joinType>] [overwrite=<bool>] <join-field-list> <right-dataset>
+| join [type=<joinType>] [overwrite=<bool>] [max=n] <join-field-list> <right-dataset>
 
-* type=<joinType>: optional. The type of join to perform. The default is ``INNER`` if not specified. Other option is ``LEFT``, ``RIGHT``, ``FULL``, ``CROSS``, ``SEMI``, ``ANTI``.
+* type=<joinType>: optional. The type of join to perform. The default is ``INNER`` if not specified. Other option is ``left``, ``outer``(alias of ``left``), ``semi``, ``anti`` and performance sensitive types ``right``, ``full`` and ``cross``.
 * overwrite=<bool>: optional. Specifies whether duplicate-named fields from <right-dataset> (subsearch results) should replace corresponding fields in the main search results. The default value is ``true``.
-* join-field-list: optional. The fields to use to build join criteria. The ``join-field-list`` must be present in both sides. If no <join-field-list> is present, all fields that are common to both sides are used.
+* max=n: optional. Controls how many subsearch results could be joined against to each row in main search. The default value is 0, means unlimited.
+* join-field-list: optional. The fields to use to build join criteria. The ``join-field-list`` must be present in both sides. If no <join-field-list> is present, all fields that are common to both sides are used. The comma is optional.
 * right-dataset: mandatory. Right dataset could be either an ``index`` or a ``subsearch`` with/without alias.
 
 Configuration
@@ -69,6 +71,7 @@ Usage
 Join (syntax-1)::
 
     source = table1 | inner join left = l right = r on l.a = r.a table2 | fields l.a, r.a, b, c
+    source = table1 | inner join left = l right = r where l.a = r.a table2 | fields l.a, r.a, b, c
     source = table1 | left join left = l right = r on l.a = r.a table2 | fields l.a, r.a, b, c
     source = table1 | right join left = l right = r on l.a = r.a table2 | fields l.a, r.a, b, c
     source = table1 | full left = l right = r on l.a = r.a table2 | fields l.a, r.a, b, c
@@ -86,6 +89,7 @@ Join (syntax-2)::
 
     source = table1 | join a table2 | fields a, b, c
     source = table1 | join a, b table2 | fields a, b, c
+    source = table1 | join type=outer a b table2 | fields a, b, c
     source = table1 | join type=left overwrite=false a, b [source=table2 | rename d as b] | fields a, b, c
 
 Example 1: Two indices join
@@ -179,3 +183,5 @@ Assume table1 and table2 only contain field ``id``, following PPL queries and th
      - table1.id, tt.id, tt.b, a
 
 But for the syntax-2 (since 3.2.0), duplicate-named fields in output results are deduplicated, with field retention determined by the value of 'overwrite' option.
+
+Join types ``inner``, ``left``, ``outer`` (alias of ``left``), ``semi`` and ``anti`` are supported by default. ``right``, ``full``, ``cross`` are performance sensitive join types which are disabled by default. Set config ``plugins.calcite.all_join_types.allowed = true`` to enable.

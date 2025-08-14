@@ -212,6 +212,12 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     }
   }
 
+  public static void supportAllJoinTypes() throws IOException {
+    updateClusterSettings(
+        new SQLIntegTestCase.ClusterSetting(
+            "persistent", Key.CALCITE_SUPPORT_ALL_JOIN_TYPES.getKeyValue(), "true"));
+  }
+
   public static void withSettings(Key setting, String value, Runnable f) throws IOException {
     String originalValue = getClusterSetting(setting.getKeyValue(), "transient");
     if (originalValue.equals(value)) f.run();
