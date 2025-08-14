@@ -43,12 +43,37 @@ public class RenameCommandIT extends PPLIntegTestCase {
     verifyColumn(result, columnName("FIRSTNAME"), columnName("AGE"));
   }
 
-  @Ignore(
-      "Wildcard is unsupported yet. Enable once"
-          + " https://github.com/opensearch-project/sql/issues/787 is resolved.")
   @Test
   public void testRenameWildcardFields() throws IOException {
-    JSONObject result = executeQuery("source=" + TEST_INDEX_ACCOUNT + " | rename %name as %NAME");
-    verifyColumn(result, columnPattern(".*name$"));
+    JSONObject result = executeQuery("source=" + TEST_INDEX_ACCOUNT + " | fields firstname, lastname | rename *name as *NAME");
+    verifyColumn(result, columnName("firstNAME"), columnName("lastNAME"));
+  }
+
+  @Test
+  public void testRenameMultipleWildcardFields() throws IOException {
+    JSONObject result = executeQuery(
+        "source=" + TEST_INDEX_ACCOUNT + " | fields firstname, lastname, age | rename *name as new_*");
+    verifyColumn(result, columnName("new_first"), columnName("new_last"), columnName("age"));
+  }
+
+  @Test  
+  public void testRenameWildcardPrefix() throws IOException {
+    JSONObject result = executeQuery(
+        "source=" + TEST_INDEX_ACCOUNT + " | fields firstname, lastname, age | rename first* as FIRST*");
+    verifyColumn(result, columnName("FIRSTname"), columnName("lastname"), columnName("age"));
+  }
+
+  @Test
+  public void testRenameFullWildcard() throws IOException {
+    JSONObject result = executeQuery(
+        "source=" + TEST_INDEX_ACCOUNT + " | fields firstname, lastname | rename * as old_*");
+    verifyColumn(result, columnName("old_firstname"), columnName("old_lastname"));
+  }
+
+  @Test
+  public void testRenameWildcardWithMultipleCaptures() throws IOException {
+    JSONObject result = executeQuery(
+        "source=" + TEST_INDEX_ACCOUNT + " | fields firstname, lastname | rename *first* as *FIRST*");
+    verifyColumn(result, columnName("FIRSTname"), columnName("lastname"));
   }
 }

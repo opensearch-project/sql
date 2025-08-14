@@ -309,30 +309,62 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitRename(Rename node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
+    ImmutableMap.Builder<ReferenceExpression, ReferenceExpression> renameMapBuilder =
+            new ImmutableMap.Builder<>();
     
-    // Get available fields from current schema
     Set<String> availableFields = getAvailableFieldNames(context);
     
-    ImmutableMap.Builder<ReferenceExpression, ReferenceExpression> renameMapBuilder =
-        new ImmutableMap.Builder<>();
     for (Map renameMap : node.getRenameList()) {
-      String originPattern = ((Field) renameMap.getOrigin()).getField().toString();
-      
-      if (renameMap.getTarget() instanceof Field) {
+      if (renameMap.getOrigin() instanceof Field && 
+          WildcardRenameUtils.isWildcardPattern(((Field) renameMap.getOrigin()).getField().toString())) {
+        String fieldName = ((Field) renameMap.getOrigin()).getField().toString();
         String targetPattern = ((Field) renameMap.getTarget()).getField().toString();
         
-        // Validate pattern compatibility for wildcards
-        if (WildcardRenameUtils.isWildcardPattern(originPattern) && 
-            !WildcardRenameUtils.validatePatternCompatibility(originPattern, targetPattern)) {
-          throw new SemanticCheckException(String.format(
-              "Wildcard count mismatch between source '%s' and target '%s' patterns", 
-              originPattern, targetPattern));
+        if (!WildcardRenameUtils.validatePatternCompatibility(fieldName, targetPattern)) {
+          throw new SemanticCheckException("Source and target patterns have different wildcard counts");
+        }
+        
+        // Handle wildcard rename
+        List<String> matchingFields = WildcardRenameUtils.matchFieldNames(fieldName, availableFields);
+
+        if (matchingFields.isEmpty()) {
+          throw new SemanticCheckException(
+                  String.format("No fields match the pattern '%s'", fieldName));
         }
 
-        expandWildcardRename(originPattern, targetPattern, availableFields, renameMapBuilder, context);
+        TypeEnvironment curEnv = context.peek();
+
+        for (String matchingField : matchingFields) {
+          String newName = WildcardRenameUtils.applyWildcardTransformation(
+                  fieldName, targetPattern, matchingField);
+
+          Symbol fieldSymbol = new Symbol(Namespace.FIELD_NAME, matchingField);
+          ExprType fieldType = curEnv.resolve(fieldSymbol);
+
+          ReferenceExpression origin = DSL.ref(matchingField, fieldType);
+          ReferenceExpression target = new ReferenceExpression(newName, fieldType);
+
+          curEnv.remove(origin);
+          curEnv.define(target);
+
+          renameMapBuilder.put(origin, target);
+        }
       } else {
-        throw new SemanticCheckException(
-            String.format("the target expected to be field, but is %s", renameMap.getTarget()));
+        Expression origin = expressionAnalyzer.analyze(renameMap.getOrigin(), context);
+        // We should define the new target field in the context instead of analyze it.
+        if (renameMap.getTarget() instanceof Field) {
+          ReferenceExpression target =
+                  new ReferenceExpression(
+                          ((Field) renameMap.getTarget()).getField().toString(), origin.type());
+          ReferenceExpression originExpr = DSL.ref(origin.toString(), origin.type());
+          TypeEnvironment curEnv = context.peek();
+          curEnv.remove(originExpr);
+          curEnv.define(target);
+          renameMapBuilder.put(originExpr, target);
+        } else {
+          throw new SemanticCheckException(
+                  String.format("the target expected to be field, but is %s", renameMap.getTarget()));
+        }
       }
     }
 
@@ -906,56 +938,9 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     return new Aggregation(aggExprs, ImmutableList.of(), groupByList);
   }
 
-  /**
-   * Get available field names from current type environment.
-   *
-   * @param context the analysis context
-   * @return set of available field names
-   */
   private Set<String> getAvailableFieldNames(AnalysisContext context) {
     TypeEnvironment currentEnv = context.peek();
     return currentEnv.lookupAllFields(Namespace.FIELD_NAME).keySet();
   }
 
-  /**
-   * Expand wildcard rename patterns to concrete field mappings.
-   *
-   * @param sourcePattern the source wildcard pattern
-   * @param targetPattern the target wildcard pattern
-   * @param availableFields set of available field names
-   * @param renameMapBuilder builder for rename mappings
-   * @param context the analysis context
-   */
-  private void expandWildcardRename(
-      String sourcePattern,
-      String targetPattern,
-      Set<String> availableFields,
-      ImmutableMap.Builder<ReferenceExpression, ReferenceExpression> renameMapBuilder,
-      AnalysisContext context) {
-
-    List<String> matchingFields = WildcardRenameUtils.matchFieldNames(sourcePattern, availableFields);
-
-    if (matchingFields.isEmpty()) {
-      throw new SemanticCheckException(
-          String.format("No fields match the wildcard pattern '%s'", sourcePattern));
-    }
-
-    TypeEnvironment curEnv = context.peek();
-
-    for (String fieldName : matchingFields) {
-      String newName = WildcardRenameUtils.applyWildcardTransformation(
-          sourcePattern, targetPattern, fieldName);
-
-      Symbol fieldSymbol = new Symbol(Namespace.FIELD_NAME, fieldName);
-      ExprType fieldType = curEnv.resolve(fieldSymbol);
-
-      ReferenceExpression origin = DSL.ref(fieldName, fieldType);
-      ReferenceExpression target = new ReferenceExpression(newName, fieldType);
-
-      curEnv.remove(origin);
-      curEnv.define(target);
-
-      renameMapBuilder.put(origin, target);
-    }
-  }
 }

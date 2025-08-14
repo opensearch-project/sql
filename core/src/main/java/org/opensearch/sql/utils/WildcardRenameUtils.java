@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.utils;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -14,7 +15,6 @@ import java.util.stream.Collectors;
 
 /**
  * Utility class for handling wildcard patterns in rename operations.
- * Supports shell-style (*) wildcards.
  */
 public class WildcardRenameUtils {
   
@@ -37,10 +37,9 @@ public class WildcardRenameUtils {
   public static boolean isFullWildcardPattern(String pattern) {
     return "*".equals(pattern);
   }
-  
-  
+
   /**
-   * Convert wildcard pattern to regex with capture groups.
+   * Convert wildcard pattern to regex.
    *
    * @param pattern the wildcard pattern
    * @return regex pattern with capture groups
@@ -57,34 +56,24 @@ public class WildcardRenameUtils {
    *
    * @param wildcardPattern the pattern to match against
    * @param availableFields set of available field names
-   * @return list of matching field names, sorted
+   * @return list of matching field names
    */
   public static List<String> matchFieldNames(String wildcardPattern, Set<String> availableFields) {
-    if (!isWildcardPattern(wildcardPattern)) {
-      // No wildcards
-      return availableFields.contains(wildcardPattern) 
-          ? List.of(wildcardPattern) 
-          : List.of();
-    }
-    
+    // Single wildcard matches all available fields
     if (isFullWildcardPattern(wildcardPattern)) {
-      // Single wildcard matches all available fields
-      return availableFields.stream()
-          .sorted()
-          .collect(Collectors.toList());
+      return new ArrayList<>(availableFields);
     }
     
     String regexPattern = "^" + wildcardToRegex(wildcardPattern) + "$";
-    Pattern pattern = Pattern.compile(regexPattern, Pattern.CASE_INSENSITIVE);
+    Pattern pattern = Pattern.compile(regexPattern);
     
     return availableFields.stream()
         .filter(field -> pattern.matcher(field).matches())
-        .sorted()
         .collect(Collectors.toList());
   }
   
   /**
-   * Apply wildcard transformation to generate new field name.
+   * Apply wildcard transformation to get new field name.
    *
    * @param sourcePattern the source wildcard pattern
    * @param targetPattern the target wildcard pattern
@@ -97,11 +86,6 @@ public class WildcardRenameUtils {
       String targetPattern, 
       String actualFieldName) {
     
-    // No wildcards in either pattern
-    if (!isWildcardPattern(sourcePattern) && !isWildcardPattern(targetPattern)) {
-      return targetPattern;
-    }
-    
     // Both are full wildcards
     if (isFullWildcardPattern(sourcePattern) && isFullWildcardPattern(targetPattern)) {
       return actualFieldName;
@@ -113,7 +97,7 @@ public class WildcardRenameUtils {
     }
 
     String sourceRegex = "^" + wildcardToRegex(sourcePattern) + "$";
-    Pattern sourceP = Pattern.compile(sourceRegex, Pattern.CASE_INSENSITIVE);
+    Pattern sourceP = Pattern.compile(sourceRegex);
     Matcher matcher = sourceP.matcher(actualFieldName);
     
     if (!matcher.matches()) {
@@ -126,7 +110,7 @@ public class WildcardRenameUtils {
 
     for (int i = 1; i <= matcher.groupCount(); i++) {
       String capturedValue = matcher.group(i);
-      
+
       int index = result.indexOf("*");
       if (index >= 0) {
         result = result.substring(0, index) + capturedValue + result.substring(index + 1);

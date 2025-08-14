@@ -18,8 +18,8 @@ Syntax
 ============
 rename <source-field> AS <target-field>["," <source-field> AS <target-field>]...
 
-* source-field: mandatory. The name of the field you want to rename.
-* field list: mandatory. The name you want to rename to.
+* source-field: mandatory. The name of the field you want to rename. Supports wildcard patterns using ``*``.
+* target-field: mandatory. The name you want to rename to. Must have same number of wildcards as the source.
 
 
 Example 1: Rename one field
@@ -58,6 +58,25 @@ PPL query::
     | 13 | Quility |
     | 18 | null    |
     +----+---------+
+
+
+Example 3: Rename with wildcards
+=================================
+
+The example shows renaming multiple fields using wildcard patterns.
+
+PPL query::
+
+    os> source=accounts | rename *name as *_name | fields first_name, last_name;
+    fetched rows / total rows = 4/4
+    +------------+-----------+
+    | first_name | last_name |
+    |------------|-----------|
+    | Amber      | Duke      |
+    | Hattie     | Bond      |
+    | Nanette    | Bates     |
+    | Dale       | Adams     |
+    +------------+-----------+
 
 Limitation
 ==========

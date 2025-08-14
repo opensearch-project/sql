@@ -159,4 +159,60 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
     verifySchemaInOrder(result, schema("avg(`user_age`)", "double"), schema("country", "string"));
     verifyDataRows(result, rows(22.5, "Canada"), rows(50.0, "USA"));
   }
+
+  @Test
+  public void testRenameWildcardFields() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source = %s | rename *ame as *AME", TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        result,
+        schema("nAME", "string"),
+        schema("age", "int"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("year", "int"),
+        schema("month", "int"));
+  }
+
+  @Test
+  public void testRenameMultipleWildcardFields() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source = %s | rename *nt* as *NT*", TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("age", "int"),
+        schema("state", "string"),
+        schema("couNTry", "string"),
+        schema("year", "int"),
+        schema("moNTh", "int"));
+  }
+
+  @Test
+  public void testRenameWildcardPrefix() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source = %s | rename *me as new_*", TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        result,
+        schema("new_na", "string"),
+        schema("age", "int"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("year", "int"),
+        schema("month", "int"));
+  }
+
+  @Test
+  public void testRenameFullWildcard() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source = %s | fields name, age | rename * as old_*", TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        result,
+        schema("old_name", "string"),
+        schema("old_age", "int"));
+  }
 }

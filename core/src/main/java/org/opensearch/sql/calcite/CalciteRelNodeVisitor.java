@@ -125,6 +125,7 @@ import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.utils.ParseUtils;
+import org.opensearch.sql.utils.WildcardRenameUtils;
 
 public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalcitePlanContext> {
 
@@ -413,9 +414,42 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     visitChildren(node, context);
     List<String> originalNames = context.relBuilder.peek().getRowType().getFieldNames();
     List<String> newNames = new ArrayList<>(originalNames);
+    
     for (org.opensearch.sql.ast.expression.Map renameMap : node.getRenameList()) {
-      if (renameMap.getTarget() instanceof Field t) {
-        String newName = t.getField().toString();
+      if (!(renameMap.getTarget() instanceof Field)) {
+        throw new SemanticCheckException(
+            String.format("the target expected to be field, but is %s", renameMap.getTarget()));
+      }
+      
+      if (renameMap.getOrigin() instanceof Field && 
+          WildcardRenameUtils.isWildcardPattern(((Field) renameMap.getOrigin()).getField().toString())) {
+        String sourcePattern = ((Field) renameMap.getOrigin()).getField().toString();
+        String targetPattern = ((Field) renameMap.getTarget()).getField().toString();
+        
+        if (!WildcardRenameUtils.validatePatternCompatibility(sourcePattern, targetPattern)) {
+          throw new SemanticCheckException("Source and target patterns have different wildcard counts");
+        }
+        
+        // Handle wildcard rename for Calcite
+        Set<String> availableFields = new HashSet<>(originalNames);
+        List<String> matchingFields = WildcardRenameUtils.matchFieldNames(sourcePattern, availableFields);
+        
+        if (matchingFields.isEmpty()) {
+          throw new SemanticCheckException(
+                  String.format("No fields match the pattern '%s'", sourcePattern));
+        }
+        
+        for (String fieldName : matchingFields) {
+          String newName = WildcardRenameUtils.applyWildcardTransformation(
+                  sourcePattern, targetPattern, fieldName);
+          
+          int fieldIndex = originalNames.indexOf(fieldName);
+          if (fieldIndex >= 0) {
+            newNames.set(fieldIndex, newName);
+          }
+        }
+      } else {
+        String newName = ((Field) renameMap.getTarget()).getField().toString();
         RexNode check = rexVisitor.analyze(renameMap.getOrigin(), context);
         if (check instanceof RexInputRef ref) {
           newNames.set(ref.getIndex(), newName);
@@ -423,9 +457,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           throw new SemanticCheckException(
               String.format("the original field %s cannot be resolved", renameMap.getOrigin()));
         }
-      } else {
-        throw new SemanticCheckException(
-            String.format("the target expected to be field, but is %s", renameMap.getTarget()));
       }
     }
     context.relBuilder.rename(newNames);
