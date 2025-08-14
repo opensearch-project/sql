@@ -150,12 +150,12 @@ reverseCommand
    ;
 
 timechartCommand
-   : TIMECHART (spanClause | SPAN EQUAL spanLiteral)? (LIMIT EQUAL limit = integerLiteral)? (USEOTHER EQUAL useother = useOtherValue)? statsFunction (BY fieldExpression)?
+   : TIMECHART (spanClause | SPAN EQUAL spanLiteral)? timechartArg* statsFunction (BY fieldExpression)?
    ;
 
-useOtherValue
-   : booleanLiteral
-   | ident
+timechartArg
+   : LIMIT EQUAL integerLiteral
+   | USEOTHER EQUAL (booleanLiteral | ident)
    ;
 
 spanLiteral

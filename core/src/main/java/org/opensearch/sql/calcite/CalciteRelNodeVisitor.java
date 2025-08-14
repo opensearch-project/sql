@@ -1229,8 +1229,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Create group-by list with span expression
     List<UnresolvedExpression> groupExprList = new ArrayList<>();
     UnresolvedExpression spanExpr =
-        node.getSpanExpression() != null
-            ? node.getSpanExpression()
+        node.getBinExpression() != null
+            ? node.getBinExpression()
             : AstDSL.span(AstDSL.field("@timestamp"), AstDSL.stringLiteral("1m"), null);
     groupExprList.add(spanExpr);
 

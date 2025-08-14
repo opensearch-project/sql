@@ -21,32 +21,35 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 @AllArgsConstructor
 public class Timechart extends UnresolvedPlan {
   private UnresolvedPlan child;
-  private UnresolvedExpression spanExpression;
+  private UnresolvedExpression binExpression;
   private UnresolvedExpression aggregateFunction;
   private UnresolvedExpression byField;
   private Integer limit;
   private Boolean useOther;
 
-  public Timechart(
-      UnresolvedPlan child,
-      UnresolvedExpression spanExpression,
-      UnresolvedExpression aggregateFunction,
-      UnresolvedExpression byField) {
-    this(child, spanExpression, aggregateFunction, byField, null, true);
+  public Timechart(UnresolvedPlan child, UnresolvedExpression aggregateFunction) {
+    this(child, null, aggregateFunction, null, null, true);
   }
 
-  public Timechart(
-      UnresolvedPlan child,
-      UnresolvedExpression spanExpression,
-      UnresolvedExpression aggregateFunction,
-      UnresolvedExpression byField,
-      Integer limit) {
-    this(child, spanExpression, aggregateFunction, byField, limit, true);
+  public Timechart span(UnresolvedExpression binExpression) {
+    return new Timechart(child, binExpression, aggregateFunction, byField, limit, useOther);
+  }
+
+  public Timechart by(UnresolvedExpression byField) {
+    return new Timechart(child, binExpression, aggregateFunction, byField, limit, useOther);
+  }
+
+  public Timechart limit(Integer limit) {
+    return new Timechart(child, binExpression, aggregateFunction, byField, limit, useOther);
+  }
+
+  public Timechart useOther(Boolean useOther) {
+    return new Timechart(child, binExpression, aggregateFunction, byField, limit, useOther);
   }
 
   @Override
   public Timechart attach(UnresolvedPlan child) {
-    return new Timechart(child, spanExpression, aggregateFunction, byField, limit, useOther);
+    return new Timechart(child, binExpression, aggregateFunction, byField, limit, useOther);
   }
 
   @Override

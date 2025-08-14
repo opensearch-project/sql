@@ -137,31 +137,30 @@ public class TransportPPLQueryRequest extends ActionRequest {
     PPLQueryRequest pplQueryRequest = new PPLQueryRequest(pplQuery, jsonContent, path, format);
     pplQueryRequest.sanitize(sanitize);
     pplQueryRequest.style(style);
-
-    // Extract timechart parameters from AST
-    extractTimechartParametersFromAST(pplQueryRequest);
-
+    extractTimechartParameters(pplQueryRequest);
     return pplQueryRequest;
   }
 
-  private void extractTimechartParametersFromAST(PPLQueryRequest pplQueryRequest) {
-    if (pplQuery == null) {
+  private void extractTimechartParameters(PPLQueryRequest pplQueryRequest) {
+    if (pplQuery == null || !pplQuery.toLowerCase().contains("timechart")) {
       return;
     }
-
     try {
       PPLSyntaxParser parser = new PPLSyntaxParser();
       ParseTree cst = parser.parse(pplQuery);
       AstBuilder astBuilder = new AstBuilder(pplQuery);
       UnresolvedPlan plan = astBuilder.visit(cst);
-
       Timechart timechartNode = findTimechartNode(plan);
       if (timechartNode != null) {
-        pplQueryRequest.timechartLimit(timechartNode.getLimit());
-        pplQueryRequest.timechartUseOther(timechartNode.getUseOther());
+        if (timechartNode.getLimit() != null) {
+          pplQueryRequest.timechartLimit(timechartNode.getLimit());
+        }
+        if (timechartNode.getUseOther() != null) {
+          pplQueryRequest.timechartUseOther(timechartNode.getUseOther());
+        }
       }
-    } catch (RuntimeException e) {
-      // Ignore parsing errors - not all queries are timechart queries
+    } catch (Exception e) {
+      // Ignore parsing errors
     }
   }
 
@@ -169,7 +168,6 @@ public class TransportPPLQueryRequest extends ActionRequest {
     if (plan instanceof Timechart) {
       return (Timechart) plan;
     }
-
     for (Node child : plan.getChild()) {
       if (child instanceof UnresolvedPlan) {
         Timechart result = findTimechartNode((UnresolvedPlan) child);
@@ -178,7 +176,6 @@ public class TransportPPLQueryRequest extends ActionRequest {
         }
       }
     }
-
     return null;
   }
 }
