@@ -7,7 +7,6 @@ package org.opensearch.sql.calcite.utils;
 
 import static org.apache.calcite.sql.SqlKind.LITERAL;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -527,16 +526,13 @@ public class BinUtils {
 
     RexNode selectedWidth = createDynamicWidthSelection(fieldExpr, requestedBins, context);
 
-    RexNode divided = context.relBuilder.call(SqlStdOperatorTable.DIVIDE, fieldExpr, selectedWidth);
-    RexNode floored = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
-    RexNode binValue =
-        context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, floored, selectedWidth);
-
+    // Use existing calculateBinValue helper instead of manual SqlOperators
+    RexNode binValue = calculateBinValue(fieldExpr, selectedWidth, context);
     RexNode binEnd = context.relBuilder.call(SqlStdOperatorTable.PLUS, binValue, selectedWidth);
     return createRangeString(binValue, binEnd, selectedWidth, context);
   }
 
-  /** Creates dynamic width selection that implements exact nice number algorithm. */
+  /** Creates dynamic width selection using custom BIN_WIDTH_CALCULATOR function. */
   private static RexNode createDynamicWidthSelection(
       RexNode fieldExpr, int requestedBins, CalcitePlanContext context) {
 
@@ -545,46 +541,12 @@ public class BinUtils {
 
     RexNode dataRange = context.relBuilder.call(SqlStdOperatorTable.MINUS, maxValue, minValue);
 
-    List<RexNode> caseOperands = new ArrayList<>();
-
-    for (double width : NICE_WIDTHS) {
-      RexNode widthLiteral = context.relBuilder.literal(width);
-
-      RexNode theoreticalBins =
-          context.relBuilder.call(
-              SqlStdOperatorTable.CEIL,
-              context.relBuilder.call(SqlStdOperatorTable.DIVIDE, dataRange, widthLiteral));
-
-      RexNode maxModWidth =
-          context.relBuilder.call(SqlStdOperatorTable.MOD, maxValue, widthLiteral);
-      RexNode needsExtraBin =
-          context.relBuilder.call(
-              SqlStdOperatorTable.EQUALS, maxModWidth, context.relBuilder.literal(0));
-      RexNode extraBin =
-          context.relBuilder.call(
-              SqlStdOperatorTable.CASE,
-              needsExtraBin,
-              context.relBuilder.literal(1),
-              context.relBuilder.literal(0));
-      RexNode actualBins =
-          context.relBuilder.call(SqlStdOperatorTable.PLUS, theoreticalBins, extraBin);
-
-      RexNode constraint =
-          context.relBuilder.call(
-              SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
-              actualBins,
-              context.relBuilder.literal(requestedBins));
-
-      caseOperands.add(constraint);
-      caseOperands.add(widthLiteral);
-    }
-
-    RexNode exactWidth =
-        context.relBuilder.call(
-            SqlStdOperatorTable.DIVIDE, dataRange, context.relBuilder.literal(requestedBins));
-    caseOperands.add(exactWidth);
-
-    return context.relBuilder.call(SqlStdOperatorTable.CASE, caseOperands);
+    // Replace complex nested SqlOperators with single function call
+    return context.relBuilder.call(
+        PPLBuiltinOperators.BIN_WIDTH_CALCULATOR,
+        dataRange,
+        maxValue,
+        context.relBuilder.literal(requestedBins));
   }
 
   /** Parses time span string (like "1h", "30seconds") and creates bin-specific span expression. */

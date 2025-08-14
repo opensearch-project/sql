@@ -74,6 +74,7 @@ import org.opensearch.sql.expression.function.udf.datetime.YearweekFunction;
 import org.opensearch.sql.expression.function.udf.ip.CidrMatchFunction;
 import org.opensearch.sql.expression.function.udf.ip.CompareIpFunction;
 import org.opensearch.sql.expression.function.udf.ip.IPFunction;
+import org.opensearch.sql.expression.function.udf.math.BinWidthCalculatorFunction;
 import org.opensearch.sql.expression.function.udf.math.CRC32Function;
 import org.opensearch.sql.expression.function.udf.math.ConvFunction;
 import org.opensearch.sql.expression.function.udf.math.DivideFunction;
@@ -380,6 +381,8 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
       RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("multi_match", false);
   public static final SqlOperator NUMBER_TO_STRING =
       new NumberToStringFunction().toUDF("NUMBER_TO_STRING");
+  public static final SqlOperator BIN_WIDTH_CALCULATOR =
+      new BinWidthCalculatorFunction().toUDF("BIN_WIDTH_CALCULATOR");
 
   /**
    * Returns the PPL specific operator table, creating it if necessary.
