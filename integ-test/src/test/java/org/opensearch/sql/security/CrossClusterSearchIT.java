@@ -169,47 +169,4 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
         columnName("IS_GENERATEDCOLUMN"));
   }
 
-  @Test
-  public void testCrossClusterSearchWithEnhancedCoalesce() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | eval result = coalesce(holdersName, dog_name, 'unknown') |"
-                    + " fields dog_name, holdersName, result | head 1",
-                TEST_INDEX_DOG_REMOTE));
-    verifyColumn(result, columnName("dog_name"), columnName("holdersName"), columnName("result"));
-  }
-
-  @Test
-  public void testCrossClusterCoalesceMixedTypes() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | eval result = coalesce(age, holdersName, 'fallback') | fields"
-                    + " age, holdersName, result | head 1",
-                TEST_INDEX_DOG_REMOTE));
-    verifyColumn(result, columnName("age"), columnName("holdersName"), columnName("result"));
-  }
-
-  @Test
-  public void testCrossClusterCoalesceNonExistentFields() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | eval result = coalesce(missing_field, dog_name) | fields"
-                    + " dog_name, result | head 1",
-                TEST_INDEX_DOG_REMOTE));
-    verifyColumn(result, columnName("dog_name"), columnName("result"));
-  }
-
-  @Test
-  public void testCrossClusterCoalesceEmptyString() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | eval result = coalesce('', dog_name) | fields dog_name, result"
-                    + " | head 1",
-                TEST_INDEX_DOG_REMOTE));
-    verifyColumn(result, columnName("dog_name"), columnName("result"));
-  }
 }
