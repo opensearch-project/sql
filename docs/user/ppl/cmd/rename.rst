@@ -71,7 +71,7 @@ PPL query::
     fetched rows / total rows = 4/4
     +------------+-----------+
     | first_name | last_name |
-    |------------|-----------|
+    |------------+-----------|
     | Amber      | Duke      |
     | Hattie     | Bond      |
     | Nanette    | Bates     |
