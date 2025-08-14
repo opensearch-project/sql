@@ -179,16 +179,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitRegex(Regex node, CalcitePlanContext context) {
     visitChildren(node, context);
 
-    // Create our Java regex RegexMatch expression directly, just like the legacy engine
-    // This ensures both engines use identical Java regex implementation
-
-    // Analyze the field and pattern expressions in the current context
+    // Analyze the field and pattern expressions
     RexNode fieldRex = rexVisitor.analyze(node.getField(), context);
     RexNode patternRex = rexVisitor.analyze(node.getPattern(), context);
 
-    // Create a custom RexNode that represents our RegexMatch expression
-    // This will be handled by the script engine with Java regex support
-    RexNode regexCondition = createRegexMatchRexNode(fieldRex, patternRex, context);
+    // Create RexNode using the REGEX_MATCH UDF
+    RexNode regexCondition =
+        context.rexBuilder.makeCall(
+            org.opensearch.sql.expression.function.PPLBuiltinOperators.REGEX_MATCH,
+            fieldRex,
+            patternRex);
 
     // If negated, wrap with NOT
     if (node.isNegated()) {
@@ -197,14 +197,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     context.relBuilder.filter(regexCondition);
     return context.relBuilder.peek();
-  }
-
-  private RexNode createRegexMatchRexNode(
-      RexNode field, RexNode pattern, CalcitePlanContext context) {
-    // Use the UDF version that has proper enumerable implementation support
-    // This ensures Java regex usage for both pushdown and in-memory execution
-    return context.rexBuilder.makeCall(
-        org.opensearch.sql.expression.function.PPLBuiltinOperators.REGEX_MATCH, field, pattern);
   }
 
   private boolean containsSubqueryExpression(Node expr) {

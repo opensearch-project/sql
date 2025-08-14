@@ -753,14 +753,12 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     Expression fieldExpr = expressionAnalyzer.analyze(node.getField(), context);
     Expression patternExpr = expressionAnalyzer.analyze(node.getPattern(), context);
 
-    // Create the RegexMatch expression directly
-    // This is our custom Java regex implementation
+    // Create the RegexMatch expression
     Expression regexExpr =
         new org.opensearch.sql.expression.operator.predicate.RegexMatch(
             fieldExpr, patternExpr, node.isNegated());
 
     // Return a LogicalFilter with the regex condition
-    // No need for optimization since RegexMatch is already a concrete expression
     LogicalFilter result = new LogicalFilter(child, regexExpr);
 
     return result;

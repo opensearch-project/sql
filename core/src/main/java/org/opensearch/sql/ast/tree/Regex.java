@@ -33,7 +33,6 @@ public class Regex extends UnresolvedPlan {
   @Setter private UnresolvedPlan child;
 
   public Regex(UnresolvedExpression field, String operator, Literal pattern) {
-    // Require explicit field - no default to _source for PoC
     this.field = field;
     this.negated = "!=".equals(operator);
     this.pattern = pattern;
