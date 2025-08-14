@@ -164,8 +164,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
   @Test
   public void testRenameWildcardFields() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format("source = %s | rename *ame as *AME", TEST_INDEX_STATE_COUNTRY));
+        executeQuery(String.format("source = %s | rename *ame as *AME", TEST_INDEX_STATE_COUNTRY));
     verifySchema(
         result,
         schema("nAME", "string"),
@@ -179,8 +178,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
   @Test
   public void testRenameMultipleWildcardFields() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format("source = %s | rename *nt* as *NT*", TEST_INDEX_STATE_COUNTRY));
+        executeQuery(String.format("source = %s | rename *nt* as *NT*", TEST_INDEX_STATE_COUNTRY));
     verifySchema(
         result,
         schema("name", "string"),
@@ -194,8 +192,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
   @Test
   public void testRenameWildcardPrefix() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format("source = %s | rename *me as new_*", TEST_INDEX_STATE_COUNTRY));
+        executeQuery(String.format("source = %s | rename *me as new_*", TEST_INDEX_STATE_COUNTRY));
     verifySchema(
         result,
         schema("new_na", "string"),
@@ -210,10 +207,8 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
   public void testRenameFullWildcard() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format("source = %s | fields name, age | rename * as old_*", TEST_INDEX_STATE_COUNTRY));
-    verifySchema(
-        result,
-        schema("old_name", "string"),
-        schema("old_age", "int"));
+            String.format(
+                "source = %s | fields name, age | rename * as old_*", TEST_INDEX_STATE_COUNTRY));
+    verifySchema(result, schema("old_name", "string"), schema("old_age", "int"));
   }
 }

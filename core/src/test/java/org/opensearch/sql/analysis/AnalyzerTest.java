@@ -538,7 +538,8 @@ class AnalyzerTest extends AnalyzerTestBase {
                     AstDSL.rename(
                         AstDSL.relation("schema"),
                         AstDSL.map(AstDSL.field("*name"), AstDSL.field("*_*_field")))));
-    assertEquals("Source and target patterns have different wildcard counts", exception.getMessage());
+    assertEquals(
+        "Source and target patterns have different wildcard counts", exception.getMessage());
   }
 
   @Test
