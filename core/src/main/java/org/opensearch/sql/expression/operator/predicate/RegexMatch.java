@@ -21,16 +21,12 @@ import org.opensearch.sql.expression.ExpressionNodeVisitor;
 import org.opensearch.sql.expression.env.Environment;
 
 /**
- * Expression for regex matching using Java's built-in regex engine. 
- * Supports Java regex features including:
- * - Named groups (?<name>...)
- * - Lookahead/lookbehind (limited to fixed-width)
- * - Backreferences
- * - Atomic groups (?>...)
- * - Possessive quantifiers (*+, ++, etc.)
- * - Inline flags (?i), (?m), (?s), etc.
- * 
- * Note: Does not support PCRE-specific features like recursion (?R) or conditionals.
+ * Expression for regex matching using Java's built-in regex engine. Supports Java regex features
+ * including: - Named groups (?<name>...) - Lookahead/lookbehind (limited to fixed-width) -
+ * Backreferences - Atomic groups (?>...) - Possessive quantifiers (*+, ++, etc.) - Inline flags
+ * (?i), (?m), (?s), etc.
+ *
+ * <p>Note: Does not support PCRE-specific features like recursion (?R) or conditionals.
  */
 @ToString
 @EqualsAndHashCode
@@ -46,7 +42,6 @@ public class RegexMatch implements Expression {
 
   // Maximum cache size to prevent memory issues
   private static final int MAX_CACHE_SIZE = 1000;
-
 
   public RegexMatch(Expression field, Expression pattern, boolean negated) {
     this.field = field;

@@ -754,7 +754,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     Expression patternExpr = expressionAnalyzer.analyze(node.getPattern(), context);
 
     // Create the RegexMatch expression directly
-    // This is our custom PCRE-based implementation
+    // This is our custom Java regex implementation
     Expression regexExpr =
         new org.opensearch.sql.expression.operator.predicate.RegexMatch(
             fieldExpr, patternExpr, node.isNegated());

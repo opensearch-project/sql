@@ -179,15 +179,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitRegex(Regex node, CalcitePlanContext context) {
     visitChildren(node, context);
 
-    // Create our PCRE2 RegexMatch expression directly, just like the legacy engine
-    // This ensures both engines use identical PCRE2 implementation
+    // Create our Java regex RegexMatch expression directly, just like the legacy engine
+    // This ensures both engines use identical Java regex implementation
 
     // Analyze the field and pattern expressions in the current context
     RexNode fieldRex = rexVisitor.analyze(node.getField(), context);
     RexNode patternRex = rexVisitor.analyze(node.getPattern(), context);
 
     // Create a custom RexNode that represents our RegexMatch expression
-    // This will be handled by the script engine with PCRE2 support
+    // This will be handled by the script engine with Java regex support
     RexNode regexCondition = createRegexMatchRexNode(fieldRex, patternRex, context);
 
     // If negated, wrap with NOT
@@ -202,7 +202,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   private RexNode createRegexMatchRexNode(
       RexNode field, RexNode pattern, CalcitePlanContext context) {
     // Use the UDF version that has proper enumerable implementation support
-    // This ensures PCRE2 usage for both pushdown and in-memory execution
+    // This ensures Java regex usage for both pushdown and in-memory execution
     return context.rexBuilder.makeCall(
         org.opensearch.sql.expression.function.PPLBuiltinOperators.REGEX_MATCH, field, pattern);
   }
