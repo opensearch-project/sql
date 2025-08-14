@@ -381,6 +381,10 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator NUMBER_TO_STRING =
       new NumberToStringFunction().toUDF("NUMBER_TO_STRING");
 
+  // Custom PCRE2 regex operator for Calcite engine
+  public static final SqlOperator REGEX_MATCH =
+      new org.opensearch.sql.expression.function.udf.RegexMatchFunctionImpl().toUDF("REGEX_MATCH");
+
   /**
    * Returns the PPL specific operator table, creating it if necessary.
    *

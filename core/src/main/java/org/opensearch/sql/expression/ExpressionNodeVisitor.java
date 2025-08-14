@@ -101,4 +101,14 @@ public abstract class ExpressionNodeVisitor<T, C> {
   public T visitNamedArgument(NamedArgumentExpression node, C context) {
     return visitNode(node, context);
   }
+
+  public T visitRegex(org.opensearch.sql.expression.operator.predicate.RegexMatch node, C context) {
+    // Visit field and pattern expressions to ensure field extraction works properly
+    T result = defaultResult();
+    T fieldResult = node.getField().accept(this, context);
+    result = aggregateResult(result, fieldResult);
+    T patternResult = node.getPattern().accept(this, context);
+    result = aggregateResult(result, patternResult);
+    return result;
+  }
 }
