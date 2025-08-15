@@ -30,6 +30,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.impl.AggregateFunctionImpl;
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -77,27 +78,71 @@ public class UserDefinedFunctionUtils {
   public static Set<String> MULTI_FIELDS_RELEVANCE_FUNCTION_SET =
       ImmutableSet.of("simple_query_string", "query_string", "multi_match");
 
-  public static RelBuilder.AggCall TransferUserDefinedAggFunction(
-      Class<? extends UserDefinedAggFunction> UDAF,
+  /**
+   * Creates a SqlUserDefinedAggFunction that wraps a Java class implementing an aggregate function.
+   *
+   * @param udafClass The Java class that implements the UserDefinedAggFunction interface
+   * @param functionName The name of the function to be used in SQL statements
+   * @param returnType A SqlReturnTypeInference that determines the return type of the function
+   * @return A SqlUserDefinedAggFunction that can be used in SQL queries
+   */
+  public static SqlUserDefinedAggFunction createUserDefinedAggFunction(
+      Class<? extends UserDefinedAggFunction<?>> udafClass,
+      String functionName,
+      SqlReturnTypeInference returnType) {
+    return new SqlUserDefinedAggFunction(
+        new SqlIdentifier(functionName, SqlParserPos.ZERO),
+        SqlKind.OTHER_FUNCTION,
+        returnType,
+        null,
+        null,
+        AggregateFunctionImpl.create(udafClass),
+        false,
+        false,
+        Optionality.FORBIDDEN);
+  }
+
+  /**
+   * Creates an aggregate call using the provided SqlAggFunction and arguments.
+   *
+   * @param aggFunction The aggregate function to call
+   * @param fields The primary fields to aggregate
+   * @param argList Additional arguments for the aggregate function
+   * @param relBuilder The RelBuilder instance used for building relational expressions
+   * @return An AggCall object representing the aggregate function call
+   */
+  public static RelBuilder.AggCall makeAggregateCall(
+      SqlAggFunction aggFunction,
+      List<RexNode> fields,
+      List<RexNode> argList,
+      RelBuilder relBuilder) {
+    List<RexNode> addArgList = new ArrayList<>(fields);
+    addArgList.addAll(argList);
+    return relBuilder.aggregateCall(aggFunction, addArgList);
+  }
+
+  /**
+   * Creates and registers a User Defined Aggregate Function (UDAF) and returns an AggCall that can
+   * be used in query plans.
+   *
+   * @param udafClass The class implementing the aggregate function behavior
+   * @param functionName The name of the aggregate function
+   * @param returnType The return type inference for determining the result type
+   * @param fields The primary fields to aggregate
+   * @param argList Additional arguments for the aggregate function
+   * @param relBuilder The RelBuilder instance used for building relational expressions
+   * @return An AggCall object representing the aggregate function call
+   */
+  public static RelBuilder.AggCall createAggregateFunction(
+      Class<? extends UserDefinedAggFunction<?>> udafClass,
       String functionName,
       SqlReturnTypeInference returnType,
       List<RexNode> fields,
       List<RexNode> argList,
       RelBuilder relBuilder) {
-    SqlUserDefinedAggFunction sqlUDAF =
-        new SqlUserDefinedAggFunction(
-            new SqlIdentifier(functionName, SqlParserPos.ZERO),
-            SqlKind.OTHER_FUNCTION,
-            returnType,
-            null,
-            null,
-            AggregateFunctionImpl.create(UDAF),
-            false,
-            false,
-            Optionality.FORBIDDEN);
-    List<RexNode> addArgList = new ArrayList<>(fields);
-    addArgList.addAll(argList);
-    return relBuilder.aggregateCall(sqlUDAF, addArgList);
+    SqlUserDefinedAggFunction udaf =
+        createUserDefinedAggFunction(udafClass, functionName, returnType);
+    return makeAggregateCall(udaf, fields, argList, relBuilder);
   }
 
   public static SqlReturnTypeInference getReturnTypeInferenceForArray() {
