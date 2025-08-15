@@ -270,7 +270,8 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testRegexExplain() throws IOException {
-    String query = "source=opensearch-sql_test_index_account | regex lastname='^[A-Z][a-z]+$' | head 5";
+    String query =
+        "source=opensearch-sql_test_index_account | regex lastname='^[A-Z][a-z]+$' | head 5";
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_regex.json");
     assertJsonEqualsIgnoreId(expected, result);
