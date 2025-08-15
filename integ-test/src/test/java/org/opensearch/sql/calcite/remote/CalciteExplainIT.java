@@ -365,6 +365,23 @@ public class CalciteExplainIT extends ExplainIT {
                 TEST_INDEX_LOGS)));
   }
 
+  @Test
+  public void testRegexExplain() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | regex lastname='^[A-Z][a-z]+$' | head 5";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_regex.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testRegexNegatedExplain() throws IOException {
+    String query = "source=opensearch-sql_test_index_account | regex lastname!='.*son$' | head 5";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_regex_negated.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
   /**
    * Executes the PPL query and returns the result as a string with windows-style line breaks
    * replaced with Unix-style ones.
