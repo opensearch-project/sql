@@ -51,6 +51,49 @@ public class PPLOperandTypes {
   public static final UDFOperandMetadata NUMERIC_NUMERIC_NUMERIC =
       UDFOperandMetadata.wrap(
           OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC));
+  public static final UDFOperandMetadata NUMERIC_NUMERIC_NUMERIC_NUMERIC =
+      UDFOperandMetadata.wrap(
+          OperandTypes.family(
+              SqlTypeFamily.NUMERIC,
+              SqlTypeFamily.NUMERIC,
+              SqlTypeFamily.NUMERIC,
+              SqlTypeFamily.NUMERIC));
+  public static final UDFOperandMetadata STRING_OR_NUMERIC_NUMERIC_NUMERIC_NUMERIC =
+      UDFOperandMetadata.wrap(
+          (CompositeOperandTypeChecker)
+              OperandTypes.family(
+                      SqlTypeFamily.CHARACTER,
+                      SqlTypeFamily.NUMERIC,
+                      SqlTypeFamily.NUMERIC,
+                      SqlTypeFamily.NUMERIC,
+                      SqlTypeFamily.NUMERIC)
+                  .or(
+                      OperandTypes.family(
+                          SqlTypeFamily.NUMERIC,
+                          SqlTypeFamily.NUMERIC,
+                          SqlTypeFamily.NUMERIC,
+                          SqlTypeFamily.NUMERIC,
+                          SqlTypeFamily.NUMERIC)));
+  public static final UDFOperandMetadata STRING_OR_NUMERIC_NUMERIC_NUMERIC_NUMERIC_NUMERIC_NUMERIC =
+      UDFOperandMetadata.wrap(
+          (CompositeOperandTypeChecker)
+              OperandTypes.family(
+                      SqlTypeFamily.CHARACTER,
+                      SqlTypeFamily.NUMERIC,
+                      SqlTypeFamily.NUMERIC,
+                      SqlTypeFamily.NUMERIC,
+                      SqlTypeFamily.NUMERIC,
+                      SqlTypeFamily.NUMERIC,
+                      SqlTypeFamily.NUMERIC)
+                  .or(
+                      OperandTypes.family(
+                          SqlTypeFamily.NUMERIC,
+                          SqlTypeFamily.NUMERIC,
+                          SqlTypeFamily.NUMERIC,
+                          SqlTypeFamily.NUMERIC,
+                          SqlTypeFamily.NUMERIC,
+                          SqlTypeFamily.NUMERIC,
+                          SqlTypeFamily.NUMERIC)));
   public static final UDFOperandMetadata STRING_OR_INTEGER_INTEGER_INTEGER =
       UDFOperandMetadata.wrap(
           (CompositeOperandTypeChecker)
