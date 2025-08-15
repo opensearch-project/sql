@@ -24,6 +24,7 @@ This document contains a list of maintainers in this repo. See [opensearch-proje
 | Lantao Jin        | [LantaoJin](https://github.com/LantaoJin)           | Amazon      |
 | Louis Chu         | [noCharger](https://github.com/noCharger)           | Amazon      |
 | Heng Qian         | [qianheng-aws](https://github.com/qianheng-aws)     | Amazon      |
+| Yuanchun Shen     | [yuancu](https://github.com/yuancu)                 | Amazon      |
 | Max Ksyunz        | [MaxKsyunz](https://github.com/MaxKsyunz)           | Improving   |
 | Yury Fridlyand    | [Yury-Fridlyand](https://github.com/Yury-Fridlyand) | Improving   |
 | Andrew Carbonetto | [acarbonetto](https://github.com/acarbonetto)       | Improving   |
