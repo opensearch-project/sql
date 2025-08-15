@@ -185,26 +185,118 @@ public class BinUtils {
 
       // Support both integer and floating point spans
       if (numericSpanValue == Math.floor(numericSpanValue)) {
-        // Integer span - use existing method
+        // Integer span - use clean UDF function
         int span = spanNumber.intValue();
-        return createRangeCaseExpression(
-            fieldExpr, span, alignTimeValue, context, node.getStart(), node.getEnd(), rexVisitor);
+        return createNumericSpanUsingUDF(
+            fieldExpr, span, context, node.getStart(), node.getEnd(), rexVisitor);
       } else {
-        // Floating point span - use new method
-        return createFloatingPointRangeCaseExpression(
-            fieldExpr,
-            numericSpanValue,
-            alignTimeValue,
-            context,
-            node.getStart(),
-            node.getEnd(),
-            rexVisitor);
+        // Floating point span - use clean UDF function with double value
+        double span = spanNumber.doubleValue();
+        return createNumericSpanUsingUDF(
+            fieldExpr, span, context, node.getStart(), node.getEnd(), rexVisitor);
       }
     } else {
       throw new IllegalArgumentException(
           "Span must be either a number or a string (for log-based spans), got: "
               + spanRawValue.getClass().getSimpleName());
     }
+  }
+
+  /**
+   * Creates numeric span-based binning using the clean BinNumericSpanCalculatorFunction UDF. This
+   * replaces the complex nested SqlOperators with a simple function call.
+   *
+   * @param fieldExpr the field expression to bin
+   * @param span the span value (integer)
+   * @param context the Calcite plan context
+   * @param startExpr optional start parameter (nullable)
+   * @param endExpr optional end parameter (nullable)
+   * @param rexVisitor visitor for converting expressions
+   * @return RexNode representing the bin range string
+   */
+  private static RexNode createNumericSpanUsingUDF(
+      RexNode fieldExpr,
+      int span,
+      CalcitePlanContext context,
+      org.opensearch.sql.ast.expression.UnresolvedExpression startExpr,
+      org.opensearch.sql.ast.expression.UnresolvedExpression endExpr,
+      CalciteRexNodeVisitor rexVisitor) {
+
+    // Convert span to RexNode
+    RexNode spanValue = context.relBuilder.literal(span);
+
+    return createNumericSpanUsingUDFInternal(
+        fieldExpr, spanValue, context, startExpr, endExpr, rexVisitor);
+  }
+
+  /**
+   * Creates numeric span-based binning using the clean BinNumericSpanCalculatorFunction UDF. This
+   * replaces the complex nested SqlOperators with a simple function call.
+   *
+   * @param fieldExpr the field expression to bin
+   * @param span the span value (floating point)
+   * @param context the Calcite plan context
+   * @param startExpr optional start parameter (nullable)
+   * @param endExpr optional end parameter (nullable)
+   * @param rexVisitor visitor for converting expressions
+   * @return RexNode representing the bin range string
+   */
+  private static RexNode createNumericSpanUsingUDF(
+      RexNode fieldExpr,
+      double span,
+      CalcitePlanContext context,
+      org.opensearch.sql.ast.expression.UnresolvedExpression startExpr,
+      org.opensearch.sql.ast.expression.UnresolvedExpression endExpr,
+      CalciteRexNodeVisitor rexVisitor) {
+
+    // Convert span to RexNode
+    RexNode spanValue = context.relBuilder.literal(span);
+
+    return createNumericSpanUsingUDFInternal(
+        fieldExpr, spanValue, context, startExpr, endExpr, rexVisitor);
+  }
+
+  /** Internal helper method for creating numeric span UDF calls. */
+  private static RexNode createNumericSpanUsingUDFInternal(
+      RexNode fieldExpr,
+      RexNode spanValue,
+      CalcitePlanContext context,
+      org.opensearch.sql.ast.expression.UnresolvedExpression startExpr,
+      org.opensearch.sql.ast.expression.UnresolvedExpression endExpr,
+      CalciteRexNodeVisitor rexVisitor) {
+
+    // Convert start parameter to RexNode (use sentinel value when not specified)
+    RexNode startValue;
+    if (startExpr != null) {
+      startValue = rexVisitor.analyze(startExpr, context);
+    } else {
+      // Use sentinel value -1 when start is not specified (will be ignored)
+      startValue = context.relBuilder.literal(-1);
+    }
+
+    // Convert end parameter to RexNode (use sentinel value when not specified)
+    RexNode endValue;
+    if (endExpr != null) {
+      endValue = rexVisitor.analyze(endExpr, context);
+    } else {
+      // Use sentinel value -1 when end is not specified (will be ignored)
+      endValue = context.relBuilder.literal(-1);
+    }
+
+    // Use unified BinCalculatorFunction for span-based binning
+    // BIN_CALCULATOR(field_value, 'span', span_value, start_value, end_value, -1, -1)
+    RexNode binType = context.relBuilder.literal("span");
+    RexNode ignoredDataRange = context.relBuilder.literal(-1);
+    RexNode ignoredMaxValue = context.relBuilder.literal(-1);
+    return context.rexBuilder.makeCall(
+        PPLBuiltinOperators.BIN_CALCULATOR,
+        fieldExpr,
+        binType,
+        spanValue,
+        startValue,
+        endValue,
+        ignoredDataRange,
+        ignoredMaxValue);
   }
 
   /**
@@ -234,46 +326,35 @@ public class BinUtils {
     Number minspanNum = (Number) ((RexLiteral) minspanValue).getValue();
     double minspan = minspanNum.doubleValue();
 
+    // Use unified BinCalculatorFunction with data range for minspan-based binning
+    // BIN_CALCULATOR(field_value, 'minspan', min_span, start, end, data_range, max_value)
+    RexNode binType = context.relBuilder.literal("minspan");
+    RexNode minSpanParam = context.relBuilder.literal(minspan);
+
+    // Calculate data range using window functions
     RexNode minValue = context.relBuilder.min(fieldExpr).over().toRex();
     RexNode maxValue = context.relBuilder.max(fieldExpr).over().toRex();
-
     RexNode dataRange = context.relBuilder.call(SqlStdOperatorTable.MINUS, maxValue, minValue);
 
-    double log10Minspan = Math.log10(minspan);
-    double ceilLog = Math.ceil(log10Minspan);
-    double minspanWidth = Math.pow(10, ceilLog);
+    // Convert start/end parameters (use -1 for unspecified)
+    RexNode startValue =
+        (node.getStart() != null)
+            ? convertLiteralToRex(node.getStart(), context)
+            : context.relBuilder.literal(-1);
+    RexNode endValue =
+        (node.getEnd() != null)
+            ? convertLiteralToRex(node.getEnd(), context)
+            : context.relBuilder.literal(-1);
 
-    RexNode log10Range = context.relBuilder.call(SqlStdOperatorTable.LOG10, dataRange);
-    RexNode floorLog = context.relBuilder.call(SqlStdOperatorTable.FLOOR, log10Range);
-    RexNode defaultWidth =
-        context.relBuilder.call(
-            SqlStdOperatorTable.POWER, context.relBuilder.literal(10.0), floorLog);
-
-    RexNode useDefault =
-        context.relBuilder.call(
-            SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
-            defaultWidth,
-            context.relBuilder.literal(minspan));
-
-    RexNode selectedWidth =
-        context.relBuilder.call(
-            SqlStdOperatorTable.CASE,
-            useDefault,
-            defaultWidth,
-            context.relBuilder.literal(minspanWidth));
-
-    RexNode firstBinStart =
-        context.relBuilder.call(
-            SqlStdOperatorTable.MULTIPLY,
-            context.relBuilder.call(
-                SqlStdOperatorTable.FLOOR,
-                context.relBuilder.call(SqlStdOperatorTable.DIVIDE, minValue, selectedWidth)),
-            selectedWidth);
-
-    RexNode binValue = calculateBinValue(fieldExpr, selectedWidth, firstBinStart, context);
-
-    RexNode binEnd = context.relBuilder.call(SqlStdOperatorTable.PLUS, binValue, selectedWidth);
-    return createRangeString(binValue, binEnd, selectedWidth, context);
+    return context.rexBuilder.makeCall(
+        PPLBuiltinOperators.BIN_CALCULATOR,
+        fieldExpr,
+        binType,
+        minSpanParam,
+        startValue,
+        endValue,
+        dataRange,
+        maxValue);
   }
 
   /** Creates bins-based range strings using exact "nice number" algorithm. */
@@ -295,7 +376,35 @@ public class BinUtils {
           "The bins parameter must not exceed " + MAX_BINS + ", got: " + requestedBins);
     }
 
-    return createFallbackBinningExpression(fieldExpr, requestedBins, context);
+    // Use unified BinCalculatorFunction with data range for bins-based binning
+    // BIN_CALCULATOR(field_value, 'bins', num_bins, start, end, data_range, max_value)
+    RexNode binType = context.relBuilder.literal("bins");
+    RexNode numBins = context.relBuilder.literal(requestedBins);
+
+    // Calculate data range using window functions
+    RexNode minValue = context.relBuilder.min(fieldExpr).over().toRex();
+    RexNode maxValue = context.relBuilder.max(fieldExpr).over().toRex();
+    RexNode dataRange = context.relBuilder.call(SqlStdOperatorTable.MINUS, maxValue, minValue);
+
+    // Convert start/end parameters (use -1 for unspecified)
+    RexNode startValue =
+        (node.getStart() != null)
+            ? convertLiteralToRex(node.getStart(), context)
+            : context.relBuilder.literal(-1);
+    RexNode endValue =
+        (node.getEnd() != null)
+            ? convertLiteralToRex(node.getEnd(), context)
+            : context.relBuilder.literal(-1);
+
+    return context.rexBuilder.makeCall(
+        PPLBuiltinOperators.BIN_CALCULATOR,
+        fieldExpr,
+        binType,
+        numBins,
+        startValue,
+        endValue,
+        dataRange,
+        maxValue);
   }
 
   /** Creates range strings when only start/end parameters are specified (without bins). */
@@ -503,35 +612,6 @@ public class BinUtils {
 
     return context.relBuilder.call(
         SqlStdOperatorTable.CASE, isIntegerWidth, integerValue, decimalValue);
-  }
-
-  /** Creates a binning expression that implements nice number algorithm. */
-  private static RexNode createFallbackBinningExpression(
-      RexNode fieldExpr, int requestedBins, CalcitePlanContext context) {
-
-    RexNode selectedWidth = createDynamicWidthSelection(fieldExpr, requestedBins, context);
-
-    // Use existing calculateBinValue helper instead of manual SqlOperators
-    RexNode binValue = calculateBinValue(fieldExpr, selectedWidth, context);
-    RexNode binEnd = context.relBuilder.call(SqlStdOperatorTable.PLUS, binValue, selectedWidth);
-    return createRangeString(binValue, binEnd, selectedWidth, context);
-  }
-
-  /** Creates dynamic width selection using custom BIN_WIDTH_CALCULATOR function. */
-  private static RexNode createDynamicWidthSelection(
-      RexNode fieldExpr, int requestedBins, CalcitePlanContext context) {
-
-    RexNode minValue = context.relBuilder.min(fieldExpr).over().toRex();
-    RexNode maxValue = context.relBuilder.max(fieldExpr).over().toRex();
-
-    RexNode dataRange = context.relBuilder.call(SqlStdOperatorTable.MINUS, maxValue, minValue);
-
-    // Replace complex nested SqlOperators with single function call
-    return context.relBuilder.call(
-        PPLBuiltinOperators.BIN_WIDTH_CALCULATOR,
-        dataRange,
-        maxValue,
-        context.relBuilder.literal(requestedBins));
   }
 
   /** Parses time span string (like "1h", "30seconds") and creates bin-specific span expression. */
@@ -860,193 +940,6 @@ public class BinUtils {
     }
   }
 
-  /** Creates a CASE expression that converts numeric values to range strings. */
-  private static RexNode createRangeCaseExpression(
-      RexNode fieldExpr,
-      int span,
-      RexNode alignTimeValue,
-      CalcitePlanContext context,
-      org.opensearch.sql.ast.expression.UnresolvedExpression startExpr,
-      org.opensearch.sql.ast.expression.UnresolvedExpression endExpr,
-      CalciteRexNodeVisitor rexVisitor) {
-
-    int rangeStart = 0;
-    if (alignTimeValue instanceof RexLiteral literal
-        && literal.getValue() instanceof Number number) {
-      rangeStart = number.intValue();
-    }
-
-    // Override with start parameter if specified
-    if (startExpr != null) {
-      RexNode startValue = rexVisitor.analyze(startExpr, context);
-      if (startValue.isA(LITERAL)) {
-        rangeStart = ((Number) ((RexLiteral) startValue).getValue()).intValue();
-      }
-    }
-
-    RexNode spanLiteral = context.relBuilder.literal(span);
-    RexNode rangeStartLiteral = context.relBuilder.literal(rangeStart);
-
-    // Calculate: (field - rangeStart) / span
-    RexNode adjustedField =
-        context.relBuilder.call(SqlStdOperatorTable.MINUS, fieldExpr, rangeStartLiteral);
-    RexNode divided =
-        context.relBuilder.call(SqlStdOperatorTable.DIVIDE, adjustedField, spanLiteral);
-
-    // Floor the division to get bin number
-    RexNode binNumber = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
-
-    // Calculate bin_start = binNumber * span + rangeStart
-    RexNode binStartValue =
-        context.relBuilder.call(
-            SqlStdOperatorTable.PLUS,
-            context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, binNumber, spanLiteral),
-            rangeStartLiteral);
-
-    // Calculate bin_end = bin_start + span
-    RexNode binEndValue =
-        context.relBuilder.call(SqlStdOperatorTable.PLUS, binStartValue, spanLiteral);
-
-    // Create range string
-    RexNode rangeString = createRangeString(binStartValue, binEndValue, context);
-
-    // If end parameter is specified, we need to handle values outside the range
-    if (endExpr != null) {
-      RexNode endValue = rexVisitor.analyze(endExpr, context);
-      if (endValue instanceof RexLiteral literal && literal.getValue() instanceof Number number) {
-        int rangeEnd = number.intValue();
-
-        // Create condition: field >= rangeStart AND field < rangeEnd
-        RexNode inRangeCondition =
-            context.relBuilder.call(
-                SqlStdOperatorTable.AND,
-                context.relBuilder.call(
-                    SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
-                    fieldExpr,
-                    context.relBuilder.literal(rangeStart)),
-                context.relBuilder.call(
-                    SqlStdOperatorTable.LESS_THAN,
-                    fieldExpr,
-                    context.relBuilder.literal(rangeEnd)));
-
-        // Return CASE WHEN in_range THEN range_string ELSE 'Other' END
-        return context.relBuilder.call(
-            SqlStdOperatorTable.CASE,
-            inRangeCondition,
-            rangeString,
-            context.relBuilder.literal(OTHER_CATEGORY));
-      }
-    }
-
-    // No end limit - return the dynamic range string for all values
-    return rangeString;
-  }
-
-  /**
-   * Creates a CASE expression that converts numeric values to range strings for floating point
-   * spans.
-   */
-  private static RexNode createFloatingPointRangeCaseExpression(
-      RexNode fieldExpr,
-      double span,
-      RexNode alignTimeValue,
-      CalcitePlanContext context,
-      org.opensearch.sql.ast.expression.UnresolvedExpression startExpr,
-      org.opensearch.sql.ast.expression.UnresolvedExpression endExpr,
-      CalciteRexNodeVisitor rexVisitor) {
-
-    double rangeStart = 0.0;
-    if (alignTimeValue instanceof RexLiteral literal
-        && literal.getValue() instanceof Number number) {
-      rangeStart = number.doubleValue();
-    }
-
-    // Override with start parameter if specified
-    if (startExpr != null) {
-      RexNode startValue = rexVisitor.analyze(startExpr, context);
-      if (startValue.isA(LITERAL)) {
-        rangeStart = ((Number) ((RexLiteral) startValue).getValue()).doubleValue();
-      }
-    }
-
-    RexNode spanLiteral = context.relBuilder.literal(span);
-    RexNode rangeStartLiteral = context.relBuilder.literal(rangeStart);
-
-    // Calculate: (field - rangeStart) / span
-    RexNode adjustedField =
-        context.relBuilder.call(SqlStdOperatorTable.MINUS, fieldExpr, rangeStartLiteral);
-    RexNode divided =
-        context.relBuilder.call(SqlStdOperatorTable.DIVIDE, adjustedField, spanLiteral);
-
-    // Floor the division to get bin number
-    RexNode binNumber = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
-
-    // Calculate bin_start = binNumber * span + rangeStart
-    RexNode binStartValue =
-        context.relBuilder.call(
-            SqlStdOperatorTable.PLUS,
-            context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, binNumber, spanLiteral),
-            rangeStartLiteral);
-
-    // Calculate bin_end = bin_start + span
-    RexNode binEndValue =
-        context.relBuilder.call(SqlStdOperatorTable.PLUS, binStartValue, spanLiteral);
-
-    // Create range string with proper floating point formatting
-    RexNode rangeString = createFloatingPointRangeString(binStartValue, binEndValue, context);
-
-    // If end parameter is specified, we need to handle values outside the range
-    if (endExpr != null) {
-      RexNode endValue = rexVisitor.analyze(endExpr, context);
-      if (endValue instanceof RexLiteral literal && literal.getValue() instanceof Number number) {
-        double rangeEnd = number.doubleValue();
-
-        // Create condition: field >= rangeStart AND field < rangeEnd
-        RexNode inRangeCondition =
-            context.relBuilder.call(
-                SqlStdOperatorTable.AND,
-                context.relBuilder.call(
-                    SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
-                    fieldExpr,
-                    context.relBuilder.literal(rangeStart)),
-                context.relBuilder.call(
-                    SqlStdOperatorTable.LESS_THAN,
-                    fieldExpr,
-                    context.relBuilder.literal(rangeEnd)));
-
-        // Return CASE WHEN in_range THEN range_string ELSE 'Other' END
-        return context.relBuilder.call(
-            SqlStdOperatorTable.CASE,
-            inRangeCondition,
-            rangeString,
-            context.relBuilder.literal(OTHER_CATEGORY));
-      }
-    }
-
-    // No end limit - return the dynamic range string for all values
-    return rangeString;
-  }
-
-  /** Creates a formatted range string from start and end values for floating point spans. */
-  private static RexNode createFloatingPointRangeString(
-      RexNode binValue, RexNode binEnd, CalcitePlanContext context) {
-    RexNode dash = context.relBuilder.literal(DASH_SEPARATOR);
-
-    // Round to avoid floating point precision issues and format to 1 decimal place
-    RexNode roundedStart =
-        context.relBuilder.call(SqlStdOperatorTable.ROUND, binValue, context.relBuilder.literal(1));
-    RexNode roundedEnd =
-        context.relBuilder.call(SqlStdOperatorTable.ROUND, binEnd, context.relBuilder.literal(1));
-
-    // Cast to VARCHAR for string concatenation
-    RexNode binValueFormatted = context.relBuilder.cast(roundedStart, SqlTypeName.VARCHAR);
-    RexNode binEndFormatted = context.relBuilder.cast(roundedEnd, SqlTypeName.VARCHAR);
-
-    RexNode firstConcat =
-        context.relBuilder.call(SqlStdOperatorTable.CONCAT, binValueFormatted, dash);
-    return context.relBuilder.call(SqlStdOperatorTable.CONCAT, firstConcat, binEndFormatted);
-  }
-
   /**
    * Creates a span-based expression that handles different span types: - Numeric spans (e.g.,
    * "1000") - Log-based spans (e.g., "log10", "2log10")
@@ -1060,13 +953,12 @@ public class BinUtils {
         case NUMERIC -> {
           // Support both integer and floating point spans
           if (spanInfo.value == Math.floor(spanInfo.value)) {
-            // Integer span - use existing method
-            return createRangeCaseExpression(
-                fieldExpr, (int) spanInfo.value, null, context, null, null, null);
+            // Integer span - use new UDF approach
+            return createNumericSpanUsingUDF(
+                fieldExpr, (int) spanInfo.value, context, null, null, null);
           } else {
-            // Floating point span - use new method
-            return createFloatingPointRangeCaseExpression(
-                fieldExpr, spanInfo.value, null, context, null, null, null);
+            // Floating point span - use new UDF approach
+            return createNumericSpanUsingUDF(fieldExpr, spanInfo.value, context, null, null, null);
           }
         }
         case LOG -> {
@@ -1133,17 +1025,6 @@ public class BinUtils {
         positiveCheck,
         rangeStr,
         context.relBuilder.literal(INVALID_CATEGORY));
-  }
-
-  /** Extracts the original string value from a literal expression before RexVisitor processing. */
-  private static String getOriginalLiteralValue(
-      org.opensearch.sql.ast.expression.UnresolvedExpression expr) {
-    if (expr instanceof org.opensearch.sql.ast.expression.Literal) {
-      org.opensearch.sql.ast.expression.Literal literal =
-          (org.opensearch.sql.ast.expression.Literal) expr;
-      return literal.getValue().toString();
-    }
-    return null;
   }
 
   /**
@@ -1365,5 +1246,20 @@ public class BinUtils {
       }
     }
     return null;
+  }
+
+  /** Helper method to convert literal expressions to RexNode. */
+  private static RexNode convertLiteralToRex(
+      org.opensearch.sql.ast.expression.UnresolvedExpression expr, CalcitePlanContext context) {
+    if (expr instanceof Literal) {
+      Literal literal = (Literal) expr;
+      Object value = literal.getValue();
+      if (value instanceof Number) {
+        return context.relBuilder.literal(((Number) value).doubleValue());
+      } else {
+        return context.relBuilder.literal(value);
+      }
+    }
+    throw new IllegalArgumentException("Expected literal expression, got: " + expr.getClass());
   }
 }

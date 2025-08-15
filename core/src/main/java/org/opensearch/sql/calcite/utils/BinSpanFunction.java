@@ -720,6 +720,4 @@ public class BinSpanFunction {
       }
     }
   }
-
-  // TODO: Implement proper month string formatting later
 }

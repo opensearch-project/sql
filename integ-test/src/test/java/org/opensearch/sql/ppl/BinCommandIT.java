@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.ppl;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -532,5 +533,52 @@ public class BinCommandIT extends PPLIntegTestCase {
     assertTrue(
         "Error message should mention the non-existent field: " + errorMessage,
         errorMessage.contains("non_existent_field") || errorMessage.contains("not found"));
+  }
+
+  @Test
+  public void testBinSpanWithStartEndNeverShrinkRange() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | bin age span=1 start=25 end=35 as cate | fields cate, age | head 6",
+                TEST_INDEX_BANK));
+
+    verifySchema(result, schema("cate", null, "string"), schema("age", null, "int"));
+
+    verifyDataRows(
+        result,
+        rows("32-33", 32),
+        rows("36-37", 36),
+        rows("28-29", 28),
+        rows("33-34", 33),
+        rows("36-37", 36),
+        rows("39-40", 39));
+  }
+
+  @Test
+  public void testBinFloatingPointSpanBasicFunctionality() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | bin age span=2.5 | fields age | head 3", TEST_INDEX_ACCOUNT));
+    verifySchema(result, schema("age", null, "string"));
+
+    // Test that floating point spans work with proper range formatting
+    verifyDataRows(result, rows("27.5-30.0"), rows("30.0-32.5"), rows("35.0-37.5"));
+  }
+
+  @Test
+  public void testBinFloatingPointSpanWithStats() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | bin balance span=15000.5 | stats count() by balance | sort balance |"
+                    + " head 2",
+                TEST_INDEX_ACCOUNT));
+
+    verifySchema(result, schema("count()", null, "bigint"), schema("balance", null, "string"));
+
+    // Test floating point spans with stats aggregation - verify proper decimal formatting
+    verifyDataRows(result, rows(279L, "0.0-15000.5"), rows(319L, "15000.5-30001.0"));
   }
 }
