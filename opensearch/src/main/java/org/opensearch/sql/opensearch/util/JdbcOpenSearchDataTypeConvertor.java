@@ -5,15 +5,15 @@
 
 package org.opensearch.sql.opensearch.util;
 
-import java.sql.Array;
-import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Struct;
 import java.sql.Types;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import lombok.experimental.UtilityClass;
 import org.apache.calcite.avatica.util.ArrayImpl;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.locationtech.jts.geom.Point;
@@ -22,6 +22,7 @@ import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
+import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -61,77 +62,51 @@ public class JdbcOpenSearchDataTypeConvertor {
     }
   }
 
-  public static ExprValue getExprValueFromSqlType(
-      ResultSet rs, int i, int sqlType, RelDataType fieldType, String fieldName)
+  public static ExprValue getExprValueFromRelDataType(Object value, RelDataType fieldType)
       throws SQLException {
-    Object value = rs.getObject(i);
     if (value == null) {
       return ExprNullValue.of();
     }
 
     if (fieldType instanceof ExprJavaType && value instanceof ExprValue) {
       return (ExprValue) value;
-    } else if (fieldType.getSqlTypeName() == SqlTypeName.GEOMETRY) {
-      // Use getObject by name instead of index to avoid Avatica's transformation on the accessor.
-      // Otherwise, Avatica will transform Geometry to String.
-      Point geoPoint = (Point) rs.getObject(fieldName);
-      return new OpenSearchExprGeoPointValue(geoPoint.getY(), geoPoint.getX());
     }
 
     try {
-      switch (sqlType) {
-        case Types.VARCHAR:
-        case Types.CHAR:
-        case Types.LONGVARCHAR:
-          return ExprValueUtils.fromObjectValue(rs.getString(i));
-
-        case Types.INTEGER:
-          return ExprValueUtils.fromObjectValue(rs.getInt(i));
-
-        case Types.BIGINT:
-          return ExprValueUtils.fromObjectValue(rs.getLong(i));
-
-        case Types.FLOAT:
-        case Types.REAL:
-          return ExprValueUtils.fromObjectValue(rs.getFloat(i));
-
-        case Types.DECIMAL:
-        case Types.NUMERIC:
-        case Types.DOUBLE:
-          return ExprValueUtils.fromObjectValue(rs.getDouble(i));
-
-        case Types.DATE:
-          String dateStr = rs.getString(i);
-          return new ExprDateValue(dateStr);
-
-        case Types.TIME:
-          String timeStr = rs.getString(i);
-          return new ExprTimeValue(timeStr);
-
-        case Types.TIMESTAMP:
-          String timestampStr = rs.getString(i);
-          return new ExprTimestampValue(timestampStr);
-
-        case Types.BOOLEAN:
-          return ExprValueUtils.fromObjectValue(rs.getBoolean(i));
-
-        case Types.ARRAY:
-          Array array = rs.getArray(i);
-          if (array instanceof ArrayImpl) {
+      switch (fieldType.getSqlTypeName()) {
+        case GEOMETRY:
+          Point geoPoint = (Point) value;
+          return new OpenSearchExprGeoPointValue(geoPoint.getY(), geoPoint.getX());
+        case DATE:
+          return new ExprDateValue(value.toString());
+        case TIME:
+          return new ExprTimeValue(value.toString());
+        case TIMESTAMP:
+          return new ExprTimestampValue(value.toString());
+        case ARRAY:
+          if (value instanceof ArrayImpl) {
             return ExprValueUtils.fromObjectValue(
                 Arrays.asList((Object[]) ((ArrayImpl) value).getArray()));
           }
-          return ExprValueUtils.fromObjectValue(array);
-
+          return ExprValueUtils.fromObjectValue(value);
+        case ROW:
+          Object[] attributes = ((Struct) value).getAttributes();
+          java.util.Map<String, ExprValue> tupleMap = new LinkedHashMap<>();
+          for (int i = 0; i < attributes.length; i++) {
+            RelDataTypeField field = fieldType.getFieldList().get(i);
+            tupleMap.put(
+                field.getName(), getExprValueFromRelDataType(attributes[i], field.getType()));
+          }
+          return ExprTupleValue.fromExprValueMap(tupleMap);
         default:
-          LOG.debug(
-              "Unchecked sql type: {}, return Object type {}",
-              sqlType,
-              value.getClass().getTypeName());
           return ExprValueUtils.fromObjectValue(value);
       }
     } catch (SQLException e) {
-      LOG.error("Error converting SQL type {}: {}", sqlType, e.getMessage());
+      LOG.error(
+          "Error converting RelDataType {} with field value {}: {}",
+          fieldType,
+          value,
+          e.getMessage());
       throw e;
     }
   }
