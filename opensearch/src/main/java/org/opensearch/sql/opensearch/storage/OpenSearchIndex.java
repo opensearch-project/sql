@@ -260,7 +260,7 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
   }
 
   public OpenSearchResourceMonitor createOpenSearchResourceMonitor() {
-    return new OpenSearchResourceMonitor(getSettings(), new OpenSearchMemoryHealthy());
+    return new OpenSearchResourceMonitor(getSettings(), new OpenSearchMemoryHealthy(settings));
   }
 
   public OpenSearchRequest buildRequest(OpenSearchRequestBuilder requestBuilder) {

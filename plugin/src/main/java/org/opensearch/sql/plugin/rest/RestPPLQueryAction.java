@@ -41,8 +41,6 @@ import org.opensearch.transport.client.node.NodeClient;
 public class RestPPLQueryAction extends BaseRestHandler {
   public static final String QUERY_API_ENDPOINT = "/_plugins/_ppl";
   public static final String EXPLAIN_API_ENDPOINT = "/_plugins/_ppl/_explain";
-  public static final String EXTENDED_EXPLAIN_API_ENDPOINT =
-      "/_plugins/_ppl/_explain?format=extended";
 
   private static final Logger LOG = LogManager.getLogger();
 
