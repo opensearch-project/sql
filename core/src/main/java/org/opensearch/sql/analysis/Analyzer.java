@@ -746,22 +746,8 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   @Override
   public LogicalPlan visitRegex(Regex node, AnalysisContext context) {
-    // Get the child plan (source of data)
-    LogicalPlan child = node.getChild().get(0).accept(this, context);
-
-    // Analyze the field and pattern expressions
-    Expression fieldExpr = expressionAnalyzer.analyze(node.getField(), context);
-    Expression patternExpr = expressionAnalyzer.analyze(node.getPattern(), context);
-
-    // Create the RegexMatch expression
-    Expression regexExpr =
-        new org.opensearch.sql.expression.operator.predicate.RegexMatch(
-            fieldExpr, patternExpr, node.isNegated());
-
-    // Return a LogicalFilter with the regex condition
-    LogicalFilter result = new LogicalFilter(child, regexExpr);
-
-    return result;
+    throw new UnsupportedOperationException(
+        "REGEX is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
   }
 
   @Override
