@@ -778,24 +778,35 @@ Standard Binning Algorithms
 
 The bin command implements seven distinct algorithms depending on the parameters used:
 
-**1. Bins Parameter Algorithm (Nice Number Selection)**
+**1. Bins Parameter Algorithm (Optimized Nice Number Selection)**
 
-The bins parameter uses a "nice number" algorithm to create human-readable bin widths:
+The bins parameter uses an optimized "nice number" algorithm with direct mathematical computation:
 
 .. code-block:: none
 
-   Nice widths array (tested in order):
-   [0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000, 100000, 
-    1000000, 10000000, 100000000, 1000000000]
-   
-   Algorithm:
+   Optimized Algorithm (O(1) calculation instead of O(n) iteration):
    1. Calculate data_range = MAX(field) - MIN(field)
-   2. For each width in nice_widths (smallest to largest):
-      a. Calculate theoretical_bins = CEIL(data_range / width)
-      b. If max_value % width == 0: actual_bins = theoretical_bins + 1
-      c. Else: actual_bins = theoretical_bins
-      d. If actual_bins <= requested_bins: SELECT this width and BREAK
-   3. Create bins using selected width
+   2. Calculate target_width = data_range / requested_bins
+   3. Calculate base_exponent = LOG10(target_width)
+   4. Calculate start_exponent = CEIL(base_exponent)
+   5. For exponent from start_exponent to 9 (powers of 10):
+      a. Calculate nice_width = 10^exponent
+      b. Calculate theoretical_bins = CEIL(data_range / nice_width)
+      c. If max_value % nice_width == 0: actual_bins = theoretical_bins + 1
+      d. Else: actual_bins = theoretical_bins
+      e. If actual_bins <= requested_bins: SELECT this width and BREAK
+   6. Create bins using selected width
+
+   Key Improvements:
+   - Direct calculation of starting point instead of linear search
+   - Eliminated static array dependency
+   - O(1) computation to find optimal starting exponent
+   - Maintains identical behavior to original algorithm
+   
+   Nice widths generated: 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000, 100000, 
+                         1000000, 10000000, 100000000, 1000000000
+   
+   Performance: Direct logarithmic calculation vs. array iteration
 
 **2. Minspan Parameter Algorithm (Magnitude-Based Selection)**
 
@@ -971,15 +982,68 @@ Technical Implementation Details
 
 **Architecture:**
 * Uses Apache Calcite query planning engine for optimized execution
-* Implements standard SPAN function for time-based binning
+* **Unified BIN_CALCULATOR UDF**: All binning operations (span, bins, minspan) now use a single, clean UDF implementation
+* **Optimized bin width calculation**: Direct mathematical computation using logarithms instead of array iteration
+* **Clean SQL plans**: Dramatically simplified from complex nested SqlOperators to single UDF calls
 * Dynamic MIN/MAX calculation using window functions: ``MIN() OVER()`` and ``MAX() OVER()``
 * Thread-local storage ensures consistent aligntime across multiple rows
-* TimestampRounding class handles complex time alignment calculations
+* BinTimeSpanUtils class (formerly BinSpanFunction) handles complex time alignment calculations
+
+**Unified BIN_CALCULATOR UDF Implementation:**
+
+The bin command now uses a unified ``BIN_CALCULATOR`` UDF that consolidates all binning logic:
+
+.. code-block:: sql
+
+   -- Before: Complex nested SqlOperators (simplified example)
+   CASE(AND(>=(CEIL(/($8, 10.0)), 2.0), <=(CEIL(/($8, 10.0)), 4.0)), 
+        CONCAT(CAST(*(CEIL(/($8, 10.0)), 10.0) AS VARCHAR), '-', 
+               CAST(+(*(CEIL(/($8, 10.0)), 10.0), 10.0) AS VARCHAR)), ...)
+
+   -- After: Clean UDF calls
+   BIN_CALCULATOR($8, 'span', 10, -1, -1, -1, -1)
+   BIN_CALCULATOR($8, 'bins', 3, -1, -1, -(MAX($8) OVER (), MIN($8) OVER ()), MAX($8) OVER ())
+   BIN_CALCULATOR($3, 'minspan', 5000.0, -1, -1, -(MAX($3) OVER (), MIN($3) OVER ()), MAX($3) OVER ())
+
+**UDF Parameter Structure:**
+* Parameter 1: Field reference (e.g., ``$8``)
+* Parameter 2: Binning type (``'span'``, ``'bins'``, ``'minspan'``)
+* Parameter 3: Primary value (span size, bin count, or minspan value)
+* Parameter 4-5: Optional start/end values (``-1`` for not specified)
+* Parameter 6-7: Data range values (``-1`` for not needed, or window function results)
+
+**Optimized Width Calculation Algorithm:**
+
+The bins parameter now uses direct mathematical computation instead of array iteration:
+
+.. code-block:: none
+
+   // Before: O(n) iteration through static array
+   for (double width : NICE_WIDTHS) {
+     if (meets_criteria(width)) return width;
+   }
+
+   // After: O(1) direct calculation
+   double targetWidth = range / bins;
+   double baseExponent = Math.log10(targetWidth);
+   int startExponent = (int) Math.ceil(baseExponent);
+   
+   for (int exponent = startExponent; exponent <= 9; exponent++) {
+     double niceWidth = Math.pow(10, exponent);
+     if (meets_criteria(niceWidth)) return niceWidth;
+   }
+
+**Performance Improvements:**
+* **SQL Plan Complexity**: Reduced from hundreds of lines of nested operators to single UDF calls
+* **Width Calculation**: Direct logarithmic computation instead of linear array search
+* **Memory Usage**: Eliminated static arrays, reduced object creation
+* **Maintainability**: Single UDF implementation for all binning types
 
 **Dynamic Data Analysis:**
 * Algorithms calculate actual data range at query execution time
 * No hardcoded values - works with any numeric dataset
 * MIN/MAX values determined from actual field data using window functions
+* Window functions integrated directly into UDF calls for optimal performance
 
 **Field Type Support:**
 * **Time-based fields (timestamp, date, time, datetime)**: Full aligntime support with time modifiers, daily/monthly binning
