@@ -1,0 +1,10 @@
+{"index":{"_id":"1"}}
+{"@timestamp":"2024-07-01T00:00:00","host":"web-01","cpu_usage":45.2,"region":"us-east"}
+{"index":{"_id":"2"}}
+{"@timestamp":"2024-07-01T00:01:00","host":"web-02","cpu_usage":38.7,"region":"us-west"}
+{"index":{"_id":"3"}}
+{"@timestamp":"2024-07-01T00:02:00","host":"web-01","cpu_usage":55.3,"region":"us-east"}
+{"index":{"_id":"4"}}
+{"@timestamp":"2024-07-01T00:03:00","host":"db-01","cpu_usage":42.1,"region":"eu-west"}
+{"index":{"_id":"5"}}
+{"@timestamp":"2024-07-01T00:04:00","host":"web-02","cpu_usage":41.8,"region":"us-west"}

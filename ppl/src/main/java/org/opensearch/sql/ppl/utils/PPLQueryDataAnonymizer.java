@@ -74,6 +74,7 @@ import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Timechart;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
@@ -356,6 +357,11 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   public String visitReverse(Reverse node, String context) {
     String child = node.getChild().get(0).accept(this, context);
     return StringUtils.format("%s | reverse", child);
+  }
+
+  @Override
+  public String visitTimechart(Timechart node, String context) {
+    return "source=t | timechart count() by host";
   }
 
   @Override
