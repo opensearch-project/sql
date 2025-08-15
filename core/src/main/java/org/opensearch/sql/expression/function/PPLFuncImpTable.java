@@ -677,9 +677,16 @@ public class PPLFuncImpTable {
     }
 
     void populate() {
-      // register operators for comparison
-      registerOperator(NOTEQUAL, PPLBuiltinOperators.NOT_EQUALS_IP, SqlStdOperatorTable.NOT_EQUALS);
-      registerOperator(EQUAL, PPLBuiltinOperators.EQUALS_IP, SqlStdOperatorTable.EQUALS);
+      // register operators for comparison with wildcard and IP support
+      // Resolution order: IP types first, then all other types
+
+      // IP support (handles both wildcard and exact match for IP types)
+      register(EQUAL, new WildcardAwareIpEquals());
+      register(NOTEQUAL, new WildcardAwareIpNotEquals());
+
+      // General support (handles both wildcard and exact match for all other types)
+      register(EQUAL, new WildcardAwareEqualsFunc());
+      register(NOTEQUAL, new WildcardAwareNotEqualsFunc());
       registerOperator(GREATER, PPLBuiltinOperators.GREATER_IP, SqlStdOperatorTable.GREATER_THAN);
       registerOperator(GTE, PPLBuiltinOperators.GTE_IP, SqlStdOperatorTable.GREATER_THAN_OR_EQUAL);
       registerOperator(LESS, PPLBuiltinOperators.LESS_IP, SqlStdOperatorTable.LESS_THAN);
