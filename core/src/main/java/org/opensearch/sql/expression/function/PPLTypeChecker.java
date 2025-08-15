@@ -601,4 +601,71 @@ public interface PPLTypeChecker {
                     + "]")
         .collect(Collectors.joining(","));
   }
+
+  /**
+   * A custom type checker for the ADD operator that supports both numeric addition and string
+   * concatenation.
+   */
+  class PPLAddTypeChecker implements PPLTypeChecker {
+    @Override
+    public boolean checkOperandTypes(List<RelDataType> types) {
+      if (types.size() != 2) {
+        return false;
+      }
+
+      RelDataType type1 = types.get(0);
+      RelDataType type2 = types.get(1);
+
+      // Check if both are strings (for concatenation)
+      boolean type1IsString = isStringType(type1.getSqlTypeName());
+      boolean type2IsString = isStringType(type2.getSqlTypeName());
+
+      if (type1IsString && type2IsString) {
+        return true;
+      }
+
+      // Check if both are numeric (for arithmetic addition)
+      boolean type1IsNumeric = SqlTypeUtil.isNumeric(type1);
+      boolean type2IsNumeric = SqlTypeUtil.isNumeric(type2);
+
+      return type1IsNumeric && type2IsNumeric;
+    }
+
+    @Override
+    public String getAllowedSignatures() {
+      return "[INTEGER,INTEGER],[DOUBLE,DOUBLE],[FLOAT,FLOAT],[BIGINT,BIGINT],"
+          + "[INTEGER,DOUBLE],[DOUBLE,INTEGER],[INTEGER,FLOAT],[FLOAT,INTEGER],"
+          + "[DOUBLE,FLOAT],[FLOAT,DOUBLE],[INTEGER,BIGINT],[BIGINT,INTEGER],"
+          + "[DOUBLE,BIGINT],[BIGINT,DOUBLE],[FLOAT,BIGINT],[BIGINT,FLOAT],"
+          + "[STRING,STRING]";
+    }
+
+    @Override
+    public List<List<ExprType>> getParameterTypes() {
+      return List.of(
+          // Numeric signatures
+          List.of(ExprCoreType.INTEGER, ExprCoreType.INTEGER),
+          List.of(ExprCoreType.DOUBLE, ExprCoreType.DOUBLE),
+          List.of(ExprCoreType.FLOAT, ExprCoreType.FLOAT),
+          List.of(ExprCoreType.LONG, ExprCoreType.LONG),
+          List.of(ExprCoreType.INTEGER, ExprCoreType.DOUBLE),
+          List.of(ExprCoreType.DOUBLE, ExprCoreType.INTEGER),
+          List.of(ExprCoreType.INTEGER, ExprCoreType.FLOAT),
+          List.of(ExprCoreType.FLOAT, ExprCoreType.INTEGER),
+          List.of(ExprCoreType.DOUBLE, ExprCoreType.FLOAT),
+          List.of(ExprCoreType.FLOAT, ExprCoreType.DOUBLE),
+          List.of(ExprCoreType.INTEGER, ExprCoreType.LONG),
+          List.of(ExprCoreType.LONG, ExprCoreType.INTEGER),
+          List.of(ExprCoreType.DOUBLE, ExprCoreType.LONG),
+          List.of(ExprCoreType.LONG, ExprCoreType.DOUBLE),
+          List.of(ExprCoreType.FLOAT, ExprCoreType.LONG),
+          List.of(ExprCoreType.LONG, ExprCoreType.FLOAT),
+          // String concatenation
+          List.of(ExprCoreType.STRING, ExprCoreType.STRING));
+    }
+
+    private boolean isStringType(SqlTypeName typeName) {
+      return typeName == SqlTypeName.CHAR || typeName == SqlTypeName.VARCHAR;
+    }
+  }
 }

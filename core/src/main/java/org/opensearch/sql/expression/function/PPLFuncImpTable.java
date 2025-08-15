@@ -689,8 +689,36 @@ public class PPLFuncImpTable {
       registerOperator(AND, SqlStdOperatorTable.AND);
       registerOperator(OR, SqlStdOperatorTable.OR);
       registerOperator(NOT, SqlStdOperatorTable.NOT);
-      registerOperator(ADD, SqlStdOperatorTable.PLUS);
-      registerOperator(ADDFUNCTION, SqlStdOperatorTable.PLUS);
+
+      // Register ADD with custom implementation that handles both numeric and string types
+      register(
+          ADD,
+          createFunctionImpWithTypeChecker(
+              (builder, arg1, arg2) -> {
+                boolean arg1IsString = isStringType(arg1.getType().getSqlTypeName());
+                boolean arg2IsString = isStringType(arg2.getType().getSqlTypeName());
+
+                if (arg1IsString && arg2IsString) {
+                  return builder.makeCall(SqlStdOperatorTable.CONCAT, arg1, arg2);
+                } else {
+                  return builder.makeCall(SqlStdOperatorTable.PLUS, arg1, arg2);
+                }
+              },
+              new PPLTypeChecker.PPLAddTypeChecker()));
+      register(
+          ADDFUNCTION,
+          createFunctionImpWithTypeChecker(
+              (builder, arg1, arg2) -> {
+                boolean arg1IsString = isStringType(arg1.getType().getSqlTypeName());
+                boolean arg2IsString = isStringType(arg2.getType().getSqlTypeName());
+
+                if (arg1IsString && arg2IsString) {
+                  return builder.makeCall(SqlStdOperatorTable.CONCAT, arg1, arg2);
+                } else {
+                  return builder.makeCall(SqlStdOperatorTable.PLUS, arg1, arg2);
+                }
+              },
+              new PPLTypeChecker.PPLAddTypeChecker()));
       registerOperator(SUBTRACT, SqlStdOperatorTable.MINUS);
       registerOperator(SUBTRACTFUNCTION, SqlStdOperatorTable.MINUS);
       registerOperator(MULTIPLY, SqlStdOperatorTable.MULTIPLY);
@@ -1190,5 +1218,13 @@ public class PPLFuncImpTable {
                   ctx.relBuilder),
           null);
     }
+  }
+
+  /**
+   * Helper method to check if a SqlTypeName represents a string type. Used by ADD operator to
+   * determine whether to perform string concatenation or numeric addition.
+   */
+  private static boolean isStringType(SqlTypeName typeName) {
+    return typeName == SqlTypeName.VARCHAR || typeName == SqlTypeName.CHAR;
   }
 }
