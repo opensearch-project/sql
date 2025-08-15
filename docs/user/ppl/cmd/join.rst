@@ -17,27 +17,25 @@ Version
 =======
 3.0.0
 
-Syntax-1
-========
-| [joinType] join [max=n] [leftAlias] [rightAlias] (on | where) <joinCriteria> <right-dataset>
+Basic syntax in 3.0.0
+=====================
+| [joinType] join [leftAlias] [rightAlias] (on | where) <joinCriteria> <right-dataset>
 
-* joinType: optional. The type of join to perform. The default is ``inner`` if not specified. Other option is ``left``, ``outer``(alias of ``left``), ``semi``, ``anti`` and performance sensitive types ``right``, ``full`` and ``cross``.
-* max=n: optional. Controls how many subsearch results could be joined against to each row in main search. The default value is 0, means unlimited.
+* joinType: optional. The type of join to perform. The default is ``inner`` if not specified. Other option is ``left``, ``semi``, ``anti`` and performance sensitive types ``right``, ``full`` and ``cross``.
 * leftAlias: optional. The subsearch alias to use with the left join side, to avoid ambiguous naming. Fixed pattern: ``left = <leftAlias>``
 * rightAlias: optional. The subsearch alias to use with the right join side, to avoid ambiguous naming. Fixed pattern: ``right = <rightAlias>``
 * joinCriteria: mandatory. It could be any comparison expression. Must follow with ``on`` (since 3.0.0) or ``where`` (since 3.3.0) keyword.
 * right-dataset: mandatory. Right dataset could be either an ``index`` or a ``subsearch`` with/without alias.
 
-Syntax-2
-========
-| (Since 3.3.0)
-| join [type=<joinType>] [overwrite=<bool>] [max=n] <join-field-list> <right-dataset>
+Extended syntax since 3.3.0
+===========================
+| join [type=<joinType>] [overwrite=<bool>] [max=n] (<join-field-list> | [leftAlias] [rightAlias] (on | where) <joinCriteria>) <right-dataset>
+| From 3.3.0, the join syntax is enhanced to support more join options and join with field list.
 
-* type=<joinType>: optional. The type of join to perform. The default is ``INNER`` if not specified. Other option is ``left``, ``outer``(alias of ``left``), ``semi``, ``anti`` and performance sensitive types ``right``, ``full`` and ``cross``.
-* overwrite=<bool>: optional. Specifies whether duplicate-named fields from <right-dataset> (subsearch results) should replace corresponding fields in the main search results. The default value is ``true``.
+* type=<joinType>: optional. The type of join to perform. The default is ``inner`` if not specified. Other option is ``left``, ``outer``(alias of ``left``), ``semi``, ``anti`` and performance sensitive types ``right``, ``full`` and ``cross``.
+* overwrite=<bool>: optional. Only works with ``join-field-list``. Specifies whether duplicate-named fields from <right-dataset> (subsearch results) should replace corresponding fields in the main search results. The default value is ``true``.
 * max=n: optional. Controls how many subsearch results could be joined against to each row in main search. The default value is 0, means unlimited.
-* join-field-list: optional. The fields to use to build join criteria. The ``join-field-list`` must be present in both sides. If no <join-field-list> is present, all fields that are common to both sides are used. The comma is optional.
-* right-dataset: mandatory. Right dataset could be either an ``index`` or a ``subsearch`` with/without alias.
+* join-field-list: optional. The fields used to build the join criteria. The join field list must exist on both sides. If no join field list is specified, all fields common to both sides will be used as join keys. The comma is optional.
 
 Configuration
 =============
@@ -68,7 +66,7 @@ Result set::
 Usage
 =====
 
-Join (syntax-1)::
+Join on criteria (in 3.0.0)::
 
     source = table1 | inner join left = l right = r on l.a = r.a table2 | fields l.a, r.a, b, c
     source = table1 | inner join left = l right = r where l.a = r.a table2 | fields l.a, r.a, b, c
@@ -85,12 +83,16 @@ Join (syntax-1)::
     source = table1 as t1 | join left = l right = r on l.a = r.a table2 as t2 | fields t1.a, t2.a
     source = table1 | join left = l right = r on l.a = r.a [ source = table2 ] as s | fields l.a, s.a
 
-Join (syntax-2)::
+Extended syntax and option supported (since 3.3.0)::
 
+    source = table1 | join type=outer left = l right = r on l.a = r.a table2 | fields l.a, r.a, b, c
+    source = table1 | join type=left left = l right = r where l.a = r.a table2 | fields l.a, r.a, b, c
+    source = table1 | join type=inner max=1 left = l right = r where l.a = r.a table2 | fields l.a, r.a, b, c
     source = table1 | join a table2 | fields a, b, c
     source = table1 | join a, b table2 | fields a, b, c
     source = table1 | join type=outer a b table2 | fields a, b, c
-    source = table1 | join type=left overwrite=false a, b [source=table2 | rename d as b] | fields a, b, c
+    source = table1 | join type=inner max=1 a, b table2 | fields a, b, c
+    source = table1 | join type=left overwrite=false max=0 a, b [source=table2 | rename d as b] | fields a, b, c
 
 Example 1: Two indices join
 ===========================
@@ -136,8 +138,6 @@ PPL query::
 Example 3: Join with field list
 ===============================
 
-This syntax is Splunk SPL grammar compatible which introduced since 3.2.0, the prerequisite config is ``plugins.ppl.spl_compatible.enabled=true``.
-
 PPL query::
 
     PPL> source = state_country
@@ -159,9 +159,25 @@ PPL query::
     | 100000.0    | 70       | England   |
     +-------------+----------+-----------+
 
+Example 4: Join with options
+============================
+
+PPL query::
+
+    PPL> source = state_country | join type=inner overwrite=false max=1 name occupation | stats avg(salary) by span(age, 10) as age_span, country;
+    fetched rows / total rows = 5/5
+    +-------------+----------+---------+
+    | avg(salary) | age_span | country |
+    |-------------+----------+---------|
+    | 120000.0    | 40       | USA     |
+    | 100000.0    | 70       | USA     |
+    | 105000.0    | 20       | Canada  |
+    | 70000.0     | 30       | USA     |
+    +-------------+----------+---------+
+
 Limitation
 ==========
-In syntax-1, if fields in the left outputs and right outputs have the same name. Typically, in the join criteria
+For basic syntax in 3.0.0, if fields in the left outputs and right outputs have the same name. Typically, in the join criteria
 ``ON t1.id = t2.id``, the names ``id`` in output are ambiguous. To avoid ambiguous, the ambiguous
 fields in output rename to ``<alias>.id``, or else ``<tableName>.id`` if no alias existing.
 
@@ -182,6 +198,6 @@ Assume table1 and table2 only contain field ``id``, following PPL queries and th
    * - source=table1 | join right=tt on table1.id=t2.id [ source=table2 as t2 | eval b = id ] | eval a = 1
      - table1.id, tt.id, tt.b, a
 
-But for the syntax-2 (since 3.2.0), duplicate-named fields in output results are deduplicated, with field retention determined by the value of 'overwrite' option.
+For extended syntax (join with field list) in 3.3.0, when duplicate-named fields in output results are deduplicated, the fields in output determined by the value of 'overwrite' option.
 
-Join types ``inner``, ``left``, ``outer`` (alias of ``left``), ``semi`` and ``anti`` are supported by default. ``right``, ``full``, ``cross`` are performance sensitive join types which are disabled by default. Set config ``plugins.calcite.all_join_types.allowed = true`` to enable.
+Since 3.3.0, join types ``inner``, ``left``, ``outer`` (alias of ``left``), ``semi`` and ``anti`` are supported by default. ``right``, ``full``, ``cross`` are performance sensitive join types which are disabled by default. Set config ``plugins.calcite.all_join_types.allowed = true`` to enable.
