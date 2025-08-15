@@ -647,6 +647,17 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
                       context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.DOUBLE),
                       true));
             });
+
+    // Handle empty field list case - create an empty map with explicit types
+    if (varArgRexNodeList.isEmpty()) {
+      RelDataTypeFactory typeFactory = context.rexBuilder.getTypeFactory();
+      RelDataType mapType =
+          typeFactory.createMapType(
+              typeFactory.createSqlType(SqlTypeName.VARCHAR),
+              typeFactory.createSqlType(SqlTypeName.DOUBLE));
+      return context.rexBuilder.makeNullLiteral(mapType);
+    }
+
     return context.rexBuilder.makeCall(
         SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR, varArgRexNodeList);
   }
