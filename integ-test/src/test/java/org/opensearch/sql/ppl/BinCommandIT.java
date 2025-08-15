@@ -421,15 +421,15 @@ public class BinCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | bin balance span=1.5log3 | stats count() by balance | sort balance |"
+                "source=%s | bin balance span=1.11log2 | stats count() by balance | sort balance |"
                     + " head 3",
                 TEST_INDEX_ACCOUNT));
     verifySchema(result, schema("count()", null, "bigint"), schema("balance", null, "string"));
     verifyDataRows(
         result,
-        rows(43L, "1093.0-3280.0"),
-        rows(417L, "29524.0-88573.0"),
-        rows(123L, "3280.0-9841.0"));
+        rows(19L, "1136.64-2273.28"),
+        rows(380L, "18186.24-36372.48"),
+        rows(49L, "2273.28-4546.56"));
   }
 
   @Test

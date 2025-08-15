@@ -584,13 +584,11 @@ public class BinUtils {
     RexNode binValueFormatted =
         width != null
             ? createFormattedValue(binValue, width, context)
-            : context.relBuilder.cast(
-                context.relBuilder.call(SqlStdOperatorTable.FLOOR, binValue), SqlTypeName.VARCHAR);
+            : context.relBuilder.cast(binValue, SqlTypeName.VARCHAR);
     RexNode binEndFormatted =
         width != null
             ? createFormattedValue(binEnd, width, context)
-            : context.relBuilder.cast(
-                context.relBuilder.call(SqlStdOperatorTable.FLOOR, binEnd), SqlTypeName.VARCHAR);
+            : context.relBuilder.cast(binEnd, SqlTypeName.VARCHAR);
 
     RexNode firstConcat =
         context.relBuilder.call(SqlStdOperatorTable.CONCAT, binValueFormatted, dash);
