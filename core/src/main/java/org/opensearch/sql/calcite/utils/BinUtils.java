@@ -484,7 +484,7 @@ public class BinUtils {
     if (isTimeBasedField(fieldType)) {
       validateFieldExists(fieldName, context);
 
-      return BinSpanFunction.createBinTimeSpanExpression(fieldExpr, 1, "h", 0, context);
+      return BinTimeSpanUtils.createBinTimeSpanExpression(fieldExpr, 1, "h", 0, context);
     }
 
     RexNode minValue = context.relBuilder.min(fieldExpr).over().toRex();
@@ -667,12 +667,12 @@ public class BinUtils {
 
         // Normalize the unit to BinSpanFunction's expected format
         String normalizedUnit = normalizeTimeUnit(timeUnit);
-        return BinSpanFunction.createBinTimeSpanExpression(
+        return BinTimeSpanUtils.createBinTimeSpanExpression(
             fieldExpr, value, normalizedUnit, alignmentOffsetMillis, context);
       } else {
         // Try parsing as pure number (assume hours)
         int value = Integer.parseInt(spanStr);
-        return BinSpanFunction.createBinTimeSpanExpression(
+        return BinTimeSpanUtils.createBinTimeSpanExpression(
             fieldExpr, value, "h", alignmentOffsetMillis, context);
       }
     } catch (NumberFormatException e) {
@@ -764,7 +764,7 @@ public class BinUtils {
       System.out.println("DEBUG: BinUtils processing ALIGNTIME_EPOCH: " + epochStr);
 
       // Use the WORKING BinSpanFunction approach instead of the inline calculation
-      return BinSpanFunction.createBinTimeSpanExpressionWithTimeModifier(
+      return BinTimeSpanUtils.createBinTimeSpanExpressionWithTimeModifier(
           fieldExpr, intervalValue, normalizedUnit, epochStr, context);
 
     } else if (aligntimeStr.startsWith("ALIGNTIME_TIME_MODIFIER:")) {
@@ -775,7 +775,7 @@ public class BinUtils {
           "DEBUG: BinUtils calling BinSpanFunction with timeModifier: " + timeModifier);
 
       // Use the WORKING BinSpanFunction approach instead of the broken createTimeModifierAlignment
-      return BinSpanFunction.createBinTimeSpanExpressionWithTimeModifier(
+      return BinTimeSpanUtils.createBinTimeSpanExpressionWithTimeModifier(
           fieldExpr, intervalValue, normalizedUnit, timeModifier, context);
 
     } else {
@@ -798,7 +798,9 @@ public class BinUtils {
     };
   }
 
-  /** Creates time modifier alignment expression using the working algorithm from BinSpanFunction */
+  /**
+   * Creates time modifier alignment expression using the working algorithm from BinTimeSpanUtils
+   */
   private static RexNode createTimeModifierAlignment(
       RexNode epochMillis, long intervalMillis, String timeModifier, CalcitePlanContext context) {
 
@@ -890,9 +892,9 @@ public class BinUtils {
     }
   }
 
-  /** Normalizes time units to the format expected by BinSpanFunction. */
+  /** Normalizes time units to the format expected by BinTimeSpanUtils. */
   private static String normalizeTimeUnit(String unit) {
-    // Convert all unit variations to the canonical form that BinSpanFunction expects
+    // Convert all unit variations to the canonical form that BinTimeSpanUtils expects
     switch (unit.toLowerCase()) {
         // Seconds
       case "s":
