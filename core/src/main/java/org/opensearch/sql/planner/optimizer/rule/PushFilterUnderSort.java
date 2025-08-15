@@ -41,6 +41,9 @@ public class PushFilterUnderSort implements Rule<LogicalFilter> {
   @Override
   public LogicalPlan apply(LogicalFilter filter, Captures captures) {
     LogicalSort sort = captures.get(capture);
-    return new LogicalSort(filter.replaceChildPlans(sort.getChild()), sort.getSortList());
+    return new LogicalSort(
+        filter.replaceChildPlans(sort.getChild()),
+        sort.getCount().orElse(null),
+        sort.getSortList());
   }
 }
