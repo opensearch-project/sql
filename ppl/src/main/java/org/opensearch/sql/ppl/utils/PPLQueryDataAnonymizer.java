@@ -147,8 +147,12 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
         rightTableOrSubquery.startsWith("source=")
             ? rightTableOrSubquery.substring("source=".length())
             : rightTableOrSubquery;
+    Argument.ArgumentMap argumentMap = node.getArgumentMap();
+    String max =
+        argumentMap.get("max") == null
+            ? "0"
+            : argumentMap.get("max").toString().toLowerCase(Locale.ROOT);
     if (node.getJoinCondition().isEmpty()) {
-      Argument.ArgumentMap argumentMap = node.getArgumentMap();
       String joinType =
           argumentMap.get("type") == null
               ? "inner"
@@ -166,7 +170,8 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
                       .map(c -> expressionAnalyzer.analyze(c, context))
                       .toList());
       return StringUtils.format(
-          "%s | join type=%s overwrite=%s %s %s", left, joinType, overwrite, fieldList, right);
+          "%s | join type=%s overwrite=%s max=%s %s %s",
+          left, joinType, overwrite, max, fieldList, right);
     } else {
       String joinType = node.getJoinType().name().toLowerCase(Locale.ROOT);
       String leftAlias = node.getLeftAlias().map(l -> " left = " + l).orElse("");
@@ -174,7 +179,8 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
       String condition =
           node.getJoinCondition().map(c -> expressionAnalyzer.analyze(c, context)).orElse("true");
       return StringUtils.format(
-          "%s | %s join%s%s on %s %s", left, joinType, leftAlias, rightAlias, condition, right);
+          "%s | %s join max=%s%s%s on %s %s",
+          left, joinType, max, leftAlias, rightAlias, condition, right);
     }
   }
 

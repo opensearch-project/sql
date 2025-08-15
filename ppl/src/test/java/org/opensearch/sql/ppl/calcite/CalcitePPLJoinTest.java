@@ -991,70 +991,88 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
   }
 
   @Test
-  public void testJoinWithMaxGreaterThanZero() {
-    String ppl = "source=EMP | join type=outer max=1 EMPNO ENAME JOB, MGR EMP";
+  public void testJoinWithFieldListMaxGreaterThanZero() {
+    String ppl = "source=EMP | join type=outer max=1 DEPTNO DEPT";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(EMPNO=[$8], ENAME=[$9], JOB=[$10], MGR=[$11], HIREDATE=[$12], SAL=[$13],"
-            + " COMM=[$14], DEPTNO=[$15])\n"
-            + "  LogicalJoin(condition=[AND(=($0, $8), =($1, $9), =($2, $10), =($3, $11))],"
-            + " joinType=[left])\n"
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$8], DNAME=[$9], LOC=[$10])\n"
+            + "  LogicalJoin(condition=[=($7, $8)], joinType=[left])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n"
-            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
-            + "      LogicalFilter(condition=[<=($8, 1)])\n"
-            + "        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], _row_number_=[ROW_NUMBER() OVER (PARTITION BY $0,"
-            + " $1, $2, $3 ORDER BY $0, $1, $2, $3)])\n"
-            + "          LogicalFilter(condition=[AND(IS NOT NULL($1), IS NOT NULL($2), IS NOT"
-            + " NULL($3))])\n"
-            + "            LogicalTableScan(table=[[scott, EMP]])\n";
+            + "    LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2])\n"
+            + "      LogicalFilter(condition=[<=($3, 1)])\n"
+            + "        LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], _row_number_=[ROW_NUMBER()"
+            + " OVER (PARTITION BY $0 ORDER BY $0)])\n"
+            + "          LogicalTableScan(table=[[scott, DEPT]])\n";
     verifyLogical(root, expectedLogical);
     verifyResultCount(root, 14);
 
     String expectedSparkSql =
-        "SELECT `t2`.`EMPNO`, `t2`.`ENAME`, `t2`.`JOB`, `t2`.`MGR`, `t2`.`HIREDATE`, `t2`.`SAL`,"
-            + " `t2`.`COMM`, `t2`.`DEPTNO`\n"
+        "SELECT `EMP`.`EMPNO`, `EMP`.`ENAME`, `EMP`.`JOB`, `EMP`.`MGR`, `EMP`.`HIREDATE`,"
+            + " `EMP`.`SAL`, `EMP`.`COMM`, `t1`.`DEPTNO`, `t1`.`DNAME`, `t1`.`LOC`\n"
             + "FROM `scott`.`EMP`\n"
-            + "LEFT JOIN (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`,"
-            + " `DEPTNO`\n"
-            + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
-            + " ROW_NUMBER() OVER (PARTITION BY `EMPNO`, `ENAME`, `JOB`, `MGR` ORDER BY `EMPNO`"
-            + " NULLS LAST, `ENAME` NULLS LAST, `JOB` NULLS LAST, `MGR` NULLS LAST)"
-            + " `_row_number_`\n"
+            + "LEFT JOIN (SELECT `DEPTNO`, `DNAME`, `LOC`\n"
+            + "FROM (SELECT `DEPTNO`, `DNAME`, `LOC`, ROW_NUMBER() OVER (PARTITION BY `DEPTNO`"
+            + " ORDER BY `DEPTNO` NULLS LAST) `_row_number_`\n"
+            + "FROM `scott`.`DEPT`) `t`\n"
+            + "WHERE `_row_number_` <= 1) `t1` ON `EMP`.`DEPTNO` = `t1`.`DEPTNO`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testJoinWithCriteriaMaxGreaterThanZero() {
+    String ppl = "source=EMP | outer join max=1 left=l right=r on l.DEPTNO=r.DEPTNO DEPT";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], r.DEPTNO=[$8], DNAME=[$9], LOC=[$10])\n"
+            + "  LogicalJoin(condition=[=($7, $8)], joinType=[left])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2])\n"
+            + "      LogicalFilter(condition=[<=($3, 1)])\n"
+            + "        LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], _row_number_=[ROW_NUMBER()"
+            + " OVER (PARTITION BY $0 ORDER BY $0)])\n"
+            + "          LogicalTableScan(table=[[scott, DEPT]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 14);
+
+    String expectedSparkSql =
+        "SELECT `EMP`.`EMPNO`, `EMP`.`ENAME`, `EMP`.`JOB`, `EMP`.`MGR`, `EMP`.`HIREDATE`,"
+            + " `EMP`.`SAL`, `EMP`.`COMM`, `EMP`.`DEPTNO`, `t1`.`DEPTNO` `r.DEPTNO`, `t1`.`DNAME`,"
+            + " `t1`.`LOC`\n"
             + "FROM `scott`.`EMP`\n"
-            + "WHERE `ENAME` IS NOT NULL AND `JOB` IS NOT NULL AND `MGR` IS NOT NULL) `t0`\n"
-            + "WHERE `_row_number_` <= 1) `t2` ON `EMP`.`EMPNO` = `t2`.`EMPNO` AND `EMP`.`ENAME` ="
-            + " `t2`.`ENAME` AND `EMP`.`JOB` = `t2`.`JOB` AND `EMP`.`MGR` = `t2`.`MGR`";
+            + "LEFT JOIN (SELECT `DEPTNO`, `DNAME`, `LOC`\n"
+            + "FROM (SELECT `DEPTNO`, `DNAME`, `LOC`, ROW_NUMBER() OVER (PARTITION BY `DEPTNO`"
+            + " ORDER BY `DEPTNO` NULLS LAST) `_row_number_`\n"
+            + "FROM `scott`.`DEPT`) `t`\n"
+            + "WHERE `_row_number_` <= 1) `t1` ON `EMP`.`DEPTNO` = `t1`.`DEPTNO`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
   public void testJoinWithMaxEqualsZero() {
-    String ppl = "source=EMP | join type=outer max=0 EMPNO ENAME JOB, MGR EMP";
+    String ppl = "source=EMP | join type=outer max=0 DEPTNO DEPT";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(EMPNO=[$8], ENAME=[$9], JOB=[$10], MGR=[$11], HIREDATE=[$12], SAL=[$13],"
-            + " COMM=[$14], DEPTNO=[$15])\n"
-            + "  LogicalJoin(condition=[AND(=($0, $8), =($1, $9), =($2, $10), =($3, $11))],"
-            + " joinType=[left])\n"
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$8], DNAME=[$9], LOC=[$10])\n"
+            + "  LogicalJoin(condition=[=($7, $8)], joinType=[left])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+            + "    LogicalTableScan(table=[[scott, DEPT]])\n";
     verifyLogical(root, expectedLogical);
     verifyResultCount(root, 14);
 
     String expectedSparkSql =
-        "SELECT `EMP0`.`EMPNO`, `EMP0`.`ENAME`, `EMP0`.`JOB`, `EMP0`.`MGR`, `EMP0`.`HIREDATE`,"
-            + " `EMP0`.`SAL`, `EMP0`.`COMM`, `EMP0`.`DEPTNO`\n"
+        "SELECT `EMP`.`EMPNO`, `EMP`.`ENAME`, `EMP`.`JOB`, `EMP`.`MGR`, `EMP`.`HIREDATE`,"
+            + " `EMP`.`SAL`, `EMP`.`COMM`, `DEPT`.`DEPTNO`, `DEPT`.`DNAME`, `DEPT`.`LOC`\n"
             + "FROM `scott`.`EMP`\n"
-            + "LEFT JOIN `scott`.`EMP` `EMP0` ON `EMP`.`EMPNO` = `EMP0`.`EMPNO` AND `EMP`.`ENAME` ="
-            + " `EMP0`.`ENAME` AND `EMP`.`JOB` = `EMP0`.`JOB` AND `EMP`.`MGR` = `EMP0`.`MGR`";
+            + "LEFT JOIN `scott`.`DEPT` ON `EMP`.`DEPTNO` = `DEPT`.`DEPTNO`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
   public void testJoinWithMaxLessThanZero() {
-    String ppl = "source=EMP | join type=outer max=-1 EMPNO ENAME JOB, MGR EMP";
+    String ppl = "source=EMP | join type=outer max=-1 DEPTNO DEPT";
     Throwable t = Assert.assertThrows(SemanticCheckException.class, () -> getRelNode(ppl));
     verifyErrorMessageContains(t, "max option must be a positive integer");
   }

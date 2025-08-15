@@ -45,6 +45,7 @@ import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -775,12 +776,49 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                               .orElse(rightTableQualifiedName + "." + col)
                           : col)
               .toList();
+
+      Literal max = node.getArgumentMap().get("max");
+      if (max != null && !max.equals(Literal.ZERO)) {
+        // max != 0 means the right-side should be dedup
+        Integer allowedDuplication = (Integer) max.getValue();
+        if (allowedDuplication < 0) {
+          throw new SemanticCheckException("max option must be a positive integer");
+        }
+        List<RexNode> dedupeFields =
+            getRightColumnsInJoinCriteria(context.relBuilder, joinCondition);
+
+        buildDedup(context, dedupeFields, allowedDuplication);
+      }
       context.relBuilder.join(
           JoinAndLookupUtils.translateJoinType(node.getJoinType()), joinCondition);
       JoinAndLookupUtils.renameToExpectedFields(
           rightColumnsWithAliasIfConflict, leftColumns.size(), context);
     }
     return context.relBuilder.peek();
+  }
+
+  private List<RexNode> getRightColumnsInJoinCriteria(
+      RelBuilder relBuilder, RexNode joinCondition) {
+    int stackSize = relBuilder.size();
+    int leftFieldCount = relBuilder.peek(stackSize - 1).getRowType().getFieldCount();
+    RelNode right = relBuilder.peek(stackSize - 2);
+    List<String> allColumnNamesOfRight = right.getRowType().getFieldNames();
+
+    List<Integer> rightColumnIndexes = new ArrayList<>();
+    joinCondition.accept(
+        new RexVisitorImpl<Void>(true) {
+          @Override
+          public Void visitInputRef(RexInputRef inputRef) {
+            if (inputRef.getIndex() >= leftFieldCount) {
+              rightColumnIndexes.add(inputRef.getIndex() - leftFieldCount);
+            }
+            return super.visitInputRef(inputRef);
+          }
+        });
+    return rightColumnIndexes.stream()
+        .map(allColumnNamesOfRight::get)
+        .map(n -> (RexNode) relBuilder.field(n))
+        .toList();
   }
 
   private static RexNode buildJoinConditionByFieldNames(
