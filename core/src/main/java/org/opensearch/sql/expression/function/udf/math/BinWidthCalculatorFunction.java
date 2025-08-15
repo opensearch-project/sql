@@ -27,23 +27,6 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
  */
 public class BinWidthCalculatorFunction extends ImplementorUDF {
 
-  // Nice widths array used by the algorithm
-  private static final double[] NICE_WIDTHS = {
-    0.001,
-    0.01,
-    0.1,
-    1.0,
-    10.0,
-    100.0,
-    1000.0,
-    10000.0,
-    100000.0,
-    1000000.0,
-    10000000.0,
-    100000000.0,
-    1000000000.0
-  };
-
   public BinWidthCalculatorFunction() {
     super(new BinWidthCalculatorImplementor(), NullPolicy.ANY);
   }
@@ -98,30 +81,35 @@ public class BinWidthCalculatorFunction extends ImplementorUDF {
         return null;
       }
 
-      // Implement the exact same algorithm as the original complex SqlOperator logic
-      for (double width : NICE_WIDTHS) {
-        // Calculate theoretical bins = CEIL(range / width)
-        double theoreticalBinsDouble = Math.ceil(range / width);
+      // Calculate target width and find the optimal nice width
+      double targetWidth = range / bins;
 
-        // Check for overflow - if theoretical bins is too large, skip this width
-        if (theoreticalBinsDouble > Integer.MAX_VALUE) {
-          continue;
-        }
+      // Try nice widths starting from the target width
+      double baseExponent = Math.log10(targetWidth);
 
-        int theoreticalBins = (int) theoreticalBinsDouble;
+      // Start from the smallest power of 10 >= targetWidth
+      int startExponent = (int) Math.ceil(baseExponent);
 
-        // Check if we need an extra bin (when max_value % width == 0)
-        int extraBin = (max % width == 0) ? 1 : 0;
+      // Try powers of 10 starting from startExponent (up to 1E9 to match original behavior)
+      for (int exponent = startExponent; exponent <= 9; exponent++) {
+        double niceWidth = Math.pow(10, exponent);
 
-        // Check for overflow when adding extra bin
-        if (theoreticalBins == Integer.MAX_VALUE && extraBin == 1) {
-          continue;
-        }
+        // Validate that this nice width works with our constraints
+        double theoreticalBinsDouble = Math.ceil(range / niceWidth);
 
-        int actualBins = theoreticalBins + extraBin;
+        // Check for overflow
+        if (theoreticalBinsDouble <= Integer.MAX_VALUE) {
+          int theoreticalBins = (int) theoreticalBinsDouble;
+          int extraBin = (max % niceWidth == 0) ? 1 : 0;
 
-        if (actualBins <= bins) {
-          return width;
+          // Check for overflow when adding extra bin
+          if (theoreticalBins < Integer.MAX_VALUE || extraBin == 0) {
+            int actualBins = theoreticalBins + extraBin;
+
+            if (actualBins <= bins) {
+              return niceWidth;
+            }
+          }
         }
       }
 
