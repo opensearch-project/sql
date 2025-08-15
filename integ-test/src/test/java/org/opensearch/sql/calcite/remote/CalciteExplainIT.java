@@ -94,6 +94,56 @@ public class CalciteExplainIT extends ExplainIT {
     assertJsonEqualsIgnoreId(expected, result);
   }
 
+  // Bin command tests - Only for Calcite
+  @Test
+  public void testBinCommandBasicSpan() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | bin age span=10 | stats count() by age | head"
+            + " 5";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_bin_span.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testBinCommandBinsParameter() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | bin age bins=3 | stats count() by age | head 5";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_bin_bins.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testBinCommandMinspan() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | bin balance minspan=5000 | stats count() by"
+            + " balance | head 5";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_bin_minspan.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testBinCommandStartEnd() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | bin balance span=10000 start=5000 end=45000 |"
+            + " stats count() by balance | head 5";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_bin_start_end.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testBinCommandAlignTime() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_time_data | bin @timestamp span=1hour"
+            + " aligntime=\\\"@d+3h\\\" | fields @timestamp | head 5";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_bin_aligntime.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
   @Test
   public void supportPartialPushDownScript() throws IOException {
     Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());

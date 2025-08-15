@@ -1087,4 +1087,84 @@ class OpenSearchExprValueFactoryTest {
       return "TEST_TYPE";
     }
   }
+
+  // Tests for bin range string handling
+  @Test
+  public void testBinRangeStringHandling() {
+    // Test integer range strings from bin operations
+    // These should be treated as strings regardless of original field type
+    OpenSearchExprValueFactory factory =
+        new OpenSearchExprValueFactory(Map.of("stringV", OpenSearchDataType.of(STRING)), true);
+
+    Map<String, ExprValue> result1 =
+        factory.construct("{\"stringV\":\"20-30\"}", false).tupleValue();
+    assertEquals(stringValue("20-30"), result1.get("stringV"));
+
+    Map<String, ExprValue> result2 =
+        factory.construct("{\"stringV\":\"100-200\"}", false).tupleValue();
+    assertEquals(stringValue("100-200"), result2.get("stringV"));
+
+    // Test floating point range strings from bin operations
+    Map<String, ExprValue> result3 =
+        factory.construct("{\"stringV\":\"1000.0-2000.0\"}", false).tupleValue();
+    assertEquals(stringValue("1000.0-2000.0"), result3.get("stringV"));
+
+    Map<String, ExprValue> result4 =
+        factory.construct("{\"stringV\":\"0.5-1.5\"}", false).tupleValue();
+    assertEquals(stringValue("0.5-1.5"), result4.get("stringV"));
+  }
+
+  @Test
+  public void testBinRangeStringExcludesDateFormats() {
+    // Test that date-like patterns with dashes are NOT treated as bin range strings
+    // They should be processed normally as dates, not forced to strings
+    // ISO date format: should be processed as ExprDateValue, not forced to string
+    assertEquals(
+        new ExprDateValue("1984-04-12"), tupleValue("{\"dateV\":\"1984-04-12\"}").get("dateV"));
+
+    // Ordinal date format: should be processed as ExprDateValue, not forced to string
+    assertEquals(
+        new ExprDateValue("1984-04-12"),
+        tupleValue("{\"dateOrOrdinalDateV\":\"1984-103\"}").get("dateOrOrdinalDateV"));
+
+    // Timestamp format: should be processed as ExprTimestampValue, not forced to string
+    assertEquals(
+        new ExprTimestampValue("2015-01-01 12:10:30"),
+        tupleValue("{\"timestampV\":\"2015-01-01T12:10:30Z\"}").get("timestampV"));
+
+    // CRITICAL CONTRAST: Test range strings with STRING field first to verify the logic works
+    // If range string logic is working, this should detect "100-200" as a range
+    assertEquals(stringValue("100-200"), tupleValue("{\"stringV\":\"100-200\"}").get("stringV"));
+
+    // Test with floating point range
+    assertEquals(
+        stringValue("1000.5-2000.5"), tupleValue("{\"stringV\":\"1000.5-2000.5\"}").get("stringV"));
+  }
+
+  @Test
+  public void testBinRangeStringEdgeCases() {
+    OpenSearchExprValueFactory factory =
+        new OpenSearchExprValueFactory(
+            Map.of(
+                "stringV", OpenSearchDataType.of(STRING), "intV", OpenSearchDataType.of(INTEGER)),
+            true);
+
+    // Test strings with dashes that are NOT range strings
+    Map<String, ExprValue> result1 =
+        factory.construct("{\"stringV\":\"not-a-range\"}", false).tupleValue();
+    assertEquals(stringValue("not-a-range"), result1.get("stringV"));
+
+    Map<String, ExprValue> result2 =
+        factory.construct("{\"stringV\":\"single-dash\"}", false).tupleValue();
+    assertEquals(stringValue("single-dash"), result2.get("stringV"));
+
+    // Test strings without dashes
+    Map<String, ExprValue> result3 =
+        factory.construct("{\"stringV\":\"no_dash_here\"}", false).tupleValue();
+    assertEquals(stringValue("no_dash_here"), result3.get("stringV"));
+
+    // Test actual numeric values (not strings) - should be processed normally
+    Map<String, ExprValue> result4 = factory.construct("{\"intV\":123}", false).tupleValue();
+    assertEquals(integerValue(123), result4.get("intV"));
+  }
 }

@@ -78,6 +78,7 @@ import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.AppendCol;
+import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
@@ -108,6 +109,7 @@ import org.opensearch.sql.ast.tree.Trendline.TrendlineType;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
+import org.opensearch.sql.calcite.utils.BinUtils;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -374,6 +376,55 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     context.relBuilder.sort(context.relBuilder.desc(context.relBuilder.field(REVERSE_ROW_NUM)));
     // Remove row number column
     context.relBuilder.projectExcept(context.relBuilder.field(REVERSE_ROW_NUM));
+    return context.relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitBin(Bin node, CalcitePlanContext context) {
+    visitChildren(node, context);
+
+    RexNode fieldExpr = rexVisitor.analyze(node.getField(), context);
+    String fieldName = BinUtils.extractFieldName(node);
+
+    RexNode alignTimeValue =
+        BinUtils.processAligntimeParameter(node, fieldExpr, context, rexVisitor);
+    RexNode binExpression =
+        BinUtils.createBinExpression(node, fieldExpr, alignTimeValue, context, rexVisitor);
+
+    if (node.getAlias() != null) {
+      // With alias: add the binned field as a new column
+      String aliasName = node.getAlias();
+      RexNode aliasedBinExpression = context.relBuilder.alias(binExpression, aliasName);
+      context.relBuilder.projectPlus(aliasedBinExpression);
+    } else {
+      // Without alias: transform the original field in-place
+      List<String> currentFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+      List<RexNode> projectionFields = new ArrayList<>();
+
+      boolean fieldTransformed = false;
+      for (String currentFieldName : currentFieldNames) {
+        if (currentFieldName.equals(fieldName)) {
+          // Transform the target field to range strings - ensure we use the original field name
+          projectionFields.add(context.relBuilder.alias(binExpression, currentFieldName));
+          fieldTransformed = true;
+        } else {
+          // Keep other fields unchanged
+          projectionFields.add(context.relBuilder.field(currentFieldName));
+        }
+      }
+
+      // CRITICAL FIX: If field wasn't found in current schema, this indicates a schema mismatch
+      // The bin command should always operate on existing fields, so this is an error condition
+      if (!fieldTransformed) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Field '%s' not found in current schema. Available fields: %s",
+                fieldName, currentFieldNames));
+      }
+
+      context.relBuilder.project(projectionFields);
+    }
+
     return context.relBuilder.peek();
   }
 

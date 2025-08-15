@@ -1,0 +1,6 @@
+{
+  "calcite": {
+    "logical": "LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])\n  LogicalSort(fetch=[5])\n    LogicalProject(@timestamp=[FROM_UNIXTIME(+(+(*(FLOOR(/(1753661723, 86400)), 86400), 10800), *(FLOOR(/(-(UNIX_TIMESTAMP($0), +(*(FLOOR(/(1753661723, 86400)), 86400), 10800)), 3600)), 3600)))])\n      CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_time_data]])\n",
+    "physical": "EnumerableCalc(expr#0=[{inputs}], expr#1=[1753661723], expr#2=[86400], expr#3=[/($t1, $t2)], expr#4=[FLOOR($t3)], expr#5=[*($t4, $t2)], expr#6=[10800], expr#7=[+($t5, $t6)], expr#8=[UNIX_TIMESTAMP($t0)], expr#9=[-($t8, $t7)], expr#10=[3600], expr#11=[/($t9, $t10)], expr#12=[FLOOR($t11)], expr#13=[*($t12, $t10)], expr#14=[+($t7, $t13)], expr#15=[FROM_UNIXTIME($t14)], $f0=[$t15])\n  CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_time_data]], PushDownContext=[[LIMIT->5, LIMIT->10000, PROJECT->[@timestamp]], OpenSearchRequestBuilder(sourceBuilder={\"from\":0,\"size\":5,\"timeout\":\"1m\",\"_source\":{\"includes\":[\"@timestamp\"],\"excludes\":[]}}, requestedTotalSize=5, pageSize=null, startFrom=0)])\n"
+  }
+}

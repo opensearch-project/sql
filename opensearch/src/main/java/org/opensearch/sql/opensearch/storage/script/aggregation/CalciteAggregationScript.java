@@ -20,9 +20,13 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.opensearch.script.AggregationScript;
 import org.opensearch.search.lookup.SearchLookup;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.data.model.ExprNullValue;
+import org.opensearch.sql.data.model.ExprStringValue;
+import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.opensearch.storage.script.core.CalciteScript;
 
 /** Calcite script executor that executes the generated code on each document for aggregation. */
@@ -55,10 +59,66 @@ class CalciteAggregationScript extends AggregationScript {
       // Can't get timestamp from `ExprTimeValue`
       MILLIS.between(LocalTime.MIN, ExprValueUtils.fromObjectValue(value, TIME).timeValue());
       case DATE -> ExprValueUtils.fromObjectValue(value, DATE).timestampValue().toEpochMilli();
-      case TIMESTAMP -> ExprValueUtils.fromObjectValue(value, TIMESTAMP)
-          .timestampValue()
-          .toEpochMilli();
-      default -> value;
+      case TIMESTAMP -> {
+        // Handle timestamp strings from bin operations using proper function chain
+        // When bin operations produce timestamp strings, they need to be converted to epoch
+        // milliseconds for OpenSearch aggregation (which expects primitive numeric values)
+        if (value instanceof String) {
+          String strValue = (String) value;
+          // Use proper function chain: STRING -> TIMESTAMP() -> epoch milliseconds
+          try {
+            ExprValue timestampValue =
+                DateTimeFunctions.exprTimestampFromString(new ExprStringValue(strValue));
+            if (!timestampValue.equals(ExprNullValue.of())) {
+              long epochMillis = timestampValue.timestampValue().toEpochMilli();
+              yield epochMillis;
+            }
+          } catch (Exception e) {
+            // Fall back to ExprValueUtils parsing
+            try {
+              long epochMillis =
+                  ExprValueUtils.fromObjectValue(strValue, TIMESTAMP)
+                      .timestampValue()
+                      .toEpochMilli();
+              yield epochMillis;
+            } catch (Exception fallbackEx) {
+              // Last resort: return the original value
+              yield value;
+            }
+          }
+        }
+        // Default handling for non-string timestamp values
+        long epochMillis =
+            ExprValueUtils.fromObjectValue(value, TIMESTAMP).timestampValue().toEpochMilli();
+        yield epochMillis;
+      }
+      default -> {
+        // Handle timestamp strings from bin operations using proper function chain
+        // When bin operations produce timestamp strings, convert to epoch milliseconds for
+        // aggregation
+        if (value instanceof String) {
+          String strValue = (String) value;
+          // Use proper function chain: STRING -> TIMESTAMP() -> epoch milliseconds
+          try {
+            ExprValue timestampValue =
+                DateTimeFunctions.exprTimestampFromString(new ExprStringValue(strValue));
+            if (!timestampValue.equals(ExprNullValue.of())) {
+              yield timestampValue.timestampValue().toEpochMilli();
+            }
+          } catch (Exception e) {
+            // Fall back to ExprValueUtils parsing
+            try {
+              yield ExprValueUtils.fromObjectValue(strValue, TIMESTAMP)
+                  .timestampValue()
+                  .toEpochMilli();
+            } catch (Exception fallbackEx) {
+              // Last resort: return the original value
+              yield value;
+            }
+          }
+        }
+        yield value;
+      }
     };
   }
 }

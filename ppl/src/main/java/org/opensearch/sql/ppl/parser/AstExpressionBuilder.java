@@ -8,6 +8,7 @@ package org.opensearch.sql.ppl.parser;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NOT_NULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.POSITION;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.AligntimeValueContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BinaryArithmeticContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BySpanClauseContext;
@@ -442,6 +443,17 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   }
 
   @Override
+  public UnresolvedExpression visitAligntimeValue(AligntimeValueContext ctx) {
+    if (ctx.EARLIEST() != null) {
+      return new Literal("earliest", DataType.STRING);
+    } else if (ctx.LATEST() != null) {
+      return new Literal("latest", DataType.STRING);
+    } else {
+      return visit(ctx.literalValue());
+    }
+  }
+
+  @Override
   public UnresolvedExpression visitBySpanClause(BySpanClauseContext ctx) {
     String name = ctx.spanClause().getText();
     return ctx.alias != null
@@ -559,5 +571,64 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
                             StringUtils.unquoteText(v.relevanceArgValue().getText()),
                             DataType.STRING))));
     return builder.build();
+  }
+
+  // New visitor methods for spanValue grammar rules
+
+  @Override
+  public UnresolvedExpression visitNumericSpanValue(
+      OpenSearchPPLParser.NumericSpanValueContext ctx) {
+    String spanValue = ctx.literalValue().getText();
+    String spanUnit = ctx.timespanUnit() != null ? ctx.timespanUnit().getText() : null;
+
+    if (spanUnit != null) {
+      // Create combined span like "1h", "30m", etc.
+      return org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(spanValue + spanUnit);
+    } else {
+      return visit(ctx.literalValue());
+    }
+  }
+
+  @Override
+  public UnresolvedExpression visitLogBasedSpanValue(
+      OpenSearchPPLParser.LogBasedSpanValueContext ctx) {
+    // For log-based spans, return the full text as a string literal
+    return org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(ctx.getText());
+  }
+
+  @Override
+  public UnresolvedExpression visitExtendedTimeSpanValue(
+      OpenSearchPPLParser.ExtendedTimeSpanValueContext ctx) {
+    // For extended time spans like "30seconds", "15minutes", combine the number and unit
+    String number = ctx.ident().getText();
+    String unit = ctx.timespanUnit().getText();
+    return org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(number + unit);
+  }
+
+  @Override
+  public UnresolvedExpression visitLogSpan(OpenSearchPPLParser.LogSpanContext ctx) {
+    return org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(ctx.getText());
+  }
+
+  @Override
+  public UnresolvedExpression visitLog10Span(OpenSearchPPLParser.Log10SpanContext ctx) {
+    return org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(ctx.getText());
+  }
+
+  @Override
+  public UnresolvedExpression visitLog2Span(OpenSearchPPLParser.Log2SpanContext ctx) {
+    return org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(ctx.getText());
+  }
+
+  @Override
+  public UnresolvedExpression visitLogWithBaseSpan(OpenSearchPPLParser.LogWithBaseSpanContext ctx) {
+    return org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(ctx.getText());
+  }
+
+  @Override
+  public UnresolvedExpression visitIdentifierSpanValue(
+      OpenSearchPPLParser.IdentifierSpanValueContext ctx) {
+    // For identifier spans like "log3", "log5", etc., return as string literal
+    return org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(ctx.getText());
   }
 }

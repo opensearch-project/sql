@@ -49,6 +49,7 @@ import org.opensearch.sql.ast.expression.When;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.DescribeRelation;
 import org.opensearch.sql.ast.tree.Eval;
@@ -556,5 +557,69 @@ public class AstDSL {
           Pair.of(fieldAndReplacement.getLeft(), fieldAndReplacement.getRight()));
     }
     return FillNull.ofVariousValue(replacementsBuilder.build()).attach(input);
+  }
+
+  /**
+   * Creates a Bin node with an input plan for binning field values into discrete buckets.
+   *
+   * @param input the input plan
+   * @param field the field expression to bin
+   * @param arguments optional arguments for bin configuration (span, bins, minspan, aligntime,
+   *     start, end, alias)
+   * @return Bin node attached to the input plan
+   */
+  public static Bin bin(UnresolvedPlan input, UnresolvedExpression field, Argument... arguments) {
+    Bin binNode = bin(field, arguments);
+    binNode.attach(input);
+    return binNode;
+  }
+
+  /**
+   * Creates a Bin node for binning field values into discrete buckets.
+   *
+   * @param field the field expression to bin
+   * @param arguments optional arguments for bin configuration (span, bins, minspan, aligntime,
+   *     start, end, alias)
+   * @return Bin node with the specified field and configuration
+   */
+  public static Bin bin(UnresolvedExpression field, Argument... arguments) {
+    UnresolvedExpression span = null;
+    Integer bins = null;
+    UnresolvedExpression minspan = null;
+    UnresolvedExpression aligntime = null;
+    UnresolvedExpression start = null;
+    UnresolvedExpression end = null;
+    String alias = null;
+
+    for (Argument arg : arguments) {
+      switch (arg.getArgName()) {
+        case "span":
+          span = arg.getValue();
+          break;
+        case "bins":
+          bins =
+              ((Literal) arg.getValue()).getValue() instanceof Integer
+                  ? (Integer) ((Literal) arg.getValue()).getValue()
+                  : null;
+          break;
+        case "minspan":
+          minspan = arg.getValue();
+          break;
+        case "aligntime":
+          aligntime = arg.getValue();
+          break;
+        case "start":
+          start = arg.getValue();
+          break;
+        case "end":
+          end = arg.getValue();
+          break;
+        case "alias":
+          alias = arg.getValue().toString();
+          break;
+      }
+    }
+
+    return new Bin(field, span, bins, minspan, aligntime, start, end, alias);
   }
 }

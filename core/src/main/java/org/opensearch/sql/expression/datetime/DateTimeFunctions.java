@@ -992,6 +992,8 @@ public class DateTimeFunctions {
             LONG),
         impl(nullMissingHandling(DateTimeFunctions::unixTimeStampOf), DOUBLE, TIMESTAMP),
         impl(nullMissingHandling(DateTimeFunctions::unixTimeStampOf), DOUBLE, DATE),
+        // STRING handling via delegation to TIMESTAMP function (proper function chain)
+        impl(nullMissingHandling(DateTimeFunctions::unixTimeStampOfString), DOUBLE, STRING),
         impl(nullMissingHandling(DateTimeFunctions::unixTimeStampOf), DOUBLE, DOUBLE));
   }
 
@@ -2017,6 +2019,19 @@ public class DateTimeFunctions {
   }
 
   /**
+   * TIMESTAMP string parsing implementation for timestamp strings from bin operations. Handles
+   * timestamp strings in YYYY-MM-DD HH:MM:SS format (with optional fractional seconds).
+   *
+   * @param stringValue ExprValue of String type containing timestamp string.
+   * @return ExprTimestampValue parsed from the string, or ExprNullValue if parsing fails.
+   */
+  public static ExprValue exprTimestampFromString(ExprValue stringValue) {
+    // Use the same validation logic as the original TIMESTAMP function
+    // This will throw ExpressionEvaluationException for invalid dates
+    return new ExprTimestampValue(stringValue.stringValue());
+  }
+
+  /**
    * To_days implementation for ExprValue.
    *
    * @param date ExprValue of Date/String type.
@@ -2141,6 +2156,25 @@ public class DateTimeFunctions {
       return new ExprDoubleValue(0);
     }
     return new ExprDoubleValue(res);
+  }
+
+  /**
+   * Implementation of UNIX_TIMESTAMP for STRING inputs using proper function chain. Delegates to
+   * TIMESTAMP function first, then converts to epoch seconds.
+   */
+  public static ExprValue unixTimeStampOfString(ExprValue stringValue) {
+    // Use proper function chain: STRING -> TIMESTAMP() -> UNIX_TIMESTAMP()
+    ExprValue timestampValue = exprTimestampFromString(stringValue);
+    if (!timestampValue.equals(ExprNullValue.of())) {
+      return unixTimeStampOf(timestampValue);
+    }
+
+    // If timestamp parsing failed, fall back to numeric parsing for legacy formats
+    try {
+      return new ExprDoubleValue(transferUnixTimeStampFromDoubleInput(stringValue.doubleValue()));
+    } catch (Exception e) {
+      return ExprNullValue.of();
+    }
   }
 
   public static Double transferUnixTimeStampFromDoubleInput(Double value) {

@@ -24,6 +24,7 @@ DEDUP:                              'DEDUP';
 SORT:                               'SORT';
 EVAL:                               'EVAL';
 HEAD:                               'HEAD';
+BIN:                                'BIN';
 TOP:                                'TOP';
 RARE:                               'RARE';
 PARSE:                              'PARSE';
@@ -279,6 +280,7 @@ LN:                                 'LN';
 LOG:                                'LOG';
 LOG10:                              'LOG10';
 LOG2:                               'LOG2';
+LOG_WITH_BASE:                      ([0-9]+ ('.' [0-9]+)?)? [lL][oO][gG] [0-9]+ ('.' [0-9]+)?;
 MOD:                                'MOD';
 MODULUS:                            'MODULUS';
 PI:                                 'PI';
@@ -467,6 +469,11 @@ ZERO_TERMS_QUERY:                   'ZERO_TERMS_QUERY';
 
 // SPAN KEYWORDS
 SPAN:                               'SPAN';
+BINS:                               'BINS';
+MINSPAN:                            'MINSPAN';
+START:                              'START';
+END:                                'END';
+ALIGNTIME:                          'ALIGNTIME';
 MS:                                 'MS';
 S:                                  'S';
 M:                                  'M';
@@ -474,6 +481,22 @@ H:                                  'H';
 W:                                  'W';
 Q:                                  'Q';
 Y:                                  'Y';
+
+// Extended timescale units
+SEC:                                'SEC';
+SECS:                               'SECS';
+SECONDS:                            'SECONDS';
+MINS:                               'MINS';
+MINUTES:                            'MINUTES';
+HR:                                 'HR';
+HRS:                                'HRS';
+HOURS:                              'HOURS';
+DAYS:                               'DAYS';
+MON:                                'MON';
+MONTHS:                             'MONTHS';
+US:                                 'US';
+CS:                                 'CS';
+DS:                                 'DS';
 
 
 // LITERALS AND VALUES

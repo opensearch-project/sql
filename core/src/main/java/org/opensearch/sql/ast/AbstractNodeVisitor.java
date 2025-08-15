@@ -47,6 +47,7 @@ import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.AppendCol;
+import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
@@ -210,6 +211,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitBetween(Between node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitBin(Bin node, C context) {
     return visitChildren(node, context);
   }
 

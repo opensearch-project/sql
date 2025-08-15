@@ -68,6 +68,10 @@ public class UnixTimestampFunction extends ImplementorUDF {
   }
 
   public static double unixTimestamp(FunctionProperties ignored, ExprValue timestamp) {
+    // Follow @yuancu's guidance: use proper function chain for STRING inputs
+    if (timestamp.type().equals(org.opensearch.sql.data.type.ExprCoreType.STRING)) {
+      return unixTimeStampOfString(timestamp).doubleValue();
+    }
     return unixTimeStampOf(timestamp).doubleValue();
   }
 }
