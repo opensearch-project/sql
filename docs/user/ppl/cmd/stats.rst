@@ -28,6 +28,10 @@ The following table dataSources the aggregation functions and also indicates how
 +----------+-------------+-------------+
 | MIN      | Ignore      | Ignore      |
 +----------+-------------+-------------+
+| LIST     | Ignore      | Ignore      |
++----------+-------------+-------------+
+| VALUES   | Ignore      | Ignore      |
++----------+-------------+-------------+
 
 
 Syntax
@@ -302,6 +306,74 @@ Example::
     | 36                  | M      |
     +---------------------+--------+
 
+LIST
+----
+
+Description
+>>>>>>>>>>>
+
+Version: 3.3.0 (Calcite engine only)
+
+Usage: LIST(). Returns an array containing all values of the specified field from the result set, preserving duplicates and order. All values are converted to strings for consistent handling across different data types.
+
+* expr: The field expression to collect values from.
+* Behavior: Preserves duplicate values and maintains input order. Returns first 100 values. This function processes field values as strings.
+
+Example::
+
+    os> source=accounts | stats list(firstname);
+    fetched rows / total rows = 1/1
+    +-----------------------------+
+    | list(firstname)             |
+    |-----------------------------|
+    | [Amber,Hattie,Nanette,Dale] |
+    +-----------------------------+
+
+Example with object fields::
+
+    os> source=accounts | stats list(account.name) as names;
+    fetched rows / total rows = 1/1
+    +-----------------------------+
+    | names                       |
+    |-----------------------------|
+    | [John Smith,Jane Doe]       |
+    +-----------------------------+
+
+
+VALUES
+------
+
+Description
+>>>>>>>>>>>
+
+Version: 3.3.0 (Calcite engine only)
+
+Usage: VALUES(expr). Returns an array containing unique values of the specified field from the result set, sorted in lexicographic (alphabetical) order. All values are converted to strings for consistent handling across different data types.
+
+* expr: The field expression to collect unique values from.
+* Behavior: Removes duplicate values and sorts results lexicographically. This function processes field values as strings.
+
+Example::
+
+    os> source=accounts | stats values(gender);
+    fetched rows / total rows = 1/1
+    +----------------+
+    | values(gender) |
+    |----------------|
+    | [F,M]          |
+    +----------------+
+
+Example with mixed data types::
+
+    os> source=logs | stats values(status_code);
+    fetched rows / total rows = 1/1
+    +--------------------+
+    | values(status_code)|
+    |--------------------|
+    | [200,404,500]      |
+    +--------------------+
+
+
 Example 1: Calculate the count of events
 ========================================
 
@@ -524,4 +596,64 @@ PPL query::
     | 28  | 20       | F      |
     | 36  | 30       | M      |
     +-----+----------+--------+
+
+Example 14: Collect all values in a field using LIST
+=====================================================
+
+The example shows how to collect all firstname values, preserving duplicates and order.
+
+PPL query::
+
+    os> source=accounts | stats list(firstname);
+    fetched rows / total rows = 1/1
+    +-----------------------------+
+    | list(firstname)             |
+    |-----------------------------|
+    | [Amber,Hattie,Nanette,Dale] |
+    +-----------------------------+
+
+Example 15: Get unique values using VALUES
+==========================================
+
+The example shows how to get unique gender values, sorted alphabetically.
+
+PPL query::
+
+    os> source=accounts | stats values(gender);
+    fetched rows / total rows = 1/1
+    +----------------+
+    | values(gender) |
+    |----------------|
+    | [F,M]          |
+    +----------------+
+
+Example 16: Compare LIST and VALUES functions
+=============================================
+
+The example shows the difference between LIST (preserves duplicates) and VALUES (unique, sorted) functions.
+
+PPL query::
+
+    os> source=accounts | stats list(gender) as all_genders, values(gender) as unique_genders;
+    fetched rows / total rows = 1/1
+    +---------------+----------------+
+    | all_genders   | unique_genders |
+    |---------------+----------------|
+    | [M,F,M,M]     | [F,M]          |
+    +---------------+----------------+
+
+Example 17: Use multivalue functions with object fields
+=======================================================
+
+The example shows how to collect values from object fields using dot notation.
+
+PPL query::
+
+    os> source=accounts | stats list(address.city) as cities, values(address.state) as states;
+    fetched rows / total rows = 1/1
+    +---------------------------+------------------+
+    | cities                    | states           |
+    |---------------------------+------------------|
+    | [Seattle,Portland,Denver] | [CO,OR,WA]       |
+    +---------------------------+------------------+
 

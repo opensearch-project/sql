@@ -160,6 +160,15 @@ public class UserDefinedFunctionUtils {
     };
   }
 
+  public static SqlReturnTypeInference getReturnTypeInferenceForStringArray() {
+    return opBinding -> {
+      RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+      // Always return array of strings since multivalue functions convert everything to strings
+      RelDataType stringType = typeFactory.createSqlType(SqlTypeName.VARCHAR);
+      return createArrayType(typeFactory, stringType, true);
+    };
+  }
+
   public static SqlTypeName convertRelDataTypeToSqlTypeName(RelDataType type) {
     if (type instanceof AbstractExprRelDataType<?> exprType) {
       return switch (exprType.getUdt()) {

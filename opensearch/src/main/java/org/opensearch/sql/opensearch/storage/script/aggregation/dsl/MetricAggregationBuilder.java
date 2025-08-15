@@ -15,6 +15,7 @@ import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
 import org.opensearch.search.aggregations.AggregatorFactories;
 import org.opensearch.search.aggregations.bucket.filter.FilterAggregationBuilder;
+import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.CardinalityAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.ExtendedStats;
 import org.opensearch.search.aggregations.metrics.PercentilesAggregationBuilder;
@@ -240,6 +241,23 @@ public class MetricAggregationBuilder
       aggregationBuilder.compression(compression.valueOf().doubleValue());
     }
     aggregationBuilder.percentiles(percent.valueOf().doubleValue());
+    if (condition != null) {
+      return Pair.of(
+          makeFilterAggregation(aggregationBuilder, condition, name),
+          FilterParser.builder().name(name).metricsParser(parser).build());
+    }
+    return Pair.of(aggregationBuilder, parser);
+  }
+
+  /** Make {@link TermsAggregationBuilder} for list and values aggregations. */
+  private Pair<AggregationBuilder, MetricParser> make(
+      TermsAggregationBuilder builder,
+      Expression expression,
+      Expression condition,
+      String name,
+      MetricParser parser) {
+    TermsAggregationBuilder aggregationBuilder =
+        helper.build(expression, builder::field, builder::script);
     if (condition != null) {
       return Pair.of(
           makeFilterAggregation(aggregationBuilder, condition, name),
