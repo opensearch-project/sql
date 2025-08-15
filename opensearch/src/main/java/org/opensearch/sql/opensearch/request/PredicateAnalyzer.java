@@ -35,6 +35,7 @@ import static org.opensearch.index.query.QueryBuilders.existsQuery;
 import static org.opensearch.index.query.QueryBuilders.matchQuery;
 import static org.opensearch.index.query.QueryBuilders.rangeQuery;
 import static org.opensearch.index.query.QueryBuilders.regexpQuery;
+import static org.opensearch.index.query.QueryBuilders.scriptQuery;
 import static org.opensearch.index.query.QueryBuilders.termQuery;
 import static org.opensearch.index.query.QueryBuilders.termsQuery;
 import static org.opensearch.index.query.QueryBuilders.wildcardQuery;
@@ -1193,9 +1194,121 @@ public class PredicateAnalyzer {
                 .must(addFormatIfNecessary(literal, rangeQuery(getFieldReference()).gte(value)))
                 .must(addFormatIfNecessary(literal, rangeQuery(getFieldReference()).lte(value)));
       } else {
-        builder = termQuery(getFieldReferenceForTermQuery(), value);
+        // Support wildcards in equals operations - check if value contains wildcards
+        String stringValue = value.toString();
+        if (containsWildcards(stringValue)) {
+          // First, try to get the appropriate field reference for wildcard queries
+          String wildcardFieldRef = getFieldReferenceForWildcard();
+          
+          // Check if we can use wildcard query (keyword field or text.keyword subfield)
+          if (isTextOrKeywordField() || !wildcardFieldRef.equals(getFieldReferenceForTermQuery())) {
+            // Either it's a keyword field, or we found a .keyword subfield for text
+            builder = wildcardQuery(wildcardFieldRef, stringValue);
+          } else {
+            // For non-keyword fields (numeric, IP, etc.), fall back to script query
+            // This allows wildcard matching on the string representation
+            String script = String.format(
+                "doc['%s'].size() > 0 && doc['%s'].value.toString().matches('%s')",
+                getFieldReference(),
+                getFieldReference(),
+                convertWildcardToRegex(stringValue)
+            );
+            builder = scriptQuery(new Script(script));
+          }
+        } else {
+          // Use regular term query for exact matches
+          builder = termQuery(getFieldReferenceForTermQuery(), value);
+        }
       }
       return this;
+    }
+
+    /**
+     * Check if the string contains OpenSearch/Lucene native wildcard characters. Only supports *
+     * (zero or more) and ? (exactly one) - the native OpenSearch wildcards.
+     */
+    private boolean containsWildcards(String value) {
+      return value.contains("*") || value.contains("?");
+    }
+    
+    /**
+     * Check if the field is a keyword field that supports wildcard queries.
+     * IMPORTANT: OpenSearch wildcard queries ONLY work on keyword fields, NOT text fields.
+     * Text, IP, numeric, date, and other field types don't support wildcard queries.
+     */
+    private boolean isTextOrKeywordField() {
+      if (rel == null || rel.getExprType() == null) {
+        // If type info is not available, check if we need to use .keyword subfield
+        // For safety, assume we need script query
+        return false;
+      }
+      
+      ExprType exprType = rel.getExprType();
+      
+      // For text fields, we need to check if we're already using .keyword subfield
+      String fieldRef = getFieldReferenceForTermQuery();
+      if (fieldRef != null && fieldRef.endsWith(".keyword")) {
+        return true; // Using .keyword subfield, wildcard will work
+      }
+      
+      // Check for OpenSearch keyword type specifically
+      if (exprType instanceof OpenSearchDataType) {
+        String typeName = exprType.typeName().toLowerCase();
+        // Only keyword fields support wildcard queries
+        return typeName.equals("keyword") || typeName.contains("keyword");
+      }
+      
+      // For other types, check if it's a keyword-like field
+      String typeName = exprType.typeName().toLowerCase();
+      // Note: "string" in OpenSearch usually means keyword, not text
+      return typeName.equals("keyword") || typeName.equals("string");
+    }
+    
+    /**
+     * Get the appropriate field reference for wildcard queries.
+     * For text fields, automatically use .keyword subfield if it exists.
+     */
+    private String getFieldReferenceForWildcard() {
+      String fieldRef = getFieldReferenceForTermQuery();
+      
+      // If it's a text field and doesn't already end with .keyword
+      if (rel != null && rel.getExprType() != null && !fieldRef.endsWith(".keyword")) {
+        // Use the existing OpenSearchTextType utility to check for .keyword subfield
+        String keywordField = OpenSearchTextType.toKeywordSubField(getFieldReference(), rel.getExprType());
+        if (keywordField != null) {
+          // A keyword subfield exists, use it for wildcard query
+          return keywordField;
+        }
+      }
+      
+      return fieldRef;
+    }
+    
+    /**
+     * Convert OpenSearch wildcard pattern to Java regex pattern.
+     * * -> .* (zero or more characters)
+     * ? -> . (exactly one character)
+     * Other characters are escaped for regex.
+     */
+    private String convertWildcardToRegex(String wildcard) {
+      // Escape special regex characters except * and ?
+      String escaped = wildcard
+          .replace(".", "\\.")
+          .replace("+", "\\+")
+          .replace("^", "\\^")
+          .replace("$", "\\$")
+          .replace("(", "\\(")
+          .replace(")", "\\)")
+          .replace("[", "\\[")
+          .replace("]", "\\]")
+          .replace("{", "\\{")
+          .replace("}", "\\}")
+          .replace("|", "\\|");
+      
+      // Convert wildcards
+      return escaped
+          .replace("*", ".*")
+          .replace("?", ".");
     }
 
     @Override
@@ -1207,11 +1320,38 @@ public class PredicateAnalyzer {
                 .should(addFormatIfNecessary(literal, rangeQuery(getFieldReference()).gt(value)))
                 .should(addFormatIfNecessary(literal, rangeQuery(getFieldReference()).lt(value)));
       } else {
-        builder =
-            boolQuery()
-                // NOT LIKE should return false when field is NULL
-                .must(existsQuery(getFieldReference()))
-                .mustNot(termQuery(getFieldReferenceForTermQuery(), value));
+        // Support wildcards in not-equals operations
+        String stringValue = value.toString();
+        if (containsWildcards(stringValue)) {
+          // First, try to get the appropriate field reference for wildcard queries
+          String wildcardFieldRef = getFieldReferenceForWildcard();
+          
+          // Check if we can use wildcard query (keyword field or text.keyword subfield)
+          if (isTextOrKeywordField() || !wildcardFieldRef.equals(getFieldReferenceForTermQuery())) {
+            // Either it's a keyword field, or we found a .keyword subfield for text
+            builder =
+                boolQuery()
+                    // Field must exist
+                    .must(existsQuery(getFieldReference()))
+                    // Must not match the wildcard pattern
+                    .mustNot(wildcardQuery(wildcardFieldRef, stringValue));
+          } else {
+            // For non-keyword fields (numeric, IP, etc.), use script query
+            String script = String.format(
+                "doc['%s'].size() > 0 && !doc['%s'].value.toString().matches('%s')",
+                getFieldReference(),
+                getFieldReference(),
+                convertWildcardToRegex(stringValue)
+            );
+            builder = scriptQuery(new Script(script));
+          }
+        } else {
+          builder =
+              boolQuery()
+                  // NOT LIKE should return false when field is NULL
+                  .must(existsQuery(getFieldReference()))
+                  .mustNot(termQuery(getFieldReferenceForTermQuery(), value));
+        }
       }
       return this;
     }
@@ -1311,8 +1451,30 @@ public class PredicateAnalyzer {
 
     @Override
     public QueryExpression equals(Object point, boolean isTimeStamp) {
-      builder =
-          termQuery(getFieldReferenceForTermQuery(), convertEndpointValue(point, isTimeStamp));
+      Object value = convertEndpointValue(point, isTimeStamp);
+      String stringValue = value.toString();
+      if (containsWildcards(stringValue)) {
+        // First, try to get the appropriate field reference for wildcard queries
+        String wildcardFieldRef = getFieldReferenceForWildcard();
+        
+        // Check if we can use wildcard query (keyword field or text.keyword subfield)
+        if (isTextOrKeywordField() || !wildcardFieldRef.equals(getFieldReferenceForTermQuery())) {
+          // Either it's a keyword field, or we found a .keyword subfield for text
+          builder = wildcardQuery(wildcardFieldRef, stringValue);
+        } else {
+          // For non-keyword fields (numeric, IP, etc.), use script query
+          String script = String.format(
+              "doc['%s'].size() > 0 && doc['%s'].value.toString().matches('%s')",
+              getFieldReference(),
+              getFieldReference(),
+              convertWildcardToRegex(stringValue)
+          );
+          builder = scriptQuery(new Script(script));
+        }
+      } else {
+        // Use regular term query for exact matches
+        builder = termQuery(getFieldReferenceForTermQuery(), value);
+      }
       return this;
     }
 
