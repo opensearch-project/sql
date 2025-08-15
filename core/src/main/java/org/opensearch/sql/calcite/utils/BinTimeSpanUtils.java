@@ -12,10 +12,11 @@ import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
 /**
- * Dedicated span function implementation for bin command only. This is completely separate from the
- * aggregation span functionality to avoid shared infrastructure that could break customer queries.
+ * Utility class for creating time span expressions for bin command operations. This is completely
+ * separate from the aggregation span functionality to avoid shared infrastructure that could break
+ * customer queries.
  */
-public class BinSpanFunction {
+public class BinTimeSpanUtils {
 
   // Time unit conversion constants
   private static final long MILLIS_PER_SECOND = 1000L;

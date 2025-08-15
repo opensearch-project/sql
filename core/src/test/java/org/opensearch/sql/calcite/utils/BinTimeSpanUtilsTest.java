@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
  * aligntime="@d+4h" should produce timestamps like "2025-07-27 16:00" and "2025-07-28 04:00" but
  * we're getting wrong timestamps due to incorrect alignment point calculation.
  */
-public class BinSpanFunctionTest {
+public class BinTimeSpanUtilsTest {
 
   @Test
   public void testAlignTimeAtDPlus4HoursProblem() {
@@ -242,7 +242,7 @@ public class BinSpanFunctionTest {
 
   @Test
   public void testIdentifyExactIssueInCode() {
-    System.out.println("\n=== Exact Issue in BinSpanFunction.createTimeModifierAlignedSpan ===");
+    System.out.println("\n=== Exact Issue in BinTimeSpanUtils.createTimeModifierAlignedSpan ===");
 
     System.out.println("The problem is in this section of createTimeModifierAlignedSpan:");
     System.out.println("```java");
