@@ -759,7 +759,7 @@ Check `introduce v3 engine <../../../dev/intro-v3-engine.md>`_ for more details.
 Check `join doc <../../ppl/cmd/join.rst>`_ for example.
 
 plugins.calcite.fallback.allowed
-=======================
+================================
 
 Description
 -----------
@@ -771,7 +771,7 @@ If Calcite is enabled, you can use this setting to decide whether to allow fallb
 3. This setting can be updated dynamically.
 
 plugins.calcite.pushdown.enabled
-=======================
+================================
 
 Description
 -----------
@@ -783,7 +783,7 @@ If Calcite is enabled, you can use this setting to decide whether to enable the 
 3. This setting can be updated dynamically.
 
 plugins.calcite.pushdown.rowcount.estimation.factor
-=======================
+===================================================
 
 Description
 -----------
