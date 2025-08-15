@@ -12,6 +12,5 @@ public class CalciteObjectFieldOperateIT extends ObjectFieldOperateIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 }

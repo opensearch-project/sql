@@ -27,7 +27,6 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
 
     loadIndex(Index.STATE_COUNTRY);
     loadIndex(Index.DATA_TYPE_NUMERIC);
