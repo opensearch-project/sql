@@ -23,7 +23,6 @@ import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalSort;
-import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.tools.FrameworkConfig;
@@ -298,7 +297,7 @@ public class QueryService {
             .parserConfig(SqlParser.Config.DEFAULT) // TODO check
             .defaultSchema(opensearchSchema)
             .traitDefs((List<RelTraitDef>) null)
-            .programs(Programs.calc(DefaultRelMetadataProvider.INSTANCE))
+            .programs(Programs.standard())
             .typeSystem(OpenSearchTypeSystem.INSTANCE);
     return configBuilder.build();
   }
