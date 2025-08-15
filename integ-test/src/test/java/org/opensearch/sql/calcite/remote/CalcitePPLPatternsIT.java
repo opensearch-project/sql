@@ -281,4 +281,21 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
             ImmutableMap.of(
                 "<token1>", ImmutableList.of("6996194389878584395", "-1547954353065580372"))));
   }
+
+  @Test
+  public void testBrainParseWithUUID() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval body = '[PlaceOrder] user_id=d664d7be-77d8-11f0-8880-0242f00b101d"
+                    + " user_currency=USD' | head 1 | patterns body method=BRAIN mode=label |"
+                    + " fields patterns_field, tokens",
+                Index.WEBLOG.getName()));
+    verifySchema(result, schema("patterns_field", "string"), schema("tokens", "struct"));
+    verifyDataRows(
+        result,
+        rows(
+            "[PlaceOrder] user_id=<token1> user_currency=USD",
+            ImmutableMap.of("<token1>", ImmutableList.of("d664d7be-77d8-11f0-8880-0242f00b101d"))));
+  }
 }
