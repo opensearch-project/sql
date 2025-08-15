@@ -24,6 +24,8 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
     loadIndex(Index.STATE_COUNTRY);
     loadIndex(Index.STATE_COUNTRY_WITH_NULL);
     loadIndex(Index.CALCS);
+    loadIndex(Index.NESTED_WITHOUT_ARRAYS);
+    loadIndex(Index.BIG5);
     Request request1 =
         new Request("PUT", "/" + TEST_INDEX_STATE_COUNTRY_WITH_NULL + "/_doc/7?refresh=true");
     request1.setJsonEntity(
@@ -47,6 +49,11 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
     verifySchema(actual, schema("age", "int"));
 
     verifyDataRows(actual, rows(10));
+
+    // Test isNull on struct objects
+    actual = executeQuery("source=big5 | where isnull(aws) | fields aws");
+    verifySchema(actual, schema("aws", "struct"));
+    verifyNumOfRows(actual, 0);
   }
 
   @Test
@@ -68,6 +75,11 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
         rows("Kevin"),
         rows("    "),
         rows(""));
+
+    // Test isNotNull on struct objects
+    actual = executeQuery("source=big5 | where isnotnull(aws) | fields aws");
+    verifySchema(actual, schema("aws", "struct"));
+    verifyNumOfRows(actual, 1);
   }
 
   @Test

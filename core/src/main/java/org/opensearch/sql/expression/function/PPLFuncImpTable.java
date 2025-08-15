@@ -727,9 +727,7 @@ public class PPLFuncImpTable {
       registerOperator(SIGNUM, SqlStdOperatorTable.SIGN);
       registerOperator(SIN, SqlStdOperatorTable.SIN);
       registerOperator(CBRT, SqlStdOperatorTable.CBRT);
-      registerOperator(IS_NOT_NULL, SqlStdOperatorTable.IS_NOT_NULL);
-      registerOperator(IS_PRESENT, SqlStdOperatorTable.IS_NOT_NULL);
-      registerOperator(IS_NULL, SqlStdOperatorTable.IS_NULL);
+
       registerOperator(IFNULL, SqlStdOperatorTable.COALESCE);
       registerOperator(EARLIEST, PPLBuiltinOperators.EARLIEST);
       registerOperator(LATEST, PPLBuiltinOperators.LATEST);
@@ -1040,6 +1038,20 @@ public class PPLFuncImpTable {
                               builder.makeLiteral(" "),
                               arg))),
           PPLTypeChecker.family(SqlTypeFamily.ANY));
+      // Re-define the type checker for is not null, is present, and is null since their original
+      // type checker ANY isn't compatible with struct types.
+      register(
+          IS_NOT_NULL,
+          (builder, args) -> builder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, args),
+          PPLTypeChecker.family(SqlTypeFamily.IGNORE));
+      register(
+          IS_PRESENT,
+          (builder, args) -> builder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, args),
+          PPLTypeChecker.family(SqlTypeFamily.IGNORE));
+      register(
+          IS_NULL,
+          (builder, args) -> builder.makeCall(SqlStdOperatorTable.IS_NULL, args),
+          PPLTypeChecker.family(SqlTypeFamily.IGNORE));
       register(
           LIKE,
           (FunctionImp2)
