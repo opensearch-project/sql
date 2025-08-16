@@ -29,7 +29,12 @@ public class QueryStringQuery extends MultiFieldQuery<QueryStringQueryBuilder> {
   @Override
   protected QueryStringQueryBuilder createBuilder(
       ImmutableMap<String, Float> fields, String query) {
-    return QueryBuilders.queryStringQuery(query).fields(fields);
+    QueryStringQueryBuilder builder = QueryBuilders.queryStringQuery(query);
+    if (!fields.isEmpty()) {
+      builder = builder.fields(fields);
+    }
+    // If fields is empty, it will search all fields by default
+    return builder;
   }
 
   @Override

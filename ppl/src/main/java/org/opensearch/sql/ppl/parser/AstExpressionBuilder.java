@@ -80,9 +80,14 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
           .build();
 
   private final AstBuilder astBuilder;
+  private boolean isSearchContext = false;
 
   public AstExpressionBuilder(AstBuilder astBuilder) {
     this.astBuilder = astBuilder;
+  }
+
+  public void setSearchContext(boolean isSearchContext) {
+    this.isSearchContext = isSearchContext;
   }
 
   /** Eval clause. */
@@ -538,17 +543,27 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     // all the arguments are defaulted to string values
     // to skip environment resolving and function signature resolving
     ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
-    var fields =
-        new RelevanceFieldList(
-            ctx.getRuleContexts(OpenSearchPPLParser.RelevanceFieldAndWeightContext.class).stream()
-                .collect(
-                    Collectors.toMap(
-                        f -> StringUtils.unquoteText(f.field.getText()),
-                        f -> (f.weight == null) ? 1F : Float.parseFloat(f.weight.getText()))));
-    builder.add(new UnresolvedArgument("fields", fields));
+
+    // Handle optional fields - only add fields argument if fields are present
+    var fieldContexts =
+        ctx.getRuleContexts(OpenSearchPPLParser.RelevanceFieldAndWeightContext.class);
+    if (fieldContexts != null && !fieldContexts.isEmpty()) {
+      var fields =
+          new RelevanceFieldList(
+              fieldContexts.stream()
+                  .collect(
+                      Collectors.toMap(
+                          f -> StringUtils.unquoteText(f.field.getText()),
+                          f -> (f.weight == null) ? 1F : Float.parseFloat(f.weight.getText()))));
+      builder.add(new UnresolvedArgument("fields", fields));
+    }
+
+    // Query is always required
     builder.add(
         new UnresolvedArgument(
             "query", new Literal(StringUtils.unquoteText(ctx.query.getText()), DataType.STRING)));
+
+    // Add optional arguments
     ctx.relevanceArg()
         .forEach(
             v ->
@@ -559,5 +574,47 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
                             StringUtils.unquoteText(v.relevanceArgValue().getText()),
                             DataType.STRING))));
     return builder.build();
+  }
+
+  /** Override logical expression visitor to handle search context. */
+  @Override
+  public UnresolvedExpression visitLogicalExpr(OpenSearchPPLParser.LogicalExprContext ctx) {
+    if (isSearchContext) {
+      OpenSearchPPLParser.ExpressionContext exprCtx = ctx.expression();
+
+      // Check if this is a simple value expression (not a comparison or relevance expression)
+      if (exprCtx instanceof OpenSearchPPLParser.ValueExprContext) {
+        OpenSearchPPLParser.ValueExprContext valueCtx =
+            (OpenSearchPPLParser.ValueExprContext) exprCtx;
+        OpenSearchPPLParser.ValueExpressionContext valueExpr = valueCtx.valueExpression();
+
+        // Case 1: literalValue - search text in search context
+        if (valueExpr instanceof OpenSearchPPLParser.LiteralValueExprContext) {
+          OpenSearchPPLParser.LiteralValueExprContext litCtx =
+              (OpenSearchPPLParser.LiteralValueExprContext) valueExpr;
+          Literal literal = (Literal) visit(litCtx.literalValue());
+          return new SearchMarkerExpression(literal);
+        }
+        // Case 2: fieldExpression - check if it's a single identifier
+        else if (valueExpr instanceof OpenSearchPPLParser.FieldExprContext) {
+          OpenSearchPPLParser.FieldExprContext fieldCtx =
+              (OpenSearchPPLParser.FieldExprContext) valueExpr;
+          OpenSearchPPLParser.FieldExpressionContext fieldExpr = fieldCtx.fieldExpression();
+
+          // Get the qualified name
+          QualifiedName qName = (QualifiedName) visit(fieldExpr.qualifiedName());
+
+          // Single-part names are search text in search context
+          if (qName.getParts().size() == 1) {
+            // Convert to Literal since this is search text, not a field reference
+            String searchText = qName.getParts().get(0);
+            return new SearchMarkerExpression(new Literal(searchText, DataType.STRING));
+          }
+        }
+      }
+    }
+
+    // For comparisons, relevance expressions, functions, or when not in search context
+    return super.visitLogicalExpr(ctx);
   }
 }

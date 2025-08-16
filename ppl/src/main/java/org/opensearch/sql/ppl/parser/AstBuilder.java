@@ -142,12 +142,52 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     if (ctx.logicalExpression().isEmpty()) {
       return visitFromClause(ctx.fromClause());
     } else {
-      return new Filter(
-              ctx.logicalExpression().stream()
-                  .map(this::internalVisitExpression)
-                  .reduce(And::new)
-                  .get())
-          .attach(visit(ctx.fromClause()));
+      // Only treat as search context if SEARCH keyword is present or
+      // if logical expressions appear before fromClause (which indicates search text)
+      boolean hasSearchKeyword = ctx.SEARCH() != null;
+      boolean hasExpressionsBeforeFrom =
+          !ctx.logicalExpression().isEmpty()
+              && ctx.logicalExpression().get(0).getSourceInterval().a
+                  < ctx.fromClause().getSourceInterval().a;
+
+      if (hasSearchKeyword || hasExpressionsBeforeFrom) {
+        // Process logical expressions in search context
+        // Set search context flag so expression builder knows to wrap search text
+        expressionBuilder.setSearchContext(true);
+
+        List<UnresolvedExpression> searchExprs =
+            ctx.logicalExpression().stream()
+                .map(this::internalVisitExpression)
+                .collect(Collectors.toList());
+
+        // Reset search context flag
+        expressionBuilder.setSearchContext(false);
+
+        SearchTextTranslator translator = new SearchTextTranslator();
+        UnresolvedExpression translated = translator.translate(searchExprs);
+        if (translated == null) {
+          return visitFromClause(ctx.fromClause());
+        }
+
+        return new Filter(translated).attach(visit(ctx.fromClause()));
+      } else {
+        // This is a WHERE-like filter after source, not search text
+        UnresolvedPlan source = visitFromClause(ctx.fromClause());
+        List<UnresolvedExpression> filters =
+            ctx.logicalExpression().stream()
+                .map(this::internalVisitExpression)
+                .collect(Collectors.toList());
+
+        if (!filters.isEmpty()) {
+          // Combine multiple filters with AND
+          UnresolvedExpression combined =
+              filters.size() == 1
+                  ? filters.get(0)
+                  : filters.stream().reduce((left, right) -> new And(left, right)).get();
+          source = new Filter(combined).attach(source);
+        }
+        return source;
+      }
     }
   }
 

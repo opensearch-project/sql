@@ -20,7 +20,12 @@ public class MultiMatchQuery extends MultiFieldQuery<MultiMatchQueryBuilder> {
 
   @Override
   protected MultiMatchQueryBuilder createBuilder(ImmutableMap<String, Float> fields, String query) {
-    return QueryBuilders.multiMatchQuery(query).fields(fields);
+    MultiMatchQueryBuilder builder = QueryBuilders.multiMatchQuery(query);
+    if (!fields.isEmpty()) {
+      builder = builder.fields(fields);
+    }
+    // If fields is empty, it will search all fields by default
+    return builder;
   }
 
   @Override

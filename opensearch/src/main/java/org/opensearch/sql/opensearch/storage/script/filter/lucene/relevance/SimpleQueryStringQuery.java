@@ -21,7 +21,12 @@ public class SimpleQueryStringQuery extends MultiFieldQuery<SimpleQueryStringBui
   @Override
   protected SimpleQueryStringBuilder createBuilder(
       ImmutableMap<String, Float> fields, String query) {
-    return QueryBuilders.simpleQueryStringQuery(query).fields(fields);
+    SimpleQueryStringBuilder builder = QueryBuilders.simpleQueryStringQuery(query);
+    if (!fields.isEmpty()) {
+      builder = builder.fields(fields);
+    }
+    // If fields is empty, it will search all fields by default
+    return builder;
   }
 
   @Override

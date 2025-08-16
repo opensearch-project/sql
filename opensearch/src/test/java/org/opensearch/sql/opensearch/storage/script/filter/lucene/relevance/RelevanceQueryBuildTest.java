@@ -105,7 +105,7 @@ class RelevanceQueryBuildTest {
   public void throws_SyntaxCheckException_when_no_required_arguments(List<Expression> arguments) {
     SyntaxCheckException exception =
         assertThrows(SyntaxCheckException.class, () -> query.build(createCall(arguments)));
-    assertEquals("mock_query requires at least two parameters", exception.getMessage());
+    assertEquals("mock_query requires at least 2 parameter(s)", exception.getMessage());
   }
 
   public static Stream<List<Expression>> insufficientArguments() {

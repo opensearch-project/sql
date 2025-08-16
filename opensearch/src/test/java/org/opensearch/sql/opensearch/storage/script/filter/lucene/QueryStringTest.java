@@ -96,10 +96,10 @@ class QueryStringTest {
   }
 
   @Test
-  void test_SyntaxCheckException_when_one_argument() {
+  void test_SemanticCheckException_when_missing_query() {
     List<Expression> arguments = List.of(namedArgument("fields", fields_value));
     assertThrows(
-        SyntaxCheckException.class,
+        SemanticCheckException.class,
         () -> queryStringQuery.build(new QueryStringExpression(arguments)));
   }
 
@@ -113,6 +113,26 @@ class QueryStringTest {
     Assertions.assertThrows(
         SemanticCheckException.class,
         () -> queryStringQuery.build(new QueryStringExpression(arguments)));
+  }
+
+  @Test
+  void test_query_string_without_fields_parameter() {
+    // Test that query_string works without fields parameter
+    List<Expression> arguments = List.of(namedArgument("query", query_value));
+    // Should not throw any exception
+    queryStringQuery.build(new QueryStringExpression(arguments));
+  }
+
+  @Test
+  void test_query_string_with_optional_parameters_no_fields() {
+    // Test query_string with optional parameters but no fields
+    List<Expression> arguments =
+        List.of(
+            namedArgument("query", query_value),
+            namedArgument("default_operator", "AND"),
+            namedArgument("analyzer", "standard"));
+    // Should not throw any exception
+    queryStringQuery.build(new QueryStringExpression(arguments));
   }
 
   private NamedArgumentExpression namedArgument(String name, String value) {
