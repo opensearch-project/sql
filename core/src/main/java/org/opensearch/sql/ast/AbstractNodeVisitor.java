@@ -18,6 +18,7 @@ import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.FreeTextExpression;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.In;
@@ -223,6 +224,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitField(Field node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitFreeTextExpression(FreeTextExpression node, C context) {
     return visitChildren(node, context);
   }
 

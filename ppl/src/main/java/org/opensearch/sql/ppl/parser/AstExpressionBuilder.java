@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Stack;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -78,9 +79,43 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
           .build();
 
   private final AstBuilder astBuilder;
+  private boolean isSearchContext = false;
+  private final Stack<Boolean> contextStack = new Stack<>();
 
   public AstExpressionBuilder(AstBuilder astBuilder) {
     this.astBuilder = astBuilder;
+  }
+
+  public void setSearchContext(boolean isSearchContext) {
+    this.isSearchContext = isSearchContext;
+  }
+
+  // Context management helpers
+  private void enterContext(boolean newSearchContext) {
+    contextStack.push(isSearchContext);
+    isSearchContext = newSearchContext;
+  }
+
+  private void exitContext() {
+    if (!contextStack.isEmpty()) {
+      isSearchContext = contextStack.pop();
+    }
+  }
+
+  // Convenience method to run code without search context
+  private <T> T withoutSearchContext(java.util.function.Supplier<T> action) {
+    enterContext(false);
+    try {
+      return action.get();
+    } finally {
+      exitContext();
+    }
+  }
+
+  @Override
+  public UnresolvedExpression visitFunctionArg(OpenSearchPPLParser.FunctionArgContext ctx) {
+    // Never treat function arguments as search text
+    return withoutSearchContext(() -> super.visitFunctionArg(ctx));
   }
 
   /** Eval clause. */
@@ -135,12 +170,16 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   /** lambda expression */
   @Override
   public UnresolvedExpression visitLambda(OpenSearchPPLParser.LambdaContext ctx) {
-    List<QualifiedName> arguments =
-        ctx.ident().stream()
-            .map(x -> this.visitIdentifiers(Collections.singletonList(x)))
-            .collect(Collectors.toList());
-    UnresolvedExpression function = visit(ctx.logicalExpression());
-    return new LambdaFunction(function, arguments);
+    // Lambda bodies should never be treated as search text
+    return withoutSearchContext(
+        () -> {
+          List<QualifiedName> arguments =
+              ctx.ident().stream()
+                  .map(x -> this.visitIdentifiers(Collections.singletonList(x)))
+                  .collect(Collectors.toList());
+          UnresolvedExpression function = visit(ctx.logicalExpression());
+          return new LambdaFunction(function, arguments);
+        });
   }
 
   /** Comparison expression. */
@@ -266,20 +305,24 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitCaseFunctionCall(
       OpenSearchPPLParser.CaseFunctionCallContext ctx) {
-    List<When> whens =
-        IntStream.range(0, ctx.logicalExpression().size())
-            .mapToObj(
-                index -> {
-                  UnresolvedExpression condition = visit(ctx.logicalExpression(index));
-                  UnresolvedExpression result = visit(ctx.valueExpression(index));
-                  return new When(condition, result);
-                })
-            .collect(Collectors.toList());
-    UnresolvedExpression elseValue = null;
-    if (ctx.ELSE() != null) {
-      elseValue = visit(ctx.valueExpression(ctx.valueExpression().size() - 1));
-    }
-    return new Case(null, whens, Optional.ofNullable(elseValue));
+    // CASE conditions should never be treated as search text
+    return withoutSearchContext(
+        () -> {
+          List<When> whens =
+              IntStream.range(0, ctx.logicalExpression().size())
+                  .mapToObj(
+                      index -> {
+                        UnresolvedExpression condition = visit(ctx.logicalExpression(index));
+                        UnresolvedExpression result = visit(ctx.valueExpression(index));
+                        return new When(condition, result);
+                      })
+                  .collect(Collectors.toList());
+          UnresolvedExpression elseValue = null;
+          if (ctx.ELSE() != null) {
+            elseValue = visit(ctx.valueExpression(ctx.valueExpression().size() - 1));
+          }
+          return new Case(null, whens, Optional.ofNullable(elseValue));
+        });
   }
 
   /** Eval function. */
@@ -301,7 +344,9 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   /** Cast function. */
   @Override
   public UnresolvedExpression visitDataTypeFunctionCall(DataTypeFunctionCallContext ctx) {
-    return new Cast(visit(ctx.logicalExpression()), visit(ctx.convertedDataType()));
+    // CAST expressions should never be treated as search text
+    return withoutSearchContext(
+        () -> new Cast(visit(ctx.logicalExpression()), visit(ctx.convertedDataType())));
   }
 
   @Override
@@ -661,5 +706,75 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitLogWithBaseSpan(OpenSearchPPLParser.LogWithBaseSpanContext ctx) {
     return org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(ctx.getText());
+  }
+  
+  /** Override logical expression visitor to handle search context. */
+  @Override
+  public UnresolvedExpression visitLogicalExpr(OpenSearchPPLParser.LogicalExprContext ctx) {
+    // Only process as search text if we're in search context
+    if (!isSearchContext) {
+      return super.visitLogicalExpr(ctx);
+    }
+
+    // Try to convert to search text if applicable
+    UnresolvedExpression searchText = tryConvertToSearchText(ctx);
+    return searchText != null ? searchText : super.visitLogicalExpr(ctx);
+  }
+
+  /**
+   * Attempts to convert an expression to free text if it's a simple value.
+   *
+   * @return FreeTextExpression if this is free text, null otherwise
+   */
+  private UnresolvedExpression tryConvertToSearchText(OpenSearchPPLParser.LogicalExprContext ctx) {
+    OpenSearchPPLParser.ExpressionContext exprCtx = ctx.expression();
+
+    // Only value expressions can be search text
+    if (!(exprCtx instanceof OpenSearchPPLParser.ValueExprContext)) {
+      return null;
+    }
+
+    OpenSearchPPLParser.ValueExprContext valueCtx = (OpenSearchPPLParser.ValueExprContext) exprCtx;
+    OpenSearchPPLParser.ValueExpressionContext valueExpr = valueCtx.valueExpression();
+
+    // Function calls should NOT be treated as search text
+    if (valueExpr instanceof OpenSearchPPLParser.FunctionCallExprContext) {
+      return null;
+    }
+
+    // Check for literal values
+    if (valueExpr instanceof OpenSearchPPLParser.LiteralValueExprContext) {
+      return handleLiteralSearchText((OpenSearchPPLParser.LiteralValueExprContext) valueExpr);
+    }
+
+    // Check for identifiers (field expressions)
+    if (valueExpr instanceof OpenSearchPPLParser.FieldExprContext) {
+      return handleIdentifierSearchText((OpenSearchPPLParser.FieldExprContext) valueExpr);
+    }
+
+    return null;
+  }
+
+  /** Handles literal values as free text search terms. */
+  private UnresolvedExpression handleLiteralSearchText(
+      OpenSearchPPLParser.LiteralValueExprContext litCtx) {
+    Literal literal = (Literal) visit(litCtx.literalValue());
+    return new FreeTextExpression(literal);
+  }
+
+  /**
+   * Handles identifiers as free text search terms when they appear standalone. Both single-part
+   * (e.g., "error") and multi-part (e.g., "response.time") identifiers are treated as search text
+   * when not part of a comparison.
+   */
+  private UnresolvedExpression handleIdentifierSearchText(
+      OpenSearchPPLParser.FieldExprContext fieldCtx) {
+    OpenSearchPPLParser.FieldExpressionContext fieldExpr = fieldCtx.fieldExpression();
+    QualifiedName qName = (QualifiedName) visit(fieldExpr.qualifiedName());
+
+    // When an identifier appears standalone in search context, treat it as search text
+    // This includes both "error" and "response.time" when not in a comparison
+    String searchText = qName.toString();
+    return new FreeTextExpression(new Literal(searchText, DataType.STRING));
   }
 }
