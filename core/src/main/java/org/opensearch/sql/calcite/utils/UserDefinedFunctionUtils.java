@@ -187,11 +187,28 @@ public class UserDefinedFunctionUtils {
     return new FunctionProperties(instant, zoneId, QueryType.PPL);
   }
 
+  /**
+   * Convert java objects to ExprValue, so that the parameters fit the expr function signature. It
+   * invokes ExprValueUtils.fromObjectValue to convert the java objects to ExprValue. Note that
+   * date/time/timestamp strings will be converted to strings instead of ExprDateValue, etc.
+   *
+   * @param operands the operands to convert
+   * @param rexCall the RexCall object containing the operands
+   * @return the converted operands
+   */
   public static List<Expression> convertToExprValues(List<Expression> operands, RexCall rexCall) {
     List<RelDataType> types = rexCall.getOperands().stream().map(RexNode::getType).toList();
     return convertToExprValues(operands, types);
   }
 
+  /**
+   * Convert java objects to ExprValue, so that the parameters fit the expr function signature. It
+   * invokes ExprValueUtils.fromObjectValue to convert the java objects to ExprValue. Note that
+   * date/time/timestamp strings will be converted to strings instead of ExprDateValue, etc.
+   *
+   * @param operands the operands to convert
+   * @return the converted operands
+   */
   public static List<Expression> convertToExprValues(
       List<Expression> operands, List<RelDataType> types) {
     List<ExprType> exprTypes =
@@ -210,6 +227,18 @@ public class UserDefinedFunctionUtils {
     return exprValues;
   }
 
+  /**
+   * Adapt a static expr method to a UserDefinedFunctionBuilder. It first converts the operands to
+   * ExprValue, then calls the method, and finally converts the result to values recognizable by
+   * Calcite by calling exprValue.valueForCalcite.
+   *
+   * @param type the class containing the static method
+   * @param methodName the name of the method
+   * @param returnTypeInference the return type inference of the UDF
+   * @param nullPolicy the null policy of the UDF
+   * @param operandMetadata type checker
+   * @return an adapted ImplementorUDF with the expr method, which is a UserDefinedFunctionBuilder
+   */
   public static ImplementorUDF adaptExprMethodToUDF(
       java.lang.reflect.Type type,
       String methodName,
