@@ -6,13 +6,20 @@
 package org.opensearch.sql.opensearch.planner.physical;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.type.ArraySqlType;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 
@@ -61,5 +68,40 @@ public interface OpenSearchIndexScanRule {
 
   static boolean sortByFieldsOnly(Sort sort) {
     return !sort.getCollation().getFieldCollations().isEmpty() && sort.fetch == null;
+  }
+
+  /**
+   * Filters with conditions of these kinds should not be pushed down since DSL does not handle such
+   * cases correctly
+   */
+  Set<SqlKind> FILTER_PUSHDOWN_EXCLUDED_FUNCTION = Set.of(SqlKind.IS_NULL, SqlKind.IS_NOT_NULL);
+
+  /**
+   * Determines whether a filter condition should be excluded from pushdown to OpenSearch.
+   * Currently, this method only excludes IS NULL and IS NOT NULL operations on nested fields, as
+   * OpenSearch DSL does not handle these conditions correctly.
+   *
+   * @param filter The filter operation to check
+   * @return true if the condition should be excluded from pushdown, false otherwise
+   */
+  static boolean isConditionExcluded(Filter filter) {
+    RexNode condition = filter.getCondition();
+    if (condition instanceof RexCall conditionCall) {
+      return FILTER_PUSHDOWN_EXCLUDED_FUNCTION.contains(conditionCall.getKind())
+          && conditionContainsNestedField(condition, filter.getRowType().getFieldList());
+    }
+    return false;
+  }
+
+  private static boolean conditionContainsNestedField(
+      RexNode condition, List<RelDataTypeField> fields) {
+    if (condition instanceof RexCall conditionCall) {
+      return conditionCall.getOperands().stream()
+          .filter(operand -> operand instanceof RexInputRef)
+          .map(operand -> (RexInputRef) operand)
+          // Nested fields are of type ArraySqlType
+          .anyMatch(inputRef -> fields.get(inputRef.getIndex()).getType() instanceof ArraySqlType);
+    }
+    return false;
   }
 }
