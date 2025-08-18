@@ -219,33 +219,18 @@ public class CalciteExplainIT extends ExplainIT {
   
   @Test
   public void testExplainWithReversePushdown() throws IOException {
-    // Test with a sort operation that should use the reverse pushdown optimization
-    String result =
-        executeWithReplace(
-            "explain source=opensearch-sql_test_index_account | sort - age | reverse");
-
-    // Verify that the plan contains a LogicalSort with ascending direction (reversed from DESC)
-    assertTrue(result.contains("LogicalSort"));
-    assertTrue(result.contains("dir0=[ASC]"));
-    
-    // Verify that ROW_NUMBER is NOT used (since we're using the collation-based optimization)
-    assertFalse(result.contains("ROW_NUMBER()"));
+    String query = "source=opensearch-sql_test_index_account | sort - age | reverse";
+    var result = explainQueryToString(query);
+    String expected = loadFromFile("expectedOutput/calcite/explain_reverse_pushdown_single.json");
+    assertJsonEqualsIgnoreId(expected, result);
   }
   
   @Test
   public void testExplainWithReversePushdownMultipleFields() throws IOException {
-    // Test with multiple sort fields that should use the reverse pushdown optimization
-    String result =
-        executeWithReplace(
-            "explain source=opensearch-sql_test_index_account | sort - age, + firstname | reverse");
-
-    // Verify that the plan contains a LogicalSort with reversed directions
-    assertTrue(result.contains("LogicalSort"));
-    assertTrue(result.contains("dir0=[ASC]")); // age was DESC, now ASC
-    assertTrue(result.contains("dir1=[DESC]")); // firstname was ASC, now DESC
-    
-    // Verify that ROW_NUMBER is NOT used (since we're using the collation-based optimization)
-    assertFalse(result.contains("ROW_NUMBER()"));
+    String query = "source=opensearch-sql_test_index_account | sort - age, + firstname | reverse";
+    var result = explainQueryToString(query);
+    String expected = loadFromFile("expectedOutput/calcite/explain_reverse_pushdown_multiple.json");
+    assertJsonEqualsIgnoreId(expected, result);
   }
 
   @Test
