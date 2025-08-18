@@ -7,6 +7,7 @@ package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 import static org.opensearch.sql.plugin.rest.RestPPLQueryAction.EXPLAIN_API_ENDPOINT;
+import static org.opensearch.sql.plugin.rest.RestPPLQueryAction.EXTENDED_EXPLAIN_API_ENDPOINT;
 import static org.opensearch.sql.plugin.rest.RestPPLQueryAction.QUERY_API_ENDPOINT;
 
 import com.google.common.io.Resources;
@@ -50,7 +51,15 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   }
 
   protected String explainQueryToString(String query) throws IOException {
-    Response response = client().performRequest(buildRequest(query, EXPLAIN_API_ENDPOINT));
+    return explainQueryToString(query, false);
+  }
+
+  protected String explainQueryToString(String query, boolean extended) throws IOException {
+    Response response =
+        client()
+            .performRequest(
+                buildRequest(
+                    query, extended ? EXTENDED_EXPLAIN_API_ENDPOINT : EXPLAIN_API_ENDPOINT));
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
     String responseBody = getResponseBody(response, true);
     return responseBody.replace("\\r\\n", "\\n");

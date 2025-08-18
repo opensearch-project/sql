@@ -24,6 +24,8 @@ public final class PPLReturnTypes {
       ReturnTypes.explicit(UserDefinedFunctionUtils.NULLABLE_TIME_UDT);
   public static final SqlReturnTypeInference TIMESTAMP_FORCE_NULLABLE =
       ReturnTypes.explicit(UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_UDT);
+  public static final SqlReturnTypeInference IP_FORCE_NULLABLE =
+      ReturnTypes.explicit(UserDefinedFunctionUtils.NULLABLE_IP_UDT);
   public static SqlReturnTypeInference INTEGER_FORCE_NULLABLE =
       ReturnTypes.INTEGER.andThen(SqlTypeTransforms.FORCE_NULLABLE);
   public static SqlReturnTypeInference STRING_FORCE_NULLABLE =
