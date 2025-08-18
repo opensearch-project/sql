@@ -16,6 +16,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.planner.physical.collector.Rounding.DateTimeUnit;
 
 public class DateTimeUtilsTest {
   @Test
@@ -104,5 +105,77 @@ public class DateTimeUtilsTest {
         assertThrows(
             IllegalArgumentException.class, () -> getRelativeZonedDateTime("1d+1y", zonedDateTime));
     assertEquals(e.getMessage(), "Unexpected character '1' at position 0 in input: 1d+1y");
+  }
+
+  @Test
+  void testRoundOnTimestampBeforeEpoch() {
+    long actual =
+        LocalDateTime.parse("1961-05-12T23:40:05")
+            .atZone(ZoneOffset.UTC)
+            .toInstant()
+            .toEpochMilli();
+    long rounded = DateTimeUnit.MINUTE.round(actual, 1);
+    assertEquals(
+        LocalDateTime.parse("1961-05-12T23:40:00")
+            .atZone(ZoneOffset.UTC)
+            .toInstant()
+            .toEpochMilli(),
+        Instant.ofEpochMilli(rounded).toEpochMilli());
+
+    rounded = DateTimeUnit.HOUR.round(actual, 1);
+    assertEquals(
+        LocalDateTime.parse("1961-05-12T23:00:00")
+            .atZone(ZoneOffset.UTC)
+            .toInstant()
+            .toEpochMilli(),
+        Instant.ofEpochMilli(rounded).toEpochMilli());
+
+    rounded = DateTimeUnit.DAY.round(actual, 1);
+    assertEquals(
+        LocalDateTime.parse("1961-05-12T00:00:00")
+            .atZone(ZoneOffset.UTC)
+            .toInstant()
+            .toEpochMilli(),
+        Instant.ofEpochMilli(rounded).toEpochMilli());
+
+    rounded = DateTimeUnit.DAY.round(actual, 3);
+    assertEquals(
+        LocalDateTime.parse("1961-05-12T00:00:00")
+            .atZone(ZoneOffset.UTC)
+            .toInstant()
+            .toEpochMilli(),
+        Instant.ofEpochMilli(rounded).toEpochMilli());
+
+    rounded = DateTimeUnit.WEEK.round(actual, 1);
+    assertEquals(
+        LocalDateTime.parse("1961-05-08T00:00:00")
+            .atZone(ZoneOffset.UTC)
+            .toInstant()
+            .toEpochMilli(),
+        Instant.ofEpochMilli(rounded).toEpochMilli());
+
+    rounded = DateTimeUnit.MONTH.round(actual, 1);
+    assertEquals(
+        LocalDateTime.parse("1961-05-01T00:00:00")
+            .atZone(ZoneOffset.UTC)
+            .toInstant()
+            .toEpochMilli(),
+        Instant.ofEpochMilli(rounded).toEpochMilli());
+
+    rounded = DateTimeUnit.QUARTER.round(actual, 1);
+    assertEquals(
+        LocalDateTime.parse("1961-04-01T00:00:00")
+            .atZone(ZoneOffset.UTC)
+            .toInstant()
+            .toEpochMilli(),
+        Instant.ofEpochMilli(rounded).toEpochMilli());
+
+    rounded = DateTimeUnit.YEAR.round(actual, 2);
+    assertEquals(
+        LocalDateTime.parse("1960-01-01T00:00:00")
+            .atZone(ZoneOffset.UTC)
+            .toInstant()
+            .toEpochMilli(),
+        Instant.ofEpochMilli(rounded).toEpochMilli());
   }
 }

@@ -229,4 +229,73 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
     verifyErrorMessageContains(
         wrongArgException, "LOG2 function expects {[INTEGER],[DOUBLE]}, but got [STRING,STRING]");
   }
+
+  @Test
+  public void testAvgWithWrongArgType() {
+    Exception e =
+        Assert.assertThrows(
+            ExpressionEvaluationException.class,
+            () -> getRelNode("source=EMP | stats avg(ENAME) as avg_name"));
+    verifyErrorMessageContains(
+        e, "Aggregation function AVG expects field type {[INTEGER],[DOUBLE]}, but got [STRING]");
+  }
+
+  @Test
+  public void testVarsampWithWrongArgType() {
+    Exception e =
+        Assert.assertThrows(
+            ExpressionEvaluationException.class,
+            () -> getRelNode("source=EMP | stats var_samp(ENAME) as varsamp_name"));
+    verifyErrorMessageContains(
+        e,
+        "Aggregation function VARSAMP expects field type {[INTEGER],[DOUBLE]}, but got [STRING]");
+  }
+
+  @Test
+  public void testVarpopWithWrongArgType() {
+    Exception e =
+        Assert.assertThrows(
+            ExpressionEvaluationException.class,
+            () -> getRelNode("source=EMP | stats var_pop(ENAME) as varpop_name"));
+    verifyErrorMessageContains(
+        e, "Aggregation function VARPOP expects field type {[INTEGER],[DOUBLE]}, but got [STRING]");
+  }
+
+  @Test
+  public void testStddevSampWithWrongArgType() {
+    Exception e =
+        Assert.assertThrows(
+            ExpressionEvaluationException.class,
+            () -> getRelNode("source=EMP | stats stddev_samp(ENAME) as stddev_name"));
+    verifyErrorMessageContains(
+        e,
+        "Aggregation function STDDEV_SAMP expects field type {[INTEGER],[DOUBLE]}, but got"
+            + " [STRING]");
+  }
+
+  @Test
+  public void testStddevPopWithWrongArgType() {
+    Exception e =
+        Assert.assertThrows(
+            ExpressionEvaluationException.class,
+            () -> getRelNode("source=EMP | stats stddev_pop(ENAME) as stddev_name"));
+    verifyErrorMessageContains(
+        e,
+        "Aggregation function STDDEV_POP expects field type {[INTEGER],[DOUBLE]}, but got"
+            + " [STRING]");
+  }
+
+  @Test
+  public void testPercentileApproxWithWrongArgType() {
+    // First argument should be numeric
+    Exception e1 =
+        Assert.assertThrows(
+            ExpressionEvaluationException.class,
+            () -> getRelNode("source=EMP | stats percentile_approx(ENAME, 50) as percentile"));
+    verifyErrorMessageContains(
+        e1,
+        "Aggregation function PERCENTILE_APPROX expects field type and additional arguments"
+            + " {[INTEGER,INTEGER],[INTEGER,DOUBLE],[DOUBLE,INTEGER],[DOUBLE,DOUBLE],[INTEGER,INTEGER,INTEGER],[INTEGER,INTEGER,DOUBLE],[INTEGER,DOUBLE,INTEGER],[INTEGER,DOUBLE,DOUBLE],[DOUBLE,INTEGER,INTEGER],[DOUBLE,INTEGER,DOUBLE],[DOUBLE,DOUBLE,INTEGER],[DOUBLE,DOUBLE,DOUBLE]},"
+            + " but got [STRING,INTEGER]");
+  }
 }
