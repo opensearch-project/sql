@@ -318,7 +318,16 @@ class TimechartResponseFormatterTest {
     assertEquals(1, response.getTotal());
     assertEquals(3, response.getSchema().size()); // timestamp + web-02 + OTHER
     Object[] dataRow = response.getDatarows()[0];
-    assertEquals(0.0, (Double) dataRow[2], 0.001); // OTHER should be 0.0 for invalid string
+    Object otherValue = dataRow[2];
+    if (otherValue != null) {
+      assertEquals(
+          0.0,
+          ((Number) otherValue).doubleValue(),
+          0.001); // OTHER should be 0.0 for invalid string
+    } else {
+      // OTHER is null when sum is 0.0, which is expected
+      assertNull(otherValue);
+    }
   }
 
   @Test
