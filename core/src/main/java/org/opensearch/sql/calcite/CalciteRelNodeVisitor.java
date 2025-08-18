@@ -363,7 +363,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitReverse(
       org.opensearch.sql.ast.tree.Reverse node, CalcitePlanContext context) {
     visitChildren(node, context);
-    
+
     RelCollation collation = context.relBuilder.peek().getTraitSet().getCollation();
     if (collation == null || collation == RelCollations.EMPTY) {
       // If no collation exists, use the traditional row_number approach
@@ -385,7 +385,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       RelCollation reversedCollation = PlanUtils.reverseCollation(collation);
       context.relBuilder.sort(reversedCollation);
     }
-    
+
     return context.relBuilder.peek();
   }
 
