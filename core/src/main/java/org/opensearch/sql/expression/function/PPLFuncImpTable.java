@@ -697,11 +697,7 @@ public class PPLFuncImpTable {
           new PPLTypeChecker.PPLFamilyTypeChecker(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC));
 
       // Register ADD (+ symbol) for string concatenation
-      register(
-          ADD,
-          (RexBuilder builder, RexNode... args) ->
-              builder.makeCall(SqlStdOperatorTable.CONCAT, args),
-          new PPLTypeChecker.PPLFamilyTypeChecker(SqlTypeFamily.STRING, SqlTypeFamily.STRING));
+      registerOperator(ADD, SqlStdOperatorTable.CONCAT);
 
       // Register ADDFUNCTION for numeric addition only
       registerOperator(ADDFUNCTION, SqlStdOperatorTable.PLUS);
