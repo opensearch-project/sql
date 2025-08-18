@@ -253,6 +253,15 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testDoubleReverseWithSortNoOp() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | sort - age, + firstname | reverse | reverse";
+    var result = explainQueryToString(query);
+    String expected = loadFromFile("expectedOutput/calcite/explain_double_reverse_sort_no_op.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
   public void noPushDownForAggOnWindow() throws IOException {
     Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
     String query =
