@@ -690,35 +690,21 @@ public class PPLFuncImpTable {
       registerOperator(OR, SqlStdOperatorTable.OR);
       registerOperator(NOT, SqlStdOperatorTable.NOT);
 
-      // Register ADD with custom implementation that handles both numeric and string types
+      // Register ADD (+ symbol) for numeric addition
       register(
           ADD,
-          createFunctionImpWithTypeChecker(
-              (builder, arg1, arg2) -> {
-                boolean arg1IsString = isStringType(arg1.getType().getSqlTypeName());
-                boolean arg2IsString = isStringType(arg2.getType().getSqlTypeName());
+          (RexBuilder builder, RexNode... args) -> builder.makeCall(SqlStdOperatorTable.PLUS, args),
+          new PPLTypeChecker.PPLFamilyTypeChecker(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC));
 
-                if (arg1IsString && arg2IsString) {
-                  return builder.makeCall(SqlStdOperatorTable.CONCAT, arg1, arg2);
-                } else {
-                  return builder.makeCall(SqlStdOperatorTable.PLUS, arg1, arg2);
-                }
-              },
-              new PPLTypeChecker.PPLAddTypeChecker()));
+      // Register ADD (+ symbol) for string concatenation
       register(
-          ADDFUNCTION,
-          createFunctionImpWithTypeChecker(
-              (builder, arg1, arg2) -> {
-                boolean arg1IsString = isStringType(arg1.getType().getSqlTypeName());
-                boolean arg2IsString = isStringType(arg2.getType().getSqlTypeName());
+          ADD,
+          (RexBuilder builder, RexNode... args) ->
+              builder.makeCall(SqlStdOperatorTable.CONCAT, args),
+          new PPLTypeChecker.PPLFamilyTypeChecker(SqlTypeFamily.STRING, SqlTypeFamily.STRING));
 
-                if (arg1IsString && arg2IsString) {
-                  return builder.makeCall(SqlStdOperatorTable.CONCAT, arg1, arg2);
-                } else {
-                  return builder.makeCall(SqlStdOperatorTable.PLUS, arg1, arg2);
-                }
-              },
-              new PPLTypeChecker.PPLAddTypeChecker()));
+      // Register ADDFUNCTION for numeric addition only
+      registerOperator(ADDFUNCTION, SqlStdOperatorTable.PLUS);
       registerOperator(SUBTRACT, SqlStdOperatorTable.MINUS);
       registerOperator(SUBTRACTFUNCTION, SqlStdOperatorTable.MINUS);
       registerOperator(MULTIPLY, SqlStdOperatorTable.MULTIPLY);
@@ -1218,13 +1204,5 @@ public class PPLFuncImpTable {
                   ctx.relBuilder),
           null);
     }
-  }
-
-  /**
-   * Helper method to check if a SqlTypeName represents a string type. Used by ADD operator to
-   * determine whether to perform string concatenation or numeric addition.
-   */
-  private static boolean isStringType(SqlTypeName typeName) {
-    return typeName == SqlTypeName.VARCHAR || typeName == SqlTypeName.CHAR;
   }
 }
