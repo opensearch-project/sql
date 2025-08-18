@@ -226,18 +226,7 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
 
     verifyDataRows(
         result,
-        rows(
-            "2024-07-01 00:00:00",
-            45.2,
-            38.7,
-            55.3,
-            42.1,
-            41.8,
-            39.4,
-            48.6,
-            44.2,
-            67.8,
-            43.1));
+        rows("2024-07-01 00:00:00", 45.2, 38.7, 55.3, 42.1, 41.8, 39.4, 48.6, 44.2, 67.8, 43.1));
 
     assertEquals(1, result.getInt("total"));
   }

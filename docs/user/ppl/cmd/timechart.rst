@@ -60,6 +60,16 @@ Notes
 * The ``bins`` parameter is not implemented yet. Use ``span`` to control the time interval.
 * Only a single aggregation function is supported in the current implementation.
 
+Limitations
+============
+* The ``timechart`` command must be the last command in the PPL query pipeline since the pivot formatting is applied as the final step.
+* Only a single aggregation function is supported per timechart command.
+* The ``bins`` parameter and other bin options are not supported since the ``bin`` command is not implemented yet. Use the ``span`` parameter to control time intervals.
+* Cannot be combined with other commands that expect tabular data after timechart due to the pivot transformation.
+
+Examples
+========
+
 Example 1: Count events by hour
 ==============================
 

@@ -1221,6 +1221,18 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return relBuilder.peek();
   }
 
+  /**
+   * Transforms timechart command into relational operations using OpenSearch aggregations.
+   *
+   * <p>High-level approach: 1. Non-pivot case (no 'by' field): Creates simple time-based
+   * aggregation with span grouping 2. Pivot case (with 'by' field): Uses composite aggregation
+   * (time + split-by field) to get grouped data, then relies on TimechartResponseFormatter for
+   * client-side pivot transformation from long format (time, by_field, value) to wide format (time,
+   * col1, col2, ...)
+   *
+   * <p>The pivot transformation happens outside the query engine to avoid complex dynamic SQL
+   * generation. Limit and useOther parameters are passed through context for post-processing.
+   */
   @Override
   public RelNode visitTimechart(
       org.opensearch.sql.ast.tree.Timechart node, CalcitePlanContext context) {

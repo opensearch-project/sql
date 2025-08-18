@@ -401,12 +401,12 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     UnresolvedExpression aggregateFunction = internalVisitExpression(ctx.statsFunction());
     UnresolvedExpression byField =
         ctx.fieldExpression() != null ? internalVisitExpression(ctx.fieldExpression()) : null;
-    
+
     // Extract limit parameter if present
     Integer limit = null;
     // Extract useOther parameter if present
     Boolean useOther = true; // Default to true
-    
+
     // Process timechart arguments
     for (OpenSearchPPLParser.TimechartArgContext argCtx : ctx.timechartArg()) {
       if (argCtx.LIMIT() != null && argCtx.integerLiteral() != null) {
