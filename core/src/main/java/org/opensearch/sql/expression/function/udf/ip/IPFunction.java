@@ -12,9 +12,9 @@ import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.data.model.ExprIpValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -46,8 +46,7 @@ public class IPFunction extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return ReturnTypes.explicit(
-        OpenSearchTypeFactory.TYPE_FACTORY.createUDT(OpenSearchTypeFactory.ExprUDT.EXPR_IP, true));
+    return PPLReturnTypes.IP_FORCE_NULLABLE;
   }
 
   public static class CastImplementor
