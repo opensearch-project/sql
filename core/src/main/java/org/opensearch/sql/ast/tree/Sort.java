@@ -26,13 +26,15 @@ import org.opensearch.sql.ast.expression.Field;
 public class Sort extends UnresolvedPlan {
   private UnresolvedPlan child;
 
-  /** Max number of sorted results to return. */
+  /**
+   * The count value can be either 0 or a positive number. A value of 0 means return all documents.
+   */
   private final Integer count;
 
   private final List<Field> sortList;
 
   public Sort(List<Field> sortList) {
-    this(null, sortList);
+    this(0, sortList);
   }
 
   public Sort(Integer count, List<Field> sortList) {

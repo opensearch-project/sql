@@ -327,7 +327,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     // the first options is {"count": "integer"}
     Integer count = node.getCount();
     String sortList = visitFieldList(node.getSortList());
-    if (count != null && count > 0) {
+    if (count != 0) {
       return StringUtils.format("%s | sort %d %s", child, count, sortList);
     } else {
       return StringUtils.format("%s | sort %s", child, sortList);

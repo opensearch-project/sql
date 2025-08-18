@@ -334,7 +334,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .collect(Collectors.toList());
     context.relBuilder.sort(sortList);
     // Apply count parameter as limit
-    if (node.getCount() != null && node.getCount() > 0) {
+    if (node.getCount() != 0) {
       context.relBuilder.limit(0, node.getCount());
     }
 

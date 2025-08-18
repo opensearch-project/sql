@@ -371,7 +371,8 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   /** Sort command. */
   @Override
   public UnresolvedPlan visitSortCommand(SortCommandContext ctx) {
-    Integer count = ctx.count != null ? Integer.parseInt(ctx.count.getText()) : null;
+    Integer parsedCount = ctx.count != null ? Integer.parseInt(ctx.count.getText()) : null;
+    Integer count = (parsedCount != null && parsedCount > 0) ? parsedCount : 0;
     boolean desc = ctx.DESC() != null || ctx.D() != null;
 
     List<Field> sortFields =
