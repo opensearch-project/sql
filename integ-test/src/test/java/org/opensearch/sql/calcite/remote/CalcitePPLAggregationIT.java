@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.remote;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -31,12 +32,12 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
 
     loadIndex(Index.BANK);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
     loadIndex(Index.CALCS);
     loadIndex(Index.DATE_FORMATS);
+    loadIndex(Index.DATA_TYPE_NUMERIC);
   }
 
   @Test
@@ -501,13 +502,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         actual,
         schema("timestamp_span", "timestamp"),
         schema("count(custom_no_delimiter_ts)", "bigint"));
-    // TODO: Span has different behavior between pushdown and non-pushdown for timestamp before
-    // 1971. V2 engine will have the same issue.
-    // https://github.com/opensearch-project/sql/issues/3827
-    verifyDataRows(
-        actual,
-        rows(1, isPushdownEnabled() ? "1961-04-12 09:00:00" : "1961-04-12 10:00:00"),
-        rows(1, "1984-10-20 15:00:00"));
+    verifyDataRows(actual, rows(1, "1961-04-12 09:00:00"), rows(1, "1984-10-20 15:00:00"));
 
     actual =
         executeQuery(
@@ -805,5 +800,15 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         schema("len", null, "int"),
         schema("gender", null, "string"));
     verifyDataRows(response, rows(121764, 1, "F"), rows(65909, 1, "M"));
+  }
+
+  @Test
+  public void testAggByByteNumberWithScript() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | eval a = abs(byte_number) | stats count() by a",
+                TEST_INDEX_DATATYPE_NUMERIC));
+    verifyDataRows(response, rows(1, 4));
   }
 }

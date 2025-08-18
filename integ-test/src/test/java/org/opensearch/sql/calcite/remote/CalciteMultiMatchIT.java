@@ -12,6 +12,5 @@ public class CalciteMultiMatchIT extends MultiMatchIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 }

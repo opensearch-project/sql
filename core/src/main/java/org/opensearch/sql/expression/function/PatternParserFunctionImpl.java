@@ -50,9 +50,9 @@ public class PatternParserFunctionImpl extends ImplementorUDF {
   public UDFOperandMetadata getOperandMetadata() {
     return UDFOperandMetadata.wrap(
         (CompositeOperandTypeChecker)
-            OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.ANY)
-                .or(OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING))
-                .or(OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.ARRAY)));
+            OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.ANY)
+                .or(OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER))
+                .or(OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.ARRAY)));
   }
 
   public static class PatternParserImplementor implements NotNullImplementor {

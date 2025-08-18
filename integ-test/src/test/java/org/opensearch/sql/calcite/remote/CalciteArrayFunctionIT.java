@@ -20,7 +20,6 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
     loadIndex(Index.BANK);
   }
 

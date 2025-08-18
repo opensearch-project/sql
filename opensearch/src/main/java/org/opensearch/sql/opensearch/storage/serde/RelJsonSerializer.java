@@ -26,6 +26,7 @@ import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.util.JsonBuilder;
+import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
@@ -94,7 +95,9 @@ public class RelJsonSerializer {
       ObjectOutputStream objectOutput = new ObjectOutputStream(output);
       objectOutput.writeObject(envelope);
       objectOutput.flush();
-      return Base64.getEncoder().encodeToString(output.toByteArray());
+      return CalcitePlanContext.skipEncoding.get()
+          ? rexNodeJson
+          : Base64.getEncoder().encodeToString(output.toByteArray());
     } catch (Exception e) {
       throw new IllegalStateException("Failed to serialize RexNode: " + rexNode, e);
     }
@@ -108,11 +111,12 @@ public class RelJsonSerializer {
    * @return map of RexNode, RelDataType and OpenSearch field types
    */
   public Map<String, Object> deserialize(String struct) {
+    Map<String, Object> objectMap = null;
     try {
       // Recover Map object from bytes
       ByteArrayInputStream input = new ByteArrayInputStream(Base64.getDecoder().decode(struct));
       ObjectInputStream objectInput = new ObjectInputStream(input);
-      Map<String, Object> objectMap = (Map<String, Object>) objectInput.readObject();
+      objectMap = (Map<String, Object>) objectInput.readObject();
 
       // PPL Expr types are all serializable
       Map<String, ExprType> fieldTypes = (Map<String, ExprType>) objectMap.get(FIELD_TYPES);
@@ -127,8 +131,12 @@ public class RelJsonSerializer {
 
       return Map.of(EXPR, rexNode, FIELD_TYPES, fieldTypes, ROW_TYPE, rowType);
     } catch (Exception e) {
+      if (objectMap == null) {
+        throw new IllegalStateException(
+            "Failed to deserialize RexNode due to object map is null", e);
+      }
       throw new IllegalStateException(
-          "Failed to deserialize RexNode and its required structure: " + struct, e);
+          "Failed to deserialize RexNode and its required structure: " + objectMap.get(EXPR), e);
     }
   }
 }
