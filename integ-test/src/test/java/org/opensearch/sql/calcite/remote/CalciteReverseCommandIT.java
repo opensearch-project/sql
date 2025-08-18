@@ -115,7 +115,8 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | sort - account_number, + firstname | fields account_number, firstname | reverse",
+                "source=%s | sort - account_number, + firstname | fields account_number, firstname"
+                    + " | reverse",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("account_number", "bigint"), schema("firstname", "string"));
     verifyDataRowsInOrder(
@@ -148,7 +149,8 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | sort - account_number, + firstname | fields account_number, firstname | reverse | reverse",
+                "source=%s | sort - account_number, + firstname | fields account_number, firstname"
+                    + " | reverse | reverse",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("account_number", "bigint"), schema("firstname", "string"));
     verifyDataRowsInOrder(

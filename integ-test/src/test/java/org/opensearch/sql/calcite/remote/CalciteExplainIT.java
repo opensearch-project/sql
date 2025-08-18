@@ -206,8 +206,7 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testExplainWithReverse() throws IOException {
     String result =
-        executeWithReplace(
-            "explain source=opensearch-sql_test_index_account | reverse | head 5");
+        executeWithReplace("explain source=opensearch-sql_test_index_account | reverse | head 5");
 
     // Verify that the plan contains a LogicalSort with fetch (from head 5)
     assertTrue(result.contains("LogicalSort") && result.contains("fetch=[5]"));
@@ -216,7 +215,7 @@ public class CalciteExplainIT extends ExplainIT {
     assertTrue(result.contains("ROW_NUMBER()"));
     assertTrue(result.contains("dir0=[DESC]"));
   }
-  
+
   @Test
   public void testExplainWithReversePushdown() throws IOException {
     String query = "source=opensearch-sql_test_index_account | sort - age | reverse";
@@ -224,7 +223,7 @@ public class CalciteExplainIT extends ExplainIT {
     String expected = loadFromFile("expectedOutput/calcite/explain_reverse_pushdown_single.json");
     assertJsonEqualsIgnoreId(expected, result);
   }
-  
+
   @Test
   public void testExplainWithReversePushdownMultipleFields() throws IOException {
     String query = "source=opensearch-sql_test_index_account | sort - age, + firstname | reverse";
