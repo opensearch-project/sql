@@ -7,16 +7,10 @@
       "host": {
         "type": "keyword"
       },
-      "url": {
-        "type": "keyword"
+      "cpu_usage": {
+        "type": "double"
       },
-      "status": {
-        "type": "keyword"
-      },
-      "action": {
-        "type": "keyword"
-      },
-      "method": {
+      "region": {
         "type": "keyword"
       }
     }
