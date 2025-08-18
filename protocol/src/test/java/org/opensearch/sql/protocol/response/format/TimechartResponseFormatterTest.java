@@ -301,6 +301,63 @@ class TimechartResponseFormatterTest {
     assertEquals("testType", column.getType());
   }
 
+  @Test
+  void testConvertToDoubleEdgeCases() {
+    QueryResult queryResult =
+        mockQueryResult(
+            Arrays.asList("timestamp", "host", "cpu_usage"),
+            Map.of("timestamp", "timestamp", "host", "keyword", "cpu_usage", "double"),
+            Arrays.<Object[]>asList(
+                new Object[] {"2024-01-01 00:00:00", "web-01", "not-a-number"},
+                new Object[] {"2024-01-01 00:00:00", "web-02", 42}));
+
+    TimechartResponseFormatter formatter =
+        new TimechartResponseFormatter(JsonResponseFormatter.Style.COMPACT, 1, true);
+    JsonResponse response = (JsonResponse) formatter.buildJsonObject(queryResult);
+
+    assertEquals(1, response.getTotal());
+    assertEquals(3, response.getSchema().size()); // timestamp + web-02 + OTHER
+    Object[] dataRow = response.getDatarows()[0];
+    assertEquals(0.0, (Double) dataRow[2], 0.001); // OTHER should be 0.0 for invalid string
+  }
+
+  @Test
+  void testEmptyQueryResult() {
+    QueryResult queryResult =
+        mockQueryResult(
+            Arrays.asList("timestamp", "host", "cpu_usage"),
+            Map.of("timestamp", "timestamp", "host", "keyword", "cpu_usage", "double"),
+            Arrays.<Object[]>asList());
+
+    TimechartResponseFormatter formatter =
+        new TimechartResponseFormatter(JsonResponseFormatter.Style.COMPACT);
+    JsonResponse response = (JsonResponse) formatter.buildJsonObject(queryResult);
+
+    assertEquals(0, response.getTotal());
+    assertEquals(1, response.getSchema().size()); // Only timestamp column
+  }
+
+  @Test
+  void testOtherCategoryWithZeroSum() {
+    QueryResult queryResult =
+        mockQueryResult(
+            Arrays.asList("timestamp", "host", "cpu_usage"),
+            Map.of("timestamp", "timestamp", "host", "keyword", "cpu_usage", "double"),
+            Arrays.<Object[]>asList(
+                new Object[] {"2024-01-01 00:00:00", "host-01", 100.0},
+                new Object[] {"2024-01-01 00:00:00", "host-02", 90.0},
+                new Object[] {"2024-01-01 00:00:00", "host-03", 0.0}));
+
+    TimechartResponseFormatter formatter =
+        new TimechartResponseFormatter(JsonResponseFormatter.Style.COMPACT, 2, true);
+    JsonResponse response = (JsonResponse) formatter.buildJsonObject(queryResult);
+
+    assertEquals(1, response.getTotal());
+    assertEquals(4, response.getSchema().size()); // timestamp + top 2 hosts + OTHER
+    Object[] dataRow = response.getDatarows()[0];
+    assertEquals(null, dataRow[3]); // OTHER should be null when sum is 0.0
+  }
+
   @SuppressWarnings("unchecked")
   private QueryResult mockQueryResult(
       List<String> columnNames, Map<String, String> columnTypes, List<Object[]> rows) {
