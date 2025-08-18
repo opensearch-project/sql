@@ -46,13 +46,7 @@ public class MinSpanBin extends Bin {
   }
 
   @Override
-  public void validate() {
-    // MinSpan-specific validation
-    if (minspan == null) {
-      throw new IllegalArgumentException("MinSpan parameter is required for minspan-based binning");
-    }
-    // Additional validation can be added here for minspan value constraints (must be positive)
-  }
+  public void validate() {}
 
   @Override
   public <T, C> T accept(AbstractNodeVisitor<T, C> nodeVisitor, C context) {

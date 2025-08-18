@@ -30,7 +30,7 @@ public class SpanBinHandler implements BinHandler {
     SpanBin spanBin = (SpanBin) node;
 
     // Handle time-based fields
-    if (FieldValidator.isTimeBasedField(fieldExpr.getType())) {
+    if (BinFieldValidator.isTimeBasedField(fieldExpr.getType())) {
       return handleTimeBasedSpan(spanBin, fieldExpr, context, visitor);
     }
 

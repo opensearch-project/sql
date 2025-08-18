@@ -148,17 +148,17 @@ public class BinUtilsTest {
     assertEquals("d", SpanParser.extractTimeUnit("7d"));
   }
 
-  // Legacy method tests - these use the deprecated methods but should still work
+  // Updated tests using new APIs instead of deprecated methods
   @Test
-  public void testLegacyParseSpanString() {
-    var spanInfo = BinUtils.parseSpanString("1000");
+  public void testParseSpanString() {
+    var spanInfo = SpanParser.parse("1000");
     assertEquals(SpanType.NUMERIC, spanInfo.getType());
     assertEquals(1000.0, spanInfo.getValue(), 0.001);
   }
 
   @Test
-  public void testLegacyExtractTimeUnit() {
-    assertEquals("seconds", BinUtils.extractTimeUnit("30seconds"));
-    assertEquals("h", BinUtils.extractTimeUnit("2h"));
+  public void testExtractTimeUnit() {
+    assertEquals("seconds", SpanParser.extractTimeUnit("30seconds"));
+    assertEquals("h", SpanParser.extractTimeUnit("2h"));
   }
 }

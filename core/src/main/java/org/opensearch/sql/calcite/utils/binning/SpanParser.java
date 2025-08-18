@@ -5,6 +5,9 @@
 
 package org.opensearch.sql.calcite.utils.binning;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -13,38 +16,71 @@ public class SpanParser {
 
   private static final Pattern LOG_PATTERN = Pattern.compile("^(\\d*\\.?\\d*)?log(\\d+\\.?\\d*)$");
 
-  // Time units in order of precedence (longest first to avoid partial matches)
-  private static final String[] TIME_UNITS = {
-    // Full words first
-    "seconds",
-    "second",
-    "secs",
-    "sec",
-    "minutes",
-    "minute",
-    "mins",
-    "min",
-    "hours",
-    "hour",
-    "hrs",
-    "hr",
-    "days",
-    "day",
-    "months",
-    "month",
-    "mon",
-    // Sub-second units
-    "us",
-    "ms",
-    "cs",
-    "ds",
-    // Single letter units (must be last)
-    "M",
-    "s",
-    "m",
-    "h",
-    "d"
-  };
+  // Time units grouped by length for efficient lookup
+  private static final Map<Integer, List<String>> TIME_UNITS_BY_LENGTH = new HashMap<>();
+
+  // Map for normalizing time units to standard forms
+  private static final Map<String, String> NORMALIZED_UNITS = new HashMap<>();
+
+  static {
+    // Define normalized units mapping (all variations map to standard form)
+    String[][] unitMappings = {
+      // Seconds variations
+      {"seconds", "s"},
+      {"second", "s"},
+      {"secs", "s"},
+      {"sec", "s"},
+      {"s", "s"},
+      // Minutes variations
+      {"minutes", "m"},
+      {"minute", "m"},
+      {"mins", "m"},
+      {"min", "m"},
+      {"m", "m"},
+      // Hours variations
+      {"hours", "h"},
+      {"hour", "h"},
+      {"hrs", "h"},
+      {"hr", "h"},
+      {"h", "h"},
+      // Days variations
+      {"days", "d"},
+      {"day", "d"},
+      {"d", "d"},
+      // Months variations
+      {"months", "months"},
+      {"month", "months"},
+      {"mon", "months"},
+      // Milliseconds
+      {"ms", "ms"},
+      // Microseconds
+      {"us", "us"},
+      // Centiseconds
+      {"cs", "cs"},
+      // Deciseconds
+      {"ds", "ds"}
+    };
+
+    // Build normalized units map
+    for (String[] mapping : unitMappings) {
+      String normalized = mapping[mapping.length - 1];
+      for (String variant : mapping) {
+        NORMALIZED_UNITS.put(variant, normalized);
+      }
+    }
+
+    // Initialize time units grouped by their length
+    for (String unit : NORMALIZED_UNITS.keySet()) {
+      TIME_UNITS_BY_LENGTH
+          .computeIfAbsent(unit.length(), k -> new java.util.ArrayList<>())
+          .add(unit);
+    }
+
+    // Sort lists by length in descending order for longest match first
+    for (List<String> units : TIME_UNITS_BY_LENGTH.values()) {
+      units.sort((a, b) -> Integer.compare(b.length(), a.length()));
+    }
+  }
 
   /** Parses a span string and returns span information. */
   public static SpanInfo parse(String spanStr) {
@@ -112,26 +148,33 @@ public class SpanParser {
     }
   }
 
-  /** Extracts time unit from span string. */
+  /** Extracts time unit from span string (returns original matched unit, not normalized). */
   public static String extractTimeUnit(String spanStr) {
-    for (String unit : TIME_UNITS) {
-      if (unit.equals("M")) {
-        // Case-sensitive check for months
-        if (spanStr.endsWith("M")) {
-          return unit;
-        }
-      } else {
-        // Case-insensitive check for other units
+    // Try to match units starting from longest possible length
+    int spanLength = spanStr.length();
+
+    // Check each possible unit length from longest to shortest
+    for (int len = Math.min(7, spanLength); len > 0; len--) {
+      List<String> unitsOfLength = TIME_UNITS_BY_LENGTH.get(len);
+      if (unitsOfLength == null) continue;
+
+      for (String unit : unitsOfLength) {
+        // Case-insensitive check for all units
         String lowerSpanStr = spanStr.toLowerCase();
         String lowerUnit = unit.toLowerCase();
         if (lowerSpanStr.endsWith(lowerUnit)) {
           int unitStartPos = lowerSpanStr.length() - lowerUnit.length();
           if (unitStartPos == 0 || !Character.isLetter(lowerSpanStr.charAt(unitStartPos - 1))) {
-            return unit;
+            return unit; // Return original unit to preserve length for substring operations
           }
         }
       }
     }
     return null;
+  }
+
+  /** Returns the normalized form of a time unit. */
+  public static String getNormalizedUnit(String unit) {
+    return NORMALIZED_UNITS.getOrDefault(unit, unit);
   }
 }

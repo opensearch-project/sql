@@ -43,13 +43,7 @@ public class SpanBin extends Bin {
   }
 
   @Override
-  public void validate() {
-    // Span-specific validation
-    if (span == null) {
-      throw new IllegalArgumentException("Span parameter is required for span-based binning");
-    }
-    // Additional validation can be added here for span value constraints
-  }
+  public void validate() {}
 
   @Override
   public <T, C> T accept(AbstractNodeVisitor<T, C> nodeVisitor, C context) {

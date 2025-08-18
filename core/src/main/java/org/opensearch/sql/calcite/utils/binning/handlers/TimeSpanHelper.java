@@ -135,8 +135,8 @@ public class TimeSpanHelper {
       case "d", "day", "days" -> {
         return "d";
       }
-      case "M", "mon", "month", "months" -> {
-        return "M";
+      case "mon", "month", "months" -> {
+        return "months";
       }
       case "us" -> {
         return "us";

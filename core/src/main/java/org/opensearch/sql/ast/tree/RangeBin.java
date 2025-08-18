@@ -49,7 +49,6 @@ public class RangeBin extends Bin {
       throw new IllegalArgumentException(
           "At least one of start or end parameter must be specified for range-based binning");
     }
-    // Additional validation can be added here (e.g., start < end if both specified)
   }
 
   @Override

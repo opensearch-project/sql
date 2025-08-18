@@ -5,7 +5,10 @@
 
 package org.opensearch.sql.calcite.utils.binning;
 
+import lombok.Getter;
+
 /** Data class to hold parsed span information. */
+@Getter
 public class SpanInfo {
   private final SpanType type;
   private final double value;
@@ -29,25 +32,5 @@ public class SpanInfo {
     this.unit = null;
     this.coefficient = coefficient;
     this.base = base;
-  }
-
-  public SpanType getType() {
-    return type;
-  }
-
-  public double getValue() {
-    return value;
-  }
-
-  public String getUnit() {
-    return unit;
-  }
-
-  public double getCoefficient() {
-    return coefficient;
-  }
-
-  public double getBase() {
-    return base;
   }
 }

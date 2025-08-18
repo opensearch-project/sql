@@ -13,8 +13,8 @@ import org.opensearch.sql.ast.tree.DefaultBin;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRexNodeVisitor;
 import org.opensearch.sql.calcite.utils.BinTimeSpanUtils;
+import org.opensearch.sql.calcite.utils.binning.BinFieldValidator;
 import org.opensearch.sql.calcite.utils.binning.BinHandler;
-import org.opensearch.sql.calcite.utils.binning.FieldValidator;
 import org.opensearch.sql.calcite.utils.binning.RangeFormatter;
 
 /** Handler for default binning when no parameters are specified. */
@@ -26,11 +26,11 @@ public class DefaultBinHandler implements BinHandler {
 
     DefaultBin defaultBin = (DefaultBin) node;
     RelDataType fieldType = fieldExpr.getType();
-    String fieldName = FieldValidator.extractFieldName(node);
+    String fieldName = BinFieldValidator.extractFieldName(node);
 
     // Use time-based binning for time fields
-    if (FieldValidator.isTimeBasedField(fieldType)) {
-      FieldValidator.validateFieldExists(fieldName, context);
+    if (BinFieldValidator.isTimeBasedField(fieldType)) {
+      BinFieldValidator.validateFieldExists(fieldName, context);
       return BinTimeSpanUtils.createBinTimeSpanExpression(fieldExpr, 1, "h", 0, context);
     }
 

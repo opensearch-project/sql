@@ -16,7 +16,7 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 
 /** Utility class for field validation and type checking in bin operations. */
-public class FieldValidator {
+public class BinFieldValidator {
 
   /** Extracts the field name from a Bin node. */
   public static String extractFieldName(Bin node) {
