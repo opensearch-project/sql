@@ -265,22 +265,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
 
     if (expandedFields.isEmpty()) {
-      String firstWildcardPattern =
-          projectList.stream()
-              .filter(
-                  expr ->
-                      expr instanceof Field field
-                          && WildcardUtils.containsWildcard(field.getField().toString()))
-              .map(expr -> ((Field) expr).getField().toString())
-              .findFirst()
-              .orElse(null);
-
-      if (firstWildcardPattern != null) {
-        throw new IllegalArgumentException(
-            String.format(
-                "wildcard pattern [%s] matches no fields; input fields are: %s",
-                firstWildcardPattern, currentFields));
-      }
+      validateWildcardPatterns(projectList, currentFields);
     }
 
     return expandedFields;
@@ -293,6 +278,24 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (fieldsToExclude.size() >= nonMetaFields.size()) {
       throw new IllegalArgumentException(
           "Invalid field exclusion: operation would exclude all fields from the result set");
+    }
+  }
+
+  private void validateWildcardPatterns(
+      List<UnresolvedExpression> projectList, List<String> currentFields) {
+    String firstWildcardPattern =
+        projectList.stream()
+            .filter(
+                expr ->
+                    expr instanceof Field field
+                        && WildcardUtils.containsWildcard(field.getField().toString()))
+            .map(expr -> ((Field) expr).getField().toString())
+            .findFirst()
+            .orElse(null);
+
+    if (firstWildcardPattern != null) {
+      throw new IllegalArgumentException(
+          String.format("wildcard pattern [%s] matches no fields", firstWildcardPattern));
     }
   }
 

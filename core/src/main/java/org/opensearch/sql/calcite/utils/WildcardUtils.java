@@ -6,35 +6,88 @@
 package org.opensearch.sql.calcite.utils;
 
 import java.util.List;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /** Utility class for wildcard pattern matching in field names. */
 public class WildcardUtils {
 
-  private static final String WILDCARD_CHAR = "*";
-
+  /** Matches a field name against a wildcard pattern using '*' as wildcard character. */
   public static boolean matchesWildcardPattern(String pattern, String fieldName) {
+    if (pattern == null || fieldName == null) {
+      return false;
+    }
 
-    if (!pattern.contains(WILDCARD_CHAR)) {
+    if (!containsWildcard(pattern)) {
       return pattern.equals(fieldName);
     }
 
-    String[] parts = pattern.split("\\*", -1);
-    String regex =
-        String.join(
-            ".*", java.util.Arrays.stream(parts).map(Pattern::quote).toArray(String[]::new));
-    return fieldName.matches(regex);
+    String[] compiledPattern = pattern.split("\\*", -1);
+    return matchesCompiledPattern(compiledPattern, fieldName);
   }
 
+  /**
+   * Returns all fields that match the wildcard pattern.
+   *
+   * @param pattern wildcard pattern with '*' characters
+   * @param availableFields list of field names to filter
+   * @return filtered list of matching field names
+   */
   public static List<String> expandWildcardPattern(String pattern, List<String> availableFields) {
+    if (pattern == null || availableFields == null) {
+      return List.of();
+    }
 
+    if (!containsWildcard(pattern)) {
+      return availableFields.stream()
+          .filter(field -> pattern.equals(field))
+          .collect(Collectors.toList());
+    }
+
+    String[] compiledPattern = pattern.split("\\*", -1);
     return availableFields.stream()
-        .filter(field -> matchesWildcardPattern(pattern, field))
+        .filter(field -> matchesCompiledPattern(compiledPattern, field))
         .collect(Collectors.toList());
   }
 
+  /** Matches field name against pre-compiled pattern parts. */
+  private static boolean matchesCompiledPattern(String[] parts, String fieldName) {
+    if (fieldName == null) {
+      return false;
+    }
+
+    int startIndex = 0;
+
+    for (int i = 0; i < parts.length; i++) {
+      String part = parts[i];
+
+      if (part.isEmpty()) {
+        continue;
+      }
+
+      if (i == 0) {
+        if (!fieldName.startsWith(part)) {
+          return false;
+        }
+        startIndex = part.length();
+      } else if (i == parts.length - 1) {
+        if (startIndex + part.length() > fieldName.length()
+            || !fieldName.regionMatches(
+                fieldName.length() - part.length(), part, 0, part.length())) {
+          return false;
+        }
+      } else {
+        int index = fieldName.indexOf(part, startIndex);
+        if (index == -1) {
+          return false;
+        }
+        startIndex = index + part.length();
+      }
+    }
+
+    return true;
+  }
+
   public static boolean containsWildcard(String str) {
-    return str.contains(WILDCARD_CHAR);
+    return str != null && str.contains("*");
   }
 }

@@ -73,7 +73,8 @@ public class WildcardFieldResolver {
       boolean isPPL) {
     availableFields.forEach(
         (fieldName, fieldType) -> {
-          if (!isPPL || seenFields.add(fieldName)) {
+          if (!isPPL || !seenFields.contains(fieldName)) {
+            seenFields.add(fieldName);
             resolvedFields.add(DSL.named(fieldName, new ReferenceExpression(fieldName, fieldType)));
           }
         });
@@ -88,7 +89,8 @@ public class WildcardFieldResolver {
       boolean isPPL) {
     List<String> matchingFields = matchWildcardPattern(fieldName, availableFields.keySet());
     for (String matchedField : matchingFields) {
-      if (!isPPL || seenFields.add(matchedField)) {
+      if (!isPPL || !seenFields.contains(matchedField)) {
+        seenFields.add(matchedField);
         ExprType fieldType = availableFields.get(matchedField);
         resolvedFields.add(
             DSL.named(matchedField, new ReferenceExpression(matchedField, fieldType)));
@@ -105,7 +107,8 @@ public class WildcardFieldResolver {
       Set<String> seenFields,
       boolean hasAllFields,
       boolean isPPL) {
-    if (!isPPL || seenFields.add(fieldName)) {
+    if (!isPPL || !seenFields.contains(fieldName)) {
+      seenFields.add(fieldName);
       org.opensearch.sql.expression.Expression analyzedExpr =
           expressionAnalyzer.analyze(expr, context);
       resolvedFields.add(DSL.named(analyzedExpr));

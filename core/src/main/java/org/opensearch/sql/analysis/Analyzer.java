@@ -380,7 +380,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   public LogicalPlan visitProject(Project node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
 
-    if (node.hasArgument() && isExcludeMode(node)) {
+    if (isExcludeMode(node)) {
       return buildLogicalRemove(node, child, context);
     }
 
@@ -402,6 +402,9 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   private boolean isExcludeMode(Project node) {
+    if (!node.hasArgument()) {
+      return false;
+    }
     try {
       Argument argument = node.getArgExprList().get(0);
       Object value = argument.getValue().getValue();
