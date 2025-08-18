@@ -49,6 +49,7 @@ public class UnixTimestampFunction extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
+    // Match the pattern of other datetime UDFs that handle multiple types
     return PPLOperandTypes.OPTIONAL_DATE_OR_TIMESTAMP_OR_NUMERIC;
   }
 
@@ -68,7 +69,8 @@ public class UnixTimestampFunction extends ImplementorUDF {
   }
 
   public static double unixTimestamp(FunctionProperties ignored, ExprValue timestamp) {
-    // Follow @yuancu's guidance: use proper function chain for STRING inputs
+    // UDFs handle STRING inputs via proper delegation to existing methods
+    // This follows the same pattern as the regular unix_timestamp function chain
     if (timestamp.type().equals(org.opensearch.sql.data.type.ExprCoreType.STRING)) {
       return unixTimeStampOfString(timestamp).doubleValue();
     }

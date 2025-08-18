@@ -487,40 +487,81 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         BinUtils.createBinExpression(node, fieldExpr, alignTimeValue, context, rexVisitor);
 
     if (node.getAlias() != null) {
-      // With alias: add the binned field as a new column
-      String aliasName = node.getAlias();
-      RexNode aliasedBinExpression = context.relBuilder.alias(binExpression, aliasName);
-      context.relBuilder.projectPlus(aliasedBinExpression);
+      handleBinWithAlias(context, binExpression, node.getAlias());
     } else {
-      // Without alias: transform the original field in-place
-      List<String> currentFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
-      List<RexNode> projectionFields = new ArrayList<>();
-
-      boolean fieldTransformed = false;
-      for (String currentFieldName : currentFieldNames) {
-        if (currentFieldName.equals(fieldName)) {
-          // Transform the target field to range strings - ensure we use the original field name
-          projectionFields.add(context.relBuilder.alias(binExpression, currentFieldName));
-          fieldTransformed = true;
-        } else {
-          // Keep other fields unchanged
-          projectionFields.add(context.relBuilder.field(currentFieldName));
-        }
-      }
-
-      // CRITICAL FIX: If field wasn't found in current schema, this indicates a schema mismatch
-      // The bin command should always operate on existing fields, so this is an error condition
-      if (!fieldTransformed) {
-        throw new IllegalArgumentException(
-            String.format(
-                "Field '%s' not found in current schema. Available fields: %s",
-                fieldName, currentFieldNames));
-      }
-
-      context.relBuilder.project(projectionFields);
+      handleBinWithoutAlias(context, binExpression, fieldName);
     }
 
     return context.relBuilder.peek();
+  }
+
+  /**
+   * Handles bin operation with alias by adding the binned field as a new column.
+   *
+   * @param context the Calcite plan context
+   * @param binExpression the bin expression to be aliased
+   * @param aliasName the alias name for the new column
+   */
+  private void handleBinWithAlias(
+      CalcitePlanContext context, RexNode binExpression, String aliasName) {
+    RexNode aliasedBinExpression = context.relBuilder.alias(binExpression, aliasName);
+    context.relBuilder.projectPlus(aliasedBinExpression);
+  }
+
+  /**
+   * Handles bin operation without alias by transforming the original field in-place.
+   *
+   * @param context the Calcite plan context
+   * @param binExpression the bin expression to replace the original field
+   * @param fieldName the name of the field to be transformed
+   */
+  private void handleBinWithoutAlias(
+      CalcitePlanContext context, RexNode binExpression, String fieldName) {
+    List<String> currentFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+    List<RexNode> projectionFields =
+        buildProjectionWithTransformedField(context, binExpression, fieldName, currentFieldNames);
+    context.relBuilder.project(projectionFields);
+  }
+
+  /**
+   * Builds projection fields with one field transformed by the bin expression.
+   *
+   * @param context the Calcite plan context
+   * @param binExpression the bin expression to replace the target field
+   * @param fieldName the name of the field to be transformed
+   * @param currentFieldNames the list of current field names in the schema
+   * @return list of projection fields with the target field transformed
+   * @throws IllegalArgumentException if the target field is not found in the schema
+   */
+  private List<RexNode> buildProjectionWithTransformedField(
+      CalcitePlanContext context,
+      RexNode binExpression,
+      String fieldName,
+      List<String> currentFieldNames) {
+    List<RexNode> projectionFields = new ArrayList<>();
+    boolean isAnyFieldFound = false;
+
+    for (String currentFieldName : currentFieldNames) {
+      if (currentFieldName.equals(fieldName)) {
+        // Transform the target field to range strings - ensure we use the original field name
+        projectionFields.add(context.relBuilder.alias(binExpression, currentFieldName));
+        isAnyFieldFound = true;
+      } else {
+        // Keep other fields unchanged
+        projectionFields.add(context.relBuilder.field(currentFieldName));
+      }
+    }
+
+    // CRITICAL FIX: If field wasn't found in current schema, this indicates a schema mismatch
+    // The bin command should always operate on existing fields, so this is an error condition
+    if (!isAnyFieldFound) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Field '%s' not found in current schema. Available fields: %s",
+              fieldName, currentFieldNames));
+    }
+
+    return projectionFields;
   }
 
   @Override

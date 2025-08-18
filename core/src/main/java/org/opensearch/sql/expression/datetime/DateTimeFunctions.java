@@ -2163,13 +2163,23 @@ public class DateTimeFunctions {
    * TIMESTAMP function first, then converts to epoch seconds.
    */
   public static ExprValue unixTimeStampOfString(ExprValue stringValue) {
-    // Use proper function chain: STRING -> TIMESTAMP() -> UNIX_TIMESTAMP()
-    ExprValue timestampValue = exprTimestampFromString(stringValue);
-    if (!timestampValue.equals(ExprNullValue.of())) {
+    ExprValue timestampValue = tryParseAsTimestamp(stringValue);
+    if (timestampValue != null) {
       return unixTimeStampOf(timestampValue);
     }
 
-    // If timestamp parsing failed, fall back to numeric parsing for legacy formats
+    return parseAsLegacyNumericFormat(stringValue);
+  }
+
+  private static ExprValue tryParseAsTimestamp(ExprValue stringValue) {
+    try {
+      return exprTimestampFromString(stringValue);
+    } catch (Exception e) {
+      return null;
+    }
+  }
+
+  private static ExprValue parseAsLegacyNumericFormat(ExprValue stringValue) {
     try {
       return new ExprDoubleValue(transferUnixTimeStampFromDoubleInput(stringValue.doubleValue()));
     } catch (Exception e) {

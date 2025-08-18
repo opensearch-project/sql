@@ -50,7 +50,9 @@ import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Bin;
+import org.opensearch.sql.ast.tree.CountBin;
 import org.opensearch.sql.ast.tree.Dedupe;
+import org.opensearch.sql.ast.tree.DefaultBin;
 import org.opensearch.sql.ast.tree.DescribeRelation;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Expand;
@@ -58,9 +60,11 @@ import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Limit;
+import org.opensearch.sql.ast.tree.MinSpanBin;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
+import org.opensearch.sql.ast.tree.RangeBin;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Relation;
@@ -68,6 +72,7 @@ import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
@@ -579,7 +584,9 @@ public class AstDSL {
   }
 
   /**
-   * Creates a Bin node for binning field values into discrete buckets.
+   * Creates a Bin node for binning field values into discrete buckets. Returns the appropriate Bin
+   * subclass based on parameter priority: 1. SPAN (highest) -> SpanBin 2. MINSPAN -> MinSpanBin 3.
+   * BINS -> CountBin 4. START/END only -> RangeBin 5. No params -> DefaultBin
    *
    * @param field the field expression to bin
    * @param arguments optional arguments for bin configuration (span, bins, minspan, aligntime,
@@ -624,6 +631,28 @@ public class AstDSL {
       }
     }
 
-    return new Bin(field, span, bins, minspan, aligntime, start, end, alias);
+    // Create appropriate Bin subclass based on priority order
+    if (span != null) {
+      // 1. SPAN (highest priority) -> SpanBin
+      return SpanBin.builder().field(field).span(span).aligntime(aligntime).alias(alias).build();
+    } else if (minspan != null) {
+      // 2. MINSPAN (second priority) -> MinSpanBin
+      return MinSpanBin.builder()
+          .field(field)
+          .minspan(minspan)
+          .start(start)
+          .end(end)
+          .alias(alias)
+          .build();
+    } else if (bins != null) {
+      // 3. BINS (third priority) -> CountBin
+      return CountBin.builder().field(field).bins(bins).start(start).end(end).alias(alias).build();
+    } else if (start != null || end != null) {
+      // 4. START/END only (fourth priority) -> RangeBin
+      return RangeBin.builder().field(field).start(start).end(end).alias(alias).build();
+    } else {
+      // 5. No parameters (default) -> DefaultBin
+      return DefaultBin.builder().field(field).alias(alias).build();
+    }
   }
 }

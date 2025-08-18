@@ -18,6 +18,11 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.Bin;
+import org.opensearch.sql.ast.tree.CountBin;
+import org.opensearch.sql.ast.tree.DefaultBin;
+import org.opensearch.sql.ast.tree.MinSpanBin;
+import org.opensearch.sql.ast.tree.RangeBin;
+import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRexNodeVisitor;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
@@ -58,7 +63,13 @@ public class BinUtils {
   public static RexNode processAligntimeParameter(
       Bin node, RexNode fieldExpr, CalcitePlanContext context, CalciteRexNodeVisitor rexVisitor) {
 
-    if (node.getAligntime() == null) {
+    // Only SpanBin supports aligntime parameter
+    if (!(node instanceof SpanBin)) {
+      return null;
+    }
+
+    SpanBin spanBin = (SpanBin) node;
+    if (spanBin.getAligntime() == null) {
       return null;
     }
 
@@ -71,8 +82,8 @@ public class BinUtils {
 
     validateFieldExists(fieldName, context);
 
-    if (node.getAligntime() instanceof Literal) {
-      Literal aligntimeLiteral = (Literal) node.getAligntime();
+    if (spanBin.getAligntime() instanceof Literal) {
+      Literal aligntimeLiteral = (Literal) spanBin.getAligntime();
       String aligntimeStr = aligntimeLiteral.getValue().toString();
 
       // Clean up quoted strings (handle cases like "\"@d+4h\"" or "'@d+4h'")
@@ -93,7 +104,7 @@ public class BinUtils {
           return context.relBuilder.literal("ALIGNTIME_EPOCH:" + epochValue);
         } catch (NumberFormatException e) {
           // Fall back to original processing for other string values
-          RexNode alignTimeValue = rexVisitor.analyze(node.getAligntime(), context);
+          RexNode alignTimeValue = rexVisitor.analyze(spanBin.getAligntime(), context);
           if (alignTimeValue instanceof org.apache.calcite.rex.RexLiteral) {
             Object value = ((org.apache.calcite.rex.RexLiteral) alignTimeValue).getValue();
             if (value instanceof Number) {
@@ -105,7 +116,7 @@ public class BinUtils {
       }
     } else {
       // It's a time expression
-      return rexVisitor.analyze(node.getAligntime(), context);
+      return rexVisitor.analyze(spanBin.getAligntime(), context);
     }
   }
 
@@ -121,16 +132,21 @@ public class BinUtils {
       CalcitePlanContext context,
       CalciteRexNodeVisitor rexVisitor) {
 
-    if (node.getSpan() != null) {
-      return createSpanBasedRangeStrings(node, fieldExpr, alignTimeValue, context, rexVisitor);
-    } else if (node.getMinspan() != null) {
-      return createMinspanBasedRangeStrings(node, fieldExpr, context, rexVisitor);
-    } else if (node.getBins() != null) {
-      return createBinsBasedRangeStrings(node, fieldExpr, context);
-    } else if (node.getStart() != null || node.getEnd() != null) {
-      return createStartEndRangeStrings(node, fieldExpr, context, rexVisitor);
-    } else {
-      return createDefaultRangeStrings(node, fieldExpr, context);
+    // Use type-safe dispatch instead of checking nullable parameters
+    switch (node.getBinType()) {
+      case SPAN:
+        return createSpanBasedRangeStrings(
+            (SpanBin) node, fieldExpr, alignTimeValue, context, rexVisitor);
+      case MIN_SPAN:
+        return createMinspanBasedRangeStrings((MinSpanBin) node, fieldExpr, context, rexVisitor);
+      case COUNT:
+        return createBinsBasedRangeStrings((CountBin) node, fieldExpr, context);
+      case RANGE:
+        return createStartEndRangeStrings((RangeBin) node, fieldExpr, context, rexVisitor);
+      case DEFAULT:
+        return createDefaultRangeStrings((DefaultBin) node, fieldExpr, context);
+      default:
+        throw new IllegalArgumentException("Unknown bin type: " + node.getBinType());
     }
   }
 
@@ -139,7 +155,7 @@ public class BinUtils {
    * with string ranges.
    */
   public static RexNode createSpanBasedRangeStrings(
-      Bin node,
+      SpanBin node,
       RexNode fieldExpr,
       RexNode alignTimeValue,
       CalcitePlanContext context,
@@ -187,13 +203,11 @@ public class BinUtils {
       if (numericSpanValue == Math.floor(numericSpanValue)) {
         // Integer span - use clean UDF function
         int span = spanNumber.intValue();
-        return createNumericSpanUsingUDF(
-            fieldExpr, span, context, node.getStart(), node.getEnd(), rexVisitor);
+        return createNumericSpanUsingUDF(fieldExpr, span, context, null, null, rexVisitor);
       } else {
         // Floating point span - use clean UDF function with double value
         double span = spanNumber.doubleValue();
-        return createNumericSpanUsingUDF(
-            fieldExpr, span, context, node.getStart(), node.getEnd(), rexVisitor);
+        return createNumericSpanUsingUDF(fieldExpr, span, context, null, null, rexVisitor);
       }
     } else {
       throw new IllegalArgumentException(
@@ -305,16 +319,26 @@ public class BinUtils {
    * parameters to calculate data ranges dynamically.
    */
   public static boolean usesWindowFunctions(Bin node) {
-    return node.getBins() != null
-        || node.getMinspan() != null
-        || node.getStart() != null
-        || node.getEnd() != null
-        || (node.getSpan() == null); // default behavior also uses window functions
+    // Use type-safe dispatch instead of checking nullable parameters
+    switch (node.getBinType()) {
+      case SPAN:
+        return false; // Span binning doesn't use window functions (best performance)
+      case MIN_SPAN:
+      case COUNT:
+      case RANGE:
+      case DEFAULT:
+        return true; // These all use window functions for MIN/MAX calculations
+      default:
+        return true;
+    }
   }
 
   /** Creates minspan-based range strings using magnitude-based minspan algorithm. */
   public static RexNode createMinspanBasedRangeStrings(
-      Bin node, RexNode fieldExpr, CalcitePlanContext context, CalciteRexNodeVisitor rexVisitor) {
+      MinSpanBin node,
+      RexNode fieldExpr,
+      CalcitePlanContext context,
+      CalciteRexNodeVisitor rexVisitor) {
 
     RexNode minspanValue = rexVisitor.analyze(node.getMinspan(), context);
 
@@ -359,7 +383,7 @@ public class BinUtils {
 
   /** Creates bins-based range strings using exact "nice number" algorithm. */
   public static RexNode createBinsBasedRangeStrings(
-      Bin node, RexNode fieldExpr, CalcitePlanContext context) {
+      CountBin node, RexNode fieldExpr, CalcitePlanContext context) {
 
     Integer requestedBins = node.getBins();
     if (requestedBins == null) {
@@ -409,7 +433,10 @@ public class BinUtils {
 
   /** Creates range strings when only start/end parameters are specified (without bins). */
   public static RexNode createStartEndRangeStrings(
-      Bin node, RexNode fieldExpr, CalcitePlanContext context, CalciteRexNodeVisitor rexVisitor) {
+      RangeBin node,
+      RexNode fieldExpr,
+      CalcitePlanContext context,
+      CalciteRexNodeVisitor rexVisitor) {
 
     RexNode minValue = context.relBuilder.min(fieldExpr).over().toRex();
     RexNode maxValue = context.relBuilder.max(fieldExpr).over().toRex();
@@ -477,7 +504,7 @@ public class BinUtils {
    * appropriate binning.
    */
   public static RexNode createDefaultRangeStrings(
-      Bin node, RexNode fieldExpr, CalcitePlanContext context) {
+      DefaultBin node, RexNode fieldExpr, CalcitePlanContext context) {
     RelDataType fieldType = fieldExpr.getType();
     String fieldName = extractFieldName(node);
 
