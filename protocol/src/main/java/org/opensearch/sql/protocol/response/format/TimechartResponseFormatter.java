@@ -84,143 +84,148 @@ public class TimechartResponseFormatter extends JsonResponseFormatter<QueryResul
   }
 
   private Object buildPivotJsonObject(QueryResult response, List<String> columnNames) {
-    // The column order is [timeField, byField, valueField]
     String timeField = columnNames.get(0);
     String byField = columnNames.get(1);
     String valueField = columnNames.get(2);
 
-    // Create a map to store the pivoted data
-    // Map<timestamp, Map<byFieldValue, value>>
+    PivotData pivotData = collectPivotData(response);
+    JsonResponse.JsonResponseBuilder json = JsonResponse.builder();
+    json.column(new Column(timeField, response.columnNameTypes().get(timeField)));
+
+    boolean needsOtherCategory =
+        maxDistinctValues > 0 && pivotData.distinctByValues.size() > maxDistinctValues && useOther;
+
+    if (needsOtherCategory) {
+      buildResponseWithOtherCategory(json, pivotData, response, valueField);
+    } else {
+      buildResponseWithoutOtherCategory(json, pivotData, response, valueField);
+    }
+
+    return json.build();
+  }
+
+  private PivotData collectPivotData(QueryResult response) {
     Map<Object, Map<Object, Object>> pivotData = new TreeMap<>();
-
-    // Collect all distinct byField values
     Map<Object, Boolean> distinctByValues = new LinkedHashMap<>();
-
-    // Also collect scores for each byValue (sum of all values) for potential OTHER category
     Map<Object, Double> valueScores = new HashMap<>();
 
-    // Collect the data
     for (Object[] row : response) {
       Object timeValue = row[0];
       Object byValue = row[1];
       Object value = row[2];
 
       distinctByValues.put(byValue, true);
-
-      // Calculate score for each byValue (sum of all values)
-      double numericValue = convertToDouble(value);
-      valueScores.merge(byValue, numericValue, Double::sum);
-
-      if (!pivotData.containsKey(timeValue)) {
-        pivotData.put(timeValue, new HashMap<>());
-      }
-
-      pivotData.get(timeValue).put(byValue, value);
+      valueScores.merge(byValue, convertToDouble(value), Double::sum);
+      pivotData.computeIfAbsent(timeValue, k -> new HashMap<>()).put(byValue, value);
     }
 
-    // Build the schema
-    JsonResponse.JsonResponseBuilder json = JsonResponse.builder();
-    json.column(new Column(timeField, response.columnNameTypes().get(timeField)));
+    return new PivotData(pivotData, distinctByValues, valueScores);
+  }
 
-    // Check if we need to create an "OTHER" category (more than maxDistinctValues distinct
-    // values)
-    // If maxDistinctValues is 0 or useOther is false, we don't need an "OTHER" category
-    boolean needsOtherCategory =
-        maxDistinctValues > 0 && distinctByValues.size() > maxDistinctValues && useOther;
+  private void buildResponseWithOtherCategory(
+      JsonResponse.JsonResponseBuilder json,
+      PivotData pivotData,
+      QueryResult response,
+      String valueField) {
+    List<Object> topValues = getTopValuesInOrder(pivotData, maxDistinctValues);
 
-    if (needsOtherCategory) {
-      // Get the top N distinct values based on their scores, but preserve original order
-      List<Object> topHosts = getTopValuesByScore(valueScores, maxDistinctValues);
-      List<Object> topValues = new ArrayList<>();
-      for (Object byValue : distinctByValues.keySet()) {
-        if (topHosts.contains(byValue)) {
-          topValues.add(byValue);
-        }
-      }
+    // Add columns
+    for (Object byValue : topValues) {
+      json.column(new Column(byValue.toString(), response.columnNameTypes().get(valueField)));
+    }
+    json.column(new Column(OTHER_CATEGORY, response.columnNameTypes().get(valueField)));
 
-      // Add columns for top values in original order
-      for (Object byValue : topValues) {
-        json.column(new Column(byValue.toString(), response.columnNameTypes().get(valueField)));
-      }
+    // Build data rows
+    List<Object[]> dataRows = buildDataRowsWithOther(pivotData.pivotData, topValues);
+    json.total(dataRows.size()).size(dataRows.size()).datarows(dataRows.toArray(new Object[0][]));
+  }
 
-      // Add OTHER column
-      json.column(new Column(OTHER_CATEGORY, response.columnNameTypes().get(valueField)));
+  private void buildResponseWithoutOtherCategory(
+      JsonResponse.JsonResponseBuilder json,
+      PivotData pivotData,
+      QueryResult response,
+      String valueField) {
+    List<Object> valuesToShow =
+        maxDistinctValues == 0
+            ? new ArrayList<>(pivotData.distinctByValues.keySet())
+            : getTopValuesInOrder(
+                pivotData, Math.min(maxDistinctValues, pivotData.distinctByValues.size()));
 
-      // Build the data rows
-      List<Object[]> dataRows = new ArrayList<>();
-      for (Map.Entry<Object, Map<Object, Object>> entry : pivotData.entrySet()) {
-        Object timeValue = entry.getKey();
-        Map<Object, Object> byValueMap = entry.getValue();
-
-        // +1 for time column, +1 for OTHER
-        int rowSize = 1 + topValues.size() + 1;
-        Object[] row = new Object[rowSize];
-        row[0] = timeValue;
-
-        // Fill in values for top categories
-        for (int i = 0; i < topValues.size(); i++) {
-          row[i + 1] = byValueMap.getOrDefault(topValues.get(i), null);
-        }
-
-        // Calculate OTHER value
-        double otherSum = 0.0;
-        for (Map.Entry<Object, Object> valueEntry : byValueMap.entrySet()) {
-          if (!topValues.contains(valueEntry.getKey())) {
-            otherSum += convertToDouble(valueEntry.getValue());
-          }
-        }
-        row[rowSize - 1] = otherSum != 0.0 ? otherSum : null;
-
-        dataRows.add(row);
-      }
-
-      json.total(dataRows.size()).size(dataRows.size());
-      json.datarows(dataRows.toArray(new Object[0][]));
-    } else {
-      // Handle cases where we don't need OTHER category
-      List<Object> valuesToShow;
-
-      if (maxDistinctValues == 0) {
-        // Show all distinct values when limit=0
-        valuesToShow = new ArrayList<>(distinctByValues.keySet());
-      } else {
-        // Get top N hosts by score, but preserve original order for display
-        List<Object> topHosts =
-            getTopValuesByScore(valueScores, Math.min(maxDistinctValues, distinctByValues.size()));
-        valuesToShow = new ArrayList<>();
-        for (Object byValue : distinctByValues.keySet()) {
-          if (topHosts.contains(byValue)) {
-            valuesToShow.add(byValue);
-          }
-        }
-      }
-
-      for (Object byValue : valuesToShow) {
-        json.column(new Column(byValue.toString(), response.columnNameTypes().get(valueField)));
-      }
-
-      // Build the data rows
-      List<Object[]> dataRows = new ArrayList<>();
-      for (Map.Entry<Object, Map<Object, Object>> entry : pivotData.entrySet()) {
-        Object timeValue = entry.getKey();
-        Map<Object, Object> byValueMap = entry.getValue();
-
-        Object[] row = new Object[1 + valuesToShow.size()];
-        row[0] = timeValue;
-
-        int i = 1;
-        for (Object byValue : valuesToShow) {
-          row[i++] = byValueMap.getOrDefault(byValue, null);
-        }
-
-        dataRows.add(row);
-      }
-
-      json.total(dataRows.size()).size(dataRows.size());
-      json.datarows(dataRows.toArray(new Object[0][]));
+    // Add columns
+    for (Object byValue : valuesToShow) {
+      json.column(new Column(byValue.toString(), response.columnNameTypes().get(valueField)));
     }
 
-    return json.build();
+    // Build data rows
+    List<Object[]> dataRows = buildDataRows(pivotData.pivotData, valuesToShow);
+    json.total(dataRows.size()).size(dataRows.size()).datarows(dataRows.toArray(new Object[0][]));
+  }
+
+  private List<Object> getTopValuesInOrder(PivotData pivotData, int maxValues) {
+    List<Object> topHosts = getTopValuesByScore(pivotData.valueScores, maxValues);
+    List<Object> topValues = new ArrayList<>();
+    for (Object byValue : pivotData.distinctByValues.keySet()) {
+      if (topHosts.contains(byValue)) {
+        topValues.add(byValue);
+      }
+    }
+    return topValues;
+  }
+
+  private List<Object[]> buildDataRowsWithOther(
+      Map<Object, Map<Object, Object>> pivotData, List<Object> topValues) {
+    List<Object[]> dataRows = new ArrayList<>();
+    for (Map.Entry<Object, Map<Object, Object>> entry : pivotData.entrySet()) {
+      Object[] row = new Object[1 + topValues.size() + 1];
+      row[0] = entry.getKey();
+
+      Map<Object, Object> byValueMap = entry.getValue();
+      for (int i = 0; i < topValues.size(); i++) {
+        row[i + 1] = byValueMap.getOrDefault(topValues.get(i), null);
+      }
+
+      double otherSum =
+          byValueMap.entrySet().stream()
+              .filter(e -> !topValues.contains(e.getKey()))
+              .mapToDouble(e -> convertToDouble(e.getValue()))
+              .sum();
+      row[row.length - 1] = otherSum != 0.0 ? otherSum : null;
+
+      dataRows.add(row);
+    }
+    return dataRows;
+  }
+
+  private List<Object[]> buildDataRows(
+      Map<Object, Map<Object, Object>> pivotData, List<Object> valuesToShow) {
+    List<Object[]> dataRows = new ArrayList<>();
+    for (Map.Entry<Object, Map<Object, Object>> entry : pivotData.entrySet()) {
+      Object[] row = new Object[1 + valuesToShow.size()];
+      row[0] = entry.getKey();
+
+      Map<Object, Object> byValueMap = entry.getValue();
+      for (int i = 0; i < valuesToShow.size(); i++) {
+        row[i + 1] = byValueMap.getOrDefault(valuesToShow.get(i), null);
+      }
+
+      dataRows.add(row);
+    }
+    return dataRows;
+  }
+
+  private static class PivotData {
+    final Map<Object, Map<Object, Object>> pivotData;
+    final Map<Object, Boolean> distinctByValues;
+    final Map<Object, Double> valueScores;
+
+    PivotData(
+        Map<Object, Map<Object, Object>> pivotData,
+        Map<Object, Boolean> distinctByValues,
+        Map<Object, Double> valueScores) {
+      this.pivotData = pivotData;
+      this.distinctByValues = distinctByValues;
+      this.valueScores = valueScores;
+    }
   }
 
   private Object[][] fetchDataRows(QueryResult response) {
