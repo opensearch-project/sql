@@ -132,6 +132,84 @@ Example::
     +--------------+
 
 
+SUM
+---
+
+Description
+>>>>>>>>>>>
+
+Usage: sum(x, y, ...) calculates the sum of all provided arguments. This function accepts a variable number of arguments.
+
+Note: This function is only available in the eval command context and is rewritten to arithmetic addition while query parsing.
+
+Argument type: Variable number of INTEGER/LONG/FLOAT/DOUBLE arguments
+
+Return type: Wider number type among all arguments
+
+Example::
+
+    os> source=accounts | eval `SUM(1, 2, 3)` = SUM(1, 2, 3) | fields `SUM(1, 2, 3)`
+    fetched rows / total rows = 4/4
+    +--------------+
+    | SUM(1, 2, 3) |
+    |--------------|
+    | 6            |
+    | 6            |
+    | 6            |
+    | 6            |
+    +--------------+
+
+    os> source=accounts | eval total = SUM(age, 10, 5) | fields age, total
+    fetched rows / total rows = 4/4
+    +-----+-------+
+    | age | total |
+    |-----+-------|
+    | 32  | 47    |
+    | 36  | 51    |
+    | 28  | 43    |
+    | 33  | 48    |
+    +-----+-------+
+
+
+AVG
+---
+
+Description
+>>>>>>>>>>>
+
+Usage: avg(x, y, ...) calculates the average (arithmetic mean) of all provided arguments. This function accepts a variable number of arguments.
+
+Note: This function is only available in the eval command context and is rewritten to arithmetic expression (sum / count) at query parsing time.
+
+Argument type: Variable number of INTEGER/LONG/FLOAT/DOUBLE arguments
+
+Return type: DOUBLE
+
+Example::
+
+    os> source=accounts | eval `AVG(1, 2, 3)` = AVG(1, 2, 3) | fields `AVG(1, 2, 3)`
+    fetched rows / total rows = 4/4
+    +--------------+
+    | AVG(1, 2, 3) |
+    |--------------|
+    | 2.0          |
+    | 2.0          |
+    | 2.0          |
+    | 2.0          |
+    +--------------+
+
+    os> source=accounts | eval average = AVG(age, 30) | fields age, average
+    fetched rows / total rows = 4/4
+    +-----+---------+
+    | age | average |
+    |-----+---------|
+    | 32  | 31.0    |
+    | 36  | 33.0    |
+    | 28  | 29.0    |
+    | 33  | 31.5    |
+    +-----+---------+
+
+
 ACOS
 ----
 
