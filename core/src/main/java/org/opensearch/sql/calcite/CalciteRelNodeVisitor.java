@@ -362,6 +362,19 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitReverse(
       org.opensearch.sql.ast.tree.Reverse node, CalcitePlanContext context) {
+    // Check if the child is also a Reverse node
+    if (node.getChild().size() == 1
+        && node.getChild().get(0) instanceof org.opensearch.sql.ast.tree.Reverse) {
+      // If we have two consecutive reverse operations, they cancel each other out
+      // Skip both reverse operations and just process the child of the child
+      org.opensearch.sql.ast.tree.Reverse childReverse =
+          (org.opensearch.sql.ast.tree.Reverse) node.getChild().get(0);
+      if (childReverse.getChild().size() == 1) {
+        return analyze(childReverse.getChild().get(0), context);
+      }
+    }
+
+    // If not a double reverse, proceed with normal reverse operation
     visitChildren(node, context);
 
     RelCollation collation = context.relBuilder.peek().getTraitSet().getCollation();

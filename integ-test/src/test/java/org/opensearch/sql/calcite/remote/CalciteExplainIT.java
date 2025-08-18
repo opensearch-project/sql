@@ -161,6 +161,25 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testDoubleReverseNoOp() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | fields account_number | reverse | reverse";
+    var result = explainQueryToString(query);
+    String expected = loadFromFile("expectedOutput/calcite/explain_double_reverse_no_op.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testTripleReverseOneOp() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | fields account_number | reverse | reverse |"
+            + " reverse";
+    var result = explainQueryToString(query);
+    String expected = loadFromFile("expectedOutput/calcite/explain_triple_reverse_one_op.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
   public void noPushDownForAggOnWindow() throws IOException {
     Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
     String query =

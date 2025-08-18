@@ -1,0 +1,6 @@
+{
+  "calcite": {
+    "logical": "LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])\n  LogicalProject(account_number=[$0])\n    LogicalSort(sort0=[$1], dir0=[DESC])\n      LogicalProject(account_number=[$0], __reverse_row_num__=[ROW_NUMBER() OVER ()])\n        CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
+    "physical": "EnumerableCalc(expr#0..1=[{inputs}], account_number=[$t0])\n  EnumerableLimit(fetch=[10000])\n    EnumerableSort(sort0=[$1], dir0=[DESC])\n      EnumerableWindow(window#0=[window(rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])])\n        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[account_number]], OpenSearchRequestBuilder(sourceBuilder={\"from\":0,\"timeout\":\"1m\",\"_source\":{\"includes\":[\"account_number\"],\"excludes\":[]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])\n"
+  }
+}
