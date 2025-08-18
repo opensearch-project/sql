@@ -606,8 +606,8 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitTableFunction(TableFunctionContext ctx) {
     ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
-    ctx.functionArgs()
-        .functionArg()
+    ctx.namedFunctionArgs()
+        .namedFunctionArg()
         .forEach(
             arg -> {
               String argName = (arg.ident() != null) ? arg.ident().getText() : null;
