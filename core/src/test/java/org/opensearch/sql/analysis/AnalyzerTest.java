@@ -1932,17 +1932,15 @@ class AnalyzerTest extends AnalyzerTestBase {
 
   @Test
   public void regex_command_throws_unsupported_operation_exception_in_legacy_engine() {
-    UnsupportedOperationException exception = assertThrows(
-        UnsupportedOperationException.class,
-        () -> analyze(
-            new org.opensearch.sql.ast.tree.Regex(
-                field("lastname"), "=", stringLiteral("^[A-Z][a-z]+$")
-            ).attach(relation("schema"))
-        )
-    );
+    UnsupportedOperationException exception =
+        assertThrows(
+            UnsupportedOperationException.class,
+            () ->
+                analyze(
+                    new org.opensearch.sql.ast.tree.Regex(
+                            field("lastname"), "=", stringLiteral("^[A-Z][a-z]+$"))
+                        .attach(relation("schema"))));
     assertEquals(
-        "REGEX is supported only when plugins.calcite.enabled=true",
-        exception.getMessage()
-    );
+        "REGEX is supported only when plugins.calcite.enabled=true", exception.getMessage());
   }
 }
