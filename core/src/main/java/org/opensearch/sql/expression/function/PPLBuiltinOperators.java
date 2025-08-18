@@ -293,7 +293,9 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               PPLOperandTypes.DATETIME_OR_STRING)
           .toUDF("TIME");
 
-  public static final SqlOperator IP = new IPFunction().toUDF("IP");
+  // IP cast function
+  public static final SqlOperator IP =
+      new IPFunction().toUDF(UserDefinedFunctionUtils.IP_FUNCTION_NAME);
   public static final SqlOperator TIME_TO_SEC =
       adaptExprMethodToUDF(
               DateTimeFunctions.class,
