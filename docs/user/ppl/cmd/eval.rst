@@ -76,36 +76,40 @@ PPL query::
     | 33  | 66        | 132   |
     +-----+-----------+-------+
 
-Example 4: String concatenation with + operator
+Example 4: String concatenation with + operator(need to enable calcite)
 ===============================================
 
 The example shows how to use the + operator for string concatenation in eval command. You can concatenate string literals and field values.
 
-PPL query::
+PPL query example 1 - Concatenating a literal with a field::
 
-    os> source=accounts | eval greeting = 'Hello ' + firstname | fields firstname, greeting ;
-    fetched rows / total rows = 4/4
-    +---------------+-----------------+
-    | firstname     | greeting        |
-    |---------------+-----------------|
-    | Amber JOHnny  | Hello Amber JOHnny |
-    | Hattie        | Hello Hattie    |
-    | Nanette       | Hello Nanette   |
-    | Dale          | Hello Dale      |
-    +---------------+-----------------+
+    source=accounts | eval greeting = 'Hello ' + firstname | fields firstname, greeting
 
-PPL query::
+Expected result::
 
-    os> source=accounts | eval full_info = 'Name: ' + firstname + ', Age: ' + CAST(age AS STRING) | fields firstname, age, full_info ;
-    fetched rows / total rows = 4/4
-    +---------------+-----+---------------------------+
-    | firstname     | age | full_info                 |
-    |---------------+-----+---------------------------|
-    | Amber JOHnny  | 32  | Name: Amber JOHnny, Age: 32 |
-    | Hattie        | 36  | Name: Hattie, Age: 36     |
-    | Nanette       | 28  | Name: Nanette, Age: 28    |
-    | Dale          | 33  | Name: Dale, Age: 33       |
-    +---------------+-----+---------------------------+
+    +---------------+---------------------+
+    | firstname     | greeting            |
+    |---------------+---------------------|
+    | Amber JOHnny  | Hello Amber JOHnny  |
+    | Hattie        | Hello Hattie        |
+    | Nanette       | Hello Nanette       |
+    | Dale          | Hello Dale          |
+    +---------------+---------------------+
+
+PPL query example 2 - Multiple concatenations with type casting::
+
+    source=accounts | eval full_info = 'Name: ' + firstname + ', Age: ' + CAST(age AS STRING) | fields firstname, age, full_info
+
+Expected result::
+
+    +---------------+-----+-------------------------------+
+    | firstname     | age | full_info                     |
+    |---------------+-----+-------------------------------|
+    | Amber JOHnny  | 32  | Name: Amber JOHnny, Age: 32   |
+    | Hattie        | 36  | Name: Hattie, Age: 36         |
+    | Nanette       | 28  | Name: Nanette, Age: 28        |
+    | Dale          | 33  | Name: Dale, Age: 33           |
+    +---------------+-----+-------------------------------+
 
 Limitation
 ==========
