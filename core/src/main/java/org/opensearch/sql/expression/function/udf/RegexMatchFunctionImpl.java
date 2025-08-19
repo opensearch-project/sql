@@ -6,7 +6,6 @@
 package org.opensearch.sql.expression.function.udf;
 
 import java.util.List;
-import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
@@ -67,11 +66,9 @@ public class RegexMatchFunctionImpl extends ImplementorUDF {
       return null;
     }
 
-    // Match using find() for partial match semantics
+    // Use shared utility for consistent regex matching
     try {
-      Pattern compiledPattern = Pattern.compile(pattern);
-      java.util.regex.Matcher matcher = compiledPattern.matcher(field);
-      return matcher.find(); // Use find() for partial match like SPL
+      return org.opensearch.sql.expression.parse.RegexCommonUtils.matchesPartial(field, pattern);
     } catch (PatternSyntaxException e) {
       throw new IllegalArgumentException("Invalid regex pattern: " + e.getMessage());
     }

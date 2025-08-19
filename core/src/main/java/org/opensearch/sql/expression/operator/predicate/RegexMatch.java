@@ -5,9 +5,6 @@
 
 package org.opensearch.sql.expression.operator.predicate;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -19,6 +16,7 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionNodeVisitor;
 import org.opensearch.sql.expression.env.Environment;
+import org.opensearch.sql.expression.parse.RegexCommonUtils;
 
 /**
  * Expression for regex matching using Java's built-in regex engine. Supports standard Java regex
@@ -33,12 +31,6 @@ public class RegexMatch implements Expression {
   @Getter private final Expression pattern;
 
   @Getter private final boolean negated;
-
-  // Pattern cache to avoid recompiling the same patterns
-  private static final ConcurrentHashMap<String, Pattern> patternCache = new ConcurrentHashMap<>();
-
-  // Maximum cache size to prevent memory issues
-  private static final int MAX_CACHE_SIZE = 1000;
 
   public RegexMatch(Expression field, Expression pattern, boolean negated) {
     this.field = field;
@@ -59,16 +51,17 @@ public class RegexMatch implements Expression {
       return ExprValueUtils.booleanValue(false);
     }
 
-    String text = fieldValue.stringValue();
+    // Convert field value to string (handles non-string types)
+    String text = RegexCommonUtils.toStringValue(fieldValue);
     String regex = patternValue.stringValue();
 
-    try {
-      // Get compiled pattern from cache or compile new one
-      Pattern compiledPattern = getCompiledPattern(regex);
+    if (text == null) {
+      return ExprValueUtils.booleanValue(false);
+    }
 
-      // Create matcher and check for match
-      Matcher matcher = compiledPattern.matcher(text);
-      boolean matches = matcher.find(); // Use find() for partial match like SPL
+    try {
+      // Use shared utility for pattern matching
+      boolean matches = RegexCommonUtils.matchesPartial(text, regex);
 
       // Apply negation if needed
       return ExprValueUtils.booleanValue(negated ? !matches : matches);
@@ -76,21 +69,6 @@ public class RegexMatch implements Expression {
     } catch (PatternSyntaxException e) {
       throw new IllegalArgumentException("Invalid regex pattern: " + e.getMessage());
     }
-  }
-
-  /** Get compiled pattern from cache or compile and cache it. */
-  private Pattern getCompiledPattern(String regex) {
-    // Check cache size and clear if needed (simple LRU-like behavior)
-    if (patternCache.size() > MAX_CACHE_SIZE) {
-      patternCache.clear();
-    }
-
-    return patternCache.computeIfAbsent(
-        regex,
-        r -> {
-          // Compile with Java regex engine
-          return Pattern.compile(r);
-        });
   }
 
   @Override
