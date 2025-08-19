@@ -11,7 +11,7 @@ import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 
 /**
  * List aggregation function that collects values into an array preserving duplicates and order.
- * SPL-compatible behavior: preserves insertion order, limits to 100 values, filters nulls.
+ * Behavior: preserves insertion order, limits to 100 values, filters nulls.
  */
 public class ListAggFunction implements UserDefinedAggFunction<ListAggFunction.ListAccumulator> {
 
@@ -36,7 +36,7 @@ public class ListAggFunction implements UserDefinedAggFunction<ListAggFunction.L
 
     Object value = values[0];
 
-    // Filter out null values (SPL behavior) and enforce 100-item limit
+    // Filter out null values and enforce 100-item limit
     if (value != null && acc.size() < DEFAULT_LIMIT) {
       // Convert value to string, handling all types safely
       String stringValue = String.valueOf(value);

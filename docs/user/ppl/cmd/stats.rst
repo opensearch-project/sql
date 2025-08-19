@@ -329,14 +329,14 @@ Example::
     | [Amber,Hattie,Nanette,Dale] |
     +-----------------------------+
 
-Example with object fields::
+Example with string fields::
 
-    os> source=accounts | stats list(account.name) as names;
+    os> source=accounts | stats list(firstname) as names;
     fetched rows / total rows = 1/1
     +-----------------------------+
     | names                       |
     |-----------------------------|
-    | [John Smith,Jane Doe]       |
+    | [Amber,Hattie,Nanette,Dale] |
     +-----------------------------+
 
 
@@ -642,18 +642,18 @@ PPL query::
     | [M,F,M,M]     | [F,M]          |
     +---------------+----------------+
 
-Example 17: Use multivalue functions with object fields
-=======================================================
+Example 17: Use multivalue functions with multiple fields
+========================================================
 
-The example shows how to collect values from object fields using dot notation.
+The example shows how to collect values from multiple fields.
 
 PPL query::
 
-    os> source=accounts | stats list(address.city) as cities, values(address.state) as states;
+    os> source=accounts | stats list(firstname) as names, values(gender) as genders;
     fetched rows / total rows = 1/1
-    +---------------------------+------------------+
-    | cities                    | states           |
-    |---------------------------+------------------|
-    | [Seattle,Portland,Denver] | [CO,OR,WA]       |
+    +-----------------------------+----------+
+    | names                       | genders  |
+    |-----------------------------+----------|
+    | [Amber,Hattie,Nanette,Dale] | [F,M]    |
     +---------------------------+------------------+
 

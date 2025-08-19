@@ -314,19 +314,6 @@ public class AggregateAnalyzer {
             }
             yield Pair.of(aggBuilder, new SinglePercentileParser(aggFieldName));
           }
-          case LIST -> Pair.of(
-              AggregationBuilders.topHits(aggFieldName)
-                  .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)
-                  .size(100)
-                  .from(0),
-              new TopHitsParser(aggFieldName));
-          case VALUES -> Pair.of(
-              helper.build(
-                  args.getFirst(),
-                  AggregationBuilders.terms(aggFieldName)
-                      .size(AGGREGATION_BUCKET_SIZE)
-                      .order(BucketOrder.key(true))), // Sort by key (lexicographically) ascending
-              new TermsParser(aggFieldName));
           default -> throw new AggregateAnalyzer.AggregateAnalyzerException(
               String.format("Unsupported push-down aggregator %s", aggCall.getAggregation()));
         };

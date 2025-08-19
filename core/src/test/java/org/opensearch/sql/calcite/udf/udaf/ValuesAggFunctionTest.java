@@ -6,122 +6,199 @@
 package org.opensearch.sql.calcite.udf.udaf;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Arrays;
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.calcite.udf.udaf.ValuesAggFunction.ValuesAccumulator;
 
-class ValuesAggFunctionTest {
+/** Unit tests for ValuesAggFunction. */
+public class ValuesAggFunctionTest {
 
-  @Test
-  void testValuesAggregation() {
-    ValuesAggFunction function = new ValuesAggFunction();
-    ValuesAggFunction.ValuesAccumulator accumulator = function.init();
+  private ValuesAggFunction valuesAggFunction;
 
-    // Add values to accumulator
-    function.add(accumulator, "banana");
-    function.add(accumulator, "apple");
-    function.add(accumulator, "cherry");
-    function.add(accumulator, "apple"); // duplicate, should be removed
-
-    @SuppressWarnings("unchecked")
-    List<String> result = (List<String>) function.result(accumulator);
-
-    assertEquals(3, result.size());
-    // Should be in lexicographical order
-    assertEquals("apple", result.get(0));
-    assertEquals("banana", result.get(1));
-    assertEquals("cherry", result.get(2));
+  @BeforeEach
+  public void setUp() {
+    valuesAggFunction = new ValuesAggFunction();
   }
 
   @Test
-  void testValuesAggregationWithNulls() {
-    ValuesAggFunction function = new ValuesAggFunction();
-    ValuesAggFunction.ValuesAccumulator accumulator = function.init();
-
-    // Add values including nulls
-    function.add(accumulator, "banana");
-    function.add(accumulator, (Object) null); // should be filtered out
-    function.add(accumulator, "apple");
-
-    @SuppressWarnings("unchecked")
-    List<String> result = (List<String>) function.result(accumulator);
-
-    assertEquals(2, result.size());
-    assertEquals("apple", result.get(0));
-    assertEquals("banana", result.get(1));
+  public void testInit() {
+    ValuesAccumulator accumulator = valuesAggFunction.init();
+    assertEquals(0, accumulator.size(), "New accumulator should be empty");
   }
 
   @Test
-  void testLexicographicalOrder() {
-    ValuesAggFunction function = new ValuesAggFunction();
-    ValuesAggFunction.ValuesAccumulator accumulator = function.init();
+  public void testAddWithUniqueValues() {
+    ValuesAccumulator accumulator = valuesAggFunction.init();
 
-    // Add numbers as strings to test lexicographical ordering
-    function.add(accumulator, "10");
-    function.add(accumulator, "2");
-    function.add(accumulator, "1");
-    function.add(accumulator, "20");
+    accumulator = valuesAggFunction.add(accumulator, "apple");
+    accumulator = valuesAggFunction.add(accumulator, "banana");
+    accumulator = valuesAggFunction.add(accumulator, "cherry");
 
-    @SuppressWarnings("unchecked")
-    List<String> result = (List<String>) function.result(accumulator);
-
-    assertEquals(4, result.size());
-    // Lexicographical order: "1", "10", "2", "20"
-    assertEquals("1", result.get(0));
-    assertEquals("10", result.get(1));
-    assertEquals("2", result.get(2));
-    assertEquals("20", result.get(3));
+    assertEquals(3, accumulator.size(), "Should contain 3 unique values");
   }
 
   @Test
-  void testStringConversion() {
-    ValuesAggFunction function = new ValuesAggFunction();
-    ValuesAggFunction.ValuesAccumulator accumulator = function.init();
+  public void testAddWithDuplicateValues() {
+    ValuesAccumulator accumulator = valuesAggFunction.init();
 
-    // Add non-string values that should be converted
-    function.add(accumulator, 123);
-    function.add(accumulator, 45.67);
-    function.add(accumulator, true);
-    function.add(accumulator, 123); // duplicate
+    accumulator = valuesAggFunction.add(accumulator, "apple");
+    accumulator = valuesAggFunction.add(accumulator, "banana");
+    accumulator = valuesAggFunction.add(accumulator, "apple"); // duplicate
+    accumulator = valuesAggFunction.add(accumulator, "banana"); // duplicate
+    accumulator = valuesAggFunction.add(accumulator, "cherry");
 
-    @SuppressWarnings("unchecked")
-    List<String> result = (List<String>) function.result(accumulator);
-
-    assertEquals(3, result.size());
-    // Lexicographical order: "123", "45.67", "true"
-    assertEquals("123", result.get(0));
-    assertEquals("45.67", result.get(1));
-    assertEquals("true", result.get(2));
+    assertEquals(3, accumulator.size(), "Should contain only 3 unique values despite duplicates");
   }
 
   @Test
-  void testEmptyAggregation() {
-    ValuesAggFunction function = new ValuesAggFunction();
-    ValuesAggFunction.ValuesAccumulator accumulator = function.init();
+  public void testAddWithNullValues() {
+    ValuesAccumulator accumulator = valuesAggFunction.init();
 
-    @SuppressWarnings("unchecked")
-    List<String> result = (List<String>) function.result(accumulator);
+    accumulator = valuesAggFunction.add(accumulator, "apple");
+    accumulator = valuesAggFunction.add(accumulator, (Object) null); // should be ignored
+    accumulator = valuesAggFunction.add(accumulator, "banana");
+    accumulator = valuesAggFunction.add(accumulator, (Object) null); // should be ignored
 
-    assertTrue(result.isEmpty());
+    assertEquals(2, accumulator.size(), "Should contain only 2 values, nulls ignored");
   }
 
   @Test
-  void testNoLimit() {
-    ValuesAggFunction function = new ValuesAggFunction();
-    ValuesAggFunction.ValuesAccumulator accumulator = function.init();
+  public void testAddWithDifferentTypes() {
+    ValuesAccumulator accumulator = valuesAggFunction.init();
 
-    // Add many unique values (no limit for values() function)
-    for (int i = 0; i < 200; i++) {
-      function.add(accumulator, "value" + String.format("%03d", i));
+    accumulator = valuesAggFunction.add(accumulator, 42); // integer
+    accumulator = valuesAggFunction.add(accumulator, 3.14); // double
+    accumulator = valuesAggFunction.add(accumulator, true); // boolean
+    accumulator = valuesAggFunction.add(accumulator, "hello"); // string
+
+    assertEquals(4, accumulator.size(), "Should contain 4 unique string representations");
+  }
+
+  @Test
+  public void testResultWithLexicographicalOrder() {
+    ValuesAccumulator accumulator = valuesAggFunction.init();
+
+    // Add values in non-alphabetical order
+    accumulator = valuesAggFunction.add(accumulator, "zebra");
+    accumulator = valuesAggFunction.add(accumulator, "apple");
+    accumulator = valuesAggFunction.add(accumulator, "banana");
+    accumulator = valuesAggFunction.add(accumulator, "cherry");
+
+    @SuppressWarnings("unchecked")
+    List<String> result = (List<String>) valuesAggFunction.result(accumulator);
+
+    // Should be sorted lexicographically
+    List<String> expected = Arrays.asList("apple", "banana", "cherry", "zebra");
+    assertEquals(expected, result, "Result should be sorted lexicographically");
+  }
+
+  @Test
+  public void testResultWithNumericStringSorting() {
+    ValuesAccumulator accumulator = valuesAggFunction.init();
+
+    // Add numeric values that should be sorted as strings
+    accumulator = valuesAggFunction.add(accumulator, 100);
+    accumulator = valuesAggFunction.add(accumulator, 20);
+    accumulator = valuesAggFunction.add(accumulator, 3);
+
+    @SuppressWarnings("unchecked")
+    List<String> result = (List<String>) valuesAggFunction.result(accumulator);
+
+    // Should be sorted lexicographically as strings, not numerically
+    List<String> expected = Arrays.asList("100", "20", "3");
+    assertEquals(expected, result, "Numeric values should be sorted lexicographically as strings");
+  }
+
+  @Test
+  public void testResultEmptyAccumulator() {
+    ValuesAccumulator accumulator = valuesAggFunction.init();
+
+    @SuppressWarnings("unchecked")
+    List<String> result = (List<String>) valuesAggFunction.result(accumulator);
+
+    assertEquals(0, result.size(), "Empty accumulator should return empty list");
+  }
+
+  @Test
+  public void testFullWorkflowWithDuplicatesAndSorting() {
+    // Test the complete workflow: init -> add -> result
+    ValuesAccumulator accumulator = valuesAggFunction.init();
+
+    // Add values with duplicates in random order
+    String[] inputValues = {"delta", "alpha", "beta", "alpha", "gamma", "beta", "delta"};
+
+    for (String value : inputValues) {
+      accumulator = valuesAggFunction.add(accumulator, value);
     }
 
     @SuppressWarnings("unchecked")
-    List<String> result = (List<String>) function.result(accumulator);
+    List<String> result = (List<String>) valuesAggFunction.result(accumulator);
 
-    // Should contain all 200 unique values
-    assertEquals(200, result.size());
-    assertEquals("value000", result.get(0));
-    assertEquals("value199", result.get(199));
+    // Should have unique values in lexicographical order
+    List<String> expected = Arrays.asList("alpha", "beta", "delta", "gamma");
+    assertEquals(expected, result, "Should return unique values in lexicographical order");
+  }
+
+  @Test
+  public void testCaseSensitiveSorting() {
+    ValuesAccumulator accumulator = valuesAggFunction.init();
+
+    // Add values with different cases
+    accumulator = valuesAggFunction.add(accumulator, "Apple");
+    accumulator = valuesAggFunction.add(accumulator, "apple");
+    accumulator = valuesAggFunction.add(accumulator, "APPLE");
+    accumulator = valuesAggFunction.add(accumulator, "banana");
+    accumulator = valuesAggFunction.add(accumulator, "Banana");
+
+    @SuppressWarnings("unchecked")
+    List<String> result = (List<String>) valuesAggFunction.result(accumulator);
+
+    assertEquals(5, result.size(), "Should treat different cases as different values");
+
+    // Verify they are sorted lexicographically (uppercase comes before lowercase in ASCII)
+    List<String> expected = Arrays.asList("APPLE", "Apple", "Banana", "apple", "banana");
+    assertEquals(expected, result, "Should sort case-sensitively in lexicographical order");
+  }
+
+  @Test
+  public void testLargeDataset() {
+    ValuesAccumulator accumulator = valuesAggFunction.init();
+
+    // Add many values with duplicates
+    for (int i = 0; i < 1000; i++) {
+      accumulator = valuesAggFunction.add(accumulator, "value" + (i % 100)); // creates duplicates
+    }
+
+    @SuppressWarnings("unchecked")
+    List<String> result = (List<String>) valuesAggFunction.result(accumulator);
+
+    assertEquals(100, result.size(), "Should contain exactly 100 unique values");
+
+    // Verify first and last elements are sorted
+    assertEquals("value0", result.get(0), "First element should be 'value0'");
+    assertEquals("value99", result.get(99), "Last element should be 'value99'");
+  }
+
+  @Test
+  public void testAddNoValues() {
+    ValuesAccumulator accumulator = valuesAggFunction.init();
+
+    // Test edge case where no values are passed
+    accumulator = valuesAggFunction.add(accumulator);
+
+    assertEquals(0, accumulator.size(), "Should remain empty when no values added");
+  }
+
+  @Test
+  public void testAddEmptyValues() {
+    ValuesAccumulator accumulator = valuesAggFunction.init();
+
+    // Test edge case where null array is passed
+    accumulator = valuesAggFunction.add(accumulator, (Object[]) null);
+
+    assertEquals(0, accumulator.size(), "Should remain empty when null array passed");
   }
 }

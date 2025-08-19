@@ -5,15 +5,19 @@
 
 package org.opensearch.sql.calcite.udf.udaf;
 
-import java.util.LinkedHashSet;
-import java.util.List;
+import java.util.ArrayList;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.TreeSet;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 
 /**
- * Values aggregation function that collects unique values into a lexicographically sorted array.
- * SPL-compatible behavior: removes duplicates, sorts lexicographically, filters nulls.
+ * VALUES aggregate function implementation. Returns distinct values from a field in lexicographical
+ * order as a multivalue field.
+ *
+ * <p>Behavior: - Returns unique values only (no duplicates) - Values are sorted in lexicographical
+ * order - Processes field values as strings (casts all inputs to strings) - No limit on number of
+ * values (unlike LIST which has 100 limit) - Supports only scalar data types (rejects STRUCT/ARRAY
+ * types) - Implementation uses TreeSet for automatic sorting and deduplication
  */
 public class ValuesAggFunction
     implements UserDefinedAggFunction<ValuesAggFunction.ValuesAccumulator> {
@@ -37,36 +41,42 @@ public class ValuesAggFunction
 
     Object value = values[0];
 
-    // Filter out null values (SPL behavior)
+    // Filter out null values
     if (value != null) {
       // Convert value to string, handling all types safely
-      String stringValue = String.valueOf(value);
+      String stringValue = convertToString(value);
       acc.add(stringValue);
     }
 
     return acc;
   }
 
+  /** Converts any value to its string representation. */
+  private String convertToString(Object value) {
+    if (value == null) {
+      return null;
+    }
+    return String.valueOf(value);
+  }
+
   public static class ValuesAccumulator implements Accumulator {
-    private final Set<String> uniqueValues;
+    private final Set<String> values;
 
     public ValuesAccumulator() {
-      this.uniqueValues = new LinkedHashSet<>();
+      this.values = new TreeSet<>(); // TreeSet maintains sorted order and uniqueness
     }
 
     @Override
     public Object value(Object... argList) {
-      // Return sorted list in lexicographical order (SPL behavior)
-      List<String> sortedValues = uniqueValues.stream().sorted().collect(Collectors.toList());
-      return sortedValues;
+      return new ArrayList<>(values); // Return List<String> to match expected type
     }
 
     public void add(String value) {
-      uniqueValues.add(value);
+      values.add(value);
     }
 
     public int size() {
-      return uniqueValues.size();
+      return values.size();
     }
   }
 }

@@ -1199,24 +1199,40 @@ public class PPLFuncImpTable {
           (distinct, field, argList, ctx) ->
               createAggregateFunction(
                   ListAggFunction.class,
-                  "list",
+                  "LIST",
                   UserDefinedFunctionUtils.getReturnTypeInferenceForStringArray(),
                   List.of(field),
                   argList,
                   ctx.relBuilder),
-          PPLTypeChecker.family(SqlTypeFamily.ANY));
+          PPLTypeChecker.wrapComposite(
+              (CompositeOperandTypeChecker)
+                  OperandTypes.family(SqlTypeFamily.BOOLEAN)
+                      .or(OperandTypes.family(SqlTypeFamily.CHARACTER))
+                      .or(OperandTypes.family(SqlTypeFamily.NUMERIC))
+                      .or(OperandTypes.family(SqlTypeFamily.DATE))
+                      .or(OperandTypes.family(SqlTypeFamily.TIME))
+                      .or(OperandTypes.family(SqlTypeFamily.TIMESTAMP)),
+              false));
 
       register(
           VALUES,
           (distinct, field, argList, ctx) ->
               createAggregateFunction(
                   ValuesAggFunction.class,
-                  "values",
+                  "VALUES",
                   UserDefinedFunctionUtils.getReturnTypeInferenceForStringArray(),
                   List.of(field),
                   argList,
                   ctx.relBuilder),
-          PPLTypeChecker.family(SqlTypeFamily.ANY));
+          PPLTypeChecker.wrapComposite(
+              (CompositeOperandTypeChecker)
+                  OperandTypes.family(SqlTypeFamily.BOOLEAN)
+                      .or(OperandTypes.family(SqlTypeFamily.CHARACTER))
+                      .or(OperandTypes.family(SqlTypeFamily.NUMERIC))
+                      .or(OperandTypes.family(SqlTypeFamily.DATE))
+                      .or(OperandTypes.family(SqlTypeFamily.TIME))
+                      .or(OperandTypes.family(SqlTypeFamily.TIMESTAMP)),
+              false));
     }
   }
 }

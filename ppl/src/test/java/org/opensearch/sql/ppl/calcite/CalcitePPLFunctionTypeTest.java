@@ -290,4 +290,108 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
             + " {[INTEGER,INTEGER],[INTEGER,DOUBLE],[DOUBLE,INTEGER],[DOUBLE,DOUBLE],[INTEGER,INTEGER,INTEGER],[INTEGER,INTEGER,DOUBLE],[INTEGER,DOUBLE,INTEGER],[INTEGER,DOUBLE,DOUBLE],[DOUBLE,INTEGER,INTEGER],[DOUBLE,INTEGER,DOUBLE],[DOUBLE,DOUBLE,INTEGER],[DOUBLE,DOUBLE,DOUBLE]},"
             + " but got [STRING,INTEGER]");
   }
+
+  @Test
+  public void testListFunctionWithScalarTypes() {
+    // Test that LIST function works with various scalar types available in SCOTT schema
+    getRelNode("source=EMP | stats list(EMPNO) as emp_numbers");
+    getRelNode("source=EMP | stats list(ENAME) as names");
+    getRelNode("source=EMP | stats list(HIREDATE) as hire_dates");
+    getRelNode("source=EMP | stats list(DEPTNO) as dept_numbers");
+  }
+
+  @Test
+  public void testValuesFunctionWithScalarTypes() {
+    // Test that VALUES function works with various scalar types available in SCOTT schema
+    getRelNode("source=EMP | stats values(EMPNO) as unique_emp_numbers");
+    getRelNode("source=EMP | stats values(ENAME) as unique_names");
+    getRelNode("source=EMP | stats values(HIREDATE) as unique_hire_dates");
+    getRelNode("source=EMP | stats values(DEPTNO) as unique_dept_numbers");
+  }
+
+  @Test
+  public void testListFunctionWithWrongArgType() {
+    // Test LIST function with array expression (which is not a supported scalar type)
+    Exception e =
+        Assert.assertThrows(
+            ExpressionEvaluationException.class,
+            () -> getRelNode("source=EMP | stats list(array(ENAME, JOB)) as name_list"));
+    verifyErrorMessageContains(
+        e, "Aggregation function LIST expects field type {[BOOLEAN],[STRING],[INTEGER],[DOUBLE],[DATE],[TIME],[TIMESTAMP]}, but got [ARRAY]");
+  }
+
+  @Test
+  public void testValuesFunctionWithWrongArgType() {
+    // Test VALUES function with array expression (which is not a supported scalar type)
+    Exception e =
+        Assert.assertThrows(
+            ExpressionEvaluationException.class,
+            () -> getRelNode("source=EMP | stats values(array(ENAME, JOB)) as unique_names"));
+    verifyErrorMessageContains(
+        e, "Aggregation function VALUES expects field type {[BOOLEAN],[STRING],[INTEGER],[DOUBLE],[DATE],[TIME],[TIMESTAMP]}, but got [ARRAY]");
+  }
+
+  @Test
+  public void testListFunctionWithMapExpression() {
+    // Test LIST function with complex expression that creates a non-scalar type
+    // Using array() function which should definitely return ARRAY type
+    Exception e =
+        Assert.assertThrows(
+            ExpressionEvaluationException.class,
+            () -> getRelNode("source=EMP | stats list(array(ENAME, JOB)) as employee_arrays"));
+    verifyErrorMessageContains(
+        e, "Aggregation function LIST expects field type {[BOOLEAN],[STRING],[INTEGER],[DOUBLE],[DATE],[TIME],[TIMESTAMP]}, but got [ARRAY]");
+  }
+
+  @Test
+  public void testValuesFunctionWithMapExpression() {
+    // Test VALUES function with complex expression that creates a non-scalar type
+    // Using array() function which should definitely return ARRAY type
+    Exception e =
+        Assert.assertThrows(
+            ExpressionEvaluationException.class,
+            () -> getRelNode("source=EMP | stats values(array(ENAME, JOB)) as unique_arrays"));
+    verifyErrorMessageContains(
+        e, "Aggregation function VALUES expects field type {[BOOLEAN],[STRING],[INTEGER],[DOUBLE],[DATE],[TIME],[TIMESTAMP]}, but got [ARRAY]");
+  }
+
+  @Test
+  public void testListFunctionAcceptsAllScalarTypes() {
+    // Test that LIST function accepts all supported scalar types
+    getRelNode("source=EMP | stats list(EMPNO) as numeric_list");      // NUMERIC
+    getRelNode("source=EMP | stats list(ENAME) as string_list");       // CHARACTER
+    getRelNode("source=EMP | stats list(HIREDATE) as date_list");      // DATE/TIMESTAMP
+    getRelNode("source=EMP | eval is_high = EMPNO > 100 | stats list(is_high) as boolean_list"); // BOOLEAN
+  }
+
+  @Test
+  public void testValuesFunctionAcceptsAllScalarTypes() {
+    // Test that VALUES function accepts all supported scalar types
+    getRelNode("source=EMP | stats values(EMPNO) as unique_numbers");      // NUMERIC
+    getRelNode("source=EMP | stats values(ENAME) as unique_strings");      // CHARACTER
+    getRelNode("source=EMP | stats values(HIREDATE) as unique_dates");     // DATE/TIMESTAMP
+    getRelNode("source=EMP | eval is_high = EMPNO > 100 | stats values(is_high) as unique_booleans"); // BOOLEAN
+  }
+
+  @Test
+  public void testListAndValuesFunctionsErrorMessageFormat() {
+    // Test that error messages follow the expected aggregate function format
+    Exception listException =
+        Assert.assertThrows(
+            ExpressionEvaluationException.class,
+            () -> getRelNode("source=EMP | stats list(array(ENAME)) as names"));
+
+    Exception valuesException =
+        Assert.assertThrows(
+            ExpressionEvaluationException.class,
+            () -> getRelNode("source=EMP | stats values(array(ENAME)) as unique_names"));
+
+    // Verify both functions use the standard "Aggregation function" error format
+    verifyErrorMessageContains(listException, "Aggregation function LIST expects field type");
+    verifyErrorMessageContains(valuesException, "Aggregation function VALUES expects field type");
+    
+    // Verify both show the same allowed types
+    verifyErrorMessageContains(listException, "[BOOLEAN],[STRING],[INTEGER],[DOUBLE],[DATE],[TIME],[TIMESTAMP]");
+    verifyErrorMessageContains(valuesException, "[BOOLEAN],[STRING],[INTEGER],[DOUBLE],[DATE],[TIME],[TIMESTAMP]");
+  }
 }

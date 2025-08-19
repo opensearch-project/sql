@@ -85,7 +85,7 @@ class ListAggFunctionTest {
     assertEquals(3, result.size());
     assertEquals("123", result.get(0));
     assertEquals("45.67", result.get(1));
-    assertEquals("true", result.get(2));
+    assertEquals("true", result.get(2)); // boolean true now user-friendly "true"
   }
 
   @Test
