@@ -11,6 +11,8 @@ import java.util.stream.Collectors;
 /** Utility class for wildcard pattern matching in field names. */
 public class WildcardUtils {
 
+  private static final String WILDCARD = "*";
+
   /** Matches a field name against a wildcard pattern using '*' as wildcard character. */
   public static boolean matchesWildcardPattern(String pattern, String fieldName) {
     if (pattern == null || fieldName == null) {
@@ -21,7 +23,7 @@ public class WildcardUtils {
       return pattern.equals(fieldName);
     }
 
-    String[] compiledPattern = pattern.split("\\*", -1);
+    String[] compiledPattern = pattern.split("\\" + WILDCARD, -1);
     return matchesCompiledPattern(compiledPattern, fieldName);
   }
 
@@ -43,7 +45,7 @@ public class WildcardUtils {
           .collect(Collectors.toList());
     }
 
-    String[] compiledPattern = pattern.split("\\*", -1);
+    String[] compiledPattern = pattern.split("\\" + WILDCARD, -1);
     return availableFields.stream()
         .filter(field -> matchesCompiledPattern(compiledPattern, field))
         .collect(Collectors.toList());
@@ -57,7 +59,7 @@ public class WildcardUtils {
 
     int startIndex = 0;
 
-    for (int i = 0; i < parts.length; i++) {
+    for (int i = 0; i < parts.length - 1; i++) {
       String part = parts[i];
 
       if (part.isEmpty()) {
@@ -69,12 +71,6 @@ public class WildcardUtils {
           return false;
         }
         startIndex = part.length();
-      } else if (i == parts.length - 1) {
-        if (startIndex + part.length() > fieldName.length()
-            || !fieldName.regionMatches(
-                fieldName.length() - part.length(), part, 0, part.length())) {
-          return false;
-        }
       } else {
         int index = fieldName.indexOf(part, startIndex);
         if (index == -1) {
@@ -84,10 +80,16 @@ public class WildcardUtils {
       }
     }
 
+    // Check the last part
+    String lastPart = parts[parts.length - 1];
+    if (!lastPart.isEmpty() && !fieldName.endsWith(lastPart)) {
+      return false;
+    }
+
     return true;
   }
 
   public static boolean containsWildcard(String str) {
-    return str != null && str.contains("*");
+    return str != null && str.contains(WILDCARD);
   }
 }
