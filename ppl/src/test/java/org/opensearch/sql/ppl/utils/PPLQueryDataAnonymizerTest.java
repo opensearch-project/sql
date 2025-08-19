@@ -185,6 +185,16 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testSortCommandWithCount() {
+    assertEquals("source=t | sort 5 f1", anonymize("source=t | sort 5 f1"));
+  }
+
+  @Test
+  public void testSortCommandWithDesc() {
+    assertEquals("source=t | sort f1", anonymize("source=t | sort f1 desc"));
+  }
+
+  @Test
   public void testEvalCommand() {
     assertEquals("source=t | eval r=abs(f)", anonymize("source=t | eval r=abs(f)"));
   }
