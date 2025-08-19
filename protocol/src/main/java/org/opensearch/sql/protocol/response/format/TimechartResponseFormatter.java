@@ -34,6 +34,9 @@ public class TimechartResponseFormatter extends JsonResponseFormatter<QueryResul
   /** Constant for the "OTHER" category name. */
   private static final String OTHER_CATEGORY = "OTHER";
 
+  /** Constant for the timestamp column name in the output. */
+  private static final String TIMESTAMP_COLUMN_NAME = "@timestamp";
+
   private final Integer maxDistinctValues;
   private final Boolean useOther;
   private boolean isCountAggregation;
@@ -91,7 +94,21 @@ public class TimechartResponseFormatter extends JsonResponseFormatter<QueryResul
 
     json.total(response.size()).size(response.size());
 
-    response.columnNameTypes().forEach((name, type) -> json.column(new Column(name, type)));
+    // Get column names and types
+    Map<String, String> columnTypes = response.columnNameTypes();
+    List<String> columnNames = new ArrayList<>(columnTypes.keySet());
+
+    // Use @timestamp for the first column (timestamp) and keep original names for other columns
+    if (columnNames.size() >= 1) {
+      String firstColumn = columnNames.get(0);
+      json.column(new Column(TIMESTAMP_COLUMN_NAME, columnTypes.get(firstColumn)));
+
+      // Add remaining columns with their original names
+      for (int i = 1; i < columnNames.size(); i++) {
+        String name = columnNames.get(i);
+        json.column(new Column(name, columnTypes.get(name)));
+      }
+    }
 
     json.datarows(fetchDataRows(response));
     return json.build();
@@ -104,7 +121,7 @@ public class TimechartResponseFormatter extends JsonResponseFormatter<QueryResul
 
     PivotData pivotData = collectPivotData(response);
     JsonResponse.JsonResponseBuilder json = JsonResponse.builder();
-    json.column(new Column(timeField, response.columnNameTypes().get(timeField)));
+    json.column(new Column(TIMESTAMP_COLUMN_NAME, response.columnNameTypes().get(timeField)));
 
     boolean needsOtherCategory =
         maxDistinctValues > 0 && pivotData.distinctByValues.size() > maxDistinctValues && useOther;

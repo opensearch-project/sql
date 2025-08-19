@@ -40,7 +40,7 @@ class TimechartResponseFormatterTest {
     assertEquals(2, response.getTotal());
     assertEquals(2, response.getSize());
     assertEquals(2, response.getSchema().size());
-    assertEquals("timestamp", response.getSchema().get(0).getName());
+    assertEquals("@timestamp", response.getSchema().get(0).getName());
     assertEquals("value", response.getSchema().get(1).getName());
     assertEquals(2, response.getDatarows().length);
   }
@@ -63,7 +63,7 @@ class TimechartResponseFormatterTest {
     assertEquals(2, response.getTotal());
     assertEquals(2, response.getSize());
     assertEquals(3, response.getSchema().size()); // timestamp + web-01 + web-02
-    assertEquals("timestamp", response.getSchema().get(0).getName());
+    assertEquals("@timestamp", response.getSchema().get(0).getName());
     assertEquals("web-01", response.getSchema().get(1).getName());
     assertEquals("web-02", response.getSchema().get(2).getName());
   }
@@ -95,7 +95,7 @@ class TimechartResponseFormatterTest {
 
     assertEquals(1, response.getTotal());
     assertEquals(12, response.getSchema().size()); // timestamp + 10 hosts + OTHER
-    assertEquals("timestamp", response.getSchema().get(0).getName());
+    assertEquals("@timestamp", response.getSchema().get(0).getName());
     assertEquals("OTHER", response.getSchema().get(11).getName());
 
     // Verify OTHER column has aggregated value
@@ -122,7 +122,7 @@ class TimechartResponseFormatterTest {
 
     assertEquals(1, response.getTotal());
     assertEquals(4, response.getSchema().size()); // timestamp + 3 hosts (no OTHER)
-    assertEquals("timestamp", response.getSchema().get(0).getName());
+    assertEquals("@timestamp", response.getSchema().get(0).getName());
     assertEquals("host-01", response.getSchema().get(1).getName());
     assertEquals("host-02", response.getSchema().get(2).getName());
     assertEquals("host-03", response.getSchema().get(3).getName());
@@ -147,7 +147,7 @@ class TimechartResponseFormatterTest {
 
     assertEquals(1, response.getTotal());
     assertEquals(4, response.getSchema().size()); // timestamp + top 3 hosts (no OTHER)
-    assertEquals("timestamp", response.getSchema().get(0).getName());
+    assertEquals("@timestamp", response.getSchema().get(0).getName());
     assertEquals("host-01", response.getSchema().get(1).getName());
     assertEquals("host-02", response.getSchema().get(2).getName());
     assertEquals("host-03", response.getSchema().get(3).getName());
@@ -172,7 +172,7 @@ class TimechartResponseFormatterTest {
 
     assertEquals(1, response.getTotal());
     assertEquals(5, response.getSchema().size()); // timestamp + top 3 hosts + OTHER
-    assertEquals("timestamp", response.getSchema().get(0).getName());
+    assertEquals("@timestamp", response.getSchema().get(0).getName());
     assertEquals("host-01", response.getSchema().get(1).getName());
     assertEquals("host-02", response.getSchema().get(2).getName());
     assertEquals("host-03", response.getSchema().get(3).getName());

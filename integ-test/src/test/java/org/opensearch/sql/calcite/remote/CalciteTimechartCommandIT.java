@@ -44,7 +44,7 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
     JSONObject result = executeQuery("source=events | timechart span=1h count() by host");
     verifySchema(
         result,
-        schema("$f2", "timestamp"),
+        schema("@timestamp", "timestamp"),
         schema("db-01", "bigint"),
         schema("web-01", "bigint"),
         schema("web-02", "bigint"));
@@ -57,7 +57,7 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
     JSONObject result = executeQuery("source=events | timechart span=1m count() by host");
     verifySchema(
         result,
-        schema("$f2", "timestamp"),
+        schema("@timestamp", "timestamp"),
         schema("db-01", "bigint"),
         schema("web-01", "bigint"),
         schema("web-02", "bigint"));
@@ -92,7 +92,7 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
   @Test
   public void testTimechartWithMinuteSpanNoGroupBy() throws IOException {
     JSONObject result = executeQuery("source=events | timechart span=1m avg(cpu_usage)");
-    verifySchema(result, schema("$f2", "timestamp"), schema("$f1", "double"));
+    verifySchema(result, schema("@timestamp", "timestamp"), schema("$f1", "double"));
     assertEquals(5, result.getInt("total"));
   }
 
@@ -101,7 +101,7 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
     JSONObject result = executeQuery("source=events | timechart span=1s count() by region");
     verifySchema(
         result,
-        schema("$f2", "timestamp"),
+        schema("@timestamp", "timestamp"),
         schema("eu-west", "bigint"),
         schema("us-east", "bigint"),
         schema("us-west", "bigint"));
@@ -124,7 +124,7 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
     assertEquals(12, result.getJSONArray("schema").length());
 
     // First column should be timestamp
-    assertEquals("$f3", result.getJSONArray("schema").getJSONObject(0).getString("name"));
+    assertEquals("@timestamp", result.getJSONArray("schema").getJSONObject(0).getString("name"));
 
     // Last column should be OTHER
     assertEquals("OTHER", result.getJSONArray("schema").getJSONObject(11).getString("name"));
@@ -145,7 +145,7 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
     // Verify schema has 4 columns: timestamp + 2 limited hosts + OTHER
     verifySchema(
         result,
-        schema("$f3", "timestamp"),
+        schema("@timestamp", "timestamp"),
         schema("web-01", "double"),
         schema("web-02", "double"),
         schema("OTHER", "double"));
@@ -171,7 +171,7 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
     // Verify schema has 12 columns: timestamp + all 11 hosts (no OTHER column)
     verifySchema(
         result,
-        schema("$f3", "timestamp"),
+        schema("@timestamp", "timestamp"),
         schema("web-01", "double"),
         schema("web-02", "double"),
         schema("web-03", "double"),
@@ -212,7 +212,7 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
     // Verify schema has 11 columns: timestamp + top 10 hosts (no OTHER column)
     verifySchema(
         result,
-        schema("$f3", "timestamp"),
+        schema("@timestamp", "timestamp"),
         schema("web-01", "double"),
         schema("web-02", "double"),
         schema("web-03", "double"),
@@ -238,7 +238,7 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
     // Verify schema has 4 columns: timestamp + 3 hosts
     verifySchema(
         result,
-        schema("$f2", "timestamp"),
+        schema("@timestamp", "timestamp"),
         schema("db-01", "bigint"),
         schema("web-01", "bigint"),
         schema("web-02", "bigint"));
@@ -265,7 +265,7 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
     // Verify schema has 5 columns: timestamp + 3 limited hosts + OTHER
     verifySchema(
         result,
-        schema("$f3", "timestamp"),
+        schema("@timestamp", "timestamp"),
         schema("web-03", "double"),
         schema("web-07", "double"),
         schema("web-09", "double"),
