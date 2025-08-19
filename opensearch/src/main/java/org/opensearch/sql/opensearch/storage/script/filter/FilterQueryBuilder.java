@@ -27,7 +27,6 @@ import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.FunctionName;
-import org.opensearch.sql.expression.operator.predicate.RegexMatch;
 import org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.ScriptEngineType;
 import org.opensearch.sql.opensearch.storage.script.core.ExpressionScript;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.LikeQuery;
@@ -113,9 +112,6 @@ public class FilterQueryBuilder extends ExpressionNodeVisitor<QueryBuilder, Obje
         throw new SyntaxCheckException(
             "Invalid syntax used for nested function in WHERE clause: "
                 + "nested(field | field, path) OPERATOR LITERAL");
-      case "REGEX_MATCH":
-        // Handle our custom regex operator from Calcite engine
-        return buildScriptQueryForRegex(createRegexMatchFromFunction(func));
       default:
         {
           LuceneQuery query = luceneQueries.get(name);
@@ -156,45 +152,5 @@ public class FilterQueryBuilder extends ExpressionNodeVisitor<QueryBuilder, Obje
             COMPOUNDED_LANG_NAME,
             SerializationWrapper.wrapWithLangType(ScriptEngineType.V2, serializer.serialize(node)),
             emptyMap()));
-  }
-
-  /**
-   * Visit RegexMatch expression and convert to script query. This allows Java regex evaluation to
-   * be pushed down to OpenSearch data nodes.
-   */
-  public QueryBuilder visitRegex(RegexMatch regexMatch, Object context) {
-    return buildScriptQueryForRegex(regexMatch);
-  }
-
-  private ScriptQueryBuilder buildScriptQueryForRegex(RegexMatch regexMatch) {
-    Set<ReferenceExpression> fields = ExpressionScript.extractFields(regexMatch);
-    if (fields.stream().anyMatch(field -> field.getType() == ExprCoreType.STRUCT)) {
-      throw new ScriptQueryUnSupportedException(
-          "Script query does not support fields of struct type in OpenSearch.");
-    }
-
-    return new ScriptQueryBuilder(
-        new Script(
-            DEFAULT_SCRIPT_TYPE,
-            COMPOUNDED_LANG_NAME,
-            SerializationWrapper.wrapWithLangType(
-                ScriptEngineType.V2, serializer.serialize(regexMatch)),
-            emptyMap()));
-  }
-
-  /**
-   * Convert a REGEX_MATCH function from Calcite to our Java regex RegexMatch expression. This
-   * ensures the Calcite engine uses the same Java regex implementation as the legacy engine.
-   */
-  private RegexMatch createRegexMatchFromFunction(FunctionExpression func) {
-    if (func.getArguments().size() != 2) {
-      throw new IllegalArgumentException("REGEX_MATCH function requires exactly 2 arguments");
-    }
-
-    Expression fieldExpr = func.getArguments().get(0);
-    Expression patternExpr = func.getArguments().get(1);
-
-    // Create RegexMatch with Java regex support
-    return new RegexMatch(fieldExpr, patternExpr, false);
   }
 }
