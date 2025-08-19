@@ -992,8 +992,6 @@ public class DateTimeFunctions {
             LONG),
         impl(nullMissingHandling(DateTimeFunctions::unixTimeStampOf), DOUBLE, TIMESTAMP),
         impl(nullMissingHandling(DateTimeFunctions::unixTimeStampOf), DOUBLE, DATE),
-        // STRING handling via delegation to TIMESTAMP function (proper function chain)
-        impl(nullMissingHandling(DateTimeFunctions::unixTimeStampOfString), DOUBLE, STRING),
         impl(nullMissingHandling(DateTimeFunctions::unixTimeStampOf), DOUBLE, DOUBLE));
   }
 
@@ -2019,19 +2017,6 @@ public class DateTimeFunctions {
   }
 
   /**
-   * TIMESTAMP string parsing implementation for timestamp strings from bin operations. Handles
-   * timestamp strings in YYYY-MM-DD HH:MM:SS format (with optional fractional seconds).
-   *
-   * @param stringValue ExprValue of String type containing timestamp string.
-   * @return ExprTimestampValue parsed from the string, or ExprNullValue if parsing fails.
-   */
-  public static ExprValue exprTimestampFromString(ExprValue stringValue) {
-    // Use the same validation logic as the original TIMESTAMP function
-    // This will throw ExpressionEvaluationException for invalid dates
-    return new ExprTimestampValue(stringValue.stringValue());
-  }
-
-  /**
    * To_days implementation for ExprValue.
    *
    * @param date ExprValue of Date/String type.
@@ -2158,35 +2143,6 @@ public class DateTimeFunctions {
     return new ExprDoubleValue(res);
   }
 
-  /**
-   * Implementation of UNIX_TIMESTAMP for STRING inputs using proper function chain. Delegates to
-   * TIMESTAMP function first, then converts to epoch seconds.
-   */
-  public static ExprValue unixTimeStampOfString(ExprValue stringValue) {
-    ExprValue timestampValue = tryParseAsTimestamp(stringValue);
-    if (timestampValue != null) {
-      return unixTimeStampOf(timestampValue);
-    }
-
-    return parseAsLegacyNumericFormat(stringValue);
-  }
-
-  private static ExprValue tryParseAsTimestamp(ExprValue stringValue) {
-    try {
-      return exprTimestampFromString(stringValue);
-    } catch (Exception e) {
-      return null;
-    }
-  }
-
-  private static ExprValue parseAsLegacyNumericFormat(ExprValue stringValue) {
-    try {
-      return new ExprDoubleValue(transferUnixTimeStampFromDoubleInput(stringValue.doubleValue()));
-    } catch (Exception e) {
-      return ExprNullValue.of();
-    }
-  }
-
   public static Double transferUnixTimeStampFromDoubleInput(Double value) {
     var format = (DecimalFormat) DecimalFormat.getNumberInstance(Locale.ROOT);
     format.applyPattern("0.#");
@@ -2235,6 +2191,14 @@ public class DateTimeFunctions {
         return value.dateValue().toEpochSecond(LocalTime.MIN, ZoneOffset.UTC) + 0d;
       case TIMESTAMP:
         return value.timestampValue().getEpochSecond() + value.timestampValue().getNano() / 1E9;
+      case STRING:
+        try {
+          // Try to parse as timestamp string first
+          return value.timestampValue().getEpochSecond() + value.timestampValue().getNano() / 1E9;
+        } catch (Exception e) {
+          // If timestamp parsing fails, try as number format
+          return transferUnixTimeStampFromDoubleInput(value.doubleValue());
+        }
       default:
         //     ... or a number in YYMMDD, YYMMDDhhmmss, YYYYMMDD, or YYYYMMDDhhmmss format.
         //     If the argument includes a time part, it may optionally include a fractional

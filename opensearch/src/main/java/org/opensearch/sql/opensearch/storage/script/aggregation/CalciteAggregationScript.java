@@ -21,13 +21,9 @@ import org.opensearch.script.AggregationScript;
 import org.opensearch.search.lookup.SearchLookup;
 import org.opensearch.search.lookup.SourceLookup;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
-import org.opensearch.sql.data.model.ExprNullValue;
-import org.opensearch.sql.data.model.ExprStringValue;
-import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
-import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.opensearch.storage.script.core.CalciteScript;
 
 /** Calcite script executor that executes the generated code on each document for aggregation. */
@@ -64,37 +60,29 @@ class CalciteAggregationScript extends AggregationScript {
       MILLIS.between(LocalTime.MIN, ExprValueUtils.fromObjectValue(value, TIME).timeValue());
       case DATE -> ExprValueUtils.fromObjectValue(value, DATE).timestampValue().toEpochMilli();
       case TIMESTAMP -> {
-        // Handle timestamp strings from bin operations using proper function chain
-        // When bin operations produce timestamp strings, they need to be converted to epoch
-        // milliseconds for OpenSearch aggregation (which expects primitive numeric values)
+        long epochMillis =
+            ExprValueUtils.fromObjectValue(value, TIMESTAMP).timestampValue().toEpochMilli();
+        yield epochMillis;
+      }
+      case STRING -> {
         if (value instanceof String) {
           String strValue = (String) value;
-          // Use proper function chain: STRING -> TIMESTAMP() -> epoch milliseconds
-          try {
-            ExprValue timestampValue =
-                DateTimeFunctions.exprTimestampFromString(new ExprStringValue(strValue));
-            if (!timestampValue.equals(ExprNullValue.of())) {
-              long epochMillis = timestampValue.timestampValue().toEpochMilli();
-              yield epochMillis;
-            }
-          } catch (Exception e) {
-            // Fall back to ExprValueUtils parsing
+          // Check if this is a timestamp string from BIN operations (YYYY-MM-DD HH:MM:SS format)
+          if (strValue.matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}")) {
             try {
               long epochMillis =
                   ExprValueUtils.fromObjectValue(strValue, TIMESTAMP)
                       .timestampValue()
                       .toEpochMilli();
               yield epochMillis;
-            } catch (Exception fallbackEx) {
-              // Last resort: return the original value
+            } catch (Exception e) {
+              // Return string as-is if timestamp conversion fails
               yield value;
             }
           }
         }
-        // Default handling for non-string timestamp values
-        long epochMillis =
-            ExprValueUtils.fromObjectValue(value, TIMESTAMP).timestampValue().toEpochMilli();
-        yield epochMillis;
+        // Default string handling
+        yield value;
       }
       default -> {
         // Handle timestamp strings from bin operations using proper function chain
@@ -104,21 +92,12 @@ class CalciteAggregationScript extends AggregationScript {
           String strValue = (String) value;
           // Use proper function chain: STRING -> TIMESTAMP() -> epoch milliseconds
           try {
-            ExprValue timestampValue =
-                DateTimeFunctions.exprTimestampFromString(new ExprStringValue(strValue));
-            if (!timestampValue.equals(ExprNullValue.of())) {
-              yield timestampValue.timestampValue().toEpochMilli();
-            }
+            yield ExprValueUtils.fromObjectValue(strValue, TIMESTAMP)
+                .timestampValue()
+                .toEpochMilli();
           } catch (Exception e) {
-            // Fall back to ExprValueUtils parsing
-            try {
-              yield ExprValueUtils.fromObjectValue(strValue, TIMESTAMP)
-                  .timestampValue()
-                  .toEpochMilli();
-            } catch (Exception fallbackEx) {
-              // Last resort: return the original value
-              yield value;
-            }
+            // Last resort: return the original value
+            yield value;
           }
         }
         yield value;

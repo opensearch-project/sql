@@ -69,11 +69,6 @@ public class UnixTimestampFunction extends ImplementorUDF {
   }
 
   public static double unixTimestamp(FunctionProperties ignored, ExprValue timestamp) {
-    // UDFs handle STRING inputs via proper delegation to existing methods
-    // This follows the same pattern as the regular unix_timestamp function chain
-    if (timestamp.type().equals(org.opensearch.sql.data.type.ExprCoreType.STRING)) {
-      return unixTimeStampOfString(timestamp).doubleValue();
-    }
     return unixTimeStampOf(timestamp).doubleValue();
   }
 }
