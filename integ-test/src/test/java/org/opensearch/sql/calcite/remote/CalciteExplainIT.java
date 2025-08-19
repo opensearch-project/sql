@@ -147,9 +147,10 @@ public class CalciteExplainIT extends ExplainIT {
       loadDataByRestClient(client(), "events", "src/test/resources/events_test.json");
     }
     var result = explainQueryToString("source=events | timechart span=1m avg(cpu_usage) by host");
-    String expected = isPushdownEnabled() 
-        ? loadFromFile("expectedOutput/calcite/explain_timechart.json")
-        : loadFromFile("expectedOutput/calcite/explain_timechart_no_pushdown.json");
+    String expected =
+        isPushdownEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_timechart.json")
+            : loadFromFile("expectedOutput/calcite/explain_timechart_no_pushdown.json");
     assertJsonEqualsIgnoreId(expected, result);
   }
 

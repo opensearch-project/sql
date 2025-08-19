@@ -46,7 +46,7 @@ public interface PlanUtils {
   String ROW_NUMBER_COLUMN_NAME = "_row_number_";
   String ROW_NUMBER_COLUMN_NAME_MAIN = "_row_number_main_";
   String ROW_NUMBER_COLUMN_NAME_SUBSEARCH = "_row_number_subsearch_";
-  
+
   // Timechart constants
   String TIMECHART_TIME_FIELD = "timeField";
   String TIMECHART_BY_FIELD = "byField";
