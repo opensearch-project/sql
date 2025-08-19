@@ -13,6 +13,7 @@ import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 
 import java.io.IOException;
 import java.util.Locale;
+import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
@@ -93,15 +94,28 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testFilterByCompareIPCoercion() throws IOException {
-    // Should automatically cast the string literal to IP.
-    // TODO: Push down IP comparison as range query with Calcite
-    String expected = loadExpectedPlan("explain_filter_compare_ip.json");
+    // Should automatically cast the string literal to IP and pushdown it as a range query
     assertJsonEqualsIgnoreId(
-        expected,
+        loadExpectedPlan("explain_filter_compare_ip.json"),
         explainQueryToString(
             String.format(
                 Locale.ROOT,
                 "source=%s | where host > '1.1.1.1' | fields host",
+                TEST_INDEX_WEBLOGS)));
+  }
+
+  @Test
+  public void testFilterByCompareIpv6Swapped() throws IOException {
+    // Ignored in v2: the serialized string is unstable because of function properties
+    Assume.assumeTrue(isCalciteEnabled());
+    // Test swapping ip and string. In v2, this is pushed down as script;
+    // with Calcite, it will still be pushed down as a range query
+    assertJsonEqualsIgnoreId(
+        loadExpectedPlan("explain_filter_compare_ipv6_swapped.json"),
+        explainQueryToString(
+            String.format(
+                Locale.ROOT,
+                "source=%s | where '::ffff:1234' <= host | fields host",
                 TEST_INDEX_WEBLOGS)));
   }
 

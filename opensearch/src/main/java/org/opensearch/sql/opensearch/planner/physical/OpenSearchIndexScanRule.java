@@ -14,6 +14,7 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 
@@ -42,6 +43,10 @@ public interface OpenSearchIndexScanRule {
   static boolean distinctProjectList(LogicalProject project) {
     Set<RexNode> rexSet = new HashSet<>();
     return project.getProjects().stream().allMatch(rexSet::add);
+  }
+
+  static boolean containsRexOver(LogicalProject project) {
+    return project.getProjects().stream().anyMatch(RexOver::containsOver);
   }
 
   /**
