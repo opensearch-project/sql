@@ -2191,14 +2191,6 @@ public class DateTimeFunctions {
         return value.dateValue().toEpochSecond(LocalTime.MIN, ZoneOffset.UTC) + 0d;
       case TIMESTAMP:
         return value.timestampValue().getEpochSecond() + value.timestampValue().getNano() / 1E9;
-      case STRING:
-        try {
-          // Try to parse as timestamp string first
-          return value.timestampValue().getEpochSecond() + value.timestampValue().getNano() / 1E9;
-        } catch (Exception e) {
-          // If timestamp parsing fails, try as number format
-          return transferUnixTimeStampFromDoubleInput(value.doubleValue());
-        }
       default:
         //     ... or a number in YYMMDD, YYMMDDhhmmss, YYYYMMDD, or YYYYMMDDhhmmss format.
         //     If the argument includes a time part, it may optionally include a fractional

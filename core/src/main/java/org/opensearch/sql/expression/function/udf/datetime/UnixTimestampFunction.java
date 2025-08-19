@@ -49,7 +49,6 @@ public class UnixTimestampFunction extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    // Match the pattern of other datetime UDFs that handle multiple types
     return PPLOperandTypes.OPTIONAL_DATE_OR_TIMESTAMP_OR_NUMERIC;
   }
 

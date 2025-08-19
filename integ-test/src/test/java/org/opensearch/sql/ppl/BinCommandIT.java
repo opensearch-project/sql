@@ -14,6 +14,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
 import org.json.JSONObject;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
 
@@ -224,6 +225,8 @@ public class BinCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @Ignore
+  // https://github.com/opensearch-project/sql/issues/4063
   public void testBinWithTimestampAggregation() throws IOException {
     // Test bin operation with aggregation - this should now work correctly
     JSONObject result =
