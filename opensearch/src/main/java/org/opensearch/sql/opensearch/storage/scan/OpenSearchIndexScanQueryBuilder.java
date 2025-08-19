@@ -84,6 +84,11 @@ class OpenSearchIndexScanQueryBuilder implements PushDownQueryBuilder {
         sortList.stream()
             .map(sortItem -> builder.build(sortItem.getValue(), sortItem.getKey()))
             .collect(Collectors.toList()));
+    // Handle count parameter for sort with limit
+    if (sort.getCount() != 0) {
+      requestBuilder.pushDownLimit(sort.getCount(), 0);
+    }
+
     return true;
   }
 
