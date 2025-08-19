@@ -16,6 +16,11 @@ import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME_MAIN;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME_SUBSEARCH;
+import static org.opensearch.sql.calcite.utils.PlanUtils.TIMECHART_BY_FIELD;
+import static org.opensearch.sql.calcite.utils.PlanUtils.TIMECHART_LIMIT;
+import static org.opensearch.sql.calcite.utils.PlanUtils.TIMECHART_TIME_FIELD;
+import static org.opensearch.sql.calcite.utils.PlanUtils.TIMECHART_USE_OTHER;
+import static org.opensearch.sql.calcite.utils.PlanUtils.TIMECHART_VALUE_FIELD;
 import static org.opensearch.sql.calcite.utils.PlanUtils.getRelation;
 import static org.opensearch.sql.calcite.utils.PlanUtils.transformPlanToAttachChild;
 
@@ -1287,17 +1292,17 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Store the necessary information for the dynamic pivot operation
     // This will be used by the execution engine to perform the two-phase approach
     Map<String, String> dynamicPivotInfo = new HashMap<>();
-    dynamicPivotInfo.put("timeField", timeField);
-    dynamicPivotInfo.put("byField", byField);
-    dynamicPivotInfo.put("valueField", valueField);
+    dynamicPivotInfo.put(TIMECHART_TIME_FIELD, timeField);
+    dynamicPivotInfo.put(TIMECHART_BY_FIELD, byField);
+    dynamicPivotInfo.put(TIMECHART_VALUE_FIELD, valueField);
 
     // Store the limit parameter if present
     if (node.getLimit() != null) {
-      dynamicPivotInfo.put("limit", node.getLimit().toString());
+      dynamicPivotInfo.put(TIMECHART_LIMIT, node.getLimit().toString());
     }
 
     // Store the useOther parameter
-    dynamicPivotInfo.put("useOther", node.getUseOther().toString());
+    dynamicPivotInfo.put(TIMECHART_USE_OTHER, node.getUseOther().toString());
 
     // Mark this node as a special "dynamic pivot" node that will be handled
     // by a custom execution engine

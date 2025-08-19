@@ -19,6 +19,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 @ToString
 @EqualsAndHashCode(callSuper = false)
 @AllArgsConstructor
+@lombok.Builder(toBuilder = true)
 public class Timechart extends UnresolvedPlan {
   private UnresolvedPlan child;
   private UnresolvedExpression binExpression;
@@ -32,24 +33,24 @@ public class Timechart extends UnresolvedPlan {
   }
 
   public Timechart span(UnresolvedExpression binExpression) {
-    return new Timechart(child, binExpression, aggregateFunction, byField, limit, useOther);
+    return toBuilder().binExpression(binExpression).build();
   }
 
   public Timechart by(UnresolvedExpression byField) {
-    return new Timechart(child, binExpression, aggregateFunction, byField, limit, useOther);
+    return toBuilder().byField(byField).build();
   }
 
   public Timechart limit(Integer limit) {
-    return new Timechart(child, binExpression, aggregateFunction, byField, limit, useOther);
+    return toBuilder().limit(limit).build();
   }
 
   public Timechart useOther(Boolean useOther) {
-    return new Timechart(child, binExpression, aggregateFunction, byField, limit, useOther);
+    return toBuilder().useOther(useOther).build();
   }
 
   @Override
   public Timechart attach(UnresolvedPlan child) {
-    return new Timechart(child, binExpression, aggregateFunction, byField, limit, useOther);
+    return toBuilder().child(child).build();
   }
 
   @Override
