@@ -92,7 +92,6 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
-import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.ReferenceFieldVisitor;
 import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.UnsupportedScriptException;
 import org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.ScriptEngineType;
 import org.opensearch.sql.opensearch.storage.script.StringUtils;
@@ -648,7 +647,7 @@ public class PredicateAnalyzer {
           && call.getOperands().size() == 2
           && (call.getOperands().get(0).getKind() == SqlKind.IS_NULL
               || call.getOperands().get(1).getKind() == SqlKind.IS_NULL)) {
-        throw new UnsupportedScriptException(
+        throw new PredicateAnalyzerException(
             "DSL will evaluate both branches of OR with isNUll, prevent push-down to avoid NPE");
       }
 
@@ -1378,10 +1377,6 @@ public class PredicateAnalyzer {
         RelDataType rowType,
         Map<String, ExprType> fieldTypes,
         RelOptCluster cluster) {
-      ReferenceFieldVisitor validator = new ReferenceFieldVisitor(rowType, fieldTypes, true);
-      // Dry run visitInputRef to make sure the input reference ExprType is valid for script
-      // pushdown
-      validator.visitEach(List.of(rexNode));
       RelJsonSerializer serializer = new RelJsonSerializer(cluster);
       this.code =
           SerializationWrapper.wrapWithLangType(

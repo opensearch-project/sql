@@ -8,12 +8,14 @@ package org.opensearch.sql.opensearch.request;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.type.RelDataType;
@@ -24,10 +26,14 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Holder;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.ExistsQueryBuilder;
 import org.opensearch.index.query.MatchBoolPrefixQueryBuilder;
@@ -42,12 +48,16 @@ import org.opensearch.index.query.SimpleQueryStringBuilder;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.index.query.TermsQueryBuilder;
 import org.opensearch.index.query.WildcardQueryBuilder;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.ExpressionNotAnalyzableException;
+import org.opensearch.sql.opensearch.request.PredicateAnalyzer.QueryExpression;
+import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.UnsupportedScriptException;
+import org.opensearch.sql.opensearch.storage.serde.SerializationWrapper;
 
 public class PredicateAnalyzerTest {
   final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
@@ -574,14 +584,27 @@ public class PredicateAnalyzerTest {
   }
 
   @Test
-  void likeFunction_textField_throwsException() throws ExpressionNotAnalyzableException {
+  void likeFunction_textField_scriptPushDown() throws ExpressionNotAnalyzableException {
     RexInputRef field3 = builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.VARCHAR), 2);
     List<RexNode> arguments = Arrays.asList(field3, builder.makeLiteral("%Hi%"));
     RexNode call =
         PPLFuncImpTable.INSTANCE.resolve(builder, "like", arguments.toArray(new RexNode[0]));
-    assertThrows(
-        ExpressionNotAnalyzableException.class,
-        () -> PredicateAnalyzer.analyze(call, schema, fieldTypes));
+
+    final RelDataType rowType =
+        builder
+            .getTypeFactory()
+            .builder()
+            .kind(StructKind.FULLY_QUALIFIED)
+            .add("a", builder.getTypeFactory().createSqlType(SqlTypeName.BIGINT))
+            .add("b", builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR))
+            .build();
+    Hook.CURRENT_TIME.addThread((Consumer<Holder<Long>>) h -> h.set(0L));
+    QueryExpression expression =
+        PredicateAnalyzer.analyzeExpression(call, schema, fieldTypes, rowType, cluster);
+    assert (expression
+        .builder()
+        .toString()
+        .contains("\"lang\" : \"opensearch_compounded_script\""));
   }
 
   @Test
@@ -668,7 +691,7 @@ public class PredicateAnalyzerTest {
   }
 
   @Test
-  void equals_throwException_TextWithoutKeyword() {
+  void equals_scriptPushDown_TextWithoutKeyword() throws ExpressionNotAnalyzableException {
     final RelDataType rowType =
         builder
             .getTypeFactory()
@@ -681,15 +704,37 @@ public class PredicateAnalyzerTest {
     final RexInputRef field3 =
         builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.VARCHAR), 2);
     RexNode call = builder.makeCall(SqlStdOperatorTable.EQUALS, field3, stringLiteral);
-    ExpressionNotAnalyzableException exception =
-        assertThrows(
-            ExpressionNotAnalyzableException.class,
-            () -> PredicateAnalyzer.analyze(call, schema, fieldTypes, rowType, cluster));
-    assertEquals("Can't convert =($2, 'Hi')", exception.getMessage());
+    Hook.CURRENT_TIME.addThread((Consumer<Holder<Long>>) h -> h.set(0L));
+    QueryBuilder builder = PredicateAnalyzer.analyze(call, schema, fieldTypes, rowType, cluster);
+    assert (builder.toString().contains("\"lang\" : \"opensearch_compounded_script\""));
   }
 
   @Test
-  void isNullOr_throwException() {
+  void equals_scriptPushDown_Struct() throws ExpressionNotAnalyzableException {
+    final RelDataType mapType =
+        typeFactory.createMapType(
+            typeFactory.createSqlType(SqlTypeName.VARCHAR),
+            typeFactory.createSqlType(SqlTypeName.VARCHAR));
+    final RelDataType rowType =
+        builder
+            .getTypeFactory()
+            .builder()
+            .kind(StructKind.FULLY_QUALIFIED)
+            .add("d", mapType)
+            .build();
+    final RexInputRef field4 = builder.makeInputRef(mapType, 3);
+    final Map<String, ExprType> newFieldTypes =
+        Map.of("d", OpenSearchDataType.of(ExprCoreType.STRUCT));
+    final List<String> newSchema = List.of("d");
+    RexNode call = builder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, field4);
+    Hook.CURRENT_TIME.addThread((Consumer<Holder<Long>>) h -> h.set(0L));
+    QueryBuilder builder =
+        PredicateAnalyzer.analyze(call, newSchema, newFieldTypes, rowType, cluster);
+    assert (builder.toString().contains("\"lang\" : \"opensearch_compounded_script\""));
+  }
+
+  @Test
+  void isNullOr_ScriptPushDown() throws ExpressionNotAnalyzableException {
     final RelDataType rowType =
         builder
             .getTypeFactory()
@@ -700,10 +745,65 @@ public class PredicateAnalyzerTest {
             .build();
     // PPL IS_EMPTY is translated to OR(IS_NULL(arg), IS_EMPTY(arg))
     RexNode call = PPLFuncImpTable.INSTANCE.resolve(builder, BuiltinFunctionName.IS_EMPTY, field2);
-    ExpressionNotAnalyzableException exception =
-        assertThrows(
-            ExpressionNotAnalyzableException.class,
-            () -> PredicateAnalyzer.analyzeExpression(call, schema, fieldTypes, rowType, cluster));
-    assertEquals("Can't convert OR(IS NULL($1), IS EMPTY($1))", exception.getMessage());
+    Hook.CURRENT_TIME.addThread((Consumer<Holder<Long>>) h -> h.set(0L));
+    QueryExpression expression =
+        PredicateAnalyzer.analyzeExpression(call, schema, fieldTypes, rowType, cluster);
+    assert (expression
+        .builder()
+        .toString()
+        .contains("\"lang\" : \"opensearch_compounded_script\""));
+  }
+
+  @Test
+  void verify_partial_pushdown() throws ExpressionNotAnalyzableException {
+    RexNode call1 = builder.makeCall(SqlStdOperatorTable.EQUALS, field1, numericLiteral);
+    RexNode call2 = builder.makeCall(SqlStdOperatorTable.IS_EMPTY, field2);
+    try (MockedStatic<SerializationWrapper> mockedSerializationWrapper =
+        Mockito.mockStatic(SerializationWrapper.class)) {
+      mockedSerializationWrapper
+          .when(() -> SerializationWrapper.wrapWithLangType(any(), any()))
+          .thenThrow(new UnsupportedScriptException(""));
+
+      // Partial push down part of and
+      RexNode andCall = builder.makeCall(SqlStdOperatorTable.AND, List.of(call1, call2));
+      QueryExpression result =
+          PredicateAnalyzer.analyzeExpression(andCall, schema, fieldTypes, null, null);
+
+      QueryBuilder resultBuilder = result.builder();
+      assertInstanceOf(BoolQueryBuilder.class, resultBuilder);
+      assertEquals(
+          """
+              {
+                "bool" : {
+                  "must" : [
+                    {
+                      "term" : {
+                        "a" : {
+                          "value" : 12,
+                          "boost" : 1.0
+                        }
+                      }
+                    }
+                  ],
+                  "adjust_pure_negative" : true,
+                  "boost" : 1.0
+                }
+              }""",
+          resultBuilder.toString());
+
+      List<RexNode> unAnalyzableNodes = result.getUnAnalyzableNodes();
+      assertEquals(1, unAnalyzableNodes.size());
+      assertEquals(call2, unAnalyzableNodes.getFirst());
+
+      // Don't push down the whole condition if part of `or` cannot be pushed down
+      RexNode orCall = builder.makeCall(SqlStdOperatorTable.OR, List.of(call1, call2));
+      ExpressionNotAnalyzableException exception =
+          assertThrows(
+              ExpressionNotAnalyzableException.class,
+              () -> {
+                PredicateAnalyzer.analyzeExpression(orCall, schema, fieldTypes, null, null);
+              });
+      assertEquals("Can't convert OR(=($0, 12), IS EMPTY($1))", exception.getMessage());
+    }
   }
 }
