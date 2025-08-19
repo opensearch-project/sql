@@ -8,6 +8,7 @@ package org.opensearch.sql.protocol.response.format;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -422,6 +423,37 @@ class TimechartResponseFormatterTest {
     assertEquals(20, dataRow[1]); // host-02 (highest count)
     assertEquals(15, dataRow[2]); // host-04 (second highest)
     assertEquals(15, dataRow[3]); // OTHER = host-01 (10) + host-03 (5) = 15
+
+    // Verify that the OTHER column value is a Long (integer) type, not a Double
+    assertTrue(dataRow[3] instanceof Long);
+  }
+
+  @Test
+  void testCountAggregationWithOtherCategoryFractionalSum() {
+    QueryResult queryResult =
+        mockQueryResult(
+            Arrays.asList("timestamp", "age", "count"),
+            Map.of("timestamp", "timestamp", "age", "keyword", "count", "bigint"),
+            Arrays.<Object[]>asList(
+                new Object[] {"2025-08-19 16:00:00", "20", 1},
+                new Object[] {"2025-08-19 16:00:00", "30", 2},
+                new Object[] {"2025-08-19 16:00:00", "40", 1},
+                new Object[] {"2025-08-19 16:00:00", "50", 0}));
+
+    TimechartResponseFormatter formatter =
+        new TimechartResponseFormatter(JsonResponseFormatter.Style.COMPACT, 1, true)
+            .withCountAggregation(true);
+    JsonResponse response = (JsonResponse) formatter.buildJsonObject(queryResult);
+
+    assertEquals(1, response.getTotal());
+    assertEquals(3, response.getSchema().size()); // timestamp + top 1 host + OTHER
+
+    Object[] dataRow = response.getDatarows()[0];
+    assertEquals(0, dataRow[1]); // age=50 (has count 0)
+    assertEquals(4, dataRow[2]); // OTHER = age 20 (1) + age 30 (2) + age 40 (1) = 4
+
+    // Verify that the OTHER column value is a Long (integer) type, not a Double
+    assertTrue(dataRow[2] instanceof Long);
   }
 
   @SuppressWarnings("unchecked")

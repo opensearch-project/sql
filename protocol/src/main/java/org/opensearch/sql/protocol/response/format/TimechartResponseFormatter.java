@@ -205,8 +205,11 @@ public class TimechartResponseFormatter extends JsonResponseFormatter<QueryResul
               .mapToDouble(e -> convertToDouble(e.getValue()))
               .sum();
 
+      // Set OTHER column value based on aggregation type:
+      // Count aggregations: use integer type (0 for no data)
+      // Other aggregations: use double type (null for no data)
       if (otherSum != 0.0) {
-        row[row.length - 1] = otherSum;
+        row[row.length - 1] = isCountAggregation ? (long) Math.round(otherSum) : otherSum;
       } else {
         row[row.length - 1] = isCountAggregation ? 0 : null;
       }
