@@ -398,6 +398,11 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     return context.relBuilder.alias(expr, node.getVar().getField().toString());
   }
 
+  /**
+   * The function will clone a context for lambda function. For lambda like (x, y, z) -> ..., we
+   * will map type for each lambda argument by the order of previous argument. Also, the function
+   * will add these variables to the context so they can pass visitQualifiedName
+   */
   public CalcitePlanContext prepareLambdaContext(
       CalcitePlanContext context,
       LambdaFunction node,
@@ -437,6 +442,12 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     }
   }
 
+  /**
+   * @param functionName function name
+   * @param originalType the argument type by order
+   * @return a modified types. Different functions need to implement its own order. Currently, only
+   *     reduce has special logic.
+   */
   private List<RelDataType> modifyLambdaTypeByFunction(
       String functionName,
       List<RelDataType> originalType,
@@ -551,6 +562,16 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
               + " of columns in the output of subquery");
     }
 
+    // TODO
+    //  The {@link org.apache.calcite.tools.RelBuilder#in(RexNode,java.util.function.Function)}
+    //  only support one expression. Change to follow code after calcite fixed.
+    //    return context.relBuilder.in(
+    //        nodes.getFirst(),
+    //        b -> {
+    //          RelNode subqueryRel = subquery.accept(planVisitor, context);
+    //          b.build();
+    //          return subqueryRel;
+    //        });
     return context.relBuilder.in(subqueryRel, nodes);
   }
 
