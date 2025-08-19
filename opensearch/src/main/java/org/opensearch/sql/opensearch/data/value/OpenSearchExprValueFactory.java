@@ -199,53 +199,20 @@ public class OpenSearchExprValueFactory {
 
     final ExprType type = fieldType.get();
 
-    // CRITICAL FIX: Handle range strings from bin operations
-    // Range strings like "20-30" or "1000.0-10000.0" should always be treated as strings regardless
-    // of original field type. But exclude date/timestamp formats like "1984-103", "1984-04-12",
-    // "2025-07-28 00:00:00"
+    // Handle range strings from bin operations
+    // Range strings like "20-30" or "1000.0-10000.0" should always be treated as strings
+    // regardless of original field type
     if (content.objectValue() instanceof String) {
       String stringValue = (String) content.objectValue();
-      if (stringValue.contains("-") && stringValue.matches("\\d+\\.?\\d*-\\d+\\.?\\d*")) {
-        // Exclude date/timestamp formats:
+      // Check if this is a numeric range pattern (e.g., "20-30", "1000.0-10000.0")
+      if (stringValue.matches("\\d+\\.?\\d*-\\d+\\.?\\d*")) {
+        // Exclude date formats to avoid false positives:
         // - YYYY-DDD (ordinal date): "1984-103"
         // - YYYY-MM-DD (ISO date): "1984-04-12"
-        // - YYYY-MM-DD HH:MM:SS (ISO timestamp): "2025-07-28 00:00:00"
         if (!stringValue.matches("\\d{4}-\\d{1,3}")
-            && !stringValue.matches("\\d{4}-\\d{2}-\\d{2}")
-            && !stringValue.matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}")) {
+            && !stringValue.matches("\\d{4}-\\d{2}-\\d{2}")) {
           // This is a range string from bin operation - treat as string value
           return new ExprStringValue(stringValue);
-        }
-      }
-    }
-
-    // FINAL FIX: Convert FROM_UNIXTIME timestamp strings to ExprTimestampValue for aggregation
-    // The bin command uses FROM_UNIXTIME which produces timestamp strings. When these are used
-    // in aggregation operations, they need to be ExprTimestampValue to work with TreeMap sorting.
-    if (content.objectValue() instanceof String) {
-      String stringValue = (String) content.objectValue();
-
-      // Check for FROM_UNIXTIME timestamp format (YYYY-MM-DD HH:MM:SS with optional fractional
-      // seconds)
-      if (stringValue.matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}(\\.\\d+)?")) {
-        // Check if this is a timestamp-related type that should be converted
-        if (type != null) {
-          String typeString = type.toString().toLowerCase();
-          boolean shouldConvertToTimestamp =
-              typeString.contains("timestamp")
-                  || typeString.contains("expr_timestamp")
-                  || fieldType.isEmpty(); // Handle cases where type is not in mapping
-
-          if (shouldConvertToTimestamp) {
-            try {
-              // CRITICAL: Convert timestamp string to ExprTimestampValue
-              // This prevents "invalid to get doubleValue from value of type STRING" errors
-              // in BucketCollector's TreeMap comparison operations
-              return new ExprTimestampValue(stringValue);
-            } catch (Exception e) {
-              // If timestamp parsing fails, continue with string processing
-            }
-          }
         }
       }
     }

@@ -62,13 +62,48 @@ public class BinCalculatorFunction extends ImplementorUDF {
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
       Expression fieldValue = translatedOperands.get(0);
-      Expression binType = translatedOperands.get(1);
       Expression param1 = translatedOperands.get(2);
       Expression param2 = translatedOperands.get(3);
       Expression param3 = translatedOperands.get(4);
       Expression dataRange = translatedOperands.get(5);
       Expression maxValue = translatedOperands.get(6);
 
+      // Determine bin type at compile time if possible
+      if (call.operands.get(1) instanceof org.apache.calcite.rex.RexLiteral) {
+        org.apache.calcite.rex.RexLiteral literal =
+            (org.apache.calcite.rex.RexLiteral) call.operands.get(1);
+        String type = literal.getValueAs(String.class);
+        if (type != null) {
+          String lowerType = type.toLowerCase();
+          switch (lowerType) {
+            case "span":
+              return Expressions.call(
+                  BinCalculatorImplementor.class,
+                  "calculateSpanBin",
+                  Expressions.convert_(fieldValue, Number.class),
+                  Expressions.convert_(param1, Number.class));
+            case "bins":
+              return Expressions.call(
+                  BinCalculatorImplementor.class,
+                  "calculateBinsBin",
+                  Expressions.convert_(fieldValue, Number.class),
+                  Expressions.convert_(param1, Number.class),
+                  Expressions.convert_(dataRange, Number.class),
+                  Expressions.convert_(maxValue, Number.class));
+            case "minspan":
+              return Expressions.call(
+                  BinCalculatorImplementor.class,
+                  "calculateMinspanBin",
+                  Expressions.convert_(fieldValue, Number.class),
+                  Expressions.convert_(param1, Number.class),
+                  Expressions.convert_(dataRange, Number.class),
+                  Expressions.convert_(maxValue, Number.class));
+          }
+        }
+      }
+
+      // Fallback to runtime switch for dynamic bin types
+      Expression binType = translatedOperands.get(1);
       return Expressions.call(
           BinCalculatorImplementor.class,
           "calculateBin",
@@ -110,25 +145,29 @@ public class BinCalculatorFunction extends ImplementorUDF {
 
       switch (type) {
         case "span":
-          return calculateSpanBin(value, param1.doubleValue(), param2, param3);
+          return calculateSpanBin(value, param1.doubleValue());
         case "bins":
-          return calculateBinsBin(value, param1.intValue(), param2, param3, dataRange, maxValue);
+          return calculateBinsBin(value, param1.intValue(), dataRange, maxValue);
         case "minspan":
-          return calculateMinspanBin(
-              value, param1.doubleValue(), param2, param3, dataRange, maxValue);
+          return calculateMinspanBin(value, param1.doubleValue(), dataRange, maxValue);
         default:
           return null;
       }
     }
 
     /** Span-based binning calculation. */
-    private static String calculateSpanBin(
-        double value, double span, Number startParam, Number endParam) {
+    public static String calculateSpanBin(Number fieldValue, Number spanParam) {
+      if (fieldValue == null || spanParam == null) {
+        return null;
+      }
+
+      double value = fieldValue.doubleValue();
+      double span = spanParam.doubleValue();
       if (span <= 0) {
         return null;
       }
 
-      // "Never shrink the data range" principle: ignore start/end parameters
+      // "Never shrink the data range" principle: start/end parameters are not used
       double binStart = Math.floor(value / span) * span;
       double binEnd = binStart + span;
 
@@ -136,14 +175,16 @@ public class BinCalculatorFunction extends ImplementorUDF {
     }
 
     /** Bins-based binning calculation using nice number algorithm. */
-    private static String calculateBinsBin(
-        double value,
-        int numBins,
-        Number startParam,
-        Number endParam,
-        Number dataRange,
-        Number maxValue) {
-      if (numBins <= 0 || dataRange == null || maxValue == null) {
+    public static String calculateBinsBin(
+        Number fieldValue, Number numBinsParam, Number dataRange, Number maxValue) {
+      if (fieldValue == null || numBinsParam == null || dataRange == null || maxValue == null) {
+        return null;
+      }
+
+      double value = fieldValue.doubleValue();
+      int numBins = numBinsParam.intValue();
+
+      if (numBins <= 0) {
         return null;
       }
 
@@ -168,14 +209,16 @@ public class BinCalculatorFunction extends ImplementorUDF {
     }
 
     /** Minspan-based binning calculation. */
-    private static String calculateMinspanBin(
-        double value,
-        double minSpan,
-        Number startParam,
-        Number endParam,
-        Number dataRange,
-        Number maxValue) {
-      if (minSpan <= 0 || dataRange == null || maxValue == null) {
+    public static String calculateMinspanBin(
+        Number fieldValue, Number minSpanParam, Number dataRange, Number maxValue) {
+      if (fieldValue == null || minSpanParam == null || dataRange == null || maxValue == null) {
+        return null;
+      }
+
+      double value = fieldValue.doubleValue();
+      double minSpan = minSpanParam.doubleValue();
+
+      if (minSpan <= 0) {
         return null;
       }
 

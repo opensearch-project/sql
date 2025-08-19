@@ -29,10 +29,4 @@ public class BinUtils {
     BinHandler handler = BinHandlerFactory.getHandler(node);
     return handler.createExpression(node, fieldExpr, context, rexVisitor);
   }
-
-  /** Determines if the bin command uses window functions. */
-  public static boolean usesWindowFunctions(Bin node) {
-    BinHandler handler = BinHandlerFactory.getHandler(node);
-    return handler.usesWindowFunctions();
-  }
 }

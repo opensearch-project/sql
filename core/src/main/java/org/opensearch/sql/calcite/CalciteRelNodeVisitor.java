@@ -504,8 +504,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
    */
   private void handleBinWithAlias(
       CalcitePlanContext context, RexNode binExpression, String aliasName) {
-    RexNode aliasedBinExpression = context.relBuilder.alias(binExpression, aliasName);
-    context.relBuilder.projectPlus(aliasedBinExpression);
+    projectPlusOverriding(List.of(binExpression), List.of(aliasName), context);
   }
 
   /**

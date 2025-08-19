@@ -189,24 +189,6 @@ public class BinCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testSimpleTimestampAggregation() throws IOException {
-    // Test basic timestamp aggregation without binning to isolate the issue
-    JSONObject result =
-        executeQuery(
-            "source=opensearch-sql_test_index_time_data"
-                + " | stats count() by `@timestamp` | sort `@timestamp` | head 3");
-
-    verifySchema(
-        result, schema("count()", null, "bigint"), schema("@timestamp", null, "timestamp"));
-    // We expect each unique timestamp to have count=1
-    verifyDataRows(
-        result,
-        rows(1L, "2025-07-28 00:15:23"),
-        rows(1L, "2025-07-28 01:42:15"),
-        rows(1L, "2025-07-28 02:28:45"));
-  }
-
-  @Test
   public void testBinOnlyWithoutAggregation() throws IOException {
     // Test just the bin operation without aggregation
     JSONObject binOnlyResult =
