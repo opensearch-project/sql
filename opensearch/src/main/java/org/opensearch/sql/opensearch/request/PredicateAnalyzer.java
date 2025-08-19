@@ -72,6 +72,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.NlsString;
@@ -485,6 +486,10 @@ public class PredicateAnalyzer {
         String message = format(Locale.ROOT, "Unsupported operator: [%s]", call);
         throw new PredicateAnalyzerException(message);
       }
+
+      // OpenSearch DSL does not handle IS_NULL / IS_NOT_NULL on nested fields correctly
+      checkForNestedFieldOperands(call);
+
       Expression a = call.getOperands().get(0).accept(this);
       // OpenSearch does not want is null/is not null (exists query)
       // for _id and _index, although it supports for all other metadata column
@@ -1357,6 +1362,11 @@ public class PredicateAnalyzer {
         RelDataType rowType,
         Map<String, ExprType> fieldTypes,
         RelOptCluster cluster) {
+      if (rexNode instanceof RexCall
+          && (rexNode.getKind().equals(SqlKind.IS_NULL)
+              || rexNode.getKind().equals(SqlKind.IS_NOT_NULL))) {
+        checkForNestedFieldOperands((RexCall) rexNode);
+      }
       ReferenceFieldVisitor validator = new ReferenceFieldVisitor(rowType, fieldTypes, true);
       // Dry run visitInputRef to make sure the input reference ExprType is valid for script
       // pushdown
@@ -1643,6 +1653,31 @@ public class PredicateAnalyzer {
         || (SqlTypeFamily.TIME.contains(op2) && !SqlTypeFamily.TIME.contains(op1))) {
       throw new PredicateAnalyzerException(
           "Cannot handle " + call.getKind() + " expression for _id field, " + call);
+    }
+  }
+
+  /**
+   * Examines the operands of a RexCall to check for nested fields and throws an exception if any
+   * are found.
+   *
+   * <p>This check prevents operations (IS_NULL, IS_NOT_NULL) that would produce incorrect results
+   * in OpenSearch when pushed down as either DSL queries or scripts.
+   *
+   * @param call The RexCall to check for nested field operands
+   * @throws PredicateAnalyzerException if any nested fields are detected in the operands
+   */
+  private static void checkForNestedFieldOperands(RexCall call) throws PredicateAnalyzerException {
+    boolean conditionContainsNestedField =
+        call.getOperands().stream()
+            .map(RexNode::getType)
+            // Nested fields are of type ArraySqlType
+            .anyMatch(type -> type instanceof ArraySqlType);
+    if (conditionContainsNestedField) {
+      throw new PredicateAnalyzerException(
+          format(
+              Locale.ROOT,
+              "OpenSearch DSL does not handle %s on nested fields correctly",
+              call.getKind()));
     }
   }
 }

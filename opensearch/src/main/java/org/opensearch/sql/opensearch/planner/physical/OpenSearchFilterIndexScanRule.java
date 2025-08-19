@@ -54,7 +54,6 @@ public class OpenSearchFilterIndexScanRule extends RelRule<OpenSearchFilterIndex
             .withOperandSupplier(
                 b0 ->
                     b0.operand(LogicalFilter.class)
-                        .predicate(Predicate.not(OpenSearchIndexScanRule::isConditionExcluded))
                         .oneInput(
                             b1 ->
                                 b1.operand(CalciteLogicalIndexScan.class)
