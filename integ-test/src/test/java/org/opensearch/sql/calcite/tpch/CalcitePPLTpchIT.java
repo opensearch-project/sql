@@ -18,6 +18,7 @@ import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.Retry;
 
 public class CalcitePPLTpchIT extends PPLIntegTestCase {
 
@@ -173,6 +174,8 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
     verifyDataRows(actual, rows(77949.9186));
   }
 
+  @Test
+  @Retry
   public void testQ7() throws IOException {
     String ppl = sanitize(loadFromFile("tpch/queries/q7.ppl"));
     JSONObject actual = executeQuery(ppl);
@@ -185,6 +188,7 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
     verifyNumOfRows(actual, 0);
   }
 
+  @Test
   public void testQ8() throws IOException {
     String ppl = sanitize(loadFromFile("tpch/queries/q8.ppl"));
     JSONObject actual = executeQuery(ppl);
