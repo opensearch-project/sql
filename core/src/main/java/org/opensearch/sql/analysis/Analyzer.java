@@ -512,7 +512,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitSort(Sort node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
-    return buildSort(child, context, node.getSortList());
+    return buildSort(child, context, node.getCount(), node.getSortList());
   }
 
   /** Build {@link LogicalDedupe}. */
@@ -672,7 +672,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     }
 
     return new LogicalTrendline(
-        buildSort(child, context, Collections.singletonList(node.getSortByField().get())),
+        buildSort(child, context, 0, Collections.singletonList(node.getSortByField().get())),
         computationsAndTypes.build());
   }
 
@@ -725,7 +725,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   private LogicalSort buildSort(
-      LogicalPlan child, AnalysisContext context, List<Field> sortFields) {
+      LogicalPlan child, AnalysisContext context, Integer count, List<Field> sortFields) {
     ExpressionReferenceOptimizer optimizer =
         new ExpressionReferenceOptimizer(expressionAnalyzer.getRepository(), child);
 
@@ -742,7 +742,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
                   return ImmutablePair.of(analyzeSortOption(sortField.getFieldArgs()), expression);
                 })
             .collect(Collectors.toList());
-    return new LogicalSort(child, sortList);
+    return new LogicalSort(child, count, sortList);
   }
 
   /**
