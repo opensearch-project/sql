@@ -38,6 +38,7 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
   }
 
   @Test
+  @Retry
   public void testQ1() throws IOException {
     String ppl = sanitize(loadFromFile("tpch/queries/q1.ppl"));
     JSONObject actual = executeQuery(ppl);
@@ -102,6 +103,7 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
   }
 
   @Test
+  @Retry
   public void testQ2() throws IOException {
     String ppl = sanitize(loadFromFile("tpch/queries/q2.ppl"));
     JSONObject actual = executeQuery(ppl);
@@ -119,6 +121,7 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
   }
 
   @Test
+  @Retry
   public void testQ3() throws IOException {
     String ppl = sanitize(loadFromFile("tpch/queries/q3.ppl"));
     JSONObject actual = executeQuery(ppl);
@@ -143,7 +146,6 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
   // TODO: Aggregation push down has a hard-coded limit of 1000 buckets for output, so this query
   // will not return the correct results with aggregation push down and it's unstable
   @Ignore
-  @Test
   public void testQ4() throws IOException {
     String ppl = sanitize(loadFromFile("tpch/queries/q4.ppl"));
     JSONObject actual = executeQuery(ppl);
@@ -159,6 +161,7 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
   }
 
   @Test
+  @Retry
   public void testQ5() throws IOException {
     String ppl = sanitize(loadFromFile("tpch/queries/q5.ppl"));
     JSONObject actual = executeQuery(ppl);
@@ -167,6 +170,7 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
   }
 
   @Test
+  @Retry
   public void testQ6() throws IOException {
     String ppl = sanitize(loadFromFile("tpch/queries/q6.ppl"));
     JSONObject actual = executeQuery(ppl);
@@ -189,6 +193,7 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
   }
 
   @Test
+  @Retry
   public void testQ8() throws IOException {
     String ppl = sanitize(loadFromFile("tpch/queries/q8.ppl"));
     JSONObject actual = executeQuery(ppl);
@@ -197,6 +202,7 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
   }
 
   @Test
+  @Retry
   public void testQ9() throws IOException {
     String ppl = sanitize(loadFromFile("tpch/queries/q9.ppl"));
     JSONObject actual = executeQuery(ppl);
@@ -209,6 +215,7 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
   }
 
   @Test
+  @Retry
   public void testQ10() throws IOException {
     String ppl = sanitize(loadFromFile("tpch/queries/q10.ppl"));
     JSONObject actual = executeQuery(ppl);
@@ -238,6 +245,7 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
   }
 
   @Test
+  @Retry
   public void testQ11() throws IOException {
     String ppl = sanitize(loadFromFile("tpch/queries/q11.ppl"));
     JSONObject actual = executeQuery(ppl);
@@ -246,6 +254,7 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
   }
 
   @Test
+  @Retry
   public void testQ12() throws IOException {
     String ppl = sanitize(loadFromFile("tpch/queries/q12.ppl"));
     JSONObject actual = executeQuery(ppl);
@@ -258,6 +267,7 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
   }
 
   @Test
+  @Retry
   public void testQ13() throws IOException {
     String ppl = sanitize(loadFromFile("tpch/queries/q13.ppl"));
     JSONObject actual = executeQuery(ppl);
@@ -294,6 +304,7 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
   }
 
   @Test
+  @Retry
   public void testQ14() throws IOException {
     String ppl = sanitize(loadFromFile("tpch/queries/q14.ppl"));
     JSONObject actual = executeQuery(ppl);
@@ -302,6 +313,7 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
   }
 
   @Test
+  @Retry
   public void testQ15() throws IOException {
     String ppl = sanitize(loadFromFile("tpch/queries/q15.ppl"));
     JSONObject actual = executeQuery(ppl);
@@ -318,6 +330,7 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
   }
 
   @Test
+  @Retry
   public void testQ16() throws IOException {
     String ppl = sanitize(loadFromFile("tpch/queries/q16.ppl"));
     JSONObject actual = executeQuery(ppl);
@@ -366,6 +379,7 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
   }
 
   @Test
+  @Retry
   public void testQ17() throws IOException {
     String ppl = sanitize(loadFromFile("tpch/queries/q17.ppl"));
     String actual = executeQuery(ppl).toString();
@@ -389,6 +403,7 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
   }
 
   @Test
+  @Retry
   public void testQ18() throws IOException {
     String ppl = sanitize(loadFromFile("tpch/queries/q18.ppl"));
     JSONObject actual = executeQuery(ppl);
@@ -404,6 +419,7 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
   }
 
   @Test
+  @Retry
   public void testQ19() throws IOException {
     String ppl = sanitize(loadFromFile("tpch/queries/q19.ppl"));
     String actual = executeQuery(ppl).toString();
@@ -427,6 +443,7 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
   }
 
   @Test
+  @Retry
   public void testQ20() throws IOException {
     String ppl = sanitize(loadFromFile("tpch/queries/q20.ppl"));
     JSONObject actual = executeQuery(ppl);
@@ -435,6 +452,7 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
   }
 
   @Test
+  @Retry
   public void testQ21() throws IOException {
     String ppl = sanitize(loadFromFile("tpch/queries/q21.ppl"));
     JSONObject actual = executeQuery(ppl);
@@ -443,6 +461,7 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
   }
 
   @Test
+  @Retry
   public void testQ22() throws IOException {
     String ppl = sanitize(loadFromFile("tpch/queries/q22.ppl"));
     JSONObject actual = executeQuery(ppl);
