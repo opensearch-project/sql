@@ -700,7 +700,17 @@ public class PPLFuncImpTable {
       registerOperator(AND, SqlStdOperatorTable.AND);
       registerOperator(OR, SqlStdOperatorTable.OR);
       registerOperator(NOT, SqlStdOperatorTable.NOT);
-      registerOperator(ADD, SqlStdOperatorTable.PLUS);
+
+      // Register ADD (+ symbol) for numeric addition
+      register(
+          ADD,
+          (RexBuilder builder, RexNode... args) -> builder.makeCall(SqlStdOperatorTable.PLUS, args),
+          new PPLTypeChecker.PPLFamilyTypeChecker(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC));
+
+      // Register ADD (+ symbol) for string concatenation
+      registerOperator(ADD, SqlStdOperatorTable.CONCAT);
+
+      // Register ADDFUNCTION for numeric addition only
       registerOperator(ADDFUNCTION, SqlStdOperatorTable.PLUS);
       registerOperator(SUBTRACT, SqlStdOperatorTable.MINUS);
       registerOperator(SUBTRACTFUNCTION, SqlStdOperatorTable.MINUS);
