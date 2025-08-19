@@ -1362,6 +1362,8 @@ public class PredicateAnalyzer {
         RelDataType rowType,
         Map<String, ExprType> fieldTypes,
         RelOptCluster cluster) {
+      // We prevent is_null(nested_field) from being pushed down because pushed-down scripts can not
+      // access nested fields for the time being
       if (rexNode instanceof RexCall
           && (rexNode.getKind().equals(SqlKind.IS_NULL)
               || rexNode.getKind().equals(SqlKind.IS_NOT_NULL))) {
