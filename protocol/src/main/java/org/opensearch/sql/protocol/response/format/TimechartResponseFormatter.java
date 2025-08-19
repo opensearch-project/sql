@@ -36,6 +36,7 @@ public class TimechartResponseFormatter extends JsonResponseFormatter<QueryResul
 
   private final Integer maxDistinctValues;
   private final Boolean useOther;
+  private boolean isCountAggregation;
 
   public TimechartResponseFormatter(Style style) {
     this(style, null, true);
@@ -50,6 +51,19 @@ public class TimechartResponseFormatter extends JsonResponseFormatter<QueryResul
     this.maxDistinctValues =
         maxDistinctValues != null ? maxDistinctValues : DEFAULT_MAX_DISTINCT_VALUES;
     this.useOther = useOther != null ? useOther : true;
+    this.isCountAggregation = false;
+  }
+
+  /**
+   * Set whether this formatter is handling a count aggregation. When true, null values will be
+   * replaced with 0 in the response.
+   *
+   * @param isCountAggregation true if the aggregation function is count()
+   * @return this formatter instance for method chaining
+   */
+  public TimechartResponseFormatter withCountAggregation(boolean isCountAggregation) {
+    this.isCountAggregation = isCountAggregation;
+    return this;
   }
 
   @Override
@@ -181,7 +195,8 @@ public class TimechartResponseFormatter extends JsonResponseFormatter<QueryResul
 
       Map<Object, Object> byValueMap = entry.getValue();
       for (int i = 0; i < topValues.size(); i++) {
-        row[i + 1] = byValueMap.getOrDefault(topValues.get(i), null);
+        Object defaultValue = isCountAggregation ? 0 : null;
+        row[i + 1] = byValueMap.getOrDefault(topValues.get(i), defaultValue);
       }
 
       double otherSum =
@@ -189,7 +204,12 @@ public class TimechartResponseFormatter extends JsonResponseFormatter<QueryResul
               .filter(e -> !topValues.contains(e.getKey()))
               .mapToDouble(e -> convertToDouble(e.getValue()))
               .sum();
-      row[row.length - 1] = otherSum != 0.0 ? otherSum : null;
+
+      if (otherSum != 0.0) {
+        row[row.length - 1] = otherSum;
+      } else {
+        row[row.length - 1] = isCountAggregation ? 0 : null;
+      }
 
       dataRows.add(row);
     }
@@ -205,7 +225,8 @@ public class TimechartResponseFormatter extends JsonResponseFormatter<QueryResul
 
       Map<Object, Object> byValueMap = entry.getValue();
       for (int i = 0; i < valuesToShow.size(); i++) {
-        row[i + 1] = byValueMap.getOrDefault(valuesToShow.get(i), null);
+        Object defaultValue = isCountAggregation ? 0 : null;
+        row[i + 1] = byValueMap.getOrDefault(valuesToShow.get(i), defaultValue);
       }
 
       dataRows.add(row);

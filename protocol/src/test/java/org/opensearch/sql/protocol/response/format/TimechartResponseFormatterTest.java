@@ -368,6 +368,62 @@ class TimechartResponseFormatterTest {
     assertEquals(null, dataRow[3]); // OTHER should be null when sum is 0.0
   }
 
+  @Test
+  void testCountAggregationWithNullValues() {
+    QueryResult queryResult =
+        mockQueryResult(
+            Arrays.asList("timestamp", "host", "count"),
+            Map.of("timestamp", "timestamp", "host", "keyword", "count", "bigint"),
+            Arrays.<Object[]>asList(
+                new Object[] {"2024-01-01 00:00:00", "web-01", 1},
+                new Object[] {"2024-01-01 00:00:00", "web-02", 2},
+                new Object[] {"2024-01-01 00:01:00", "web-01", 3}));
+
+    TimechartResponseFormatter formatter =
+        new TimechartResponseFormatter(JsonResponseFormatter.Style.COMPACT)
+            .withCountAggregation(true);
+    JsonResponse response = (JsonResponse) formatter.buildJsonObject(queryResult);
+
+    assertEquals(2, response.getTotal());
+    assertEquals(3, response.getSchema().size()); // timestamp + web-01 + web-02
+
+    // First row: web-01=1, web-02=2
+    Object[] row1 = response.getDatarows()[0];
+    assertEquals(1, row1[1]);
+    assertEquals(2, row1[2]);
+
+    // Second row: web-01=3, web-02=0 (not null)
+    Object[] row2 = response.getDatarows()[1];
+    assertEquals(3, row2[1]);
+    assertEquals(0, row2[2]); // Should be 0 instead of null for count aggregation
+  }
+
+  @Test
+  void testCountAggregationWithOtherCategory() {
+    QueryResult queryResult =
+        mockQueryResult(
+            Arrays.asList("timestamp", "host", "count"),
+            Map.of("timestamp", "timestamp", "host", "keyword", "count", "bigint"),
+            Arrays.<Object[]>asList(
+                new Object[] {"2024-01-01 00:00:00", "host-01", 10},
+                new Object[] {"2024-01-01 00:00:00", "host-02", 20},
+                new Object[] {"2024-01-01 00:00:00", "host-03", 5},
+                new Object[] {"2024-01-01 00:00:00", "host-04", 15}));
+
+    TimechartResponseFormatter formatter =
+        new TimechartResponseFormatter(JsonResponseFormatter.Style.COMPACT, 2, true)
+            .withCountAggregation(true);
+    JsonResponse response = (JsonResponse) formatter.buildJsonObject(queryResult);
+
+    assertEquals(1, response.getTotal());
+    assertEquals(4, response.getSchema().size()); // timestamp + top 2 hosts + OTHER
+
+    Object[] dataRow = response.getDatarows()[0];
+    assertEquals(20, dataRow[1]); // host-02 (highest count)
+    assertEquals(15, dataRow[2]); // host-04 (second highest)
+    assertEquals(15, dataRow[3]); // OTHER = host-01 (10) + host-03 (5) = 15
+  }
+
   @SuppressWarnings("unchecked")
   private QueryResult mockQueryResult(
       List<String> columnNames, Map<String, String> columnTypes, List<Object[]> rows) {

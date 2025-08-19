@@ -85,6 +85,56 @@ public class CalcitePPLTimechartTest {
     assertNotNull(plan);
   }
 
+  @Test
+  public void testTimechartWithParametersInDifferentOrder1() {
+    String ppl = "source=events | timechart limit=5 span=1h count() by host";
+    UnresolvedPlan plan = parsePPL(ppl);
+    assertNotNull(plan);
+  }
+
+  @Test
+  public void testTimechartWithParametersInDifferentOrder2() {
+    String ppl = "source=events | timechart useother=false limit=3 span=1h avg(cpu_usage) by host";
+    UnresolvedPlan plan = parsePPL(ppl);
+    assertNotNull(plan);
+  }
+
+  @Test
+  public void testTimechartWithParametersInDifferentOrder3() {
+    String ppl = "source=events | timechart useother=true span=1h limit=2 count() by region";
+    UnresolvedPlan plan = parsePPL(ppl);
+    assertNotNull(plan);
+  }
+
+  @Test
+  public void testTimechartWithParametersInDifferentOrder4() {
+    String ppl =
+        "source=events | timechart limit=4 useother=false span=1h avg(response_time) by service";
+    UnresolvedPlan plan = parsePPL(ppl);
+    assertNotNull(plan);
+  }
+
+  @Test
+  public void testTimechartWithLimitBeforeSpan() {
+    String ppl = "source=events | timechart limit=5 span=1h count() by host";
+    UnresolvedPlan plan = parsePPL(ppl);
+    assertNotNull(plan);
+  }
+
+  @Test
+  public void testTimechartWithUseOtherBeforeSpan() {
+    String ppl = "source=events | timechart useother=false span=1h count() by host";
+    UnresolvedPlan plan = parsePPL(ppl);
+    assertNotNull(plan);
+  }
+
+  @Test
+  public void testTimechartWithUseOtherBeforeLimit() {
+    String ppl = "source=events | timechart useother=true limit=3 count() by host";
+    UnresolvedPlan plan = parsePPL(ppl);
+    assertNotNull(plan);
+  }
+
   private UnresolvedPlan parsePPL(String query) {
     PPLSyntaxParser parser = new PPLSyntaxParser();
     AstBuilder astBuilder = new AstBuilder(query);

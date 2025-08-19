@@ -158,11 +158,15 @@ public class TransportPPLQueryAction
       formatter = new VisualizationResponseFormatter(pplRequest.style());
     } else if (pplRequest.getRequest().toLowerCase().matches(".*\\|\\s*timechart\\b.*")) {
       // Check if this is a timechart query (using regex to match "| timechart" pattern)
+      // Check if the aggregation function is count()
+      boolean isCountAggregation =
+          pplRequest.getRequest().toLowerCase().matches(".*\\|\\s*timechart\\b.*count\\(\\).*");
       formatter =
           new TimechartResponseFormatter(
-              JsonResponseFormatter.Style.PRETTY,
-              pplRequest.timechartLimit(),
-              pplRequest.timechartUseOther());
+                  JsonResponseFormatter.Style.PRETTY,
+                  pplRequest.timechartLimit(),
+                  pplRequest.timechartUseOther())
+              .withCountAggregation(isCountAggregation);
     } else {
       formatter = new SimpleJsonResponseFormatter(JsonResponseFormatter.Style.PRETTY);
     }

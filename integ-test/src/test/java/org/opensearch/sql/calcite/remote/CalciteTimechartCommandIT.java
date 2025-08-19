@@ -63,11 +63,11 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
         schema("web-02", "bigint"));
     verifyDataRows(
         result,
-        rows("2024-07-01 00:00:00", null, 1, null),
-        rows("2024-07-01 00:01:00", null, null, 1),
-        rows("2024-07-01 00:02:00", null, 1, null),
-        rows("2024-07-01 00:03:00", 1, null, null),
-        rows("2024-07-01 00:04:00", null, null, 1));
+        rows("2024-07-01 00:00:00", 0, 1, 0),
+        rows("2024-07-01 00:01:00", 0, 0, 1),
+        rows("2024-07-01 00:02:00", 0, 1, 0),
+        rows("2024-07-01 00:03:00", 1, 0, 0),
+        rows("2024-07-01 00:04:00", 0, 0, 1));
     assertEquals(5, result.getInt("total"));
   }
 
@@ -107,11 +107,11 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
         schema("us-west", "bigint"));
     verifyDataRows(
         result,
-        rows("2024-07-01 00:00:00", null, 1, null),
-        rows("2024-07-01 00:01:00", null, null, 1),
-        rows("2024-07-01 00:02:00", null, 1, null),
-        rows("2024-07-01 00:03:00", 1, null, null),
-        rows("2024-07-01 00:04:00", null, null, 1));
+        rows("2024-07-01 00:00:00", 0, 1, 0),
+        rows("2024-07-01 00:01:00", 0, 0, 1),
+        rows("2024-07-01 00:02:00", 0, 1, 0),
+        rows("2024-07-01 00:03:00", 1, 0, 0),
+        rows("2024-07-01 00:04:00", 0, 0, 1));
     assertEquals(5, result.getInt("total"));
   }
 
@@ -229,6 +229,30 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
         rows("2024-07-01 00:00:00", 45.2, 38.7, 55.3, 42.1, 41.8, 39.4, 48.6, 44.2, 67.8, 43.1));
 
     assertEquals(1, result.getInt("total"));
+  }
+
+  @Test
+  public void testTimechartWithCountAggregationShowsZeroInsteadOfNull() throws IOException {
+    JSONObject result = executeQuery("source=events | timechart span=1m count() by host");
+
+    // Verify schema has 4 columns: timestamp + 3 hosts
+    verifySchema(
+        result,
+        schema("$f2", "timestamp"),
+        schema("db-01", "bigint"),
+        schema("web-01", "bigint"),
+        schema("web-02", "bigint"));
+
+    // Verify that null values are replaced with 0 for count() aggregation
+    verifyDataRows(
+        result,
+        rows("2024-07-01 00:00:00", 0, 1, 0),
+        rows("2024-07-01 00:01:00", 0, 0, 1),
+        rows("2024-07-01 00:02:00", 0, 1, 0),
+        rows("2024-07-01 00:03:00", 1, 0, 0),
+        rows("2024-07-01 00:04:00", 0, 0, 1));
+
+    assertEquals(5, result.getInt("total"));
   }
 
   @Test
