@@ -14,7 +14,6 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import org.antlr.v4.runtime.tree.ParseTree;
 import org.json.JSONObject;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
@@ -22,12 +21,7 @@ import org.opensearch.core.common.io.stream.InputStreamStreamInput;
 import org.opensearch.core.common.io.stream.OutputStreamStreamOutput;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
-import org.opensearch.sql.ast.Node;
-import org.opensearch.sql.ast.tree.Timechart;
-import org.opensearch.sql.ast.tree.UnresolvedPlan;
-import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
-import org.opensearch.sql.ppl.parser.AstBuilder;
 import org.opensearch.sql.protocol.response.format.Format;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 
@@ -137,45 +131,6 @@ public class TransportPPLQueryRequest extends ActionRequest {
     PPLQueryRequest pplQueryRequest = new PPLQueryRequest(pplQuery, jsonContent, path, format);
     pplQueryRequest.sanitize(sanitize);
     pplQueryRequest.style(style);
-    extractTimechartParameters(pplQueryRequest);
     return pplQueryRequest;
-  }
-
-  private void extractTimechartParameters(PPLQueryRequest pplQueryRequest) {
-    if (pplQuery == null || !pplQuery.toLowerCase().contains("timechart")) {
-      return;
-    }
-    try {
-      PPLSyntaxParser parser = new PPLSyntaxParser();
-      ParseTree cst = parser.parse(pplQuery);
-      AstBuilder astBuilder = new AstBuilder(pplQuery);
-      UnresolvedPlan plan = astBuilder.visit(cst);
-      Timechart timechartNode = findTimechartNode(plan);
-      if (timechartNode != null) {
-        if (timechartNode.getLimit() != null) {
-          pplQueryRequest.timechartLimit(timechartNode.getLimit());
-        }
-        if (timechartNode.getUseOther() != null) {
-          pplQueryRequest.timechartUseOther(timechartNode.getUseOther());
-        }
-      }
-    } catch (Exception e) {
-      // Ignore parsing errors
-    }
-  }
-
-  private Timechart findTimechartNode(UnresolvedPlan plan) {
-    if (plan instanceof Timechart) {
-      return (Timechart) plan;
-    }
-    for (Node child : plan.getChild()) {
-      if (child instanceof UnresolvedPlan) {
-        Timechart result = findTimechartNode((UnresolvedPlan) child);
-        if (result != null) {
-          return result;
-        }
-      }
-    }
-    return null;
   }
 }

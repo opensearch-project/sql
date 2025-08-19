@@ -40,7 +40,6 @@ import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.RawResponseFormatter;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
-import org.opensearch.sql.protocol.response.format.TimechartResponseFormatter;
 import org.opensearch.sql.protocol.response.format.VisualizationResponseFormatter;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
@@ -161,12 +160,17 @@ public class TransportPPLQueryAction
       // Check if the aggregation function is count()
       boolean isCountAggregation =
           pplRequest.getRequest().toLowerCase().matches(".*\\|\\s*timechart\\b.*count\\(\\).*");
+
+      // Extract timechart parameters directly from the query string
+      PPLService.TimechartParams params =
+          PPLService.extractTimechartParameters(pplRequest.getRequest());
+
       formatter =
-          new TimechartResponseFormatter(
-                  JsonResponseFormatter.Style.PRETTY,
-                  pplRequest.timechartLimit(),
-                  pplRequest.timechartUseOther())
-              .withCountAggregation(isCountAggregation);
+          PPLService.createTimechartFormatter(
+              JsonResponseFormatter.Style.PRETTY,
+              params.getLimit(),
+              params.getUseOther(),
+              isCountAggregation);
     } else {
       formatter = new SimpleJsonResponseFormatter(JsonResponseFormatter.Style.PRETTY);
     }

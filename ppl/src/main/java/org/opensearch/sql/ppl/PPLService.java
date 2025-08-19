@@ -107,4 +107,163 @@ public class PPLService {
 
     return queryExecutionFactory.create(statement, queryListener, explainListener);
   }
+
+  /**
+   * Public version of the plan method for testing purposes. This allows passing parameters to test
+   * the execution plan.
+   *
+   * @param request {@link PPLQueryRequest}
+   * @param queryListener {@link ResponseListener} for query response
+   * @param explainListener {@link ResponseListener} for explain response
+   * @return {@link AbstractPlan} execution plan
+   */
+  public AbstractPlan createPlan(
+      PPLQueryRequest request,
+      ResponseListener<QueryResponse> queryListener,
+      ResponseListener<ExplainResponse> explainListener) {
+    return plan(request, queryListener, explainListener);
+  }
+
+  /**
+   * Execute the {@link PPLQueryRequest} with custom formatter parameters. This allows passing
+   * additional parameters for testing purposes.
+   *
+   * @param request {@link PPLQueryRequest}
+   * @param queryListener {@link ResponseListener}
+   * @param explainListener {@link ResponseListener} for explain command
+   * @param timechartLimit Maximum number of distinct values to display in timechart
+   * @param timechartUseOther Whether to use OTHER category for values beyond the limit
+   */
+  public void executeWithFormatterParams(
+      PPLQueryRequest request,
+      ResponseListener<QueryResponse> queryListener,
+      ResponseListener<ExplainResponse> explainListener,
+      Integer timechartLimit,
+      Boolean timechartUseOther) {
+    try {
+      // Create a new request with the custom formatter parameters
+      PPLQueryRequest modifiedRequest =
+          new PPLQueryRequest(
+              request.getRequest(),
+              request.getJsonContent(),
+              request.getPath(),
+              request.getFormat());
+
+      // Set additional parameters using fluent interface
+      modifiedRequest
+          .sanitize(request.sanitize())
+          .style(request.style())
+          .timechartLimit(timechartLimit)
+          .timechartUseOther(timechartUseOther);
+
+      queryManager.submit(plan(modifiedRequest, queryListener, explainListener));
+    } catch (Exception e) {
+      queryListener.onFailure(e);
+    }
+  }
+
+  /**
+   * Create a TimechartResponseFormatter with custom parameters. This is a utility method for
+   * testing purposes.
+   *
+   * @param style The JSON response style (PRETTY or COMPACT)
+   * @param timechartLimit Maximum number of distinct values to display in timechart
+   * @param timechartUseOther Whether to use OTHER category for values beyond the limit
+   * @param isCountAggregation Whether the aggregation function is count()
+   * @return A configured TimechartResponseFormatter
+   */
+  public static org.opensearch.sql.protocol.response.format.TimechartResponseFormatter
+      createTimechartFormatter(
+          org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style style,
+          Integer timechartLimit,
+          Boolean timechartUseOther,
+          boolean isCountAggregation) {
+    return new org.opensearch.sql.protocol.response.format.TimechartResponseFormatter(
+            style, timechartLimit, timechartUseOther)
+        .withCountAggregation(isCountAggregation);
+  }
+
+  /**
+   * Parse a PPL query and return the statement. This is a utility method for testing purposes.
+   *
+   * @param pplQuery The PPL query string
+   * @return The parsed statement
+   */
+  public Statement parseQuery(String pplQuery) {
+    try {
+      // Parse query and convert parse tree (CST) to abstract syntax tree (AST)
+      ParseTree cst = parser.parse(pplQuery);
+      return cst.accept(
+          new AstStatementBuilder(
+              new AstBuilder(pplQuery, settings),
+              AstStatementBuilder.StatementBuilderContext.builder()
+                  .isExplain(false)
+                  .format("")
+                  .build()));
+    } catch (Exception e) {
+      // Ignore parsing errors
+      return null;
+    }
+  }
+
+  /**
+   * Extract timechart parameters from a query string. This is a utility method that uses regex to
+   * extract limit and useOther parameters.
+   *
+   * @param query The PPL query string
+   * @return A pair of [limit, useOther] parameters
+   */
+  public static TimechartParams extractTimechartParameters(String query) {
+    if (query == null) {
+      return new TimechartParams(null, true);
+    }
+
+    // Convert to lowercase for case-insensitive matching
+    String lowerQuery = query.toLowerCase();
+
+    // Extract limit parameter
+    Integer limit = null;
+    java.util.regex.Pattern limitPattern =
+        java.util.regex.Pattern.compile("\\|\\s*timechart\\b.*?\\blimit\\s*=\\s*(\\d+)");
+    java.util.regex.Matcher limitMatcher = limitPattern.matcher(lowerQuery);
+    if (limitMatcher.find()) {
+      try {
+        limit = Integer.parseInt(limitMatcher.group(1));
+      } catch (NumberFormatException e) {
+        // Ignore parsing errors
+      }
+    }
+
+    // Extract useOther parameter
+    Boolean useOther = true; // Default is true
+    java.util.regex.Pattern useOtherPattern =
+        java.util.regex.Pattern.compile(
+            "\\|\\s*timechart\\b.*?\\buseother\\s*=\\s*(true|t|false|f)\\b");
+    java.util.regex.Matcher useOtherMatcher = useOtherPattern.matcher(lowerQuery);
+    if (useOtherMatcher.find()) {
+      String value = useOtherMatcher.group(1);
+      useOther = "true".equals(value) || "t".equals(value);
+    }
+
+    return new TimechartParams(limit, useOther);
+  }
+
+  /** Simple class to hold timechart parameters. */
+  public static class TimechartParams {
+    private final Integer limit;
+    private final Boolean useOther;
+
+    public TimechartParams(Integer limit, Boolean useOther) {
+      this.limit = limit;
+      this.useOther = useOther;
+    }
+
+    public Integer getLimit() {
+      return limit;
+    }
+
+    public Boolean getUseOther() {
+      return useOther;
+    }
+  }
 }
