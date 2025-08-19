@@ -217,6 +217,34 @@ Java files are formatted using `Spotless <https://github.com/diffplug/spotless>`
    * - Javadoc format can be maintained by wrapping javadoc with `<pre></pre>` HTML tags
    * - Strings can be formatted on multiple lines with a `+` with the correct indentation for the string.
 
+New PPL Command Checklist
+=========================
+
+If you are working on contributing a new PPL command, please read this guide and review all items in the checklist are done before code review. You also can leverage this checklist to guide how to add new PPL command.
+
+Prerequisite
+------------
+
+| ✅ Open a RFC issue before starting to code. Describe the purpose of the new command, including at least syntax, usage and examples in RFC. Implementation options are welcome if you have multiple ways to implement it.
+| ✅ Asking a PM to review the RFC and got a sign-off from PM. If you cannot find a PM, request to repository maintainers as alternative. An offline meeting might be required to discuss the syntax and usage.
+
+Coding & Tests
+--------------
+
+| ✅ Add new lex/keywords to OpenSearchPPLLexer.g4.
+| ✅ Add new grammar to OpenSearchPPLParser.g4. Do not forget to update ``commandName`` and ``keywordsCanBeId``.
+| ✅ In AST layer, you can add new tree nodes in package ``org.opensearch.sql.ast.tree``.
+| ✅ Try to avoid adding new expression nodes in package ``org.opensearch.sql.ast.expression``. Reuse ``Argument`` for any command arguments.
+| ✅ Add ``visit*`` in ``AbstractNodeVisitor``, make sure all overriding are provided (``Analyzer``, ``CalciteRelNodeVisitor`` and ``PPLQueryDataAnonymizer``).
+| ✅ Unit tests: add a ``CalcitePPL*Test`` extended ``CalcitePPLAbstractTest`` under ``ppl/src/test/java/org/opensearch/sql/ppl/calcite``. For each unit test, keep the test query as simple as possible. ``verifyLogical()`` and ``verifyPPLToSparkSQL()`` are required for each unit test.
+| ✅ Integration tests with pushdown: add a ``CalcitePPL*IT`` extended ``PPLIntegTestCase`` under ``integ-test/src/test/java/org/opensearch/sql/calcite/remote``. For each integration test, keep the test query as complex as possible. ``verifySchema()`` and ``verifyDataRows()`` are required for each integration test.
+| ✅ Integration tests without pushdown: add the new added integration test class ``CalcitePPL*IT`` to the ``SuiteClasses`` of ``CalciteNoPushdownIT``.
+| ✅ Explain tests: add some tests in ``ExplainIT`` or ``CalciteExplainIT`` (if the new command for Calcite engine only).
+| ✅ Unsupported in v2 test: add a test in ``NewAddedCommandsIT``.
+| ✅ Full syntax anonymizer tests in ``PPLQueryDataAnonymizerTest``.
+| ✅ Cross cluster tests in ``CrossClusterSearchIT`` (optional, nice to have).
+| ✅ User doc: add a xxx.rst under ``docs/user/ppl/cmd`` and link the new doc to ``docs/user/ppl/index.rst``.
+
 Building and Running Tests
 ==========================
 
