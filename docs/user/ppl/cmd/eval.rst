@@ -76,6 +76,37 @@ PPL query::
     | 33  | 66        | 132   |
     +-----+-----------+-------+
 
+Example 4: String concatenation with + operator
+===============================================
+
+The example shows how to use the + operator for string concatenation in eval command. You can concatenate string literals and field values.
+
+PPL query::
+
+    os> source=accounts | eval greeting = 'Hello ' + firstname | fields firstname, greeting ;
+    fetched rows / total rows = 4/4
+    +---------------+-----------------+
+    | firstname     | greeting        |
+    |---------------+-----------------|
+    | Amber JOHnny  | Hello Amber JOHnny |
+    | Hattie        | Hello Hattie    |
+    | Nanette       | Hello Nanette   |
+    | Dale          | Hello Dale      |
+    +---------------+-----------------+
+
+PPL query::
+
+    os> source=accounts | eval full_info = 'Name: ' + firstname + ', Age: ' + CAST(age AS STRING) | fields firstname, age, full_info ;
+    fetched rows / total rows = 4/4
+    +---------------+-----+---------------------------+
+    | firstname     | age | full_info                 |
+    |---------------+-----+---------------------------|
+    | Amber JOHnny  | 32  | Name: Amber JOHnny, Age: 32 |
+    | Hattie        | 36  | Name: Hattie, Age: 36     |
+    | Nanette       | 28  | Name: Nanette, Age: 28    |
+    | Dale          | 33  | Name: Dale, Age: 33       |
+    +---------------+-----+---------------------------+
+
 Limitation
 ==========
 The ``eval`` command is not rewritten to OpenSearch DSL, it is only executed on the coordination node.
