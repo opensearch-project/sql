@@ -63,96 +63,74 @@ public class BinCalculatorFunction extends ImplementorUDF {
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
       Expression fieldValue = translatedOperands.get(0);
       Expression param1 = translatedOperands.get(2);
-      Expression param2 = translatedOperands.get(3);
-      Expression param3 = translatedOperands.get(4);
       Expression dataRange = translatedOperands.get(5);
       Expression maxValue = translatedOperands.get(6);
 
-      // Determine bin type at compile time if possible
-      if (call.operands.get(1) instanceof org.apache.calcite.rex.RexLiteral) {
-        org.apache.calcite.rex.RexLiteral literal =
-            (org.apache.calcite.rex.RexLiteral) call.operands.get(1);
-        String type = literal.getValueAs(String.class);
-        if (type != null) {
-          String lowerType = type.toLowerCase();
-          switch (lowerType) {
-            case "span":
-              return Expressions.call(
-                  BinCalculatorImplementor.class,
-                  "calculateSpanBin",
-                  Expressions.convert_(fieldValue, Number.class),
-                  Expressions.convert_(param1, Number.class));
-            case "bins":
-              return Expressions.call(
-                  BinCalculatorImplementor.class,
-                  "calculateBinsBin",
-                  Expressions.convert_(fieldValue, Number.class),
-                  Expressions.convert_(param1, Number.class),
-                  Expressions.convert_(dataRange, Number.class),
-                  Expressions.convert_(maxValue, Number.class));
-            case "minspan":
-              return Expressions.call(
-                  BinCalculatorImplementor.class,
-                  "calculateMinspanBin",
-                  Expressions.convert_(fieldValue, Number.class),
-                  Expressions.convert_(param1, Number.class),
-                  Expressions.convert_(dataRange, Number.class),
-                  Expressions.convert_(maxValue, Number.class));
+      // Extract bin type literal value at compile time
+      org.apache.calcite.rex.RexNode binTypeNode = call.operands.get(1);
+      String binType = null;
+
+      if (binTypeNode instanceof org.apache.calcite.rex.RexLiteral) {
+        binType = ((org.apache.calcite.rex.RexLiteral) binTypeNode).getValueAs(String.class);
+      } else if (binTypeNode instanceof org.apache.calcite.rex.RexCall) {
+        // Handle CAST operations wrapping literals
+        org.apache.calcite.rex.RexCall castCall = (org.apache.calcite.rex.RexCall) binTypeNode;
+        if (!castCall.getOperands().isEmpty()
+            && castCall.getOperands().get(0) instanceof org.apache.calcite.rex.RexLiteral) {
+          binType =
+              ((org.apache.calcite.rex.RexLiteral) castCall.getOperands().get(0))
+                  .getValueAs(String.class);
+        }
+      } else if (binTypeNode instanceof org.apache.calcite.rex.RexLocalRef) {
+        // Handle local references by dereferencing to actual literal
+        try {
+          org.apache.calcite.rex.RexLocalRef localRef =
+              (org.apache.calcite.rex.RexLocalRef) binTypeNode;
+          java.lang.reflect.Field programField = translator.getClass().getDeclaredField("program");
+          programField.setAccessible(true);
+          org.apache.calcite.rex.RexProgram program =
+              (org.apache.calcite.rex.RexProgram) programField.get(translator);
+          org.apache.calcite.rex.RexNode referencedNode =
+              program.getExprList().get(localRef.getIndex());
+          if (referencedNode instanceof org.apache.calcite.rex.RexLiteral) {
+            binType = ((org.apache.calcite.rex.RexLiteral) referencedNode).getValueAs(String.class);
           }
+        } catch (Exception e) {
+          // Reflection failed, bin type remains null
         }
       }
 
-      // Fallback to runtime switch for dynamic bin types
-      Expression binType = translatedOperands.get(1);
-      return Expressions.call(
-          BinCalculatorImplementor.class,
-          "calculateBin",
-          Expressions.convert_(fieldValue, Number.class),
-          Expressions.convert_(binType, String.class),
-          Expressions.convert_(param1, Number.class),
-          Expressions.convert_(param2, Number.class),
-          Expressions.convert_(param3, Number.class),
-          Expressions.convert_(dataRange, Number.class),
-          Expressions.convert_(maxValue, Number.class));
-    }
-
-    /**
-     * Unified bin calculation supporting all binning types.
-     *
-     * @param fieldValue the numeric value to bin
-     * @param binType the type of binning: "span", "bins", or "minspan"
-     * @param param1 span_value (for span), num_bins (for bins), min_span (for minspan)
-     * @param param2 start_value (optional, use -1 for unspecified)
-     * @param param3 end_value (optional, use -1 for unspecified)
-     * @param dataRange the data range (max - min) for bins/minspan, ignored for span
-     * @param maxValue the maximum value for bins/minspan, ignored for span
-     * @return the bin range string or null if inputs are invalid
-     */
-    public static String calculateBin(
-        Number fieldValue,
-        String binType,
-        Number param1,
-        Number param2,
-        Number param3,
-        Number dataRange,
-        Number maxValue) {
-      if (fieldValue == null || binType == null || param1 == null) {
-        return null;
+      if (binType != null) {
+        String lowerType = binType.toLowerCase();
+        switch (lowerType) {
+          case "span":
+            return Expressions.call(
+                BinCalculatorImplementor.class,
+                "calculateSpanBin",
+                Expressions.convert_(fieldValue, Number.class),
+                Expressions.convert_(param1, Number.class));
+          case "bins":
+            return Expressions.call(
+                BinCalculatorImplementor.class,
+                "calculateBinsBin",
+                Expressions.convert_(fieldValue, Number.class),
+                Expressions.convert_(param1, Number.class),
+                Expressions.convert_(dataRange, Number.class),
+                Expressions.convert_(maxValue, Number.class));
+          case "minspan":
+            return Expressions.call(
+                BinCalculatorImplementor.class,
+                "calculateMinspanBin",
+                Expressions.convert_(fieldValue, Number.class),
+                Expressions.convert_(param1, Number.class),
+                Expressions.convert_(dataRange, Number.class),
+                Expressions.convert_(maxValue, Number.class));
+        }
       }
 
-      double value = fieldValue.doubleValue();
-      String type = binType.toLowerCase();
-
-      switch (type) {
-        case "span":
-          return calculateSpanBin(value, param1.doubleValue());
-        case "bins":
-          return calculateBinsBin(value, param1.intValue(), dataRange, maxValue);
-        case "minspan":
-          return calculateMinspanBin(value, param1.doubleValue(), dataRange, maxValue);
-        default:
-          return null;
-      }
+      // This should never happen since PPL always uses literal bin types
+      throw new IllegalArgumentException(
+          "Bin type must be a literal value (span, bins, or minspan)");
     }
 
     /** Span-based binning calculation. */
@@ -167,7 +145,6 @@ public class BinCalculatorFunction extends ImplementorUDF {
         return null;
       }
 
-      // "Never shrink the data range" principle: start/end parameters are not used
       double binStart = Math.floor(value / span) * span;
       double binEnd = binStart + span;
 
