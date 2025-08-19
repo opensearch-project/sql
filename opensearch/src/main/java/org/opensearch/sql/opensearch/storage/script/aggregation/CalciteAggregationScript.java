@@ -59,49 +59,10 @@ class CalciteAggregationScript extends AggregationScript {
       // Can't get timestamp from `ExprTimeValue`
       MILLIS.between(LocalTime.MIN, ExprValueUtils.fromObjectValue(value, TIME).timeValue());
       case DATE -> ExprValueUtils.fromObjectValue(value, DATE).timestampValue().toEpochMilli();
-      case TIMESTAMP -> {
-        long epochMillis =
-            ExprValueUtils.fromObjectValue(value, TIMESTAMP).timestampValue().toEpochMilli();
-        yield epochMillis;
-      }
-      case STRING -> {
-        if (value instanceof String) {
-          String strValue = (String) value;
-          // Check if this is a timestamp string from BIN operations (YYYY-MM-DD HH:MM:SS format)
-          if (strValue.matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}")) {
-            try {
-              long epochMillis =
-                  ExprValueUtils.fromObjectValue(strValue, TIMESTAMP)
-                      .timestampValue()
-                      .toEpochMilli();
-              yield epochMillis;
-            } catch (Exception e) {
-              // Return string as-is if timestamp conversion fails
-              yield value;
-            }
-          }
-        }
-        // Default string handling
-        yield value;
-      }
-      default -> {
-        // Handle timestamp strings from bin operations using proper function chain
-        // When bin operations produce timestamp strings, convert to epoch milliseconds for
-        // aggregation
-        if (value instanceof String) {
-          String strValue = (String) value;
-          // Use proper function chain: STRING -> TIMESTAMP() -> epoch milliseconds
-          try {
-            yield ExprValueUtils.fromObjectValue(strValue, TIMESTAMP)
-                .timestampValue()
-                .toEpochMilli();
-          } catch (Exception e) {
-            // Last resort: return the original value
-            yield value;
-          }
-        }
-        yield value;
-      }
+      case TIMESTAMP -> ExprValueUtils.fromObjectValue(value, TIMESTAMP)
+          .timestampValue()
+          .toEpochMilli();
+      default -> value;
     };
   }
 }
