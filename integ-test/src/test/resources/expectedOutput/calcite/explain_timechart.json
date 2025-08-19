@@ -1,6 +1,6 @@
 {
   "calcite": {
-    "logical": "LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])\n  LogicalProject($f3=[$1], host=[$0], $f2=[$2])\n    LogicalAggregate(group=[{0, 2}], agg#0=[AVG($1)])\n      LogicalProject(host=[$2], cpu_usage=[$4], $f3=[SPAN($0, 1, 'm')])\n        CalciteLogicalIndexScan(table=[[OpenSearch, events]])\n",
+    "logical": "LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])\n  LogicalProject($f3=[$1], host=[$0], $f2=[$2])\n    LogicalAggregate(group=[{0, 2}], agg#0=[AVG($1)])\n      LogicalProject(host=[$0], cpu_usage=[$2], $f3=[SPAN($1, 1, 'm')])\n        CalciteLogicalIndexScan(table=[[OpenSearch, events]])\n",
     "physical": "EnumerableLimit(fetch=[10000])\n  EnumerableCalc(expr#0..2=[{inputs}], $f3=[$t1], host=[$t0], $f2=[$t2])\n    CalciteEnumerableIndexScan(table=[[OpenSearch, events]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0, 2},agg#0=AVG($1))], OpenSearchRequestBuilder(sourceBuilder={\"from\":0,\"size\":0,\"timeout\":\"1m\",\"aggregations\":{\"composite_buckets\":{\"composite\":{\"size\":1000,\"sources\":[{\"host\":{\"terms\":{\"field\":\"host\",\"missing_bucket\":true,\"missing_order\":\"first\",\"order\":\"asc\"}}},{\"$f3\":{\"date_histogram\":{\"field\":\"@timestamp\",\"missing_bucket\":true,\"missing_order\":\"first\",\"order\":\"asc\",\"fixed_interval\":\"1m\"}}}]},\"aggregations\":{\"$f2\":{\"avg\":{\"field\":\"cpu_usage\"}}}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])\n"
   }
 }
