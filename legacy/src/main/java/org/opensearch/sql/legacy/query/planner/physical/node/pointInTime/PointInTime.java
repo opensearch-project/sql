@@ -1,7 +1,13 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 package org.opensearch.sql.legacy.query.planner.physical.node.pointInTime;
 
 import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.PointInTimeBuilder;
@@ -13,6 +19,7 @@ import org.opensearch.sql.legacy.query.planner.physical.node.Paginate;
 
 /** OpenSearch Search API with Point in time as physical implementation of TableScan */
 public class PointInTime extends Paginate {
+  private static final Logger LOG = LogManager.getLogger();
 
   private String pitId;
   private PointInTimeHandlerImpl pit;
@@ -35,8 +42,20 @@ public class PointInTime extends Paginate {
 
   @Override
   protected void loadFirstBatch() {
-    // Create PIT and set to request object
-    pit = new PointInTimeHandlerImpl(client, request.getOriginalSelect().getIndexArr());
+    // Check if this table has JOIN_TIME_OUT hint configured
+    if (request.getHintJoinTimeout() != null) {
+      TimeValue customTimeout = request.getHintJoinTimeout();
+      LOG.info(
+          "PointInTime: Creating PIT with JOIN_TIME_OUT hint: {} seconds",
+          customTimeout.getSeconds());
+      pit =
+          new PointInTimeHandlerImpl(
+              client, request.getOriginalSelect().getIndexArr(), customTimeout);
+    } else {
+      LOG.info("PointInTime: Creating PIT with default timeout value: {}");
+      pit = new PointInTimeHandlerImpl(client, request.getOriginalSelect().getIndexArr());
+    }
+
     pit.create();
     pitId = pit.getPitId();
 

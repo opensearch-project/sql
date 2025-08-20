@@ -14,7 +14,6 @@ public class CalciteSettingsIT extends SettingsIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 
   @Override

@@ -12,7 +12,5 @@ public class CalciteTrendlineCommandIT extends TrendlineCommandIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    // TODO: "https://github.com/opensearch-project/sql/issues/3466"
-    // disallowCalciteFallback();
   }
 }

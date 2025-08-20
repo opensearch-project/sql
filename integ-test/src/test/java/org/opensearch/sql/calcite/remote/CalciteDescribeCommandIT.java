@@ -12,6 +12,5 @@ public class CalciteDescribeCommandIT extends DescribeCommandIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 }

@@ -22,6 +22,14 @@ import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLiteralContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareCommandContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
 
 /** Util class to get all arguments as a list from the PPL command. */
 public class ArgumentFactory {
@@ -34,7 +42,7 @@ public class ArgumentFactory {
    */
   public static List<Argument> getArgumentList(FieldsCommandContext ctx) {
     return Collections.singletonList(
-        ctx.MINUS() != null
+        ctx.fieldsCommandBody().MINUS() != null
             ? new Argument("exclude", new Literal(true, DataType.BOOLEAN))
             : new Argument("exclude", new Literal(false, DataType.BOOLEAN)));
   }

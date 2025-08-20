@@ -13,7 +13,6 @@ public class CalciteOperatorIT extends OperatorIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 
   @Override

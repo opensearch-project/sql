@@ -15,7 +15,6 @@ public class CalciteLikeQueryIT extends LikeQueryIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 
   @Override

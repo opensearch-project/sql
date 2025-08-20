@@ -14,7 +14,6 @@ public class CalciteDateTimeFunctionIT extends DateTimeFunctionIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 
   // TODO: Remove this when supporting type coercion and casting with Calcite

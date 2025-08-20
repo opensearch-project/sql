@@ -26,7 +26,6 @@ public class CalcitePPLCastFunctionIT extends CastFunctionIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 
   @Test

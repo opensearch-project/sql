@@ -20,7 +20,6 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
 
     loadIndex(Index.STATE_COUNTRY);
     loadIndex(Index.STATE_COUNTRY_WITH_NULL);
@@ -193,6 +192,19 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
 
     verifyDataRows(
         actual, rows(0.0, "John"), rows(0.0, "Jane"), rows(0.0, "Jake"), rows(1.0, "Hello"));
+  }
+
+  @Test
+  public void testIfWithEquals() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval jake = if(name='Jake', 1, 0) | fields name, jake",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(actual, schema("name", "string"), schema("jake", "int"));
+
+    verifyDataRows(actual, rows("Jake", 1), rows("Hello", 0), rows("John", 0), rows("Jane", 0));
   }
 
   @Test

@@ -35,6 +35,7 @@ public abstract class CorrectnessTestBase extends RestIntegTestCase {
 
   @Override
   protected void init() throws Exception {
+    super.init();
     if (runner != null) {
       return;
     }

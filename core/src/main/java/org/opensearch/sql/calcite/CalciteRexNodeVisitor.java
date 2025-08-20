@@ -539,23 +539,22 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     List<RexNode> nodes = node.getChild().stream().map(child -> analyze(child, context)).toList();
     UnresolvedPlan subquery = node.getQuery();
     RelNode subqueryRel = resolveSubqueryPlan(subquery, context);
-    try {
-      return context.relBuilder.in(subqueryRel, nodes);
-      // TODO
-      // The {@link org.apache.calcite.tools.RelBuilder#in(RexNode,java.util.function.Function)}
-      // only support one expression. Change to follow code after calcite fixed.
-      //    return context.relBuilder.in(
-      //        nodes.getFirst(),
-      //        b -> {
-      //          RelNode subqueryRel = subquery.accept(planVisitor, context);
-      //          b.build();
-      //          return subqueryRel;
-      //        });
-    } catch (AssertionError e) {
+    if (subqueryRel.getRowType().getFieldCount() != nodes.size()) {
       throw new SemanticCheckException(
           "The number of columns in the left hand side of an IN subquery does not match the number"
               + " of columns in the output of subquery");
     }
+    // TODO
+    //  The {@link org.apache.calcite.tools.RelBuilder#in(RexNode,java.util.function.Function)}
+    //  only support one expression. Change to follow code after calcite fixed.
+    //    return context.relBuilder.in(
+    //        nodes.getFirst(),
+    //        b -> {
+    //          RelNode subqueryRel = subquery.accept(planVisitor, context);
+    //          b.build();
+    //          return subqueryRel;
+    //        });
+    return context.relBuilder.in(subqueryRel, nodes);
   }
 
   @Override

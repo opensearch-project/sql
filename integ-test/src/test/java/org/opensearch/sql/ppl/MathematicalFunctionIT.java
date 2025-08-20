@@ -37,6 +37,38 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testAddFunction() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | where age = add(31, 1) | fields age", TEST_INDEX_BANK));
+    verifyDataRows(result, rows(32));
+  }
+
+  @Test
+  public void testSubtractFunction() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | where age = subtract(33, 1) | fields age", TEST_INDEX_BANK));
+    verifyDataRows(result, rows(32));
+  }
+
+  @Test
+  public void testMultiplyFunction() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | where age = multiply(16, 2) | fields age", TEST_INDEX_BANK));
+    verifyDataRows(result, rows(32));
+  }
+
+  @Test
+  public void testDivideFunction() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | where divide(age, 2) = 16 | fields age", TEST_INDEX_BANK));
+    verifyDataRows(result, rows(32), rows(33));
+  }
+
+  @Test
   public void testCeil() throws IOException {
     JSONObject result =
         executeQuery(String.format("source=%s | eval f = ceil(age) | fields f", TEST_INDEX_BANK));
@@ -91,6 +123,22 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
         rows(Math.exp(36)),
         rows(Math.exp(39)),
         rows(Math.exp(34)));
+  }
+
+  @Test
+  public void testExpm1() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source=%s | eval f = expm1(age) | fields f", TEST_INDEX_BANK));
+    verifySchema(result, schema("f", null, "double"));
+    verifyDataRows(
+        result,
+        rows(Math.expm1(32)),
+        rows(Math.expm1(36)),
+        rows(Math.expm1(28)),
+        rows(Math.expm1(33)),
+        rows(Math.expm1(36)),
+        rows(Math.expm1(39)),
+        rows(Math.expm1(34)));
   }
 
   @Test
@@ -223,6 +271,15 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testModulus() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | eval f = modulus(age, 10) | fields f", TEST_INDEX_BANK));
+    verifySchema(result, schema("f", null, "int"));
+    verifyDataRows(result, rows(2), rows(6), rows(8), rows(3), rows(6), rows(9), rows(4));
+  }
+
+  @Test
   public void testPow() throws IOException {
     JSONObject pow =
         executeQuery(String.format("source=%s | eval f = pow(age, 2) | fields f", TEST_INDEX_BANK));
@@ -278,6 +335,14 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   public void testSign() throws IOException {
     JSONObject result =
         executeQuery(String.format("source=%s | eval f = sign(age) | fields f", TEST_INDEX_BANK));
+    verifySchema(result, schema("f", null, "int"));
+    verifyDataRows(result, rows(1), rows(1), rows(1), rows(1), rows(1), rows(1), rows(1));
+  }
+
+  @Test
+  public void testSignum() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source=%s | eval f = signum(age) | fields f", TEST_INDEX_BANK));
     verifySchema(result, schema("f", null, "int"));
     verifyDataRows(result, rows(1), rows(1), rows(1), rows(1), rows(1), rows(1), rows(1));
   }
@@ -427,6 +492,14 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testCosh() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source=%s | eval f = cosh(1.5) | fields f", TEST_INDEX_BANK));
+    verifySchema(result, schema("f", null, "double"));
+    verifySome(result.getJSONArray("datarows"), rows(Math.cosh(1.5)));
+  }
+
+  @Test
   public void testCot() throws IOException {
     JSONObject result =
         executeQuery(String.format("source=%s | eval f = cot(2) | fields f", TEST_INDEX_BANK));
@@ -457,5 +530,242 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
         executeQuery(String.format("source=%s | eval f = sin(1.57) | fields f", TEST_INDEX_BANK));
     verifySchema(result, schema("f", null, "double"));
     verifySome(result.getJSONArray("datarows"), rows(Math.sin(1.57)));
+  }
+
+  @Test
+  public void testSinh() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source=%s | eval f = sinh(1.5) | fields f", TEST_INDEX_BANK));
+    verifySchema(result, schema("f", null, "double"));
+    verifySome(result.getJSONArray("datarows"), rows(Math.sinh(1.5)));
+  }
+
+  @Test
+  public void testRint() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source=%s | eval f = rint(1.7) | fields f", TEST_INDEX_BANK));
+    verifySchema(result, schema("f", null, "double"));
+    verifySome(result.getJSONArray("datarows"), rows(Math.rint(1.7)));
+  }
+
+  // SUM function tests for eval command
+  @Test
+  public void testEvalSumSingleInteger() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | eval f = sum(42) | fields f | head 5", TEST_INDEX_BANK));
+    verifySchema(result, schema("f", null, "int"));
+    verifyDataRows(result, rows(42), rows(42), rows(42), rows(42), rows(42));
+  }
+
+  @Test
+  public void testEvalSumMultipleIntegers() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval f = sum(1, 2, 3) | fields f | head 5", TEST_INDEX_BANK));
+    verifySchema(result, schema("f", null, "int"));
+    verifyDataRows(result, rows(6), rows(6), rows(6), rows(6), rows(6));
+  }
+
+  @Test
+  public void testEvalSumMixedNumericTypes() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | eval f = sum(1, 2.5) | fields f | head 5", TEST_INDEX_BANK));
+    verifySchema(result, schema("f", null, "double"));
+    verifyDataRows(result, rows(3.5), rows(3.5), rows(3.5), rows(3.5), rows(3.5));
+  }
+
+  @Test
+  public void testEvalSumWithFields() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval f = sum(age, 10) | fields f | head 7", TEST_INDEX_BANK));
+    verifySchema(result, schema("f", null, "int"));
+    verifyDataRows(result, rows(42), rows(46), rows(38), rows(43), rows(46), rows(49), rows(44));
+  }
+
+  @Test
+  public void testEvalSumMultipleNumericArguments() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval f = sum(1, 2, 3, 4, 5) | fields f | head 5", TEST_INDEX_BANK));
+    verifySchema(result, schema("f", null, "int"));
+    verifyDataRows(result, rows(15), rows(15), rows(15), rows(15), rows(15));
+  }
+
+  // AVG function tests for eval command
+  @Test
+  public void testEvalAvgSingleInteger() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | eval f = avg(42) | fields f | head 5", TEST_INDEX_BANK));
+    verifySchema(result, schema("f", null, "double"));
+    verifyDataRows(result, rows(42.0), rows(42.0), rows(42.0), rows(42.0), rows(42.0));
+  }
+
+  @Test
+  public void testEvalAvgMultipleIntegers() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval f = avg(1, 2, 3) | fields f | head 5", TEST_INDEX_BANK));
+    verifySchema(result, schema("f", null, "double"));
+    verifyDataRows(result, rows(2.0), rows(2.0), rows(2.0), rows(2.0), rows(2.0));
+  }
+
+  @Test
+  public void testEvalAvgTwoIntegers() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | eval f = avg(1, 2) | fields f | head 5", TEST_INDEX_BANK));
+    verifySchema(result, schema("f", null, "double"));
+    verifyDataRows(result, rows(1.5), rows(1.5), rows(1.5), rows(1.5), rows(1.5));
+  }
+
+  @Test
+  public void testEvalAvgMixedNumericTypes() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | eval f = avg(1, 2.5) | fields f | head 5", TEST_INDEX_BANK));
+    verifySchema(result, schema("f", null, "double"));
+    verifyDataRows(result, rows(1.75), rows(1.75), rows(1.75), rows(1.75), rows(1.75));
+  }
+
+  @Test
+  public void testEvalAvgWithFields() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval f = avg(age, 10) | fields f | head 7", TEST_INDEX_BANK));
+    verifySchema(result, schema("f", null, "double"));
+    verifyDataRows(
+        result, rows(21.0), rows(23.0), rows(19.0), rows(21.5), rows(23.0), rows(24.5), rows(22.0));
+  }
+
+  @Test
+  public void testEvalAvgMultipleValues() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | eval f = avg(1, 4) | fields f | head 5", TEST_INDEX_BANK));
+    verifySchema(result, schema("f", null, "double"));
+    verifyDataRows(result, rows(2.5), rows(2.5), rows(2.5), rows(2.5), rows(2.5));
+  }
+
+  @Test
+  public void testEvalAvgFiveValues() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval f = avg(1, 2, 3, 4, 5) | fields f | head 5", TEST_INDEX_BANK));
+    verifySchema(result, schema("f", null, "double"));
+    verifyDataRows(result, rows(3.0), rows(3.0), rows(3.0), rows(3.0), rows(3.0));
+  }
+
+  // Combined sum and avg tests
+  @Test
+  public void testEvalSumAndAvgComparison() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval sum_val = sum(10, 20, 30), avg_val = avg(10, 20, 30) | fields"
+                    + " sum_val, avg_val | head 5",
+                TEST_INDEX_BANK));
+    verifySchema(result, schema("sum_val", null, "int"), schema("avg_val", null, "double"));
+    verifyDataRows(
+        result, rows(60, 20.0), rows(60, 20.0), rows(60, 20.0), rows(60, 20.0), rows(60, 20.0));
+  }
+
+  @Test
+  public void testEvalSumInWhereClause() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where sum(age, 10) > 40 | eval f = sum(age, 10) | fields f | head 6",
+                TEST_INDEX_BANK));
+    verifySchema(result, schema("f", null, "int"));
+    // Should return rows where age + 10 > 40, so age > 30
+    verifyDataRows(result, rows(42), rows(46), rows(43), rows(46), rows(49), rows(44));
+  }
+
+  @Test
+  public void testEvalAvgInWhereClause() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where avg(age, 10) > 20 | eval f = avg(age, 10) | fields f | head 6",
+                TEST_INDEX_BANK));
+    verifySchema(result, schema("f", null, "double"));
+    // Should return rows where (age + 10) / 2 > 20, so age > 30
+    verifyDataRows(result, rows(21.0), rows(23.0), rows(21.5), rows(23.0), rows(24.5), rows(22.0));
+  }
+
+  @Test
+  public void testEvalComplexExpression() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval f = sum(age, 5) + avg(10, 20) | fields f | head 5",
+                TEST_INDEX_BANK));
+    verifySchema(result, schema("f", null, "double"));
+    // sum(age, 5) + avg(10, 20) = (age + 5) + 15.0
+    verifyDataRows(result, rows(52.0), rows(56.0), rows(48.0), rows(53.0), rows(56.0));
+  }
+
+  @Test
+  public void testEvalNestedSumAvg() throws IOException {
+    // Note: This tests the arithmetic expression rewriting, not actual nested function calls
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval f = sum(avg(20, 30), 10) | fields f | head 5", TEST_INDEX_BANK));
+    verifySchema(result, schema("f", null, "double"));
+    // avg(20, 30) = 25.0, sum(25.0, 10) = 35.0
+    verifyDataRows(result, rows(35.0), rows(35.0), rows(35.0), rows(35.0), rows(35.0));
+  }
+
+  @Test
+  public void testEvalSumWithMultipleFields() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval f = sum(age, age, 10) | fields f | head 5", TEST_INDEX_BANK));
+    verifySchema(result, schema("f", null, "int"));
+    // sum(age, age, 10) = age + age + 10 = 2*age + 10
+    verifyDataRows(result, rows(74), rows(82), rows(66), rows(76), rows(82));
+  }
+
+  @Test
+  public void testEvalAvgWithExpression() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval f = avg(age * 2, 10) | fields f | head 5", TEST_INDEX_BANK));
+    verifySchema(result, schema("f", null, "double"));
+    // avg(age * 2, 10) = (age * 2 + 10) / 2 = age + 5
+    verifyDataRows(result, rows(37.0), rows(41.0), rows(33.0), rows(38.0), rows(41.0));
+  }
+
+  @Test
+  public void testEvalSumWithNegativeNumbers() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval f = sum(-5, 10, -3) | fields f | head 5", TEST_INDEX_BANK));
+    verifySchema(result, schema("f", null, "int"));
+    verifyDataRows(result, rows(2), rows(2), rows(2), rows(2), rows(2));
+  }
+
+  @Test
+  public void testEvalAvgWithNegativeNumbers() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval f = avg(-10, 10) | fields f | head 5", TEST_INDEX_BANK));
+    verifySchema(result, schema("f", null, "double"));
+    verifyDataRows(result, rows(0.0), rows(0.0), rows(0.0), rows(0.0), rows(0.0));
   }
 }

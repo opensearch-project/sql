@@ -5,11 +5,17 @@
 
 package org.opensearch.sql.legacy;
 
+import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
+import static org.opensearch.sql.legacy.TestsConstants.PERSISTENT;
+import static org.opensearch.sql.legacy.TestsConstants.TRANSIENT;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hc.client5.http.auth.AuthScope;
 import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
 import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
@@ -29,7 +35,9 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.opensearch.client.Request;
+import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestClientBuilder;
@@ -37,6 +45,10 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.util.io.IOUtils;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.script.ScriptService;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
 
 /**
@@ -63,7 +75,8 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
           + "  }"
           + "}"
           + "}";
-
+  private static final String SCRIPT_CONTEXT_MAX_COMPILATIONS_RATE_PATTERN =
+      "script.context.*.max_compilations_rate";
   private static RestClient remoteClient;
 
   /**
@@ -135,7 +148,13 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
       int port = Integer.parseInt(stringUrl.substring(portSeparator + 1));
       hosts.add(buildHttpHost(host, port));
     }
-    return buildClient(restClientSettings(), hosts.toArray(new HttpHost[0]));
+    Settings.Builder builder = Settings.builder();
+    if (System.getProperty("tests.rest.client_path_prefix") != null) {
+      builder.put(CLIENT_PATH_PREFIX, System.getProperty("tests.rest.client_path_prefix"));
+    }
+    // Disable max compilations rate to avoid hitting compilations threshold during tests
+    builder.put(ScriptService.SCRIPT_DISABLE_MAX_COMPILATIONS_RATE_SETTING.getKey(), "true");
+    return buildClient(builder.build(), hosts.toArray(new HttpHost[0]));
   }
 
   /** Get a comma delimited list of [host:port] to which to send REST requests. */
@@ -300,5 +319,93 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
             REMOTE_CLUSTER_SETTING, remote, getTestTransportCluster(remote).split(",")[0]);
     connectionRequest.setJsonEntity(connectionSetting);
     adminClient().performRequest(connectionRequest);
+  }
+
+  /**
+   * Increases the maximum script compilation rate for all script contexts for tests. This method
+   * sets an unlimited compilation rate for each script context when the
+   * script.disable_max_compilations_rate setting is not enabled, allowing tests to run without
+   * hitting compilation rate limits.
+   *
+   * @throws IOException if there is an error retrieving cluster settings or updating them
+   */
+  protected void increaseMaxCompilationsRate() throws IOException {
+    // When script.disable_max_compilations_rate is set, custom context compilation rates cannot be
+    // set
+    if (!Objects.equals(
+        getClusterSetting(
+            ScriptService.SCRIPT_DISABLE_MAX_COMPILATIONS_RATE_SETTING.getKey(), "persistent"),
+        "true")) {
+      List<String> contexts = getScriptContexts();
+      for (String context : contexts) {
+        String contextCompilationsRate =
+            SCRIPT_CONTEXT_MAX_COMPILATIONS_RATE_PATTERN.replace("*", context);
+        updateClusterSetting(contextCompilationsRate, "unlimited", true);
+      }
+    }
+  }
+
+  protected List<String> getScriptContexts() throws IOException {
+    Request request = new Request("GET", "/_script_context");
+    String responseBody = executeRequest(request);
+    JSONObject jsonResponse = new JSONObject(responseBody);
+    JSONArray contexts = jsonResponse.getJSONArray("contexts");
+    List<String> contextNames = new ArrayList<>();
+    for (int i = 0; i < contexts.length(); i++) {
+      JSONObject context = contexts.getJSONObject(i);
+      String contextName = context.getString("name");
+      contextNames.add(contextName);
+    }
+    return contextNames;
+  }
+
+  protected static void updateClusterSetting(String settingKey, Object value) throws IOException {
+    updateClusterSetting(settingKey, value, true);
+  }
+
+  protected static void updateClusterSetting(String settingKey, Object value, boolean persistent)
+      throws IOException {
+    String property = persistent ? PERSISTENT : TRANSIENT;
+    XContentBuilder builder =
+        XContentFactory.jsonBuilder()
+            .startObject()
+            .startObject(property)
+            .field(settingKey, value)
+            .endObject()
+            .endObject();
+    Request request = new Request("PUT", "_cluster/settings");
+    request.setJsonEntity(builder.toString());
+    Response response = client().performRequest(request);
+    Assert.assertEquals(
+        RestStatus.OK, RestStatus.fromCode(response.getStatusLine().getStatusCode()));
+  }
+
+  protected static JSONObject getAllClusterSettings() throws IOException {
+    Request request = new Request("GET", "/_cluster/settings?flat_settings&include_defaults");
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    request.setOptions(restOptionsBuilder);
+    return new JSONObject(executeRequest(request));
+  }
+
+  protected static String getClusterSetting(String settingPath, String type) throws IOException {
+    JSONObject settings = getAllClusterSettings();
+    String value = settings.optJSONObject(type).optString(settingPath);
+    if (StringUtils.isEmpty(value)) {
+      return settings.optJSONObject("defaults").optString(settingPath);
+    } else {
+      return value;
+    }
+  }
+
+  protected static String executeRequest(final Request request) throws IOException {
+    return executeRequest(request, client());
+  }
+
+  protected static String executeRequest(final Request request, RestClient client)
+      throws IOException {
+    Response response = client.performRequest(request);
+    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+    return getResponseBody(response);
   }
 }

@@ -26,8 +26,6 @@ import static org.opensearch.sql.legacy.TestUtils.getPhraseIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getWeblogsIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
 import static org.opensearch.sql.legacy.TestUtils.loadDataByRestClient;
-import static org.opensearch.sql.legacy.TestsConstants.PERSISTENT;
-import static org.opensearch.sql.legacy.TestsConstants.TRANSIENT;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -39,13 +37,7 @@ import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.Before;
-import org.opensearch.client.Request;
-import org.opensearch.client.Response;
-import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.core.rest.RestStatus;
-import org.opensearch.core.xcontent.XContentBuilder;
 
 /**
  *
@@ -148,27 +140,8 @@ public abstract class RestIntegTestCase extends OpenSearchSQLRestTestCase {
   }
 
   /** Provide for each test to load test index, data and other setup work */
-  protected void init() throws Exception {}
-
-  protected static void updateClusterSetting(String settingKey, Object value) throws IOException {
-    updateClusterSetting(settingKey, value, true);
-  }
-
-  protected static void updateClusterSetting(String settingKey, Object value, boolean persistent)
-      throws IOException {
-    String property = persistent ? PERSISTENT : TRANSIENT;
-    XContentBuilder builder =
-        XContentFactory.jsonBuilder()
-            .startObject()
-            .startObject(property)
-            .field(settingKey, value)
-            .endObject()
-            .endObject();
-    Request request = new Request("PUT", "_cluster/settings");
-    request.setJsonEntity(builder.toString());
-    Response response = client().performRequest(request);
-    Assert.assertEquals(
-        RestStatus.OK, RestStatus.fromCode(response.getStatusLine().getStatusCode()));
+  protected void init() throws Exception {
+    increaseMaxCompilationsRate();
   }
 
   protected static void wipeAllClusterSettings() throws IOException {

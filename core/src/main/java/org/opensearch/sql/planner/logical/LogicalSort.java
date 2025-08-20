@@ -20,11 +20,20 @@ import org.opensearch.sql.expression.Expression;
 @EqualsAndHashCode(callSuper = true)
 public class LogicalSort extends LogicalPlan {
 
+  /** Maximum number of results to return after sorting. */
+  private final Integer count;
+
   private final List<Pair<SortOption, Expression>> sortList;
 
-  /** Constructor of LogicalSort. */
   public LogicalSort(LogicalPlan child, List<Pair<SortOption, Expression>> sortList) {
+    this(child, 0, sortList);
+  }
+
+  /** Constructor of LogicalSort. */
+  public LogicalSort(
+      LogicalPlan child, Integer count, List<Pair<SortOption, Expression>> sortList) {
     super(Collections.singletonList(child));
+    this.count = count;
     this.sortList = sortList;
   }
 

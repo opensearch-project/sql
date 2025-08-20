@@ -19,7 +19,6 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
 
     loadIndex(Index.DUPLICATION_NULLABLE);
   }

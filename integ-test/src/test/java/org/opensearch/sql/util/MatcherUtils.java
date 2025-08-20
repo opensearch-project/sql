@@ -292,16 +292,21 @@ public class MatcherUtils {
     };
   }
 
-  public static TypeSafeMatcher<JSONArray> closeTo(Number... values) {
+  public static TypeSafeMatcher<JSONArray> closeTo(Object... values) {
     final double error = 1e-10;
     return new TypeSafeMatcher<JSONArray>() {
       @Override
       protected boolean matchesSafely(JSONArray item) {
-        List<Number> expectedValues = new ArrayList<>(Arrays.asList(values));
-        List<Number> actualValues = new ArrayList<>();
-        item.iterator().forEachRemaining(v -> actualValues.add((Number) v));
+        List<Object> expectedValues = new ArrayList<>(Arrays.asList(values));
+        List<Object> actualValues = new ArrayList<>();
+        item.iterator().forEachRemaining(v -> actualValues.add((Object) v));
         return actualValues.stream()
-            .allMatch(v -> valuesAreClose(v, expectedValues.get(actualValues.indexOf(v))));
+            .allMatch(
+                v ->
+                    v instanceof Number
+                        ? valuesAreClose(
+                            (Number) v, (Number) expectedValues.get(actualValues.indexOf(v)))
+                        : v.equals(expectedValues.get(actualValues.indexOf(v))));
       }
 
       @Override

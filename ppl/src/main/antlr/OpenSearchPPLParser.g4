@@ -47,6 +47,7 @@ pplCommands
 commands
    : whereCommand
    | fieldsCommand
+   | tableCommand
    | joinCommand
    | renameCommand
    | statsCommand
@@ -69,6 +70,7 @@ commands
    | appendcolCommand
    | expandCommand
    | flattenCommand
+   | reverseCommand
    ;
 
 commandName
@@ -77,6 +79,7 @@ commandName
    | SHOW
    | WHERE
    | FIELDS
+   | TABLE
    | JOIN
    | RENAME
    | STATS
@@ -99,6 +102,7 @@ commandName
    | FLATTEN
    | TRENDLINE
    | EXPLAIN
+   | REVERSE
    ;
 
 searchCommand
@@ -118,7 +122,21 @@ whereCommand
    ;
 
 fieldsCommand
-   : FIELDS (PLUS | MINUS)? fieldList
+   : FIELDS fieldsCommandBody
+   ;
+
+// Table command - alias for fields command
+tableCommand
+   : TABLE fieldsCommandBody
+   ;
+
+fieldsCommandBody
+   : (PLUS | MINUS)? wcFieldList
+   ;
+
+// Wildcard field list supporting both comma-separated and space-separated fields
+wcFieldList
+   : selectFieldExpression (COMMA? selectFieldExpression)*
    ;
 
 renameCommand
@@ -138,7 +156,11 @@ dedupCommand
    ;
 
 sortCommand
-   : SORT sortbyClause
+   : SORT (count = integerLiteral)? sortbyClause (DESC | D)?
+   ;
+
+reverseCommand
+   : REVERSE
    ;
 
 evalCommand
@@ -512,16 +534,12 @@ tableSource
    ;
 
 tableFunction
-   : qualifiedName LT_PRTHS functionArgs RT_PRTHS
+   : qualifiedName LT_PRTHS namedFunctionArgs RT_PRTHS
    ;
 
 // fields
 fieldList
    : fieldExpression (COMMA fieldExpression)*
-   ;
-
-wcFieldList
-   : wcFieldExpression (COMMA wcFieldExpression)*
    ;
 
 sortField
@@ -542,6 +560,11 @@ fieldExpression
 
 wcFieldExpression
    : wcQualifiedName
+   ;
+
+selectFieldExpression
+   : wcQualifiedName
+   | STAR
    ;
 
 // functions
@@ -587,10 +610,17 @@ functionArgs
    : (functionArg (COMMA functionArg)*)?
    ;
 
-functionArg
-   : (ident EQUAL)? functionArgExpression
+namedFunctionArgs
+   : (namedFunctionArg (COMMA namedFunctionArg)*)?
    ;
 
+functionArg
+   : functionArgExpression
+   ;
+
+namedFunctionArg
+   : (ident EQUAL)? functionArgExpression
+   ;
 
 functionArgExpression
    : lambda
@@ -671,6 +701,10 @@ relevanceArgValue
 
 mathematicalFunctionName
    : ABS
+   | PLUS_FUCTION
+   | MINUS_FUCTION
+   | STAR_FUNCTION
+   | DIVIDE_FUNCTION
    | CBRT
    | CEIL
    | CEILING
@@ -678,12 +712,14 @@ mathematicalFunctionName
    | CRC32
    | E
    | EXP
+   | EXPM1
    | FLOOR
    | LN
    | LOG
    | LOG10
    | LOG2
    | MOD
+   | MODULUS
    | PI
    | POW
    | POWER
@@ -692,6 +728,10 @@ mathematicalFunctionName
    | SIGN
    | SQRT
    | TRUNCATE
+   | RINT
+   | SIGNUM
+   | SUM
+   | AVG
    | trigonometricFunctionName
    ;
 
@@ -716,10 +756,12 @@ trigonometricFunctionName
    | ATAN
    | ATAN2
    | COS
+   | COSH
    | COT
    | DEGREES
    | RADIANS
    | SIN
+   | SINH
    | TAN
    ;
 

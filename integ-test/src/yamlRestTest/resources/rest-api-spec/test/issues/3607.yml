@@ -10,7 +10,6 @@ setup:
         body:
           transient:
             plugins.calcite.enabled : true
-            plugins.calcite.fallback.allowed : false
             plugins.query.size_limit : 200
 
 ---
@@ -20,7 +19,6 @@ teardown:
         body:
           transient:
             plugins.calcite.enabled : false
-            plugins.calcite.fallback.allowed : true
 
 ---
 "Handle aggregation with window_size_limit is less than query.size_limit":

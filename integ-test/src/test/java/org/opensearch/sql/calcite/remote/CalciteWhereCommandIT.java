@@ -12,7 +12,6 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 
   @Override

@@ -13,7 +13,6 @@ public class CalciteIPFunctionsIT extends IPFunctionsIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 
   @Override

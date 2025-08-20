@@ -12,6 +12,5 @@ public class CalciteDateTimeImplementationIT extends DateTimeImplementationIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 }

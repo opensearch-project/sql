@@ -109,7 +109,7 @@ public class OpenSearchSettings extends Settings {
   public static final Setting<?> CALCITE_FALLBACK_ALLOWED_SETTING =
       Setting.boolSetting(
           Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(),
-          true,
+          false,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 

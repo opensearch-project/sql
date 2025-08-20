@@ -18,6 +18,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
@@ -274,6 +275,24 @@ public class CastFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testCastDecimal() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval s = cast(0.99 as string), f = cast(12.9 as float), "
+                    + "d = cast(100.00 as double), i = cast(2.9 as int) "
+                    + "| fields s, f, d, i",
+                TEST_INDEX_DATATYPE_NONNUMERIC));
+    verifySchema(
+        actual,
+        schema("s", "string"),
+        schema("f", "float"),
+        schema("d", "double"),
+        schema("i", "int"));
+    verifyDataRows(actual, rows("0.99", 12.9f, 100.0d, 2));
+  }
+
+  @Test
   public void testCastDate() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -431,5 +450,18 @@ public class CastFunctionIT extends PPLIntegTestCase {
         t,
         "IP address string 'invalid_ip' is not valid. Error details: invalid_ip IP Address error:"
             + " validation options do not allow you to specify a non-segmented single value");
+  }
+
+  @Test
+  public void testCastDoubleAsString() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                Locale.ROOT,
+                "source=%s | head 1 | eval d = cast(0 as double) | eval s = cast(d as string) |"
+                    + " fields s",
+                TEST_INDEX_STATE_COUNTRY));
+    verifySchema(actual, schema("s", "string"));
+    verifyDataRows(actual, rows("0.0"));
   }
 }

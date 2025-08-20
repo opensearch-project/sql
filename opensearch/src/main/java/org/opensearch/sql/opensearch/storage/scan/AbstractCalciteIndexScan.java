@@ -7,6 +7,7 @@ package org.opensearch.sql.opensearch.storage.scan;
 
 import static java.util.Objects.requireNonNull;
 import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR;
+import static org.opensearch.sql.opensearch.request.AggregateAnalyzer.AGGREGATION_BUCKET_SIZE;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -121,6 +122,8 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                 switch (action.type) {
                       case AGGREGATION -> mq.getRowCount((RelNode) action.digest);
                       case PROJECT, SORT -> rowCount;
+                        // Refer the org.apache.calcite.rel.core.Aggregate.estimateRowCount
+                      case COLLAPSE -> rowCount * (1.0 - Math.pow(.5, 1));
                       case FILTER -> NumberUtil.multiply(
                           rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest));
                       case SCRIPT -> NumberUtil.multiply(
@@ -137,6 +140,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
 
     private boolean isAggregatePushed = false;
     @Getter private boolean isLimitPushed = false;
+    @Getter private boolean isProjectPushed = false;
 
     @Override
     public PushDownContext clone() {
@@ -150,6 +154,9 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
       }
       if (pushDownAction.type == PushDownType.LIMIT) {
         isLimitPushed = true;
+      }
+      if (pushDownAction.type == PushDownType.PROJECT) {
+        isProjectPushed = true;
       }
       return super.add(pushDownAction);
     }
@@ -293,8 +300,6 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Cannot pushdown the sort {}", getCollationNames(collations), e);
-      } else {
-        LOG.info("Cannot pushdown the sort {}, ", getCollationNames(collations));
       }
     }
     return null;
@@ -306,7 +311,8 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     AGGREGATION,
     SORT,
     LIMIT,
-    SCRIPT
+    SCRIPT,
+    COLLAPSE
     // HIGHLIGHT,
     // NESTED
   }
@@ -389,7 +395,8 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
           Pair.of(
               Collections.singletonList(
                   AggregationBuilders.composite("composite_buckets", newBuckets)
-                      .subAggregations(newAggBuilder)),
+                      .subAggregations(newAggBuilder)
+                      .size(AGGREGATION_BUCKET_SIZE)),
               aggregationBuilder.getRight());
     }
   }

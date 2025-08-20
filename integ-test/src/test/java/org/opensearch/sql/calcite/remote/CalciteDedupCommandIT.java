@@ -13,7 +13,6 @@ public class CalciteDedupCommandIT extends DedupCommandIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 
   @Override

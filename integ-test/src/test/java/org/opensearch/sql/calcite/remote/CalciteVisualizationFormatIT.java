@@ -12,6 +12,5 @@ public class CalciteVisualizationFormatIT extends VisualizationFormatIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 }

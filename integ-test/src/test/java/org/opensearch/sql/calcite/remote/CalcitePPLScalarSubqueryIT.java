@@ -25,7 +25,6 @@ public class CalcitePPLScalarSubqueryIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
 
     loadIndex(Index.WORKER);
     loadIndex(Index.WORK_INFORMATION);
