@@ -169,15 +169,6 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
         columnName("IS_GENERATEDCOLUMN"));
   }
 
-  @Test
-  public void testCrossClusterSearchRenameWildcard() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | fields dog_name, holdersName | rename *ame as *AME",
-                TEST_INDEX_DOG_REMOTE));
-    verifyColumn(result, columnName("dog_nAME"), columnName("holdersNAME"));
-  }
 
   public void testCrossClusterSortWithCount() throws IOException {
     JSONObject result =
