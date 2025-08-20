@@ -5,11 +5,15 @@
 
 package org.opensearch.sql.util;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
+/** Retry processor to retry a test when exception happens. Retry a test by adding @Retry. */
 public class RetryProcessor extends TestWatcher {
+  private static final Logger LOG = LogManager.getLogger();
 
   @Override
   public Statement apply(Statement base, Description description) {
@@ -27,8 +31,7 @@ public class RetryProcessor extends TestWatcher {
             return;
           } catch (Throwable t) {
             lastException = t;
-            System.out.println(
-                "Retrying " + description.getDisplayName() + " " + (i + 1) + " times");
+            LOG.info("Retrying {} {} times", description.getDisplayName(), (i + 1));
           }
         }
         assert lastException != null;
