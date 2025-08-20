@@ -92,7 +92,7 @@ This example counts events for each hour and groups them by host.
 
 PPL query::
 
-    source=events | timechart span=1h count() by host
+    PPL> source=events | timechart span=1h count() by host
 
 Result::
 
@@ -109,7 +109,7 @@ This example counts events for each minute and groups them by host.
 
 PPL query::
 
-    source=events | timechart span=1m count() by host
+    PPL> source=events | timechart span=1m count() by host
 
 Result::
 
@@ -130,7 +130,7 @@ This example calculates the average CPU usage for each minute without grouping b
 
 PPL query::
 
-    source=events | timechart span=1m avg(cpu_usage)
+    PPL> source=events | timechart span=1m avg(cpu_usage)
 
 Result::
 
@@ -151,7 +151,7 @@ This example counts events for each second and groups them by region.
 
 PPL query::
 
-    source=events | timechart span=1s count() by region
+    PPL> source=events | timechart span=1s count() by region
 
 Result::
 
@@ -172,7 +172,7 @@ When there are many distinct values in the "by" field, the timechart command wil
 This query will display the top 2 hosts with the highest average sum of CPU usage values, and group the remaining hosts into an "OTHER" category.
 Example::
 
-    source=events | timechart span=1m limit=2 avg(cpu_usage) by host
+    PPL> source=events | timechart span=1m limit=2 avg(cpu_usage) by host
 
 Result::
 
@@ -193,7 +193,7 @@ To display all distinct values without any limit, set limit=0:
 
 PPL query::
 
-    source=events_many_hosts | timechart span=1h limit=0 avg(cpu_usage) by host
+    PPL> source=events_many_hosts | timechart span=1h limit=0 avg(cpu_usage) by host
 
 Result::
 
@@ -212,7 +212,7 @@ Limit to top 3 hosts with OTHER category (default useother=true):
 
 PPL query::
 
-    source=events_many_hosts | timechart span=1h limit=3 avg(cpu_usage) by host
+    PPL> source=events_many_hosts | timechart span=1h limit=3 avg(cpu_usage) by host
 
 Result::
 
@@ -226,7 +226,7 @@ Limit to top 3 hosts without OTHER category (useother=false):
 
 PPL query::
 
-    source=events_many_hosts | timechart span=1h limit=3 useother=false avg(cpu_usage) by host
+    PPL> source=events_many_hosts | timechart span=1h limit=3 useother=false avg(cpu_usage) by host
 
 Result::
 

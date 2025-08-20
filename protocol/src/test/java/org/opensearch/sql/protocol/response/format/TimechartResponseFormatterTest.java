@@ -368,6 +368,67 @@ class TimechartResponseFormatterTest {
     Object[] dataRow = response.getDatarows()[0];
     assertEquals(null, dataRow[3]); // OTHER should be null when sum is 0.0
   }
+  
+  @Test
+  void testOtherCategoryWithZeroSumAndCountAggregation() {
+    QueryResult queryResult =
+        mockQueryResult(
+            Arrays.asList("timestamp", "host", "count"),
+            Map.of("timestamp", "timestamp", "host", "keyword", "count", "bigint"),
+            Arrays.<Object[]>asList(
+                new Object[] {"2024-01-01 00:00:00", "host-01", 100},
+                new Object[] {"2024-01-01 00:00:00", "host-02", 90},
+                new Object[] {"2024-01-01 00:00:00", "host-03", 0}));
+
+    TimechartResponseFormatter formatter =
+        new TimechartResponseFormatter(JsonResponseFormatter.Style.COMPACT, 2, true)
+            .withCountAggregation(true);
+    JsonResponse response = (JsonResponse) formatter.buildJsonObject(queryResult);
+
+    assertEquals(1, response.getTotal());
+    assertEquals(4, response.getSchema().size()); // timestamp + top 2 hosts + OTHER
+    Object[] dataRow = response.getDatarows()[0];
+    assertEquals(0L, dataRow[3]); // OTHER should be 0L when sum is 0.0 for count aggregation
+  }
+  
+  @Test
+  void testEmptyColumnNames() {
+    QueryResult queryResult =
+        mockQueryResult(
+            Arrays.asList(),
+            Map.of(),
+            Arrays.<Object[]>asList());
+
+    TimechartResponseFormatter formatter =
+        new TimechartResponseFormatter(JsonResponseFormatter.Style.COMPACT);
+    JsonResponse response = (JsonResponse) formatter.buildJsonObject(queryResult);
+
+    assertEquals(0, response.getTotal());
+    assertEquals(0, response.getSchema().size());
+  }
+  
+  @Test
+  void testSpecialCaseForCountAggregationWithZeroValue() {
+    QueryResult queryResult =
+        mockQueryResult(
+            Arrays.asList("timestamp", "host", "count"),
+            Map.of("timestamp", "timestamp", "host", "keyword", "count", "bigint"),
+            Arrays.<Object[]>asList(
+                new Object[] {"2024-01-01 00:00:00", "host-01", 10},
+                new Object[] {"2024-01-01 00:00:00", "host-02", 0},
+                new Object[] {"2024-01-01 00:00:00", "host-03", 5}));
+
+    TimechartResponseFormatter formatter =
+        new TimechartResponseFormatter(JsonResponseFormatter.Style.COMPACT, 1, true)
+            .withCountAggregation(true);
+    JsonResponse response = (JsonResponse) formatter.buildJsonObject(queryResult);
+
+    assertEquals(1, response.getTotal());
+    assertEquals(3, response.getSchema().size()); // timestamp + host-02 + OTHER
+    Object[] dataRow = response.getDatarows()[0];
+    assertEquals(0, dataRow[1]); // host-02 has value 0
+    assertEquals(15L, dataRow[2]); // OTHER = host-01 (10) + host-03 (5) = 15
+  }
 
   @Test
   void testCountAggregationWithNullValues() {
