@@ -213,10 +213,6 @@ BIT_NOT_OP:                         '~';
 BIT_AND_OP:                         '&';
 BIT_XOR_OP:                         '^';
 
-// PERCENTILE SHORTCUTS - Must come before ID to take precedence
-PERC_NUM:                           'PERC' [0-9]+ ('.' [0-9]+)?;
-P_NUM:                              'P' [0-9]+ ('.' [0-9]+)?;
-
 // AGGREGATIONS
 AVG:                                'AVG';
 COUNT:                              'COUNT';

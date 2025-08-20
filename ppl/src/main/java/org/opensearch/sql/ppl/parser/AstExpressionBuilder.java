@@ -49,8 +49,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -78,10 +76,6 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
           .put("isnull", IS_NULL.getName().getFunctionName())
           .put("isnotnull", IS_NOT_NULL.getName().getFunctionName())
           .build();
-
-  /** Pattern to match percentile shortcut functions like PERC20, P95, etc. */
-  private static final Pattern PERCENTILE_SHORTCUT_PATTERN = 
-      Pattern.compile("^(PERC|P)(\\d+(?:\\.\\d+)?)$", Pattern.CASE_INSENSITIVE);
 
   private final AstBuilder astBuilder;
 
@@ -228,19 +222,29 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitStatsFunctionCall(StatsFunctionCallContext ctx) {
     String functionName = ctx.statsFunctionName().getText();
-    
-    // Check if this is a percentile shortcut function
-    Matcher matcher = PERCENTILE_SHORTCUT_PATTERN.matcher(functionName);
-    if (matcher.matches()) {
-      String percentStr = matcher.group(2);
-      double percent = Double.parseDouble(percentStr);
-      
+
+    // Check if this is a percentile shortcut function (PERC_NUM or P_NUM tokens)
+    if (ctx.statsFunctionName().percentileShortcutFunction() != null) {
+      String percentStr =
+          functionName.toUpperCase(Locale.ROOT).startsWith("PERC")
+              ? functionName.substring(4)
+              : functionName.substring(1);
+
+      double percent;
+      try {
+        percent = Double.parseDouble(percentStr);
+      } catch (NumberFormatException e) {
+        throw new SyntaxCheckException(
+            String.format(
+                "Invalid percentile value '%s' in function '%s'", percentStr, functionName));
+      }
+
       // Validate percentile range
       if (percent < 0.0 || percent > 100.0) {
         throw new SyntaxCheckException(
             String.format("Percentile value %s is out of range [0, 100]", percentStr));
       }
-      
+
       // Transform to percentile function call
       return new AggregateFunction(
           "percentile",
@@ -248,7 +252,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
           Collections.singletonList(
               new UnresolvedArgument("percent", new Literal(percent, DataType.DOUBLE))));
     }
-    
+
     return new AggregateFunction(functionName, visit(ctx.valueExpression()));
   }
 

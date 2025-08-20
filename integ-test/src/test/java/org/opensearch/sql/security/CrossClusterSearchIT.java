@@ -204,4 +204,13 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
                 TEST_INDEX_BANK_REMOTE));
     verifyDataRows(result, rows(1), rows(6), rows(13), rows(18), rows(20), rows(25), rows(32));
   }
+
+  @Test
+  public void testCrossClusterPercentileShortcuts() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | stats perc50(balance), p95(balance)", TEST_INDEX_BANK_REMOTE));
+    verifyColumn(result, columnName("perc50(balance)"), columnName("p95(balance)"));
+  }
 }
