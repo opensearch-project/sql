@@ -250,4 +250,16 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
         rows("John", "Canada", "Ontario", 4, 2023, 25),
         rows("Jane", "Canada", "Quebec", 4, 2023, 20));
   }
+
+  @Test
+  public void testCascadingRename() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | rename name as user_name | rename user_name as final_name | fields"
+                    + " final_name, age",
+                TEST_INDEX_STATE_COUNTRY));
+    verifySchema(result, schema("final_name", "string"), schema("age", "int"));
+    verifyDataRows(result, rows("Jake", 70), rows("Hello", 30), rows("John", 25), rows("Jane", 20));
+  }
 }
