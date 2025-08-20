@@ -227,12 +227,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
             String.format(
                 "source = %s | fields name, age | rename * as old_*", TEST_INDEX_STATE_COUNTRY));
     verifySchema(result, schema("old_name", "string"), schema("old_age", "int"));
-    verifyDataRows(
-        result,
-        rows("Jake", 70),
-        rows("Hello", 30),
-        rows("John", 25),
-        rows("Jane", 20));
+    verifyDataRows(result, rows("Jake", 70), rows("Hello", 30), rows("John", 25), rows("Jane", 20));
   }
 
   @Test
