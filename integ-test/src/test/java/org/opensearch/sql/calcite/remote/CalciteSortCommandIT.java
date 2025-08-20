@@ -7,7 +7,9 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.MatcherUtils.rows;
+import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyOrder;
+import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
 import java.util.Locale;
@@ -148,5 +150,29 @@ public class CalciteSortCommandIT extends SortCommandIT {
 
     JSONObject result = executeQuery(ppl);
     verifyOrder(result, rows(28), rows(32));
+  }
+
+  @Test
+  public void testPushdownSortCastToDoubleExpression() throws IOException {
+    // Similar to query: 'source=%s | sort num(age)'. But left query doesn't output casted column.
+    String ppl =
+        String.format(
+            "source=%s | eval age2 = cast(age as double) | sort age2 | fields age, age2 | head 2",
+            TEST_INDEX_BANK);
+    String explained = explainQueryToString(ppl);
+    if (isPushdownEnabled()) {
+      assertTrue(
+          explained.contains(
+              "SORT->[{\\n"
+                  + "  \\\"age\\\" : {\\n"
+                  + "    \\\"order\\\" : \\\"asc\\\",\\n"
+                  + "    \\\"missing\\\" : \\\"_first\\\"\\n"
+                  + "  }\\n"
+                  + "}]"));
+    }
+
+    JSONObject result = executeQuery(ppl);
+    verifySchema(result, schema("age", "int"), schema("age2", "double"));
+    verifyOrder(result, rows(28, 28d), rows(32, 32d));
   }
 }

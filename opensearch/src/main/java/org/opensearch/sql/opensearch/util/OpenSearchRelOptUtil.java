@@ -99,6 +99,25 @@ public class OpenSearchRelOptUtil {
     final SqlTypeName srcType = src.getSqlTypeName();
     final SqlTypeName dstType = dst.getSqlTypeName();
 
+    if (SqlTypeUtil.isIntType(src) && SqlTypeUtil.isApproximateNumeric(dst)) {
+      int intBits =
+          switch (srcType) {
+            case TINYINT -> 8;
+            case SMALLINT -> 16;
+            case INTEGER -> 32;
+            case BIGINT -> 64;
+            default -> 0;
+          };
+      // Float and double can only handle exact number based on its significand precision
+      int floatBits =
+          switch (dstType) {
+            case FLOAT -> 24;
+            case DOUBLE -> 53;
+            default -> 0;
+          };
+      return intBits > 0 && floatBits > 0 && intBits <= floatBits;
+    }
+
     if (SqlTypeUtil.isExactNumeric(src) && SqlTypeUtil.isExactNumeric(dst)) {
       int srcPrec = src.getPrecision();
       int dstPrec = dst.getPrecision();
