@@ -54,6 +54,7 @@ import org.opensearch.sql.expression.function.jsonUDF.JsonKeysFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonSetFunctionImpl;
 import org.opensearch.sql.expression.function.udf.CryptographicFunction;
 import org.opensearch.sql.expression.function.udf.GrokFunction;
+import org.opensearch.sql.expression.function.udf.RegexMatchFunctionImpl;
 import org.opensearch.sql.expression.function.udf.RelevanceQueryFunction;
 import org.opensearch.sql.expression.function.udf.SpanFunction;
 import org.opensearch.sql.expression.function.udf.condition.EarliestFunction;
@@ -431,8 +432,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
           null);
 
   // Custom regex operator for Calcite engine
-  public static final SqlOperator REGEX_MATCH =
-      new org.opensearch.sql.expression.function.udf.RegexMatchFunctionImpl().toUDF("REGEX_MATCH");
+  public static final SqlOperator REGEX_MATCH = new RegexMatchFunctionImpl().toUDF("REGEX_MATCH");
 
   public static final SqlOperator ENHANCED_COALESCE =
       new EnhancedCoalesceFunction().toUDF("COALESCE");

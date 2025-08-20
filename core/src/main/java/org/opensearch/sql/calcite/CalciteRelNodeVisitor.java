@@ -179,18 +179,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitRegex(Regex node, CalcitePlanContext context) {
     visitChildren(node, context);
 
-    // Analyze the field and pattern expressions
     RexNode fieldRex = rexVisitor.analyze(node.getField(), context);
     RexNode patternRex = rexVisitor.analyze(node.getPattern(), context);
 
-    // Create RexNode using the REGEX_MATCH UDF
     RexNode regexCondition =
         context.rexBuilder.makeCall(
             org.opensearch.sql.expression.function.PPLBuiltinOperators.REGEX_MATCH,
             fieldRex,
             patternRex);
 
-    // If negated, wrap with NOT
     if (node.isNegated()) {
       regexCondition = context.rexBuilder.makeCall(SqlStdOperatorTable.NOT, regexCondition);
     }
