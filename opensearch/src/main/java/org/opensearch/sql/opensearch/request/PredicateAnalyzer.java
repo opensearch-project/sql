@@ -85,8 +85,11 @@ import org.opensearch.index.query.RangeQueryBuilder;
 import org.opensearch.index.query.ScriptQueryBuilder;
 import org.opensearch.script.Script;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
+import org.opensearch.sql.calcite.type.ExprIPType;
 import org.opensearch.sql.calcite.type.ExprSqlType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.data.model.ExprIpValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -343,7 +346,14 @@ public class PredicateAnalyzer {
           }
 
         case FUNCTION:
-          return visitRelevanceFunc(call);
+          String functionName = call.getOperator().getName().toLowerCase(Locale.ROOT);
+          if (functionName.equalsIgnoreCase(UserDefinedFunctionUtils.IP_FUNCTION_NAME)) {
+            return visitIpFunction(call);
+          } else if (SINGLE_FIELD_RELEVANCE_FUNCTION_SET.contains(functionName)
+              || MULTI_FIELDS_RELEVANCE_FUNCTION_SET.contains(functionName)) {
+            return visitRelevanceFunc(call);
+          }
+          // fall through
         default:
           String message = format(Locale.ROOT, "Unsupported syntax [%s] for call: [%s]", syntax, call);
           throw new PredicateAnalyzerException(message);
@@ -390,6 +400,10 @@ public class PredicateAnalyzer {
 
       throw new PredicateAnalyzerException(
           format(Locale.ROOT, "Unsupported search relevance function: [%s]", funcName));
+    }
+
+    private LiteralExpression visitIpFunction(RexCall call) {
+      return new LiteralExpression((RexLiteral) call.getOperands().get(0));
     }
 
     @FunctionalInterface
@@ -1369,6 +1383,11 @@ public class PredicateAnalyzer {
     // https://github.com/opensearch-project/sql/pull/3442
   }
 
+  private static String ipValueForPushDown(String value) {
+    ExprIpValue exprIpValue = new ExprIpValue(value);
+    return exprIpValue.value();
+  }
+
   public static class ScriptQueryExpression extends QueryExpression {
     private final String code;
     private RexNode analyzedNode;
@@ -1560,6 +1579,8 @@ public class PredicateAnalyzer {
         return timestampValueForPushDown(RexLiteral.stringValue(literal));
       } else if (isString()) {
         return RexLiteral.stringValue(literal);
+      } else if (isIp()) {
+        return ipValueForPushDown(RexLiteral.stringValue(literal));
       } else {
         return rawValue();
       }
@@ -1595,6 +1616,10 @@ public class PredicateAnalyzer {
         return exprSqlType.getUdt() == ExprUDT.EXPR_TIMESTAMP;
       }
       return false;
+    }
+
+    public boolean isIp() {
+      return literal.getType() instanceof ExprIPType;
     }
 
     long longValue() {
