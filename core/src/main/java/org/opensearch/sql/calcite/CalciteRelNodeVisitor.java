@@ -481,10 +481,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RexNode fieldExpr = rexVisitor.analyze(node.getField(), context);
     String fieldName = BinUtils.extractFieldName(node);
 
-    RexNode alignTimeValue =
-        BinUtils.processAligntimeParameter(node, fieldExpr, context, rexVisitor);
-    RexNode binExpression =
-        BinUtils.createBinExpression(node, fieldExpr, alignTimeValue, context, rexVisitor);
+    RexNode binExpression = BinUtils.createBinExpression(node, fieldExpr, context, rexVisitor);
 
     if (node.getAlias() != null) {
       handleBinWithAlias(context, binExpression, node.getAlias());

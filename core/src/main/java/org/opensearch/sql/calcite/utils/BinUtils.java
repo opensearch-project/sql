@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.utils;
 
 import org.apache.calcite.rex.RexNode;
+import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRexNodeVisitor;
@@ -18,13 +19,17 @@ import org.opensearch.sql.calcite.utils.binning.BinHandlerFactory;
  */
 public class BinUtils {
 
+  /** Extracts the field name from a Bin node. */
+  public static String extractFieldName(Bin node) {
+    if (node.getField() instanceof Field field) {
+      return field.getField().toString();
+    }
+    throw new IllegalArgumentException("Bin field must be a Field expression");
+  }
+
   /** Creates the appropriate bin expression that transforms field values to range strings. */
   public static RexNode createBinExpression(
-      Bin node,
-      RexNode fieldExpr,
-      RexNode alignTimeValue,
-      CalcitePlanContext context,
-      CalciteRexNodeVisitor rexVisitor) {
+      Bin node, RexNode fieldExpr, CalcitePlanContext context, CalciteRexNodeVisitor rexVisitor) {
 
     BinHandler handler = BinHandlerFactory.getHandler(node);
     return handler.createExpression(node, fieldExpr, context, rexVisitor);
