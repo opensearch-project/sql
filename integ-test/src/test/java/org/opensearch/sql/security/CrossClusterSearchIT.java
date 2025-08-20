@@ -177,6 +177,8 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
                 "search source=%s | fields dog_name, holdersName | rename *ame as *AME",
                 TEST_INDEX_DOG_REMOTE));
     verifyColumn(result, columnName("dog_nAME"), columnName("holdersNAME"));
+  }
+
   public void testCrossClusterSortWithCount() throws IOException {
     JSONObject result =
         executeQuery(
