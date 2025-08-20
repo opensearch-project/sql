@@ -225,25 +225,47 @@ If you are working on contributing a new PPL command, please read this guide and
 Prerequisite
 ------------
 
-| ✅ Open a RFC issue before starting to code. Describe the purpose of the new command, including at least syntax, usage and examples in RFC. Implementation options are welcome if you have multiple ways to implement it.
-| ✅ Asking a PM to review the RFC and got a sign-off from PM. If you cannot find a PM, request to repository maintainers as alternative. An offline meeting might be required to discuss the syntax and usage.
+| ✅ Open an RFC issue before starting to code:
+- Describe the purpose of the new command
+- Include at least syntax definition, usage and examples
+- Implementation options are welcome if you have multiple ways to implement it
+| ✅ Obtain PM review approval for the RFC:
+- If PM unavailable, consult repository maintainers as alternative
+- An offline meeting might be required to discuss the syntax and usage
 
 Coding & Tests
 --------------
 
-| ✅ Add new lex/keywords to OpenSearchPPLLexer.g4.
-| ✅ Add new grammar to OpenSearchPPLParser.g4. Do not forget to update ``commandName`` and ``keywordsCanBeId``.
-| ✅ In AST layer, you can add new tree nodes in package ``org.opensearch.sql.ast.tree``.
-| ✅ Try to avoid adding new expression nodes in package ``org.opensearch.sql.ast.expression``. Reuse ``Argument`` for any command arguments.
-| ✅ Add ``visit*`` in ``AbstractNodeVisitor``, make sure all overriding are provided (``Analyzer``, ``CalciteRelNodeVisitor`` and ``PPLQueryDataAnonymizer``).
-| ✅ Unit tests: add a ``CalcitePPL*Test`` extended ``CalcitePPLAbstractTest`` under ``ppl/src/test/java/org/opensearch/sql/ppl/calcite``. For each unit test, keep the test query as simple as possible. ``verifyLogical()`` and ``verifyPPLToSparkSQL()`` are required for each unit test.
-| ✅ Integration tests with pushdown: add a ``CalcitePPL*IT`` extended ``PPLIntegTestCase`` under ``integ-test/src/test/java/org/opensearch/sql/calcite/remote``. For each integration test, keep the test query as complex as possible. ``verifySchema()`` and ``verifyDataRows()`` are required for each integration test.
-| ✅ Integration tests without pushdown: add the new added integration test class ``CalcitePPL*IT`` to the ``SuiteClasses`` of ``CalciteNoPushdownIT``.
-| ✅ Explain tests: add some tests in ``ExplainIT`` or ``CalciteExplainIT`` (if the new command for Calcite engine only).
-| ✅ Unsupported in v2 test: add a test in ``NewAddedCommandsIT``.
-| ✅ Full syntax anonymizer tests in ``PPLQueryDataAnonymizerTest``.
-| ✅ Cross cluster tests in ``CrossClusterSearchIT`` (optional, nice to have).
-| ✅ User doc: add a xxx.rst under ``docs/user/ppl/cmd`` and link the new doc to ``docs/user/ppl/index.rst``.
+| ✅ Lexer/Parser Updates:
+- Add new keywords to OpenSearchPPLLexer.g4
+- Add grammar rules to OpenSearchPPLParser.g4
+- Update ``commandName`` and ``keywordsCanBeId``
+| ✅ AST Implementation:
+- Add new tree nodes under package ``org.opensearch.sql.ast.tree``
+- Prefer reusing ``Argument`` for command arguments **over** creating new expression nodes under ``org.opensearch.sql.ast.expression``
+| ✅ Visitor Pattern:
+- Add ``visit*`` in ``AbstractNodeVisitor``
+- Overriding ``visit*`` in ``Analyzer``, ``CalciteRelNodeVisitor`` and ``PPLQueryDataAnonymizer``
+| ✅ Unit Tests:
+- Extend ``CalcitePPLAbstractTest``
+- Keep test queries minimal
+- Include ``verifyLogical()`` and ``verifyPPLToSparkSQL()``
+| ✅ Integration tests (pushdown):
+- Extend ``PPLIntegTestCase``
+- Use complex real-world queries
+- Include ``verifySchema()`` and ``verifyDataRows()``
+| ✅ Integration tests (Non-pushdown):
+- Add test class to ``CalciteNoPushdownIT``
+| ✅ Explain tests:
+- Add tests to ``ExplainIT`` or ``CalciteExplainIT``
+| ✅ Unsupported in v2 test:
+- Add a test in ``NewAddedCommandsIT``
+| ✅ Anonymizer tests:
+- Add a test in ``PPLQueryDataAnonymizerTest``
+| ✅ Cross-cluster Tests (optional, nice to have):
+- Add a test in ``CrossClusterSearchIT``
+| ✅ User doc:
+- Add a xxx.rst under ``docs/user/ppl/cmd`` and link the new doc to ``docs/user/ppl/index.rst``
 
 Building and Running Tests
 ==========================
