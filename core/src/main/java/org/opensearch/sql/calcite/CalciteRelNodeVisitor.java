@@ -13,6 +13,7 @@ import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_DESC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
+import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_DEDUP;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME_MAIN;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME_SUBSEARCH;
@@ -848,13 +849,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (keepEmpty) {
       /*
        * | dedup 2 a, b keepempty=false
-       * DropColumns('_row_number_)
-       * +- Filter ('_row_number_ <= n OR isnull('a) OR isnull('b))
-       *    +- Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST, specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_], ['a, 'b], ['a ASC NULLS FIRST, 'b ASC NULLS FIRST]
+       * DropColumns('_row_number_dedup_)
+       * +- Filter ('_row_number_dedup_ <= n OR isnull('a) OR isnull('b))
+       *    +- Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST, specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_dedup_], ['a, 'b], ['a ASC NULLS FIRST, 'b ASC NULLS FIRST]
        *        +- ...
        */
       // Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST,
-      // specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_], ['a, 'b], ['a ASC
+      // specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_dedup_], ['a, 'b], ['a
+      // ASC
       // NULLS FIRST, 'b ASC NULLS FIRST]
       RexNode rowNumber =
           context
@@ -864,23 +866,23 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               .partitionBy(dedupeFields)
               .orderBy(dedupeFields)
               .rowsTo(RexWindowBounds.CURRENT_ROW)
-              .as("_row_number_");
+              .as(ROW_NUMBER_COLUMN_FOR_DEDUP);
       context.relBuilder.projectPlus(rowNumber);
-      RexNode _row_number_ = context.relBuilder.field("_row_number_");
-      // Filter (isnull('a) OR isnull('b) OR '_row_number_ <= n)
+      RexNode _row_number_dedup_ = context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_DEDUP);
+      // Filter (isnull('a) OR isnull('b) OR '_row_number_dedup_ <= n)
       context.relBuilder.filter(
           context.relBuilder.or(
               context.relBuilder.or(dedupeFields.stream().map(context.relBuilder::isNull).toList()),
               context.relBuilder.lessThanOrEqual(
-                  _row_number_, context.relBuilder.literal(allowedDuplication))));
+                  _row_number_dedup_, context.relBuilder.literal(allowedDuplication))));
       // DropColumns('_row_number_)
-      context.relBuilder.projectExcept(_row_number_);
+      context.relBuilder.projectExcept(_row_number_dedup_);
     } else {
       /*
        * | dedup 2 a, b keepempty=false
-       * DropColumns('_row_number_)
-       * +- Filter ('_row_number_ <= n)
-       *    +- Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST, specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_], ['a, 'b], ['a ASC NULLS FIRST, 'b ASC NULLS FIRST]
+       * DropColumns('_row_number_dedup_)
+       * +- Filter ('_row_number_dedup_ <= n)
+       *    +- Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST, specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_dedup_], ['a, 'b], ['a ASC NULLS FIRST, 'b ASC NULLS FIRST]
        *       +- Filter (isnotnull('a) AND isnotnull('b))
        *          +- ...
        */
@@ -889,7 +891,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           context.relBuilder.and(
               dedupeFields.stream().map(context.relBuilder::isNotNull).toList()));
       // Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST,
-      // specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_], ['a, 'b], ['a ASC
+      // specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_dedup_], ['a, 'b], ['a
+      // ASC
       // NULLS FIRST, 'b ASC NULLS FIRST]
       RexNode rowNumber =
           context
@@ -899,15 +902,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               .partitionBy(dedupeFields)
               .orderBy(dedupeFields)
               .rowsTo(RexWindowBounds.CURRENT_ROW)
-              .as("_row_number_");
+              .as(ROW_NUMBER_COLUMN_FOR_DEDUP);
       context.relBuilder.projectPlus(rowNumber);
-      RexNode _row_number_ = context.relBuilder.field("_row_number_");
-      // Filter ('_row_number_ <= n)
+      RexNode _row_number_dedup_ = context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_DEDUP);
+      // Filter ('_row_number_dedup_ <= n)
       context.relBuilder.filter(
           context.relBuilder.lessThanOrEqual(
-              _row_number_, context.relBuilder.literal(allowedDuplication)));
-      // DropColumns('_row_number_)
-      context.relBuilder.projectExcept(_row_number_);
+              _row_number_dedup_, context.relBuilder.literal(allowedDuplication)));
+      // DropColumns('_row_number_dedup_)
+      context.relBuilder.projectExcept(_row_number_dedup_);
     }
     return context.relBuilder.peek();
   }
