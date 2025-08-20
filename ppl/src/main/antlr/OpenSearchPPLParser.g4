@@ -140,7 +140,7 @@ dedupCommand
    ;
 
 sortCommand
-   : SORT sortbyClause
+   : SORT (count = integerLiteral)? sortbyClause (DESC | D)?
    ;
 
 reverseCommand
@@ -713,6 +713,8 @@ mathematicalFunctionName
    | TRUNCATE
    | RINT
    | SIGNUM
+   | SUM
+   | AVG
    | trigonometricFunctionName
    ;
 
