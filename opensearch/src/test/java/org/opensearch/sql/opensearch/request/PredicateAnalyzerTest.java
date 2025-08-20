@@ -792,7 +792,7 @@ public class PredicateAnalyzerTest {
 
       List<RexNode> unAnalyzableNodes = result.getUnAnalyzableNodes();
       assertEquals(1, unAnalyzableNodes.size());
-      assertEquals(call2, unAnalyzableNodes.getFirst());
+      assertEquals(call2, unAnalyzableNodes.get(0));
 
       // Don't push down the whole condition if part of `or` cannot be pushed down
       RexNode orCall = builder.makeCall(SqlStdOperatorTable.OR, List.of(call1, call2));
