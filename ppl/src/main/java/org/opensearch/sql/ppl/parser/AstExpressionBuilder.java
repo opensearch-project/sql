@@ -77,6 +77,10 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
           .put("isnotnull", IS_NOT_NULL.getName().getFunctionName())
           .build();
 
+  /** Pattern to match percentile shortcut functions like PERC20, P95, etc. */
+  private static final java.util.regex.Pattern PERCENTILE_SHORTCUT_PATTERN =
+      java.util.regex.Pattern.compile("^(PERC|P)(\\d+(?:\\.\\d+)?)$", java.util.regex.Pattern.CASE_INSENSITIVE);
+
   private final AstBuilder astBuilder;
 
   public AstExpressionBuilder(AstBuilder astBuilder) {
@@ -221,7 +225,29 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   /** Aggregation function. */
   @Override
   public UnresolvedExpression visitStatsFunctionCall(StatsFunctionCallContext ctx) {
-    return new AggregateFunction(ctx.statsFunctionName().getText(), visit(ctx.valueExpression()));
+    String functionName = ctx.statsFunctionName().getText();
+
+    // Check if this is a percentile shortcut function
+    Matcher matcher = PERCENTILE_SHORTCUT_PATTERN.matcher(functionName);
+    if (matcher.matches()) {
+      String percentStr = matcher.group(2);
+      double percent = Double.parseDouble(percentStr);
+
+      // Validate percentile range
+      if (percent < 0.0 || percent > 100.0) {
+        throw new SyntaxCheckException(
+            String.format("Percentile value %s is out of range [0, 100]", percentStr));
+      }
+
+      // Transform to percentile function call
+      return new AggregateFunction(
+          "percentile",
+          visit(ctx.valueExpression()),
+          Collections.singletonList(
+              new UnresolvedArgument("percent", new Literal(percent, DataType.DOUBLE))));
+    }
+
+    return new AggregateFunction(functionName, visit(ctx.valueExpression()));
   }
 
   @Override

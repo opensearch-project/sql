@@ -234,6 +234,7 @@ VAR_SAMP:                           'VAR_SAMP';
 VAR_POP:                            'VAR_POP';
 STDDEV_SAMP:                        'STDDEV_SAMP';
 STDDEV_POP:                         'STDDEV_POP';
+PERC:                               'PERC';
 PERCENTILE:                         'PERCENTILE';
 PERCENTILE_APPROX:                  'PERCENTILE_APPROX';
 EARLIEST:                           'EARLIEST';
@@ -478,6 +479,8 @@ Y:                                  'Y';
 
 
 // LITERALS AND VALUES
+PERC_NUM:                           'PERC' [0-9]+ ('.' [0-9]+)?;
+P_NUM:                              'P' [0-9]+ ('.' [0-9]+)?;
 //STRING_LITERAL:                     DQUOTA_STRING | SQUOTA_STRING | BQUOTA_STRING;
 ID:                                 ID_LITERAL;
 CLUSTER:                            CLUSTER_PREFIX_LITERAL;
