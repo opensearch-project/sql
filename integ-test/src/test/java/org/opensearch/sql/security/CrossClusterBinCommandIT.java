@@ -56,6 +56,7 @@ public class CrossClusterBinCommandIT extends PPLIntegTestCase {
 
   @Override
   protected void init() throws Exception {
+    enableCalcite();
     configureMultiClusters(REMOTE_CLUSTER);
     loadIndex(Index.BANK);
     loadIndex(Index.BANK, remoteClient());
