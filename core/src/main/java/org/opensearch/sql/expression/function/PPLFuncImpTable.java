@@ -268,6 +268,7 @@ import org.opensearch.sql.calcite.udf.udaf.ValuesAggFunction;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.executor.QueryType;
 
@@ -1204,15 +1205,22 @@ public class PPLFuncImpTable {
                   List.of(field),
                   argList,
                   ctx.relBuilder),
-          PPLTypeChecker.wrapComposite(
-              (CompositeOperandTypeChecker)
-                  OperandTypes.family(SqlTypeFamily.BOOLEAN)
-                      .or(OperandTypes.family(SqlTypeFamily.CHARACTER))
-                      .or(OperandTypes.family(SqlTypeFamily.NUMERIC))
-                      .or(OperandTypes.family(SqlTypeFamily.DATE))
-                      .or(OperandTypes.family(SqlTypeFamily.TIME))
-                      .or(OperandTypes.family(SqlTypeFamily.TIMESTAMP)),
-              false));
+          PPLTypeChecker.wrapUDT(
+              List.of(
+                  List.of(ExprCoreType.BOOLEAN),
+                  List.of(ExprCoreType.BYTE),
+                  List.of(ExprCoreType.SHORT),
+                  List.of(ExprCoreType.INTEGER),
+                  List.of(ExprCoreType.LONG),
+                  List.of(ExprCoreType.FLOAT),
+                  List.of(ExprCoreType.DOUBLE),
+                  List.of(ExprCoreType.STRING),
+                  List.of(ExprCoreType.DATE),
+                  List.of(ExprCoreType.TIME),
+                  List.of(ExprCoreType.TIMESTAMP),
+                  List.of(ExprCoreType.IP),
+                  List.of(ExprCoreType.BINARY),
+                  List.of(ExprCoreType.GEO_POINT))));
 
       register(
           VALUES,
@@ -1224,15 +1232,22 @@ public class PPLFuncImpTable {
                   List.of(field),
                   argList,
                   ctx.relBuilder),
-          PPLTypeChecker.wrapComposite(
-              (CompositeOperandTypeChecker)
-                  OperandTypes.family(SqlTypeFamily.BOOLEAN)
-                      .or(OperandTypes.family(SqlTypeFamily.CHARACTER))
-                      .or(OperandTypes.family(SqlTypeFamily.NUMERIC))
-                      .or(OperandTypes.family(SqlTypeFamily.DATE))
-                      .or(OperandTypes.family(SqlTypeFamily.TIME))
-                      .or(OperandTypes.family(SqlTypeFamily.TIMESTAMP)),
-              false));
+          PPLTypeChecker.wrapUDT(
+              List.of(
+                  List.of(ExprCoreType.BOOLEAN),
+                  List.of(ExprCoreType.BYTE),
+                  List.of(ExprCoreType.SHORT),
+                  List.of(ExprCoreType.INTEGER),
+                  List.of(ExprCoreType.LONG),
+                  List.of(ExprCoreType.FLOAT),
+                  List.of(ExprCoreType.DOUBLE),
+                  List.of(ExprCoreType.STRING),
+                  List.of(ExprCoreType.DATE),
+                  List.of(ExprCoreType.TIME),
+                  List.of(ExprCoreType.TIMESTAMP),
+                  List.of(ExprCoreType.IP),
+                  List.of(ExprCoreType.BINARY),
+                  List.of(ExprCoreType.GEO_POINT))));
     }
   }
 }

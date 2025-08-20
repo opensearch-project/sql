@@ -321,7 +321,7 @@ Usage: LIST(). Returns an array containing all values of the specified field fro
 
 Example::
 
-    os> source=accounts | stats list(firstname);
+    PPL> source=accounts | stats list(firstname);
     fetched rows / total rows = 1/1
     +-----------------------------+
     | list(firstname)             |
@@ -331,7 +331,7 @@ Example::
 
 Example with string fields::
 
-    os> source=accounts | stats list(firstname) as names;
+    PPL> source=accounts | stats list(firstname) as names;
     fetched rows / total rows = 1/1
     +-----------------------------+
     | names                       |
@@ -355,7 +355,7 @@ Usage: VALUES(expr). Returns an array containing unique values of the specified 
 
 Example::
 
-    os> source=accounts | stats values(gender);
+    PPL> source=accounts | stats values(gender);
     fetched rows / total rows = 1/1
     +----------------+
     | values(gender) |
@@ -365,7 +365,7 @@ Example::
 
 Example with mixed data types::
 
-    os> source=logs | stats values(status_code);
+    PPL> source=logs | stats values(status_code);
     fetched rows / total rows = 1/1
     +--------------------+
     | values(status_code)|
@@ -604,7 +604,7 @@ The example shows how to collect all firstname values, preserving duplicates and
 
 PPL query::
 
-    os> source=accounts | stats list(firstname);
+    PPL> source=accounts | stats list(firstname);
     fetched rows / total rows = 1/1
     +-----------------------------+
     | list(firstname)             |
@@ -619,7 +619,7 @@ The example shows how to get unique gender values, sorted alphabetically.
 
 PPL query::
 
-    os> source=accounts | stats values(gender);
+    PPL> source=accounts | stats values(gender);
     fetched rows / total rows = 1/1
     +----------------+
     | values(gender) |
@@ -634,7 +634,7 @@ The example shows the difference between LIST (preserves duplicates) and VALUES 
 
 PPL query::
 
-    os> source=accounts | stats list(gender) as all_genders, values(gender) as unique_genders;
+    PPL> source=accounts | stats list(gender) as all_genders, values(gender) as unique_genders;
     fetched rows / total rows = 1/1
     +---------------+----------------+
     | all_genders   | unique_genders |
@@ -649,7 +649,7 @@ The example shows how to collect values from multiple fields.
 
 PPL query::
 
-    os> source=accounts | stats list(firstname) as names, values(gender) as genders;
+    PPL> source=accounts | stats list(firstname) as names, values(gender) as genders;
     fetched rows / total rows = 1/1
     +-----------------------------+----------+
     | names                       | genders  |
