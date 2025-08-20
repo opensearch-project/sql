@@ -2,7 +2,6 @@
  * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  */
-
 package org.opensearch.sql.ppl.parser;
 
 import static java.util.Collections.emptyList;
@@ -56,7 +55,6 @@ import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.RelevanceFieldList;
 
 public class AstExpressionBuilderTest extends AstBuilderTest {
-
   @Test
   public void testLogicalNotExpr() {
     assertEqual(
@@ -405,7 +403,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         sort(
             relation("t"),
             field(
-                "f",
+                cast(qualifiedName("f"), stringLiteral("ip")),
                 argument("asc", booleanLiteral(true)),
                 argument("type", stringLiteral("ip")))));
   }
@@ -417,7 +415,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         sort(
             relation("t"),
             field(
-                "f",
+                cast(qualifiedName("f"), stringLiteral("double")),
                 argument("asc", booleanLiteral(true)),
                 argument("type", stringLiteral("num")))));
   }
@@ -429,7 +427,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         sort(
             relation("t"),
             field(
-                "f",
+                cast(qualifiedName("f"), stringLiteral("string")),
                 argument("asc", booleanLiteral(true)),
                 argument("type", stringLiteral("str")))));
   }
@@ -605,6 +603,174 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   }
 
   @Test
+  public void testEvalSumFunctionSingleArg() {
+    // sum(42) -> 42
+    assertEqual("source=t | eval f=sum(42)", eval(relation("t"), let(field("f"), intLiteral(42))));
+  }
+
+  @Test
+  public void testEvalSumFunctionMultipleArgs() {
+    // sum(1, 2, 3) -> (1 + (2 + 3)) - balanced tree
+    assertEqual(
+        "source=t | eval f=sum(1, 2, 3)",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function("+", intLiteral(1), function("+", intLiteral(2), intLiteral(3))))));
+  }
+
+  @Test
+  public void testEvalSumFunctionWithFields() {
+    // sum(a, b, 10) -> (a + (b + 10)) - balanced tree
+    assertEqual(
+        "source=t | eval f=sum(a, b, 10)",
+        eval(
+            relation("t"),
+            let(field("f"), function("+", field("a"), function("+", field("b"), intLiteral(10))))));
+  }
+
+  @Test
+  public void testEvalSumFunctionFourArgs() {
+    // sum(1, 2, 3, 4) -> ((1 + 2) + (3 + 4)) - balanced tree
+    assertEqual(
+        "source=t | eval f=sum(1, 2, 3, 4)",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function(
+                    "+",
+                    function("+", intLiteral(1), intLiteral(2)),
+                    function("+", intLiteral(3), intLiteral(4))))));
+  }
+
+  @Test
+  public void testEvalSumFunctionMixedTypes() {
+    // sum(1, 2.5) -> (1 + 2.5)
+    assertEqual(
+        "source=t | eval f=sum(1, 2.5)",
+        eval(relation("t"), let(field("f"), function("+", intLiteral(1), decimalLiteral(2.5)))));
+  }
+
+  @Test
+  public void testEvalAvgFunctionSingleArg() {
+    // avg(42) -> 42 / 1.0
+    assertEqual(
+        "source=t | eval f=avg(42)",
+        eval(relation("t"), let(field("f"), function("/", intLiteral(42), doubleLiteral(1.0)))));
+  }
+
+  @Test
+  public void testEvalAvgFunctionTwoArgs() {
+    // avg(10, 20) -> (10 + 20) / 2.0
+    assertEqual(
+        "source=t | eval f=avg(10, 20)",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function("/", function("+", intLiteral(10), intLiteral(20)), doubleLiteral(2.0)))));
+  }
+
+  @Test
+  public void testEvalAvgFunctionMultipleArgs() {
+    // avg(1, 2, 3) -> (1 + (2 + 3)) / 3.0 - balanced tree
+    assertEqual(
+        "source=t | eval f=avg(1, 2, 3)",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function(
+                    "/",
+                    function("+", intLiteral(1), function("+", intLiteral(2), intLiteral(3))),
+                    doubleLiteral(3.0)))));
+  }
+
+  @Test
+  public void testEvalAvgFunctionWithFields() {
+    // avg(a, b) -> (a + b) / 2.0
+    assertEqual(
+        "source=t | eval f=avg(a, b)",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function("/", function("+", field("a"), field("b")), doubleLiteral(2.0)))));
+  }
+
+  @Test
+  public void testEvalAvgFunctionMixedTypes() {
+    // avg(1, 2.5, 3) -> (1 + (2.5 + 3)) / 3.0 - balanced tree
+    assertEqual(
+        "source=t | eval f=avg(1, 2.5, 3)",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function(
+                    "/",
+                    function("+", intLiteral(1), function("+", decimalLiteral(2.5), intLiteral(3))),
+                    doubleLiteral(3.0)))));
+  }
+
+  @Test
+  public void testEvalComplexExpressionWithSumAndAvg() {
+    // sum(a, 5) + avg(10, 20) -> (a + 5) + ((10 + 20) / 2.0)
+    assertEqual(
+        "source=t | eval f=sum(a, 5) + avg(10, 20)",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function(
+                    "+",
+                    function("+", field("a"), intLiteral(5)),
+                    function(
+                        "/", function("+", intLiteral(10), intLiteral(20)), doubleLiteral(2.0))))));
+  }
+
+  @Test
+  public void testWhereSumFunction() {
+    // where sum(a, 10) > 20 -> where (a + 10) > 20
+    assertEqual(
+        "source=t | where sum(a, 10) > 20",
+        filter(
+            relation("t"),
+            compare(">", function("+", field("a"), intLiteral(10)), intLiteral(20))));
+  }
+
+  @Test
+  public void testWhereAvgFunction() {
+    // where avg(a, b) < 15.5 -> where (a + b) / 2.0 < 15.5
+    assertEqual(
+        "source=t | where avg(a, b) < 15.5",
+        filter(
+            relation("t"),
+            compare(
+                "<",
+                function("/", function("+", field("a"), field("b")), doubleLiteral(2.0)),
+                decimalLiteral(15.5))));
+  }
+
+  @Test
+  public void testWhereSumAndAvgComparison() {
+    // where sum(a, b) > avg(10, 20, 30) -> where (a + b) > (10 + (20 + 30)) / 3.0 - balanced tree
+    assertEqual(
+        "source=t | where sum(a, b) > avg(10, 20, 30)",
+        filter(
+            relation("t"),
+            compare(
+                ">",
+                function("+", field("a"), field("b")),
+                function(
+                    "/",
+                    function("+", intLiteral(10), function("+", intLiteral(20), intLiteral(30))),
+                    doubleLiteral(3.0)))));
+  }
+
+  @Test
   public void testNestedFieldName() {
     assertEqual(
         "source=t | fields field0.field1.field2",
@@ -695,7 +861,6 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   @Test
   public void testKeywordsAsIdentifiers() {
     assertEqual("source=timestamp", relation("timestamp"));
-
     assertEqual(
         "source=t | fields timestamp",
         projectWithArg(relation("t"), defaultFieldsArgs(), field("timestamp")));
@@ -830,7 +995,6 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             .map(String::stripLeading)
             .map(String::stripTrailing)
             .collect(Collectors.toList());
-
     assertFalse(functionList.isEmpty());
     for (String functionName : functionList) {
       assertEqual(

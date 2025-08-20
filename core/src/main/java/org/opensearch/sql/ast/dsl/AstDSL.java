@@ -466,7 +466,11 @@ public class AstDSL {
   }
 
   public static Sort sort(UnresolvedPlan input, Field... sorts) {
-    return new Sort(input, Arrays.asList(sorts));
+    return new Sort(Arrays.asList(sorts)).attach(input);
+  }
+
+  public static Sort sort(UnresolvedPlan input, Integer count, Field... sorts) {
+    return new Sort(count, Arrays.asList(sorts)).attach(input);
   }
 
   public static Dedupe dedupe(UnresolvedPlan input, List<Argument> options, Field... fields) {

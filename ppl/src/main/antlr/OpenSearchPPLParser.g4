@@ -140,7 +140,7 @@ dedupCommand
    ;
 
 sortCommand
-   : SORT sortbyClause
+   : SORT (count = integerLiteral)? sortbyClause (DESC | D)?
    ;
 
 reverseCommand
@@ -518,7 +518,7 @@ tableSource
    ;
 
 tableFunction
-   : qualifiedName LT_PRTHS functionArgs RT_PRTHS
+   : qualifiedName LT_PRTHS namedFunctionArgs RT_PRTHS
    ;
 
 // fields
@@ -593,10 +593,17 @@ functionArgs
    : (functionArg (COMMA functionArg)*)?
    ;
 
-functionArg
-   : (ident EQUAL)? functionArgExpression
+namedFunctionArgs
+   : (namedFunctionArg (COMMA namedFunctionArg)*)?
    ;
 
+functionArg
+   : functionArgExpression
+   ;
+
+namedFunctionArg
+   : (ident EQUAL)? functionArgExpression
+   ;
 
 functionArgExpression
    : lambda
@@ -706,6 +713,8 @@ mathematicalFunctionName
    | TRUNCATE
    | RINT
    | SIGNUM
+   | SUM
+   | AVG
    | trigonometricFunctionName
    ;
 
