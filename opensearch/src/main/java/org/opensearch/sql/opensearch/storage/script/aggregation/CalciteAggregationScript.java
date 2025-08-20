@@ -33,6 +33,8 @@ class CalciteAggregationScript extends AggregationScript {
   /** Calcite Script. */
   private final CalciteScript calciteScript;
 
+  private final LeafReaderContext context;
+
   private final SourceLookup sourceLookup;
 
   private final RelDataType type;
@@ -44,9 +46,16 @@ class CalciteAggregationScript extends AggregationScript {
       LeafReaderContext context,
       Map<String, Object> params) {
     super(params, lookup, context);
+    this.context = context;
     this.calciteScript = new CalciteScript(function, params);
     this.sourceLookup = lookup.getLeafSearchLookup(context).source();
     this.type = type;
+  }
+
+  @Override
+  public void setDocument(int docid) {
+    super.setDocument(docid);
+    this.sourceLookup.setSegmentAndDocument(context, docid);
   }
 
   @Override

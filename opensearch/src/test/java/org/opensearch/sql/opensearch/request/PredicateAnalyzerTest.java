@@ -772,23 +772,22 @@ public class PredicateAnalyzerTest {
       QueryBuilder resultBuilder = result.builder();
       assertInstanceOf(BoolQueryBuilder.class, resultBuilder);
       assertEquals(
-          """
-              {
-                "bool" : {
-                  "must" : [
-                    {
-                      "term" : {
-                        "a" : {
-                          "value" : 12,
-                          "boost" : 1.0
-                        }
-                      }
-                    }
-                  ],
-                  "adjust_pure_negative" : true,
-                  "boost" : 1.0
-                }
-              }""",
+          "{\n" +
+              "  \"bool\" : {\n" +
+              "    \"must\" : [\n" +
+              "      {\n" +
+              "        \"term\" : {\n" +
+              "          \"a\" : {\n" +
+              "            \"value\" : 12,\n" +
+              "            \"boost\" : 1.0\n" +
+              "          }\n" +
+              "        }\n" +
+              "      }\n" +
+              "    ],\n" +
+              "    \"adjust_pure_negative\" : true,\n" +
+              "    \"boost\" : 1.0\n" +
+              "  }\n" +
+              "}",
           resultBuilder.toString());
 
       List<RexNode> unAnalyzableNodes = result.getUnAnalyzableNodes();

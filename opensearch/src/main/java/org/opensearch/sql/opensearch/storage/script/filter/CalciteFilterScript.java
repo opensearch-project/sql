@@ -26,6 +26,7 @@ class CalciteFilterScript extends FilterScript {
   private final CalciteScript calciteScript;
 
   private final LeafReaderContext context;
+
   private final SourceLookup sourceLookup;
 
   public CalciteFilterScript(
