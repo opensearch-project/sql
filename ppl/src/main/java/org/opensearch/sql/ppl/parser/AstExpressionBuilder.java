@@ -195,10 +195,18 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitSortField(SortFieldContext ctx) {
 
-    // TODO #3180: Fix broken sort functionality
-    return new Field(
-        visit(ctx.sortFieldExpression().fieldExpression().qualifiedName()),
-        ArgumentFactory.getArgumentList(ctx));
+    UnresolvedExpression fieldExpression =
+        visit(ctx.sortFieldExpression().fieldExpression().qualifiedName());
+
+    if (ctx.sortFieldExpression().IP() != null) {
+      fieldExpression = new Cast(fieldExpression, AstDSL.stringLiteral("ip"));
+    } else if (ctx.sortFieldExpression().NUM() != null) {
+      fieldExpression = new Cast(fieldExpression, AstDSL.stringLiteral("double"));
+    } else if (ctx.sortFieldExpression().STR() != null) {
+      fieldExpression = new Cast(fieldExpression, AstDSL.stringLiteral("string"));
+    }
+    // AUTO() case uses the field expression as-is
+    return new Field(fieldExpression, ArgumentFactory.getArgumentList(ctx));
   }
 
   /** Aggregation function. */

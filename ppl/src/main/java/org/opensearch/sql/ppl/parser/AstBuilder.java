@@ -7,6 +7,7 @@ package org.opensearch.sql.ppl.parser;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
@@ -41,6 +42,7 @@ import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.And;
+import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
@@ -370,10 +372,30 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   /** Sort command. */
   @Override
   public UnresolvedPlan visitSortCommand(SortCommandContext ctx) {
-    return new Sort(
+    Integer count = ctx.count != null ? Math.max(0, Integer.parseInt(ctx.count.getText())) : 0;
+    boolean desc = ctx.DESC() != null || ctx.D() != null;
+
+    List<Field> sortFields =
         ctx.sortbyClause().sortField().stream()
             .map(sort -> (Field) internalVisitExpression(sort))
-            .collect(Collectors.toList()));
+            .map(field -> desc ? reverseSortDirection(field) : field)
+            .collect(Collectors.toList());
+
+    return new Sort(count, sortFields);
+  }
+
+  private Field reverseSortDirection(Field field) {
+    List<Argument> updatedArgs =
+        field.getFieldArgs().stream()
+            .map(
+                arg ->
+                    "asc".equals(arg.getArgName())
+                        ? new Argument(
+                            "asc", booleanLiteral(!((Boolean) arg.getValue().getValue())))
+                        : arg)
+            .collect(Collectors.toList());
+
+    return new Field(field.getField(), updatedArgs);
   }
 
   /** Reverse command. */

@@ -2,7 +2,6 @@
  * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  */
-
 package org.opensearch.sql.ppl.parser;
 
 import static java.util.Collections.emptyList;
@@ -56,7 +55,6 @@ import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.RelevanceFieldList;
 
 public class AstExpressionBuilderTest extends AstBuilderTest {
-
   @Test
   public void testLogicalNotExpr() {
     assertEqual(
@@ -405,7 +403,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         sort(
             relation("t"),
             field(
-                "f",
+                cast(qualifiedName("f"), stringLiteral("ip")),
                 argument("asc", booleanLiteral(true)),
                 argument("type", stringLiteral("ip")))));
   }
@@ -417,7 +415,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         sort(
             relation("t"),
             field(
-                "f",
+                cast(qualifiedName("f"), stringLiteral("double")),
                 argument("asc", booleanLiteral(true)),
                 argument("type", stringLiteral("num")))));
   }
@@ -429,7 +427,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         sort(
             relation("t"),
             field(
-                "f",
+                cast(qualifiedName("f"), stringLiteral("string")),
                 argument("asc", booleanLiteral(true)),
                 argument("type", stringLiteral("str")))));
   }
@@ -863,7 +861,6 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   @Test
   public void testKeywordsAsIdentifiers() {
     assertEqual("source=timestamp", relation("timestamp"));
-
     assertEqual(
         "source=t | fields timestamp",
         projectWithArg(relation("t"), defaultFieldsArgs(), field("timestamp")));
@@ -998,7 +995,6 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             .map(String::stripLeading)
             .map(String::stripTrailing)
             .collect(Collectors.toList());
-
     assertFalse(functionList.isEmpty());
     for (String functionName : functionList) {
       assertEqual(
