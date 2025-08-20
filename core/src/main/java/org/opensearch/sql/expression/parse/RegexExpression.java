@@ -38,11 +38,8 @@ public class RegexExpression extends ParseExpression {
 
   @Override
   ExprValue parseValue(ExprValue value) throws ExpressionEvaluationException {
-    // Convert to string (handles non-string types)
-    String rawString = RegexCommonUtils.toStringValue(value);
-    if (rawString == null) {
-      return new ExprStringValue("");
-    }
+    // Use stringValue() which will throw exception for non-string types
+    String rawString = value.stringValue();
 
     // Extract the specific named group
     String extracted = RegexCommonUtils.extractNamedGroup(rawString, regexPattern, identifierStr);
