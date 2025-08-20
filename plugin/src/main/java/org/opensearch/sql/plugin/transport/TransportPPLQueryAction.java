@@ -155,21 +155,16 @@ public class TransportPPLQueryAction
       formatter = new RawResponseFormatter();
     } else if (format.equals(Format.VIZ)) {
       formatter = new VisualizationResponseFormatter(pplRequest.style());
-    } else if (pplRequest.getRequest().toLowerCase().matches(".*\\|\\s*timechart\\b.*")) {
-      // Check if this is a timechart query (using regex to match "| timechart" pattern)
-      // Check if the aggregation function is count()
-      boolean isCountAggregation =
-          pplRequest.getRequest().toLowerCase().matches(".*\\|\\s*timechart\\b.*count\\(\\).*");
+    } else if (pplRequest.getRequest().toLowerCase().contains("| timechart")) {
+      // Check if this is a timechart query and if it uses count() aggregation
+      String lowerQuery = pplRequest.getRequest().toLowerCase();
+      boolean isCountAggregation = lowerQuery.contains("count()");
 
-      // Extract timechart parameters directly from the query string
-      PPLService.TimechartParams params =
-          PPLService.extractTimechartParameters(pplRequest.getRequest());
-
+      // Create formatter with parameters extracted from the query
       formatter =
-          PPLService.createTimechartFormatter(
+          PPLService.createTimechartFormatterFromQuery(
               JsonResponseFormatter.Style.PRETTY,
-              params.getLimit(),
-              params.getUseOther(),
+              pplRequest.getRequest(),
               isCountAggregation);
     } else {
       formatter = new SimpleJsonResponseFormatter(JsonResponseFormatter.Style.PRETTY);

@@ -163,23 +163,25 @@ public class PPLService {
   }
 
   /**
-   * Create a TimechartResponseFormatter with custom parameters. This is a utility method for
-   * testing purposes.
+   * Create a TimechartResponseFormatter from a query string. This method extracts the timechart
+   * parameters from the query and configures the formatter accordingly.
    *
    * @param style The JSON response style (PRETTY or COMPACT)
-   * @param timechartLimit Maximum number of distinct values to display in timechart
-   * @param timechartUseOther Whether to use OTHER category for values beyond the limit
+   * @param query The PPL query string containing timechart parameters
    * @param isCountAggregation Whether the aggregation function is count()
    * @return A configured TimechartResponseFormatter
    */
   public static org.opensearch.sql.protocol.response.format.TimechartResponseFormatter
-      createTimechartFormatter(
+      createTimechartFormatterFromQuery(
           org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style style,
-          Integer timechartLimit,
-          Boolean timechartUseOther,
+          String query,
           boolean isCountAggregation) {
+    // Extract parameters from the query
+    TimechartParams params = extractTimechartParameters(query);
+    
+    // Create and return the formatter
     return new org.opensearch.sql.protocol.response.format.TimechartResponseFormatter(
-            style, timechartLimit, timechartUseOther)
+            style, params.limit, params.useOther)
         .withCountAggregation(isCountAggregation);
   }
 
@@ -207,8 +209,7 @@ public class PPLService {
   }
 
   /**
-   * Extract timechart parameters from a query string. This is a utility method that uses regex to
-   * extract limit and useOther parameters.
+   * Extract timechart parameters from a query string using simple regex patterns.
    *
    * @param query The PPL query string
    * @return A pair of [limit, useOther] parameters
@@ -218,14 +219,16 @@ public class PPLService {
       return new TimechartParams(null, true);
     }
 
+    // Default values
+    Integer limit = null;
+    Boolean useOther = true;
+    
     // Convert to lowercase for case-insensitive matching
     String lowerQuery = query.toLowerCase();
-
-    // Extract limit parameter
-    Integer limit = null;
-    java.util.regex.Pattern limitPattern =
-        java.util.regex.Pattern.compile("\\|\\s*timechart\\b.*?\\blimit\\s*=\\s*(\\d+)");
-    java.util.regex.Matcher limitMatcher = limitPattern.matcher(lowerQuery);
+    
+    // Simple regex to extract limit parameter
+    java.util.regex.Matcher limitMatcher = 
+        java.util.regex.Pattern.compile("limit\\s*=\\s*(\\d+)").matcher(lowerQuery);
     if (limitMatcher.find()) {
       try {
         limit = Integer.parseInt(limitMatcher.group(1));
@@ -233,37 +236,25 @@ public class PPLService {
         // Ignore parsing errors
       }
     }
-
-    // Extract useOther parameter
-    Boolean useOther = true; // Default is true
-    java.util.regex.Pattern useOtherPattern =
-        java.util.regex.Pattern.compile(
-            "\\|\\s*timechart\\b.*?\\buseother\\s*=\\s*(true|t|false|f)\\b");
-    java.util.regex.Matcher useOtherMatcher = useOtherPattern.matcher(lowerQuery);
+    
+    // Simple regex to extract useOther parameter
+    java.util.regex.Matcher useOtherMatcher = 
+        java.util.regex.Pattern.compile("useother\\s*=\\s*(false|f)\\b").matcher(lowerQuery);
     if (useOtherMatcher.find()) {
-      String value = useOtherMatcher.group(1);
-      useOther = "true".equals(value) || "t".equals(value);
+      useOther = false; // Only need to check for false since default is true
     }
-
+    
     return new TimechartParams(limit, useOther);
   }
 
   /** Simple class to hold timechart parameters. */
   public static class TimechartParams {
-    private final Integer limit;
-    private final Boolean useOther;
+    public final Integer limit;
+    public final Boolean useOther;
 
     public TimechartParams(Integer limit, Boolean useOther) {
       this.limit = limit;
       this.useOther = useOther;
-    }
-
-    public Integer getLimit() {
-      return limit;
-    }
-
-    public Boolean getUseOther() {
-      return useOther;
     }
   }
 }
