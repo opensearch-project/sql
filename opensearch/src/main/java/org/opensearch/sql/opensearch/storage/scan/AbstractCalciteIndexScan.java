@@ -132,6 +132,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                         case COLLAPSE:
                           // Refer the org.apache.calcite.rel.core.Aggregate.estimateRowCount
                           estimated = rowCount * (1.0 - Math.pow(.5, 1));
+                          break;
                         case FILTER:
                           estimated = NumberUtil.multiply(
                                   rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest));
