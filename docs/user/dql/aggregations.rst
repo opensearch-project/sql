@@ -403,7 +403,7 @@ Both integer and decimal percentiles are supported (e.g., ``PERC95``, ``P99.5``)
 
 Example::
 
-    os> source=accounts | stats perc95(age);
+    ppl> source=accounts | stats perc95(age);
     fetched rows / total rows = 1/1
     +-------------+
     | perc95(age) |
@@ -411,7 +411,7 @@ Example::
     | 36          |
     +-------------+
 
-    os> source=accounts | stats p50(age);
+    ppl> source=accounts | stats p50(age);
     fetched rows / total rows = 1/1
     +---------+
     | p50(age) |
