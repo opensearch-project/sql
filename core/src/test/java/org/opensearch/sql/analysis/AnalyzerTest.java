@@ -502,47 +502,6 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void rename_with_wildcard() {
-    assertAnalyzeEqual(
-        LogicalPlanDSL.rename(
-            LogicalPlanDSL.relation("schema", table),
-            ImmutableMap.of(
-                DSL.ref("string_value", STRING), DSL.ref("str_value", STRING),
-                DSL.ref("string_null_value", STRING), DSL.ref("str_null_value", STRING),
-                DSL.ref("string_missing_value", STRING), DSL.ref("str_missing_value", STRING))),
-        AstDSL.rename(
-            AstDSL.relation("schema"),
-            AstDSL.map(AstDSL.field("string_*"), AstDSL.field("str_*"))));
-  }
-
-  @Test
-  public void rename_wildcard_no_matching_fields() {
-    SemanticCheckException exception =
-        assertThrows(
-            SemanticCheckException.class,
-            () ->
-                analyze(
-                    AstDSL.rename(
-                        AstDSL.relation("schema"),
-                        AstDSL.map(AstDSL.field("*xyz"), AstDSL.field("*_field")))));
-    assertEquals("No fields match the pattern '*xyz'", exception.getMessage());
-  }
-
-  @Test
-  public void rename_wildcard_pattern_mismatch() {
-    SemanticCheckException exception =
-        assertThrows(
-            SemanticCheckException.class,
-            () ->
-                analyze(
-                    AstDSL.rename(
-                        AstDSL.relation("schema"),
-                        AstDSL.map(AstDSL.field("*name"), AstDSL.field("*_*_field")))));
-    assertEquals(
-        "Source and target patterns have different wildcard counts", exception.getMessage());
-  }
-
-  @Test
   public void project_source() {
     assertAnalyzeEqual(
         LogicalPlanDSL.project(

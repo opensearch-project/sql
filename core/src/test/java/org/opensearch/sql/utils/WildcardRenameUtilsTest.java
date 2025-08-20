@@ -93,6 +93,11 @@ class WildcardRenameUtilsTest {
         WildcardRenameUtils.applyWildcardTransformation("*", "new_*", "firstname"));
     assertEquals(
         "first", WildcardRenameUtils.applyWildcardTransformation("*name", "*", "firstname"));
+
+    // Test partial match
+    assertEquals(
+        "FiRsTname",
+        WildcardRenameUtils.applyWildcardTransformation("f*r*tname", "F*R*Tname", "firstname"));
   }
 
   @Test
