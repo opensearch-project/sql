@@ -50,7 +50,7 @@ public class RegexMatch implements Expression {
       return ExprValueUtils.booleanValue(false);
     }
 
-    String text = RegexCommonUtils.toStringValue(fieldValue);
+    String text = fieldValue.stringValue();
     String regex = patternValue.stringValue();
 
     if (text == null) {
