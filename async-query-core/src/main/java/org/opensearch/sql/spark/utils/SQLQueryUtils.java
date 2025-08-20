@@ -53,14 +53,14 @@ public class SQLQueryUtils {
     statement.accept(visitor);
 
     // Remove duplicate table names
-    List<FullyQualifiedTableName> uniqueFullyQualifiedTableName = new LinkedList<>();
+    List<FullyQualifiedTableName> uniqueFullyQualifiedTableNames = new LinkedList<>();
     for (FullyQualifiedTableName fullyQualifiedTableName : visitor.getFullyQualifiedTableNames()) {
-      if (!uniqueFullyQualifiedTableName.contains(fullyQualifiedTableName)) {
-        uniqueFullyQualifiedTableName.add(fullyQualifiedTableName);
+      if (!uniqueFullyQualifiedTableNames.contains(fullyQualifiedTableName)) {
+        uniqueFullyQualifiedTableNames.add(fullyQualifiedTableName);
       }
     }
 
-    return new TableExtractionResult(uniqueFullyQualifiedTableName, visitor.isCreateTable());
+    return new TableExtractionResult(uniqueFullyQualifiedTableNames, visitor.isCreateTable());
   }
 
   public static IndexQueryDetails extractIndexDetails(String sqlQuery) {
