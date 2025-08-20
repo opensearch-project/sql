@@ -426,6 +426,7 @@ statsAggTerm
 statsFunction
    : statsFunctionName LT_PRTHS valueExpression RT_PRTHS        # statsFunctionCall
    | COUNT LT_PRTHS RT_PRTHS                                    # countAllFunctionCall
+   | COUNT LT_PRTHS evalExpression RT_PRTHS                     # countEvalFunctionCall
    | (DISTINCT_COUNT | DC | DISTINCT_COUNT_APPROX) LT_PRTHS valueExpression RT_PRTHS    # distinctCountFunctionCall
    | takeAggFunction                                            # takeAggFunctionCall
    | percentileApproxFunction                                   # percentileApproxFunctionCall
@@ -493,6 +494,10 @@ valueExpression
    | fieldExpression                                                                                            # fieldExpr
    | LT_PRTHS logicalExpression RT_PRTHS                                                                        # nestedValueExpr
    ;
+
+evalExpression
+    : EVAL LT_PRTHS logicalExpression RT_PRTHS
+    ;
 
 functionCall
    : evalFunctionCall
