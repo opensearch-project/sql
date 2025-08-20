@@ -4,6 +4,10 @@
 
 set -e
 
+# Flag to disable commit mapping functionality
+# Set to "true" to disable commit mapping operations
+DISABLE_COMMIT_MAPPING="${DISABLE_COMMIT_MAPPING:-true}"
+
 # Function to execute curl commands with retry and error handling
 execute_curl_with_retry() {
   local url="$1"
@@ -91,11 +95,14 @@ generate_checksums() {
 publish_to_maven() {
   echo "Publishing artifacts to Maven repository..."
 
-  # Navigate to build directory and copy artifacts
+  # Make a temp directory for publish-snapshot.sh
+  mkdir -p build/resources/publish/
+  cp build/publish/publish-snapshot.sh build/resources/publish/
+  chmod +x build/resources/publish/publish-snapshot.sh
+
+  # Continue with the original flow
   cd build/resources/publish/
   cp -a $HOME/.m2/repository/* ./
-
-  # Run the publish script
   ./publish-snapshot.sh ./
 
   echo "Maven publishing completed"
@@ -107,6 +114,11 @@ update_version_metadata() {
   local version="$2"
   local commit_id="$3"
   local snapshot_repo_url="${4:-$SNAPSHOT_REPO_URL}"
+
+  if [ "$DISABLE_COMMIT_MAPPING" = "true" ]; then
+    echo "Skipping version metadata update (commit mapping disabled)"
+    return 0
+  fi
 
   echo "Updating version metadata for ${artifact_id} version ${version} with commit ID ${commit_id}"
 
@@ -200,6 +212,11 @@ update_commit_mapping() {
   local extension="$4"  # jar, zip, etc.
   local commit_map_filename="${5:-$COMMIT_MAP_FILENAME}"
   local snapshot_repo_url="${6:-$SNAPSHOT_REPO_URL}"
+
+  if [ "$DISABLE_COMMIT_MAPPING" = "true" ]; then
+    echo "Skipping commit-version mapping update (commit mapping disabled)"
+    return 0
+  fi
 
   echo "Updating commit-version mapping for ${artifact_id}"
 
