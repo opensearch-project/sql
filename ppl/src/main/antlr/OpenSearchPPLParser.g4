@@ -445,6 +445,12 @@ statsFunctionName
    | PERCENTILE_APPROX
    | EARLIEST
    | LATEST
+   | percentileShortcutFunction
+   ;
+
+percentileShortcutFunction
+   : PERC_NUM
+   | P_NUM
    ;
 
 takeAggFunction
