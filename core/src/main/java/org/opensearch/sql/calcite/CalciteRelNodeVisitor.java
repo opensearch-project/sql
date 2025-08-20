@@ -422,7 +422,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       }
 
       // Handle wildcards
-        if (renameMap.getOrigin() instanceof Field
+      if (renameMap.getOrigin() instanceof Field
           && WildcardRenameUtils.isWildcardPattern(
               ((Field) renameMap.getOrigin()).getField().toString())) {
         String sourcePattern = ((Field) renameMap.getOrigin()).getField().toString();
