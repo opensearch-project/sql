@@ -94,7 +94,6 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
-import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.ReferenceFieldVisitor;
 import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.UnsupportedScriptException;
 import org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.ScriptEngineType;
 import org.opensearch.sql.opensearch.storage.script.StringUtils;
@@ -634,14 +633,21 @@ public class PredicateAnalyzer {
       }
     }
 
+    private boolean containIsEmptyFunction(RexCall call) {
+      return call.getKind() == SqlKind.OR
+          && call.getOperands().stream().anyMatch(o -> o.getKind() == SqlKind.IS_NULL)
+          && call.getOperands().stream()
+              .anyMatch(
+                  o ->
+                      o.getKind() == SqlKind.OTHER
+                          && ((RexCall) o).getOperator().equals(SqlStdOperatorTable.IS_EMPTY));
+    }
+
     private QueryExpression andOr(RexCall call) {
       // For function isEmpty and isBlank, we implement them via expression `isNull or {@function}`,
       // Unlike `OR` in Java, `SHOULD` in DSL will evaluate both branches and lead to NPE.
-      if (call.getKind() == SqlKind.OR
-          && call.getOperands().size() == 2
-          && (call.getOperands().get(0).getKind() == SqlKind.IS_NULL
-              || call.getOperands().get(1).getKind() == SqlKind.IS_NULL)) {
-        throw new UnsupportedScriptException(
+      if (containIsEmptyFunction(call)) {
+        throw new PredicateAnalyzerException(
             "DSL will evaluate both branches of OR with isNUll, prevent push-down to avoid NPE");
       }
 
@@ -1376,10 +1382,6 @@ public class PredicateAnalyzer {
         RelDataType rowType,
         Map<String, ExprType> fieldTypes,
         RelOptCluster cluster) {
-      ReferenceFieldVisitor validator = new ReferenceFieldVisitor(rowType, fieldTypes, true);
-      // Dry run visitInputRef to make sure the input reference ExprType is valid for script
-      // pushdown
-      validator.visitEach(List.of(rexNode));
       RelJsonSerializer serializer = new RelJsonSerializer(cluster);
       this.code =
           SerializationWrapper.wrapWithLangType(
