@@ -567,8 +567,13 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitWindowFunction(OpenSearchPPLParser.WindowFunctionContext ctx) {
-    Function f =
-        buildFunction(ctx.windowFunctionName().getText(), ctx.functionArgs().functionArg());
+    Function f;
+    if (ctx.windowFunctionName().distinctCountWindowFunction() != null) {
+      // All distinct count variants (dc, distinct_count, distinct_count_approx) use the UDAF
+      f = buildFunction("distinct_count_approx", ctx.functionArgs().functionArg());
+    } else {
+      f = buildFunction(ctx.windowFunctionName().getText(), ctx.functionArgs().functionArg());
+    }
     // In PPL eventstats command, all window functions have the same partition and order spec.
     return new WindowFunction(f);
   }
