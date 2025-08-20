@@ -22,6 +22,7 @@ import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
@@ -47,7 +48,6 @@ import org.opensearch.sql.expression.function.jsonUDF.JsonKeysFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonSetFunctionImpl;
 import org.opensearch.sql.expression.function.udf.CryptographicFunction;
 import org.opensearch.sql.expression.function.udf.GrokFunction;
-import org.opensearch.sql.expression.function.udf.RegexMatchFunctionImpl;
 import org.opensearch.sql.expression.function.udf.RelevanceQueryFunction;
 import org.opensearch.sql.expression.function.udf.SpanFunction;
 import org.opensearch.sql.expression.function.udf.condition.EarliestFunction;
@@ -381,9 +381,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
       RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("multi_match", false);
   public static final SqlOperator NUMBER_TO_STRING =
       new NumberToStringFunction().toUDF("NUMBER_TO_STRING");
-
-  // Custom regex operator for Calcite engine
-  public static final SqlOperator REGEX_MATCH = new RegexMatchFunctionImpl().toUDF("REGEX_MATCH");
+  public static final SqlOperator REGEX_MATCH = SqlLibraryOperators.REGEXP_CONTAINS;
 
   /**
    * Returns the PPL specific operator table, creating it if necessary.
