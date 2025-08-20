@@ -43,7 +43,6 @@ public class RegexMatch implements Expression {
     ExprValue fieldValue = field.valueOf(valueEnv);
     ExprValue patternValue = pattern.valueOf(valueEnv);
 
-    // Handle null/missing values
     if (fieldValue.isNull()
         || fieldValue.isMissing()
         || patternValue.isNull()
@@ -51,7 +50,6 @@ public class RegexMatch implements Expression {
       return ExprValueUtils.booleanValue(false);
     }
 
-    // Convert field value to string (handles non-string types)
     String text = RegexCommonUtils.toStringValue(fieldValue);
     String regex = patternValue.stringValue();
 
@@ -60,10 +58,8 @@ public class RegexMatch implements Expression {
     }
 
     try {
-      // Use shared utility for pattern matching
       boolean matches = RegexCommonUtils.matchesPartial(text, regex);
 
-      // Apply negation if needed
       return ExprValueUtils.booleanValue(negated ? !matches : matches);
 
     } catch (PatternSyntaxException e) {

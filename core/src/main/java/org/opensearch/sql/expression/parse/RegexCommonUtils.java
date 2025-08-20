@@ -116,12 +116,10 @@ public class RegexCommonUtils {
       return null;
     }
 
-    // If already a string, return it directly
     if (value.type() == ExprCoreType.STRING) {
       return value.stringValue();
     }
 
-    // Auto-convert non-string types to string
     return value.value().toString();
   }
 }
