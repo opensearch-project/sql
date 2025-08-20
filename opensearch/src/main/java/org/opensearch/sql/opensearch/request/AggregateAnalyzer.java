@@ -55,7 +55,6 @@ import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
 import org.opensearch.search.aggregations.AggregatorFactories;
 import org.opensearch.search.aggregations.AggregatorFactories.Builder;
-import org.opensearch.search.aggregations.BucketOrder;
 import org.opensearch.search.aggregations.bucket.composite.CompositeValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.composite.TermsValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
@@ -76,7 +75,6 @@ import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseP
 import org.opensearch.sql.opensearch.response.agg.SinglePercentileParser;
 import org.opensearch.sql.opensearch.response.agg.SingleValueParser;
 import org.opensearch.sql.opensearch.response.agg.StatsParser;
-import org.opensearch.sql.opensearch.response.agg.TermsParser;
 import org.opensearch.sql.opensearch.response.agg.TopHitsParser;
 import org.opensearch.sql.opensearch.storage.script.aggregation.dsl.BucketAggregationBuilder;
 

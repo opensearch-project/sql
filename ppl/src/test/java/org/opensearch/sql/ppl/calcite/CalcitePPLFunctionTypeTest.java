@@ -317,7 +317,10 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
             ExpressionEvaluationException.class,
             () -> getRelNode("source=EMP | stats list(array(ENAME, JOB)) as name_list"));
     verifyErrorMessageContains(
-        e, "Aggregation function LIST expects field type {[BOOLEAN],[STRING],[INTEGER],[DOUBLE],[DATE],[TIME],[TIMESTAMP]}, but got [ARRAY]");
+        e,
+        "Aggregation function LIST expects field type"
+            + " {[BOOLEAN],[STRING],[INTEGER],[DOUBLE],[DATE],[TIME],[TIMESTAMP]}, but got"
+            + " [ARRAY]");
   }
 
   @Test
@@ -328,7 +331,10 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
             ExpressionEvaluationException.class,
             () -> getRelNode("source=EMP | stats values(array(ENAME, JOB)) as unique_names"));
     verifyErrorMessageContains(
-        e, "Aggregation function VALUES expects field type {[BOOLEAN],[STRING],[INTEGER],[DOUBLE],[DATE],[TIME],[TIMESTAMP]}, but got [ARRAY]");
+        e,
+        "Aggregation function VALUES expects field type"
+            + " {[BOOLEAN],[STRING],[INTEGER],[DOUBLE],[DATE],[TIME],[TIMESTAMP]}, but got"
+            + " [ARRAY]");
   }
 
   @Test
@@ -340,7 +346,10 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
             ExpressionEvaluationException.class,
             () -> getRelNode("source=EMP | stats list(array(ENAME, JOB)) as employee_arrays"));
     verifyErrorMessageContains(
-        e, "Aggregation function LIST expects field type {[BOOLEAN],[STRING],[INTEGER],[DOUBLE],[DATE],[TIME],[TIMESTAMP]}, but got [ARRAY]");
+        e,
+        "Aggregation function LIST expects field type"
+            + " {[BOOLEAN],[STRING],[INTEGER],[DOUBLE],[DATE],[TIME],[TIMESTAMP]}, but got"
+            + " [ARRAY]");
   }
 
   @Test
@@ -352,25 +361,31 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
             ExpressionEvaluationException.class,
             () -> getRelNode("source=EMP | stats values(array(ENAME, JOB)) as unique_arrays"));
     verifyErrorMessageContains(
-        e, "Aggregation function VALUES expects field type {[BOOLEAN],[STRING],[INTEGER],[DOUBLE],[DATE],[TIME],[TIMESTAMP]}, but got [ARRAY]");
+        e,
+        "Aggregation function VALUES expects field type"
+            + " {[BOOLEAN],[STRING],[INTEGER],[DOUBLE],[DATE],[TIME],[TIMESTAMP]}, but got"
+            + " [ARRAY]");
   }
 
   @Test
   public void testListFunctionAcceptsAllScalarTypes() {
     // Test that LIST function accepts all supported scalar types
-    getRelNode("source=EMP | stats list(EMPNO) as numeric_list");      // NUMERIC
-    getRelNode("source=EMP | stats list(ENAME) as string_list");       // CHARACTER
-    getRelNode("source=EMP | stats list(HIREDATE) as date_list");      // DATE/TIMESTAMP
-    getRelNode("source=EMP | eval is_high = EMPNO > 100 | stats list(is_high) as boolean_list"); // BOOLEAN
+    getRelNode("source=EMP | stats list(EMPNO) as numeric_list"); // NUMERIC
+    getRelNode("source=EMP | stats list(ENAME) as string_list"); // CHARACTER
+    getRelNode("source=EMP | stats list(HIREDATE) as date_list"); // DATE/TIMESTAMP
+    getRelNode(
+        "source=EMP | eval is_high = EMPNO > 100 | stats list(is_high) as boolean_list"); // BOOLEAN
   }
 
   @Test
   public void testValuesFunctionAcceptsAllScalarTypes() {
     // Test that VALUES function accepts all supported scalar types
-    getRelNode("source=EMP | stats values(EMPNO) as unique_numbers");      // NUMERIC
-    getRelNode("source=EMP | stats values(ENAME) as unique_strings");      // CHARACTER
-    getRelNode("source=EMP | stats values(HIREDATE) as unique_dates");     // DATE/TIMESTAMP
-    getRelNode("source=EMP | eval is_high = EMPNO > 100 | stats values(is_high) as unique_booleans"); // BOOLEAN
+    getRelNode("source=EMP | stats values(EMPNO) as unique_numbers"); // NUMERIC
+    getRelNode("source=EMP | stats values(ENAME) as unique_strings"); // CHARACTER
+    getRelNode("source=EMP | stats values(HIREDATE) as unique_dates"); // DATE/TIMESTAMP
+    getRelNode(
+        "source=EMP | eval is_high = EMPNO > 100 | stats values(is_high) as"
+            + " unique_booleans"); // BOOLEAN
   }
 
   @Test
@@ -389,9 +404,11 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
     // Verify both functions use the standard "Aggregation function" error format
     verifyErrorMessageContains(listException, "Aggregation function LIST expects field type");
     verifyErrorMessageContains(valuesException, "Aggregation function VALUES expects field type");
-    
+
     // Verify both show the same allowed types
-    verifyErrorMessageContains(listException, "[BOOLEAN],[STRING],[INTEGER],[DOUBLE],[DATE],[TIME],[TIMESTAMP]");
-    verifyErrorMessageContains(valuesException, "[BOOLEAN],[STRING],[INTEGER],[DOUBLE],[DATE],[TIME],[TIMESTAMP]");
+    verifyErrorMessageContains(
+        listException, "[BOOLEAN],[STRING],[INTEGER],[DOUBLE],[DATE],[TIME],[TIMESTAMP]");
+    verifyErrorMessageContains(
+        valuesException, "[BOOLEAN],[STRING],[INTEGER],[DOUBLE],[DATE],[TIME],[TIMESTAMP]");
   }
 }
