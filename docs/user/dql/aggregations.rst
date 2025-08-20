@@ -391,6 +391,34 @@ Example::
     | M      | 36  |
     +--------+-----+
 
+Percentile Shortcut Functions
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+For convenience, OpenSearch PPL provides shortcut functions for common percentiles:
+
+- ``PERC<percent>(expr)`` - Equivalent to ``PERCENTILE(expr, <percent>)``
+- ``P<percent>(expr)`` - Equivalent to ``PERCENTILE(expr, <percent>)``
+
+Both integer and decimal percentiles are supported (e.g., ``PERC95``, ``P99.5``).
+
+Example::
+
+    os> source=accounts | stats perc95(age);
+    fetched rows / total rows = 1/1
+    +-------------+
+    | perc95(age) |
+    |-------------|
+    | 36          |
+    +-------------+
+
+    os> source=accounts | stats p50(age);
+    fetched rows / total rows = 1/1
+    +---------+
+    | p50(age) |
+    |---------|
+    | 32      |
+    +---------+
+
 HAVING Clause
 =============
 
