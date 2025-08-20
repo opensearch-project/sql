@@ -85,14 +85,16 @@ import org.opensearch.index.query.RangeQueryBuilder;
 import org.opensearch.index.query.ScriptQueryBuilder;
 import org.opensearch.script.Script;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
+import org.opensearch.sql.calcite.type.ExprIPType;
 import org.opensearch.sql.calcite.type.ExprSqlType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.data.model.ExprIpValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
-import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.ReferenceFieldVisitor;
 import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.UnsupportedScriptException;
 import org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.ScriptEngineType;
 import org.opensearch.sql.opensearch.storage.script.StringUtils;
@@ -336,7 +338,14 @@ public class PredicateAnalyzer {
             }
           };
         case FUNCTION:
-          return visitRelevanceFunc(call);
+          String functionName = call.getOperator().getName().toLowerCase(Locale.ROOT);
+          if (functionName.equalsIgnoreCase(UserDefinedFunctionUtils.IP_FUNCTION_NAME)) {
+            return visitIpFunction(call);
+          } else if (SINGLE_FIELD_RELEVANCE_FUNCTION_SET.contains(functionName)
+              || MULTI_FIELDS_RELEVANCE_FUNCTION_SET.contains(functionName)) {
+            return visitRelevanceFunc(call);
+          }
+          // fall through
         default:
           String message =
               format(Locale.ROOT, "Unsupported syntax [%s] for call: [%s]", syntax, call);
@@ -383,6 +392,10 @@ public class PredicateAnalyzer {
 
       throw new PredicateAnalyzerException(
           format(Locale.ROOT, "Unsupported search relevance function: [%s]", funcName));
+    }
+
+    private LiteralExpression visitIpFunction(RexCall call) {
+      return new LiteralExpression((RexLiteral) call.getOperands().getFirst());
     }
 
     @FunctionalInterface
@@ -632,7 +645,7 @@ public class PredicateAnalyzer {
           && call.getOperands().size() == 2
           && (call.getOperands().get(0).getKind() == SqlKind.IS_NULL
               || call.getOperands().get(1).getKind() == SqlKind.IS_NULL)) {
-        throw new UnsupportedScriptException(
+        throw new PredicateAnalyzerException(
             "DSL will evaluate both branches of OR with isNUll, prevent push-down to avoid NPE");
       }
 
@@ -1353,6 +1366,11 @@ public class PredicateAnalyzer {
     // https://github.com/opensearch-project/sql/pull/3442
   }
 
+  private static String ipValueForPushDown(String value) {
+    ExprIpValue exprIpValue = new ExprIpValue(value);
+    return exprIpValue.value();
+  }
+
   public static class ScriptQueryExpression extends QueryExpression {
     private final String code;
     private RexNode analyzedNode;
@@ -1369,10 +1387,6 @@ public class PredicateAnalyzer {
               || rexNode.getKind().equals(SqlKind.IS_NOT_NULL))) {
         checkForNestedFieldOperands((RexCall) rexNode);
       }
-      ReferenceFieldVisitor validator = new ReferenceFieldVisitor(rowType, fieldTypes, true);
-      // Dry run visitInputRef to make sure the input reference ExprType is valid for script
-      // pushdown
-      validator.visitEach(List.of(rexNode));
       RelJsonSerializer serializer = new RelJsonSerializer(cluster);
       this.code =
           SerializationWrapper.wrapWithLangType(
@@ -1551,6 +1565,8 @@ public class PredicateAnalyzer {
         return timestampValueForPushDown(RexLiteral.stringValue(literal));
       } else if (isString()) {
         return RexLiteral.stringValue(literal);
+      } else if (isIp()) {
+        return ipValueForPushDown(RexLiteral.stringValue(literal));
       } else {
         return rawValue();
       }
@@ -1585,6 +1601,10 @@ public class PredicateAnalyzer {
         return exprSqlType.getUdt() == ExprUDT.EXPR_TIMESTAMP;
       }
       return false;
+    }
+
+    public boolean isIp() {
+      return literal.getType() instanceof ExprIPType;
     }
 
     long longValue() {
