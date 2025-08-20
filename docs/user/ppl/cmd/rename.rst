@@ -21,6 +21,8 @@ rename <source-field> AS <target-field>["," <source-field> AS <target-field>]...
 * source-field: mandatory. The name of the field you want to rename. Supports wildcard patterns using ``*``.
 * target-field: mandatory. The name you want to rename to. Must have same number of wildcards as the source.
 
+**Note:** Literal asterisk (*) characters in field names cannot be replaced as asterisk is used for wildcard matching.
+
 
 Example 1: Rename one field
 ===========================
@@ -77,6 +79,25 @@ PPL query::
     | Nanette    | Bates     |
     | Dale       | Adams     |
     +------------+-----------+
+
+
+Example 4: Rename with multiple wildcard patterns
+==================================================
+
+The example shows renaming multiple fields using multiple wildcard patterns.
+
+PPL query::
+
+    os> source=accounts | rename *name as *_name, *_number as *number | fields first_name, last_name, accountnumber;
+    fetched rows / total rows = 4/4
+    +------------+-----------+---------------+
+    | first_name | last_name | accountnumber |
+    |------------+-----------+---------------|
+    | Amber      | Duke      | 1             |
+    | Hattie     | Bond      | 6             |
+    | Nanette    | Bates     | 13            |
+    | Dale       | Adams     | 18            |
+    +------------+-----------+---------------+
 
 Limitation
 ==========

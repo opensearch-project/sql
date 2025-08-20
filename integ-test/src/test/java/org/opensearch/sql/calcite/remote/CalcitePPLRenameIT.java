@@ -172,6 +172,12 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
         schema("country", "string"),
         schema("year", "int"),
         schema("month", "int"));
+    verifyDataRows(
+        result,
+        rows("Jake", "USA", "California", 4, 2023, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30),
+        rows("John", "Canada", "Ontario", 4, 2023, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20));
   }
 
   @Test
@@ -186,6 +192,12 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
         schema("couNTry", "string"),
         schema("year", "int"),
         schema("moNTh", "int"));
+    verifyDataRows(
+        result,
+        rows("Jake", "USA", "California", 4, 2023, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30),
+        rows("John", "Canada", "Ontario", 4, 2023, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20));
   }
 
   @Test
@@ -200,6 +212,12 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
         schema("country", "string"),
         schema("year", "int"),
         schema("month", "int"));
+    verifyDataRows(
+        result,
+        rows("Jake", "USA", "California", 4, 2023, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30),
+        rows("John", "Canada", "Ontario", 4, 2023, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20));
   }
 
   @Test
@@ -209,5 +227,32 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
             String.format(
                 "source = %s | fields name, age | rename * as old_*", TEST_INDEX_STATE_COUNTRY));
     verifySchema(result, schema("old_name", "string"), schema("old_age", "int"));
+    verifyDataRows(
+        result,
+        rows("Jake", 70),
+        rows("Hello", 30),
+        rows("John", 25),
+        rows("Jane", 20));
+  }
+
+  @Test
+  public void testRenameMultipleWildcards() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source = %s | rename m*n*h as M*N*H", TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("age", "int"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("year", "int"),
+        schema("MoNtH", "int"));
+    verifyDataRows(
+        result,
+        rows("Jake", "USA", "California", 4, 2023, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30),
+        rows("John", "Canada", "Ontario", 4, 2023, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20));
   }
 }

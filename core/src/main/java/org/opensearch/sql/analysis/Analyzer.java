@@ -31,7 +31,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -94,7 +93,6 @@ import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
-import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
@@ -134,7 +132,6 @@ import org.opensearch.sql.planner.logical.LogicalWindow;
 import org.opensearch.sql.planner.physical.datasource.DataSourceTable;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.utils.ParseUtils;
-import org.opensearch.sql.utils.WildcardRenameUtils;
 
 /**
  * Analyze the {@link UnresolvedPlan} in the {@link AnalysisContext} to construct the {@link
@@ -310,56 +307,10 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     LogicalPlan child = node.getChild().get(0).accept(this, context);
     ImmutableMap.Builder<ReferenceExpression, ReferenceExpression> renameMapBuilder =
         new ImmutableMap.Builder<>();
-
-    Set<String> availableFields = getAvailableFieldNames(context);
-
     for (Map renameMap : node.getRenameList()) {
-      if (!(renameMap.getTarget() instanceof Field)) {
-        throw new SemanticCheckException(
-            String.format("the target expected to be field, but is %s", renameMap.getTarget()));
-      }
-
-      if (renameMap.getOrigin() instanceof Field
-          && WildcardRenameUtils.isWildcardPattern(
-              ((Field) renameMap.getOrigin()).getField().toString())) {
-        String fieldName = ((Field) renameMap.getOrigin()).getField().toString();
-        String targetPattern = ((Field) renameMap.getTarget()).getField().toString();
-
-        if (!WildcardRenameUtils.validatePatternCompatibility(fieldName, targetPattern)) {
-          throw new SemanticCheckException(
-              "Source and target patterns have different wildcard counts");
-        }
-
-        // Handle wildcard rename
-        List<String> matchingFields =
-            WildcardRenameUtils.matchFieldNames(fieldName, availableFields);
-
-        if (matchingFields.isEmpty()) {
-          throw new SemanticCheckException(
-              String.format("No fields match the pattern '%s'", fieldName));
-        }
-
-        TypeEnvironment curEnv = context.peek();
-
-        for (String matchingField : matchingFields) {
-          String newName =
-              WildcardRenameUtils.applyWildcardTransformation(
-                  fieldName, targetPattern, matchingField);
-
-          Symbol fieldSymbol = new Symbol(Namespace.FIELD_NAME, matchingField);
-          ExprType fieldType = curEnv.resolve(fieldSymbol);
-
-          ReferenceExpression origin = DSL.ref(matchingField, fieldType);
-          ReferenceExpression target = new ReferenceExpression(newName, fieldType);
-
-          curEnv.remove(origin);
-          curEnv.define(target);
-
-          renameMapBuilder.put(origin, target);
-        }
-      } else {
-        Expression origin = expressionAnalyzer.analyze(renameMap.getOrigin(), context);
-        // We should define the new target field in the context instead of analyze it.
+      Expression origin = expressionAnalyzer.analyze(renameMap.getOrigin(), context);
+      // We should define the new target field in the context instead of analyze it.
+      if (renameMap.getTarget() instanceof Field) {
         ReferenceExpression target =
             new ReferenceExpression(
                 ((Field) renameMap.getTarget()).getField().toString(), origin.type());
@@ -368,6 +319,9 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
         curEnv.remove(originExpr);
         curEnv.define(target);
         renameMapBuilder.put(originExpr, target);
+      } else {
+        throw new SemanticCheckException(
+            String.format("the target expected to be field, but is %s", renameMap.getTarget()));
       }
     }
 
@@ -939,10 +893,5 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     groupByList.add(patternsField);
     groupByList.addAll(node.getPartitionByList());
     return new Aggregation(aggExprs, ImmutableList.of(), groupByList);
-  }
-
-  private Set<String> getAvailableFieldNames(AnalysisContext context) {
-    TypeEnvironment currentEnv = context.peek();
-    return currentEnv.lookupAllFields(Namespace.FIELD_NAME).keySet();
   }
 }

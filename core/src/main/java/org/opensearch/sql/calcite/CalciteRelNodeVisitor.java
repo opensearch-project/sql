@@ -432,15 +432,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           throw new SemanticCheckException(
               "Source and target patterns have different wildcard counts");
         }
-
+        // Use current newNames (which includes previous renames) for pattern matching
         Set<String> availableFields = new HashSet<>(originalNames);
         List<String> matchingFields =
             WildcardRenameUtils.matchFieldNames(sourcePattern, availableFields);
-
-        if (matchingFields.isEmpty()) {
-          throw new SemanticCheckException(
-              String.format("No fields match the pattern '%s'", sourcePattern));
-        }
 
         for (String fieldName : matchingFields) {
           String newName =
@@ -450,8 +445,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           int fieldIndex = originalNames.indexOf(fieldName);
           if (fieldIndex >= 0) {
             newNames.set(fieldIndex, newName);
+          } else {
+            throw new SemanticCheckException(
+                String.format("the wildcard matched field %s cannot be resolved", fieldName));
           }
         }
+
+        // Update the RelBuilder context immediately so subsequent renames can see the changes
+        context.relBuilder.rename(newNames);
       } else {
         String newName = ((Field) renameMap.getTarget()).getField().toString();
         RexNode check = rexVisitor.analyze(renameMap.getOrigin(), context);
