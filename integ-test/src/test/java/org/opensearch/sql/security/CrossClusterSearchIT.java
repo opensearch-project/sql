@@ -169,7 +169,6 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
         columnName("IS_GENERATEDCOLUMN"));
   }
 
-
   public void testCrossClusterSortWithCount() throws IOException {
     JSONObject result =
         executeQuery(
