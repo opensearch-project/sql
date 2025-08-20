@@ -422,7 +422,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       }
 
       // Handle wildcards
-      if (renameMap.getOrigin() instanceof Field
+        if (renameMap.getOrigin() instanceof Field
           && WildcardRenameUtils.isWildcardPattern(
               ((Field) renameMap.getOrigin()).getField().toString())) {
         String sourcePattern = ((Field) renameMap.getOrigin()).getField().toString();
@@ -432,8 +432,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           throw new SemanticCheckException(
               "Source and target patterns have different wildcard counts");
         }
-        // Use current newNames (which includes previous renames) for pattern matching
-        Set<String> availableFields = new HashSet<>(originalNames);
+        Set<String> availableFields = new HashSet<>(newNames);
         List<String> matchingFields =
             WildcardRenameUtils.matchFieldNames(sourcePattern, availableFields);
 
@@ -442,29 +441,27 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               WildcardRenameUtils.applyWildcardTransformation(
                   sourcePattern, targetPattern, fieldName);
 
-          int fieldIndex = originalNames.indexOf(fieldName);
+          int fieldIndex = newNames.indexOf(fieldName);
           if (fieldIndex >= 0) {
             newNames.set(fieldIndex, newName);
+            context.relBuilder.rename(newNames);
           } else {
             throw new SemanticCheckException(
                 String.format("the wildcard matched field %s cannot be resolved", fieldName));
           }
         }
-
-        // Update the RelBuilder context immediately so subsequent renames can see the changes
-        context.relBuilder.rename(newNames);
       } else {
         String newName = ((Field) renameMap.getTarget()).getField().toString();
         RexNode check = rexVisitor.analyze(renameMap.getOrigin(), context);
         if (check instanceof RexInputRef ref) {
           newNames.set(ref.getIndex(), newName);
+          context.relBuilder.rename(newNames);
         } else {
           throw new SemanticCheckException(
               String.format("the original field %s cannot be resolved", renameMap.getOrigin()));
         }
       }
     }
-    context.relBuilder.rename(newNames);
     return context.relBuilder.peek();
   }
 
