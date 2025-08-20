@@ -25,6 +25,7 @@ class CalciteFilterScript extends FilterScript {
   /** Calcite Script. */
   private final CalciteScript calciteScript;
 
+  private final LeafReaderContext context;
   private final SourceLookup sourceLookup;
 
   public CalciteFilterScript(
@@ -33,9 +34,16 @@ class CalciteFilterScript extends FilterScript {
       LeafReaderContext context,
       Map<String, Object> params) {
     super(params, lookup, context);
+    this.context = context;
     this.calciteScript = new CalciteScript(function, params);
     // TODO: we'd better get source from the leafLookup of super once it's available
     this.sourceLookup = lookup.getLeafSearchLookup(context).source();
+  }
+
+  @Override
+  public void setDocument(int docid) {
+    super.setDocument(docid);
+    this.sourceLookup.setSegmentAndDocument(context, docid);
   }
 
   @Override

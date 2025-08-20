@@ -101,6 +101,7 @@ public class RestPPLQueryAction extends BaseRestHandler {
 
     return channel ->
         nodeClient.execute(
+            // ((DefaultRestChannel) ((ResourceHandlingHttpChannel) channel).delegate).httpChannel.isOpen()
             PPLQueryAction.INSTANCE,
             transportPPLQueryRequest,
             new ActionListener<>() {
