@@ -249,23 +249,6 @@ public class MetricAggregationBuilder
     return Pair.of(aggregationBuilder, parser);
   }
 
-  /** Make {@link TermsAggregationBuilder} for list and values aggregations. */
-  private Pair<AggregationBuilder, MetricParser> make(
-      TermsAggregationBuilder builder,
-      Expression expression,
-      Expression condition,
-      String name,
-      MetricParser parser) {
-    TermsAggregationBuilder aggregationBuilder =
-        helper.build(expression, builder::field, builder::script);
-    if (condition != null) {
-      return Pair.of(
-          makeFilterAggregation(aggregationBuilder, condition, name),
-          FilterParser.builder().name(name).metricsParser(parser).build());
-    }
-    return Pair.of(aggregationBuilder, parser);
-  }
-
   /**
    * Replace star or literal with OpenSearch metadata field "_index". Because: 1) Analyzer already
    * converts * to string literal, literal check here can handle both COUNT(*) and COUNT(1). 2)
