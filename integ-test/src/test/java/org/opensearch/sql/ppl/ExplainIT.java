@@ -165,6 +165,33 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testSortWithCountPushDownExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_sort_count_push.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString("source=opensearch-sql_test_index_account | sort 5 age | fields age"));
+  }
+
+  @Test
+  public void testSortWithDescPushDownExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_sort_desc_push.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | sort age, - firstname desc | fields age,"
+                + " firstname"));
+  }
+
+  @Test
+  public void testSortWithTypePushDownExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_sort_type_push.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | sort num(age) | fields age"));
+  }
+
+  @Test
   public void testSortWithAggregationExplain() throws IOException {
     // Sorts whose by fields are aggregators should not be pushed down
     String expected = loadExpectedPlan("explain_sort_agg_push.json");
@@ -439,6 +466,36 @@ public class ExplainIT extends PPLIntegTestCase {
         expected,
         explainQueryToString(
             String.format("source=%s | stats count() by span(birthdate,1M)", TEST_INDEX_BANK)));
+  }
+
+  @Test
+  public void testDedupPushdown() throws IOException {
+    String expected = loadExpectedPlan("explain_dedup_push.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | fields account_number, gender, age"
+                + " | dedup 1 gender"));
+  }
+
+  @Test
+  public void testDedupKeepEmptyTruePushdown() throws IOException {
+    String expected = loadExpectedPlan("explain_dedup_keepempty_true_push.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | fields account_number, gender, age"
+                + " | dedup gender KEEPEMPTY=true"));
+  }
+
+  @Test
+  public void testDedupKeepEmptyFalsePushdown() throws IOException {
+    String expected = loadExpectedPlan("explain_dedup_keepempty_false_push.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | fields account_number, gender, age"
+                + " | dedup gender KEEPEMPTY=false"));
   }
 
   @Test
