@@ -163,9 +163,7 @@ public class TransportPPLQueryAction
       // Create formatter with parameters extracted from the query
       formatter =
           PPLService.createTimechartFormatterFromQuery(
-              JsonResponseFormatter.Style.PRETTY,
-              pplRequest.getRequest(),
-              isCountAggregation);
+              JsonResponseFormatter.Style.PRETTY, pplRequest.getRequest(), isCountAggregation);
     } else {
       formatter = new SimpleJsonResponseFormatter(JsonResponseFormatter.Style.PRETTY);
     }

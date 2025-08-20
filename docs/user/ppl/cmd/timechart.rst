@@ -19,12 +19,18 @@ Version
 
 Syntax
 ============
-timechart [span=<time_interval>] [limit=<number>] [useother=<boolean>] <aggregation_function> [by <field>]
 
-* span: optional. Specifies the time interval for grouping data.
+.. code-block:: text
+
+   timechart [span=<time_interval>] [limit=<number>] [useother=<boolean>] <aggregation_function> [by <field>]
+
+**Parameters:**
+
+* **span**: optional. Specifies the time interval for grouping data.
   
   * Default: 1m (1 minute)
   * Available time units:
+
     * millisecond (ms)
     * second (s)
     * minute (m, case sensitive)
@@ -35,7 +41,8 @@ timechart [span=<time_interval>] [limit=<number>] [useother=<boolean>] <aggregat
     * quarter (q)
     * year (y)
 
-* limit: optional. Specifies the maximum number of distinct values to display when using the "by" clause.
+* **limit**: optional. Specifies the maximum number of distinct values to display when using the "by" clause.
+
   * Default: 10
   * When there are more distinct values than the limit, the additional values are grouped into an "OTHER" category.
   * The "most distinct" values are determined by calculating the sum of the aggregation values across all time intervals for each distinct field value. The top N values with the highest sums are displayed individually, while the rest are grouped into the "OTHER" category.
@@ -43,20 +50,25 @@ timechart [span=<time_interval>] [limit=<number>] [useother=<boolean>] <aggregat
   * The parameters can be specified in any order before the aggregation function.
   * Only applies when using the "by" clause to group results.
 
-* useother: optional. Controls whether to create an "OTHER" category for values beyond the limit.
+* **useother**: optional. Controls whether to create an "OTHER" category for values beyond the limit.
+
   * Default: true
   * When set to false, only the top N values (based on limit) are shown without an "OTHER" column.
   * When set to true, values beyond the limit are grouped into an "OTHER" category.
   * Only applies when using the "by" clause and when there are more distinct values than the limit.
 
-* aggregation_function: mandatory. The aggregation function to apply to each time bucket.
+* **aggregation_function**: mandatory. The aggregation function to apply to each time bucket.
+
   * Currently, only a single aggregation function is supported.
   * Available functions: All standard aggregation functions supported by stats are supported.
 
-* by: optional. Groups the results by the specified field in addition to time intervals.
+* **by**: optional. Groups the results by the specified field in addition to time intervals.
+
   * If not specified, the aggregation is performed across all documents in each time interval.
 
 Notes
+=====
+
 * The ``timechart`` command requires a timestamp field named ``@timestamp`` in the data.
 * For count() aggregation, when no data exists for a specific combination of timestamp and field value, ``0`` is displayed instead of ``null``.
 * For other aggregation functions, when no data exists for a specific combination of timestamp and field value, ``null`` is displayed rather than ``0``. This preserves the distinction between "no data" and "zero value".
@@ -74,7 +86,7 @@ Examples
 ========
 
 Example 1: Count events by hour
-==============================
+===============================
 
 This example counts events for each hour and groups them by host.
 
@@ -91,7 +103,7 @@ Result::
     +---------------------+-------+--------+--------+
 
 Example 2: Count events by minute
-================================
+=================================
 
 This example counts events for each minute and groups them by host.
 
@@ -112,7 +124,7 @@ Result::
     +---------------------+-------+--------+--------+
 
 Example 3: Calculate average CPU usage by minute
-==============================================
+================================================
 
 This example calculates the average CPU usage for each minute without grouping by any field.
 
@@ -133,7 +145,7 @@ Result::
     +---------------------+--------+
 
 Example 4: Count events by second and region
-==========================================
+============================================
 
 This example counts events for each second and groups them by region.
 
@@ -154,7 +166,7 @@ Result::
     +---------------------+---------+---------+---------+
 
 Example 5: Using the limit parameter
-==================================
+====================================
 
 When there are many distinct values in the "by" field, the timechart command will display the top values based on the limit parameter and group the rest into an "OTHER" category.
 This query will display the top 2 hosts with the highest average sum of CPU usage values, and group the remaining hosts into an "OTHER" category.
@@ -175,7 +187,7 @@ Result::
     +---------------------+--------+--------+-------+
 
 Example 6: Using limit=0 to show all values
-==========================================
+===========================================
 
 To display all distinct values without any limit, set limit=0:
 

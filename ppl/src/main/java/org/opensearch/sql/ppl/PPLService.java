@@ -178,7 +178,7 @@ public class PPLService {
           boolean isCountAggregation) {
     // Extract parameters from the query
     TimechartParams params = extractTimechartParameters(query);
-    
+
     // Create and return the formatter
     return new org.opensearch.sql.protocol.response.format.TimechartResponseFormatter(
             style, params.limit, params.useOther)
@@ -222,12 +222,12 @@ public class PPLService {
     // Default values
     Integer limit = null;
     Boolean useOther = true;
-    
+
     // Convert to lowercase for case-insensitive matching
     String lowerQuery = query.toLowerCase();
-    
+
     // Simple regex to extract limit parameter
-    java.util.regex.Matcher limitMatcher = 
+    java.util.regex.Matcher limitMatcher =
         java.util.regex.Pattern.compile("limit\\s*=\\s*(\\d+)").matcher(lowerQuery);
     if (limitMatcher.find()) {
       try {
@@ -236,14 +236,14 @@ public class PPLService {
         // Ignore parsing errors
       }
     }
-    
+
     // Simple regex to extract useOther parameter
-    java.util.regex.Matcher useOtherMatcher = 
+    java.util.regex.Matcher useOtherMatcher =
         java.util.regex.Pattern.compile("useother\\s*=\\s*(false|f)\\b").matcher(lowerQuery);
     if (useOtherMatcher.find()) {
       useOther = false; // Only need to check for false since default is true
     }
-    
+
     return new TimechartParams(limit, useOther);
   }
 
