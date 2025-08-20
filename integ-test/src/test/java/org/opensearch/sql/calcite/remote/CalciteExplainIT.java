@@ -137,8 +137,7 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testExplainWithReverse() throws IOException {
     String result =
-        executeWithReplace(
-            "explain source=opensearch-sql_test_index_account | sort age | reverse | head 5");
+        executeWithReplace("explain source=opensearch-sql_test_index_account | reverse | head 5");
 
     // Verify that the plan contains a LogicalSort with fetch (from head 5)
     assertTrue(result.contains("LogicalSort") && result.contains("fetch=[5]"));
@@ -146,6 +145,50 @@ public class CalciteExplainIT extends ExplainIT {
     // Verify that reverse added a ROW_NUMBER and another sort (descending)
     assertTrue(result.contains("ROW_NUMBER()"));
     assertTrue(result.contains("dir0=[DESC]"));
+  }
+
+  @Test
+  public void testExplainWithReversePushdown() throws IOException {
+    String query = "source=opensearch-sql_test_index_account | sort - age | reverse";
+    var result = explainQueryToString(query);
+    String expected = loadFromFile("expectedOutput/calcite/explain_reverse_pushdown_single.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testExplainWithReversePushdownMultipleFields() throws IOException {
+    String query = "source=opensearch-sql_test_index_account | sort - age, + firstname | reverse";
+    var result = explainQueryToString(query);
+    String expected = loadFromFile("expectedOutput/calcite/explain_reverse_pushdown_multiple.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testDoubleReverseNoOp() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | fields account_number | reverse | reverse";
+    var result = explainQueryToString(query);
+    String expected = loadFromFile("expectedOutput/calcite/explain_double_reverse_no_op.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testTripleReverseOneOp() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | fields account_number | reverse | reverse |"
+            + " reverse";
+    var result = explainQueryToString(query);
+    String expected = loadFromFile("expectedOutput/calcite/explain_triple_reverse_one_op.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testDoubleReverseWithSortNoOp() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | sort - age, + firstname | reverse | reverse";
+    var result = explainQueryToString(query);
+    String expected = loadFromFile("expectedOutput/calcite/explain_double_reverse_sort_no_op.json");
+    assertJsonEqualsIgnoreId(expected, result);
   }
 
   @Test
