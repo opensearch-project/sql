@@ -472,7 +472,15 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         if (aligntime != null) {
           throw new IllegalArgumentException("Duplicate ALIGNTIME parameter in bin command");
         }
-        aligntime = internalVisitExpression(option.aligntime);
+        // Handle aligntime value based on token type
+        if (option.aligntime.EARLIEST() != null) {
+          aligntime = org.opensearch.sql.ast.dsl.AstDSL.stringLiteral("earliest");
+        } else if (option.aligntime.LATEST() != null) {
+          aligntime = org.opensearch.sql.ast.dsl.AstDSL.stringLiteral("latest");
+        } else {
+          // Handle literalValue case
+          aligntime = internalVisitExpression(option.aligntime.literalValue());
+        }
       } else if (option.start != null) {
         if (start != null) {
           throw new IllegalArgumentException("Duplicate START parameter in bin command");
