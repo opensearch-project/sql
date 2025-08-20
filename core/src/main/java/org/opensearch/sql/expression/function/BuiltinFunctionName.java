@@ -366,6 +366,8 @@ public enum BuiltinFunctionName {
           // .put("earliest", BuiltinFunctionName.EARLIEST)
           // .put("latest", BuiltinFunctionName.LATEST)
           .put("distinct_count_approx", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
+          .put("dc", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
+          .put("distinct_count", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
           .put("pattern", BuiltinFunctionName.INTERNAL_PATTERN)
           .build();
 

@@ -70,4 +70,39 @@ public class CalcitePPLEventstatsTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  @Test
+  public void testEventstatsDistinctCount() {
+    String ppl = "source=EMP | eventstats dc(DEPTNO)";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], dc(DEPTNO)=[APPROX_COUNT_DISTINCT($7) OVER ()])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  @Test
+  public void testEventstatsDistinctCountFunction() {
+    String ppl = "source=EMP | eventstats distinct_count(DEPTNO)";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], distinct_count(DEPTNO)=[APPROX_COUNT_DISTINCT($7) OVER"
+            + " ()])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  @Test
+  public void testEventstatsDistinctCountWithPartition() {
+    String ppl = "source=EMP | eventstats dc(JOB) by DEPTNO";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], dc(JOB)=[APPROX_COUNT_DISTINCT($2) OVER (PARTITION BY"
+            + " $7)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+  }
 }

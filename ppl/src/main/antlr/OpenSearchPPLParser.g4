@@ -403,7 +403,6 @@ windowFunction
 windowFunctionName
    : statsFunctionName
    | scalarWindowFunctionName
-   | distinctCountWindowFunction
    ;
 
 scalarWindowFunctionName
@@ -416,10 +415,7 @@ scalarWindowFunctionName
    | LAST
    | NTH
    | NTILE
-   ;
-
-distinctCountWindowFunction
-   : DISTINCT_COUNT
+   | DISTINCT_COUNT
    | DC
    ;
 

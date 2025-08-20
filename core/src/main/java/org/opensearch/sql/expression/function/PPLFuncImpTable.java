@@ -61,6 +61,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY_OF_
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY_OF_WEEK;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY_OF_YEAR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DEGREES;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DISTINCT_COUNT_APPROX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDEFUNCTION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.E;
@@ -1121,6 +1122,15 @@ public class PPLFuncImpTable {
                   distinct, null, field == null ? ImmutableList.of() : ImmutableList.of(field)),
           wrapSqlOperandTypeChecker(
               SqlStdOperatorTable.COUNT.getOperandTypeChecker(), COUNT.name(), false));
+
+      register(
+          DISTINCT_COUNT_APPROX,
+          (distinct, field, argList, ctx) ->
+              ctx.relBuilder.aggregateCall(SqlStdOperatorTable.APPROX_COUNT_DISTINCT, field),
+          wrapSqlOperandTypeChecker(
+              SqlStdOperatorTable.APPROX_COUNT_DISTINCT.getOperandTypeChecker(),
+              DISTINCT_COUNT_APPROX.name(),
+              false));
 
       register(
           VARSAMP,
