@@ -213,7 +213,7 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
                 "search source=%s | stats perc50(balance), p95(balance)", TEST_INDEX_BANK_REMOTE));
     verifyColumn(result, columnName("perc50(balance)"), columnName("p95(balance)"));
   }
-    
+
   @Test
   public void testCrossClusterMultiMatchWithoutFields() throws IOException {
     // Test multi_match without fields parameter on remote cluster
