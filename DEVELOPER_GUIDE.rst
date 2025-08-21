@@ -102,18 +102,10 @@ License Header
 
 Because our code is licensed under Apache 2, you need to add the following license header to all new source code files. To automate this whenever creating new file, you can follow instructions for your IDE::
 
-   /*
-    * Licensed under the Apache License, Version 2.0 (the "License").
-    * You may not use this file except in compliance with the License.
-    * A copy of the License is located at
-    * 
-    *    http://www.apache.org/licenses/LICENSE-2.0
-    * 
-    * or in the "license" file accompanying this file. This file is distributed 
-    * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either 
-    * express or implied. See the License for the specific language governing 
-    * permissions and limitations under the License.
-    */
+    /*
+     * Copyright OpenSearch Contributors
+     * SPDX-License-Identifier: Apache-2.0
+     */
 
 For example, `here are the instructions for adding copyright profiles in IntelliJ IDEA <https://www.jetbrains.com/help/idea/copyright.html>`__.
 
@@ -266,6 +258,84 @@ Coding & Tests
 - Add a test in ``CrossClusterSearchIT``
 | ✅ User doc:
 - Add a xxx.rst under ``docs/user/ppl/cmd`` and link the new doc to ``docs/user/ppl/index.rst``
+
+Developing PPL Functions
+========================
+
+PPL functions include user-defined functions (UDFs) and user-defined aggregation functions (UDAFs).
+
+Understanding the Architecture
+------------------------------
+
+OpenSearch SQL uses Apache Calcite for function definition and execution. UDFs and UDAFs are integrated with this architecture.
+Regular functions convert zero, one, or more row expressions (``RexNode``) to a new one. Aggregation functions aggregates values from multiple rows into one or more row expression.
+
+1. **Function Interfaces**:
+   - Regular functions are instances of
+   - Aggregation functions implement the ``UserDefinedAggFunction`` interface
+
+2. **Registration**: Functions are registered in ``PPLFuncImpTable`` or ``PPLBuiltinOperators``
+
+3. **Type System**: Functions use both Calcite's type system (``SqlTypeName``, ``RelDataType``) and OpenSearch's type system (``ExprType``, ``ExprValue``)
+
+4. **Function Execution**: The system handles parameter conversion between Java objects and SQL/PPL types
+
+Prerequisites
+-------------
+
+- [ ] Create an issue describing the purpose and expected behavior of the function.
+- [ ] Ensure the function name is recognized by PPL syntax. Please check ``OpenSearchPPLLexer.g4``, ``OpenSearchPPLParser.g4``, ``BuiltinFunctionName.java``.
+
+
+Developing user-defined functions
+---------------------------------
+
+Regular user-defined functions convert zero, one, or more row expressions (``RexNode``) to a new one. A function is an instance of  `SqlOperator <https://calcite.apache.org/javadocAggregate/org/apache/calcite/sql/SqlOperator.html>`_.
+One can implement an user-defined function in one of the following ways:
+
+- Use an existing Calcite operator. Operators declared in Calcite's ``SqlStdOperatorTable``, ``SqlLibraryOperators`` and defined in ``RexImpTable.java`` can be registered in this way.
+- Adapt an existing static function with a utility functions like ``UserDefinedFunctionUtils.adaptExprMethodToUDF``.
+- Implement one from scratch. One will have to implement the ``ImplementorUDF`` interface, instantiate it, and convert it to an instance of ``SqlOperator`` in ``PPLBuiltinOperators``.
+
+An operand type checker can be retrieved from a ``SqlOperator`` with its ``getOperandTypeChecker`` interface. Existing Calcite operators come with their own type checker. Adapted and
+ones implemented from scratch are expected to define their own operand types. However, since they implements Calcite's ``SqlUserDefinedFunction``, type checkers defined for Calcite's
+built-in operators are not directly applicable. ``UDFOperandMetadata`` interface is created for this purpose. It defines common operand types and can be extended for new functions.
+
+Calcite's type checkers work in the level of parsed SQL tree, which is not tapped in our architecture. Therefore, we further created ``PPLTypeChecker`` interface to perform actual type
+checking. To reuse Calcite's built-in type checkers, most of instances of ``PPLTypeChecker`` are created by wrapping Calcite's built-in type checkers.
+
+With the operators defined, functions should then be registered in ``PPLFuncImpTable``. The preferred API is ``AbstractBuilder::registerOperator(BuiltinFunctionName functionName, SqlOperator... operators)``.
+``registerOperator`` will retrieve an incompatible type checker from an operator and convert it to a ``PPLTypeChecker``.
+Multiple implementations can be registered to the same function name. They will be dynamically resolved based on the actual argument types against the expected parameter types defined by the type checker.
+If the arguments does not match any of existing function definitions, an attempt will be made to coerce them to one of the existing definitions.
+
+A lower-level API for function registration is ``AbstractBuilder::register(BuiltinFunctionName functionName, FunctionImp functionImp, PPLTypeChecker typeChecker)``. This explicitly defines how should the ``RexNode`` be
+converted and the actual type checker. It can be used to register a function when you want to define a different type checker for it or when you want to register a function with another function
+but only tweak the parameter (e.g. swap parameter, add a new one). If ``null`` is in place of the type checker, the type checking of the function will be bypassed.
+
+Beside internal functions that are agnostic to data engines, there are also functions whose execution couples with the underlying data sources. Such functions should be registered with
+``PPLFuncImpTable::registerExternalOperator``. An example is `GEOIP` function, whose implementation relies on the `opensearch-geospatial <https://github.com/opensearch-project/geospatial>`_ plugin. It is registered
+with ``PPLFuncImpTable::registerExternalOperator`` in ``OpenSearchExecutionEngine``.
+
+Function correctness should be verified in integration tests in ``Calcite*IT``. The correctness of the type checker can be tested in the unit test ``CalcitePPLFunctionTypeTest``. Additionally, if the
+function can be pushed down as domain specific language (DSL), the push-down behavior should be further tested in ``CalciteExplainIT``.
+
+Developing user-defined aggregation functions
+---------------------------------------------
+
+User defined aggregation functions aggregates data across multiple rows. A UDAF can also be created in two ways:
+
+- Use an existing Calcite's built-in aggregation operator.
+- Extend a ``SqlUserDefinedAggFunction`` from scratch and instantiate it in ``PPLBuiltinOperators``
+
+UDAFs' type checker works in the same way as UDFs.
+
+UDAFs should be registered with ``AggBuilder::registerOperator(BuiltinFunctionName functionName, SqlAggFunction aggFunction)`` or
+its lower level API ``AggBuilder::register(BuiltinFunctionName functionName, AggHandler aggHandler, PPLTypeChecker typeChecker)``.
+External aggregation functions whose implementations replies on data engines should be registered with ``PPLFuncImpTable::registerExternalAggOperator``.
+
+Function result correctness are mostly verified in ``CalcitePPLAggregationIT``. Logical plans of aggregation functions are mostly verified in
+unit test class ``CalcitePPLAggregationTest``. If necessary, you can also create additional standalone test classes.
 
 Building and Running Tests
 ==========================
