@@ -15,6 +15,8 @@ import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getLegacyTy
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.createAggregateFunction;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.*;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,9 +29,7 @@ import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import javax.annotation.Nullable;
-
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLambda;
@@ -64,9 +64,6 @@ import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.executor.QueryType;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 
 public class PPLFuncImpTable {
   private static final Logger logger = LogManager.getLogger(PPLFuncImpTable.class);
@@ -980,7 +977,8 @@ public class PPLFuncImpTable {
           MAX_BY,
           (distinct, field, argList, ctx) -> {
             if (argList.isEmpty()) {
-              throw new IllegalArgumentException("MAX_BY requires exactly 2 arguments: value_field and order_field");
+              throw new IllegalArgumentException(
+                  "MAX_BY requires exactly 2 arguments: value_field and order_field");
             }
             List<RexNode> newArgList =
                 argList.stream().map(PlanUtils::derefMapCall).collect(Collectors.toList());
@@ -998,7 +996,8 @@ public class PPLFuncImpTable {
           MIN_BY,
           (distinct, field, argList, ctx) -> {
             if (argList.isEmpty()) {
-              throw new IllegalArgumentException("MIN_BY requires exactly 2 arguments: value_field and order_field");
+              throw new IllegalArgumentException(
+                  "MIN_BY requires exactly 2 arguments: value_field and order_field");
             }
             List<RexNode> newArgList =
                 argList.stream().map(PlanUtils::derefMapCall).collect(Collectors.toList());
@@ -1016,7 +1015,7 @@ public class PPLFuncImpTable {
           EARLIEST,
           (distinct, field, argList, ctx) -> {
             RexNode timeField = resolveTimeField(argList, ctx);
-            
+
             return createAggregateFunction(
                 MinByAggFunction.class,
                 "MIN_BY",
@@ -1031,7 +1030,7 @@ public class PPLFuncImpTable {
           LATEST,
           (distinct, field, argList, ctx) -> {
             RexNode timeField = resolveTimeField(argList, ctx);
-            
+
             return createAggregateFunction(
                 MaxByAggFunction.class,
                 "MAX_BY",

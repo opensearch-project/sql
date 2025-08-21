@@ -19,7 +19,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
 import org.opensearch.sql.ast.dsl.AstDSL;
@@ -249,10 +248,9 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitStatsFunctionCall(StatsFunctionCallContext ctx) {
     String functionName = ctx.statsFunctionName().getText();
-    List<UnresolvedExpression> arguments = ctx.valueExpression().stream()
-        .map(this::visit)
-        .collect(Collectors.toList());
-    
+    List<UnresolvedExpression> arguments =
+        ctx.valueExpression().stream().map(this::visit).collect(Collectors.toList());
+
     // Handle EARLIEST and LATEST functions which can take 1 or 2 parameters
     if ("EARLIEST".equalsIgnoreCase(functionName) || "LATEST".equalsIgnoreCase(functionName)) {
       return buildEarliestLatestFunction(functionName, arguments);
@@ -260,27 +258,32 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
       // For other aggregate functions, expect exactly 1 parameter
       if (arguments.size() != 1) {
         throw new IllegalArgumentException(
-            String.format("Function %s expects exactly 1 argument, got %d", functionName, arguments.size()));
+            String.format(
+                "Function %s expects exactly 1 argument, got %d", functionName, arguments.size()));
       }
       return new AggregateFunction(functionName, arguments.get(0));
     }
   }
 
   /**
-   * Build EARLIEST or LATEST aggregate function with proper argument handling.
-   * Supports both single parameter (uses default @timestamp) and two parameters (custom time field).
+   * Build EARLIEST or LATEST aggregate function with proper argument handling. Supports both single
+   * parameter (uses default @timestamp) and two parameters (custom time field).
    */
-  private UnresolvedExpression buildEarliestLatestFunction(String functionName, List<UnresolvedExpression> arguments) {
+  private UnresolvedExpression buildEarliestLatestFunction(
+      String functionName, List<UnresolvedExpression> arguments) {
     if (arguments.size() == 1) {
       // Single parameter: earliest(field) or latest(field) - uses default @timestamp
       return new AggregateFunction(functionName, arguments.get(0));
     } else if (arguments.size() == 2) {
       // Two parameters: earliest(field, time_field) or latest(field, time_field)
-      return new AggregateFunction(functionName, arguments.get(0), 
+      return new AggregateFunction(
+          functionName,
+          arguments.get(0),
           Collections.singletonList(new UnresolvedArgument("time_field", arguments.get(1))));
     } else {
       throw new IllegalArgumentException(
-          String.format("Function %s expects 1 or 2 arguments, got %d", functionName, arguments.size()));
+          String.format(
+              "Function %s expects 1 or 2 arguments, got %d", functionName, arguments.size()));
     }
   }
 

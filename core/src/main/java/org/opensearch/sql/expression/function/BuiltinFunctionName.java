@@ -5,13 +5,11 @@
 
 package org.opensearch.sql.expression.function;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-
-import com.google.common.collect.ImmutableMap;
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
