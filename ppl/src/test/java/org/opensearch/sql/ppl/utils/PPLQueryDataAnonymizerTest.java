@@ -440,6 +440,44 @@ public class PPLQueryDataAnonymizerTest {
                 + " variable_count_threshold=5"));
   }
 
+  @Test
+  public void testValuesFunction() {
+    assertEquals("source=t | stats values(gender)", anonymize("source=t | stats values(gender)"));
+  }
+
+  @Test
+  public void testListFunction() {
+    assertEquals("source=t | stats list(firstname)", anonymize("source=t | stats list(firstname)"));
+  }
+
+  @Test
+  public void testValuesWithGroupBy() {
+    assertEquals(
+        "source=t | stats values(state) by employer",
+        anonymize("source=t | stats values(state) by employer"));
+  }
+
+  @Test
+  public void testListWithGroupBy() {
+    assertEquals(
+        "source=t | stats list(lastname) by department",
+        anonymize("source=t | stats list(lastname) by department"));
+  }
+
+  @Test
+  public void testMixedAggregatesWithValues() {
+    assertEquals(
+        "source=t | stats count(),values(gender),avg(age) by employer",
+        anonymize("source=t | stats count(), values(gender), avg(age) by employer"));
+  }
+
+  @Test
+  public void testMixedAggregatesWithList() {
+    assertEquals(
+        "source=t | stats count(),list(firstname),max(balance) by state",
+        anonymize("source=t | stats count(), list(firstname), max(balance) by state"));
+  }
+
   private String anonymize(String query) {
     AstBuilder astBuilder = new AstBuilder(query, settings);
     return anonymize(astBuilder.visit(parser.parse(query)));

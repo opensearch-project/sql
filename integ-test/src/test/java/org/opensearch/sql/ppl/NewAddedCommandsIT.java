@@ -119,6 +119,38 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
     verifyQuery(result);
   }
 
+  @Test
+  public void testValuesFunction() throws IOException {
+    JSONObject result;
+    try {
+      result =
+          executeQuery(
+              String.format(
+                  "search source=%s | where account_number < 10 | stats values(gender) as"
+                      + " unique_genders",
+                  TEST_INDEX_BANK));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+    verifyMultiValueStatsFunction(result);
+  }
+
+  @Test
+  public void testListFunction() throws IOException {
+    JSONObject result;
+    try {
+      result =
+          executeQuery(
+              String.format(
+                  "search source=%s | where account_number < 10 | stats list(firstname) as"
+                      + " all_names",
+                  TEST_INDEX_BANK));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+    verifyMultiValueStatsFunction(result);
+  }
+
   private void verifyQuery(JSONObject result) throws IOException {
     if (isCalciteEnabled()) {
       assertFalse(result.getJSONArray("datarows").isEmpty());
@@ -129,6 +161,17 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
           containsString(
               "is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true"));
       assertThat(error.getString("type"), equalTo("UnsupportedOperationException"));
+    }
+  }
+
+  private void verifyMultiValueStatsFunction(JSONObject result) throws IOException {
+    if (isCalciteEnabled()) {
+      assertFalse(result.getJSONArray("datarows").isEmpty());
+    } else {
+      JSONObject error = result.getJSONObject("error");
+      // VALUES and LIST functions are not registered in V2 engine, so they produce different error
+      assertThat(error.getString("details"), containsString("unsupported function name"));
+      assertThat(error.getString("type"), equalTo("ExpressionEvaluationException"));
     }
   }
 }

@@ -156,6 +156,65 @@ public class CalciteExplainIT extends ExplainIT {
     assertJsonEqualsIgnoreId(expected, result);
   }
 
+  // Only for Calcite - VALUES function explain tests
+  @Test
+  public void testExplainValuesFunction() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | where account_number < 10 | stats"
+            + " values(gender) as unique_genders";
+    var result = explainQueryToString(query);
+
+    // Verify that the plan contains proper aggregation with VALUES function
+    assertTrue("Plan should contain LogicalAggregate", result.contains("LogicalAggregate"));
+    assertTrue("Plan should contain VALUES function", result.contains("VALUES"));
+  }
+
+  // Only for Calcite - LIST function explain tests
+  @Test
+  public void testExplainListFunction() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | where account_number < 10 | stats"
+            + " list(firstname) as all_names";
+    var result = explainQueryToString(query);
+
+    // Verify that the plan contains proper aggregation with LIST function
+    assertTrue("Plan should contain LogicalAggregate", result.contains("LogicalAggregate"));
+    assertTrue("Plan should contain LIST function", result.contains("LIST"));
+  }
+
+  // Only for Calcite - Combined VALUES and LIST functions explain tests
+  @Test
+  public void testExplainValuesWithListFunction() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | where account_number < 10 | stats"
+            + " values(gender) as unique_genders, list(firstname) as all_names";
+    var result = explainQueryToString(query);
+
+    // Verify that the plan contains proper aggregation with both functions
+    assertTrue("Plan should contain LogicalAggregate", result.contains("LogicalAggregate"));
+    assertTrue("Plan should contain VALUES function", result.contains("VALUES"));
+    assertTrue("Plan should contain LIST function", result.contains("LIST"));
+  }
+
+  // Only for Calcite - Multivalue stats functions with other aggregates
+  @Test
+  public void testExplainMultiValueStatsFunctions() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | where account_number < 20 | stats count() as"
+            + " total_count, values(state) as unique_states, list(lastname) as all_lastnames by"
+            + " employer";
+    var result = explainQueryToString(query);
+
+    // Verify that the plan contains proper aggregation with mixed functions
+    assertTrue("Plan should contain LogicalAggregate", result.contains("LogicalAggregate"));
+    assertTrue("Plan should contain COUNT function", result.contains("COUNT"));
+    assertTrue("Plan should contain VALUES function", result.contains("VALUES"));
+    assertTrue("Plan should contain LIST function", result.contains("LIST"));
+    assertTrue(
+        "Plan should contain group by employer",
+        result.contains("employer") || result.contains("group="));
+  }
+
   /**
    * Executes the PPL query and returns the result as a string with windows-style line breaks
    * replaced with Unix-style ones.
