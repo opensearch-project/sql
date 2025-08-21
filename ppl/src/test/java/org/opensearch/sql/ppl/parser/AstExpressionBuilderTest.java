@@ -359,6 +359,31 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   }
 
   @Test
+  public void testDoubleEqualCompareExpr() {
+    // Test that == is correctly mapped to = operator internally
+    assertEqual("source=t a==1", filter(relation("t"), compare("=", field("a"), intLiteral(1))));
+    assertEqual(
+        "source=t a=='hello'",
+        filter(relation("t"), compare("=", field("a"), stringLiteral("hello"))));
+    assertEqual("source=t a==b", filter(relation("t"), compare("=", field("a"), field("b"))));
+  }
+
+  @Test
+  public void testMixedEqualOperators() {
+    // Test that both = and == can be used in the same expression
+    assertEqual(
+        "source=t a=1 and b==2",
+        filter(
+            relation("t"),
+            and(compare("=", field("a"), intLiteral(1)), compare("=", field("b"), intLiteral(2)))));
+    assertEqual(
+        "source=t a==1 or b=2",
+        filter(
+            relation("t"),
+            or(compare("=", field("a"), intLiteral(1)), compare("=", field("b"), intLiteral(2)))));
+  }
+
+  @Test
   public void testInExpr() {
     assertEqual(
         "source=t f in (1, 2, 3)",
