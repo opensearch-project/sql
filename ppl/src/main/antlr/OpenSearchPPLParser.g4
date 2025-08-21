@@ -967,6 +967,7 @@ positionFunctionName
    | GREATER
    | NOT_GREATER
    | REGEXP
+   | LIKE
    ;
 
 singleFieldRelevanceFunctionName

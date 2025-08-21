@@ -145,8 +145,41 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   @Test
   public void testLogicalLikeExpr() {
     assertEqual(
-        "source=t like(a, '_a%b%c_d_')",
+        "source=t | where like(a, '_a%b%c_d_')",
         filter(relation("t"), function("like", field("a"), stringLiteral("_a%b%c_d_"))));
+  }
+
+  @Test
+  public void testLikeOperatorExpr() {
+    // Test LIKE operator syntax
+    assertEqual(
+        "source=t | where a LIKE '_a%b%c_d_'",
+        filter(relation("t"), compare("like", field("a"), stringLiteral("_a%b%c_d_"))));
+
+    // Test with fields on both sides
+    assertEqual(
+        "source=t | where a LIKE b",
+        filter(relation("t"), compare("like", field("a"), field("b"))));
+  }
+
+  @Test
+  public void testLikeOperatorCaseInsensitive() {
+    // Test LIKE operator with different cases - all should map to lowercase "like"
+    assertEqual(
+        "source=t | where a LIKE 'pattern'",
+        filter(relation("t"), compare("like", field("a"), stringLiteral("pattern"))));
+
+    assertEqual(
+        "source=t | where a like 'pattern'",
+        filter(relation("t"), compare("like", field("a"), stringLiteral("pattern"))));
+
+    assertEqual(
+        "source=t | where a Like 'pattern'",
+        filter(relation("t"), compare("like", field("a"), stringLiteral("pattern"))));
+
+    assertEqual(
+        "source=t | where a LiKe 'pattern'",
+        filter(relation("t"), compare("like", field("a"), stringLiteral("pattern"))));
   }
 
   @Test

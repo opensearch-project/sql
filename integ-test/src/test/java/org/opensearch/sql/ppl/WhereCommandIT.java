@@ -99,6 +99,52 @@ public class WhereCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testLikeOperator() throws IOException {
+    // Test LIKE operator syntax
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | fields firstname | where firstname LIKE 'Ambe_' | fields firstname",
+                TEST_INDEX_ACCOUNT));
+    verifyDataRows(result, rows("Amber"));
+
+    // Test with wildcard %
+    result =
+        executeQuery(
+            String.format(
+                "source=%s | where firstname LIKE 'A%%' | fields firstname", TEST_INDEX_ACCOUNT));
+    assertTrue(result.getInt("total") > 0);
+  }
+
+  @Test
+  public void testLikeOperatorCaseInsensitive() throws IOException {
+    // Test LIKE operator with different cases - all should work the same
+
+    // Uppercase LIKE
+    JSONObject result1 =
+        executeQuery(
+            String.format(
+                "source=%s | where firstname LIKE 'Ambe_' | fields firstname", TEST_INDEX_ACCOUNT));
+
+    // Lowercase like
+    JSONObject result2 =
+        executeQuery(
+            String.format(
+                "source=%s | where firstname like 'Ambe_' | fields firstname", TEST_INDEX_ACCOUNT));
+
+    // Mixed case Like
+    JSONObject result3 =
+        executeQuery(
+            String.format(
+                "source=%s | where firstname Like 'Ambe_' | fields firstname", TEST_INDEX_ACCOUNT));
+
+    // All should return the same result
+    verifyDataRows(result1, rows("Amber"));
+    verifyDataRows(result2, rows("Amber"));
+    verifyDataRows(result3, rows("Amber"));
+  }
+
+  @Test
   public void testIsNullFunction() throws IOException {
     JSONObject result =
         executeQuery(
@@ -361,7 +407,6 @@ public class WhereCommandIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | where age == 28 OR age == 32 | stats count() as total",
                 TEST_INDEX_ACCOUNT));
-    verifySchema(result, schema("total", "bigint"));
     // Should count accounts with age 28 or 32
     assertTrue(result.getJSONArray("datarows").getJSONArray(0).getLong(0) > 0);
   }

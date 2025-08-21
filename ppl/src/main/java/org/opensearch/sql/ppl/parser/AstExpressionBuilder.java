@@ -149,6 +149,8 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     String operator = ctx.comparisonOperator().getText();
     if ("==".equals(operator)) {
       operator = EQUAL.getName().getFunctionName();
+    } else if (LIKE.getName().getFunctionName().equalsIgnoreCase(operator)) {
+      operator = LIKE.getName().getFunctionName();
     }
     return new Compare(operator, visit(ctx.left), visit(ctx.right));
   }
