@@ -59,15 +59,15 @@ public class CalcitePPLCountEvalTest extends CalcitePPLAbstractTest {
   @Test
   public void testCountEvalArithmeticExpression() {
     withPPLQuery("source=EMP | stats count(eval(SAL / COMM > 10)) as high_ratio")
-            .expectLogical(
-                    "LogicalAggregate(group=[{}], high_ratio=[COUNT($0)])\n"
-                            + "  LogicalProject($f2=[CASE(>(DIVIDE($5, $6), 10), 1, null:NULL)])\n"
-                            + "    LogicalTableScan(table=[[scott, EMP]])\n")
-            .expectResult("high_ratio=0\n")
-            .expectSparkSQL(
-                    "SELECT COUNT(CASE WHEN `DIVIDE`(`SAL`, `COMM`) > 10 THEN 1 ELSE NULL END)"
-                            + " `high_ratio`\n"
-                            + "FROM `scott`.`EMP`");
+        .expectLogical(
+            "LogicalAggregate(group=[{}], high_ratio=[COUNT($0)])\n"
+                + "  LogicalProject($f2=[CASE(>(DIVIDE($5, $6), 10), 1, null:NULL)])\n"
+                + "    LogicalTableScan(table=[[scott, EMP]])\n")
+        .expectResult("high_ratio=0\n")
+        .expectSparkSQL(
+            "SELECT COUNT(CASE WHEN `DIVIDE`(`SAL`, `COMM`) > 10 THEN 1 ELSE NULL END)"
+                + " `high_ratio`\n"
+                + "FROM `scott`.`EMP`");
   }
 
   @Test

@@ -80,7 +80,7 @@ COUNT
 Description
 >>>>>>>>>>>
 
-Usage: Returns a count of the number of expr in the rows retrieved by a SELECT statement.
+Usage: Returns a count of the number of expr in the rows retrieved. To perform a filtered counting, wrap the condition to satisfy in an `eval` expression.
 
 Example::
 
@@ -91,6 +91,26 @@ Example::
     |---------|
     | 4       |
     +---------+
+
+Example of filtered counting::
+
+    os> source=accounts | stats count(eval(age > 30)) as mature_users;
+    fetched rows / total rows = 1/1
+    +--------------+
+    | mature_users |
+    |--------------|
+    | 3            |
+    +--------------+
+
+Example of filtered counting with complex conditions::
+
+    os> source=accounts | stats count(eval(age > 30 and balance > 25000)) as high_value_users;
+    fetched rows / total rows = 1/1
+    +------------------+
+    | high_value_users |
+    |------------------|
+    | 2                |
+    +------------------+
 
 SUM
 ---
