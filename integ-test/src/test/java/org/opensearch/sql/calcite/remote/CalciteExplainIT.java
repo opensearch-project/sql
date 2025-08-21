@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 
 import java.io.IOException;
@@ -69,6 +70,7 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   // Only for Calcite
+  @Ignore("We've supported script push down on text field")
   @Test
   public void supportPartialPushDown() throws IOException {
     Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
@@ -82,6 +84,7 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   // Only for Calcite
+  @Ignore("We've supported script push down on text field")
   @Test
   public void supportPartialPushDown_NoPushIfAllFailed() throws IOException {
     Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
@@ -94,6 +97,52 @@ public class CalciteExplainIT extends ExplainIT {
     assertJsonEqualsIgnoreId(expected, result);
   }
 
+  // Only for Calcite
+  @Test
+  public void testExplainIsEmpty() throws IOException {
+    // script pushdown
+    String expected = loadExpectedPlan("explain_isempty.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | where isempty(firstname)"));
+  }
+
+  // Only for Calcite
+  @Test
+  public void testExplainIsBlank() throws IOException {
+    // script pushdown
+    String expected = loadExpectedPlan("explain_isblank.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | where isblank(firstname)"));
+  }
+
+  // Only for Calcite
+  @Test
+  public void testExplainIsEmptyOrOthers() throws IOException {
+    // script pushdown
+    String expected = loadExpectedPlan("explain_isempty_or_others.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | where gender = 'M' or isempty(firstname) or"
+                + " isnull(firstname)"));
+  }
+
+  // Only for Calcite
+  @Test
+  public void testExplainIsNullOrOthers() throws IOException {
+    // pushdown should work
+    String expected = loadExpectedPlan("explain_isnull_or_others.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | where isnull(firstname) or gender = 'M'"));
+  }
+
+  @Ignore("We've supported script push down on text field")
   @Test
   public void supportPartialPushDownScript() throws IOException {
     Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
@@ -156,6 +205,7 @@ public class CalciteExplainIT extends ExplainIT {
     assertJsonEqualsIgnoreId(expected, result);
   }
 
+
   // Only for Calcite - VALUES function explain tests
   @Test
   public void testExplainValuesFunction() throws IOException {
@@ -213,6 +263,32 @@ public class CalciteExplainIT extends ExplainIT {
     assertTrue(
         "Plan should contain group by employer",
         result.contains("employer") || result.contains("group="));
+  }
+  
+  // Only for Calcite
+  @Test
+  public void supportPushDownScriptOnTextField() throws IOException {
+    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    String result =
+        explainQueryToString(
+            "explain source=opensearch-sql_test_index_account | where length(address) > 0 | eval"
+                + " address_length = length(address) | stats count() by address_length");
+    String expected = loadFromFile("expectedOutput/calcite/explain_script_push_on_text.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  // Only for Calcite, as v2 gets unstable serialized string for function
+  @Test
+  public void testExplainOnAggregationWithSumEnhancement() throws IOException {
+    String expected = loadExpectedPlan("explain_agg_with_sum_enhancement.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | stats sum(balance), sum(balance + 100), sum(balance - 100),"
+                    + " sum(balance * 100), sum(balance / 100) by gender",
+                TEST_INDEX_BANK)));
+
   }
 
   /**
