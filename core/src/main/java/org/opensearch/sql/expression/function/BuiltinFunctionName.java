@@ -201,7 +201,7 @@ public enum BuiltinFunctionName {
   EARLIEST(FunctionName.of("earliest")),
   LATEST(FunctionName.of("latest")),
   DISTINCT_COUNT_APPROX(FunctionName.of("distinct_count_approx")),
-  // Multivalue aggregation functions (Calcite v3 only)
+  // Multivalue aggregation functions
   LIST(FunctionName.of("list")),
   VALUES(FunctionName.of("values")),
   // Not always an aggregation query
@@ -370,6 +370,8 @@ public enum BuiltinFunctionName {
           .put("stddev_samp", BuiltinFunctionName.STDDEV_SAMP)
           // .put("earliest", BuiltinFunctionName.EARLIEST)
           // .put("latest", BuiltinFunctionName.LATEST)
+          .put("list", BuiltinFunctionName.LIST)
+          .put("values", BuiltinFunctionName.VALUES)
           .put("pattern", BuiltinFunctionName.INTERNAL_PATTERN)
           .build();
 

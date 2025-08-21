@@ -58,8 +58,6 @@ public class AggregatorFunctions {
     repository.register(stddevPop());
     repository.register(take());
     repository.register(percentileApprox());
-    repository.register(list());
-    repository.register(values());
   }
 
   private static DefaultFunctionResolver avg() {
@@ -278,38 +276,6 @@ public class AggregatorFunctions {
                     (functionProperties, arguments) ->
                         PercentileApproximateAggregator.percentileApprox(arguments, DOUBLE))
                 .build());
-    return functionResolver;
-  }
-
-  private static DefaultFunctionResolver list() {
-    FunctionName functionName = BuiltinFunctionName.LIST.getName();
-    DefaultFunctionResolver functionResolver =
-        new DefaultFunctionResolver(
-            functionName,
-            ExprCoreType.coreTypes().stream()
-                .collect(
-                    Collectors.toMap(
-                        type ->
-                            new FunctionSignature(functionName, Collections.singletonList(type)),
-                        type ->
-                            (functionProperties, arguments) ->
-                                new CalciteOnlyAggregator("list", arguments, ARRAY))));
-    return functionResolver;
-  }
-
-  private static DefaultFunctionResolver values() {
-    FunctionName functionName = BuiltinFunctionName.VALUES.getName();
-    DefaultFunctionResolver functionResolver =
-        new DefaultFunctionResolver(
-            functionName,
-            ExprCoreType.coreTypes().stream()
-                .collect(
-                    Collectors.toMap(
-                        type ->
-                            new FunctionSignature(functionName, Collections.singletonList(type)),
-                        type ->
-                            (functionProperties, arguments) ->
-                                new CalciteOnlyAggregator("values", arguments, ARRAY))));
     return functionResolver;
   }
 }
