@@ -29,6 +29,8 @@ import org.apache.calcite.rel.RelFieldCollation.Direction;
 import org.apache.calcite.rel.RelFieldCollation.NullDirection;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
@@ -46,6 +48,7 @@ import org.opensearch.search.aggregations.AggregatorFactories.Builder;
 import org.opensearch.search.aggregations.bucket.composite.CompositeAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.composite.CompositeValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
+import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
 import org.opensearch.search.sort.ScoreSortBuilder;
 import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.search.sort.SortBuilders;
@@ -123,7 +126,8 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                       double estimated;
                       switch (action.type) {
                         case AGGREGATION:
-                          estimated = mq.getRowCount((RelNode) action.digest);
+                          estimated = mq.getRowCount((RelNode) action.digest)
+                              * getAggMultiplier(action);
                           break;
                         case PROJECT:
                         case SORT:
@@ -150,6 +154,28 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                       return estimated * estimateRowCountFactor;
                     },
                     (a, b) -> null);
+  }
+
+  /** See source in {@link org.apache.calcite.rel.core.Aggregate::computeSelfCost} */
+  private static float getAggMultiplier(PushDownAction action) {
+    // START CALCITE
+    List<AggregateCall> aggCalls = ((Aggregate) action.digest).getAggCallList();
+    float multiplier = 1f + (float) aggCalls.size() * 0.125f;
+    for (AggregateCall aggCall : aggCalls) {
+      if (aggCall.getAggregation().getName().equals("SUM")) {
+        // Pretend that SUM costs a little bit more than $SUM0,
+        // to make things deterministic.
+        multiplier += 0.0125f;
+      }
+    }
+    // END CALCITE
+
+    // For script aggregation, we need to multiply the multiplier by 2.2 to make up the cost. As we
+    // prefer to have non-script agg push down after optimized by {@link PPLAggregateConvertRule}
+    if (((AggPushDownAction) action.action).isScriptPushed) {
+      multiplier *= 2.2f;
+    }
+    return multiplier;
   }
 
   // TODO: should we consider equivalent among PushDownContexts with different push down sequence?
@@ -391,12 +417,20 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
 
     private Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder;
     private final Map<String, OpenSearchDataType> extendedTypeMapping;
+    @Getter private final boolean isScriptPushed;
 
     public AggPushDownAction(
         Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder,
         Map<String, OpenSearchDataType> extendedTypeMapping) {
       this.aggregationBuilder = aggregationBuilder;
       this.extendedTypeMapping = extendedTypeMapping;
+      this.isScriptPushed =
+          aggregationBuilder.getLeft().stream().anyMatch(this::isScriptAggBuilder);
+    }
+
+    private boolean isScriptAggBuilder(AggregationBuilder aggBuilder) {
+      return aggBuilder instanceof ValuesSourceAggregationBuilder<?> valueSourceAgg
+          && valueSourceAgg.script() != null;
     }
 
     @Override
