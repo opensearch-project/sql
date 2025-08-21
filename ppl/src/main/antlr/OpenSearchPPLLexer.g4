@@ -478,9 +478,10 @@ Q:                                  'Q';
 Y:                                  'Y';
 
 
+// PERCENTILE SHORTCUT FUNCTIONS
+PERCENTILE_SHORTCUT:                [Pp][Ee][Rr][Cc][0-9]+ ('.' [0-9]+)? | [Pp][0-9]+ ('.' [0-9]+)?;
+
 // LITERALS AND VALUES
-PERC_NUM:                           'PERC' [0-9]+ ('.' [0-9]+)?;
-P_NUM:                              'P' [0-9]+ ('.' [0-9]+)?;
 //STRING_LITERAL:                     DQUOTA_STRING | SQUOTA_STRING | BQUOTA_STRING;
 ID:                                 ID_LITERAL;
 CLUSTER:                            CLUSTER_PREFIX_LITERAL;

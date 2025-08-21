@@ -1065,4 +1065,64 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                     stringLiteral("1997-01-01 00:00:00"),
                     stringLiteral("2001-03-06 00:00:00")))));
   }
+
+  @Test
+  public void testPercentileShortcutFunctions() {
+    // Test integer percentile shortcuts
+    assertEqual(
+        "source=t | stats perc50(a)",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "perc50(a)",
+                    aggregate(
+                        "percentile", field("a"), unresolvedArg("percent", doubleLiteral(50.0))))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+
+    assertEqual(
+        "source=t | stats p95(a)",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "p95(a)",
+                    aggregate(
+                        "percentile", field("a"), unresolvedArg("percent", doubleLiteral(95.0))))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+  }
+
+  @Test
+  public void testPercentileShortcutFunctionsWithDecimals() {
+    // Test decimal percentile shortcuts
+    assertEqual(
+        "source=t | stats perc25.5(a)",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "perc25.5(a)",
+                    aggregate(
+                        "percentile", field("a"), unresolvedArg("percent", doubleLiteral(25.5))))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+
+    assertEqual(
+        "source=t | stats p99.9(a)",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "p99.9(a)",
+                    aggregate(
+                        "percentile", field("a"), unresolvedArg("percent", doubleLiteral(99.9))))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+  }
 }

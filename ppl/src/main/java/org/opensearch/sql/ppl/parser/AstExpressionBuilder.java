@@ -222,37 +222,6 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitStatsFunctionCall(StatsFunctionCallContext ctx) {
     String functionName = ctx.statsFunctionName().getText();
-
-    // Check if this is a percentile shortcut function (PERC_NUM or P_NUM tokens)
-    if (ctx.statsFunctionName().percentileShortcutFunction() != null) {
-      String percentStr =
-          functionName.toUpperCase(Locale.ROOT).startsWith("PERC")
-              ? functionName.substring(4)
-              : functionName.substring(1);
-
-      double percent;
-      try {
-        percent = Double.parseDouble(percentStr);
-      } catch (NumberFormatException e) {
-        throw new SyntaxCheckException(
-            String.format(
-                "Invalid percentile value '%s' in function '%s'", percentStr, functionName));
-      }
-
-      // Validate percentile range
-      if (percent < 0.0 || percent > 100.0) {
-        throw new SyntaxCheckException(
-            String.format("Percentile value %s is out of range [0, 100]", percentStr));
-      }
-
-      // Transform to percentile function call
-      return new AggregateFunction(
-          "percentile",
-          visit(ctx.valueExpression()),
-          Collections.singletonList(
-              new UnresolvedArgument("percent", new Literal(percent, DataType.DOUBLE))));
-    }
-
     return new AggregateFunction(functionName, visit(ctx.valueExpression()));
   }
 
@@ -292,6 +261,27 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
                 : AstDSL.intLiteral(DEFAULT_TAKE_FUNCTION_SIZE_VALUE)));
     return new AggregateFunction(
         "take", visit(ctx.takeAggFunction().fieldExpression()), builder.build());
+  }
+
+  @Override
+  public UnresolvedExpression visitPercentileShortcutFunctionCall(
+      OpenSearchPPLParser.PercentileShortcutFunctionCallContext ctx) {
+    String functionName = ctx.getStart().getText();
+
+    int prefixLength = functionName.toLowerCase().startsWith("perc") ? 4 : 1;
+    String percentileValue = functionName.substring(prefixLength);
+
+    double percent = Double.parseDouble(percentileValue);
+    if (percent < 0.0 || percent > 100.0) {
+      throw new SyntaxCheckException(
+          String.format("Percentile value must be between 0 and 100, got: %s", percent));
+    }
+
+    return new AggregateFunction(
+        "percentile",
+        visit(ctx.valueExpression()),
+        Collections.singletonList(
+            new UnresolvedArgument("percent", new Literal(percent, DataType.DOUBLE))));
   }
 
   /** Case function. */
