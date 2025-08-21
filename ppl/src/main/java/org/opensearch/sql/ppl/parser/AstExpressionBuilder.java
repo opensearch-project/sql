@@ -523,7 +523,8 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitSpanClause(SpanClauseContext ctx) {
     String unit = ctx.unit != null ? ctx.unit.getText() : "";
-    return new Span(visit(ctx.fieldExpression()), visit(ctx.value), SpanUnit.of(unit));
+    var field = ctx.fieldExpression() != null ? visit(ctx.fieldExpression()) : null;
+    return new Span(field, visit(ctx.value), SpanUnit.of(unit));
   }
 
   @Override

@@ -46,6 +46,7 @@ import org.opensearch.sql.ast.expression.Case;
 import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.EqualTo;
+import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.In;
 import org.opensearch.sql.ast.expression.Interval;
@@ -67,6 +68,7 @@ import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -349,7 +351,19 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
 
   @Override
   public RexNode visitSpan(Span node, CalcitePlanContext context) {
-    RexNode field = analyze(node.getField(), context);
+    RexNode field;
+    if (node.getField() != null) {
+      field = analyze(node.getField(), context);
+    } else {
+      try {
+        field = referenceImplicitTimestampField(context);
+      } catch (IllegalArgumentException e) {
+        throw new SemanticCheckException(
+            "SPAN operation requires an explicit field or an implicit '@timestamp' field, but"
+                + " '@timestamp' was not found in the input schema.",
+            e);
+      }
+    }
     RexNode value = analyze(node.getValue(), context);
     SpanUnit unit = node.getUnit();
     RexBuilder rexBuilder = context.relBuilder.getRexBuilder();
@@ -357,6 +371,11 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
         isTimeBased(unit) ? rexBuilder.makeLiteral(unit.getName()) : rexBuilder.constantNull();
     return PPLFuncImpTable.INSTANCE.resolve(
         context.rexBuilder, BuiltinFunctionName.SPAN, field, value, unitNode);
+  }
+
+  private RexNode referenceImplicitTimestampField(CalcitePlanContext context) {
+    return analyze(
+        new Field(new QualifiedName(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP)), context);
   }
 
   private boolean isTimeBased(SpanUnit unit) {
