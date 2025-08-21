@@ -11,8 +11,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.data.type.ExprCoreType;
 
 /**
  * Common utilities for regex operations. Provides pattern caching and consistent matching behavior.
@@ -102,24 +100,5 @@ public class RegexCommonUtils {
     }
 
     return null;
-  }
-
-  /**
-   * Convert ExprValue to string, handling non-string types. Based on decision to auto-convert
-   * non-string fields to strings.
-   *
-   * @param value The ExprValue to convert
-   * @return String representation of the value
-   */
-  public static String toStringValue(ExprValue value) {
-    if (value == null || value.isNull() || value.isMissing()) {
-      return null;
-    }
-
-    if (value.type() == ExprCoreType.STRING) {
-      return value.stringValue();
-    }
-
-    return value.value().toString();
   }
 }
