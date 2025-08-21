@@ -40,7 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
-import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.EnumUtils;
@@ -59,33 +58,31 @@ import org.apache.calcite.linq4j.tree.LabelTarget;
 import org.apache.calcite.linq4j.tree.MethodCallExpression;
 import org.apache.calcite.linq4j.tree.MethodDeclaration;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexExecutable;
-import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
-import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Util;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.index.fielddata.ScriptDocValues;
 import org.opensearch.script.AggregationScript;
 import org.opensearch.script.FilterScript;
 import org.opensearch.script.ScriptContext;
 import org.opensearch.script.ScriptEngine;
+import org.opensearch.search.lookup.SourceLookup;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
-import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
+import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.storage.script.aggregation.CalciteAggregationScriptFactory;
 import org.opensearch.sql.opensearch.storage.script.filter.CalciteFilterScriptFactory;
 import org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer;
@@ -187,19 +184,25 @@ public class CalciteScriptEngine implements ScriptEngine {
     @Override
     public org.apache.calcite.linq4j.tree.Expression field(
         BlockBuilder list, int index, @Nullable Type storageType) {
-      Pair<String, ExprType> refTypePair =
-          getValidatedReferenceNameAndType(rowType, index, fieldTypes);
+      String fieldName = rowType.getFieldList().get(index).getName();
+      ExprType exprType = fieldTypes.get(fieldName);
+      String referenceField = OpenSearchTextType.toKeywordSubField(fieldName, exprType);
       MethodCallExpression fieldValueExpr =
-          Expressions.call(
-              DataContext.ROOT,
-              BuiltInMethod.DATA_CONTEXT_GET.method,
-              Expressions.constant(refTypePair.getKey()));
+          // Have to invoke `getFromSource` if the field is the text without keyword or struct
+          (referenceField == null || exprType == ExprCoreType.STRUCT)
+              ? Expressions.call(
+                  EnumUtils.convert(DataContext.ROOT, ScriptDataContext.class),
+                  Types.lookupMethod(ScriptDataContext.class, "getFromSource", String.class),
+                  Expressions.constant(fieldName))
+              : Expressions.call(
+                  DataContext.ROOT,
+                  BuiltInMethod.DATA_CONTEXT_GET.method,
+                  Expressions.constant(referenceField));
       if (storageType == null) {
         final RelDataType fieldType = rowType.getFieldList().get(index).getType();
         storageType = ((JavaTypeFactory) typeFactory).getJavaClass(fieldType);
       }
-      return EnumUtils.convert(
-          tryConvertDocValue(fieldValueExpr, refTypePair.getValue()), storageType);
+      return EnumUtils.convert(tryConvertDocValue(fieldValueExpr, exprType), storageType);
     }
 
     /**
@@ -226,32 +229,18 @@ public class CalciteScriptEngine implements ScriptEngine {
     }
   }
 
-  public static class ReferenceFieldVisitor extends RexVisitorImpl<Pair<String, ExprType>> {
-
-    private final RelDataType rowType;
-    private final Map<String, ExprType> fieldTypes;
-
-    public ReferenceFieldVisitor(
-        RelDataType rowType, Map<String, ExprType> fieldTypes, boolean deep) {
-      super(deep);
-      this.rowType = rowType;
-      this.fieldTypes = fieldTypes;
-    }
-
-    @Override
-    public Pair<String, ExprType> visitInputRef(RexInputRef inputRef) {
-      return getValidatedReferenceNameAndType(rowType, inputRef.getIndex(), fieldTypes);
-    }
-  }
-
   public static class ScriptDataContext implements DataContext {
 
-    private final Supplier<Map<String, ScriptDocValues<?>>> docProvider;
+    private final Map<String, ScriptDocValues<?>> docProvider;
+    private final SourceLookup sourceLookup;
     private final Map<String, Object> params;
 
     public ScriptDataContext(
-        Supplier<Map<String, ScriptDocValues<?>>> docProvider, Map<String, Object> params) {
+        Map<String, ScriptDocValues<?>> docProvider,
+        SourceLookup sourceLookup,
+        Map<String, Object> params) {
       this.docProvider = docProvider;
+      this.sourceLookup = sourceLookup;
       this.params = params;
     }
 
@@ -276,7 +265,7 @@ public class CalciteScriptEngine implements ScriptEngine {
       if (Variable.UTC_TIMESTAMP.camelName.equals(name))
         return params.get(Variable.UTC_TIMESTAMP.camelName);
 
-      ScriptDocValues<?> docValue = docProvider.get().get(name);
+      ScriptDocValues<?> docValue = this.docProvider.get(name);
       if (docValue == null || docValue.isEmpty()) {
         return null; // No way to differentiate null and missing from doc value
       }
@@ -289,6 +278,10 @@ public class CalciteScriptEngine implements ScriptEngine {
         return new ExprTimestampValue(((ChronoZonedDateTime<?>) value).toInstant()).value();
       }
       return value;
+    }
+
+    public Object getFromSource(String name) {
+      return this.sourceLookup.get(name);
     }
   }
 
@@ -348,22 +341,5 @@ public class CalciteScriptEngine implements ScriptEngine {
     }
 
     return code;
-  }
-
-  private static Pair<String, ExprType> getValidatedReferenceNameAndType(
-      RelDataType rowType, int index, Map<String, ExprType> fieldTypes) {
-    String fieldName = rowType.getFieldList().get(index).getName();
-    ExprType exprType = fieldTypes.get(fieldName);
-    if (exprType == ExprCoreType.STRUCT) {
-      throw new UnsupportedScriptException(
-          "Script query does not support fields of struct type: " + fieldName);
-    }
-    NamedFieldExpression expression = new NamedFieldExpression(fieldName, exprType);
-    String referenceField = expression.getReferenceForTermQuery();
-    if (StringUtils.isEmpty(referenceField)) {
-      throw new UnsupportedScriptException(
-          "Field name cannot be empty for expression: " + expression.getRootName());
-    }
-    return Pair.of(referenceField, exprType);
   }
 }

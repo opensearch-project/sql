@@ -768,7 +768,7 @@ class OpenSearchExprValueFactoryTest {
         expectedGeoPointValue,
         tupleValue(String.format("{\"geoV\":{\"lat\":%.8f,\"lon\":%.8f}}", lat, lon)).get("geoV"));
 
-    // A string in the “latitude,longitude” format.
+    // A string in the "latitude,longitude" format.
     assertEquals(
         expectedGeoPointValue,
         tupleValue(String.format("{\"geoV\":\"%.8f,%.8f\"}", lat, lon)).get("geoV"));
@@ -787,7 +787,7 @@ class OpenSearchExprValueFactoryTest {
         expectedGeoPointValue,
         tupleValue(String.format("{\"geoV\":[%.8f, %.8f]}", lon, lat)).get("geoV"));
 
-    // A Well-Known Text POINT in the “POINT(longitude latitude)” format.
+    // A Well-Known Text POINT in the "POINT(longitude latitude)" format.
     assertEquals(
         expectedGeoPointValue,
         tupleValue(String.format("{\"geoV\":\"POINT (%.8f %.8f)\"}", lon, lat)).get("geoV"));
