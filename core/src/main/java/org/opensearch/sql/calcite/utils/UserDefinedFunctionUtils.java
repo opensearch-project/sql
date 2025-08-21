@@ -17,6 +17,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nullable;
 import org.apache.calcite.DataContext;
@@ -26,7 +27,6 @@ import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.impl.AggregateFunctionImpl;
@@ -91,14 +91,15 @@ public class UserDefinedFunctionUtils {
   public static SqlUserDefinedAggFunction createUserDefinedAggFunction(
       Class<? extends UserDefinedAggFunction<?>> udafClass,
       String functionName,
-      SqlReturnTypeInference returnType) {
+      SqlReturnTypeInference returnType,
+      @Nullable UDFOperandMetadata operandMetadata) {
     return new SqlUserDefinedAggFunction(
         new SqlIdentifier(functionName, SqlParserPos.ZERO),
         SqlKind.OTHER_FUNCTION,
         returnType,
         null,
-        null,
-        AggregateFunctionImpl.create(udafClass),
+        operandMetadata,
+        Objects.requireNonNull(AggregateFunctionImpl.create(udafClass)),
         false,
         false,
         Optionality.FORBIDDEN);
@@ -121,45 +122,6 @@ public class UserDefinedFunctionUtils {
     List<RexNode> addArgList = new ArrayList<>(fields);
     addArgList.addAll(argList);
     return relBuilder.aggregateCall(aggFunction, addArgList);
-  }
-
-  /**
-   * Creates and registers a User Defined Aggregate Function (UDAF) and returns an AggCall that can
-   * be used in query plans.
-   *
-   * @param udafClass The class implementing the aggregate function behavior
-   * @param functionName The name of the aggregate function
-   * @param returnType The return type inference for determining the result type
-   * @param fields The primary fields to aggregate
-   * @param argList Additional arguments for the aggregate function
-   * @param relBuilder The RelBuilder instance used for building relational expressions
-   * @return An AggCall object representing the aggregate function call
-   */
-  public static RelBuilder.AggCall createAggregateFunction(
-      Class<? extends UserDefinedAggFunction<?>> udafClass,
-      String functionName,
-      SqlReturnTypeInference returnType,
-      List<RexNode> fields,
-      List<RexNode> argList,
-      RelBuilder relBuilder) {
-    SqlUserDefinedAggFunction udaf =
-        createUserDefinedAggFunction(udafClass, functionName, returnType);
-    return makeAggregateCall(udaf, fields, argList, relBuilder);
-  }
-
-  public static SqlReturnTypeInference getReturnTypeInferenceForArray() {
-    return opBinding -> {
-      RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-
-      // Get argument types
-      List<RelDataType> argTypes = opBinding.collectOperandTypes();
-
-      if (argTypes.isEmpty()) {
-        throw new IllegalArgumentException("Function requires at least one argument.");
-      }
-      RelDataType firstArgType = argTypes.getFirst();
-      return createArrayType(typeFactory, firstArgType, true);
-    };
   }
 
   public static SqlTypeName convertRelDataTypeToSqlTypeName(RelDataType type) {

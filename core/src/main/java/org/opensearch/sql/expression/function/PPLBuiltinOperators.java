@@ -8,6 +8,7 @@ package org.opensearch.sql.expression.function;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.adaptExprMethodToUDF;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.adaptExprMethodWithPropertiesToUDF;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.adaptMathFunctionToUDF;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.createUserDefinedAggFunction;
 
 import com.google.common.base.Suppliers;
 import java.lang.reflect.InvocationTargetException;
@@ -21,11 +22,17 @@ import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
+import org.opensearch.sql.calcite.udf.udaf.LogPatternAggFunction;
+import org.opensearch.sql.calcite.udf.udaf.NullableSqlAvgAggFunction;
+import org.opensearch.sql.calcite.udf.udaf.PercentileApproxFunction;
+import org.opensearch.sql.calcite.udf.udaf.TakeAggFunction;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -380,6 +387,35 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
       RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("multi_match", false);
   public static final SqlOperator NUMBER_TO_STRING =
       new NumberToStringFunction().toUDF("NUMBER_TO_STRING");
+
+  // Aggregation functions
+  public static final SqlAggFunction AVG_NULLABLE = new NullableSqlAvgAggFunction(SqlKind.AVG);
+  public static final SqlAggFunction STDDEV_POP_NULLABLE =
+      new NullableSqlAvgAggFunction(SqlKind.STDDEV_POP);
+  public static final SqlAggFunction STDDEV_SAMP_NULLABLE =
+      new NullableSqlAvgAggFunction(SqlKind.STDDEV_SAMP);
+  public static final SqlAggFunction VAR_POP_NULLABLE =
+      new NullableSqlAvgAggFunction(SqlKind.VAR_POP);
+  public static final SqlAggFunction VAR_SAMP_NULLABLE =
+      new NullableSqlAvgAggFunction(SqlKind.VAR_SAMP);
+  public static final SqlAggFunction TAKE =
+      createUserDefinedAggFunction(
+          TakeAggFunction.class,
+          "TAKE",
+          PPLReturnTypes.ARG0_ARRAY,
+          PPLOperandTypes.ANY_OPTIONAL_INTEGER);
+  public static final SqlAggFunction PERCENTILE_APPROX =
+      createUserDefinedAggFunction(
+          PercentileApproxFunction.class,
+          "percentile_approx",
+          ReturnTypes.ARG0_FORCE_NULLABLE,
+          PPLOperandTypes.NUMERIC_NUMERIC_OPTIONAL_NUMERIC);
+  public static final SqlAggFunction INTERNAL_PATTERN =
+      createUserDefinedAggFunction(
+          LogPatternAggFunction.class,
+          "pattern",
+          ReturnTypes.explicit(UserDefinedFunctionUtils.nullablePatternAggList),
+          null);
 
   /**
    * Returns the PPL specific operator table, creating it if necessary.
