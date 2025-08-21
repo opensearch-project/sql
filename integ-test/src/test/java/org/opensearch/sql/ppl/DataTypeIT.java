@@ -22,6 +22,7 @@ import java.io.IOException;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
+import org.opensearch.client.Request;
 
 public class DataTypeIT extends PPLIntegTestCase {
 
@@ -109,5 +110,61 @@ public class DataTypeIT extends PPLIntegTestCase {
                 TEST_INDEX_ALIAS));
     verifySchema(result, schema("original_col", "int"), schema("alias_col", "int"));
     verifyDataRows(result, rows(2, 2), rows(3, 3));
+  }
+
+  @Test
+  public void testNumericFieldFromString() throws Exception {
+    final int docId = 2;
+    Request insertRequest =
+        new Request(
+            "PUT", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_DATATYPE_NUMERIC, docId));
+    insertRequest.setJsonEntity(
+        "{\"long_number\": \"12345678\",\"integer_number\": \"12345\",\"short_number\":"
+            + " \"123\",\"byte_number\": \"12\",\"double_number\": \"1234.5678\",\"float_number\":"
+            + " \"123.45\"}\n");
+    client().performRequest(insertRequest);
+
+    JSONObject result =
+        executeQuery(String.format("source=%s | where _id=%d", TEST_INDEX_DATATYPE_NUMERIC, docId));
+    verifySchema(
+        result,
+        schema("long_number", "long"),
+        schema("integer_number", "integer"),
+        schema("short_number", "short"),
+        schema("byte_number", "byte"),
+        schema("double_number", "double"),
+        schema("float_number", "float"));
+    verifyDataRows(result, rows(12345678, 12345, (short) 123, (byte) 12, 1234.5678, 123.45));
+
+    Request deleteRequest =
+        new Request(
+            "DELETE",
+            String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_DATATYPE_NUMERIC, docId));
+    client().performRequest(deleteRequest);
+  }
+
+  @Test
+  public void testBooleanFieldFromString() throws Exception {
+    final int docId = 2;
+    Request insertRequest =
+        new Request(
+            "PUT",
+            String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_DATATYPE_NONNUMERIC, docId));
+    insertRequest.setJsonEntity("{\"boolean_value\": \"true\"}\n");
+    client().performRequest(insertRequest);
+
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | where _id=%d", TEST_INDEX_DATATYPE_NONNUMERIC, docId));
+
+    verifySchema(result, schema("boolean_value", "boolean"));
+
+    verifyDataRows(result, rows(true));
+
+    Request deleteRequest =
+        new Request(
+            "DELETE",
+            String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_DATATYPE_NONNUMERIC, docId));
+    client().performRequest(deleteRequest);
   }
 }
