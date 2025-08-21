@@ -209,24 +209,33 @@ Java files are formatted using `Spotless <https://github.com/diffplug/spotless>`
    * - Javadoc format can be maintained by wrapping javadoc with `<pre></pre>` HTML tags
    * - Strings can be formatted on multiple lines with a `+` with the correct indentation for the string.
 
-New PPL Command Checklist
-=========================
+Developing PPL Commands and Functions
+=====================================
 
-If you are working on contributing a new PPL command, please read this guide and review all items in the checklist are done before code review. You also can leverage this checklist to guide how to add new PPL command.
+This section provides guidance on implementing and integrating new PPL commands and functions with the OpenSearch SQL engine.
+It covers both commands (like ``stats``, ``where``, ``eval``) and functions (UDFs and UDAFs).
 
-Prerequisite
-------------
 
-| ✅ Open an RFC issue before starting to code:
-- Describe the purpose of the new command
-- Include at least syntax definition, usage and examples
-- Implementation options are welcome if you have multiple ways to implement it
+Developing New PPL Commands
+---------------------------
+
+If you are working on contributing a new PPL command, please read this guide and review all items in the checklist are done before
+code review. You also can leverage this checklist to guide how to add new PPL command.
+
+**Prerequisites**
+
+Before implementing a new PPL command, complete these tasks:
+
+| ✅ Open an RFC issue describing the command:
+- Specify the purpose and need for the new command
+- Include syntax definition, usage and examples
+- Outline implementation options if multiple approaches exist
+
 | ✅ Obtain PM review approval for the RFC:
-- If PM unavailable, consult repository maintainers as alternative
-- An offline meeting might be required to discuss the syntax and usage
+- Consult repository maintainers if PM is unavailable
+- Be prepared for meetings to discuss syntax and usage details
 
-Coding & Tests
---------------
+**Checklist for Coding & Tests**
 
 | ✅ Lexer/Parser Updates:
 - Add new keywords to OpenSearchPPLLexer.g4
@@ -260,82 +269,82 @@ Coding & Tests
 - Add a xxx.rst under ``docs/user/ppl/cmd`` and link the new doc to ``docs/user/ppl/index.rst``
 
 Developing PPL Functions
-========================
+------------------------
 
-PPL functions include user-defined functions (UDFs) and user-defined aggregation functions (UDAFs).
+PPL functions include user-defined functions (UDFs) and user-defined aggregation functions (UDAFs). This section
+provides guidance on implementing and integrating these functions with the OpenSearch SQL engine.
 
-Understanding the Architecture
-------------------------------
+**Prerequisites**
 
-OpenSearch SQL uses Apache Calcite for function definition and execution. UDFs and UDAFs are integrated with this architecture.
-Regular functions convert zero, one, or more row expressions (``RexNode``) to a new one. Aggregation functions aggregates values from multiple rows into one or more row expression.
+Before implementing a PPL function, ensure you have completed these tasks:
 
-1. **Function Interfaces**:
-   - Regular functions are instances of
-   - Aggregation functions implement the ``UserDefinedAggFunction`` interface
+| ✅ Create an issue describing the purpose and expected behavior of the function
 
-2. **Registration**: Functions are registered in ``PPLFuncImpTable`` or ``PPLBuiltinOperators``
+| ✅ Ensure the function name is recognized by PPL syntax by checking:
+- ``OpenSearchPPLLexer.g4``
+- ``OpenSearchPPLParser.g4``
+- ``BuiltinFunctionName.java``
 
-3. **Type System**: Functions use both Calcite's type system (``SqlTypeName``, ``RelDataType``) and OpenSearch's type system (``ExprType``, ``ExprValue``)
+| ✅ Plan the documentation of the function under ``docs/user/ppl/functions/`` directory
 
-4. **Function Execution**: The system handles parameter conversion between Java objects and SQL/PPL types
+**Developing User-Defined Functions (UDFs)**
 
-Prerequisites
--------------
+| ✅ Creating UDFs: A user-defined function is an instance of ``SqlOperator`` that transforms input row expressions into a new one. There are three approaches to implementing UDFs:
 
-- [ ] Create an issue describing the purpose and expected behavior of the function.
-- [ ] Ensure the function name is recognized by PPL syntax. Please check ``OpenSearchPPLLexer.g4``, ``OpenSearchPPLParser.g4``, ``BuiltinFunctionName.java``.
+- Use existing Calcite operators: Leverage operators already declared in Calcite's ``SqlStdOperatorTable`` or ``SqlLibraryOperators``, and defined in ``RexImpTable.java``
+- Adapt existing static methods: Convert Java static methods to UDFs using utility functions like ``UserDefinedFunctionUtils.adaptExprMethodToUDF``
+- Implement from scratch
 
+  * Implement the ``ImplementorUDF`` interface
+  * Instantiate and convert it to a ``SqlOperator`` in ``PPLBuiltinOperators``
 
-Developing user-defined functions
----------------------------------
+| ✅ Type Checking for UDFs
+- Each ``SqlOperator`` provides an operand type checker via the ``getOperandTypeChecker`` method
+- Calcite's built-in operators come with predefined type checkers of type ``SqlOperandTypeChecker``
+- For custom UDFs, the ``UDFOperandMetadata`` interface is used to feed function type information so that a ``SqlOperandTypeChecker`` can be retrieved in a same way as Calcite's built-in operators. Most of the operand types are defined in ``PPLOperandTypes`` as instances of ``UDFOperandMetadata``.
+- ``SqlOperandTypeChecker`` works on parsed SQL tree, which is not tapped in our architecture. Therefore, ``PPLTypeChecker`` interface is created to perform actual type checking. most of instances of ``PPLTypeChecker`` are created by wrapping Calcite's built-in type checkers.
 
-Regular user-defined functions convert zero, one, or more row expressions (``RexNode``) to a new one. A function is an instance of  `SqlOperator <https://calcite.apache.org/javadocAggregate/org/apache/calcite/sql/SqlOperator.html>`_.
-One can implement an user-defined function in one of the following ways:
+| ✅ Registering UDFs: UDF should be registered in ``PPLFuncImpTable``.
+- The preferred API is ``AbstractBuilder::registerOperator(BuiltinFunctionName functionName, SqlOperator... operators)``
 
-- Use an existing Calcite operator. Operators declared in Calcite's ``SqlStdOperatorTable``, ``SqlLibraryOperators`` and defined in ``RexImpTable.java`` can be registered in this way.
-- Adapt an existing static function with a utility functions like ``UserDefinedFunctionUtils.adaptExprMethodToUDF``.
-- Implement one from scratch. One will have to implement the ``ImplementorUDF`` interface, instantiate it, and convert it to an instance of ``SqlOperator`` in ``PPLBuiltinOperators``.
+  * This automatically extracts type checkers from operators and converts them to ``PPLTypeChecker`` instances
+  * Multiple implementations can be registered to the same function name for overloading
+  * The system will try to resolve functions based on argument types, with automatic coercion when needed
 
-An operand type checker can be retrieved from a ``SqlOperator`` with its ``getOperandTypeChecker`` interface. Existing Calcite operators come with their own type checker. Adapted and
-ones implemented from scratch are expected to define their own operand types. However, since they implements Calcite's ``SqlUserDefinedFunction``, type checkers defined for Calcite's
-built-in operators are not directly applicable. ``UDFOperandMetadata`` interface is created for this purpose. It defines common operand types and can be extended for new functions.
+- A lower-level registration API is also available:
 
-Calcite's type checkers work in the level of parsed SQL tree, which is not tapped in our architecture. Therefore, we further created ``PPLTypeChecker`` interface to perform actual type
-checking. To reuse Calcite's built-in type checkers, most of instances of ``PPLTypeChecker`` are created by wrapping Calcite's built-in type checkers.
+  * ``AbstractBuilder::register(BuiltinFunctionName functionName, FunctionImp functionImp, PPLTypeChecker typeChecker)``
+  * This explicitly defines how ``RexNode`` expressions should be converted and checked
+  * Use this when you need a custom type checker or to customize an existing function by tweaking its arguments
+  * Setting ``typeChecker`` to ``null`` will bypass type checking (use with caution)
 
-With the operators defined, functions should then be registered in ``PPLFuncImpTable``. The preferred API is ``AbstractBuilder::registerOperator(BuiltinFunctionName functionName, SqlOperator... operators)``.
-``registerOperator`` will retrieve an incompatible type checker from an operator and convert it to a ``PPLTypeChecker``.
-Multiple implementations can be registered to the same function name. They will be dynamically resolved based on the actual argument types against the expected parameter types defined by the type checker.
-If the arguments does not match any of existing function definitions, an attempt will be made to coerce them to one of the existing definitions.
+| ✅ External Functions: Some functions require integration with underlying data sources:
+- Register external functions using ``PPLFuncImpTable::registerExternalOperator``
+- For example, the ``GEOIP`` function relies on the `opensearch-geospatial <https://github.com/opensearch-project/geospatial>`_ plugin.
+  It is registered as an external function in ``OpenSearchExecutionEngine``.
 
-A lower-level API for function registration is ``AbstractBuilder::register(BuiltinFunctionName functionName, FunctionImp functionImp, PPLTypeChecker typeChecker)``. This explicitly defines how should the ``RexNode`` be
-converted and the actual type checker. It can be used to register a function when you want to define a different type checker for it or when you want to register a function with another function
-but only tweak the parameter (e.g. swap parameter, add a new one). If ``null`` is in place of the type checker, the type checking of the function will be bypassed.
+| ✅ Testing UDFs
+- Integration tests in ``Calcite*IT`` classes to verify function correctness
+- Unit tests in ``CalcitePPLFunctionTypeTest`` to validate type checker behavior
+- Push-down tests in ``CalciteExplainIT`` if the function can be pushed down as a domain-specific language (DSL)
 
-Beside internal functions that are agnostic to data engines, there are also functions whose execution couples with the underlying data sources. Such functions should be registered with
-``PPLFuncImpTable::registerExternalOperator``. An example is `GEOIP` function, whose implementation relies on the `opensearch-geospatial <https://github.com/opensearch-project/geospatial>`_ plugin. It is registered
-with ``PPLFuncImpTable::registerExternalOperator`` in ``OpenSearchExecutionEngine``.
+**Developing User-Defined Aggregation Functions (UDAFs)**
 
-Function correctness should be verified in integration tests in ``Calcite*IT``. The correctness of the type checker can be tested in the unit test ``CalcitePPLFunctionTypeTest``. Additionally, if the
-function can be pushed down as domain specific language (DSL), the push-down behavior should be further tested in ``CalciteExplainIT``.
+| ✅ User-defined aggregation functions aggregate data across multiple rows. There are two main approaches to create a UDAF
+- Use existing Calcite aggregation operators
+- Implement from scratch:
 
-Developing user-defined aggregation functions
----------------------------------------------
+  * Extend ``SqlUserDefinedAggFunction`` with custom aggregation logic
+  * Instantiate the new aggregation function in ``PPLBuiltinOperators``
 
-User defined aggregation functions aggregates data across multiple rows. A UDAF can also be created in two ways:
+| ✅ Registering UDAFs
+- Use ``AggBuilder::registerOperator(BuiltinFunctionName functionName, SqlAggFunction aggFunction)`` for standard registration
+- For more control, use ``AggBuilder::register(BuiltinFunctionName functionName, AggHandler aggHandler, PPLTypeChecker typeChecker)``
+- For functions dependent on data engines, use ``PPLFuncImpTable::registerExternalAggOperator``
 
-- Use an existing Calcite's built-in aggregation operator.
-- Extend a ``SqlUserDefinedAggFunction`` from scratch and instantiate it in ``PPLBuiltinOperators``
-
-UDAFs' type checker works in the same way as UDFs.
-
-UDAFs should be registered with ``AggBuilder::registerOperator(BuiltinFunctionName functionName, SqlAggFunction aggFunction)`` or
-its lower level API ``AggBuilder::register(BuiltinFunctionName functionName, AggHandler aggHandler, PPLTypeChecker typeChecker)``.
-External aggregation functions whose implementations replies on data engines should be registered with ``PPLFuncImpTable::registerExternalAggOperator``.
-
-Function result correctness are mostly verified in ``CalcitePPLAggregationIT``. Logical plans of aggregation functions are mostly verified in
-unit test class ``CalcitePPLAggregationTest``. If necessary, you can also create additional standalone test classes.
+| ✅ Testing UDAFs
+- Verify result correctness in ``CalcitePPLAggregationIT``
+- Test logical plans in ``CalcitePPLAggregationTest``
 
 Building and Running Tests
 ==========================
