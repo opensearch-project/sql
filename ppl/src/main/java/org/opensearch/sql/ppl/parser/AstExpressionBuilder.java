@@ -631,17 +631,27 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     // all the arguments are defaulted to string values
     // to skip environment resolving and function signature resolving
     ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
-    var fields =
-        new RelevanceFieldList(
-            ctx.getRuleContexts(OpenSearchPPLParser.RelevanceFieldAndWeightContext.class).stream()
-                .collect(
-                    Collectors.toMap(
-                        f -> StringUtils.unquoteText(f.field.getText()),
-                        f -> (f.weight == null) ? 1F : Float.parseFloat(f.weight.getText()))));
-    builder.add(new UnresolvedArgument("fields", fields));
+
+    // Handle optional fields - only add fields argument if fields are present
+    var fieldContexts =
+        ctx.getRuleContexts(OpenSearchPPLParser.RelevanceFieldAndWeightContext.class);
+    if (fieldContexts != null && !fieldContexts.isEmpty()) {
+      var fields =
+          new RelevanceFieldList(
+              fieldContexts.stream()
+                  .collect(
+                      Collectors.toMap(
+                          f -> StringUtils.unquoteText(f.field.getText()),
+                          f -> (f.weight == null) ? 1F : Float.parseFloat(f.weight.getText()))));
+      builder.add(new UnresolvedArgument("fields", fields));
+    }
+
+    // Query is always required
     builder.add(
         new UnresolvedArgument(
             "query", new Literal(StringUtils.unquoteText(ctx.query.getText()), DataType.STRING)));
+
+    // Add optional arguments
     ctx.relevanceArg()
         .forEach(
             v ->

@@ -212,5 +212,37 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
             String.format(
                 "search source=%s | stats perc50(balance), p95(balance)", TEST_INDEX_BANK_REMOTE));
     verifyColumn(result, columnName("perc50(balance)"), columnName("p95(balance)"));
+    
+  @Test
+  public void testCrossClusterMultiMatchWithoutFields() throws IOException {
+    // Test multi_match without fields parameter on remote cluster
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | where multi_match('Hattie') | fields firstname",
+                TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(result, rows("Hattie"));
+  }
+
+  @Test
+  public void testCrossClusterSimpleQueryStringWithoutFields() throws IOException {
+    // Test simple_query_string without fields parameter on remote cluster
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | where simple_query_string('Hattie') | fields firstname",
+                TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(result, rows("Hattie"));
+  }
+
+  @Test
+  public void testCrossClusterQueryStringWithoutFields() throws IOException {
+    // Test query_string without fields parameter on remote cluster
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | where query_string('Hattie') | fields firstname",
+                TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(result, rows("Hattie"));
   }
 }
