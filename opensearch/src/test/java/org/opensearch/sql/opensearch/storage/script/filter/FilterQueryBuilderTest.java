@@ -1460,19 +1460,25 @@ class FilterQueryBuilderTest {
   }
 
   @Test
-  void multi_match_missing_fields_even_with_struct() {
-    FunctionExpression expr =
-        DSL.multi_match(
-            DSL.namedArgument(
-                "something-but-not-fields",
-                DSL.literal(
-                    new ExprTupleValue(
-                        new LinkedHashMap<>(
-                            ImmutableMap.of("pewpew", ExprValueUtils.integerValue(42)))))),
-            DSL.namedArgument("query", literal("search query")),
-            DSL.namedArgument("analyzer", literal("keyword")));
-    var msg = assertThrows(SemanticCheckException.class, () -> buildQuery(expr)).getMessage();
-    assertEquals("'fields' parameter is missing.", msg);
+  void multi_match_without_fields_parameter() {
+    // Test that multi_match works without fields parameter (searches default fields)
+    assertJsonEquals(
+        "{\n"
+            + "  \"multi_match\" : {\n"
+            + "    \"query\" : \"search query\",\n"
+            + "    \"fields\" : [ ],\n"
+            + "    \"type\" : \"best_fields\",\n"
+            + "    \"operator\" : \"OR\",\n"
+            + "    \"slop\" : 0,\n"
+            + "    \"prefix_length\" : 0,\n"
+            + "    \"max_expansions\" : 50,\n"
+            + "    \"zero_terms_query\" : \"NONE\",\n"
+            + "    \"auto_generate_synonyms_phrase_query\" : true,\n"
+            + "    \"fuzzy_transpositions\" : true,\n"
+            + "    \"boost\" : 1.0\n"
+            + "  }\n"
+            + "}",
+        buildQuery(DSL.multi_match(DSL.namedArgument("query", literal("search query")))));
   }
 
   @Test
