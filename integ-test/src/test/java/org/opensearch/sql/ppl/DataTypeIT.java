@@ -125,7 +125,9 @@ public class DataTypeIT extends PPLIntegTestCase {
     client().performRequest(insertRequest);
 
     JSONObject result =
-        executeQuery(String.format("source=%s | where _id=%d", TEST_INDEX_DATATYPE_NUMERIC, docId));
+        executeQuery(
+            String.format(
+                "source=%s | where long_number=12345678", TEST_INDEX_DATATYPE_NUMERIC, docId));
     verifySchema(
         result,
         schema("long_number", "long"),
@@ -150,15 +152,15 @@ public class DataTypeIT extends PPLIntegTestCase {
         new Request(
             "PUT",
             String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_DATATYPE_NONNUMERIC, docId));
-    insertRequest.setJsonEntity("{\"boolean_value\": \"true\"}\n");
+    insertRequest.setJsonEntity("{\"boolean_value\": \"true\", \"keyword_value\": \"test\"}\n");
     client().performRequest(insertRequest);
 
     JSONObject result =
         executeQuery(
-            String.format("source=%s | where _id=%d", TEST_INDEX_DATATYPE_NONNUMERIC, docId));
-
+            String.format(
+                "source=%s | where keyword_value='test' | fields boolean_value",
+                TEST_INDEX_DATATYPE_NONNUMERIC));
     verifySchema(result, schema("boolean_value", "boolean"));
-
     verifyDataRows(result, rows(true));
 
     Request deleteRequest =
