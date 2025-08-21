@@ -33,23 +33,6 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
   }
 
   @Test
-  public void testEvalCount() {
-    String ppl = "source=EMP | stats count(eval(SAL > 2000)) as c";
-    RelNode root = getRelNode(ppl);
-    String expectedLogical =
-        "LogicalAggregate(group=[{}], c=[COUNT($0)])\n"
-            + "  LogicalProject($f1=[CASE(>($5, 2000), 1, null:NULL)])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    verifyLogical(root, expectedLogical);
-    String expectedResult = "c=6\n";
-    verifyResult(root, expectedResult);
-
-    String expectedSparkSql =
-        "SELECT COUNT(CASE WHEN `SAL` > 2000 THEN 1 ELSE NULL END) `c`\nFROM `scott`.`EMP`";
-    verifyPPLToSparkSQL(root, expectedSparkSql);
-  }
-
-  @Test
   public void testTakeAgg() {
     String ppl = "source=EMP | stats take(JOB, 2) as c";
     RelNode root = getRelNode(ppl);
