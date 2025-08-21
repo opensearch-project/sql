@@ -33,7 +33,7 @@ public class OpenSearchMemoryHealthy {
       return isCalciteEnabled(settings)
           ? GCedMemoryUsage.getInstance()
           : RuntimeMemoryUsage.getInstance();
-    } catch (MemoryUsageException e) {
+    } catch (Throwable e) {
       return RuntimeMemoryUsage.getInstance();
     }
   }
