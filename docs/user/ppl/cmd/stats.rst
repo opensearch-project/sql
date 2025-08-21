@@ -314,12 +314,13 @@ Description
 
 Version: 3.3.0 (Calcite engine only)
 
-Usage: LIST(). Returns an array containing all values of the specified field from the result set, preserving duplicates and order. All values are converted to strings for consistent handling across different data types.
+Usage: LIST(expr). Returns an array containing all values of the specified field from the result set, preserving both duplicates and the original order of appearance.
+All values are converted to strings for consistent handling across different data types. The results are always limited to first 100.
 
 * expr: The field expression to collect values from.
-* Behavior: Preserves duplicate values and maintains input order. Returns first 100 values. This function processes field values as strings.
+* This aggregation function doesn't support Array, Struct, Object field types.
 
-Example::
+Example with string fields::
 
     PPL> source=accounts | stats list(firstname);
     fetched rows / total rows = 1/1
@@ -329,7 +330,7 @@ Example::
     | [Amber,Hattie,Nanette,Dale] |
     +-----------------------------+
 
-Example with string fields::
+Example with result field rename::
 
     PPL> source=accounts | stats list(firstname) as names;
     fetched rows / total rows = 1/1
@@ -348,12 +349,13 @@ Description
 
 Version: 3.3.0 (Calcite engine only)
 
-Usage: VALUES(expr). Returns an array containing unique values of the specified field from the result set, sorted in lexicographic (alphabetical) order. All values are converted to strings for consistent handling across different data types.
+Usage: VALUES(expr). Returns an array containing unique values of the specified field from the result set, sorted in lexicographic (string-based alphabetical) order.
+All values are converted to strings for consistent handling across different data types.
 
 * expr: The field expression to collect unique values from.
-* Behavior: Removes duplicate values and sorts results lexicographically. This function processes field values as strings.
+* This aggregation function doesn't support Array, Struct, Object field types.
 
-Example::
+Example with string fields::
 
     PPL> source=accounts | stats values(gender);
     fetched rows / total rows = 1/1
@@ -363,7 +365,7 @@ Example::
     | [F,M]          |
     +----------------+
 
-Example with mixed data types::
+Example with integer fields::
 
     PPL> source=logs | stats values(status_code);
     fetched rows / total rows = 1/1
@@ -641,19 +643,4 @@ PPL query::
     |---------------+----------------|
     | [M,F,M,M]     | [F,M]          |
     +---------------+----------------+
-
-Example 17: Use multivalue functions with multiple fields
-========================================================
-
-The example shows how to collect values from multiple fields.
-
-PPL query::
-
-    PPL> source=accounts | stats list(firstname) as names, values(gender) as genders;
-    fetched rows / total rows = 1/1
-    +-----------------------------+----------+
-    | names                       | genders  |
-    |-----------------------------+----------|
-    | [Amber,Hattie,Nanette,Dale] | [F,M]    |
-    +---------------------------+------------------+
 
