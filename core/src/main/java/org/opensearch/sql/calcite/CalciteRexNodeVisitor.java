@@ -502,6 +502,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
           lambdaNode = analyze(arg, lambdaContext);
         }
         arguments.add(lambdaNode);
+      } else if (arg instanceof Field) {
+        arguments.add(resolveSpecialTimeFieldReference((Field) arg, context));
       } else {
         arguments.add(analyze(arg, context));
       }
@@ -514,6 +516,30 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       return resolvedNode;
     }
     throw new IllegalArgumentException("Unsupported operator: " + node.getFuncName());
+  }
+
+  /**
+   * Replace {@code _time} field reference to {@code @timestamp} field if {@code _time} does not
+   * exist in the input schema.
+   */
+  private RexNode resolveSpecialTimeFieldReference(Field field, CalcitePlanContext context) {
+    if (field.getField() instanceof QualifiedName && "_time".equals(field.getField().toString())) {
+      try {
+        // Use _time field if it exists
+        return analyze(field, context);
+      } catch (IllegalArgumentException ignored) {
+        try {
+          // Substitute _time field to @timestamp
+          return referenceImplicitTimestampField(context);
+        } catch (IllegalArgumentException e) {
+          throw new SemanticCheckException(
+              "Referring _time field requires an explicit '_time' field or an implicit"
+                  + " '@timestamp' field, but none of them was found in the input schema.",
+              e);
+        }
+      }
+    }
+    return analyze(field, context);
   }
 
   @Override
