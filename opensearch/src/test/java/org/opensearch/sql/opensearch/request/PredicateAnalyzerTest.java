@@ -816,22 +816,21 @@ public class PredicateAnalyzerTest {
 
     assertInstanceOf(MultiMatchQueryBuilder.class, result);
     assertEquals(
-        """
-            {
-              "multi_match" : {
-                "query" : "Hi",
-                "fields" : [ ],
-                "type" : "best_fields",
-                "operator" : "OR",
-                "slop" : 0,
-                "prefix_length" : 0,
-                "max_expansions" : 50,
-                "zero_terms_query" : "NONE",
-                "auto_generate_synonyms_phrase_query" : true,
-                "fuzzy_transpositions" : true,
-                "boost" : 1.0
-              }
-            }""",
+        "{\n"
+            + "  \"multi_match\" : {\n"
+            + "    \"query\" : \"Hi\",\n"
+            + "    \"fields\" : [ ],\n"
+            + "    \"type\" : \"best_fields\",\n"
+            + "    \"operator\" : \"OR\",\n"
+            + "    \"slop\" : 0,\n"
+            + "    \"prefix_length\" : 0,\n"
+            + "    \"max_expansions\" : 50,\n"
+            + "    \"zero_terms_query\" : \"NONE\",\n"
+            + "    \"auto_generate_synonyms_phrase_query\" : true,\n"
+            + "    \"fuzzy_transpositions\" : true,\n"
+            + "    \"boost\" : 1.0\n"
+            + "  }\n"
+            + "}",
         result.toString());
   }
 
@@ -847,20 +846,19 @@ public class PredicateAnalyzerTest {
 
     assertInstanceOf(SimpleQueryStringBuilder.class, result);
     assertEquals(
-        """
-            {
-              "simple_query_string" : {
-                "query" : "Hi",
-                "flags" : -1,
-                "default_operator" : "or",
-                "analyze_wildcard" : false,
-                "auto_generate_synonyms_phrase_query" : true,
-                "fuzzy_prefix_length" : 0,
-                "fuzzy_max_expansions" : 50,
-                "fuzzy_transpositions" : true,
-                "boost" : 1.0
-              }
-            }""",
+        "{\n"
+            + "  \"simple_query_string\" : {\n"
+            + "    \"query\" : \"Hi\",\n"
+            + "    \"flags\" : -1,\n"
+            + "    \"default_operator\" : \"or\",\n"
+            + "    \"analyze_wildcard\" : false,\n"
+            + "    \"auto_generate_synonyms_phrase_query\" : true,\n"
+            + "    \"fuzzy_prefix_length\" : 0,\n"
+            + "    \"fuzzy_max_expansions\" : 50,\n"
+            + "    \"fuzzy_transpositions\" : true,\n"
+            + "    \"boost\" : 1.0\n"
+            + "  }\n"
+            + "}",
         result.toString());
   }
 
@@ -876,25 +874,24 @@ public class PredicateAnalyzerTest {
 
     assertInstanceOf(QueryStringQueryBuilder.class, result);
     assertEquals(
-        """
-            {
-              "query_string" : {
-                "query" : "Hi",
-                "fields" : [ ],
-                "type" : "best_fields",
-                "default_operator" : "or",
-                "max_determinized_states" : 10000,
-                "enable_position_increments" : true,
-                "fuzziness" : "AUTO",
-                "fuzzy_prefix_length" : 0,
-                "fuzzy_max_expansions" : 50,
-                "phrase_slop" : 0,
-                "escape" : false,
-                "auto_generate_synonyms_phrase_query" : true,
-                "fuzzy_transpositions" : true,
-                "boost" : 1.0
-              }
-            }""",
+        "{\n"
+            + "  \"query_string\" : {\n"
+            + "    \"query\" : \"Hi\",\n"
+            + "    \"fields\" : [ ],\n"
+            + "    \"type\" : \"best_fields\",\n"
+            + "    \"default_operator\" : \"or\",\n"
+            + "    \"max_determinized_states\" : 10000,\n"
+            + "    \"enable_position_increments\" : true,\n"
+            + "    \"fuzziness\" : \"AUTO\",\n"
+            + "    \"fuzzy_prefix_length\" : 0,\n"
+            + "    \"fuzzy_max_expansions\" : 50,\n"
+            + "    \"phrase_slop\" : 0,\n"
+            + "    \"escape\" : false,\n"
+            + "    \"auto_generate_synonyms_phrase_query\" : true,\n"
+            + "    \"fuzzy_transpositions\" : true,\n"
+            + "    \"boost\" : 1.0\n"
+            + "  }\n"
+            + "}",
         result.toString());
   }
 }
