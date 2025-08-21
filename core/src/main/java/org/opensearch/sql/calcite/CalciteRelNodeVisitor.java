@@ -17,6 +17,11 @@ import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_D
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME_MAIN;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME_SUBSEARCH;
+import static org.opensearch.sql.calcite.utils.PlanUtils.TIMECHART_BY_FIELD;
+import static org.opensearch.sql.calcite.utils.PlanUtils.TIMECHART_LIMIT;
+import static org.opensearch.sql.calcite.utils.PlanUtils.TIMECHART_TIME_FIELD;
+import static org.opensearch.sql.calcite.utils.PlanUtils.TIMECHART_USE_OTHER;
+import static org.opensearch.sql.calcite.utils.PlanUtils.TIMECHART_VALUE_FIELD;
 import static org.opensearch.sql.calcite.utils.PlanUtils.getRelation;
 import static org.opensearch.sql.calcite.utils.PlanUtils.transformPlanToAttachChild;
 
@@ -26,6 +31,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -689,8 +695,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // because that Mapping only works for RexNode, but we need both AggCall and RexNode list.
     Pair<List<RexNode>, List<AggCall>> reResolved =
         resolveAttributesForAggregation(groupExprList, aggExprList, context);
+
     context.relBuilder.aggregate(
         context.relBuilder.groupKey(reResolved.getLeft()), reResolved.getRight());
+
     return Pair.of(reResolved.getLeft(), reResolved.getRight());
   }
 
@@ -1312,6 +1320,91 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .collect(Collectors.toList());
     relBuilder.projectPlus(expandedFields);
     return relBuilder.peek();
+  }
+
+  /**
+   * Transforms timechart command into relational operations using OpenSearch aggregations.
+   *
+   * <p>High-level approach: 1. Non-pivot case (no 'by' field): Creates simple time-based
+   * aggregation with span grouping 2. Pivot case (with 'by' field): Uses composite aggregation
+   * (time + split-by field) to get grouped data, then relies on TimechartResponseFormatter for
+   * client-side pivot transformation from long format (time, by_field, value) to wide format (time,
+   * col1, col2, ...)
+   *
+   * <p>The pivot transformation happens outside the query engine to avoid complex dynamic SQL
+   * generation. Limit and useOther parameters are passed through context for post-processing.
+   */
+  @Override
+  public RelNode visitTimechart(
+      org.opensearch.sql.ast.tree.Timechart node, CalcitePlanContext context) {
+    visitChildren(node, context);
+
+    // Create group-by list with span expression
+    List<UnresolvedExpression> groupExprList = new ArrayList<>();
+    UnresolvedExpression spanExpr =
+        node.getBinExpression() != null
+            ? node.getBinExpression()
+            : AstDSL.span(AstDSL.field("@timestamp"), AstDSL.stringLiteral("1m"), null);
+    groupExprList.add(spanExpr);
+
+    // No pivoting (i.e. no 'by' field)
+    if (node.getByField() == null) {
+      // Use the same aggregation approach as with 'by' field to ensure all timestamps are returned
+      aggregateWithTrimming(groupExprList, List.of(node.getAggregateFunction()), context);
+      context.relBuilder.sort(context.relBuilder.field(0));
+
+      return context.relBuilder.peek();
+    }
+
+    // Pivot case: add 'by' field to group by and perform aggregation
+    groupExprList.add(node.getByField());
+    aggregateWithTrimming(groupExprList, List.of(node.getAggregateFunction()), context);
+
+    List<String> fieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+    String byField = fieldNames.get(0);
+    String timeField = fieldNames.get(1);
+    String valueField = fieldNames.get(2);
+
+    // Reorder columns: [time, by, value]
+    context.relBuilder.project(
+        ImmutableList.of(
+            context.relBuilder.field(timeField),
+            context.relBuilder.field(byField),
+            context.relBuilder.field(valueField)),
+        ImmutableList.of(timeField, byField, valueField));
+
+    // Store the current state with [time, by, value] columns
+    RelNode currentState = context.relBuilder.peek();
+
+    // Create a query to get distinct values for the "by" field
+    context.relBuilder.push(currentState);
+    context.relBuilder.project(context.relBuilder.field(byField));
+    context.relBuilder.distinct();
+    RelNode distinctQuery = context.relBuilder.peek();
+
+    // Restore the original state
+    context.relBuilder.push(currentState);
+
+    // Store the necessary information for the dynamic pivot operation
+    // This will be used by the execution engine to perform the two-phase approach
+    Map<String, String> dynamicPivotInfo = new HashMap<>();
+    dynamicPivotInfo.put(TIMECHART_TIME_FIELD, timeField);
+    dynamicPivotInfo.put(TIMECHART_BY_FIELD, byField);
+    dynamicPivotInfo.put(TIMECHART_VALUE_FIELD, valueField);
+
+    // Store the limit parameter if present
+    if (node.getLimit() != null) {
+      dynamicPivotInfo.put(TIMECHART_LIMIT, node.getLimit().toString());
+    }
+
+    // Store the useOther parameter
+    dynamicPivotInfo.put(TIMECHART_USE_OTHER, node.getUseOther().toString());
+
+    // Mark this node as a special "dynamic pivot" node that will be handled
+    // by a custom execution engine
+    context.relBuilder.as("DynamicPivotOperator");
+
+    return context.relBuilder.peek();
   }
 
   @Override

@@ -54,6 +54,7 @@ import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.PatternMethod;
 import org.opensearch.sql.ast.expression.PatternMode;
 import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFunction;
@@ -83,6 +84,7 @@ import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Timechart;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
@@ -456,6 +458,57 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitReverseCommand(OpenSearchPPLParser.ReverseCommandContext ctx) {
     return new Reverse();
+  }
+
+  /** Timechart command. */
+  @Override
+  public UnresolvedPlan visitTimechartCommand(OpenSearchPPLParser.TimechartCommandContext ctx) {
+    UnresolvedExpression binExpression = null;
+    // Extract limit parameter if present
+    Integer limit = null;
+    // Extract useOther parameter if present
+    Boolean useOther = true; // Default to true
+
+    // Process timechart parameters
+    for (OpenSearchPPLParser.TimechartParameterContext paramCtx : ctx.timechartParameter()) {
+      if (paramCtx.spanClause() != null) {
+        binExpression = internalVisitExpression(paramCtx.spanClause());
+      } else if (paramCtx.spanLiteral() != null) {
+        // Convert span=1h to span(@timestamp, 1h)
+        binExpression = internalVisitExpression(paramCtx.spanLiteral());
+      } else if (paramCtx.timechartArg() != null) {
+        OpenSearchPPLParser.TimechartArgContext argCtx = paramCtx.timechartArg();
+        if (argCtx.LIMIT() != null && argCtx.integerLiteral() != null) {
+          limit = Integer.parseInt(argCtx.integerLiteral().getText());
+        } else if (argCtx.USEOTHER() != null) {
+          if (argCtx.booleanLiteral() != null) {
+            useOther = Boolean.parseBoolean(argCtx.booleanLiteral().getText());
+          } else if (argCtx.ident() != null) {
+            String useOtherValue = argCtx.ident().getText().toLowerCase();
+            useOther = "true".equals(useOtherValue) || "t".equals(useOtherValue);
+          }
+        }
+      }
+    }
+
+    // If no span was specified, use the default
+    if (binExpression == null) {
+      binExpression =
+          AstDSL.span(AstDSL.field("@timestamp"), AstDSL.intLiteral(1), SpanUnit.of("m"));
+    }
+
+    UnresolvedExpression aggregateFunction = internalVisitExpression(ctx.statsFunction());
+    UnresolvedExpression byField =
+        ctx.fieldExpression() != null ? internalVisitExpression(ctx.fieldExpression()) : null;
+
+    // The limit and useOther parameters are stored in the Timechart AST node
+    // and will be used by the TimechartResponseFormatter
+
+    return new Timechart(null, aggregateFunction)
+        .span(binExpression)
+        .by(byField)
+        .limit(limit)
+        .useOther(useOther);
   }
 
   /** Eval command. */
