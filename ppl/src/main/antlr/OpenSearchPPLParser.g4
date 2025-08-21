@@ -913,6 +913,7 @@ conditionFunctionName
    | ISNULL
    | ISNOTNULL
    | CIDRMATCH
+   | REGEX_MATCH
    | JSON_VALID
    | ISPRESENT
    | ISEMPTY
