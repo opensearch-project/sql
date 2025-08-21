@@ -57,6 +57,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.DescribeRelation;
@@ -708,6 +709,16 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       throw new SemanticCheckException("subsearch should not be empty");
     }
     return new AppendCol(override, subsearch.get());
+  }
+
+  @Override
+  public UnresolvedPlan visitAppendCommand(OpenSearchPPLParser.AppendCommandContext ctx) {
+    final Optional<UnresolvedPlan> subsearch =
+        ctx.commands().stream().map(this::visit).reduce((r, e) -> e.attach(r));
+    if (subsearch.isEmpty()) {
+      throw new SemanticCheckException("subsearch should not be empty");
+    }
+    return new Append(subsearch.get());
   }
 
   /** Get original text in query. */

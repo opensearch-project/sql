@@ -53,6 +53,7 @@ import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.DescribeRelation;
@@ -409,6 +410,17 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String subsearchWithoutRelation = subsearch.substring(subsearch.indexOf("|") + 1);
     return StringUtils.format(
         "%s | appendcol override=%s [%s ]", child, node.isOverride(), subsearchWithoutRelation);
+  }
+
+  @Override
+  public String visitAppend(Append node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    UnresolvedPlan relation = getRelation(node);
+    transformPlanToAttachChild(node.getSubSearch(), relation);
+    String subsearch = anonymizeData(node.getSubSearch());
+    String subsearchWithoutRelation = subsearch.substring(subsearch.indexOf("|") + 1);
+    return StringUtils.format(
+        "%s | append [%s ]", child, subsearchWithoutRelation);
   }
 
   private String visitFieldList(List<Field> fieldList) {

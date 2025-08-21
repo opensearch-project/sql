@@ -67,6 +67,7 @@ commands
    | fillnullCommand
    | trendlineCommand
    | appendcolCommand
+   | appendCommand
    | expandCommand
    | flattenCommand
    | reverseCommand
@@ -257,6 +258,10 @@ flattenCommand
 
 appendcolCommand
    : APPENDCOL (OVERRIDE EQUAL override = booleanLiteral)? LT_SQR_PRTHS commands (PIPE commands)* RT_SQR_PRTHS
+   ;
+
+appendCommand
+   : APPEND LT_SQR_PRTHS commands (PIPE commands)* RT_SQR_PRTHS
    ;
 
 kmeansCommand

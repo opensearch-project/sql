@@ -57,6 +57,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
@@ -723,6 +724,12 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   public LogicalPlan visitAppendCol(AppendCol node, AnalysisContext context) {
     throw new UnsupportedOperationException(
         "AppendCol is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+  }
+
+  @Override
+  public LogicalPlan visitAppend(Append node, AnalysisContext context) {
+    throw new UnsupportedOperationException(
+        "Append is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
   }
 
   private LogicalSort buildSort(

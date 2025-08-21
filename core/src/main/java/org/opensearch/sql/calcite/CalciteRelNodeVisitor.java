@@ -49,6 +49,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilder.AggCall;
 import org.apache.calcite.util.Holder;
@@ -78,6 +79,7 @@ import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
@@ -1069,6 +1071,76 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       context.relBuilder.project(finalProjections, finalFieldNames);
       return context.relBuilder.peek();
     }
+  }
+
+  @Override
+  public RelNode visitAppend(Append node, CalcitePlanContext context) {
+    // 1. Resolve main plan
+    visitChildren(node, context);
+
+    // 2. Build subsearch tree (attach relation to subsearch)
+    UnresolvedPlan relation = getRelation(node);
+    transformPlanToAttachChild(node.getSubSearch(), relation);
+    // 3. Resolve subsearch plan
+    node.getSubSearch().accept(this, context);
+
+    // 4. Merge two query schemas
+    RelNode subsearchNode = context.relBuilder.build();
+    RelNode mainNode = context.relBuilder.build();
+    List<RelDataTypeField> mainFields = mainNode.getRowType().getFieldList();
+    List<RelDataTypeField> subsearchFields = subsearchNode.getRowType().getFieldList();
+    Map<String, RelDataTypeField> subsearchFieldMap =
+        subsearchFields.stream()
+            .map(typeField -> Pair.of(typeField.getName(), typeField))
+            .collect(Collectors.toMap(Pair::getKey, Pair::getValue));
+    boolean[] isSelected = new boolean[subsearchFields.size()];
+    List<String> names = new ArrayList<>();
+    List<RexNode> mainUnionProjects = new ArrayList<>();
+    List<RexNode> subsearchUnionProjects = new ArrayList<>();
+
+    // 4.1 Start with main query's schema. If subsearch plan doesn't have matched column,
+    // add same type column in place with NULL literal
+    for (int i = 0; i < mainFields.size(); i++) {
+      mainUnionProjects.add(context.rexBuilder.makeInputRef(mainNode, i));
+      RelDataTypeField mainField = mainFields.get(i);
+      RelDataTypeField subsearchField = subsearchFieldMap.get(mainField.getName());
+      names.add(mainField.getName());
+      if (subsearchFieldMap.containsKey(mainField.getName())
+          && subsearchField != null
+          && subsearchField.getType().equals(mainField.getType())) {
+        subsearchUnionProjects.add(
+            context.rexBuilder.makeInputRef(subsearchNode, subsearchField.getIndex()));
+        isSelected[subsearchField.getIndex()] = true;
+      } else {
+        subsearchUnionProjects.add(context.rexBuilder.makeNullLiteral(mainField.getType()));
+      }
+    }
+
+    // 4.2 Add remaining subsearch columns to the merged schema
+    for (int j = 0; j < subsearchFields.size(); j++) {
+      RelDataTypeField subsearchField = subsearchFields.get(j);
+      if (!isSelected[j]) {
+        mainUnionProjects.add(context.rexBuilder.makeNullLiteral(subsearchField.getType()));
+        subsearchUnionProjects.add(context.rexBuilder.makeInputRef(subsearchNode, j));
+        names.add(subsearchField.getName());
+      }
+    }
+
+    // 4.3 Uniquify names in case the merged names have duplicates
+    List<String> uniqNames =
+        SqlValidatorUtil.uniquify(names, SqlValidatorUtil.EXPR_SUGGESTER, true);
+
+    // 5. Apply new schema over two query plans
+    RelNode projectedMainNode =
+        context.relBuilder.push(mainNode).project(mainUnionProjects, uniqNames).build();
+    RelNode projectedSubsearchNode =
+        context.relBuilder.push(subsearchNode).project(subsearchUnionProjects, uniqNames).build();
+
+    // 6. Union all two projected plans
+    context.relBuilder.push(projectedMainNode);
+    context.relBuilder.push(projectedSubsearchNode);
+    context.relBuilder.union(true);
+    return context.relBuilder.peek();
   }
 
   /*
