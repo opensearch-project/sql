@@ -42,9 +42,11 @@ public class MaxByMinByAggFunctionTest {
     MaxByAggFunction maxByFunction = new MaxByAggFunction();
     MaxByAggFunction.MaxByAccumulator accumulator = maxByFunction.init();
 
-    assertThrows(IllegalArgumentException.class, () -> {
-      maxByFunction.add(accumulator, "value1");
-    });
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> {
+          maxByFunction.add(accumulator, "value1");
+        });
   }
 
   @Test
@@ -76,16 +78,18 @@ public class MaxByMinByAggFunctionTest {
     MinByAggFunction minByFunction = new MinByAggFunction();
     MinByAggFunction.MinByAccumulator accumulator = minByFunction.init();
 
-    assertThrows(IllegalArgumentException.class, () -> {
-      minByFunction.add(accumulator, "value1");
-    });
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> {
+          minByFunction.add(accumulator, "value1");
+        });
   }
 
   @Test
   public void testEmptyAccumulator() {
     MaxByAggFunction maxByFunction = new MaxByAggFunction();
     MaxByAggFunction.MaxByAccumulator maxAccumulator = maxByFunction.init();
-    
+
     MinByAggFunction minByFunction = new MinByAggFunction();
     MinByAggFunction.MinByAccumulator minAccumulator = minByFunction.init();
 

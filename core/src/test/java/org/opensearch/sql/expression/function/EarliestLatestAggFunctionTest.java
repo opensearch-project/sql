@@ -8,7 +8,6 @@ package org.opensearch.sql.expression.function;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.Set;
-
 import org.junit.jupiter.api.Test;
 
 public class EarliestLatestAggFunctionTest extends AggFunctionTestBase {
@@ -38,11 +37,15 @@ public class EarliestLatestAggFunctionTest extends AggFunctionTestBase {
   @Test
   void testResolveAggWithValidFunctions() {
     try {
-      java.lang.reflect.Method method = PPLFuncImpTable.class.getDeclaredMethod(
-          "resolveAgg", BuiltinFunctionName.class, boolean.class, 
-          org.apache.calcite.rex.RexNode.class, java.util.List.class, 
-          org.opensearch.sql.calcite.CalcitePlanContext.class);
-      
+      java.lang.reflect.Method method =
+          PPLFuncImpTable.class.getDeclaredMethod(
+              "resolveAgg",
+              BuiltinFunctionName.class,
+              boolean.class,
+              org.apache.calcite.rex.RexNode.class,
+              java.util.List.class,
+              org.opensearch.sql.calcite.CalcitePlanContext.class);
+
       assertNotNull(method, "resolveAgg method should exist");
     } catch (NoSuchMethodException e) {
       throw new RuntimeException("resolveAgg method not found", e);
@@ -55,34 +58,30 @@ public class EarliestLatestAggFunctionTest extends AggFunctionTestBase {
         BuiltinFunctionName.MAX_BY,
         BuiltinFunctionName.MIN_BY,
         BuiltinFunctionName.EARLIEST,
-        BuiltinFunctionName.LATEST
-    );
+        BuiltinFunctionName.LATEST);
   }
 
   @Test
   void testFunctionHandlerTypes() {
-    assertFunctionHandlerTypes(
-        BuiltinFunctionName.EARLIEST,
-        BuiltinFunctionName.LATEST
-    );
+    assertFunctionHandlerTypes(BuiltinFunctionName.EARLIEST, BuiltinFunctionName.LATEST);
   }
 
   @Test
   void testFunctionRegistrySize() {
     assertRegistryMinimumSize(10);
-    
-    Set<BuiltinFunctionName> knownFunctions = Set.of(
-        BuiltinFunctionName.COUNT,
-        BuiltinFunctionName.SUM,
-        BuiltinFunctionName.AVG,
-        BuiltinFunctionName.MAX,
-        BuiltinFunctionName.MIN,
-        BuiltinFunctionName.MAX_BY,
-        BuiltinFunctionName.MIN_BY,
-        BuiltinFunctionName.EARLIEST,
-        BuiltinFunctionName.LATEST
-    );
-    
+
+    Set<BuiltinFunctionName> knownFunctions =
+        Set.of(
+            BuiltinFunctionName.COUNT,
+            BuiltinFunctionName.SUM,
+            BuiltinFunctionName.AVG,
+            BuiltinFunctionName.MAX,
+            BuiltinFunctionName.MIN,
+            BuiltinFunctionName.MAX_BY,
+            BuiltinFunctionName.MIN_BY,
+            BuiltinFunctionName.EARLIEST,
+            BuiltinFunctionName.LATEST);
+
     assertKnownFunctionsPresent(knownFunctions);
   }
 
