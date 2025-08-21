@@ -19,10 +19,39 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
 import org.opensearch.sql.ast.dsl.AstDSL;
-import org.opensearch.sql.ast.expression.*;
+import org.opensearch.sql.ast.expression.AggregateFunction;
+import org.opensearch.sql.ast.expression.Alias;
+import org.opensearch.sql.ast.expression.AllFields;
+import org.opensearch.sql.ast.expression.And;
+import org.opensearch.sql.ast.expression.Between;
+import org.opensearch.sql.ast.expression.Case;
+import org.opensearch.sql.ast.expression.Cast;
+import org.opensearch.sql.ast.expression.Compare;
+import org.opensearch.sql.ast.expression.DataType;
+import org.opensearch.sql.ast.expression.EqualTo;
+import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.In;
+import org.opensearch.sql.ast.expression.Interval;
+import org.opensearch.sql.ast.expression.IntervalUnit;
+import org.opensearch.sql.ast.expression.LambdaFunction;
+import org.opensearch.sql.ast.expression.Let;
+import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.ast.expression.Not;
+import org.opensearch.sql.ast.expression.Or;
+import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.RelevanceFieldList;
+import org.opensearch.sql.ast.expression.Span;
+import org.opensearch.sql.ast.expression.SpanUnit;
+import org.opensearch.sql.ast.expression.UnresolvedArgument;
+import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.expression.When;
+import org.opensearch.sql.ast.expression.WindowFunction;
+import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
@@ -83,13 +112,11 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     this.astBuilder = astBuilder;
   }
 
-  /** Eval clause. */
   @Override
   public UnresolvedExpression visitEvalClause(EvalClauseContext ctx) {
     return new Let((Field) visit(ctx.fieldExpression()), visit(ctx.logicalExpression()));
   }
 
-  /** Trendline clause. */
   @Override
   public Trendline.TrendlineComputation visitTrendlineClause(
       OpenSearchPPLParser.TrendlineClauseContext ctx) {
@@ -111,7 +138,6 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
         numberOfDataPoints, dataField, alias, computationType);
   }
 
-  /** Logical expression excluding boolean, comparison. */
   @Override
   public UnresolvedExpression visitLogicalNot(LogicalNotContext ctx) {
     return new Not(visit(ctx.logicalExpression()));
@@ -132,7 +158,6 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return new Xor(visit(ctx.left), visit(ctx.right));
   }
 
-  /** lambda expression */
   @Override
   public UnresolvedExpression visitLambda(OpenSearchPPLParser.LambdaContext ctx) {
     List<QualifiedName> arguments =
@@ -143,7 +168,6 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return new LambdaFunction(function, arguments);
   }
 
-  /** Comparison expression. */
   @Override
   public UnresolvedExpression visitCompareExpr(CompareExprContext ctx) {
     String operator = ctx.comparisonOperator().getText();
@@ -166,7 +190,6 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return ctx.NOT() != null ? new Not(expr) : expr;
   }
 
-  /** Value Expression. */
   @Override
   public UnresolvedExpression visitBinaryArithmetic(BinaryArithmeticContext ctx) {
     return new Function(ctx.binaryOperator.getText(), buildArguments(ctx.left, ctx.right));
@@ -184,10 +207,9 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitNestedValueExpr(OpenSearchPPLParser.NestedValueExprContext ctx) {
-    return visit(ctx.logicalExpression()); // Discard parenthesis around
+    return visit(ctx.logicalExpression());
   }
 
-  /** Field expression. */
   @Override
   public UnresolvedExpression visitFieldExpression(FieldExpressionContext ctx) {
     return new Field((QualifiedName) visit(ctx.qualifiedName()));
@@ -224,10 +246,42 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return new Field(fieldExpression, ArgumentFactory.getArgumentList(ctx));
   }
 
-  /** Aggregation function. */
   @Override
   public UnresolvedExpression visitStatsFunctionCall(StatsFunctionCallContext ctx) {
-    return new AggregateFunction(ctx.statsFunctionName().getText(), visit(ctx.valueExpression()));
+    String functionName = ctx.statsFunctionName().getText();
+    List<UnresolvedExpression> arguments = ctx.valueExpression().stream()
+        .map(this::visit)
+        .collect(Collectors.toList());
+    
+    // Handle EARLIEST and LATEST functions which can take 1 or 2 parameters
+    if ("EARLIEST".equalsIgnoreCase(functionName) || "LATEST".equalsIgnoreCase(functionName)) {
+      return buildEarliestLatestFunction(functionName, arguments);
+    } else {
+      // For other aggregate functions, expect exactly 1 parameter
+      if (arguments.size() != 1) {
+        throw new IllegalArgumentException(
+            String.format("Function %s expects exactly 1 argument, got %d", functionName, arguments.size()));
+      }
+      return new AggregateFunction(functionName, arguments.get(0));
+    }
+  }
+
+  /**
+   * Build EARLIEST or LATEST aggregate function with proper argument handling.
+   * Supports both single parameter (uses default @timestamp) and two parameters (custom time field).
+   */
+  private UnresolvedExpression buildEarliestLatestFunction(String functionName, List<UnresolvedExpression> arguments) {
+    if (arguments.size() == 1) {
+      // Single parameter: earliest(field) or latest(field) - uses default @timestamp
+      return new AggregateFunction(functionName, arguments.get(0));
+    } else if (arguments.size() == 2) {
+      // Two parameters: earliest(field, time_field) or latest(field, time_field)
+      return new AggregateFunction(functionName, arguments.get(0), 
+          Collections.singletonList(new UnresolvedArgument("time_field", arguments.get(1))));
+    } else {
+      throw new IllegalArgumentException(
+          String.format("Function %s expects 1 or 2 arguments, got %d", functionName, arguments.size()));
+    }
   }
 
   @Override
@@ -289,6 +343,27 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
             new UnresolvedArgument("percent", AstDSL.doubleLiteral(percent))));
   }
 
+  @Override
+  public UnresolvedExpression visitPercentileShortcutFunctionCall(
+      OpenSearchPPLParser.PercentileShortcutFunctionCallContext ctx) {
+    String functionName = ctx.getStart().getText();
+
+    int prefixLength = functionName.toLowerCase().startsWith("perc") ? 4 : 1;
+    String percentileValue = functionName.substring(prefixLength);
+
+    double percent = Double.parseDouble(percentileValue);
+    if (percent < 0.0 || percent > 100.0) {
+      throw new SyntaxCheckException(
+          String.format("Percentile value must be between 0 and 100, got: %s", percent));
+    }
+
+    return new AggregateFunction(
+        "percentile",
+        visit(ctx.valueExpression()),
+        Collections.singletonList(
+            new UnresolvedArgument("percent", AstDSL.doubleLiteral(percent))));
+  }
+
   /** Case function. */
   @Override
   public UnresolvedExpression visitCaseFunctionCall(
@@ -309,7 +384,6 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return new Case(null, whens, Optional.ofNullable(elseValue));
   }
 
-  /** Eval function. */
   @Override
   public UnresolvedExpression visitEvalFunctionCall(EvalFunctionCallContext ctx) {
     final String functionName = ctx.evalFunctionName().getText();
@@ -325,7 +399,6 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return buildFunction(mappedName, ctx.functionArgs().functionArg());
   }
 
-  /** Cast function. */
   @Override
   public UnresolvedExpression visitDataTypeFunctionCall(DataTypeFunctionCallContext ctx) {
     return new Cast(visit(ctx.logicalExpression()), visit(ctx.convertedDataType()));
@@ -470,7 +543,6 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return args;
   }
 
-  /** Literal and value. */
   @Override
   public UnresolvedExpression visitIdentsAsQualifiedName(IdentsAsQualifiedNameContext ctx) {
     return visitIdentifiers(ctx.ident());
