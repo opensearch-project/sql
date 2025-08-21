@@ -174,7 +174,7 @@ headCommand
    ;
 
 binCommand
-   : BIN fieldExpression binOption*
+   : BIN fieldExpression binOption* (AS alias = qualifiedName)?
    ;
 
 binOption
@@ -184,7 +184,6 @@ binOption
    | ALIGNTIME EQUAL aligntime = aligntimeValue
    | START EQUAL start = numericLiteral
    | END EQUAL end = numericLiteral
-   | AS alias = qualifiedName
    ;
 
 aligntimeValue
@@ -201,10 +200,7 @@ spanValue
    ;
 
 logSpanValue
-   : (coefficient = numericLiteral)? LOG (base = numericLiteral)?     # logSpan
-   | (coefficient = numericLiteral)? LOG10                           # log10Span
-   | (coefficient = numericLiteral)? LOG2                            # log2Span
-   | LOG_WITH_BASE                                                   # logWithBaseSpan
+   : LOG_WITH_BASE                                                   # logWithBaseSpan
    ;
 
 topCommand
@@ -751,9 +747,6 @@ mathematicalFunctionName
    | EXPM1
    | FLOOR
    | LN
-   | LOG
-   | LOG10
-   | LOG2
    | LOG_WITH_BASE
    | MOD
    | MODULUS

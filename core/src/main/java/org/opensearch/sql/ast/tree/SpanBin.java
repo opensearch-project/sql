@@ -5,10 +5,11 @@
 
 package org.opensearch.sql.ast.tree;
 
-import java.util.Objects;
+import javax.annotation.Nullable;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
@@ -22,24 +23,20 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 @EqualsAndHashCode(callSuper = true)
 public class SpanBin extends Bin {
 
-  private final UnresolvedExpression span;
-  private final UnresolvedExpression aligntime; // Only valid for time-based fields
+  @NonNull private final UnresolvedExpression span;
+
+  @Nullable private final UnresolvedExpression aligntime; // Only valid for time-based fields
 
   @Builder
   public SpanBin(
-      UnresolvedExpression field,
-      String alias,
-      UnresolvedExpression span,
-      UnresolvedExpression aligntime) {
+      @NonNull UnresolvedExpression field,
+      @Nullable String alias,
+      @NonNull UnresolvedExpression span,
+      @Nullable UnresolvedExpression aligntime) {
     super(field, alias);
-    this.span = Objects.requireNonNull(span, "Span cannot be null for SpanBin");
-    this.aligntime = aligntime; // Optional parameter
+    this.span = span;
+    this.aligntime = aligntime;
     validate();
-  }
-
-  @Override
-  public BinType getBinType() {
-    return BinType.SPAN;
   }
 
   @Override

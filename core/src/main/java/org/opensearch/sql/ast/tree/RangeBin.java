@@ -5,9 +5,11 @@
 
 package org.opensearch.sql.ast.tree;
 
+import javax.annotation.Nullable;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
@@ -22,24 +24,20 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 @EqualsAndHashCode(callSuper = true)
 public class RangeBin extends Bin {
 
-  private final UnresolvedExpression start;
-  private final UnresolvedExpression end;
+  @Nullable private final UnresolvedExpression start;
+
+  @Nullable private final UnresolvedExpression end;
 
   @Builder
   public RangeBin(
-      UnresolvedExpression field,
-      String alias,
-      UnresolvedExpression start,
-      UnresolvedExpression end) {
+      @NonNull UnresolvedExpression field,
+      @Nullable String alias,
+      @Nullable UnresolvedExpression start,
+      @Nullable UnresolvedExpression end) {
     super(field, alias);
     this.start = start; // At least one of start/end should be specified
     this.end = end; // At least one of start/end should be specified
     validate();
-  }
-
-  @Override
-  public BinType getBinType() {
-    return BinType.RANGE;
   }
 
   @Override

@@ -7,9 +7,10 @@ package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import java.util.Objects;
+import javax.annotation.Nullable;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.Setter;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
@@ -23,20 +24,15 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 public abstract class Bin extends UnresolvedPlan {
 
   private UnresolvedPlan child;
-  protected final UnresolvedExpression field;
-  protected final String alias;
 
-  protected Bin(UnresolvedExpression field, String alias) {
-    this.field = Objects.requireNonNull(field, "Field cannot be null");
+  @NonNull protected final UnresolvedExpression field;
+
+  @Nullable protected final String alias;
+
+  protected Bin(@NonNull UnresolvedExpression field, @Nullable String alias) {
+    this.field = field;
     this.alias = alias;
   }
-
-  /**
-   * Returns the specific type of bin operation.
-   *
-   * @return the bin type for visitor dispatching
-   */
-  public abstract BinType getBinType();
 
   /**
    * Validates the parameters specific to this bin type. Each subclass implements its own validation
@@ -58,14 +54,5 @@ public abstract class Bin extends UnresolvedPlan {
   @Override
   public <T, C> T accept(AbstractNodeVisitor<T, C> nodeVisitor, C context) {
     return nodeVisitor.visitBin(this, context);
-  }
-
-  /** Enumeration of bin operation types for visitor dispatching. */
-  public enum BinType {
-    SPAN, // span parameter (highest priority)
-    MIN_SPAN, // minspan parameter (second priority)
-    COUNT, // bins parameter (third priority)
-    RANGE, // start/end only (fourth priority)
-    DEFAULT // no parameters (default magnitude-based)
   }
 }

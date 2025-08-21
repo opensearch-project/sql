@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.ast.tree;
 
+import javax.annotation.Nullable;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -22,35 +23,36 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 @EqualsAndHashCode(callSuper = true)
 public class CountBin extends Bin {
 
-  private final Integer bins;
-  private final UnresolvedExpression start;
-  private final UnresolvedExpression end;
+  private static final int MIN_BINS = 2;
+  private static final int MAX_BINS = 50000;
+
+  @NonNull private final Integer bins;
+
+  @Nullable private final UnresolvedExpression start;
+
+  @Nullable private final UnresolvedExpression end;
 
   @Builder
   public CountBin(
-      UnresolvedExpression field,
-      String alias,
+      @NonNull UnresolvedExpression field,
+      @Nullable String alias,
       @NonNull Integer bins,
-      UnresolvedExpression start,
-      UnresolvedExpression end) {
+      @Nullable UnresolvedExpression start,
+      @Nullable UnresolvedExpression end) {
     super(field, alias);
     this.bins = bins;
-    this.start = start; // Optional parameter
-    this.end = end; // Optional parameter
+    this.start = start;
+    this.end = end;
     validate();
-  }
-
-  @Override
-  public BinType getBinType() {
-    return BinType.COUNT;
   }
 
   @Override
   public void validate() {
     // Bins count validation based on documentation
-    if (bins < 2 || 50000 < bins) {
+    if (bins < MIN_BINS || bins > MAX_BINS) {
       throw new IllegalArgumentException(
-          String.format("The bins parameter must be between 2 and 50000, got: %d", bins));
+          String.format(
+              "The bins parameter must be between %d and %d, got: %d", MIN_BINS, MAX_BINS, bins));
     }
   }
 

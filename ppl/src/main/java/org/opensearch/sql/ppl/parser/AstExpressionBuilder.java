@@ -659,45 +659,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   }
 
   @Override
-  public UnresolvedExpression visitLogBasedSpanValue(
-      OpenSearchPPLParser.LogBasedSpanValueContext ctx) {
-    // For log-based spans, return the full text as a string literal
-    return org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(ctx.getText());
-  }
-
-  @Override
-  public UnresolvedExpression visitExtendedTimeSpanValue(
-      OpenSearchPPLParser.ExtendedTimeSpanValueContext ctx) {
-    // For extended time spans like "30seconds", "15minutes", combine the number and unit
-    String number = ctx.ident().getText();
-    String unit = ctx.timespanUnit().getText();
-    return org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(number + unit);
-  }
-
-  @Override
-  public UnresolvedExpression visitLogSpan(OpenSearchPPLParser.LogSpanContext ctx) {
-    return org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(ctx.getText());
-  }
-
-  @Override
-  public UnresolvedExpression visitLog10Span(OpenSearchPPLParser.Log10SpanContext ctx) {
-    return org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(ctx.getText());
-  }
-
-  @Override
-  public UnresolvedExpression visitLog2Span(OpenSearchPPLParser.Log2SpanContext ctx) {
-    return org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(ctx.getText());
-  }
-
-  @Override
   public UnresolvedExpression visitLogWithBaseSpan(OpenSearchPPLParser.LogWithBaseSpanContext ctx) {
-    return org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(ctx.getText());
-  }
-
-  @Override
-  public UnresolvedExpression visitIdentifierSpanValue(
-      OpenSearchPPLParser.IdentifierSpanValueContext ctx) {
-    // For identifier spans like "log3", "log5", etc., return as string literal
     return org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(ctx.getText());
   }
 }

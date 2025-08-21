@@ -31,10 +31,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
@@ -434,6 +436,12 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   public UnresolvedPlan visitBinCommand(BinCommandContext ctx) {
     UnresolvedExpression field = internalVisitExpression(ctx.fieldExpression());
 
+    // Handle alias from binCommand context
+    String alias = ctx.alias != null ? StringUtils.unquoteIdentifier(ctx.alias.getText()) : null;
+
+    // Track seen parameters for duplicate detection
+    Set<String> seenParams = new HashSet<>();
+
     // Initialize all optional parameters
     UnresolvedExpression span = null;
     Integer bins = null;
@@ -441,61 +449,65 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     UnresolvedExpression aligntime = null;
     UnresolvedExpression start = null;
     UnresolvedExpression end = null;
-    String alias = null;
 
-    // Process each bin option
+    // Process each bin option: detect duplicates and assign values in one shot
     for (OpenSearchPPLParser.BinOptionContext option : ctx.binOption()) {
+      // SPAN parameter
       if (option.span != null) {
-        if (span != null) {
+        if (!seenParams.add("SPAN")) {
           throw new IllegalArgumentException("Duplicate SPAN parameter in bin command");
         }
         span = internalVisitExpression(option.span);
-      } else if (option.bins != null) {
-        if (bins != null) {
+      }
+
+      // BINS parameter
+      if (option.bins != null) {
+        if (!seenParams.add("BINS")) {
           throw new IllegalArgumentException("Duplicate BINS parameter in bin command");
         }
         bins = Integer.parseInt(option.bins.getText());
-      } else if (option.minspan != null) {
-        if (minspan != null) {
+      }
+
+      // MINSPAN parameter
+      if (option.minspan != null) {
+        if (!seenParams.add("MINSPAN")) {
           throw new IllegalArgumentException("Duplicate MINSPAN parameter in bin command");
         }
         String minspanValue = option.minspan.getText();
         String minspanUnit = option.minspanUnit != null ? option.minspanUnit.getText() : null;
+        minspan =
+            minspanUnit != null
+                ? org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(minspanValue + minspanUnit)
+                : internalVisitExpression(option.minspan);
+      }
 
-        if (minspanUnit != null) {
-          // Create combined minspan like "1h", "30m", etc.
-          minspan = org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(minspanValue + minspanUnit);
-        } else {
-          minspan = internalVisitExpression(option.minspan);
-        }
-      } else if (option.aligntime != null) {
-        if (aligntime != null) {
+      // ALIGNTIME parameter
+      if (option.aligntime != null) {
+        if (!seenParams.add("ALIGNTIME")) {
           throw new IllegalArgumentException("Duplicate ALIGNTIME parameter in bin command");
         }
-        // Handle aligntime value based on token type
-        if (option.aligntime.EARLIEST() != null) {
-          aligntime = org.opensearch.sql.ast.dsl.AstDSL.stringLiteral("earliest");
-        } else if (option.aligntime.LATEST() != null) {
-          aligntime = org.opensearch.sql.ast.dsl.AstDSL.stringLiteral("latest");
-        } else {
-          // Handle literalValue case
-          aligntime = internalVisitExpression(option.aligntime.literalValue());
-        }
-      } else if (option.start != null) {
-        if (start != null) {
+        aligntime =
+            option.aligntime.EARLIEST() != null
+                ? org.opensearch.sql.ast.dsl.AstDSL.stringLiteral("earliest")
+                : option.aligntime.LATEST() != null
+                    ? org.opensearch.sql.ast.dsl.AstDSL.stringLiteral("latest")
+                    : internalVisitExpression(option.aligntime.literalValue());
+      }
+
+      // START parameter
+      if (option.start != null) {
+        if (!seenParams.add("START")) {
           throw new IllegalArgumentException("Duplicate START parameter in bin command");
         }
         start = internalVisitExpression(option.start);
-      } else if (option.end != null) {
-        if (end != null) {
+      }
+
+      // END parameter
+      if (option.end != null) {
+        if (!seenParams.add("END")) {
           throw new IllegalArgumentException("Duplicate END parameter in bin command");
         }
         end = internalVisitExpression(option.end);
-      } else if (option.alias != null) {
-        if (alias != null) {
-          throw new IllegalArgumentException("Duplicate AS parameter in bin command");
-        }
-        alias = StringUtils.unquoteIdentifier(option.alias.getText());
       }
     }
 

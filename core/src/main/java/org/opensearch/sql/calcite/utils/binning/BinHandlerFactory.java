@@ -6,6 +6,11 @@
 package org.opensearch.sql.calcite.utils.binning;
 
 import org.opensearch.sql.ast.tree.Bin;
+import org.opensearch.sql.ast.tree.CountBin;
+import org.opensearch.sql.ast.tree.DefaultBin;
+import org.opensearch.sql.ast.tree.MinSpanBin;
+import org.opensearch.sql.ast.tree.RangeBin;
+import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.calcite.utils.binning.handlers.*;
 
 /** Factory for creating appropriate bin handlers based on bin type. */
@@ -19,19 +24,18 @@ public class BinHandlerFactory {
 
   /** Gets the appropriate handler for the given bin node. */
   public static BinHandler getHandler(Bin node) {
-    switch (node.getBinType()) {
-      case SPAN:
-        return SPAN_HANDLER;
-      case MIN_SPAN:
-        return MIN_SPAN_HANDLER;
-      case COUNT:
-        return COUNT_HANDLER;
-      case RANGE:
-        return RANGE_HANDLER;
-      case DEFAULT:
-        return DEFAULT_HANDLER;
-      default:
-        throw new IllegalArgumentException("Unknown bin type: " + node.getBinType());
+    if (node instanceof SpanBin) {
+      return SPAN_HANDLER;
+    } else if (node instanceof MinSpanBin) {
+      return MIN_SPAN_HANDLER;
+    } else if (node instanceof CountBin) {
+      return COUNT_HANDLER;
+    } else if (node instanceof RangeBin) {
+      return RANGE_HANDLER;
+    } else if (node instanceof DefaultBin) {
+      return DEFAULT_HANDLER;
+    } else {
+      throw new IllegalArgumentException("Unknown bin type: " + node.getClass().getSimpleName());
     }
   }
 }

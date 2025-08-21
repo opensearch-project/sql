@@ -5,10 +5,11 @@
 
 package org.opensearch.sql.ast.tree;
 
-import java.util.Objects;
+import javax.annotation.Nullable;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
@@ -22,27 +23,24 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 @EqualsAndHashCode(callSuper = true)
 public class MinSpanBin extends Bin {
 
-  private final UnresolvedExpression minspan;
-  private final UnresolvedExpression start;
-  private final UnresolvedExpression end;
+  @NonNull private final UnresolvedExpression minspan;
+
+  @Nullable private final UnresolvedExpression start;
+
+  @Nullable private final UnresolvedExpression end;
 
   @Builder
   public MinSpanBin(
-      UnresolvedExpression field,
-      String alias,
-      UnresolvedExpression minspan,
-      UnresolvedExpression start,
-      UnresolvedExpression end) {
+      @NonNull UnresolvedExpression field,
+      @Nullable String alias,
+      @NonNull UnresolvedExpression minspan,
+      @Nullable UnresolvedExpression start,
+      @Nullable UnresolvedExpression end) {
     super(field, alias);
-    this.minspan = Objects.requireNonNull(minspan, "MinSpan cannot be null for MinSpanBin");
-    this.start = start; // Optional parameter
-    this.end = end; // Optional parameter
+    this.minspan = minspan;
+    this.start = start;
+    this.end = end;
     validate();
-  }
-
-  @Override
-  public BinType getBinType() {
-    return BinType.MIN_SPAN;
   }
 
   @Override
