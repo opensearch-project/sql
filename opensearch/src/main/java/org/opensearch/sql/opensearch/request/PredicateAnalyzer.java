@@ -363,9 +363,15 @@ public class PredicateAnalyzer {
     private QueryExpression visitRelevanceFunc(RexCall call) {
       String funcName = call.getOperator().getName().toLowerCase(Locale.ROOT);
       List<RexNode> ops = call.getOperands();
-      if (ops.size() < 2) {
+
+      // Validate minimum operand count based on function type
+      if (SINGLE_FIELD_RELEVANCE_FUNCTION_SET.contains(funcName) && ops.size() < 2) {
         throw new PredicateAnalyzerException(
-            "Relevance query function should at least have 2 operands");
+            "Single field relevance query function should at least have 2 operands (field and"
+                + " query)");
+      } else if (MULTI_FIELDS_RELEVANCE_FUNCTION_SET.contains(funcName) && ops.size() < 1) {
+        throw new PredicateAnalyzerException(
+            "Multi field relevance query function should at least have 1 operand (query)");
       }
 
       if (SINGLE_FIELD_RELEVANCE_FUNCTION_SET.contains(funcName)) {
@@ -384,13 +390,39 @@ public class PredicateAnalyzer {
             .get(funcName)
             .apply(namedFieldExpression, queryLiteralOperand, optionalArguments);
       } else if (MULTI_FIELDS_RELEVANCE_FUNCTION_SET.contains(funcName)) {
-        RexCall fieldsRexCall = (RexCall) AliasPair.from(ops.get(0), funcName).value;
-        String queryLiteralOperand =
-            ((LiteralExpression)
-                    visitList(List.of(AliasPair.from(ops.get(1), funcName).value)).get(0))
-                .stringValue();
-        Map<String, String> optionalArguments =
-            parseRelevanceFunctionOptionalArguments(ops, funcName);
+        // Handle both syntaxes:
+        // 1. func([fieldExpressions], query, option) - fields are present
+        // 2. func(query, optional) - fields are not present
+        RexCall fieldsRexCall = null;
+        String queryLiteralOperand;
+        Map<String, String> optionalArguments;
+
+        // Check if the first argument is fields or query by looking for "fields" key
+        AliasPair firstPair = AliasPair.from(ops.get(0), funcName);
+        String firstKey = ((RexLiteral) firstPair.alias).getValueAs(String.class);
+
+        if ("fields".equals(firstKey)) {
+          // Syntax 1: func([fieldExpressions], query, option)
+          fieldsRexCall = (RexCall) firstPair.value;
+          queryLiteralOperand =
+              ((LiteralExpression)
+                      visitList(List.of(AliasPair.from(ops.get(1), funcName).value)).get(0))
+                  .stringValue();
+          optionalArguments = parseRelevanceFunctionOptionalArguments(ops, funcName, 2);
+        } else if ("query".equals(firstKey)) {
+          // Syntax 2: func(query, optional) - no fields parameter
+          queryLiteralOperand =
+              ((LiteralExpression) visitList(List.of(firstPair.value)).get(0)).stringValue();
+          optionalArguments = parseRelevanceFunctionOptionalArguments(ops, funcName, 1);
+        } else {
+          throw new PredicateAnalyzerException(
+              format(
+                  Locale.ROOT,
+                  "Invalid first parameter for function [%s]: expected 'fields' or 'query', got"
+                      + " '%s'",
+                  funcName,
+                  firstKey));
+        }
 
         return MULTI_FIELDS_RELEVANCE_FUNCTION_HANDLERS
             .get(funcName)
@@ -440,9 +472,14 @@ public class PredicateAnalyzer {
 
     private Map<String, String> parseRelevanceFunctionOptionalArguments(
         List<RexNode> operands, String funcName) {
+      return parseRelevanceFunctionOptionalArguments(operands, funcName, 2);
+    }
+
+    private Map<String, String> parseRelevanceFunctionOptionalArguments(
+        List<RexNode> operands, String funcName, int startIndex) {
       Map<String, String> optionalArguments = new HashMap<>();
 
-      for (int i = 2; i < operands.size(); i++) {
+      for (int i = startIndex; i < operands.size(); i++) {
         AliasPair aliasPair = AliasPair.from(operands.get(i), funcName);
         String key = ((RexLiteral) aliasPair.alias).getValueAs(String.class);
         if (optionalArguments.containsKey(key)) {

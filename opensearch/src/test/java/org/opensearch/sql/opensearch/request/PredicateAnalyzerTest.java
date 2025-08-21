@@ -805,4 +805,93 @@ public class PredicateAnalyzerTest {
       assertEquals("Can't convert OR(=($0, 12), IS EMPTY($1))", exception.getMessage());
     }
   }
+
+  @Test
+  void multiMatchWithoutFields_generatesMultiMatchQuery() throws ExpressionNotAnalyzableException {
+    // Test multi_match with only query parameter (no fields)
+    List<RexNode> arguments = List.of(aliasedStringLiteral);
+    RexNode call =
+        PPLFuncImpTable.INSTANCE.resolve(builder, "multi_match", arguments.toArray(new RexNode[0]));
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
+
+    assertInstanceOf(MultiMatchQueryBuilder.class, result);
+    assertEquals(
+        "{\n"
+            + "  \"multi_match\" : {\n"
+            + "    \"query\" : \"Hi\",\n"
+            + "    \"fields\" : [ ],\n"
+            + "    \"type\" : \"best_fields\",\n"
+            + "    \"operator\" : \"OR\",\n"
+            + "    \"slop\" : 0,\n"
+            + "    \"prefix_length\" : 0,\n"
+            + "    \"max_expansions\" : 50,\n"
+            + "    \"zero_terms_query\" : \"NONE\",\n"
+            + "    \"auto_generate_synonyms_phrase_query\" : true,\n"
+            + "    \"fuzzy_transpositions\" : true,\n"
+            + "    \"boost\" : 1.0\n"
+            + "  }\n"
+            + "}",
+        result.toString());
+  }
+
+  @Test
+  void simpleQueryStringWithoutFields_generatesSimpleQueryStringQuery()
+      throws ExpressionNotAnalyzableException {
+    // Test simple_query_string with only query parameter (no fields)
+    List<RexNode> arguments = List.of(aliasedStringLiteral);
+    RexNode call =
+        PPLFuncImpTable.INSTANCE.resolve(
+            builder, "simple_query_string", arguments.toArray(new RexNode[0]));
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
+
+    assertInstanceOf(SimpleQueryStringBuilder.class, result);
+    assertEquals(
+        "{\n"
+            + "  \"simple_query_string\" : {\n"
+            + "    \"query\" : \"Hi\",\n"
+            + "    \"flags\" : -1,\n"
+            + "    \"default_operator\" : \"or\",\n"
+            + "    \"analyze_wildcard\" : false,\n"
+            + "    \"auto_generate_synonyms_phrase_query\" : true,\n"
+            + "    \"fuzzy_prefix_length\" : 0,\n"
+            + "    \"fuzzy_max_expansions\" : 50,\n"
+            + "    \"fuzzy_transpositions\" : true,\n"
+            + "    \"boost\" : 1.0\n"
+            + "  }\n"
+            + "}",
+        result.toString());
+  }
+
+  @Test
+  void queryStringWithoutFields_generatesQueryStringQuery()
+      throws ExpressionNotAnalyzableException {
+    // Test query_string with only query parameter (no fields)
+    List<RexNode> arguments = List.of(aliasedStringLiteral);
+    RexNode call =
+        PPLFuncImpTable.INSTANCE.resolve(
+            builder, "query_string", arguments.toArray(new RexNode[0]));
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
+
+    assertInstanceOf(QueryStringQueryBuilder.class, result);
+    assertEquals(
+        "{\n"
+            + "  \"query_string\" : {\n"
+            + "    \"query\" : \"Hi\",\n"
+            + "    \"fields\" : [ ],\n"
+            + "    \"type\" : \"best_fields\",\n"
+            + "    \"default_operator\" : \"or\",\n"
+            + "    \"max_determinized_states\" : 10000,\n"
+            + "    \"enable_position_increments\" : true,\n"
+            + "    \"fuzziness\" : \"AUTO\",\n"
+            + "    \"fuzzy_prefix_length\" : 0,\n"
+            + "    \"fuzzy_max_expansions\" : 50,\n"
+            + "    \"phrase_slop\" : 0,\n"
+            + "    \"escape\" : false,\n"
+            + "    \"auto_generate_synonyms_phrase_query\" : true,\n"
+            + "    \"fuzzy_transpositions\" : true,\n"
+            + "    \"boost\" : 1.0\n"
+            + "  }\n"
+            + "}",
+        result.toString());
+  }
 }
