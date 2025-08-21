@@ -14,7 +14,10 @@ import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 
 import java.io.IOException;
+import java.util.Locale;
+
 import org.json.JSONObject;
+import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
@@ -176,6 +179,8 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
 
   @Test
   public void testQ7() throws IOException {
+    String osName = System.getProperty("os.name").toLowerCase(Locale.ROOT);
+    Assume.assumeFalse("testQ7 on macOS CI could socket timeout", osName.contains("mac"));
     String ppl = sanitize(loadFromFile("tpch/queries/q7.ppl"));
     JSONObject actual = executeQuery(ppl);
     verifySchemaInOrder(
