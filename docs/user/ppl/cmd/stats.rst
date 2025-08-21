@@ -109,7 +109,7 @@ Example of filtered counting with complex conditions::
     +------------------+
     | high_value_users |
     |------------------|
-    | 2                |
+    | 1                |
     +------------------+
 
 SUM
