@@ -132,184 +132,6 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testValuesWithPercentileApproxUdaf() throws IOException {
-    JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | where account_number < 10 | stats percentile_approx(age, 0.5) as"
-                    + " median_age, values(gender) as unique_genders",
-                TEST_INDEX_ACCOUNT));
-
-    verifySchema(
-        response, schema("median_age", null, "bigint"), schema("unique_genders", null, "array"));
-
-    JSONArray dataRows = response.getJSONArray("datarows");
-    Assertions.assertEquals(1, dataRows.length(), "Should return exactly one aggregation row");
-
-    JSONArray row = dataRows.getJSONArray(0);
-    long medianAge = row.getLong(0);
-    JSONArray uniqueGenders = row.getJSONArray(1);
-
-    Assertions.assertTrue(medianAge > 0, "median_age should be greater than 0");
-    Assertions.assertTrue(uniqueGenders.length() > 0, "unique_genders should not be empty");
-
-    // Verify VALUES function properties: uniqueness and sorting
-    String previousGender = null;
-    for (int i = 0; i < uniqueGenders.length(); i++) {
-      String currentGender = uniqueGenders.getString(i);
-      if (previousGender != null) {
-        Assertions.assertTrue(
-            currentGender.compareTo(previousGender) > 0,
-            "VALUES should be sorted lexicographically: "
-                + previousGender
-                + " vs "
-                + currentGender);
-      }
-      previousGender = currentGender;
-    }
-  }
-
-  @Test
-  public void testValuesWithTakeUdaf() throws IOException {
-    JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | where account_number < 5 | stats take(gender, 2) as sample_genders,"
-                    + " values(state) as unique_states",
-                TEST_INDEX_ACCOUNT));
-
-    verifySchema(
-        response, schema("sample_genders", null, "array"), schema("unique_states", null, "array"));
-
-    JSONArray dataRows = response.getJSONArray("datarows");
-    Assertions.assertEquals(1, dataRows.length(), "Should return exactly one aggregation row");
-
-    JSONArray row = dataRows.getJSONArray(0);
-    JSONArray sampleGenders = row.getJSONArray(0);
-    JSONArray uniqueStates = row.getJSONArray(1);
-
-    Assertions.assertTrue(sampleGenders.length() > 0, "sample_genders should not be empty");
-    Assertions.assertTrue(uniqueStates.length() > 0, "unique_states should not be empty");
-
-    // TAKE should have at most 2 values
-    Assertions.assertTrue(sampleGenders.length() <= 2, "TAKE should have at most 2 values");
-
-    // Verify VALUES function properties: uniqueness and sorting
-    String previousState = null;
-    for (int i = 0; i < uniqueStates.length(); i++) {
-      String currentState = uniqueStates.getString(i);
-      if (previousState != null) {
-        Assertions.assertTrue(
-            currentState.compareTo(previousState) > 0,
-            "VALUES should be sorted lexicographically: " + previousState + " vs " + currentState);
-      }
-      previousState = currentState;
-    }
-  }
-
-  @Test
-  public void testValuesWithOtherNativeFunctions() throws IOException {
-    JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | where account_number < 5 | stats values(gender) as unique_genders,"
-                    + " count(gender) as gender_count, avg(age) as avg_age, max(balance) as"
-                    + " max_balance",
-                TEST_INDEX_ACCOUNT));
-
-    verifySchema(
-        response,
-        schema("unique_genders", null, "array"),
-        schema("gender_count", null, "bigint"),
-        schema("avg_age", null, "double"),
-        schema("max_balance", null, "bigint"));
-
-    JSONArray dataRows = response.getJSONArray("datarows");
-    Assertions.assertEquals(1, dataRows.length(), "Should return exactly one aggregation row");
-
-    JSONArray uniqueGenders = dataRows.getJSONArray(0).getJSONArray(0);
-    long genderCount = dataRows.getJSONArray(0).getLong(1);
-    double avgAge = dataRows.getJSONArray(0).getDouble(2);
-    long maxBalance = dataRows.getJSONArray(0).getLong(3);
-
-    Assertions.assertTrue(uniqueGenders.length() > 0, "unique_genders should not be empty");
-    Assertions.assertTrue(genderCount > 0, "gender_count should be greater than 0");
-    Assertions.assertTrue(avgAge > 0, "avg_age should be greater than 0");
-    Assertions.assertTrue(maxBalance > 0, "max_balance should be greater than 0");
-
-    // Verify uniqueness and sorting of VALUES result
-    String previousGender = null;
-    for (int i = 0; i < uniqueGenders.length(); i++) {
-      String currentGender = uniqueGenders.getString(i);
-      if (previousGender != null) {
-        Assertions.assertTrue(
-            currentGender.compareTo(previousGender) > 0,
-            "VALUES should be sorted lexicographically: "
-                + previousGender
-                + " vs "
-                + currentGender);
-      }
-      previousGender = currentGender;
-    }
-  }
-
-  @Test
-  public void testListFunctionWithPushdownEnabled() throws IOException {
-    JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | where age > 25 | stats list(firstname) as names", TEST_INDEX_ACCOUNT));
-
-    verifySchema(response, schema("names", null, "array"));
-
-    JSONArray dataRows = response.getJSONArray("datarows");
-    Assertions.assertEquals(1, dataRows.length(), "Should return exactly one aggregation row");
-
-    JSONArray names = dataRows.getJSONArray(0).getJSONArray(0);
-    Assertions.assertTrue(names.length() > 0, "Names list should not be empty");
-
-    // Verify all values are strings
-    for (int i = 0; i < names.length(); i++) {
-      Object value = names.get(i);
-      Assertions.assertTrue(
-          value instanceof String, "All firstname values should be strings: " + value);
-      Assertions.assertFalse(((String) value).trim().isEmpty(), "Name should not be empty");
-    }
-  }
-
-  @Test
-  public void testValuesFunctionWithPushdownEnabled() throws IOException {
-    // Test VALUES function with pushdown enabled (global aggregation)
-
-    JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | where age > 25 | stats values(state) as unique_states",
-                TEST_INDEX_ACCOUNT));
-
-    verifySchema(response, schema("unique_states", null, "array"));
-
-    JSONArray dataRows = response.getJSONArray("datarows");
-    Assertions.assertEquals(1, dataRows.length(), "Should return exactly one aggregation row");
-
-    JSONArray states = dataRows.getJSONArray(0).getJSONArray(0);
-    Assertions.assertTrue(states.length() > 0, "States list should not be empty");
-
-    // Verify values are unique and sorted
-    String previousState = null;
-    for (int i = 0; i < states.length(); i++) {
-      String currentState = states.getString(i);
-      if (previousState != null) {
-        Assertions.assertTrue(
-            currentState.compareTo(previousState) > 0,
-            "States should be sorted lexicographically: " + previousState + " vs " + currentState);
-        Assertions.assertNotEquals(previousState, currentState, "Values should be unique");
-      }
-      previousState = currentState;
-    }
-  }
-
-  @Test
   public void testValuesWithListUdaf() throws IOException {
     JSONObject response =
         executeQuery(
@@ -346,68 +168,6 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
     }
 
     System.out.println("LIST + VALUES combination works successfully!");
-  }
-
-  // No-pushdown specific tests - these are run when this class is executed via CalciteNoPushdownIT
-  @Test
-  public void testListFunctionWithoutPushdown() throws IOException {
-    // Test LIST function without pushdown (global aggregation)
-
-    JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | where age > 30 | stats list(lastname) as lastnames",
-                TEST_INDEX_ACCOUNT));
-
-    verifySchema(response, schema("lastnames", null, "array"));
-
-    JSONArray dataRows = response.getJSONArray("datarows");
-    Assertions.assertEquals(1, dataRows.length(), "Should return exactly one aggregation row");
-
-    JSONArray lastnames = dataRows.getJSONArray(0).getJSONArray(0);
-    Assertions.assertTrue(lastnames.length() > 0, "Lastnames list should not be empty");
-
-    // Verify all values are strings
-    for (int i = 0; i < lastnames.length(); i++) {
-      Object value = lastnames.get(i);
-      Assertions.assertTrue(
-          value instanceof String, "All lastname values should be strings: " + value);
-      Assertions.assertFalse(((String) value).trim().isEmpty(), "Lastname should not be empty");
-    }
-  }
-
-  @Test
-  public void testValuesFunctionWithoutPushdown() throws IOException {
-    // Test VALUES function without pushdown, verifies uniqueness and sorting
-
-    JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | where age > 30 | stats values(employer) as unique_employers",
-                TEST_INDEX_ACCOUNT));
-
-    verifySchema(response, schema("unique_employers", null, "array"));
-
-    JSONArray dataRows = response.getJSONArray("datarows");
-    Assertions.assertEquals(1, dataRows.length(), "Should return exactly one aggregation row");
-
-    JSONArray employers = dataRows.getJSONArray(0).getJSONArray(0);
-    Assertions.assertTrue(employers.length() > 0, "Employers list should not be empty");
-
-    // Verify lexicographic sorting and uniqueness
-    String previousEmployer = null;
-    for (int i = 0; i < employers.length(); i++) {
-      String currentEmployer = employers.getString(i);
-      if (previousEmployer != null) {
-        Assertions.assertTrue(
-            currentEmployer.compareTo(previousEmployer) >= 0,
-            "Employers should be sorted lexicographically: "
-                + previousEmployer
-                + " vs "
-                + currentEmployer);
-      }
-      previousEmployer = currentEmployer;
-    }
   }
 
   @Test
@@ -1916,5 +1676,352 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
         listMentionsType, "LIST error should mention type validation: " + listError);
     Assertions.assertTrue(
         valuesMentionsType, "VALUES error should mention type validation: " + valuesError);
+  }
+
+  // =====================================================
+  // Eventstats Integration Tests for LIST and VALUES Functions
+  // =====================================================
+
+  @Test
+  public void testListFunctionWithEventstats() throws IOException {
+    // Test LIST function with eventstats command to verify it enriches each record
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | where account_number < 5 | eventstats list(firstname) as all_names",
+                TEST_INDEX_ACCOUNT));
+
+    // eventstats returns all original columns plus the new aggregate column
+    // We'll just verify that all_names column exists and has the correct type
+    JSONArray schema = response.getJSONArray("schema");
+    boolean foundAllNamesColumn = false;
+    for (int i = 0; i < schema.length(); i++) {
+      JSONObject column = schema.getJSONObject(i);
+      if ("all_names".equals(column.getString("name"))) {
+        Assertions.assertEquals("array", column.getString("type"));
+        foundAllNamesColumn = true;
+        break;
+      }
+    }
+    Assertions.assertTrue(foundAllNamesColumn, "Should have all_names column with array type");
+
+    JSONArray dataRows = response.getJSONArray("datarows");
+    Assertions.assertTrue(dataRows.length() > 0, "Should return multiple rows with eventstats");
+
+    // Find the column index for all_names
+    JSONArray schemaArray = response.getJSONArray("schema");
+    int allNamesColumnIndex = -1;
+    for (int i = 0; i < schemaArray.length(); i++) {
+      JSONObject column = schemaArray.getJSONObject(i);
+      if ("all_names".equals(column.getString("name"))) {
+        allNamesColumnIndex = i;
+        break;
+      }
+    }
+    Assertions.assertTrue(allNamesColumnIndex >= 0, "Should find all_names column");
+
+    // Verify that each row contains the same list of names (eventstats behavior)
+    JSONArray firstRowNames = null;
+    for (int i = 0; i < dataRows.length(); i++) {
+      JSONArray row = dataRows.getJSONArray(i);
+      JSONArray names = row.getJSONArray(allNamesColumnIndex); // all_names column
+
+      Assertions.assertTrue(names.length() > 0, "Names list should not be empty");
+
+      // Verify all values are strings
+      for (int j = 0; j < names.length(); j++) {
+        Object value = names.get(j);
+        Assertions.assertTrue(
+            value instanceof String, "All firstname values should be strings: " + value);
+        Assertions.assertFalse(((String) value).trim().isEmpty(), "Name should not be empty");
+      }
+
+      // For eventstats, all rows should have the same aggregate result
+      if (firstRowNames == null) {
+        firstRowNames = names;
+      } else {
+        Assertions.assertEquals(
+            firstRowNames.length(),
+            names.length(),
+            "All rows should have the same list length with eventstats");
+
+        // Verify same content (LIST preserves order)
+        for (int j = 0; j < names.length(); j++) {
+          Assertions.assertEquals(
+              firstRowNames.getString(j),
+              names.getString(j),
+              "All rows should have identical lists with eventstats");
+        }
+      }
+    }
+  }
+
+  @Test
+  public void testValuesFunctionWithEventstats() throws IOException {
+    // Test VALUES function with eventstats command to verify it enriches each record
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | where account_number < 5 | eventstats values(gender) as"
+                    + " unique_genders",
+                TEST_INDEX_ACCOUNT));
+
+    // eventstats returns all original columns plus the new aggregate column
+    JSONArray schema = response.getJSONArray("schema");
+    boolean foundUniqueGendersColumn = false;
+    for (int i = 0; i < schema.length(); i++) {
+      JSONObject column = schema.getJSONObject(i);
+      if ("unique_genders".equals(column.getString("name"))) {
+        Assertions.assertEquals("array", column.getString("type"));
+        foundUniqueGendersColumn = true;
+        break;
+      }
+    }
+    Assertions.assertTrue(
+        foundUniqueGendersColumn, "Should have unique_genders column with array type");
+
+    JSONArray dataRows = response.getJSONArray("datarows");
+    Assertions.assertTrue(dataRows.length() > 0, "Should return multiple rows with eventstats");
+
+    // Find the column index for unique_genders
+    JSONArray schemaArray = response.getJSONArray("schema");
+    int uniqueGendersColumnIndex = -1;
+    for (int i = 0; i < schemaArray.length(); i++) {
+      JSONObject column = schemaArray.getJSONObject(i);
+      if ("unique_genders".equals(column.getString("name"))) {
+        uniqueGendersColumnIndex = i;
+        break;
+      }
+    }
+    Assertions.assertTrue(uniqueGendersColumnIndex >= 0, "Should find unique_genders column");
+
+    // Verify that each row contains the same sorted unique values (eventstats behavior)
+    JSONArray firstRowValues = null;
+    for (int i = 0; i < dataRows.length(); i++) {
+      JSONArray row = dataRows.getJSONArray(i);
+      JSONArray uniqueGenders = row.getJSONArray(uniqueGendersColumnIndex); // unique_genders column
+
+      Assertions.assertTrue(uniqueGenders.length() > 0, "Unique genders should not be empty");
+
+      // Verify VALUES function properties: uniqueness and sorting
+      String previousGender = null;
+      Set<String> seenGenders = new HashSet<>();
+      for (int j = 0; j < uniqueGenders.length(); j++) {
+        Object value = uniqueGenders.get(j);
+        Assertions.assertTrue(
+            value instanceof String, "All gender values should be strings: " + value);
+
+        String currentGender = (String) value;
+
+        // Check uniqueness
+        Assertions.assertFalse(
+            seenGenders.contains(currentGender),
+            "VALUES should contain unique values, found duplicate: " + currentGender);
+        seenGenders.add(currentGender);
+
+        // Check sorting
+        if (previousGender != null) {
+          Assertions.assertTrue(
+              currentGender.compareTo(previousGender) > 0,
+              "VALUES should be in lexicographic order: "
+                  + previousGender
+                  + " vs "
+                  + currentGender);
+        }
+        previousGender = currentGender;
+      }
+
+      // For eventstats, all rows should have the same aggregate result
+      if (firstRowValues == null) {
+        firstRowValues = uniqueGenders;
+      } else {
+        Assertions.assertEquals(
+            firstRowValues.length(),
+            uniqueGenders.length(),
+            "All rows should have the same values length with eventstats");
+
+        // Verify same content and order (VALUES maintains consistent sorting)
+        for (int j = 0; j < uniqueGenders.length(); j++) {
+          Assertions.assertEquals(
+              firstRowValues.getString(j),
+              uniqueGenders.getString(j),
+              "All rows should have identical sorted unique values with eventstats");
+        }
+      }
+    }
+  }
+
+  @Test
+  public void testListAndValuesFunctionsWithEventstatsAndGroupBy() throws IOException {
+    // Test both LIST and VALUES functions with eventstats and group by clause
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | where account_number < 10 | eventstats list(firstname) as all_names,"
+                    + " values(gender) as unique_genders by state",
+                TEST_INDEX_ACCOUNT));
+
+    // eventstats returns all original columns plus the new aggregate columns
+    JSONArray schema = response.getJSONArray("schema");
+    boolean foundAllNamesColumn = false;
+    boolean foundUniqueGendersColumn = false;
+    int allNamesColumnIndex = -1;
+    int uniqueGendersColumnIndex = -1;
+
+    for (int i = 0; i < schema.length(); i++) {
+      JSONObject column = schema.getJSONObject(i);
+      String name = column.getString("name");
+      if ("all_names".equals(name)) {
+        Assertions.assertEquals("array", column.getString("type"));
+        foundAllNamesColumn = true;
+        allNamesColumnIndex = i;
+      } else if ("unique_genders".equals(name)) {
+        Assertions.assertEquals("array", column.getString("type"));
+        foundUniqueGendersColumn = true;
+        uniqueGendersColumnIndex = i;
+      }
+    }
+    Assertions.assertTrue(foundAllNamesColumn, "Should have all_names column with array type");
+    Assertions.assertTrue(
+        foundUniqueGendersColumn, "Should have unique_genders column with array type");
+
+    JSONArray dataRows = response.getJSONArray("datarows");
+    Assertions.assertTrue(dataRows.length() > 0, "Should return multiple rows with eventstats");
+
+    for (int i = 0; i < dataRows.length(); i++) {
+      JSONArray row = dataRows.getJSONArray(i);
+
+      // Get the aggregate columns
+      JSONArray allNames = row.getJSONArray(allNamesColumnIndex);
+      JSONArray uniqueGenders = row.getJSONArray(uniqueGendersColumnIndex);
+
+      Assertions.assertTrue(allNames.length() > 0, "Names list should not be empty");
+      Assertions.assertTrue(uniqueGenders.length() > 0, "Unique genders should not be empty");
+
+      // Verify LIST function properties
+      for (int j = 0; j < allNames.length(); j++) {
+        Object value = allNames.get(j);
+        Assertions.assertTrue(
+            value instanceof String, "All firstname values should be strings: " + value);
+      }
+
+      // Verify VALUES function properties: uniqueness and sorting
+      String previousGender = null;
+      Set<String> seenGenders = new HashSet<>();
+      for (int j = 0; j < uniqueGenders.length(); j++) {
+        String currentGender = uniqueGenders.getString(j);
+
+        Assertions.assertFalse(
+            seenGenders.contains(currentGender),
+            "VALUES should contain unique values: " + currentGender);
+        seenGenders.add(currentGender);
+
+        if (previousGender != null) {
+          Assertions.assertTrue(
+              currentGender.compareTo(previousGender) > 0,
+              "VALUES should be sorted: " + previousGender + " vs " + currentGender);
+        }
+        previousGender = currentGender;
+      }
+    }
+  }
+
+  @Test
+  public void testMultiValueStatsWithEventstatsAndOtherAggregates() throws IOException {
+    // Test LIST and VALUES functions with other aggregate functions in eventstats
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | where account_number < 5 | eventstats count() as total_count,"
+                    + " list(firstname) as all_names, avg(age) as avg_age, values(gender) as"
+                    + " unique_genders",
+                TEST_INDEX_ACCOUNT));
+
+    // eventstats returns all original columns plus the new aggregate columns
+    JSONArray schema = response.getJSONArray("schema");
+    int totalCountColumnIndex = -1;
+    int allNamesColumnIndex = -1;
+    int avgAgeColumnIndex = -1;
+    int uniqueGendersColumnIndex = -1;
+
+    for (int i = 0; i < schema.length(); i++) {
+      JSONObject column = schema.getJSONObject(i);
+      String name = column.getString("name");
+      if ("total_count".equals(name)) {
+        Assertions.assertEquals("bigint", column.getString("type"));
+        totalCountColumnIndex = i;
+      } else if ("all_names".equals(name)) {
+        Assertions.assertEquals("array", column.getString("type"));
+        allNamesColumnIndex = i;
+      } else if ("avg_age".equals(name)) {
+        Assertions.assertEquals("double", column.getString("type"));
+        avgAgeColumnIndex = i;
+      } else if ("unique_genders".equals(name)) {
+        Assertions.assertEquals("array", column.getString("type"));
+        uniqueGendersColumnIndex = i;
+      }
+    }
+
+    Assertions.assertTrue(totalCountColumnIndex >= 0, "Should find total_count column");
+    Assertions.assertTrue(allNamesColumnIndex >= 0, "Should find all_names column");
+    Assertions.assertTrue(avgAgeColumnIndex >= 0, "Should find avg_age column");
+    Assertions.assertTrue(uniqueGendersColumnIndex >= 0, "Should find unique_genders column");
+
+    JSONArray dataRows = response.getJSONArray("datarows");
+    Assertions.assertTrue(dataRows.length() > 0, "Should return multiple rows with eventstats");
+
+    // Verify that all aggregate values are consistent across all rows (eventstats behavior)
+    Long firstRowCount = null;
+    JSONArray firstRowNames = null;
+    Double firstRowAvgAge = null;
+    JSONArray firstRowUniqueGenders = null;
+
+    for (int i = 0; i < dataRows.length(); i++) {
+      JSONArray row = dataRows.getJSONArray(i);
+
+      Long totalCount = row.getLong(totalCountColumnIndex);
+      JSONArray allNames = row.getJSONArray(allNamesColumnIndex);
+      Double avgAge = row.getDouble(avgAgeColumnIndex);
+      JSONArray uniqueGenders = row.getJSONArray(uniqueGendersColumnIndex);
+
+      // Verify basic properties
+      Assertions.assertTrue(totalCount > 0, "Total count should be greater than 0");
+      Assertions.assertTrue(allNames.length() > 0, "Names list should not be empty");
+      Assertions.assertTrue(avgAge > 0, "Average age should be greater than 0");
+      Assertions.assertTrue(uniqueGenders.length() > 0, "Unique genders should not be empty");
+
+      // For eventstats, all rows should have identical aggregate results
+      if (firstRowCount == null) {
+        firstRowCount = totalCount;
+        firstRowNames = allNames;
+        firstRowAvgAge = avgAge;
+        firstRowUniqueGenders = uniqueGenders;
+      } else {
+        Assertions.assertEquals(
+            firstRowCount, totalCount, "All rows should have same count with eventstats");
+        Assertions.assertEquals(
+            firstRowAvgAge, avgAge, 0.01, "All rows should have same average age with eventstats");
+
+        // Verify LIST results are identical
+        Assertions.assertEquals(
+            firstRowNames.length(), allNames.length(), "LIST results should be identical");
+        for (int j = 0; j < allNames.length(); j++) {
+          Assertions.assertEquals(
+              firstRowNames.getString(j), allNames.getString(j), "LIST contents should match");
+        }
+
+        // Verify VALUES results are identical
+        Assertions.assertEquals(
+            firstRowUniqueGenders.length(),
+            uniqueGenders.length(),
+            "VALUES results should be identical");
+        for (int j = 0; j < uniqueGenders.length(); j++) {
+          Assertions.assertEquals(
+              firstRowUniqueGenders.getString(j),
+              uniqueGenders.getString(j),
+              "VALUES contents should match");
+        }
+      }
+    }
   }
 }

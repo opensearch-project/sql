@@ -44,19 +44,11 @@ public class ValuesAggFunction
     // Filter out null values
     if (value != null) {
       // Convert value to string, handling all types safely
-      String stringValue = convertToString(value);
+      String stringValue = String.valueOf(value);
       acc.add(stringValue);
     }
 
     return acc;
-  }
-
-  /** Converts any value to its string representation. */
-  private String convertToString(Object value) {
-    if (value == null) {
-      return null;
-    }
-    return String.valueOf(value);
   }
 
   public static class ValuesAccumulator implements Accumulator {
