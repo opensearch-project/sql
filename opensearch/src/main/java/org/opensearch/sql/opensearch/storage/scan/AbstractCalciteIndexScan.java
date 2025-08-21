@@ -129,6 +129,10 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                         case SORT:
                           estimated = rowCount;
                           break;
+                        case COLLAPSE:
+                          // Refer the org.apache.calcite.rel.core.Aggregate.estimateRowCount
+                          estimated = rowCount * (1.0 - Math.pow(.5, 1));
+                          break;
                         case FILTER:
                           estimated = NumberUtil.multiply(
                                   rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest));
@@ -153,6 +157,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
 
     private boolean isAggregatePushed = false;
     @Getter private boolean isLimitPushed = false;
+    @Getter private boolean isProjectPushed = false;
 
     @Override
     public PushDownContext clone() {
@@ -166,6 +171,9 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
       }
       if (pushDownAction.type == PushDownType.LIMIT) {
         isLimitPushed = true;
+      }
+      if (pushDownAction.type == PushDownType.PROJECT) {
+        isProjectPushed = true;
       }
       return super.add(pushDownAction);
     }
@@ -328,7 +336,8 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     AGGREGATION,
     SORT,
     LIMIT,
-    SCRIPT
+    SCRIPT,
+    COLLAPSE
     // HIGHLIGHT,
     // NESTED
   }

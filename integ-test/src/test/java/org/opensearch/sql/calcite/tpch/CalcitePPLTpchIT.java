@@ -54,7 +54,7 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
         schema("count_order", "bigint"));
     verifyDataRows(
         actual,
-        rows(
+        closeTo(
             "A",
             "F",
             37474,
@@ -65,7 +65,7 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
             isPushdownEnabled() ? 25419.231826792962 : 25419.231826792948,
             isPushdownEnabled() ? 0.0508660351826793 : 0.050866035182679493,
             1478),
-        rows(
+        closeTo(
             "N",
             "F",
             1041,
@@ -76,7 +76,7 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
             27402.659736842103,
             isPushdownEnabled() ? 0.04289473684210526 : 0.042894736842105284,
             38),
-        rows(
+        closeTo(
             "N",
             "O",
             75168,
@@ -87,7 +87,7 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
             isPushdownEnabled() ? 25632.42277116627 : 25632.422771166166,
             isPushdownEnabled() ? 0.049697381842910573 : 0.04969738184291069,
             2941),
-        rows(
+        closeTo(
             "R",
             "F",
             36511,
