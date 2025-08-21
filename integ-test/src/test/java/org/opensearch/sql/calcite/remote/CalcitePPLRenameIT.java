@@ -252,14 +252,37 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testMultipleRenameWithWildcard() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | fields name, age | rename name as user_name | rename user_name as"
+                    + " final_name",
+                TEST_INDEX_STATE_COUNTRY));
+    verifySchema(result, schema("final_name", "string"), schema("age", "int"));
+    verifyDataRows(result, rows("Jake", 70), rows("Hello", 30), rows("John", 25), rows("Jane", 20));
+  }
+
+  @Test
   public void testCascadingRename() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
-                "source = %s | rename name as user_name | rename user_name as final_name | fields"
-                    + " final_name, age",
+                "source = %s | fields name, age | rename name as user_name, user_name as"
+                    + " final_name",
                 TEST_INDEX_STATE_COUNTRY));
     verifySchema(result, schema("final_name", "string"), schema("age", "int"));
+    verifyDataRows(result, rows("Jake", 70), rows("Hello", 30), rows("John", 25), rows("Jane", 20));
+  }
+
+  @Test
+  public void testCascadingRenameWithWildcard() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | fields name, age | rename *ame as *_ame, *_ame as *_AME",
+                TEST_INDEX_STATE_COUNTRY));
+    verifySchema(result, schema("n_AME", "string"), schema("age", "int"));
     verifyDataRows(result, rows("Jake", 70), rows("Hello", 30), rows("John", 25), rows("Jane", 20));
   }
 }
