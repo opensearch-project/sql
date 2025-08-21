@@ -38,7 +38,6 @@ public class RegexExpression extends ParseExpression {
 
   @Override
   ExprValue parseValue(ExprValue value) throws ExpressionEvaluationException {
-    // Use stringValue() which will throw exception for non-string types
     String rawString = value.stringValue();
 
     // Extract the specific named group
@@ -47,7 +46,6 @@ public class RegexExpression extends ParseExpression {
     if (extracted != null) {
       return new ExprStringValue(extracted);
     }
-
     log.debug("failed to extract pattern {} from input ***", regexPattern.pattern());
     return new ExprStringValue("");
   }
