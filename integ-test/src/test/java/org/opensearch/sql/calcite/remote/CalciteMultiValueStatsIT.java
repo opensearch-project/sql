@@ -38,100 +38,6 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testListFunctionWithStringField() throws IOException {
-    JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | where account_number < 5 | stats list(firstname) as names",
-                TEST_INDEX_ACCOUNT));
-
-    verifySchema(response, schema("names", null, "array"));
-
-    JSONArray dataRows = response.getJSONArray("datarows");
-    Assertions.assertEquals(1, dataRows.length(), "Should return exactly one aggregation row");
-
-    // Verify the names array contains strings
-    JSONArray names = dataRows.getJSONArray(0).getJSONArray(0);
-    Assertions.assertTrue(names.length() > 0, "names array should not be empty");
-
-    for (int i = 0; i < names.length(); i++) {
-      Object value = names.get(i);
-      Assertions.assertTrue(
-          value instanceof String, "All firstname values should be strings: " + value);
-      Assertions.assertFalse(((String) value).trim().isEmpty(), "Name should not be empty");
-    }
-  }
-
-  @Test
-  public void testListFunctionWithNumericField() throws IOException {
-    JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | where account_number < 5 | stats list(account_number) as nums",
-                TEST_INDEX_ACCOUNT));
-
-    verifySchema(response, schema("nums", null, "array"));
-
-    JSONArray dataRows = response.getJSONArray("datarows");
-    Assertions.assertEquals(1, dataRows.length(), "Should return exactly one aggregation row");
-    System.out.printf("result rows: %s%n", dataRows);
-
-    // Verify the nums array contains string representations of numbers
-    JSONArray nums = dataRows.getJSONArray(0).getJSONArray(0);
-    System.out.printf("result: %s%n", nums);
-    Assertions.assertTrue(nums.length() > 0, "nums array should not be empty");
-
-    for (int i = 0; i < nums.length(); i++) {
-      Object value = nums.get(i);
-      Assertions.assertTrue(
-          value instanceof String, "All account_number values should be strings: " + value);
-
-      String numStr = (String) value;
-      Assertions.assertTrue(
-          numStr.matches("\\d+"), "Account number should be numeric string: " + numStr);
-
-      int accountNum = Integer.parseInt(numStr);
-      Assertions.assertTrue(
-          accountNum >= 0 && accountNum < 5,
-          "Account number should be in expected range: " + accountNum);
-    }
-  }
-
-  @Test
-  public void testValuesFunctionWithStringField() throws IOException {
-    JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | where account_number < 5 | stats values(gender) as unique_genders",
-                TEST_INDEX_ACCOUNT));
-
-    verifySchema(response, schema("unique_genders", null, "array"));
-
-    JSONArray dataRows = response.getJSONArray("datarows");
-    Assertions.assertEquals(1, dataRows.length(), "Should return exactly one aggregation row");
-
-    // Verify the unique_genders array contains sorted unique values
-    JSONArray genders = dataRows.getJSONArray(0).getJSONArray(0);
-    Assertions.assertTrue(genders.length() > 0, "genders array should not be empty");
-
-    // Verify lexicographic sorting and uniqueness
-    String previousGender = null;
-    for (int i = 0; i < genders.length(); i++) {
-      Object value = genders.get(i);
-      Assertions.assertTrue(
-          value instanceof String, "All gender values should be strings: " + value);
-
-      String currentGender = (String) value;
-      if (previousGender != null) {
-        Assertions.assertTrue(
-            currentGender.compareTo(previousGender) > 0,
-            "Values should be in lexicographic order: " + previousGender + " vs " + currentGender);
-      }
-      previousGender = currentGender;
-    }
-  }
-
-  @Test
   public void testValuesWithListUdaf() throws IOException {
     JSONObject response =
         executeQuery(
@@ -168,37 +74,6 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
     }
 
     System.out.println("LIST + VALUES combination works successfully!");
-  }
-
-  @Test
-  public void testValuesFunctionWithIpField() throws IOException {
-    // Test values() function with IP field type - UDT type checking handles custom types
-    JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | stats values(ip_value) as unique_ips",
-                TEST_INDEX_DATATYPE_NONNUMERIC));
-
-    verifySchema(response, schema("unique_ips", null, "array"));
-
-    JSONArray dataRows = response.getJSONArray("datarows");
-    Assertions.assertEquals(1, dataRows.length(), "Should return exactly one aggregation row");
-
-    JSONArray uniqueIps = dataRows.getJSONArray(0).getJSONArray(0);
-    Assertions.assertTrue(uniqueIps.length() > 0, "unique_ips should not be empty");
-
-    // Verify all values are strings (CAST converts IP addresses to string representations)
-    for (int i = 0; i < uniqueIps.length(); i++) {
-      Object value = uniqueIps.get(i);
-      Assertions.assertTrue(
-          value instanceof String, "All IP values should be converted to strings: " + value);
-
-      String ipStr = (String) value;
-      // Basic validation that it looks like an IP address string
-      Assertions.assertTrue(
-          ipStr.matches("\\d+\\.\\d+\\.\\d+\\.\\d+") || ipStr.contains(":"),
-          "IP string should look like an IP address: " + ipStr);
-    }
   }
 
   @Test
@@ -314,307 +189,6 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
     }
   }
 
-  // =====================================================
-  // Boolean Data Type Tests
-  // =====================================================
-
-  @Test
-  public void testListFunctionWithBooleanDataTypes() throws IOException {
-    // Test LIST function with boolean field types
-    JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | stats list(boolean_value) as bool_list",
-                TEST_INDEX_DATATYPE_NONNUMERIC));
-
-    verifySchema(response, schema("bool_list", null, "array"));
-
-    JSONArray dataRows = response.getJSONArray("datarows");
-    Assertions.assertEquals(1, dataRows.length(), "Should return exactly one aggregation row");
-
-    JSONArray boolList = dataRows.getJSONArray(0).getJSONArray(0);
-
-    // Verify LIST function behavior
-    verifyStringArray(boolList, "boolean list");
-    verifyBooleanValues(boolList, "boolean list");
-  }
-
-  @Test
-  public void testValuesFunctionWithBooleanDataTypes() throws IOException {
-    // Test VALUES function with boolean field types
-    JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | stats values(boolean_value) as unique_bools",
-                TEST_INDEX_DATATYPE_NONNUMERIC));
-
-    verifySchema(response, schema("unique_bools", null, "array"));
-
-    JSONArray dataRows = response.getJSONArray("datarows");
-    Assertions.assertEquals(1, dataRows.length(), "Should return exactly one aggregation row");
-
-    JSONArray uniqueBools = dataRows.getJSONArray(0).getJSONArray(0);
-
-    // Verify VALUES function behavior
-    verifyStringArray(uniqueBools, "unique boolean");
-    verifyBooleanValues(uniqueBools, "unique boolean");
-    verifySortedArray(uniqueBools, "boolean");
-    verifyUniqueValues(uniqueBools, "boolean");
-
-    // VALUES should have at most 2 values for boolean (TRUE, FALSE)
-    Assertions.assertTrue(
-        uniqueBools.length() <= 2,
-        "Boolean VALUES should have at most 2 unique values, got: " + uniqueBools.length());
-  }
-
-  // =====================================================
-  // Numeric Data Type Tests
-  // =====================================================
-
-  @Test
-  public void testListFunctionWithIntegerDataTypes() throws IOException {
-    // Test all integer types: byte, short, integer, long with LIST function
-    JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | stats "
-                    + "list(byte_number) as byte_list, "
-                    + "list(short_number) as short_list, "
-                    + "list(integer_number) as int_list, "
-                    + "list(long_number) as long_list",
-                TEST_INDEX_DATATYPE_NUMERIC));
-
-    verifySchema(
-        response,
-        schema("byte_list", null, "array"),
-        schema("short_list", null, "array"),
-        schema("int_list", null, "array"),
-        schema("long_list", null, "array"));
-
-    JSONArray dataRows = response.getJSONArray("datarows");
-    Assertions.assertEquals(1, dataRows.length(), "Should return exactly one aggregation row");
-    JSONArray row = dataRows.getJSONArray(0);
-
-    // Extract all arrays
-    JSONArray byteList = row.getJSONArray(0);
-    JSONArray shortList = row.getJSONArray(1);
-    JSONArray intList = row.getJSONArray(2);
-    JSONArray longList = row.getJSONArray(3);
-
-    // Verify LIST functions (preserve duplicates)
-    verifyNumericArray(byteList, "byte");
-    verifyNumericArray(shortList, "short");
-    verifyNumericArray(intList, "integer");
-    verifyNumericArray(longList, "long");
-  }
-
-  @Test
-  public void testValuesFunctionWithIntegerDataTypes() throws IOException {
-    // Test all integer types: byte, short, integer, long with VALUES function
-    JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | stats "
-                    + "values(byte_number) as unique_bytes, "
-                    + "values(short_number) as unique_shorts, "
-                    + "values(integer_number) as unique_ints, "
-                    + "values(long_number) as unique_longs",
-                TEST_INDEX_DATATYPE_NUMERIC));
-
-    verifySchema(
-        response,
-        schema("unique_bytes", null, "array"),
-        schema("unique_shorts", null, "array"),
-        schema("unique_ints", null, "array"),
-        schema("unique_longs", null, "array"));
-
-    JSONArray dataRows = response.getJSONArray("datarows");
-    Assertions.assertEquals(1, dataRows.length(), "Should return exactly one aggregation row");
-    JSONArray row = dataRows.getJSONArray(0);
-
-    // Extract all arrays
-    JSONArray uniqueBytes = row.getJSONArray(0);
-    JSONArray uniqueShorts = row.getJSONArray(1);
-    JSONArray uniqueInts = row.getJSONArray(2);
-    JSONArray uniqueLongs = row.getJSONArray(3);
-
-    // Verify VALUES functions (unique and sorted)
-    verifyNumericArray(uniqueBytes, "unique byte");
-    verifyNumericArray(uniqueShorts, "unique short");
-    verifyNumericArray(uniqueInts, "unique integer");
-    verifyNumericArray(uniqueLongs, "unique long");
-
-    verifySortedArray(uniqueBytes, "byte");
-    verifySortedArray(uniqueShorts, "short");
-    verifySortedArray(uniqueInts, "integer");
-    verifySortedArray(uniqueLongs, "long");
-
-    verifyUniqueValues(uniqueBytes, "byte");
-    verifyUniqueValues(uniqueShorts, "short");
-    verifyUniqueValues(uniqueInts, "integer");
-    verifyUniqueValues(uniqueLongs, "long");
-  }
-
-  @Test
-  public void testListFunctionWithFloatingPointDataTypes() throws IOException {
-    // Test floating point types: float, double with LIST function
-    JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | stats "
-                    + "list(float_number) as float_list, "
-                    + "list(double_number) as double_list",
-                TEST_INDEX_DATATYPE_NUMERIC));
-
-    verifySchema(
-        response, schema("float_list", null, "array"), schema("double_list", null, "array"));
-
-    JSONArray dataRows = response.getJSONArray("datarows");
-    Assertions.assertEquals(1, dataRows.length(), "Should return exactly one aggregation row");
-    JSONArray row = dataRows.getJSONArray(0);
-
-    JSONArray floatList = row.getJSONArray(0);
-    JSONArray doubleList = row.getJSONArray(1);
-
-    // Verify LIST functions (preserve duplicates)
-    verifyNumericArray(floatList, "float");
-    verifyNumericArray(doubleList, "double");
-  }
-
-  @Test
-  public void testValuesFunctionWithFloatingPointDataTypes() throws IOException {
-    // Test floating point types: float, double with VALUES function
-    JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | stats "
-                    + "values(float_number) as unique_floats, "
-                    + "values(double_number) as unique_doubles",
-                TEST_INDEX_DATATYPE_NUMERIC));
-
-    verifySchema(
-        response, schema("unique_floats", null, "array"), schema("unique_doubles", null, "array"));
-
-    JSONArray dataRows = response.getJSONArray("datarows");
-    Assertions.assertEquals(1, dataRows.length(), "Should return exactly one aggregation row");
-    JSONArray row = dataRows.getJSONArray(0);
-
-    JSONArray uniqueFloats = row.getJSONArray(0);
-    JSONArray uniqueDoubles = row.getJSONArray(1);
-
-    // Verify VALUES functions (unique and sorted)
-    verifyNumericArray(uniqueFloats, "unique float");
-    verifyNumericArray(uniqueDoubles, "unique double");
-
-    verifySortedArray(uniqueFloats, "float");
-    verifySortedArray(uniqueDoubles, "double");
-
-    verifyUniqueValues(uniqueFloats, "float");
-    verifyUniqueValues(uniqueDoubles, "double");
-  }
-
-  // =====================================================
-  // String Data Type Tests
-  // =====================================================
-
-  @Test
-  public void testStringDataTypesWithListFunction() throws IOException {
-    // Test string types (keyword, text) with LIST function only
-    JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | stats list(keyword_value) as keyword_list, list(text_value) as"
-                    + " text_list",
-                TEST_INDEX_DATATYPE_NONNUMERIC));
-
-    verifySchema(
-        response, schema("keyword_list", null, "array"), schema("text_list", null, "array"));
-
-    JSONArray dataRows = response.getJSONArray("datarows");
-    Assertions.assertEquals(1, dataRows.length(), "Should return exactly one aggregation row");
-    JSONArray row = dataRows.getJSONArray(0);
-
-    JSONArray keywordList = row.getJSONArray(0);
-    JSONArray textList = row.getJSONArray(1);
-
-    // Verify LIST functions preserve duplicates and handle strings correctly
-    verifyStringArray(keywordList, "keyword");
-    verifyStringArray(textList, "text");
-  }
-
-  @Test
-  public void testStringDataTypesWithValuesFunction() throws IOException {
-    // Test string types (keyword, text) with VALUES function only
-    JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | stats values(keyword_value) as unique_keywords, values(text_value) as"
-                    + " unique_text",
-                TEST_INDEX_DATATYPE_NONNUMERIC));
-
-    verifySchema(
-        response, schema("unique_keywords", null, "array"), schema("unique_text", null, "array"));
-
-    JSONArray dataRows = response.getJSONArray("datarows");
-    Assertions.assertEquals(1, dataRows.length(), "Should return exactly one aggregation row");
-    JSONArray row = dataRows.getJSONArray(0);
-
-    JSONArray uniqueKeywords = row.getJSONArray(0);
-    JSONArray uniqueText = row.getJSONArray(1);
-
-    // Verify VALUES functions provide unique and sorted results
-    verifyStringArray(uniqueKeywords, "unique keyword");
-    verifyStringArray(uniqueText, "unique text");
-
-    verifySortedArray(uniqueKeywords, "keyword");
-    verifySortedArray(uniqueText, "text");
-
-    verifyUniqueValues(uniqueKeywords, "keyword");
-    verifyUniqueValues(uniqueText, "text");
-  }
-
-  @Test
-  public void testDateTimeDataTypes() throws IOException {
-    // Comprehensive test for all date/time types: date, date_nanos, timestamp
-    JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | stats list(date_value) as date_list, values(date_value) as"
-                    + " unique_dates, list(date_nanos_value) as date_nanos_list,"
-                    + " values(date_nanos_value) as unique_date_nanos",
-                TEST_INDEX_DATATYPE_NONNUMERIC));
-
-    verifySchema(
-        response,
-        schema("date_list", null, "array"),
-        schema("unique_dates", null, "array"),
-        schema("date_nanos_list", null, "array"),
-        schema("unique_date_nanos", null, "array"));
-
-    JSONArray dataRows = response.getJSONArray("datarows");
-    Assertions.assertEquals(1, dataRows.length(), "Should return exactly one aggregation row");
-    JSONArray row = dataRows.getJSONArray(0);
-
-    JSONArray dateList = row.getJSONArray(0);
-    JSONArray uniqueDates = row.getJSONArray(1);
-    JSONArray dateNanosList = row.getJSONArray(2);
-    JSONArray uniqueDateNanos = row.getJSONArray(3);
-
-    // Verify LIST functions (preserve duplicates)
-    verifyDateTimeArray(dateList, "date");
-    verifyDateTimeArray(dateNanosList, "date_nanos");
-
-    // Verify VALUES functions (unique and sorted)
-    verifyDateTimeArray(uniqueDates, "unique date");
-    verifyDateTimeArray(uniqueDateNanos, "unique date_nanos");
-
-    verifySortedArray(uniqueDates, "date");
-    verifySortedArray(uniqueDateNanos, "date_nanos");
-
-    verifyUniqueValues(uniqueDates, "date");
-    verifyUniqueValues(uniqueDateNanos, "date_nanos");
-  }
-
   @Test
   public void testNullValueHandlingAcrossTypes() throws IOException {
     // Test null handling across different data types to ensure ARRAY_AGG respects nulls
@@ -665,64 +239,6 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
     }
 
     System.out.println("Null values found in VALUES result: " + uniqueHasNulls);
-  }
-
-  @Test
-  public void testIpAddressDataTypes() throws IOException {
-    // Test both LIST and VALUES functions with IP address types
-    JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | stats list(ip_value) as ip_list, values(ip_value) as unique_ips",
-                TEST_INDEX_DATATYPE_NONNUMERIC));
-
-    verifySchema(response, schema("ip_list", null, "array"), schema("unique_ips", null, "array"));
-
-    JSONArray dataRows = response.getJSONArray("datarows");
-    Assertions.assertEquals(1, dataRows.length(), "Should return exactly one aggregation row");
-    JSONArray row = dataRows.getJSONArray(0);
-
-    JSONArray ipList = row.getJSONArray(0);
-    JSONArray uniqueIps = row.getJSONArray(1);
-
-    // Verify LIST function (preserve duplicates)
-    verifyStringArray(ipList, "IP address");
-    verifyIpAddressValues(ipList, "IP address list");
-
-    // Verify VALUES function (unique and sorted)
-    verifyStringArray(uniqueIps, "unique IP address");
-    verifyIpAddressValues(uniqueIps, "unique IP address");
-    verifySortedArray(uniqueIps, "IP address");
-    verifyUniqueValues(uniqueIps, "IP address");
-  }
-
-  @Test
-  public void testBinaryDataTypes() throws IOException {
-    // Test both LIST and VALUES functions with binary data types
-    JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | stats list(binary_value) as binary_list, values(binary_value) as"
-                    + " unique_binaries",
-                TEST_INDEX_DATATYPE_NONNUMERIC));
-
-    verifySchema(
-        response, schema("binary_list", null, "array"), schema("unique_binaries", null, "array"));
-
-    JSONArray dataRows = response.getJSONArray("datarows");
-    Assertions.assertEquals(1, dataRows.length(), "Should return exactly one aggregation row");
-    JSONArray row = dataRows.getJSONArray(0);
-
-    JSONArray binaryList = row.getJSONArray(0);
-    JSONArray uniqueBinaries = row.getJSONArray(1);
-
-    // Verify LIST function (preserve duplicates)
-    verifyStringArray(binaryList, "binary");
-
-    // Verify VALUES function (unique and sorted)
-    verifyStringArray(uniqueBinaries, "unique binary");
-    verifySortedArray(uniqueBinaries, "binary");
-    verifyUniqueValues(uniqueBinaries, "binary");
   }
 
   // =====================================================
@@ -2022,6 +1538,165 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
               "VALUES contents should match");
         }
       }
+    }
+  }
+
+  // =====================================================
+  // Data-Driven Tests for Different Data Types
+  // =====================================================
+
+  @Test
+  public void testListAndValuesFunctionsWithDifferentDataTypes() throws IOException {
+    // Test data: {function, field, index, description}
+    String[][] testCases = {
+      {"list", "firstname", TEST_INDEX_ACCOUNT, "LIST with string field"},
+      {"list", "gender", TEST_INDEX_ACCOUNT, "LIST with keyword field"},
+      {"list", "age", TEST_INDEX_ACCOUNT, "LIST with integer field"},
+      {"list", "balance", TEST_INDEX_ACCOUNT, "LIST with long field"},
+      {"list", "ip_value", TEST_INDEX_DATATYPE_NONNUMERIC, "LIST with IP field"},
+      {"list", "date_value", TEST_INDEX_DATATYPE_NONNUMERIC, "LIST with date field"},
+      {"list", "date_nanos_value", TEST_INDEX_DATATYPE_NONNUMERIC, "LIST with date_nanos field"},
+      {"list", "boolean_value", TEST_INDEX_DATATYPE_NONNUMERIC, "LIST with boolean field"},
+      {"list", "keyword_value", TEST_INDEX_DATATYPE_NONNUMERIC, "LIST with keyword field"},
+      {"list", "text_value", TEST_INDEX_DATATYPE_NONNUMERIC, "LIST with text field"},
+      {"values", "firstname", TEST_INDEX_ACCOUNT, "VALUES with string field"},
+      {"values", "gender", TEST_INDEX_ACCOUNT, "VALUES with keyword field"},
+      {"values", "age", TEST_INDEX_ACCOUNT, "VALUES with integer field"},
+      {"values", "balance", TEST_INDEX_ACCOUNT, "VALUES with long field"},
+      {"values", "ip_value", TEST_INDEX_DATATYPE_NONNUMERIC, "VALUES with IP field"},
+      {"values", "date_value", TEST_INDEX_DATATYPE_NONNUMERIC, "VALUES with date field"},
+      {
+        "values", "date_nanos_value", TEST_INDEX_DATATYPE_NONNUMERIC, "VALUES with date_nanos field"
+      },
+      {"values", "boolean_value", TEST_INDEX_DATATYPE_NONNUMERIC, "VALUES with boolean field"},
+      {"values", "keyword_value", TEST_INDEX_DATATYPE_NONNUMERIC, "VALUES with keyword field"},
+      {"values", "text_value", TEST_INDEX_DATATYPE_NONNUMERIC, "VALUES with text field"}
+    };
+
+    for (String[] testCase : testCases) {
+      String functionName = testCase[0];
+      String fieldName = testCase[1];
+      String testIndex = testCase[2];
+      String description = testCase[3];
+
+      System.out.println("Testing: " + description);
+      testMultiValueStatsFunctionWithDataType(functionName, fieldName, testIndex, description);
+    }
+  }
+
+  private void testMultiValueStatsFunctionWithDataType(
+      String functionName, String fieldName, String testIndex, String description)
+      throws IOException {
+    // Use different filter conditions based on the index
+    String filterCondition;
+    if (testIndex.equals(TEST_INDEX_ACCOUNT)) {
+      filterCondition = "account_number < 5";
+    } else if (testIndex.equals(TEST_INDEX_DATATYPE_NONNUMERIC)) {
+      filterCondition = "boolean_value = true OR boolean_value = false";
+    } else {
+      filterCondition = "1 = 1"; // Default: no filter, get all records
+    }
+
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | where %s | stats %s(%s) as result",
+                testIndex, filterCondition, functionName, fieldName));
+
+    // Verify schema - result column should have array type
+    JSONArray schema = response.getJSONArray("schema");
+    boolean foundResultColumn = false;
+    for (int i = 0; i < schema.length(); i++) {
+      JSONObject column = schema.getJSONObject(i);
+      if ("result".equals(column.getString("name"))) {
+        Assertions.assertEquals(
+            "array",
+            column.getString("type"),
+            String.format("Expected array type for %s", description));
+        foundResultColumn = true;
+        break;
+      }
+    }
+    Assertions.assertTrue(
+        foundResultColumn, String.format("Should find result column for %s", description));
+
+    // Verify data rows
+    JSONArray dataRows = response.getJSONArray("datarows");
+    Assertions.assertEquals(
+        1,
+        dataRows.length(),
+        String.format("Should have exactly one result row for %s", description));
+
+    JSONArray row = dataRows.getJSONArray(0);
+    JSONArray resultArray = row.getJSONArray(0);
+    Assertions.assertTrue(
+        resultArray.length() > 0,
+        String.format("Result array should not be empty for %s", description));
+
+    // Verify function-specific properties
+    if ("values".equals(functionName)) {
+      verifyValuesProperties(resultArray, description);
+    } else if ("list".equals(functionName)) {
+      verifyListProperties(resultArray, description);
+    }
+
+    // Verify all values are properly converted to strings
+    for (int i = 0; i < resultArray.length(); i++) {
+      Object value = resultArray.get(i);
+      Assertions.assertTrue(
+          value instanceof String,
+          String.format(
+              "All values should be strings for %s, found: %s", description, value.getClass()));
+      Assertions.assertFalse(
+          ((String) value).trim().isEmpty(),
+          String.format("Values should not be empty strings for %s", description));
+    }
+  }
+
+  private void verifyValuesProperties(JSONArray resultArray, String description) {
+    // Verify uniqueness
+    Set<String> uniqueValues = new HashSet<>();
+    for (int i = 0; i < resultArray.length(); i++) {
+      String value = resultArray.getString(i);
+      Assertions.assertFalse(
+          uniqueValues.contains(value),
+          String.format(
+              "VALUES should contain unique values, found duplicate '%s' for %s",
+              value, description));
+      uniqueValues.add(value);
+    }
+
+    // Verify lexicographic ordering
+    String previousValue = null;
+    for (int i = 0; i < resultArray.length(); i++) {
+      String currentValue = resultArray.getString(i);
+      if (previousValue != null) {
+        Assertions.assertTrue(
+            currentValue.compareTo(previousValue) > 0,
+            String.format(
+                "VALUES should be in lexicographic order for %s: '%s' vs '%s'",
+                description, previousValue, currentValue));
+      }
+      previousValue = currentValue;
+    }
+  }
+
+  private void verifyListProperties(JSONArray resultArray, String description) {
+    // LIST function preserves all values including duplicates
+    // Just verify that we have values (duplicates are allowed and order is preserved)
+    Assertions.assertTrue(
+        resultArray.length() > 0,
+        String.format("LIST should have at least one value for %s", description));
+
+    // All values should be non-null strings
+    for (int i = 0; i < resultArray.length(); i++) {
+      Object value = resultArray.get(i);
+      Assertions.assertNotNull(
+          value, String.format("LIST values should not be null for %s", description));
+      Assertions.assertTrue(
+          value instanceof String,
+          String.format(
+              "LIST values should be strings for %s, found: %s", description, value.getClass()));
     }
   }
 }

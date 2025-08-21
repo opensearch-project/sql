@@ -205,7 +205,6 @@ public class CalciteExplainIT extends ExplainIT {
     assertJsonEqualsIgnoreId(expected, result);
   }
 
-
   // Only for Calcite - VALUES function explain tests
   @Test
   public void testExplainValuesFunction() throws IOException {
@@ -264,7 +263,7 @@ public class CalciteExplainIT extends ExplainIT {
         "Plan should contain group by employer",
         result.contains("employer") || result.contains("group="));
   }
-  
+
   // Only for Calcite
   @Test
   public void supportPushDownScriptOnTextField() throws IOException {
@@ -288,7 +287,6 @@ public class CalciteExplainIT extends ExplainIT {
                 "source=%s | stats sum(balance), sum(balance + 100), sum(balance - 100),"
                     + " sum(balance * 100), sum(balance / 100) by gender",
                 TEST_INDEX_BANK)));
-
   }
 
   /**
