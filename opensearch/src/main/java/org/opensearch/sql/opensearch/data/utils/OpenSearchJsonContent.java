@@ -170,6 +170,9 @@ public class OpenSearchJsonContent implements Content {
     if (node.isNumber()) {
       return node.longValue();
     } else if (node.isTextual()) {
+      if (node.textValue().isEmpty()) {
+        return 0L;
+      }
       return Numbers.toLong(node.textValue(), true);
     } else {
       throw new OpenSearchParseException("node must be a number");
@@ -181,6 +184,9 @@ public class OpenSearchJsonContent implements Content {
     if (node.isNumber()) {
       return node.doubleValue();
     } else if (node.isTextual()) {
+      if (node.textValue().isEmpty()) {
+        return 0.0;
+      }
       return Double.parseDouble(node.textValue());
     } else {
       throw new OpenSearchParseException("node must be a number");
@@ -192,8 +198,7 @@ public class OpenSearchJsonContent implements Content {
     if (node.isBoolean()) {
       return node.booleanValue();
     } else if (node.isTextual()) {
-      String textValue = node.textValue().trim().toLowerCase();
-      return Boolean.parseBoolean(textValue);
+      return Boolean.parseBoolean(node.textValue());
     } else {
       throw new OpenSearchParseException("node must be a boolean");
     }
