@@ -87,6 +87,7 @@ import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Util;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.plan.OpenSearchRules;
 import org.opensearch.sql.calcite.plan.Scannable;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
@@ -220,8 +221,13 @@ public class CalciteToolsHelper {
       final RelOptPlanner planner =
           createPlanner(
               prepareContext, Contexts.of(prepareContext.config()), config.getCostFactory());
+      registerCustomizedRules(planner);
       final RelOptCluster cluster = createCluster(planner, rexBuilder);
       return action.apply(cluster, catalogReader, prepareContext.getRootSchema().plus(), statement);
+    }
+
+    private void registerCustomizedRules(RelOptPlanner planner) {
+      OpenSearchRules.OPEN_SEARCH_OPT_RULES.forEach(planner::addRule);
     }
 
     /**
