@@ -119,23 +119,24 @@ public class DataTypeIT extends PPLIntegTestCase {
         new Request(
             "PUT", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_DATATYPE_NUMERIC, docId));
     insertRequest.setJsonEntity(
-        "{\"long_number\": \"12345678\",\"integer_number\": \"12345\",\"short_number\":"
+        "{\"long_number\": \"12345678\",\"integer_number\": \"\",\"short_number\":"
             + " \"123\",\"byte_number\": \"12\",\"double_number\": \"1234.5678\",\"float_number\":"
-            + " \"123.45\",\"half_float_number\": \"1.23\",\"scaled_float_number\": \"12.34\"}\n");
+            + " \"\",\"half_float_number\": \"1.23\",\"scaled_float_number\": \"12.34\"}\n");
     client().performRequest(insertRequest);
 
     JSONObject result =
         executeQuery(
             String.format(
                 "source=%s | where long_number=12345678 | fields long_number, integer_number,"
-                    + " double_number",
+                    + " double_number, float_number",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifySchema(
         result,
         schema("long_number", "bigint"),
         schema("integer_number", "int"),
-        schema("double_number", "double"));
-    verifyDataRows(result, rows(12345678, 12345, 1234.5678));
+        schema("double_number", "double"),
+        schema("float_number", "float"));
+    verifyDataRows(result, rows(12345678, 0, 1234.5678, 0));
 
     Request deleteRequest =
         new Request(
