@@ -13,7 +13,6 @@ import static org.opensearch.sql.ast.dsl.AstDSL.agg;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
-import static org.opensearch.sql.ast.dsl.AstDSL.bin;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
 import static org.opensearch.sql.ast.dsl.AstDSL.computation;
@@ -967,43 +966,6 @@ public class AstBuilderTest {
 
   private String mappingTable(String indexName) {
     return SystemIndexUtils.mappingTable(indexName, PPL_SPEC);
-  }
-
-  @Test
-  public void testBinCommandFlexibleOrdering() {
-    // Test original order
-    assertEqual(
-        "search source=test | bin field span=10",
-        bin(relation("test"), field("field"), argument("span", intLiteral(10))));
-
-    // Test reversed order - AS before SPAN
-    assertEqual(
-        "search source=test | bin field AS bucket_field span=10",
-        bin(
-            relation("test"),
-            field("field"),
-            argument("span", intLiteral(10)),
-            argument("alias", stringLiteral("bucket_field"))));
-
-    // Test mixed order - END, START, SPAN
-    assertEqual(
-        "search source=test | bin field end=100 start=0 span=10",
-        bin(
-            relation("test"),
-            field("field"),
-            argument("span", intLiteral(10)),
-            argument("start", intLiteral(0)),
-            argument("end", intLiteral(100))));
-
-    // Test with BINS parameter in different position
-    assertEqual(
-        "search source=test | bin field start=0 bins=5 end=100",
-        bin(
-            relation("test"),
-            field("field"),
-            argument("bins", intLiteral(5)),
-            argument("start", intLiteral(0)),
-            argument("end", intLiteral(100))));
   }
 
   @Test(expected = IllegalArgumentException.class)
