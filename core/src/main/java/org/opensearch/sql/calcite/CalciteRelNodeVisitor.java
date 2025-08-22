@@ -184,9 +184,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     RexNode regexCondition =
         context.rexBuilder.makeCall(
-            org.opensearch.sql.expression.function.PPLBuiltinOperators.REGEX_MATCH,
-            fieldRex,
-            patternRex);
+            org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_CONTAINS, fieldRex, patternRex);
 
     if (node.isNegated()) {
       regexCondition = context.rexBuilder.makeCall(SqlStdOperatorTable.NOT, regexCondition);
