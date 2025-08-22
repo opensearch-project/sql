@@ -24,6 +24,7 @@ public class GCedMemoryUsage implements MemoryUsage {
   private static final Logger LOG = LogManager.getLogger();
   private static final List<String> OLD_GEN_GC_ACTION_KEYWORDS =
       List.of("major", "concurrent", "old", "full", "marksweep");
+  private static boolean initialized = false;
 
   private GCedMemoryUsage() {
     registerGCListener();
@@ -55,6 +56,10 @@ public class GCedMemoryUsage implements MemoryUsage {
     usage.set(value);
   }
 
+  public static boolean initialized() {
+    return initialized;
+  }
+
   private void registerGCListener() {
     List<GarbageCollectorMXBean> gcBeans = ManagementFactory.getGarbageCollectorMXBeans();
     if (gcBeans.stream()
@@ -68,6 +73,7 @@ public class GCedMemoryUsage implements MemoryUsage {
     for (GarbageCollectorMXBean gcBean : gcBeans) {
       if (gcBean instanceof NotificationEmitter && isOldGenGc(gcBean.getName())) {
         LOG.info("{} listener registered for memory usage monitor.", gcBean.getName());
+        initialized = true;
         NotificationEmitter emitter = (NotificationEmitter) gcBean;
         emitter.addNotificationListener(
             new OldGenGCListener(),
