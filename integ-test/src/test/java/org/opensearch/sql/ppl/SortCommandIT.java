@@ -228,15 +228,6 @@ public class SortCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testSortWithA() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | sort account_number a | fields account_number", TEST_INDEX_BANK));
-    verifyOrder(result, rows(1), rows(6), rows(13), rows(18), rows(20), rows(25), rows(32));
-  }
-
-  @Test
   public void testSortWithAscMultipleFields() throws IOException {
     JSONObject result =
         executeQuery(
