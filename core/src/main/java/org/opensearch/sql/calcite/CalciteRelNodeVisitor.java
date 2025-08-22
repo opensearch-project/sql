@@ -13,6 +13,7 @@ import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_DESC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
+import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_DEDUP;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME_MAIN;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME_SUBSEARCH;
@@ -112,6 +113,7 @@ import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.calcite.utils.WildcardUtils;
 import org.opensearch.sql.common.patterns.PatternUtils;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
@@ -191,28 +193,116 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitProject(Project node, CalcitePlanContext context) {
     visitChildren(node, context);
-    List<RexNode> projectList;
-    if (node.getProjectList().size() == 1
-        && node.getProjectList().getFirst() instanceof AllFields allFields) {
-      tryToRemoveNestedFields(context);
-      tryToRemoveMetaFields(context, allFields instanceof AllFieldsExcludeMeta);
-      return context.relBuilder.peek();
-    } else {
-      projectList =
-          node.getProjectList().stream()
-              .map(expr -> rexVisitor.analyze(expr, context))
-              .collect(Collectors.toList());
+
+    if (isSingleAllFieldsProject(node)) {
+      return handleAllFieldsProject(node, context);
     }
+
+    List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
+    List<RexNode> expandedFields =
+        expandProjectFields(node.getProjectList(), currentFields, context);
+
     if (node.isExcluded()) {
-      context.relBuilder.projectExcept(projectList);
+      validateExclusion(expandedFields, currentFields);
+      context.relBuilder.projectExcept(expandedFields);
     } else {
-      // Only set when not resolving subquery and it's not projectExcept.
       if (!context.isResolvingSubquery()) {
         context.setProjectVisited(true);
       }
-      context.relBuilder.project(projectList);
+      context.relBuilder.project(expandedFields);
     }
     return context.relBuilder.peek();
+  }
+
+  private boolean isSingleAllFieldsProject(Project node) {
+    return node.getProjectList().size() == 1
+        && node.getProjectList().getFirst() instanceof AllFields;
+  }
+
+  private RelNode handleAllFieldsProject(Project node, CalcitePlanContext context) {
+    if (node.isExcluded()) {
+      throw new IllegalArgumentException(
+          "Invalid field exclusion: operation would exclude all fields from the result set");
+    }
+    AllFields allFields = (AllFields) node.getProjectList().getFirst();
+    tryToRemoveNestedFields(context);
+    tryToRemoveMetaFields(context, allFields instanceof AllFieldsExcludeMeta);
+    return context.relBuilder.peek();
+  }
+
+  private List<RexNode> expandProjectFields(
+      List<UnresolvedExpression> projectList,
+      List<String> currentFields,
+      CalcitePlanContext context) {
+    List<RexNode> expandedFields = new ArrayList<>();
+    Set<String> addedFields = new HashSet<>();
+
+    for (UnresolvedExpression expr : projectList) {
+      switch (expr) {
+        case Field field -> {
+          String fieldName = field.getField().toString();
+          if (WildcardUtils.containsWildcard(fieldName)) {
+            List<String> matchingFields =
+                WildcardUtils.expandWildcardPattern(fieldName, currentFields).stream()
+                    .filter(f -> !isMetadataField(f))
+                    .filter(addedFields::add)
+                    .toList();
+            if (matchingFields.isEmpty()) {
+              continue;
+            }
+            matchingFields.forEach(f -> expandedFields.add(context.relBuilder.field(f)));
+          } else if (addedFields.add(fieldName)) {
+            expandedFields.add(rexVisitor.analyze(field, context));
+          }
+        }
+        case AllFields ignored -> {
+          currentFields.stream()
+              .filter(field -> !isMetadataField(field))
+              .filter(addedFields::add)
+              .forEach(field -> expandedFields.add(context.relBuilder.field(field)));
+        }
+        default -> throw new IllegalStateException(
+            "Unexpected expression type in project list: " + expr.getClass().getSimpleName());
+      }
+    }
+
+    if (expandedFields.isEmpty()) {
+      validateWildcardPatterns(projectList, currentFields);
+    }
+
+    return expandedFields;
+  }
+
+  private void validateExclusion(List<RexNode> fieldsToExclude, List<String> currentFields) {
+    Set<String> nonMetaFields =
+        currentFields.stream().filter(field -> !isMetadataField(field)).collect(Collectors.toSet());
+
+    if (fieldsToExclude.size() >= nonMetaFields.size()) {
+      throw new IllegalArgumentException(
+          "Invalid field exclusion: operation would exclude all fields from the result set");
+    }
+  }
+
+  private void validateWildcardPatterns(
+      List<UnresolvedExpression> projectList, List<String> currentFields) {
+    String firstWildcardPattern =
+        projectList.stream()
+            .filter(
+                expr ->
+                    expr instanceof Field field
+                        && WildcardUtils.containsWildcard(field.getField().toString()))
+            .map(expr -> ((Field) expr).getField().toString())
+            .findFirst()
+            .orElse(null);
+
+    if (firstWildcardPattern != null) {
+      throw new IllegalArgumentException(
+          String.format("wildcard pattern [%s] matches no fields", firstWildcardPattern));
+    }
+  }
+
+  private boolean isMetadataField(String fieldName) {
+    return OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(fieldName);
   }
 
   /** See logic in {@link org.opensearch.sql.analysis.symbol.SymbolTable#lookupAllFields} */
@@ -334,6 +424,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 })
             .collect(Collectors.toList());
     context.relBuilder.sort(sortList);
+    // Apply count parameter as limit
+    if (node.getCount() != 0) {
+      context.relBuilder.limit(0, node.getCount());
+    }
+
     return context.relBuilder.peek();
   }
 
@@ -494,7 +589,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitEval(Eval node, CalcitePlanContext context) {
     visitChildren(node, context);
-    List<String> originalFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
     node.getExpressionList()
         .forEach(
             expr -> {
@@ -731,7 +825,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 : duplicatedFieldNames.stream()
                     .map(a -> (RexNode) context.relBuilder.field(a))
                     .toList();
-        buildDedup(context, dedupeFields, allowedDuplication);
+        buildDedupNotNull(context, dedupeFields, allowedDuplication);
       }
       context.relBuilder.join(
           JoinAndLookupUtils.translateJoinType(node.getJoinType()), joinCondition);
@@ -787,7 +881,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         List<RexNode> dedupeFields =
             getRightColumnsInJoinCriteria(context.relBuilder, joinCondition);
 
-        buildDedup(context, dedupeFields, allowedDuplication);
+        buildDedupNotNull(context, dedupeFields, allowedDuplication);
       }
       context.relBuilder.join(
           JoinAndLookupUtils.translateJoinType(node.getJoinType()), joinCondition);
@@ -950,56 +1044,25 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<RexNode> dedupeFields =
         node.getFields().stream().map(f -> rexVisitor.analyze(f, context)).toList();
     if (keepEmpty) {
-      /*
-       * | dedup 2 a, b keepempty=false
-       * DropColumns('_row_number_)
-       * +- Filter ('_row_number_ <= n OR isnull('a) OR isnull('b))
-       *    +- Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST, specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_], ['a, 'b], ['a ASC NULLS FIRST, 'b ASC NULLS FIRST]
-       *        +- ...
-       */
-      // Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST,
-      // specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_], ['a, 'b], ['a ASC
-      // NULLS FIRST, 'b ASC NULLS FIRST]
-      RexNode rowNumber =
-          context
-              .relBuilder
-              .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
-              .over()
-              .partitionBy(dedupeFields)
-              .orderBy(dedupeFields)
-              .rowsTo(RexWindowBounds.CURRENT_ROW)
-              .as("_row_number_");
-      context.relBuilder.projectPlus(rowNumber);
-      RexNode _row_number_ = context.relBuilder.field("_row_number_");
-      // Filter (isnull('a) OR isnull('b) OR '_row_number_ <= n)
-      context.relBuilder.filter(
-          context.relBuilder.or(
-              context.relBuilder.or(dedupeFields.stream().map(context.relBuilder::isNull).toList()),
-              context.relBuilder.lessThanOrEqual(
-                  _row_number_, context.relBuilder.literal(allowedDuplication))));
-      // DropColumns('_row_number_)
-      context.relBuilder.projectExcept(_row_number_);
+      buildDedupOrNull(context, dedupeFields, allowedDuplication);
     } else {
-      buildDedup(context, dedupeFields, allowedDuplication);
+      buildDedupNotNull(context, dedupeFields, allowedDuplication);
     }
     return context.relBuilder.peek();
   }
 
-  private static void buildDedup(
+  private static void buildDedupOrNull(
       CalcitePlanContext context, List<RexNode> dedupeFields, Integer allowedDuplication) {
     /*
      * | dedup 2 a, b keepempty=false
-     * DropColumns('_row_number_)
-     * +- Filter ('_row_number_ <= n)
-     *    +- Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST, specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_], ['a, 'b], ['a ASC NULLS FIRST, 'b ASC NULLS FIRST]
-     *       +- Filter (isnotnull('a) AND isnotnull('b))
-     *          +- ...
+     * DropColumns('_row_number_dedup_)
+     * +- Filter ('_row_number_dedup_ <= n OR isnull('a) OR isnull('b))
+     *    +- Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST, specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_dedup_], ['a, 'b], ['a ASC NULLS FIRST, 'b ASC NULLS FIRST]
+     *        +- ...
      */
-    // Filter (isnotnull('a) AND isnotnull('b))
-    context.relBuilder.filter(
-        context.relBuilder.and(dedupeFields.stream().map(context.relBuilder::isNotNull).toList()));
     // Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST,
-    // specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_], ['a, 'b], ['a ASC
+    // specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_dedup_], ['a, 'b], ['a
+    // ASC
     // NULLS FIRST, 'b ASC NULLS FIRST]
     RexNode rowNumber =
         context
@@ -1009,15 +1072,52 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .partitionBy(dedupeFields)
             .orderBy(dedupeFields)
             .rowsTo(RexWindowBounds.CURRENT_ROW)
-            .as("_row_number_");
+            .as(ROW_NUMBER_COLUMN_FOR_DEDUP);
     context.relBuilder.projectPlus(rowNumber);
-    RexNode _row_number_ = context.relBuilder.field("_row_number_");
-    // Filter ('_row_number_ <= n)
+    RexNode _row_number_dedup_ = context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_DEDUP);
+    // Filter (isnull('a) OR isnull('b) OR '_row_number_dedup_ <= n)
+    context.relBuilder.filter(
+        context.relBuilder.or(
+            context.relBuilder.or(dedupeFields.stream().map(context.relBuilder::isNull).toList()),
+            context.relBuilder.lessThanOrEqual(
+                _row_number_dedup_, context.relBuilder.literal(allowedDuplication))));
+    // DropColumns('_row_number_dedup_)
+    context.relBuilder.projectExcept(_row_number_dedup_);
+  }
+
+  private static void buildDedupNotNull(
+      CalcitePlanContext context, List<RexNode> dedupeFields, Integer allowedDuplication) {
+    /*
+     * | dedup 2 a, b keepempty=false
+     * DropColumns('_row_number_dedup_)
+     * +- Filter ('_row_number_dedup_ <= n)
+     *    +- Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST, specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_dedup_], ['a, 'b], ['a ASC NULLS FIRST, 'b ASC NULLS FIRST]
+     *       +- Filter (isnotnull('a) AND isnotnull('b))
+     *          +- ...
+     */
+    // Filter (isnotnull('a) AND isnotnull('b))
+    context.relBuilder.filter(
+        context.relBuilder.and(dedupeFields.stream().map(context.relBuilder::isNotNull).toList()));
+    // Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST,
+    // specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_dedup_], ['a, 'b], ['a ASC
+    // NULLS FIRST, 'b ASC NULLS FIRST]
+    RexNode rowNumber =
+        context
+            .relBuilder
+            .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+            .over()
+            .partitionBy(dedupeFields)
+            .orderBy(dedupeFields)
+            .rowsTo(RexWindowBounds.CURRENT_ROW)
+            .as(ROW_NUMBER_COLUMN_FOR_DEDUP);
+    context.relBuilder.projectPlus(rowNumber);
+    RexNode _row_number_dedup_ = context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_DEDUP);
+    // Filter ('_row_number_dedup_ <= n)
     context.relBuilder.filter(
         context.relBuilder.lessThanOrEqual(
-            _row_number_, context.relBuilder.literal(allowedDuplication)));
-    // DropColumns('_row_number_)
-    context.relBuilder.projectExcept(_row_number_);
+            _row_number_dedup_, context.relBuilder.literal(allowedDuplication)));
+    // DropColumns('_row_number_dedup_)
+    context.relBuilder.projectExcept(_row_number_dedup_);
   }
 
   @Override

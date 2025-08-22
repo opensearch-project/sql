@@ -5,15 +5,6 @@
 
 package org.opensearch.sql.ppl.utils;
 
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLiteralContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareCommandContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -25,6 +16,14 @@ import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLiteralContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareCommandContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
 
 /** Util class to get all arguments as a list from the PPL command. */
 public class ArgumentFactory {
@@ -37,7 +36,7 @@ public class ArgumentFactory {
    */
   public static List<Argument> getArgumentList(FieldsCommandContext ctx) {
     return Collections.singletonList(
-        ctx.MINUS() != null
+        ctx.fieldsCommandBody().MINUS() != null
             ? new Argument("exclude", new Literal(true, DataType.BOOLEAN))
             : new Argument("exclude", new Literal(false, DataType.BOOLEAN)));
   }

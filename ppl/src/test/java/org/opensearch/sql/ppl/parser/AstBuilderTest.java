@@ -448,6 +448,50 @@ public class AstBuilderTest {
   }
 
   @Test
+  public void testSortCommandWithCount() {
+    assertEqual(
+        "source=t | sort 100 f1", sort(relation("t"), 100, field("f1", defaultSortFieldArgs())));
+  }
+
+  @Test
+  public void testSortCommandWithDesc() {
+    assertEqual(
+        "source=t | sort f1 desc",
+        sort(
+            relation("t"),
+            field(
+                "f1",
+                exprList(
+                    argument("asc", booleanLiteral(false)), argument("type", nullLiteral())))));
+  }
+
+  @Test
+  public void testSortCommandWithD() {
+    assertEqual(
+        "source=t | sort f1 d",
+        sort(
+            relation("t"),
+            field(
+                "f1",
+                exprList(
+                    argument("asc", booleanLiteral(false)), argument("type", nullLiteral())))));
+  }
+
+  @Test
+  public void testSortCommandWithMultipleFieldsAndDesc() {
+    assertEqual(
+        "source=t | sort f1, -f2 desc",
+        sort(
+            relation("t"),
+            field(
+                "f1",
+                exprList(argument("asc", booleanLiteral(false)), argument("type", nullLiteral()))),
+            field(
+                "f2",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral())))));
+  }
+
+  @Test
   public void testEvalCommand() {
     assertEqual(
         "source=t | eval r=abs(f)",
