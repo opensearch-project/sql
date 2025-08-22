@@ -442,7 +442,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
         // If target field already exists, remove field before renaming source
         int existingFieldIndex = newNames.indexOf(newName);
-        if (existingFieldIndex != -1) {
+        if (existingFieldIndex != -1 && !fieldName.equals(newName)) {
           newNames.remove(newName);
           context.relBuilder.projectExcept(context.relBuilder.field(newName));
         }
