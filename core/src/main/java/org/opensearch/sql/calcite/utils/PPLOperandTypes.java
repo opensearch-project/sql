@@ -48,7 +48,9 @@ public class PPLOperandTypes {
   public static final UDFOperandMetadata STRING_INTEGER =
       UDFOperandMetadata.wrap(OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.INTEGER));
   public static final UDFOperandMetadata STRING_STRING_INTEGER =
-      UDFOperandMetadata.wrap(OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER, SqlTypeFamily.INTEGER));
+      UDFOperandMetadata.wrap(
+          OperandTypes.family(
+              SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER, SqlTypeFamily.INTEGER));
 
   public static final UDFOperandMetadata NUMERIC_NUMERIC_NUMERIC =
       UDFOperandMetadata.wrap(
