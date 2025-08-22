@@ -216,7 +216,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   private boolean isSingleAllFieldsProject(Project node) {
     return node.getProjectList().size() == 1
-        && node.getProjectList().getFirst() instanceof AllFields;
+        && node.getProjectList().get(0) instanceof AllFields;
   }
 
   private RelNode handleAllFieldsProject(Project node, CalcitePlanContext context) {
@@ -224,7 +224,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       throw new IllegalArgumentException(
           "Invalid field exclusion: operation would exclude all fields from the result set");
     }
-    AllFields allFields = (AllFields) node.getProjectList().getFirst();
+    AllFields allFields = (AllFields) node.getProjectList().get(0);
     tryToRemoveNestedFields(context);
     tryToRemoveMetaFields(context, allFields instanceof AllFieldsExcludeMeta);
     return context.relBuilder.peek();
@@ -286,15 +286,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       List<UnresolvedExpression> projectList, List<String> currentFields) {
     String firstWildcardPattern =
         projectList.stream()
-            .filter(
-                expr -> {
-                  if (expr instanceof Field) {
-                    Field field = (Field) expr;
-                    return WildcardUtils.containsWildcard(field.getField().toString());
-                  }
-                  return false;
-                })
-            .map(expr -> ((Field) expr).getField().toString())
+            .filter(expr -> expr instanceof Field)
+            .map(expr -> (Field) expr)
+            .filter(field -> WildcardUtils.containsWildcard(field.getField().toString()))
+            .map(field -> field.getField().toString())
             .findFirst()
             .orElse(null);
 
