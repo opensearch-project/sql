@@ -30,17 +30,29 @@ public class Rex extends UnresolvedPlan {
   /** Maximum number of matches (optional). */
   private final Optional<Integer> maxMatch;
 
+  /** Offset field name for position tracking (optional). */
+  private final Optional<String> offsetField;
+
   /** Child Plan. */
   @Setter private UnresolvedPlan child;
 
   public Rex(UnresolvedExpression field, Literal pattern) {
-    this(field, pattern, Optional.empty());
+    this(field, pattern, Optional.empty(), Optional.empty());
   }
 
   public Rex(UnresolvedExpression field, Literal pattern, Optional<Integer> maxMatch) {
+    this(field, pattern, maxMatch, Optional.empty());
+  }
+
+  public Rex(
+      UnresolvedExpression field,
+      Literal pattern,
+      Optional<Integer> maxMatch,
+      Optional<String> offsetField) {
     this.field = field;
     this.pattern = pattern;
     this.maxMatch = maxMatch;
+    this.offsetField = offsetField;
   }
 
   @Override
