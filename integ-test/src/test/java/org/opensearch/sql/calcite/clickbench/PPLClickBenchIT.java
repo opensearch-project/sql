@@ -55,7 +55,7 @@ public class PPLClickBenchIT extends PPLIntegTestCase {
    * addressed by: https://github.com/opensearch-project/sql/issues/3981
    */
   protected Set<Integer> ignored() {
-    return Set.of(29, 30);
+    return Set.of(29);
   }
 
   @Test

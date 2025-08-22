@@ -372,6 +372,9 @@ public enum BuiltinFunctionName {
           // .put("latest", BuiltinFunctionName.LATEST)
           .put("list", BuiltinFunctionName.LIST)
           .put("values", BuiltinFunctionName.VALUES)
+          .put("distinct_count_approx", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
+          .put("dc", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
+          .put("distinct_count", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
           .put("pattern", BuiltinFunctionName.INTERNAL_PATTERN)
           .build();
 

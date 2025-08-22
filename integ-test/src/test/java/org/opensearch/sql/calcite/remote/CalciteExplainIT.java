@@ -6,9 +6,11 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -19,6 +21,7 @@ public class CalciteExplainIT extends ExplainIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
+    loadIndex(Index.NESTED_SIMPLE);
   }
 
   @Override
@@ -158,6 +161,20 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testPartialPushdownFilterWithIsNull() throws IOException {
+    // isnull(nested_field) should not be pushed down since DSL doesn't handle it correctly, but
+    // name='david' can be pushed down
+    String query =
+        String.format(
+            Locale.ROOT,
+            "source=%s | where isnull(address) and name='david'",
+            TEST_INDEX_NESTED_SIMPLE);
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_partial_filter_isnull.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
   public void testSkipScriptEncodingOnExtendedFormat() throws IOException {
     Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
     String query =
@@ -273,6 +290,27 @@ public class CalciteExplainIT extends ExplainIT {
             "explain source=opensearch-sql_test_index_account | where length(address) > 0 | eval"
                 + " address_length = length(address) | stats count() by address_length");
     String expected = loadFromFile("expectedOutput/calcite/explain_script_push_on_text.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testEventstatsDistinctCountExplain() throws IOException {
+    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    String query =
+        "source=opensearch-sql_test_index_account | eventstats dc(state) as distinct_states";
+    var result = explainQueryToString(query);
+    String expected = loadFromFile("expectedOutput/calcite/explain_eventstats_dc.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testEventstatsDistinctCountFunctionExplain() throws IOException {
+    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    String query =
+        "source=opensearch-sql_test_index_account | eventstats distinct_count(state) as"
+            + " distinct_states by gender";
+    var result = explainQueryToString(query);
+    String expected = loadFromFile("expectedOutput/calcite/explain_eventstats_distinct_count.json");
     assertJsonEqualsIgnoreId(expected, result);
   }
 
