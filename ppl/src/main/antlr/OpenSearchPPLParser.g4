@@ -403,6 +403,8 @@ scalarWindowFunctionName
    | LAST
    | NTH
    | NTILE
+   | DISTINCT_COUNT
+   | DC
    ;
 
 // aggregation terms

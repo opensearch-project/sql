@@ -94,4 +94,185 @@ public class CalciteExplainIT extends ExplainIT {
     String expected = loadFromFile("expectedOutput/calcite/explain_partial_filter_push2.json");
     assertJsonEqualsIgnoreId(expected, result);
   }
+
+  // Only for Calcite
+  @Test
+  public void testExplainIsEmpty() throws IOException {
+    // script pushdown
+    String expected = loadExpectedPlan("explain_isempty.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | where isempty(firstname)"));
+  }
+
+  // Only for Calcite
+  @Test
+  public void testExplainIsBlank() throws IOException {
+    // script pushdown
+    String expected = loadExpectedPlan("explain_isblank.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | where isblank(firstname)"));
+  }
+
+  // Only for Calcite
+  @Test
+  public void testExplainIsEmptyOrOthers() throws IOException {
+    // script pushdown
+    String expected = loadExpectedPlan("explain_isempty_or_others.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | where gender = 'M' or isempty(firstname) or"
+                + " isnull(firstname)"));
+  }
+
+  // Only for Calcite
+  @Test
+  public void testExplainIsNullOrOthers() throws IOException {
+    // pushdown should work
+    String expected = loadExpectedPlan("explain_isnull_or_others.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | where isnull(firstname) or gender = 'M'"));
+  }
+
+  @Ignore("We've supported script push down on text field")
+  @Test
+  public void supportPartialPushDownScript() throws IOException {
+    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    // field `address` is text type without keyword subfield, so we cannot push it down.
+    // But the second condition can be translated to script, so the second one is pushed down.
+    String query =
+        "source=opensearch-sql_test_index_account | where address = '671 Bristol Street' and age -"
+            + " 2 = 30 | fields firstname, age, address";
+    var result = explainQueryToString(query);
+    String expected =
+        loadFromFile("expectedOutput/calcite/explain_partial_filter_script_push.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testPartialPushdownFilterWithIsNull() throws IOException {
+    // isnull(nested_field) should not be pushed down since DSL doesn't handle it correctly, but
+    // name='david' can be pushed down
+    String query =
+        String.format(
+            Locale.ROOT,
+            "source=%s | where isnull(address) and name='david'",
+            TEST_INDEX_NESTED_SIMPLE);
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_partial_filter_isnull.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testSkipScriptEncodingOnExtendedFormat() throws IOException {
+    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    String query =
+        "source=opensearch-sql_test_index_account | where address = '671 Bristol Street' and age -"
+            + " 2 = 30 | fields firstname, age, address";
+    var result = explainQueryToString(query, true);
+    String expected = loadFromFile("expectedOutput/calcite/explain_skip_script_encoding.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  // Only for Calcite, as v2 gets unstable serialized string for function
+  @Test
+  public void testFilterScriptPushDownExplain() throws Exception {
+    super.testFilterScriptPushDownExplain();
+  }
+
+  // Only for Calcite, as v2 gets unstable serialized string for function
+  @Test
+  public void testFilterFunctionScriptPushDownExplain() throws Exception {
+    super.testFilterFunctionScriptPushDownExplain();
+  }
+
+  @Test
+  public void testExplainWithReverse() throws IOException {
+    String result =
+        executeWithReplace(
+            "explain source=opensearch-sql_test_index_account | sort age | reverse | head 5");
+
+    // Verify that the plan contains a LogicalSort with fetch (from head 5)
+    assertTrue(result.contains("LogicalSort") && result.contains("fetch=[5]"));
+
+    // Verify that reverse added a ROW_NUMBER and another sort (descending)
+    assertTrue(result.contains("ROW_NUMBER()"));
+    assertTrue(result.contains("dir0=[DESC]"));
+  }
+
+  @Test
+  public void noPushDownForAggOnWindow() throws IOException {
+    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    String query =
+        "source=opensearch-sql_test_index_account | patterns address method=BRAIN  | stats count()"
+            + " by patterns_field";
+    var result = explainQueryToString(query);
+    String expected = loadFromFile("expectedOutput/calcite/explain_agg_on_window.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  // Only for Calcite
+  @Test
+  public void supportPushDownScriptOnTextField() throws IOException {
+    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    String result =
+        explainQueryToString(
+            "explain source=opensearch-sql_test_index_account | where length(address) > 0 | eval"
+                + " address_length = length(address) | stats count() by address_length");
+    String expected = loadFromFile("expectedOutput/calcite/explain_script_push_on_text.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testEventstatsDistinctCountExplain() throws IOException {
+    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    String query =
+        "source=opensearch-sql_test_index_account | eventstats dc(state) as distinct_states";
+    var result = explainQueryToString(query);
+    String expected = loadFromFile("expectedOutput/calcite/explain_eventstats_dc.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testEventstatsDistinctCountFunctionExplain() throws IOException {
+    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    String query =
+        "source=opensearch-sql_test_index_account | eventstats distinct_count(state) as"
+            + " distinct_states by gender";
+    var result = explainQueryToString(query);
+    String expected = loadFromFile("expectedOutput/calcite/explain_eventstats_distinct_count.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  // Only for Calcite, as v2 gets unstable serialized string for function
+  @Test
+  public void testExplainOnAggregationWithSumEnhancement() throws IOException {
+    String expected = loadExpectedPlan("explain_agg_with_sum_enhancement.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | stats sum(balance), sum(balance + 100), sum(balance - 100),"
+                    + " sum(balance * 100), sum(balance / 100) by gender",
+                TEST_INDEX_BANK)));
+  }
+
+  /**
+   * Executes the PPL query and returns the result as a string with windows-style line breaks
+   * replaced with Unix-style ones.
+   *
+   * @param ppl the PPL query to execute
+   * @return the result of the query as a string with line breaks replaced
+   * @throws IOException if an error occurs during query execution
+   */
+  private String executeWithReplace(String ppl) throws IOException {
+    var result = executeQueryToString(ppl);
+    return result.replace("\\r\\n", "\\n");
+  }
 }
