@@ -421,45 +421,43 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             String.format("the target expected to be field, but is %s", renameMap.getTarget()));
       }
 
-      // Handle wildcards
-      if (renameMap.getOrigin() instanceof Field
-          && WildcardRenameUtils.isWildcardPattern(
-              ((Field) renameMap.getOrigin()).getField().toString())) {
-        String sourcePattern = ((Field) renameMap.getOrigin()).getField().toString();
-        String targetPattern = ((Field) renameMap.getTarget()).getField().toString();
+      String sourcePattern = ((Field) renameMap.getOrigin()).getField().toString();
+      String targetPattern = ((Field) renameMap.getTarget()).getField().toString();
 
-        if (!WildcardRenameUtils.validatePatternCompatibility(sourcePattern, targetPattern)) {
-          throw new SemanticCheckException(
-              "Source and target patterns have different wildcard counts");
-        }
-        Set<String> availableFields = new HashSet<>(newNames);
-        List<String> matchingFields =
-            WildcardRenameUtils.matchFieldNames(sourcePattern, availableFields);
+      if (WildcardRenameUtils.isWildcardPattern(sourcePattern)
+          && !WildcardRenameUtils.validatePatternCompatibility(sourcePattern, targetPattern)) {
+        throw new SemanticCheckException(
+            "Source and target patterns have different wildcard counts");
+      }
 
-        for (String fieldName : matchingFields) {
-          String newName =
-              WildcardRenameUtils.applyWildcardTransformation(
-                  sourcePattern, targetPattern, fieldName);
+      Set<String> availableFields = new HashSet<>(newNames);
+      List<String> matchingFields =
+          WildcardRenameUtils.matchFieldNames(sourcePattern, availableFields);
 
-          int fieldIndex = newNames.indexOf(fieldName);
-          if (fieldIndex >= 0) {
-            newNames.set(fieldIndex, newName);
-            context.relBuilder.rename(newNames);
-          } else {
-            throw new SemanticCheckException(
-                String.format("the wildcard matched field %s cannot be resolved", fieldName));
-          }
+      for (String fieldName : matchingFields) {
+        String newName;
+        newName =
+            WildcardRenameUtils.applyWildcardTransformation(
+                sourcePattern, targetPattern, fieldName);
+
+        // If target field already exists, remove field before renaming source
+        int existingFieldIndex = newNames.indexOf(newName);
+        if (existingFieldIndex != -1) {
+          newNames.remove(newName);
+          context.relBuilder.projectExcept(context.relBuilder.field(newName));
         }
-      } else {
-        String newName = ((Field) renameMap.getTarget()).getField().toString();
-        RexNode check = rexVisitor.analyze(renameMap.getOrigin(), context);
-        if (check instanceof RexInputRef ref) {
-          newNames.set(ref.getIndex(), newName);
-          context.relBuilder.rename(newNames);
-        } else {
-          throw new SemanticCheckException(
-              String.format("the original field %s cannot be resolved", renameMap.getOrigin()));
+
+        int fieldIndex = newNames.indexOf(fieldName);
+        if (fieldIndex != -1) {
+          newNames.set(fieldIndex, newName);
         }
+        context.relBuilder.rename(newNames);
+      }
+      // if source field doesn't exist but target does, remove target field from results
+      if (matchingFields.isEmpty() && !WildcardRenameUtils.isWildcardPattern(targetPattern)) {
+        newNames.remove(targetPattern);
+        context.relBuilder.projectExcept(context.relBuilder.field(targetPattern));
+        context.relBuilder.rename(newNames);
       }
     }
     return context.relBuilder.peek();
