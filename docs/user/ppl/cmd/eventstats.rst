@@ -283,7 +283,17 @@ DISTINCT_COUNT, DC(Since 3.3)
 Description
 >>>>>>>>>>>
 
-Usage: DISTINCT_COUNT(expr), DC(expr). Returns the approximate number of distinct values of expr using HyperLogLog++ algorithm. Both ``DISTINCT_COUNT`` and ``DC`` are equivalent and provide the same functionality.
+Usage: DISTINCT_COUNT(expr), DC(expr). Returns the approximate number of distinct values using the HyperLogLog++ algorithm. Both functions are equivalent.
+
+**Algorithm & Accuracy:**
+The HyperLogLog++ algorithm provides memory-efficient cardinality estimation, avoiding the high memory usage and latency of exact hash set calculations. Counts are typically accurate up to the precision threshold and within 6% of true values in most cases.
+
+**Precision Control:**
+Use the ``precision_threshold`` setting to balance memory usage and accuracy. Values below this threshold are highly accurate, while higher values may be less precise.
+
+* Default: 3,000
+* Maximum: 40,000
+
 
 Example::
 
