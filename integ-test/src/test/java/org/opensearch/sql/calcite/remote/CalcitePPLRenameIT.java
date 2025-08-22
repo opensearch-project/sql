@@ -59,21 +59,6 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testRenameNotExistedField() {
-    Throwable e =
-        assertThrowsWithReplace(
-            IllegalArgumentException.class,
-            () ->
-                executeQuery(
-                    String.format(
-                        "source = %s | rename renamed_age as age", TEST_INDEX_STATE_COUNTRY)));
-    verifyErrorMessageContains(
-        e,
-        "field [renamed_age] not found; input fields are: [name, country, state, month, year, age,"
-            + " _id, _index, _score, _maxscore, _sort, _routing]");
-  }
-
-  @Test
   public void testRenameToMetaField() throws IOException {
     Throwable e =
         assertThrowsWithReplace(
@@ -264,7 +249,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testCascadingRename() throws IOException {
+  public void testChainedRename() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -276,7 +261,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testCascadingRenameWithWildcard() throws IOException {
+  public void testChainedRenameWithWildcard() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -284,5 +269,75 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
                 TEST_INDEX_STATE_COUNTRY));
     verifySchema(result, schema("n_AME", "string"), schema("age", "int"));
     verifyDataRows(result, rows("Jake", 70), rows("Hello", 30), rows("John", 25), rows("Jane", 20));
+  }
+
+  @Test
+  public void testRenamingToExistingField() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source = %s | rename name as age", TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        result,
+        schema("age", "string"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("year", "int"),
+        schema("month", "int"));
+    verifyDataRows(
+        result,
+        rows("Jake", "California", "USA", 2023, 4),
+        rows("Hello", "New York", "USA", 2023, 4),
+        rows("John", "Ontario", "Canada", 2023, 4),
+        rows("Jane", "Quebec", "Canada", 2023, 4));
+  }
+
+  @Test
+  public void testRenamingNonExistentField() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source = %s | rename none as nothing", TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("age", "int"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("year", "int"),
+        schema("month", "int"));
+    verifyDataRows(
+        result,
+        rows("Jake", 70, "California", "USA", 2023, 4),
+        rows("Hello", 30, "New York", "USA", 2023, 4),
+        rows("John", 25, "Ontario", "Canada", 2023, 4),
+        rows("Jane", 20, "Quebec", "Canada", 2023, 4));
+  }
+
+  @Test
+  public void testRenamingNonExistentFieldToExistingField() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source = %s | rename none as age", TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("year", "int"),
+        schema("month", "int"));
+    verifyDataRows(
+        result,
+        rows("Jake", "California", "USA", 2023, 4),
+        rows("Hello", "New York", "USA", 2023, 4),
+        rows("John", "Ontario", "Canada", 2023, 4),
+        rows("Jane", "Quebec", "Canada", 2023, 4));
+  }
+
+  @Test
+  public void testWildcardPatternDifferentCounts() {
+    Throwable e =
+        assertThrowsWithReplace(
+            IllegalArgumentException.class,
+            () ->
+                executeQuery(
+                    String.format("source = %s | rename *a*e as *new", TEST_INDEX_STATE_COUNTRY)));
+    verifyErrorMessageContains(e, "Source and target patterns have different wildcard counts");
   }
 }

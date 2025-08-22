@@ -140,7 +140,7 @@ wcFieldList
    ;
 
 renameCommand
-   : RENAME renameClasue (COMMA renameClasue)*
+   : RENAME renameClasue (COMMA? renameClasue)*
    ;
 
 statsCommand
