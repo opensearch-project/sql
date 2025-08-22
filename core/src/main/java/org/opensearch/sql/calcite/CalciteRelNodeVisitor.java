@@ -216,6 +216,20 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     RexNode fieldRex = rexVisitor.analyze(node.getField(), context);
     String patternStr = (String) node.getPattern().getValue();
+
+    if (node.getMode() == Rex.RexMode.SED) {
+      RexNode sedCall =
+          PPLFuncImpTable.INSTANCE.resolve(
+              context.rexBuilder,
+              BuiltinFunctionName.REX_SED,
+              fieldRex,
+              context.rexBuilder.makeLiteral(patternStr));
+
+      String fieldName = node.getField().toString();
+      projectPlusOverriding(List.of(sedCall), List.of(fieldName), context);
+      return context.relBuilder.peek();
+    }
+
     List<String> namedGroups = RegexExpression.getNamedGroupCandidates(patternStr);
 
     if (namedGroups.isEmpty()) {

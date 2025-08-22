@@ -288,6 +288,7 @@ rexExpr
 rexOption
     : MAX_MATCH EQUAL maxMatch=integerLiteral
     | OFFSET_FIELD EQUAL offsetField=qualifiedName
+    | MODE EQUAL SED
     ;
 patternsMethod
    : PUNCT

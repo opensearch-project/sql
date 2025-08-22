@@ -162,6 +162,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.REVERSE
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REX_EXTRACT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REX_EXTRACT_MULTI;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REX_OFFSET;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.REX_SED;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RIGHT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RINT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ROUND;
@@ -709,6 +710,7 @@ public class PPLFuncImpTable {
       registerOperator(REX_EXTRACT, PPLBuiltinOperators.REX_EXTRACT);
       registerOperator(REX_EXTRACT_MULTI, PPLBuiltinOperators.REX_EXTRACT_MULTI);
       registerOperator(REX_OFFSET, PPLBuiltinOperators.REX_OFFSET);
+      registerOperator(REX_SED, PPLBuiltinOperators.REX_SED);
 
       // Register PPL Datetime UDF operator
       registerOperator(TIMESTAMP, PPLBuiltinOperators.TIMESTAMP);

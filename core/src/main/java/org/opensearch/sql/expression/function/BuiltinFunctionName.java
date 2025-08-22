@@ -222,6 +222,7 @@ public enum BuiltinFunctionName {
   REX_EXTRACT(FunctionName.of("REX_EXTRACT")),
   REX_EXTRACT_MULTI(FunctionName.of("REX_EXTRACT_MULTI")),
   REX_OFFSET(FunctionName.of("REX_OFFSET")),
+  REX_SED(FunctionName.of("REX_SED")),
   REPLACE(FunctionName.of("replace")),
   REVERSE(FunctionName.of("reverse")),
   RIGHT(FunctionName.of("right")),

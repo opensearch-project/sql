@@ -55,6 +55,7 @@ METHOD:                             'METHOD';
 MAX_SAMPLE_COUNT:                   'MAX_SAMPLE_COUNT';
 MAX_MATCH:                          'MAX_MATCH';
 OFFSET_FIELD:                       'OFFSET_FIELD';
+SED:                                'SED';
 BUFFER_LIMIT:                       'BUFFER_LIMIT';
 LABEL:                              'LABEL';
 AGGREGATION:                        'AGGREGATION';

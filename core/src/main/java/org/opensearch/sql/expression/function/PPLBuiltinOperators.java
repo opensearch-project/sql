@@ -59,6 +59,7 @@ import org.opensearch.sql.expression.function.udf.RelevanceQueryFunction;
 import org.opensearch.sql.expression.function.udf.RexExtractFunction;
 import org.opensearch.sql.expression.function.udf.RexExtractMultiFunction;
 import org.opensearch.sql.expression.function.udf.RexOffsetFunction;
+import org.opensearch.sql.expression.function.udf.RexSedFunction;
 import org.opensearch.sql.expression.function.udf.SpanFunction;
 import org.opensearch.sql.expression.function.udf.condition.EarliestFunction;
 import org.opensearch.sql.expression.function.udf.condition.EnhancedCoalesceFunction;
@@ -408,6 +409,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator REX_EXTRACT_MULTI =
       new RexExtractMultiFunction().toUDF("REX_EXTRACT_MULTI");
   public static final SqlOperator REX_OFFSET = new RexOffsetFunction().toUDF("REX_OFFSET");
+  public static final SqlOperator REX_SED = new RexSedFunction().toUDF("REX_SED");
 
   // Aggregation functions
   public static final SqlAggFunction AVG_NULLABLE = new NullableSqlAvgAggFunction(SqlKind.AVG);
