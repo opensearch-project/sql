@@ -1038,6 +1038,7 @@ dateTimeFunctionName
    | WEEK_OF_YEAR
    | YEAR
    | YEARWEEK
+   | STRFTIME
    ;
 
 getFormatFunctionCall

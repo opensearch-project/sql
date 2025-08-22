@@ -386,6 +386,7 @@ UTC_TIME:                           'UTC_TIME';
 UTC_TIMESTAMP:                      'UTC_TIMESTAMP';
 WEEKDAY:                            'WEEKDAY';
 YEARWEEK:                           'YEARWEEK';
+STRFTIME:                           'STRFTIME';
 
 // TEXT FUNCTIONS
 SUBSTR:                             'SUBSTR';

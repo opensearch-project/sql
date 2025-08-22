@@ -76,6 +76,7 @@ import org.opensearch.sql.expression.function.udf.datetime.FromUnixTimeFunction;
 import org.opensearch.sql.expression.function.udf.datetime.LastDayFunction;
 import org.opensearch.sql.expression.function.udf.datetime.PeriodNameFunction;
 import org.opensearch.sql.expression.function.udf.datetime.SecToTimeFunction;
+import org.opensearch.sql.expression.function.udf.datetime.StrftimeFunction;
 import org.opensearch.sql.expression.function.udf.datetime.SysdateFunction;
 import org.opensearch.sql.expression.function.udf.datetime.TimestampAddFunction;
 import org.opensearch.sql.expression.function.udf.datetime.TimestampDiffFunction;
@@ -170,6 +171,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator WEEKDAY = new WeekdayFunction().toUDF("WEEKDAY");
   public static final SqlOperator UNIX_TIMESTAMP =
       new UnixTimestampFunction().toUDF("UNIX_TIMESTAMP");
+  public static final SqlOperator STRFTIME = new StrftimeFunction().toUDF("STRFTIME");
   public static final SqlOperator TO_SECONDS = new ToSecondsFunction().toUDF("TO_SECONDS");
   public static final SqlOperator ADDTIME =
       adaptExprMethodWithPropertiesToUDF(
