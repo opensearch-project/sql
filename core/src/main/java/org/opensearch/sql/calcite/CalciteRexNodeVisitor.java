@@ -541,7 +541,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
                 new UnsupportedOperationException(
                     "Unexpected window function: " + windowFunction.getFuncName()));
   }
-  
+
   /** extract the expression of Alias from a node */
   private RexNode extractRexNodeFromAlias(RexNode node) {
     requireNonNull(node);
