@@ -220,6 +220,7 @@ public enum BuiltinFunctionName {
   REGEXP(FunctionName.of("regexp")),
   REGEX_MATCH(FunctionName.of("regex_match")),
   REX_EXTRACT(FunctionName.of("REX_EXTRACT")),
+  REX_EXTRACT_MULTI(FunctionName.of("REX_EXTRACT_MULTI")),
   REX_OFFSET(FunctionName.of("REX_OFFSET")),
   REPLACE(FunctionName.of("replace")),
   REVERSE(FunctionName.of("reverse")),

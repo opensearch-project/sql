@@ -223,7 +223,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           "Rex pattern must contain at least one named capture group");
     }
 
-    // Filter matching rows on data nodes using script pushdown
     RexNode regexMatchCondition =
         context.rexBuilder.makeCall(
             SqlLibraryOperators.REGEXP_CONTAINS,
@@ -231,18 +230,29 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             context.rexBuilder.makeLiteral(patternStr));
     context.relBuilder.filter(regexMatchCondition);
 
-    // Extract fields from filtered data
     List<RexNode> newFields = new ArrayList<>();
     List<String> newFieldNames = new ArrayList<>();
 
     for (int i = 0; i < namedGroups.size(); i++) {
-      RexNode extractCall =
-          PPLFuncImpTable.INSTANCE.resolve(
-              context.rexBuilder,
-              BuiltinFunctionName.REX_EXTRACT,
-              fieldRex,
-              context.rexBuilder.makeLiteral(patternStr),
-              context.relBuilder.literal(i + 1));
+      RexNode extractCall;
+      if (node.getMaxMatch().isPresent() && node.getMaxMatch().get() != 1) {
+        extractCall =
+            PPLFuncImpTable.INSTANCE.resolve(
+                context.rexBuilder,
+                BuiltinFunctionName.REX_EXTRACT_MULTI,
+                fieldRex,
+                context.rexBuilder.makeLiteral(patternStr),
+                context.relBuilder.literal(i + 1),
+                context.relBuilder.literal(node.getMaxMatch().get()));
+      } else {
+        extractCall =
+            PPLFuncImpTable.INSTANCE.resolve(
+                context.rexBuilder,
+                BuiltinFunctionName.REX_EXTRACT,
+                fieldRex,
+                context.rexBuilder.makeLiteral(patternStr),
+                context.relBuilder.literal(i + 1));
+      }
       newFields.add(extractCall);
       newFieldNames.add(namedGroups.get(i));
     }
