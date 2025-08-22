@@ -99,15 +99,15 @@ public class PPLAggregateConvertRuleTest {
               assertInstanceOf(LogicalProject.class, rel);
               LogicalProject parentProject = (LogicalProject) rel;
               assertTrue(
-                  parentProject.getProjects().getLast() instanceof RexCall call
-                      && call.getOperator() == SqlStdOperatorTable.PLUS);
+                  parentProject.getProjects().get(1) instanceof RexCall
+                      && ((RexCall)parentProject.getProjects().get(1)).getOperator() == SqlStdOperatorTable.PLUS);
 
               assertInstanceOf(LogicalAggregate.class, parentProject.getInput());
               LogicalAggregate newAggregate = (LogicalAggregate) parentProject.getInput();
               assertTrue(
-                  newAggregate.getAggCallList().getFirst().getAggregation()
+                  newAggregate.getAggCallList().get(0).getAggregation()
                           == SqlStdOperatorTable.SUM
-                      && newAggregate.getAggCallList().getLast().getAggregation()
+                      && newAggregate.getAggCallList().get(1).getAggregation()
                           == SqlStdOperatorTable.COUNT);
 
               assertInstanceOf(LogicalProject.class, newAggregate.getInput());
