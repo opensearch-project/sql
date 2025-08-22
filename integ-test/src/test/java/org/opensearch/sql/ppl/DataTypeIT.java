@@ -127,7 +127,7 @@ public class DataTypeIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | where long_number=12345678 ｜ fields long_number, integer_number,"
+                "source=%s | where long_number=12345678 | fields long_number, integer_number,"
                     + " double_number",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifySchema(
