@@ -238,30 +238,29 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     Set<String> addedFields = new HashSet<>();
 
     for (UnresolvedExpression expr : projectList) {
-      switch (expr) {
-        case Field field -> {
-          String fieldName = field.getField().toString();
-          if (WildcardUtils.containsWildcard(fieldName)) {
-            List<String> matchingFields =
-                WildcardUtils.expandWildcardPattern(fieldName, currentFields).stream()
-                    .filter(f -> !isMetadataField(f))
-                    .filter(addedFields::add)
-                    .toList();
-            if (matchingFields.isEmpty()) {
-              continue;
-            }
-            matchingFields.forEach(f -> expandedFields.add(context.relBuilder.field(f)));
-          } else if (addedFields.add(fieldName)) {
-            expandedFields.add(rexVisitor.analyze(field, context));
+      if (expr instanceof Field) {
+        Field field = (Field) expr;
+        String fieldName = field.getField().toString();
+        if (WildcardUtils.containsWildcard(fieldName)) {
+          List<String> matchingFields =
+              WildcardUtils.expandWildcardPattern(fieldName, currentFields).stream()
+                  .filter(f -> !isMetadataField(f))
+                  .filter(addedFields::add)
+                  .collect(Collectors.toList());
+          if (matchingFields.isEmpty()) {
+            continue;
           }
+          matchingFields.forEach(f -> expandedFields.add(context.relBuilder.field(f)));
+        } else if (addedFields.add(fieldName)) {
+          expandedFields.add(rexVisitor.analyze(field, context));
         }
-        case AllFields ignored -> {
-          currentFields.stream()
-              .filter(field -> !isMetadataField(field))
-              .filter(addedFields::add)
-              .forEach(field -> expandedFields.add(context.relBuilder.field(field)));
-        }
-        default -> throw new IllegalStateException(
+      } else if (expr instanceof AllFields) {
+        currentFields.stream()
+            .filter(field -> !isMetadataField(field))
+            .filter(addedFields::add)
+            .forEach(field -> expandedFields.add(context.relBuilder.field(field)));
+      } else {
+        throw new IllegalStateException(
             "Unexpected expression type in project list: " + expr.getClass().getSimpleName());
       }
     }
@@ -288,9 +287,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     String firstWildcardPattern =
         projectList.stream()
             .filter(
-                expr ->
-                    expr instanceof Field field
-                        && WildcardUtils.containsWildcard(field.getField().toString()))
+                expr -> {
+                  if (expr instanceof Field) {
+                    Field field = (Field) expr;
+                    return WildcardUtils.containsWildcard(field.getField().toString());
+                  }
+                  return false;
+                })
             .map(expr -> ((Field) expr).getField().toString())
             .findFirst()
             .orElse(null);
