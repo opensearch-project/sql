@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.analysis.symbol.Namespace;
@@ -64,13 +65,13 @@ class WildcardFieldResolverTest {
     List<UnresolvedExpression> projectList =
         wildcardPatterns.stream()
             .map(pattern -> new Field(QualifiedName.of(pattern)))
-            .collect(java.util.stream.Collectors.toList());
+            .collect(Collectors.toList());
 
     List<NamedExpression> result =
         WildcardFieldResolver.resolveWildcards(projectList, context, expressionAnalyzer);
 
     ImmutableList<String> resultNames =
-        ImmutableList.copyOf(result.stream().map(NamedExpression::getNameOrAlias).toList());
+        ImmutableList.copyOf(result.stream().map(NamedExpression::getNameOrAlias).collect(Collectors.toList()));
     ImmutableList<String> expected = ImmutableList.copyOf(expectedFields);
 
     if (resultNames.size() != expected.size() || !resultNames.containsAll(expected)) {
@@ -116,7 +117,7 @@ class WildcardFieldResolverTest {
         WildcardFieldResolver.resolveWildcards(projectList, context, expressionAnalyzer);
 
     ImmutableList<String> resultNames =
-        ImmutableList.copyOf(result.stream().map(NamedExpression::getNameOrAlias).toList());
+        ImmutableList.copyOf(result.stream().map(NamedExpression::getNameOrAlias).collect(Collectors.toList()));
     ImmutableList<String> expected = ImmutableList.of("balance", "account_number", "firstname");
 
     if (!resultNames.equals(expected)) {
@@ -137,7 +138,7 @@ class WildcardFieldResolverTest {
         WildcardFieldResolver.resolveWildcards(projectList, context, expressionAnalyzer);
 
     ImmutableList<String> resultNames =
-        ImmutableList.copyOf(result.stream().map(NamedExpression::getNameOrAlias).toList());
+        ImmutableList.copyOf(result.stream().map(NamedExpression::getNameOrAlias).collect(Collectors.toList()));
     ImmutableList<String> expected = ImmutableList.of("firstname", "lastname", "age");
 
     if (resultNames.size() != 3 || !resultNames.containsAll(expected)) {
@@ -169,7 +170,7 @@ class WildcardFieldResolverTest {
         WildcardFieldResolver.resolveWildcards(projectList, context, expressionAnalyzer);
 
     ImmutableList<String> resultNames =
-        ImmutableList.copyOf(result.stream().map(NamedExpression::getNameOrAlias).toList());
+        ImmutableList.copyOf(result.stream().map(NamedExpression::getNameOrAlias).collect(Collectors.toList()));
     ImmutableList<String> expected = ImmutableList.copyOf(availableFields.keySet());
 
     if (resultNames.size() != expected.size() || !resultNames.containsAll(expected)) {
@@ -210,7 +211,7 @@ class WildcardFieldResolverTest {
         WildcardFieldResolver.resolveWildcards(starProjectList, context, expressionAnalyzer);
 
     ImmutableList<String> starResultNames =
-        ImmutableList.copyOf(starResult.stream().map(NamedExpression::getNameOrAlias).toList());
+        ImmutableList.copyOf(starResult.stream().map(NamedExpression::getNameOrAlias).collect(Collectors.toList()));
     ImmutableList<String> expectedStar = ImmutableList.copyOf(availableFields.keySet());
 
     if (starResultNames.size() != expectedStar.size()
@@ -233,7 +234,7 @@ class WildcardFieldResolverTest {
         WildcardFieldResolver.resolveWildcards(explicitProjectList, context, expressionAnalyzer);
 
     ImmutableList<String> explicitResultNames =
-        ImmutableList.copyOf(explicitResult.stream().map(NamedExpression::getNameOrAlias).toList());
+        ImmutableList.copyOf(explicitResult.stream().map(NamedExpression::getNameOrAlias).collect(Collectors.toList()));
     ImmutableList<String> expectedExplicit = ImmutableList.of("account_number", "firstname");
 
     if (!explicitResultNames.equals(expectedExplicit)) {
@@ -267,7 +268,7 @@ class WildcardFieldResolverTest {
         WildcardFieldResolver.resolveWildcards(projectList, context, expressionAnalyzer);
 
     ImmutableList<String> resultNames =
-        ImmutableList.copyOf(result.stream().map(NamedExpression::getNameOrAlias).toList());
+        ImmutableList.copyOf(result.stream().map(NamedExpression::getNameOrAlias).collect(Collectors.toList()));
     ImmutableList<String> expected = ImmutableList.copyOf(availableFields.keySet());
 
     if (resultNames.size() != expected.size() || !resultNames.containsAll(expected)) {
