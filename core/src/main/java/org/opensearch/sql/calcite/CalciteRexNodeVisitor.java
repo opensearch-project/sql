@@ -561,7 +561,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
           "The number of columns in the left hand side of an IN subquery does not match the number"
               + " of columns in the output of subquery");
     }
-
     // TODO
     //  The {@link org.apache.calcite.tools.RelBuilder#in(RexNode,java.util.function.Function)}
     //  only support one expression. Change to follow code after calcite fixed.
@@ -640,6 +639,9 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     return context.rexBuilder.makeCall(SqlStdOperatorTable.CASE, caseOperands);
   }
 
+  /*
+   * Unsupported Expressions of PPL with Calcite for OpenSearch 3.0.0-beta
+   */
   @Override
   public RexNode visitWhen(When node, CalcitePlanContext context) {
     throw new CalciteUnsupportedException("CastWhen function is unsupported in Calcite");

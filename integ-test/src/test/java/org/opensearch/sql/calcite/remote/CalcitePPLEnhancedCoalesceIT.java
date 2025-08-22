@@ -214,4 +214,49 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
     verifySchema(actual, schema("name", "string"), schema("result", "string"));
     verifyDataRows(actual, rows("Jake", ""));
   }
+
+  @Test
+  public void testCoalesceWithCompatibleNumericTypes() throws IOException {
+
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval result = coalesce(age, year, 999) | fields age, year, result |"
+                    + " head 2",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(actual, schema("age", "int"), schema("year", "int"), schema("result", "int"));
+    verifyDataRows(actual, rows(70, 2023, 70), rows(30, 2023, 30));
+  }
+
+  @Test
+  public void testCoalesceTypeCoercionWithMixedTypes() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval result = coalesce(nonexistent_field, age,"
+                    + " 'default') | fields age, result | head 2",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(actual, schema("age", "int"), schema("result", "string"));
+    verifyDataRows(actual, rows(70, "70"), rows(30, "30"));
+  }
+
+  @Test
+  public void testCoalesceWithCompatibleNumericAndTemporalTypes() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval result = coalesce(age, year, month) | fields age, year, month,"
+                    + " result | head 2",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(
+        actual,
+        schema("age", "int"),
+        schema("year", "int"),
+        schema("month", "int"),
+        schema("result", "int"));
+    verifyDataRows(actual, rows(70, 2023, 4, 70), rows(30, 2023, 4, 30));
+  }
 }

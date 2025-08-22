@@ -58,13 +58,11 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
     getRelNode(ppl);
   }
 
-  // This test should pass with the new coalesce features that support mixed types
   @Test
   public void testCoalesceWithDifferentType() {
     String ppl =
         "source=EMP | eval coalesce_name = coalesce(EMPNO, 'Jack', ENAME) | fields"
             + " coalesce_name";
-    // Should not throw exception with enhanced coalesce supporting mixed types
     getRelNode(ppl);
   }
 

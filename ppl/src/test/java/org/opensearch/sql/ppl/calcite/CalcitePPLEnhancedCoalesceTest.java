@@ -78,7 +78,7 @@ public class CalcitePPLEnhancedCoalesceTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
-            + "  LogicalFilter(condition=[=(COALESCE($1, 'UNKNOWN':VARCHAR), 'SMITH':VARCHAR)])\n"
+            + "  LogicalFilter(condition=[=(COALESCE($1, 'UNKNOWN':VARCHAR), 'SMITH')])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
@@ -214,6 +214,25 @@ public class CalcitePPLEnhancedCoalesceTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql =
         "SELECT `EMPNO`, COALESCE(' ', `ENAME`) `result`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testCoalesceTypeInferenceWithNonNullableOperands() {
+    String ppl =
+        "source=EMP | eval result = coalesce(COMM, SAL, 999) | fields EMPNO, COMM, SAL, result"
+            + " | head 2";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(fetch=[2])\n"
+            + "  LogicalProject(EMPNO=[$0], COMM=[$6], SAL=[$5], result=[COALESCE($6, $5, 999)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `COMM`, `SAL`, COALESCE(`COMM`, `SAL`, 999) `result`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 2";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }

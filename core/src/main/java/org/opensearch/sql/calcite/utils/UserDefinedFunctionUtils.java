@@ -345,18 +345,4 @@ public class UserDefinedFunctionUtils {
       }
     };
   }
-
-  public static org.opensearch.sql.data.model.ExprValue enhancedCoalesce(
-      org.opensearch.sql.data.model.ExprValue... args) {
-    for (org.opensearch.sql.data.model.ExprValue arg : args) {
-      if (arg != null && !arg.isNull() && !arg.isMissing()) {
-        // Check for empty strings
-        if (arg.type().typeName().equals("STRING") && arg.stringValue().trim().isEmpty()) {
-          continue;
-        }
-        return arg;
-      }
-    }
-    return ExprValueUtils.nullValue();
-  }
 }
