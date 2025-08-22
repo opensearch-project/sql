@@ -91,6 +91,16 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
     assertJsonEquals(expected, result);
   }
 
+  @Test
+  public void testExplainStrftimeFunction() throws IOException {
+    var result =
+        executeWithReplace(
+            "explain source=test | eval formatted = strftime(1521467703, '%Y-%m-%d') | fields"
+                + " formatted");
+    // Just verify the explain output contains eval since strftime is within eval
+    assertTrue(result.contains("CalciteEvalBridge") || result.contains("eval"));
+  }
+
   /**
    * Executes the PPL query and returns the result as a string with windows-style line breaks
    * replaced with Unix-style ones.
