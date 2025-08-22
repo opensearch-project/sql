@@ -429,8 +429,8 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     }
 
     private boolean isScriptAggBuilder(AggregationBuilder aggBuilder) {
-      return aggBuilder instanceof ValuesSourceAggregationBuilder<?> valueSourceAgg
-          && valueSourceAgg.script() != null;
+      return aggBuilder instanceof ValuesSourceAggregationBuilder<?>
+          && ((ValuesSourceAggregationBuilder<?>) aggBuilder).script() != null;
     }
 
     @Override
