@@ -199,24 +199,6 @@ public class OpenSearchExprValueFactory {
 
     final ExprType type = fieldType.get();
 
-    // Handle range strings from bin operations
-    // Range strings like "20-30" or "1000.0-10000.0" should always be treated as strings
-    // regardless of original field type
-    if (content.objectValue() instanceof String) {
-      String stringValue = (String) content.objectValue();
-      // Check if this is a numeric range pattern (e.g., "20-30", "1000.0-10000.0")
-      if (stringValue.matches("\\d+\\.?\\d*-\\d+\\.?\\d*")) {
-        // Exclude date formats to avoid false positives:
-        // - YYYY-DDD (ordinal date): "1984-103"
-        // - YYYY-MM-DD (ISO date): "1984-04-12"
-        if (!stringValue.matches("\\d{4}-\\d{1,3}")
-            && !stringValue.matches("\\d{4}-\\d{2}-\\d{2}")) {
-          // This is a range string from bin operation - treat as string value
-          return new ExprStringValue(stringValue);
-        }
-      }
-    }
-
     if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.GeoPoint))) {
       return parseGeoPoint(content, supportArrays);
     } else if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.Nested))
