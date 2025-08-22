@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.expression.function.udf;
 
+import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -17,11 +18,7 @@ import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
-import java.util.List;
-
-/**
- * Custom REX_EXTRACT function for extracting regex named capture groups.
- */
+/** Custom REX_EXTRACT function for extracting regex named capture groups. */
 public final class RexExtractFunction extends ImplementorUDF {
 
   public RexExtractFunction() {
@@ -46,29 +43,24 @@ public final class RexExtractFunction extends ImplementorUDF {
       Expression field = translatedOperands.get(0);
       Expression pattern = translatedOperands.get(1);
       Expression groupIndex = translatedOperands.get(2);
-      
-      return Expressions.call(
-          RexExtractFunction.class,
-          "extractGroup",
-          field,
-          pattern,
-          groupIndex
-      );
+
+      return Expressions.call(RexExtractFunction.class, "extractGroup", field, pattern, groupIndex);
     }
   }
+
   public static String extractGroup(String text, String pattern, int groupIndex) {
     if (text == null || pattern == null) {
       return null;
     }
-    
+
     try {
       java.util.regex.Pattern compiledPattern = java.util.regex.Pattern.compile(pattern);
       java.util.regex.Matcher matcher = compiledPattern.matcher(text);
-      
+
       if (matcher.find() && groupIndex > 0 && groupIndex <= matcher.groupCount()) {
         return matcher.group(groupIndex);
       }
-      
+
       return null;
     } catch (Exception e) {
       return null;

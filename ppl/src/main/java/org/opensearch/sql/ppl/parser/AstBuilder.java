@@ -91,9 +91,9 @@ import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
-import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.SPath;
+import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
@@ -999,6 +999,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
     return new Rex(field, pattern, maxMatch);
   }
+
   /** Get original text in query. */
   private String getTextInQuery(ParserRuleContext ctx) {
     Token start = ctx.getStart();
