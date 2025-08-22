@@ -158,7 +158,7 @@ dedupCommand
    ;
 
 sortCommand
-   : SORT (count = integerLiteral)? sortbyClause (ASC | A | DESC | D)?
+   : SORT (count = integerLiteral)? sortbyClause (ASC | DESC | D)?
    ;
 
 reverseCommand
