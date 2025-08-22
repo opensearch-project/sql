@@ -7,7 +7,6 @@ package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 import static org.opensearch.sql.plugin.rest.RestPPLQueryAction.EXPLAIN_API_ENDPOINT;
-import static org.opensearch.sql.plugin.rest.RestPPLQueryAction.EXTENDED_EXPLAIN_API_ENDPOINT;
 import static org.opensearch.sql.plugin.rest.RestPPLQueryAction.QUERY_API_ENDPOINT;
 
 import com.google.common.io.Resources;
@@ -34,6 +33,8 @@ import org.opensearch.sql.util.RetryProcessor;
 
 /** OpenSearch Rest integration test base for PPL testing. */
 public abstract class PPLIntegTestCase extends SQLIntegTestCase {
+  private static final String EXTENDED_EXPLAIN_API_ENDPOINT =
+      "/_plugins/_ppl/_explain?format=extended";
   private static final Logger LOG = LogManager.getLogger();
   @Rule public final RetryProcessor retryProcessor = new RetryProcessor();
 
