@@ -128,9 +128,4 @@ public class SpanBinHandler implements BinHandler {
       return visitor.analyze(node.getAligntime(), context);
     }
   }
-
-  @Override
-  public boolean usesWindowFunctions() {
-    return false;
-  }
 }

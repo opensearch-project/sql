@@ -65,9 +65,4 @@ public class CountBinHandler implements BinHandler {
 
     throw new IllegalArgumentException("Expected literal expression, got: " + expr.getClass());
   }
-
-  @Override
-  public boolean usesWindowFunctions() {
-    return true;
-  }
 }

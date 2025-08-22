@@ -46,9 +46,4 @@ public class RangeBinHandler implements BinHandler {
 
     return visitor.analyze(expr, context);
   }
-
-  @Override
-  public boolean usesWindowFunctions() {
-    return true;
-  }
 }

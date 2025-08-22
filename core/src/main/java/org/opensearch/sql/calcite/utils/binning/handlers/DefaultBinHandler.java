@@ -71,9 +71,4 @@ public class DefaultBinHandler implements BinHandler {
 
     return context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, floored, width);
   }
-
-  @Override
-  public boolean usesWindowFunctions() {
-    return true;
-  }
 }

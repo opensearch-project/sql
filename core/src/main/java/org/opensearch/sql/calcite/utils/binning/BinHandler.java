@@ -24,11 +24,4 @@ public interface BinHandler {
    */
   RexNode createExpression(
       Bin node, RexNode fieldExpr, CalcitePlanContext context, CalciteRexNodeVisitor visitor);
-
-  /**
-   * Checks if this handler uses window functions.
-   *
-   * @return true if window functions are used
-   */
-  boolean usesWindowFunctions();
 }
