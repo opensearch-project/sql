@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 
 import java.io.IOException;
@@ -214,6 +215,40 @@ public class CalciteExplainIT extends ExplainIT {
                 + " address_length = length(address) | stats count() by address_length");
     String expected = loadFromFile("expectedOutput/calcite/explain_script_push_on_text.json");
     assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testEventstatsDistinctCountExplain() throws IOException {
+    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    String query =
+        "source=opensearch-sql_test_index_account | eventstats dc(state) as distinct_states";
+    var result = explainQueryToString(query);
+    String expected = loadFromFile("expectedOutput/calcite/explain_eventstats_dc.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testEventstatsDistinctCountFunctionExplain() throws IOException {
+    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    String query =
+        "source=opensearch-sql_test_index_account | eventstats distinct_count(state) as"
+            + " distinct_states by gender";
+    var result = explainQueryToString(query);
+    String expected = loadFromFile("expectedOutput/calcite/explain_eventstats_distinct_count.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  // Only for Calcite, as v2 gets unstable serialized string for function
+  @Test
+  public void testExplainOnAggregationWithSumEnhancement() throws IOException {
+    String expected = loadExpectedPlan("explain_agg_with_sum_enhancement.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | stats sum(balance), sum(balance + 100), sum(balance - 100),"
+                    + " sum(balance * 100), sum(balance / 100) by gender",
+                TEST_INDEX_BANK)));
   }
 
   /**
