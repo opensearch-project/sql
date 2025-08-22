@@ -149,6 +149,38 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
     }
   }
 
+  @Test
+  public void testEarliestLatestAggregates() throws IOException {
+    JSONObject result;
+    try {
+      result =
+          executeQuery(
+              String.format(
+                  "search source=%s | stats earliest(firstname) as earliest_name,"
+                      + " latest(firstname) as latest_name by gender",
+                  TEST_INDEX_BANK));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+    verifyQuery(result);
+  }
+
+  @Test
+  public void testMaxByMinByAggregates() throws IOException {
+    JSONObject result;
+    try {
+      result =
+          executeQuery(
+              String.format(
+                  "search source=%s | stats max_by(firstname, age) as oldest_name,"
+                      + " min_by(firstname, age) as youngest_name by gender",
+                  TEST_INDEX_BANK));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+    verifyQuery(result);
+  }
+
   private void verifyQuery(JSONObject result) throws IOException {
     if (isCalciteEnabled()) {
       assertFalse(result.getJSONArray("datarows").isEmpty());

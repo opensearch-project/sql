@@ -623,6 +623,38 @@ public class ExplainIT extends PPLIntegTestCase {
                 TEST_INDEX_BANK)));
   }
 
+  @Test
+  public void testExplainOnEarliestLatest() throws IOException {
+    String expected = loadExpectedPlan("explain_earliest_latest.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats earliest(firstname) as earliest_name,"
+                + " latest(firstname) as latest_name by state"));
+  }
+
+  @Test
+  public void testExplainOnEarliestLatestWithCustomTimeField() throws IOException {
+    String expected = loadExpectedPlan("explain_earliest_latest_custom_time.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | stats earliest(firstname, birthdate) as earliest_name,"
+                    + " latest(firstname, birthdate) as latest_name by gender",
+                TEST_INDEX_BANK)));
+  }
+
+  @Test
+  public void testExplainOnMaxByMinBy() throws IOException {
+    String expected = loadExpectedPlan("explain_max_by_min_by.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats max_by(firstname, age) as"
+                + " oldest_name, min_by(firstname, age) as youngest_name by state"));
+  }
+
   protected String loadExpectedPlan(String fileName) throws IOException {
     String prefix;
     if (isCalciteEnabled()) {

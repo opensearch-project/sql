@@ -302,6 +302,76 @@ Example::
     | 36                  | M      |
     +---------------------+--------+
 
+EARLIEST
+--------
+
+Description
+>>>>>>>>>>>
+
+Version: 3.1.0
+
+Usage: EARLIEST(field [, time_field]). Return the earliest value of a field based on timestamp ordering.
+
+* field: mandatory. The field to return the earliest value for.
+* time_field: optional. The field to use for time-based ordering. Defaults to @timestamp if not specified.
+
+Example::
+
+    os> source=logs | stats earliest(message) by host;
+    fetched rows / total rows = 2/2
+    +------------------+----------+
+    | earliest(message)| host     |
+    |------------------+----------|
+    | "Starting up"    | server1  |
+    | "Initializing"   | server2  |
+    +------------------+----------+
+
+Example with custom time field::
+
+    os> source=events | stats earliest(status, event_time) by category;
+    fetched rows / total rows = 2/2
+    +----------------+----------+
+    | earliest(status)| category |
+    |----------------+----------|
+    | "pending"      | orders   |
+    | "active"       | users    |
+    +----------------+----------+
+
+LATEST
+------
+
+Description
+>>>>>>>>>>>
+
+Version: 3.1.0
+
+Usage: LATEST(field [, time_field]). Return the latest value of a field based on timestamp ordering.
+
+* field: mandatory. The field to return the latest value for.
+* time_field: optional. The field to use for time-based ordering. Defaults to @timestamp if not specified.
+
+Example::
+
+    os> source=logs | stats latest(message) by host;
+    fetched rows / total rows = 2/2
+    +----------------+----------+
+    | latest(message)| host     |
+    |----------------+----------|
+    | "Shutting down"| server1  |
+    | "Ready"        | server2  |
+    +----------------+----------+
+
+Example with custom time field::
+
+    os> source=events | stats latest(status, event_time) by category;
+    fetched rows / total rows = 2/2
+    +--------------+----------+
+    | latest(status)| category |
+    |--------------+----------|
+    | "completed"  | orders   |
+    | "inactive"   | users    |
+    +--------------+----------+
+
 Example 1: Calculate the count of events
 ========================================
 
@@ -524,4 +594,3 @@ PPL query::
     | 28  | 20       | F      |
     | 36  | 30       | M      |
     +-----+----------+--------+
-

@@ -69,7 +69,6 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DecimalLiteralCon
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DistinctCountFunctionCallContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DoubleLiteralContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalClauseContext;
-import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalFunctionCallContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldExpressionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FloatLiteralContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsQualifiedNameContext;
@@ -248,43 +247,8 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitStatsFunctionCall(StatsFunctionCallContext ctx) {
     String functionName = ctx.statsFunctionName().getText();
-    List<UnresolvedExpression> arguments =
-        ctx.valueExpression().stream().map(this::visit).collect(Collectors.toList());
-
-    // Handle EARLIEST and LATEST functions which can take 1 or 2 parameters
-    if ("EARLIEST".equalsIgnoreCase(functionName) || "LATEST".equalsIgnoreCase(functionName)) {
-      return buildEarliestLatestFunction(functionName, arguments);
-    } else {
-      // For other aggregate functions, expect exactly 1 parameter
-      if (arguments.size() != 1) {
-        throw new IllegalArgumentException(
-            String.format(
-                "Function %s expects exactly 1 argument, got %d", functionName, arguments.size()));
-      }
-      return new AggregateFunction(functionName, arguments.get(0));
-    }
-  }
-
-  /**
-   * Build EARLIEST or LATEST aggregate function with proper argument handling. Supports both single
-   * parameter (uses default @timestamp) and two parameters (custom time field).
-   */
-  private UnresolvedExpression buildEarliestLatestFunction(
-      String functionName, List<UnresolvedExpression> arguments) {
-    if (arguments.size() == 1) {
-      // Single parameter: earliest(field) or latest(field) - uses default @timestamp
-      return new AggregateFunction(functionName, arguments.get(0));
-    } else if (arguments.size() == 2) {
-      // Two parameters: earliest(field, time_field) or latest(field, time_field)
-      return new AggregateFunction(
-          functionName,
-          arguments.get(0),
-          Collections.singletonList(new UnresolvedArgument("time_field", arguments.get(1))));
-    } else {
-      throw new IllegalArgumentException(
-          String.format(
-              "Function %s expects 1 or 2 arguments, got %d", functionName, arguments.size()));
-    }
+    UnresolvedExpression argument = visit(ctx.valueExpression());
+    return new AggregateFunction(functionName, argument);
   }
 
   @Override
@@ -368,6 +332,46 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   }
 
   /** Case function. */
+  public UnresolvedExpression visitEarliestLatestFunctionCall(
+      OpenSearchPPLParser.EarliestLatestFunctionCallContext ctx) {
+    return visit(ctx.earliestLatestFunction());
+  }
+
+  @Override
+  public UnresolvedExpression visitEarliestLatestFunction(
+      OpenSearchPPLParser.EarliestLatestFunctionContext ctx) {
+    String functionName = ctx.EARLIEST() != null ? "earliest" : "latest";
+    UnresolvedExpression valueField = visit(ctx.valueExpression(0));
+
+    if (ctx.timeField != null) {
+      // Two parameters: earliest(field, time_field) or latest(field, time_field)
+      UnresolvedExpression timeField = visit(ctx.timeField);
+      return new AggregateFunction(
+          functionName,
+          valueField,
+          Collections.singletonList(new UnresolvedArgument("time_field", timeField)));
+    } else {
+      // Single parameter: earliest(field) or latest(field) - uses default @timestamp
+      return new AggregateFunction(functionName, valueField);
+    }
+  }
+
+  @Override
+  public UnresolvedExpression visitEvalFunctionCall(
+      OpenSearchPPLParser.EvalFunctionCallContext ctx) {
+    final String functionName = ctx.evalFunctionName().getText();
+    final String mappedName =
+        FUNCTION_NAME_MAPPING.getOrDefault(functionName.toLowerCase(Locale.ROOT), functionName);
+
+    // Rewrite sum and avg functions to arithmetic expressions
+    if (SUM.getName().getFunctionName().equalsIgnoreCase(mappedName)
+        || AVG.getName().getFunctionName().equalsIgnoreCase(mappedName)) {
+      return rewriteSumAvgFunction(mappedName, ctx.functionArgs().functionArg());
+    }
+
+    return buildFunction(mappedName, ctx.functionArgs().functionArg());
+  }
+
   @Override
   public UnresolvedExpression visitCaseFunctionCall(
       OpenSearchPPLParser.CaseFunctionCallContext ctx) {
@@ -385,21 +389,6 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
       elseValue = visit(ctx.valueExpression(ctx.valueExpression().size() - 1));
     }
     return new Case(null, whens, Optional.ofNullable(elseValue));
-  }
-
-  @Override
-  public UnresolvedExpression visitEvalFunctionCall(EvalFunctionCallContext ctx) {
-    final String functionName = ctx.evalFunctionName().getText();
-    final String mappedName =
-        FUNCTION_NAME_MAPPING.getOrDefault(functionName.toLowerCase(Locale.ROOT), functionName);
-
-    // Rewrite sum and avg functions to arithmetic expressions
-    if (SUM.getName().getFunctionName().equalsIgnoreCase(mappedName)
-        || AVG.getName().getFunctionName().equalsIgnoreCase(mappedName)) {
-      return rewriteSumAvgFunction(mappedName, ctx.functionArgs().functionArg());
-    }
-
-    return buildFunction(mappedName, ctx.functionArgs().functionArg());
   }
 
   @Override
