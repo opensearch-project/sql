@@ -20,7 +20,7 @@ bin <field> [span=<interval>] [minspan=<interval>] [bins=<count>] [aligntime=(ea
 * field: mandatory. The numeric field to bin.
 * span: optional. The interval size for each bin. Cannot be used with bins or minspan parameters.
 * minspan: optional. The minimum interval size for automatic span calculation. Cannot be used with span or bins parameters.
-* bins: optional. The number of equal-width bins to create. Cannot be used with span or minspan parameters.
+* bins: optional. The maximum number of equal-width bins to create. Cannot be used with span or minspan parameters.
 * aligntime: optional. Align the bin times for time-based fields. Valid only for time-based discretization. Options:
   - earliest: Align bins to the earliest timestamp in the data
   - latest: Align bins to the latest timestamp in the data  
@@ -125,8 +125,6 @@ For time-based fields, aligntime allows you to specify how bins should be aligne
 
 **IMPORTANT: Alignment Rule**
 
-**Aligntime is ignored when span is in days, months, or years.** Longer-term spans (``1d``, ``2M``, ``1y``) automatically align to natural boundaries (midnight, month start, year start) regardless of aligntime settings.
-
 **Alignment Options:**
 
 * ``earliest``: Aligns bins to the earliest timestamp in the dataset
@@ -187,7 +185,7 @@ The algorithm uses **mathematical optimization** instead of iteration for O(1) p
 - ``target_width = 30 / 3 = 10``
 - ``exponent = CEIL(LOG10(10)) = CEIL(1.0) = 1``
 - ``optimal_width = 10^1 = 10``
-- ``actual_bins = CEIL(30/10) = 3`` ≤ 3 ✅
+- ``actual_bins = CEIL(30/10) = 3`` ≤ 3
 - Result: Use width=10, creating bins "20-30", "30-40", "40-50"
 
 **Error Examples**:
@@ -221,59 +219,6 @@ Define the range for binning using an effective range expansion algorithm. The k
   - Result: Single bin "0-100000" with count 1000
 
 This boundary handling ensures proper bin granularity for common range specifications.
-
-
-Parameter Priority and Interactions
-====================================
-
-The bin command processes parameters with a strict priority order when multiple parameters are specified. Understanding this hierarchy is crucial for predicting behavior when users provide multiple parameters simultaneously.
-
-Parameter Priority Order
--------------------------
-
-The bin command evaluates parameters in the following priority order:
-
-1. **SPAN** - Highest priority, overrides all other binning parameters
-2. **MINSPAN** - Second priority, ignored if span is present  
-3. **BINS** - Third priority, ignored if span or minspan present
-4. **START/END only** - Fourth priority, used for magnitude-based binning when no primary binning parameter is specified
-5. **DEFAULT** - Lowest priority, automatic magnitude-based binning when no parameters specified
-
-
-Parameter Interactions by Priority
------------------------------------
-
-**1. SPAN Parameter (Highest Priority)**
-
-When ``span`` is specified:
-
-* **Uses**: ``aligntime`` as modifiers
-* **Ignores**: ``bins``, ``minspan`` (completely ignored)
-* **Behavior**: 
-  - Time fields: Uses ``BinTimeSpanUtils`` with full aligntime support
-  - Numeric fields: Uses ``BinCalculatorFunction`` with span mode
-  - No window functions (best performance)
-
-**2. MINSPAN Parameter (Second Priority)**
-
-When ``minspan`` is specified (and no ``span``):
-
-* **Uses**: ``start``, ``end`` as boundary modifiers
-* **Ignores**: ``span`` (higher priority), ``bins``, ``aligntime``
-* **Algorithm**: Magnitude-based with minimum span constraint
-* **Window functions**: Yes (``MIN()`` and ``MAX()`` for data range)
-
-**3. BINS Parameter (Third Priority)**  
-
-When ``bins`` is specified (and no ``span`` or ``minspan``):
-
-* **Uses**: ``start``, ``end`` as boundary modifiers
-* **Ignores**: ``span`` (higher priority), ``minspan`` (higher priority), ``aligntime``
-* **Algorithm**: Mathematical O(1) algorithm using powers of 10 for optimal bin count
-* **Window functions**: Yes (``MIN()`` and ``MAX()`` for data range)
-
-
-**4. START/END Only (Fourth Priority)**
 
 Examples
 ========
