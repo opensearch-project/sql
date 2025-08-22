@@ -306,6 +306,39 @@ public class PPLSyntaxParserTest {
   }
 
   @Test
+  public void testMultiFieldRelevanceFunctionsWithoutFields() {
+    // Test multi_match without fields parameter
+    assertNotEquals(
+        null, new PPLSyntaxParser().parse("SOURCE=test | WHERE multi_match('query text')"));
+
+    // Test multi_match without fields but with optional parameters
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE multi_match('query text', analyzer='keyword')"));
+
+    // Test simple_query_string without fields parameter
+    assertNotEquals(
+        null, new PPLSyntaxParser().parse("SOURCE=test | WHERE simple_query_string('query text')"));
+
+    // Test simple_query_string without fields but with optional parameters
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE simple_query_string('query text', flags='ALL')"));
+
+    // Test query_string without fields parameter
+    assertNotEquals(
+        null, new PPLSyntaxParser().parse("SOURCE=test | WHERE query_string('query text')"));
+
+    // Test query_string without fields but with optional parameters
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE query_string('query text', default_operator='AND')"));
+  }
+
+  @Test
   public void testDescribeCommandShouldPass() {
     ParseTree tree = new PPLSyntaxParser().parse("describe t");
     assertNotEquals(null, tree);
