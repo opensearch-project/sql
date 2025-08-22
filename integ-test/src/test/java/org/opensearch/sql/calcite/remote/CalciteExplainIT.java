@@ -277,6 +277,7 @@ public class CalciteExplainIT extends ExplainIT {
         explainQueryToString(
             "source=opensearch-sql_test_index_time_data | bin @timestamp span=2h aligntime=latest |"
                 + " head 5"));
+  }
 
   public void testEventstatsDistinctCountExplain() throws IOException {
     Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
