@@ -49,6 +49,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexWindowBounds;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -225,13 +226,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Filter matching rows on data nodes using script pushdown
     RexNode regexMatchCondition =
         context.rexBuilder.makeCall(
-            org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_CONTAINS,
+            SqlLibraryOperators.REGEXP_CONTAINS,
             fieldRex,
             context.rexBuilder.makeLiteral(patternStr));
     context.relBuilder.filter(regexMatchCondition);
 
     // Extract fields from filtered data
     List<RexNode> newFields = new ArrayList<>();
+    List<String> newFieldNames = new ArrayList<>();
+
     for (int i = 0; i < namedGroups.size(); i++) {
       RexNode extractCall =
           PPLFuncImpTable.INSTANCE.resolve(
@@ -241,9 +244,21 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               context.rexBuilder.makeLiteral(patternStr),
               context.relBuilder.literal(i + 1));
       newFields.add(extractCall);
+      newFieldNames.add(namedGroups.get(i));
     }
 
-    projectPlusOverriding(newFields, namedGroups, context);
+    if (node.getOffsetField().isPresent()) {
+      RexNode offsetCall =
+          PPLFuncImpTable.INSTANCE.resolve(
+              context.rexBuilder,
+              BuiltinFunctionName.REX_OFFSET,
+              fieldRex,
+              context.rexBuilder.makeLiteral(patternStr));
+      newFields.add(offsetCall);
+      newFieldNames.add(node.getOffsetField().get());
+    }
+
+    projectPlusOverriding(newFields, newFieldNames, context);
     return context.relBuilder.peek();
   }
 

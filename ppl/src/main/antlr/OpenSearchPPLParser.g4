@@ -281,9 +281,13 @@ rexCommand
     ;
 
 rexExpr
-    : pattern=stringLiteral
-    | FIELD EQUAL field=qualifiedName pattern=stringLiteral
-    | FIELD EQUAL field=qualifiedName pattern=stringLiteral (MAX_MATCH EQUAL maxMatch=integerLiteral)?
+    : pattern=stringLiteral (rexOption)*
+    | FIELD EQUAL field=qualifiedName (rexOption)* pattern=stringLiteral (rexOption)*
+    ;
+
+rexOption
+    : MAX_MATCH EQUAL maxMatch=integerLiteral
+    | OFFSET_FIELD EQUAL offsetField=qualifiedName
     ;
 patternsMethod
    : PUNCT

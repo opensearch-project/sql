@@ -989,15 +989,23 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     UnresolvedExpression field = null;
     Literal pattern = (Literal) internalVisitExpression(ctx.rexExpr().pattern);
     Optional<Integer> maxMatch = Optional.empty();
+    Optional<String> offsetField = Optional.empty();
 
     if (ctx.rexExpr().field != null) {
       field = internalVisitExpression(ctx.rexExpr().field);
     }
-    if (ctx.rexExpr().maxMatch != null) {
-      maxMatch = Optional.of(Integer.parseInt(ctx.rexExpr().maxMatch.getText()));
+
+    // Process rex options
+    for (OpenSearchPPLParser.RexOptionContext optionCtx : ctx.rexExpr().rexOption()) {
+      if (optionCtx.maxMatch != null) {
+        maxMatch = Optional.of(Integer.parseInt(optionCtx.maxMatch.getText()));
+      }
+      if (optionCtx.offsetField != null) {
+        offsetField = Optional.of(internalVisitExpression(optionCtx.offsetField).toString());
+      }
     }
 
-    return new Rex(field, pattern, maxMatch);
+    return new Rex(field, pattern, maxMatch, offsetField);
   }
 
   /** Get original text in query. */
