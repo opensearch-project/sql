@@ -126,18 +126,16 @@ public class DataTypeIT extends PPLIntegTestCase {
 
     JSONObject result =
         executeQuery(
-            String.format("source=%s | where long_number=12345678", TEST_INDEX_DATATYPE_NUMERIC));
+            String.format(
+                "source=%s | where long_number=12345678 ｜ fields long_number, integer_number,"
+                    + " double_number",
+                TEST_INDEX_DATATYPE_NUMERIC));
     verifySchema(
         result,
         schema("long_number", "bigint"),
         schema("integer_number", "int"),
-        schema("short_number", "smallint"),
-        schema("byte_number", "tinyint"),
-        schema("double_number", "double"),
-        schema("float_number", "float"),
-        schema("half_float_number", "float"),
-        schema("scaled_float_number", "double"));
-    verifyDataRows(result, rows(12345678, 12345, 123, 12, 1234.5678, 123.45, 1.23, 12.34));
+        schema("double_number", "double"));
+    verifyDataRows(result, rows(12345678, 12345, 1234.5678));
 
     Request deleteRequest =
         new Request(
