@@ -128,11 +128,11 @@ Operators
 +----------------+----------------------------------------+
 | <              | Less than operator                     |
 +----------------+----------------------------------------+
-| !=             | Not equal operator                     |
+| !=             | Not equal operator (supports * wildcards) |
 +----------------+----------------------------------------+
 | <=             | Less than or equal operator            |
 +----------------+----------------------------------------+
-| =              | Equal operator                         |
+| =              | Equal operator (supports * wildcards) |
 +----------------+----------------------------------------+
 | LIKE           | Simple Pattern matching                |
 +----------------+----------------------------------------+
@@ -208,6 +208,68 @@ expr LIKE pattern. The expr is string value, pattern is supports literal text, a
     |--------------------+------------------+------------------------+----------------------|
     | True               | True             | False                  | False                |
     +--------------------+------------------+------------------------+----------------------+
+
+Equals and Not-Equals with Wildcards
+------------------------------------
+
+Both ``=`` (equal) and ``!=`` (not equal) operators support wildcard pattern matching using OpenSearch native wildcard characters. When a string value contains wildcards, these operations will perform pattern matching instead of exact matching.
+
+**Important**: In SQL, wildcard patterns MUST be enclosed in quotes (single quotes are standard) because the ``*`` and ``?`` characters are not valid in unquoted literals.
+
+**Supported wildcards:**
+
+- ``*`` matches zero or more characters (OpenSearch native)
+- ``?`` matches exactly one character (OpenSearch native)
+- All other characters are matched literally  
+
+**Field type restrictions:**
+
+- **Only works properly on keyword fields** - OpenSearch wildcard queries are designed for keyword fields
+- **Text fields**: Wildcard queries do NOT work on analyzed text fields. You must use the ``.keyword`` subfield (e.g., ``title.keyword = 'test*'``) for proper wildcard matching
+- **Numeric, IP, date, boolean fields**: These use script-based matching which is less efficient but functional
+- For SQL-style wildcards (``%``, ``_``), use the ``LIKE`` operator instead
+
+Examples::
+
+    os> SELECT 'test123' = 'test*', 'hello' = 'hel*', 'exact' = 'exact';
+    fetched rows / total rows = 1/1
+    +--------------------+------------------+-----------------+
+    | 'test123' = 'test*' | 'hello' = 'hel*' | 'exact' = 'exact' |
+    |--------------------+------------------+-----------------|
+    | True               | True             | True            |
+    +--------------------+------------------+-----------------+
+
+    os> SELECT '4232151232' = '4232*1232', 'no match' = 'test*';
+    fetched rows / total rows = 1/1
+    +------------------------------+-----------------------+
+    | '4232151232' = '4232*1232'   | 'no match' = 'test*' |
+    |------------------------------+-----------------------|
+    | True                         | False                 |
+    +------------------------------+-----------------------+
+
+    os> SELECT 'test123' != 'test*', 'hello' != 'xyz*', 'exact' != 'exact';
+    fetched rows / total rows = 1/1
+    +---------------------+-------------------+-------------------+
+    | 'test123' != 'test*' | 'hello' != 'xyz*' | 'exact' != 'exact' |
+    |---------------------+-------------------+-------------------|
+    | False               | True              | False             |
+    +---------------------+-------------------+-------------------+
+
+    os> SELECT 'test1' = 'test?', 'hello' = 'hel?o', 'test12' = 'test?';
+    fetched rows / total rows = 1/1
+    +------------------+-------------------+-------------------+
+    | 'test1' = 'test?' | 'hello' = 'hel?o' | 'test12' = 'test?' |
+    |------------------+-------------------+-------------------|
+    | True             | True              | False             |
+    +------------------+-------------------+-------------------+
+
+    os> SELECT 'test123' LIKE 'test%', 'hello' LIKE 'hel_o', 'exact' = 'exact';
+    fetched rows / total rows = 1/1
+    +------------------------+----------------------+-----------------+
+    | 'test123' LIKE 'test%' | 'hello' LIKE 'hel_o' | 'exact' = 'exact' |
+    |------------------------+----------------------+-----------------|
+    | True                   | True                 | True            |
+    +------------------------+----------------------+-----------------+
 
 NULL value test
 ---------------
