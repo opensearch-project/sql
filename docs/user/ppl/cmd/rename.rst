@@ -18,8 +18,18 @@ Syntax
 ============
 rename <source-field> AS <target-field>["," <source-field> AS <target-field>]...
 
-* source-field: mandatory. The name of the field you want to rename. Supports wildcard patterns using ``*``.
+* source-field: mandatory. The name of the field you want to rename. Supports wildcard patterns since version 3.3 using ``*``.
 * target-field: mandatory. The name you want to rename to. Must have same number of wildcards as the source.
+
+Behavior with Non-existent Fields (Since version 3.3)
+=====================================================
+
+The rename command handles non-existent fields as follows:
+
+* **Renaming a non-existent field to a non-existent field**: No change occurs to the result set.
+* **Renaming a non-existent field to an existing field**: The existing target field is removed from the result set.
+* **Renaming an existing field to an existing field**: The existing target field is removed first, then the source field is renamed to the target.
+
 
 **Notes:** 
 
@@ -101,6 +111,26 @@ PPL query::
     | Nanette    | Bates     | 13            |
     | Dale       | Adams     | 18            |
     +------------+-----------+---------------+
+
+Example 5: Rename existing field to existing field
+====================================
+
+The example shows renaming an existing field to an existing field. The target field gets removed and the source field is renamed to the target field.
+
+
+PPL query::
+
+    PPL> source=accounts | rename firstname as age | fields age;
+    fetched rows / total rows = 4/4
+    +---------+
+    | age     |
+    |---------|
+    | Amber   |
+    | Hattie  |
+    | Nanette |
+    | Dale    |
+    +---------+
+
 
 Limitation
 ==========

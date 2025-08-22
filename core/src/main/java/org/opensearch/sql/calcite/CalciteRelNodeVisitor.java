@@ -454,7 +454,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         context.relBuilder.rename(newNames);
       }
       // if source field doesn't exist but target does, remove target field from results
-      if (matchingFields.isEmpty() && !WildcardRenameUtils.isWildcardPattern(targetPattern)) {
+      if (matchingFields.isEmpty() && newNames.contains(targetPattern)) {
         newNames.remove(targetPattern);
         context.relBuilder.projectExcept(context.relBuilder.field(targetPattern));
         context.relBuilder.rename(newNames);
