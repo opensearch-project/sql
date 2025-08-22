@@ -28,7 +28,7 @@ The rename command handles non-existent fields as follows:
 
 * **Renaming a non-existent field to a non-existent field**: No change occurs to the result set.
 * **Renaming a non-existent field to an existing field**: The existing target field is removed from the result set.
-* **Renaming an existing field to an existing field**: The existing target field is removed first, then the source field is renamed to the target.
+* **Renaming an existing field to an existing field**: The existing target field is removed and the source field is renamed to the target.
 
 
 **Notes:** 
