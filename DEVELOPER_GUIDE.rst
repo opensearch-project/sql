@@ -100,12 +100,14 @@ connect to that port. For IntelliJ, see `attaching to a remote process <https://
 License Header
 --------------
 
-Because our code is licensed under Apache 2, you need to add the following license header to all new source code files. To automate this whenever creating new file, you can follow instructions for your IDE::
+Because our code is licensed under Apache 2, you need to add the following license header to all new source code files. To automate this whenever creating new file, you can follow instructions for your IDE.
 
-    /*
-     * Copyright OpenSearch Contributors
-     * SPDX-License-Identifier: Apache-2.0
-     */
+.. code:: java
+
+  /*
+   * Copyright OpenSearch Contributors
+   * SPDX-License-Identifier: Apache-2.0
+   */
 
 For example, `here are the instructions for adding copyright profiles in IntelliJ IDEA <https://www.jetbrains.com/help/idea/copyright.html>`__.
 
@@ -209,22 +211,15 @@ Java files are formatted using `Spotless <https://github.com/diffplug/spotless>`
    * - Javadoc format can be maintained by wrapping javadoc with `<pre></pre>` HTML tags
    * - Strings can be formatted on multiple lines with a `+` with the correct indentation for the string.
 
-Developing PPL Commands and Functions
-=====================================
 
-This section provides guidance on implementing and integrating new PPL commands and functions with the OpenSearch SQL engine.
-It covers both commands (like ``stats``, ``where``, ``eval``) and functions (UDFs and UDAFs).
-
-
-Developing New PPL Commands
----------------------------
+New PPL Command Checklist
+=========================
 
 If you are working on contributing a new PPL command, please read this guide and review all items in the checklist are done before
 code review. You also can leverage this checklist to guide how to add new PPL command.
 
-**Prerequisites**
-
-Before implementing a new PPL command, complete these tasks:
+Prerequisite
+------------
 
 | ✅ Open an RFC issue describing the command:
 - Specify the purpose and need for the new command
@@ -235,7 +230,8 @@ Before implementing a new PPL command, complete these tasks:
 - Consult repository maintainers if PM is unavailable
 - Be prepared for meetings to discuss syntax and usage details
 
-**Checklist for Coding & Tests**
+Coding & Tests
+--------------
 
 | ✅ Lexer/Parser Updates:
 - Add new keywords to OpenSearchPPLLexer.g4
@@ -269,27 +265,24 @@ Before implementing a new PPL command, complete these tasks:
 - Add a xxx.rst under ``docs/user/ppl/cmd`` and link the new doc to ``docs/user/ppl/index.rst``
 
 Developing PPL Functions
-------------------------
+========================
 
 PPL functions include user-defined functions (UDFs) and user-defined aggregation functions (UDAFs). This section
 provides guidance on implementing and integrating these functions with the OpenSearch SQL engine.
 
-**Prerequisites**
-
-Before implementing a PPL function, ensure you have completed these tasks:
+Prerequisites
+-------------
 
 | ✅ Create an issue describing the purpose and expected behavior of the function
 
-| ✅ Ensure the function name is recognized by PPL syntax by checking:
-- ``OpenSearchPPLLexer.g4``
-- ``OpenSearchPPLParser.g4``
-- ``BuiltinFunctionName.java``
+| ✅ Ensure the function name is recognized by PPL syntax by checking ``OpenSearchPPLLexer.g4``, ``OpenSearchPPLParser.g4``, and ``BuiltinFunctionName.java``
 
 | ✅ Plan the documentation of the function under ``docs/user/ppl/functions/`` directory
 
-**Developing User-Defined Functions (UDFs)**
+Developing User-Defined Functions (UDFs)
+----------------------------------------
 
-| ✅ Creating UDFs: A user-defined function is an instance of ``SqlOperator`` that transforms input row expressions into a new one. There are three approaches to implementing UDFs:
+| ✅ Creating UDFs: A user-defined function is an instance of ``SqlOperator`` that transforms input row expressions (``RexNode``) into a new one. There are three approaches to implementing UDFs:
 
 - Use existing Calcite operators: Leverage operators already declared in Calcite's ``SqlStdOperatorTable`` or ``SqlLibraryOperators``, and defined in ``RexImpTable.java``
 - Adapt existing static methods: Convert Java static methods to UDFs using utility functions like ``UserDefinedFunctionUtils.adaptExprMethodToUDF``
@@ -311,9 +304,8 @@ Before implementing a PPL function, ensure you have completed these tasks:
   * Multiple implementations can be registered to the same function name for overloading
   * The system will try to resolve functions based on argument types, with automatic coercion when needed
 
-- A lower-level registration API is also available:
+- A lower-level registration API is also available: ``AbstractBuilder::register(BuiltinFunctionName functionName, FunctionImp functionImp, PPLTypeChecker typeChecker)``
 
-  * ``AbstractBuilder::register(BuiltinFunctionName functionName, FunctionImp functionImp, PPLTypeChecker typeChecker)``
   * This explicitly defines how ``RexNode`` expressions should be converted and checked
   * Use this when you need a custom type checker or to customize an existing function by tweaking its arguments
   * Setting ``typeChecker`` to ``null`` will bypass type checking (use with caution)
@@ -328,7 +320,8 @@ Before implementing a PPL function, ensure you have completed these tasks:
 - Unit tests in ``CalcitePPLFunctionTypeTest`` to validate type checker behavior
 - Push-down tests in ``CalciteExplainIT`` if the function can be pushed down as a domain-specific language (DSL)
 
-**Developing User-Defined Aggregation Functions (UDAFs)**
+Developing User-Defined Aggregation Functions (UDAFs)
+-----------------------------------------------------
 
 | ✅ User-defined aggregation functions aggregate data across multiple rows. There are two main approaches to create a UDAF
 - Use existing Calcite aggregation operators
