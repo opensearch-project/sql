@@ -352,4 +352,24 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
                     String.format("source = %s | rename *a*e as *new", TEST_INDEX_STATE_COUNTRY)));
     verifyErrorMessageContains(e, "Source and target patterns have different wildcard counts");
   }
+
+  @Test
+  public void testRenameSameField() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source = %s | rename age as age", TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("age", "int"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("year", "int"),
+        schema("month", "int"));
+    verifyDataRows(
+        result,
+        rows("Jake", "USA", "California", 4, 2023, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30),
+        rows("John", "Canada", "Ontario", 4, 2023, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20));
+  }
 }
