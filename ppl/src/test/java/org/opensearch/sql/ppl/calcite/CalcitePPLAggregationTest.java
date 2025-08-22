@@ -600,4 +600,35 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
             + "GROUP BY `DEPTNO`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  @Test
+  public void testPercentileShortcutsBoundaryValues() {
+    String ppl = "source=EMP | stats perc0(SAL), p100(SAL)";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalAggregate(group=[{}], perc0(SAL)=[percentile_approx($0, $1, $2)],"
+            + " p100(SAL)=[percentile_approx($0, $3, $2)])\n"
+            + "  LogicalProject(SAL=[$5], $f2=[0.0E0:DOUBLE], $f3=[FLAG(DECIMAL)],"
+            + " $f4=[100.0E0:DOUBLE])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `percentile_approx`(`SAL`, 0E0, DECIMAL) `perc0(SAL)`,"
+            + " `percentile_approx`(`SAL`, 1.000E2, DECIMAL) `p100(SAL)`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test(expected = Exception.class)
+  public void testPercentileShortcutInvalidValueAbove100() {
+    String ppl = "source=EMP | stats p101(SAL)";
+    getRelNode(ppl);
+  }
+
+  @Test(expected = Exception.class)
+  public void testPercentileShortcutInvalidDecimalValueAbove100() {
+    String ppl = "source=EMP | stats perc100.1(SAL)";
+    getRelNode(ppl);
+  }
 }

@@ -312,7 +312,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
         "percentile",
         visit(ctx.valueExpression()),
         Collections.singletonList(
-            new UnresolvedArgument("percent", new Literal(percent, DataType.DOUBLE))));
+            new UnresolvedArgument("percent", AstDSL.doubleLiteral(percent))));
   }
 
   /** Case function. */

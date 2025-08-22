@@ -479,7 +479,8 @@ Y:                                  'Y';
 
 
 // PERCENTILE SHORTCUT FUNCTIONS
-PERCENTILE_SHORTCUT:                [Pp][Ee][Rr][Cc][0-9]+ ('.' [0-9]+)? | [Pp][0-9]+ ('.' [0-9]+)?;
+// Must precede ID to avoid conflicts with identifier matching
+PERCENTILE_SHORTCUT:                [Pp][Ee][Rr][Cc](INTEGER_LITERAL | DECIMAL_LITERAL) | [Pp](INTEGER_LITERAL | DECIMAL_LITERAL);
 
 // LITERALS AND VALUES
 //STRING_LITERAL:                     DQUOTA_STRING | SQUOTA_STRING | BQUOTA_STRING;

@@ -399,17 +399,17 @@ For convenience, OpenSearch PPL provides shortcut functions for common percentil
 - ``PERC<percent>(expr)`` - Equivalent to ``PERCENTILE(expr, <percent>)``
 - ``P<percent>(expr)`` - Equivalent to ``PERCENTILE(expr, <percent>)``
 
-Both integer and decimal percentiles are supported (e.g., ``PERC95``, ``P99.5``).
+Both integer and decimal percentiles from 0 to 100 are supported (e.g., ``PERC95``, ``P99.5``).
 
 Example::
 
-    ppl> source=accounts | stats perc95(age);
+    ppl> source=accounts | stats perc99.5(age);
     fetched rows / total rows = 1/1
-    +-------------+
-    | perc95(age) |
-    |-------------|
-    | 36          |
-    +-------------+
+    +---------------+
+    | perc99.5(age) |
+    |---------------|
+    | 36            |
+    +---------------+
 
     ppl> source=accounts | stats p50(age);
     fetched rows / total rows = 1/1
