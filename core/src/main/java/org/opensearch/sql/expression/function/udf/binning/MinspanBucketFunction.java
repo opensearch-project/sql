@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.expression.function.udf.math;
+package org.opensearch.sql.expression.function.udf.binning;
 
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
@@ -15,31 +15,30 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
-import org.opensearch.sql.calcite.utils.binning.BinConstants;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 /**
- * WIDTH_BUCKET(field_value, num_bins, data_range, max_value) - Histogram bucketing function.
+ * MINSPAN_BUCKET(field_value, min_span, data_range, max_value) - Minimum span bucketing function.
  *
- * <p>This function creates equal-width bins for histogram operations. It uses a mathematical O(1)
- * algorithm to determine optimal bin widths based on powers of 10.
+ * <p>This function creates bins with a minimum span width using magnitude-based logic. The actual
+ * bin width is determined by comparing the minimum span with the data range magnitude.
  *
  * <p>Parameters:
  *
  * <ul>
  *   <li>field_value - The numeric value to bin
- *   <li>num_bins - Number of bins to create
+ *   <li>min_span - The minimum span width required
  *   <li>data_range - Range of the data (MAX - MIN)
- *   <li>max_value - Maximum value in the dataset
+ *   <li>max_value - Maximum value in the dataset (currently unused but kept for compatibility)
  * </ul>
  *
- * <p>Implements the same binning logic as BinCalculatorFunction for 'bins' type.
+ * <p>Implements the same binning logic as BinCalculatorFunction for 'minspan' type.
  */
-public class WidthBucketFunction extends ImplementorUDF {
+public class MinspanBucketFunction extends ImplementorUDF {
 
-  public WidthBucketFunction() {
-    super(new WidthBucketImplementor(), NullPolicy.ANY);
+  public MinspanBucketFunction() {
+    super(new MinspanBucketImplementor(), NullPolicy.ANY);
   }
 
   @Override
@@ -52,87 +51,62 @@ public class WidthBucketFunction extends ImplementorUDF {
     return PPLOperandTypes.NUMERIC_NUMERIC_NUMERIC_NUMERIC;
   }
 
-  public static class WidthBucketImplementor implements NotNullImplementor {
+  public static class MinspanBucketImplementor implements NotNullImplementor {
 
     @Override
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
       Expression fieldValue = translatedOperands.get(0);
-      Expression numBins = translatedOperands.get(1);
+      Expression minSpan = translatedOperands.get(1);
       Expression dataRange = translatedOperands.get(2);
       Expression maxValue = translatedOperands.get(3);
 
       return Expressions.call(
-          WidthBucketImplementor.class,
-          "calculateWidthBucket",
+          MinspanBucketImplementor.class,
+          "calculateMinspanBucket",
           Expressions.convert_(fieldValue, Number.class),
-          Expressions.convert_(numBins, Number.class),
+          Expressions.convert_(minSpan, Number.class),
           Expressions.convert_(dataRange, Number.class),
           Expressions.convert_(maxValue, Number.class));
     }
 
-    /** Width bucket calculation using nice number algorithm. */
-    public static String calculateWidthBucket(
-        Number fieldValue, Number numBinsParam, Number dataRange, Number maxValue) {
-      if (fieldValue == null || numBinsParam == null || dataRange == null || maxValue == null) {
+    /** Minspan bucket calculation. */
+    public static String calculateMinspanBucket(
+        Number fieldValue, Number minSpanParam, Number dataRange, Number maxValue) {
+      if (fieldValue == null || minSpanParam == null || dataRange == null || maxValue == null) {
         return null;
       }
 
       double value = fieldValue.doubleValue();
-      int numBins = numBinsParam.intValue();
+      double minSpan = minSpanParam.doubleValue();
 
-      if (numBins < BinConstants.MIN_BINS || numBins > BinConstants.MAX_BINS) {
+      if (minSpan <= 0) {
         return null;
       }
 
       double range = dataRange.doubleValue();
-      double max = maxValue.doubleValue();
 
       if (range <= 0) {
         return null;
       }
 
-      // Calculate optimal width using nice number algorithm
-      double width = calculateOptimalWidth(range, max, numBins);
-      if (width <= 0) {
-        return null;
-      }
+      // Calculate minspan width using magnitude-based logic
+      double log10Minspan = Math.log10(minSpan);
+      double ceilLog = Math.ceil(log10Minspan);
+      double minspanWidth = Math.pow(10, ceilLog);
 
-      double binStart = Math.floor(value / width) * width;
-      double binEnd = binStart + width;
+      double log10Range = Math.log10(range);
+      double floorLog = Math.floor(log10Range);
+      double defaultWidth = Math.pow(10, floorLog);
 
-      return formatRange(binStart, binEnd, width);
-    }
+      // Choose between default width and minspan width
+      boolean useDefault = defaultWidth >= minSpan;
+      double selectedWidth = useDefault ? defaultWidth : minspanWidth;
 
-    /** Calculate optimal width using mathematical O(1) algorithm. */
-    private static double calculateOptimalWidth(
-        double dataRange, double maxValue, int requestedBins) {
-      if (dataRange <= 0 || requestedBins <= 0) {
-        return 1.0; // Safe fallback
-      }
+      double binStart = Math.floor(value / selectedWidth) * selectedWidth;
+      double binEnd = binStart + selectedWidth;
 
-      // Calculate target width: target_width = data_range / requested_bins
-      double targetWidth = dataRange / requestedBins;
-
-      // Find optimal starting point: exponent = CEIL(LOG10(target_width))
-      double exponent = Math.ceil(Math.log10(targetWidth));
-
-      // Select optimal width: 10^exponent
-      double optimalWidth = Math.pow(10.0, exponent);
-
-      // Account for boundaries: If the maximum value falls exactly on a bin boundary, add one extra
-      // bin
-      double actualBins = Math.ceil(dataRange / optimalWidth);
-      if (maxValue % optimalWidth == 0) {
-        actualBins++;
-      }
-
-      // If we exceed requested bins, we need to go to next magnitude level
-      if (actualBins > requestedBins) {
-        optimalWidth = Math.pow(10.0, exponent + 1);
-      }
-
-      return optimalWidth;
+      return formatRange(binStart, binEnd, selectedWidth);
     }
 
     /** Format range string with appropriate precision. */

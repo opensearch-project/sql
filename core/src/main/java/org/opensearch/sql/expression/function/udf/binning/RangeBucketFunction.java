@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.expression.function.udf.math;
+package org.opensearch.sql.expression.function.udf.binning;
 
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
