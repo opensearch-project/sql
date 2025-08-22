@@ -13,6 +13,7 @@ import lombok.NonNull;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.calcite.utils.binning.BinConstants;
 
 /**
  * AST node representing count-based bin operation. This is the third priority bin type that uses
@@ -23,10 +24,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 @EqualsAndHashCode(callSuper = true)
 public class CountBin extends Bin {
 
-  private static final int MIN_BINS = 2;
-  private static final int MAX_BINS = 50000;
-
-  @NonNull private final Integer bins;
+  private final Integer bins;
 
   @Nullable private final UnresolvedExpression start;
 
@@ -49,10 +47,11 @@ public class CountBin extends Bin {
   @Override
   public void validate() {
     // Bins count validation based on documentation
-    if (bins < MIN_BINS || bins > MAX_BINS) {
+    if (bins < BinConstants.MIN_BINS || bins > BinConstants.MAX_BINS) {
       throw new IllegalArgumentException(
           String.format(
-              "The bins parameter must be between %d and %d, got: %d", MIN_BINS, MAX_BINS, bins));
+              "The bins parameter must be between %d and %d, got: %d",
+              BinConstants.MIN_BINS, BinConstants.MAX_BINS, bins));
     }
   }
 

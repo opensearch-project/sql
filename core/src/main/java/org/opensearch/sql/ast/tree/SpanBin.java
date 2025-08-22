@@ -23,7 +23,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 @EqualsAndHashCode(callSuper = true)
 public class SpanBin extends Bin {
 
-  @NonNull private final UnresolvedExpression span;
+  private final UnresolvedExpression span;
 
   @Nullable private final UnresolvedExpression aligntime; // Only valid for time-based fields
 

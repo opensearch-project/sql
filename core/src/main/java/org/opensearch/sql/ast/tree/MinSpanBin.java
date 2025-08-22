@@ -23,7 +23,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 @EqualsAndHashCode(callSuper = true)
 public class MinSpanBin extends Bin {
 
-  @NonNull private final UnresolvedExpression minspan;
+  private final UnresolvedExpression minspan;
 
   @Nullable private final UnresolvedExpression start;
 

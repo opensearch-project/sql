@@ -14,7 +14,6 @@ public final class BinConstants {
 
   // Formatting constants
   public static final String DASH_SEPARATOR = "-";
-  public static final String OTHER_CATEGORY = "Other";
   public static final String INVALID_CATEGORY = "Invalid";
 
   // Bin count limits

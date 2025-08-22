@@ -15,6 +15,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
+import org.opensearch.sql.calcite.utils.binning.BinConstants;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
@@ -80,7 +81,7 @@ public class WidthBucketFunction extends ImplementorUDF {
       double value = fieldValue.doubleValue();
       int numBins = numBinsParam.intValue();
 
-      if (numBins <= 0) {
+      if (numBins < BinConstants.MIN_BINS || numBins > BinConstants.MAX_BINS) {
         return null;
       }
 

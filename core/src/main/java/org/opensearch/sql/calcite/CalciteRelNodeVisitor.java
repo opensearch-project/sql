@@ -548,7 +548,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       }
     }
 
-    // CRITICAL FIX: If field wasn't found in current schema, this indicates a schema mismatch
     // The bin command should always operate on existing fields, so this is an error condition
     if (!isAnyFieldFound) {
       throw new IllegalArgumentException(

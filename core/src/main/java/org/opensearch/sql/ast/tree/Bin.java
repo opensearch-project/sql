@@ -25,7 +25,7 @@ public abstract class Bin extends UnresolvedPlan {
 
   private UnresolvedPlan child;
 
-  @NonNull protected final UnresolvedExpression field;
+  protected final UnresolvedExpression field;
 
   @Nullable protected final String alias;
 
