@@ -219,6 +219,7 @@ public enum BuiltinFunctionName {
   POSITION(FunctionName.of("position")),
   REGEXP(FunctionName.of("regexp")),
   REGEX_MATCH(FunctionName.of("regex_match")),
+  REX_EXTRACT(FunctionName.of("REX_EXTRACT")),
   REPLACE(FunctionName.of("replace")),
   REVERSE(FunctionName.of("reverse")),
   RIGHT(FunctionName.of("right")),
