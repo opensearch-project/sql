@@ -30,8 +30,10 @@ import org.hamcrest.Matchers;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
+import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.FunctionProperties;
 
 public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase {
@@ -46,6 +48,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     loadIndex(Index.DATE);
     loadIndex(Index.PEOPLE2);
     loadIndex(Index.BANK);
+    loadIndex(Index.BIG5);
     initRelativeDocs();
   }
 
@@ -1474,6 +1477,25 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         schema("m4", "int"),
         schema("m5", "int"));
     verifyDataRows(actual, rows(0, 0, 0, 123456, 123456));
+  }
+
+  @Test
+  public void testAccessImplicitTimestampField() {
+    JSONObject actual = executeQuery("source=big5 | eval t = unix_timestamp(_time) | fields t");
+    verifySchema(actual, schema("t", "double"));
+    verifyDataRows(actual, rows(1672696954));
+
+    Throwable t =
+        assertThrowsWithReplace(
+            SemanticCheckException.class,
+            () ->
+                executeQuery(
+                    StringUtils.format(
+                        "source=%s | eval t = unix_timestamp(_time)", TEST_INDEX_DATE_FORMATS)));
+    verifyErrorMessageContains(
+        t,
+        "Referring _time field requires an explicit '_time' field or an implicit"
+            + " '@timestamp' field, but none of them was found in the input schema.");
   }
 
   private static int getYearWeek(LocalDate date, int mode) {

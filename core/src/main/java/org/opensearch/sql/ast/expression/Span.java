@@ -7,6 +7,7 @@ package org.opensearch.sql.ast.expression;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import javax.annotation.Nullable;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -19,13 +20,16 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 @RequiredArgsConstructor
 @ToString
 public class Span extends UnresolvedExpression {
-  private final UnresolvedExpression field;
+  @Nullable private final UnresolvedExpression field;
   private final UnresolvedExpression value;
   private final SpanUnit unit;
 
   @Override
   public List<UnresolvedExpression> getChild() {
-    return ImmutableList.of(field, value);
+    if (field == null) {
+      return ImmutableList.of(value);
+    }
+    return List.of(field, value);
   }
 
   @Override
