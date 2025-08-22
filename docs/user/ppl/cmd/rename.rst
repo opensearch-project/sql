@@ -21,8 +21,8 @@ rename <source-field> AS <target-field>["," <source-field> AS <target-field>]...
 * source-field: mandatory. The name of the field you want to rename. Supports wildcard patterns since version 3.3 using ``*``.
 * target-field: mandatory. The name you want to rename to. Must have same number of wildcards as the source.
 
-Behavior with Non-existent Fields (Since version 3.3)
-=====================================================
+Field Rename Behavior (Since version 3.3)
+==========================================
 
 The rename command handles non-existent fields as follows:
 
