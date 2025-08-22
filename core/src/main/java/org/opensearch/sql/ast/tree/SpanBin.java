@@ -11,7 +11,6 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.ToString;
-import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
 /**
@@ -41,9 +40,4 @@ public class SpanBin extends Bin {
 
   @Override
   public void validate() {}
-
-  @Override
-  public <T, C> T accept(AbstractNodeVisitor<T, C> nodeVisitor, C context) {
-    return nodeVisitor.visitSpanBin(this, context);
-  }
 }

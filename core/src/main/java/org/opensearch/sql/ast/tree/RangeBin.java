@@ -11,7 +11,6 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.ToString;
-import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
 /**
@@ -47,10 +46,5 @@ public class RangeBin extends Bin {
       throw new IllegalArgumentException(
           "At least one of start or end parameter must be specified for range-based binning");
     }
-  }
-
-  @Override
-  public <T, C> T accept(AbstractNodeVisitor<T, C> nodeVisitor, C context) {
-    return nodeVisitor.visitRangeBin(this, context);
   }
 }

@@ -49,9 +49,7 @@ import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.CloseCursor;
-import org.opensearch.sql.ast.tree.CountBin;
 import org.opensearch.sql.ast.tree.Dedupe;
-import org.opensearch.sql.ast.tree.DefaultBin;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FetchCursor;
@@ -64,19 +62,16 @@ import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
-import org.opensearch.sql.ast.tree.MinSpanBin;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
-import org.opensearch.sql.ast.tree.RangeBin;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Sort;
-import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
@@ -221,26 +216,6 @@ public abstract class AbstractNodeVisitor<T, C> {
 
   public T visitBin(Bin node, C context) {
     return visitChildren(node, context);
-  }
-
-  public T visitSpanBin(SpanBin node, C context) {
-    return visitBin(node, context);
-  }
-
-  public T visitMinSpanBin(MinSpanBin node, C context) {
-    return visitBin(node, context);
-  }
-
-  public T visitCountBin(CountBin node, C context) {
-    return visitBin(node, context);
-  }
-
-  public T visitRangeBin(RangeBin node, C context) {
-    return visitBin(node, context);
-  }
-
-  public T visitDefaultBin(DefaultBin node, C context) {
-    return visitBin(node, context);
   }
 
   public T visitArgument(Argument node, C context) {

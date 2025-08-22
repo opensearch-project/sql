@@ -11,7 +11,6 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.ToString;
-import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
 /**
@@ -33,10 +32,5 @@ public class DefaultBin extends Bin {
   public void validate() {
     // Default bin has no additional parameters to validate
     // Field validation is already handled in the base class
-  }
-
-  @Override
-  public <T, C> T accept(AbstractNodeVisitor<T, C> nodeVisitor, C context) {
-    return nodeVisitor.visitDefaultBin(this, context);
   }
 }

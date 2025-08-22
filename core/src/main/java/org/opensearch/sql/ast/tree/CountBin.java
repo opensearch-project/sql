@@ -11,7 +11,6 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.ToString;
-import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.calcite.utils.binning.BinConstants;
 
@@ -53,10 +52,5 @@ public class CountBin extends Bin {
               "The bins parameter must be between %d and %d, got: %d",
               BinConstants.MIN_BINS, BinConstants.MAX_BINS, bins));
     }
-  }
-
-  @Override
-  public <T, C> T accept(AbstractNodeVisitor<T, C> nodeVisitor, C context) {
-    return nodeVisitor.visitCountBin(this, context);
   }
 }
