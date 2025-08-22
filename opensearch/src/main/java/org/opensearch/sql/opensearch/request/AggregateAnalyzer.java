@@ -70,6 +70,7 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
 import org.opensearch.sql.opensearch.response.agg.ArgMaxMinParser;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
+import org.opensearch.sql.opensearch.response.agg.FilterParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParser;
 import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
@@ -215,7 +216,7 @@ public class AggregateAnalyzer {
       String aggFieldName = aggFieldNames.get(i);
 
       Pair<AggregationBuilder, MetricParser> builderAndParser =
-          createAggregationBuilderAndParser(aggCall, args, aggFieldName, helper);
+          createAggregationBuilderAndParser(aggCall, args, aggFieldName, helper, project);
       metricBuilder.addAggregator(builderAndParser.getLeft());
       metricParserList.add(builderAndParser.getRight());
     }
@@ -232,12 +233,17 @@ public class AggregateAnalyzer {
       AggregateCall aggCall,
       List<RexNode> args,
       String aggFieldName,
-      AggregateBuilderHelper helper) {
+      AggregateBuilderHelper helper,
+      Project project) {
+    Pair<AggregationBuilder, MetricParser> result;
     if (aggCall.isDistinct()) {
-      return createDistinctAggregation(aggCall, args, aggFieldName, helper);
+      result = createDistinctAggregation(aggCall, args, aggFieldName, helper);
     } else {
-      return createRegularAggregation(aggCall, args, aggFieldName, helper);
+      result = createRegularAggregation(aggCall, args, aggFieldName, helper);
     }
+
+    // Apply filter to any aggregation if present
+    return applyFilterIfPresent(result, aggCall, aggFieldName, helper, project);
   }
 
   private static Pair<AggregationBuilder, MetricParser> createDistinctAggregation(
@@ -386,5 +392,58 @@ public class AggregateAnalyzer {
     }
 
     return sourceBuilder;
+  }
+
+  /**
+   * Apply filter to aggregation if the AggregateCall has a filter condition.
+   *
+   * @param result the original aggregation builder and parser pair
+   * @param aggCall the aggregate call that may have a filter
+   * @param aggFieldName the aggregation field name
+   * @param helper the aggregate builder helper
+   * @param project the project that contains filter conditions
+   * @return the original result or wrapped with filter aggregation
+   */
+  private static Pair<AggregationBuilder, MetricParser> applyFilterIfPresent(
+      Pair<AggregationBuilder, MetricParser> result,
+      AggregateCall aggCall,
+      String aggFieldName,
+      AggregateBuilderHelper helper,
+      Project project) {
+
+    if (!aggCall.hasFilter()
+        || project == null
+        || aggCall.filterArg < 0
+        || aggCall.filterArg >= project.getProjects().size()) {
+      return result;
+    }
+
+    try {
+      // Get the filter condition from project
+      RexNode filterCondition = project.getProjects().get(aggCall.filterArg);
+
+      // Convert filter condition to OpenSearch query
+      PredicateAnalyzer.QueryExpression queryExpression =
+          PredicateAnalyzer.analyzeExpression(
+              filterCondition,
+              helper.rowType.getFieldNames(),
+              helper.fieldTypes,
+              helper.rowType,
+              helper.cluster);
+
+      // Create filter aggregation with original aggregation as sub-aggregation
+      AggregationBuilder filterAgg =
+          AggregationBuilders.filter(aggFieldName, queryExpression.builder())
+              .subAggregation(result.getLeft());
+
+      // Wrap parser with FilterParser
+      MetricParser filterParser =
+          FilterParser.builder().name(aggFieldName).metricsParser(result.getRight()).build();
+
+      return Pair.of(filterAgg, filterParser);
+    } catch (Exception e) {
+      // Fallback to original result if filter cannot be analyzed
+      return result;
+    }
   }
 }
