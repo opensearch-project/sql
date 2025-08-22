@@ -71,6 +71,7 @@ commands
    | expandCommand
    | flattenCommand
    | reverseCommand
+   | rexCommand
    ;
 
 commandName
@@ -103,6 +104,7 @@ commandName
    | TRENDLINE
    | EXPLAIN
    | REVERSE
+   | REX
    ;
 
 searchCommand
@@ -187,6 +189,15 @@ parseCommand
    : PARSE (source_field = expression) (pattern = stringLiteral)
    ;
 
+rexCommand
+    : REX rexExpr
+    ;
+
+rexExpr
+    : pattern=stringLiteral
+    | FIELD EQUAL field=qualifiedName pattern=stringLiteral
+    | FIELD EQUAL field=qualifiedName pattern=stringLiteral (MAX_MATCH EQUAL maxMatch=integerLiteral)?
+    ;
 patternsMethod
    : PUNCT
    | REGEX
