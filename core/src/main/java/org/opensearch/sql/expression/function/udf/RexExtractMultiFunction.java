@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.expression.function.udf;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -14,30 +15,32 @@ import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
-/** Custom REX_EXTRACT function for extracting regex named capture groups. */
-public final class RexExtractFunction extends ImplementorUDF {
+/** Custom REX_EXTRACT_MULTI function for extracting multiple regex matches. */
+public final class RexExtractMultiFunction extends ImplementorUDF {
 
-  public RexExtractFunction() {
-    super(new RexExtractImplementor(), NullPolicy.ARG0);
+  public RexExtractMultiFunction() {
+    super(new RexExtractMultiImplementor(), NullPolicy.ARG0);
   }
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return ReturnTypes.VARCHAR_2000_NULLABLE;
+    return call ->
+        call.getTypeFactory()
+            .createArrayType(call.getTypeFactory().createSqlType(SqlTypeName.VARCHAR, 2000), -1);
   }
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    return PPLOperandTypes.STRING_STRING_INTEGER;
+    return PPLOperandTypes.STRING_STRING_INTEGER_INTEGER;
   }
 
-  private static class RexExtractImplementor implements NotNullImplementor {
+  private static class RexExtractMultiImplementor implements NotNullImplementor {
 
     @Override
     public Expression implement(
@@ -45,12 +48,20 @@ public final class RexExtractFunction extends ImplementorUDF {
       Expression field = translatedOperands.get(0);
       Expression pattern = translatedOperands.get(1);
       Expression groupIndex = translatedOperands.get(2);
+      Expression maxMatch = translatedOperands.get(3);
 
-      return Expressions.call(RexExtractFunction.class, "extractGroup", field, pattern, groupIndex);
+      return Expressions.call(
+          RexExtractMultiFunction.class,
+          "extractMultipleGroups",
+          field,
+          pattern,
+          groupIndex,
+          maxMatch);
     }
   }
 
-  public static String extractGroup(String text, String pattern, int groupIndex) {
+  public static List<String> extractMultipleGroups(
+      String text, String pattern, int groupIndex, int maxMatch) {
     if (text == null || pattern == null) {
       return null;
     }
@@ -58,12 +69,20 @@ public final class RexExtractFunction extends ImplementorUDF {
     try {
       Pattern compiledPattern = Pattern.compile(pattern);
       Matcher matcher = compiledPattern.matcher(text);
+      List<String> matches = new ArrayList<>();
 
-      if (matcher.find() && groupIndex > 0 && groupIndex <= matcher.groupCount()) {
-        return matcher.group(groupIndex);
+      int matchCount = 0;
+      while (matcher.find() && (maxMatch == 0 || matchCount < maxMatch)) {
+        if (groupIndex > 0 && groupIndex <= matcher.groupCount()) {
+          String match = matcher.group(groupIndex);
+          if (match != null) {
+            matches.add(match);
+            matchCount++;
+          }
+        }
       }
 
-      return null;
+      return matches.isEmpty() ? null : matches;
     } catch (Exception e) {
       return null;
     }
