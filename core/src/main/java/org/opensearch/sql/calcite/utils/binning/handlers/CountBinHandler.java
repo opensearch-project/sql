@@ -30,8 +30,6 @@ public class CountBinHandler implements BinHandler {
       requestedBins = BinConstants.DEFAULT_BINS;
     }
 
-    validateBinsCount(requestedBins);
-
     // Calculate data range using window functions
     RexNode minValue = context.relBuilder.min(fieldExpr).over().toRex();
     RexNode maxValue = context.relBuilder.max(fieldExpr).over().toRex();
@@ -41,30 +39,11 @@ public class CountBinHandler implements BinHandler {
     RexNode startValue = convertParameter(countBin.getStart(), context);
     RexNode endValue = convertParameter(countBin.getEnd(), context);
 
-    // BIN_CALCULATOR(field_value, 'bins', num_bins, start, end, data_range, max_value)
-    RexNode binType = context.relBuilder.literal("bins");
+    // WIDTH_BUCKET(field_value, num_bins, data_range, max_value)
     RexNode numBins = context.relBuilder.literal(requestedBins);
 
     return context.rexBuilder.makeCall(
-        PPLBuiltinOperators.BIN_CALCULATOR,
-        fieldExpr,
-        binType,
-        numBins,
-        startValue,
-        endValue,
-        dataRange,
-        maxValue);
-  }
-
-  private void validateBinsCount(int bins) {
-    if (bins < BinConstants.MIN_BINS) {
-      throw new IllegalArgumentException(
-          "The bins parameter must be at least " + BinConstants.MIN_BINS + ", got: " + bins);
-    }
-    if (bins > BinConstants.MAX_BINS) {
-      throw new IllegalArgumentException(
-          "The bins parameter must not exceed " + BinConstants.MAX_BINS + ", got: " + bins);
-    }
+        PPLBuiltinOperators.WIDTH_BUCKET, fieldExpr, numBins, dataRange, maxValue);
   }
 
   private RexNode convertParameter(

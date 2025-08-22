@@ -747,6 +747,7 @@ mathematicalFunctionName
    | EXPM1
    | FLOOR
    | LN
+   | LOG
    | LOG_WITH_BASE
    | MOD
    | MODULUS

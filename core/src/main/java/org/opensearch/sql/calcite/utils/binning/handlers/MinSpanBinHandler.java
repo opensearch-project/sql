@@ -45,19 +45,11 @@ public class MinSpanBinHandler implements BinHandler {
     RexNode startValue = convertParameter(minSpanBin.getStart(), context);
     RexNode endValue = convertParameter(minSpanBin.getEnd(), context);
 
-    // BIN_CALCULATOR(field_value, 'minspan', min_span, start, end, data_range, max_value)
-    RexNode binType = context.relBuilder.literal("minspan");
+    // MINSPAN_BUCKET(field_value, min_span, data_range, max_value)
     RexNode minSpanParam = context.relBuilder.literal(minspan);
 
     return context.rexBuilder.makeCall(
-        PPLBuiltinOperators.BIN_CALCULATOR,
-        fieldExpr,
-        binType,
-        minSpanParam,
-        startValue,
-        endValue,
-        dataRange,
-        maxValue);
+        PPLBuiltinOperators.MINSPAN_BUCKET, fieldExpr, minSpanParam, dataRange, maxValue);
   }
 
   private RexNode convertParameter(

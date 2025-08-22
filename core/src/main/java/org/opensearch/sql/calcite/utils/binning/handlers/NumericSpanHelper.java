@@ -31,18 +31,7 @@ public class NumericSpanHelper {
   private RexNode createExpression(
       RexNode fieldExpr, RexNode spanValue, CalcitePlanContext context) {
 
-    // BIN_CALCULATOR(field_value, 'span', span_value, -1, -1, -1, -1)
-    RexNode binType = context.relBuilder.literal("span");
-    RexNode sentinel = context.relBuilder.literal(-1);
-
-    return context.rexBuilder.makeCall(
-        PPLBuiltinOperators.BIN_CALCULATOR,
-        fieldExpr,
-        binType,
-        spanValue,
-        sentinel, // start (not used)
-        sentinel, // end (not used)
-        sentinel, // dataRange (not used)
-        sentinel); // maxValue (not used)
+    // SPAN_BUCKET(field_value, span_value)
+    return context.rexBuilder.makeCall(PPLBuiltinOperators.SPAN_BUCKET, fieldExpr, spanValue);
   }
 }

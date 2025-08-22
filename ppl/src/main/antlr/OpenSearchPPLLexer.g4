@@ -278,6 +278,7 @@ EXP:                                'EXP';
 EXPM1:                              'EXPM1';
 FLOOR:                              'FLOOR';
 LN:                                 'LN';
+LOG:                                'LOG';
 LOG_WITH_BASE:                      ([0-9]+ ('.' [0-9]+)?)? ('LOG' | 'log') [0-9]+ ('.' [0-9]+)?;
 MOD:                                'MOD';
 MODULUS:                            'MODULUS';

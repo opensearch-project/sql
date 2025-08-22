@@ -383,6 +383,17 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
       new NumberToStringFunction().toUDF("NUMBER_TO_STRING");
   public static final SqlOperator BIN_CALCULATOR =
       new BinCalculatorFunction().toUDF("BIN_CALCULATOR");
+  public static final SqlOperator WIDTH_BUCKET =
+      new org.opensearch.sql.expression.function.udf.math.WidthBucketFunction()
+          .toUDF("WIDTH_BUCKET");
+  public static final SqlOperator SPAN_BUCKET =
+      new org.opensearch.sql.expression.function.udf.math.SpanBucketFunction().toUDF("SPAN_BUCKET");
+  public static final SqlOperator MINSPAN_BUCKET =
+      new org.opensearch.sql.expression.function.udf.math.MinspanBucketFunction()
+          .toUDF("MINSPAN_BUCKET");
+  public static final SqlOperator RANGE_BUCKET =
+      new org.opensearch.sql.expression.function.udf.math.RangeBucketFunction()
+          .toUDF("RANGE_BUCKET");
 
   /**
    * Returns the PPL specific operator table, creating it if necessary.
