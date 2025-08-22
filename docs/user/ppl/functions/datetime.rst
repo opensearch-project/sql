@@ -1473,6 +1473,150 @@ Example::
     +------------------------------------+
 
 
+STRFTIME
+--------
+
+Description
+>>>>>>>>>>>
+
+Usage: strftime(time, format) takes a UNIX timestamp (in seconds) and renders the time as a string using the format specified. The UNIX time must be in seconds. Use the first 10 digits of a UNIX time to use the time in seconds.
+You can use time format variables with the strftime function. This function performs the reverse operation of `UNIX_TIMESTAMP`_ and is similar to `FROM_UNIXTIME`_ but with POSIX-style format specifiers.
+
+.. note::
+    For a complete reference of all format specifiers and detailed examples, see :doc:`strftime_formats`.
+
+Argument type: DOUBLE/LONG/TIMESTAMP/STRING, STRING
+
+Return type: STRING
+
+Format specifiers:
+
+.. list-table:: The following table describes the available specifier arguments.
+   :widths: 20 80
+   :header-rows: 1
+
+   * - Specifier
+     - Description
+   * - %a
+     - Abbreviated weekday name (Sun..Sat)
+   * - %A
+     - Full weekday name (Sunday..Saturday)
+   * - %b
+     - Abbreviated month name (Jan..Dec)
+   * - %B
+     - Full month name (January..December)
+   * - %c
+     - Date and time in locale format (e.g., Thu Jul 18 09:30:00 2019)
+   * - %C
+     - Century as 2-digit decimal number
+   * - %d
+     - Day of the month, zero-padded (01..31)
+   * - %e
+     - Day of the month, space-padded ( 1..31)
+   * - %Ez
+     - Timezone offset in minutes
+   * - %f
+     - Microseconds as decimal number (000000..999999)
+   * - %F
+     - ISO 8601 date format (%Y-%m-%d)
+   * - %g
+     - ISO 8601 year without century (00..99)
+   * - %G
+     - ISO 8601 year with century
+   * - %H
+     - Hour (24-hour clock) (00..23)
+   * - %I
+     - Hour (12-hour clock) (01..12)
+   * - %j
+     - Day of year (001..366)
+   * - %k
+     - Hour (24-hour clock), space-padded ( 0..23)
+   * - %m
+     - Month as decimal number (01..12)
+   * - %M
+     - Minute (00..59)
+   * - %N
+     - Subsecond digits (default nanoseconds). Can specify precision: %3N = milliseconds, %6N = microseconds, %9N = nanoseconds
+   * - %p
+     - AM or PM
+   * - %Q
+     - Subsecond component (default milliseconds). Can specify precision: %3Q = milliseconds, %6Q = microseconds, %9Q = nanoseconds
+   * - %s
+     - UNIX Epoch timestamp in seconds
+   * - %S
+     - Second (00..59)
+   * - %T
+     - Time in 24-hour notation (%H:%M:%S)
+   * - %U
+     - Week of year starting from 0 (00..53)
+   * - %V
+     - ISO week number (01..53)
+   * - %w
+     - Weekday as decimal (0=Sunday..6=Saturday)
+   * - %x
+     - Date in locale format (e.g., 07/13/2019)
+   * - %X
+     - Time in locale format (e.g., 09:30:00)
+   * - %y
+     - Year without century (00..99)
+   * - %Y
+     - Year with century
+   * - %z
+     - Timezone offset (+hhmm or -hhmm)
+   * - %:z
+     - Timezone offset with colon (+hh:mm or -hh:mm)
+   * - %::z
+     - Timezone offset with colons (+hh:mm:ss)
+   * - %:::z
+     - Timezone offset hour only (+hh or -hh)
+   * - %Z
+     - Timezone abbreviation (e.g., EST, PDT)
+   * - %%
+     - Literal % character
+
+Examples::
+
+    os> source=people | eval `strftime(1521467703, "%Y-%m-%dT%H:%M:%S")` = strftime(1521467703, "%Y-%m-%dT%H:%M:%S") | fields `strftime(1521467703, "%Y-%m-%dT%H:%M:%S")`
+    fetched rows / total rows = 1/1
+    +-------------------------------------------+
+    | strftime(1521467703, "%Y-%m-%dT%H:%M:%S") |
+    |-------------------------------------------|
+    | 2018-03-19T13:55:03                       |
+    +-------------------------------------------+
+
+    os> source=people | eval `strftime(1521467703049000000, "%Y-%m-%dT%H:%M:%S.%Q")` = strftime(1521467703049000000, "%Y-%m-%dT%H:%M:%S.%Q") | fields `strftime(1521467703049000000, "%Y-%m-%dT%H:%M:%S.%Q")`
+    fetched rows / total rows = 1/1
+    +-------------------------------------------------------+
+    | strftime(1521467703049000000, "%Y-%m-%dT%H:%M:%S.%Q") |
+    |-------------------------------------------------------|
+    | 2018-03-19T13:55:03.000                              |
+    +-------------------------------------------------------+
+
+    os> source=people | eval `strftime(1521467703, "%F %T")` = strftime(1521467703, "%F %T") | fields `strftime(1521467703, "%F %T")`
+    fetched rows / total rows = 1/1
+    +-------------------------------+
+    | strftime(1521467703, "%F %T") |
+    |-------------------------------|
+    | 2018-03-19 13:55:03           |
+    +-------------------------------+
+
+    os> source=people | eval `strftime(1521467703, "%a %b %d, %Y")` = strftime(1521467703, "%a %b %d, %Y") | fields `strftime(1521467703, "%a %b %d, %Y")`
+    fetched rows / total rows = 1/1
+    +--------------------------------------+
+    | strftime(1521467703, "%a %b %d, %Y") |
+    |--------------------------------------|
+    | Mon Mar 19, 2018                     |
+    +--------------------------------------+
+
+    os> source=people | eval `strftime(1521467703, "%%Y")` = strftime(1521467703, "%%Y") | fields `strftime(1521467703, "%%Y")`
+    fetched rows / total rows = 1/1
+    +---------------------------+
+    | strftime(1521467703, "%%Y") |
+    |---------------------------|
+    | %Y                        |
+    +---------------------------+
+
+
 STR_TO_DATE
 -----------
 
