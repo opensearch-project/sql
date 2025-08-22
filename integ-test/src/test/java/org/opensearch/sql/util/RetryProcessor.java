@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.util;
 
+import java.util.Optional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.rules.TestWatcher;
@@ -17,7 +18,9 @@ public class RetryProcessor extends TestWatcher {
 
   @Override
   public Statement apply(Statement base, Description description) {
-    Retry retry = description.getAnnotation(Retry.class);
+    Retry retry =
+        Optional.ofNullable(description.getAnnotation(Retry.class))
+            .orElseGet(() -> description.getTestClass().getAnnotation(Retry.class));
     if (retry == null) {
       return base;
     }

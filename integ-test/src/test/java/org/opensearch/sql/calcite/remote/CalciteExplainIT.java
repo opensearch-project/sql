@@ -6,10 +6,12 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STRINGS;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -21,6 +23,7 @@ public class CalciteExplainIT extends ExplainIT {
     super.init();
     enableCalcite();
     loadIndex(Index.BANK_WITH_STRING_VALUES);
+    loadIndex(Index.NESTED_SIMPLE);
   }
 
   @Override
@@ -156,6 +159,20 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryToString(query);
     String expected =
         loadFromFile("expectedOutput/calcite/explain_partial_filter_script_push.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testPartialPushdownFilterWithIsNull() throws IOException {
+    // isnull(nested_field) should not be pushed down since DSL doesn't handle it correctly, but
+    // name='david' can be pushed down
+    String query =
+        String.format(
+            Locale.ROOT,
+            "source=%s | where isnull(address) and name='david'",
+            TEST_INDEX_NESTED_SIMPLE);
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_partial_filter_isnull.json");
     assertJsonEqualsIgnoreId(expected, result);
   }
 
