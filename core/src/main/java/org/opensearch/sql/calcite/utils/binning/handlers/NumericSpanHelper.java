@@ -12,7 +12,7 @@ import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 /** Helper for creating numeric span expressions. */
 public class NumericSpanHelper {
 
-  /** Creates numeric span expression using BIN_CALCULATOR UDF. */
+  /** Creates numeric span expression using SPAN_BUCKET semantic function. */
   public RexNode createNumericSpanExpression(
       RexNode fieldExpr, int span, CalcitePlanContext context) {
 

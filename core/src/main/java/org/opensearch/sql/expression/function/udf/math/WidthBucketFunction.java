@@ -21,8 +21,8 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
 /**
  * WIDTH_BUCKET(field_value, num_bins, data_range, max_value) - Histogram bucketing function.
  *
- * <p>This function creates equal-width bins for histogram operations. It uses the nice number
- * algorithm to determine optimal bin widths.
+ * <p>This function creates equal-width bins for histogram operations. It uses a mathematical O(1)
+ * algorithm to determine optimal bin widths based on powers of 10.
  *
  * <p>Parameters:
  *
@@ -103,31 +103,35 @@ public class WidthBucketFunction extends ImplementorUDF {
       return formatRange(binStart, binEnd, width);
     }
 
-    /** Calculate optimal width using nice number algorithm. */
+    /** Calculate optimal width using mathematical O(1) algorithm. */
     private static double calculateOptimalWidth(
         double dataRange, double maxValue, int requestedBins) {
-      // Nice widths array
-      double[] niceWidths = {
-        0.001, 0.01, 0.1, 1.0, 10.0, 100.0, 1000.0, 10000.0, 100000.0, 1000000.0
-      };
-
-      for (double width : niceWidths) {
-        double theoreticalBins = Math.ceil(dataRange / width);
-        if (theoreticalBins > Integer.MAX_VALUE) {
-          continue;
-        }
-
-        int actualBins = (int) theoreticalBins;
-        if (maxValue % width == 0) {
-          actualBins++;
-        }
-
-        if (actualBins <= requestedBins) {
-          return width;
-        }
+      if (dataRange <= 0 || requestedBins <= 0) {
+        return 1.0; // Safe fallback
       }
 
-      return dataRange / requestedBins; // Fallback
+      // Calculate target width: target_width = data_range / requested_bins
+      double targetWidth = dataRange / requestedBins;
+
+      // Find optimal starting point: exponent = CEIL(LOG10(target_width))
+      double exponent = Math.ceil(Math.log10(targetWidth));
+
+      // Select optimal width: 10^exponent
+      double optimalWidth = Math.pow(10.0, exponent);
+
+      // Account for boundaries: If the maximum value falls exactly on a bin boundary, add one extra
+      // bin
+      double actualBins = Math.ceil(dataRange / optimalWidth);
+      if (maxValue % optimalWidth == 0) {
+        actualBins++;
+      }
+
+      // If we exceed requested bins, we need to go to next magnitude level
+      if (actualBins > requestedBins) {
+        optimalWidth = Math.pow(10.0, exponent + 1);
+      }
+
+      return optimalWidth;
     }
 
     /** Format range string with appropriate precision. */

@@ -165,23 +165,29 @@ This ensures that bins are aligned to meaningful time boundaries rather than arb
 
 bins Parameter
 --------------
-Automatically calculates the span using an optimized "nice number" algorithm to create human-readable bin widths with direct mathematical computation.
+Automatically calculates the span using a mathematical O(1) algorithm to create human-readable bin widths based on powers of 10.
 
 **Validation**: The bins parameter must be between 2 and 50000 (inclusive). Values outside this range will result in an error.
 
 The algorithm uses **mathematical optimization** instead of iteration for O(1) performance:
 
 1. **Validate bins**: Ensure ``2 ≤ bins ≤ 50000``
-2. **Calculate data range**: ``max_value - min_value``
+2. **Calculate data range**: ``data_range = max_value - min_value``
 3. **Calculate target width**: ``target_width = data_range / requested_bins``
-4. **Find optimal starting point**: ``start_exponent = CEIL(LOG10(target_width))``
-5. **Test nice widths mathematically**: Generate powers of 10 starting from optimal point: ``10^start_exponent, 10^(start_exponent+1), ...``
-6. **Select optimal width**: Choose the **first** width where ``CEIL(data_range / width) ≤ requested_bins``
-7. **Account for boundaries**: If the maximum value falls exactly on a bin boundary, add one extra bin
+4. **Find optimal starting point**: ``exponent = CEIL(LOG10(target_width))``
+5. **Select optimal width**: ``optimal_width = 10^exponent``
+6. **Account for boundaries**: If ``max_value % optimal_width == 0``, add one extra bin
+7. **Adjust if needed**: If ``actual_bins > requested_bins``, use ``10^(exponent + 1)``
+
+**Mathematical Formula**:
+- ``optimal_width = 10^CEIL(LOG10(data_range / requested_bins))``
+- **Boundary condition**: ``actual_bins = CEIL(data_range / optimal_width) + (max_value % optimal_width == 0 ? 1 : 0)``
 
 **Example**: For age data with range 20-50 (range=30) and bins=3:
-- Test width=1: CEIL(30/1) = 30 bins > 3 ❌
-- Test width=10: CEIL(30/10) = 3 bins ≤ 3 ✅
+- ``target_width = 30 / 3 = 10``
+- ``exponent = CEIL(LOG10(10)) = CEIL(1.0) = 1``
+- ``optimal_width = 10^1 = 10``
+- ``actual_bins = CEIL(30/10) = 3`` ≤ 3 ✅
 - Result: Use width=10, creating bins "20-30", "30-40", "40-50"
 
 **Error Examples**:
@@ -263,7 +269,7 @@ When ``bins`` is specified (and no ``span`` or ``minspan``):
 
 * **Uses**: ``start``, ``end`` as boundary modifiers
 * **Ignores**: ``span`` (higher priority), ``minspan`` (higher priority), ``aligntime``
-* **Algorithm**: "Nice number" algorithm for exact bin count
+* **Algorithm**: Mathematical O(1) algorithm using powers of 10 for optimal bin count
 * **Window functions**: Yes (``MIN()`` and ``MAX()`` for data range)
 
 
