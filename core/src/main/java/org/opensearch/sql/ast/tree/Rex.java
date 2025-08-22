@@ -21,10 +21,16 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 @ToString
 @EqualsAndHashCode(callSuper = false)
 public class Rex extends UnresolvedPlan {
+
+  public enum RexMode {
+    EXTRACT,
+    SED
+  }
+
   /** Field to extract from. */
   private final UnresolvedExpression field;
 
-  /** Pattern with named capture groups. */
+  /** Pattern with named capture groups or sed expression. */
   private final Literal pattern;
 
   /** Maximum number of matches (optional). */
@@ -33,15 +39,18 @@ public class Rex extends UnresolvedPlan {
   /** Offset field name for position tracking (optional). */
   private final Optional<String> offsetField;
 
+  /** Rex mode (extract or sed). */
+  private final RexMode mode;
+
   /** Child Plan. */
   @Setter private UnresolvedPlan child;
 
   public Rex(UnresolvedExpression field, Literal pattern) {
-    this(field, pattern, Optional.empty(), Optional.empty());
+    this(field, pattern, Optional.empty(), Optional.empty(), RexMode.EXTRACT);
   }
 
   public Rex(UnresolvedExpression field, Literal pattern, Optional<Integer> maxMatch) {
-    this(field, pattern, maxMatch, Optional.empty());
+    this(field, pattern, maxMatch, Optional.empty(), RexMode.EXTRACT);
   }
 
   public Rex(
@@ -49,10 +58,20 @@ public class Rex extends UnresolvedPlan {
       Literal pattern,
       Optional<Integer> maxMatch,
       Optional<String> offsetField) {
+    this(field, pattern, maxMatch, offsetField, RexMode.EXTRACT);
+  }
+
+  public Rex(
+      UnresolvedExpression field,
+      Literal pattern,
+      Optional<Integer> maxMatch,
+      Optional<String> offsetField,
+      RexMode mode) {
     this.field = field;
     this.pattern = pattern;
     this.maxMatch = maxMatch;
     this.offsetField = offsetField;
+    this.mode = mode;
   }
 
   @Override
