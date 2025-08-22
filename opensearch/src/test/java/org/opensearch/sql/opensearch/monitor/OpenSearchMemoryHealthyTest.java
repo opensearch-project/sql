@@ -21,7 +21,7 @@ class OpenSearchMemoryHealthyTest {
 
   @Mock private OpenSearchMemoryHealthy.RandomFail randomFail;
 
-  @Mock private OpenSearchMemoryHealthy.MemoryUsage memoryUsage;
+  @Mock private MemoryUsage memoryUsage;
 
   private OpenSearchMemoryHealthy monitor;
 
@@ -59,7 +59,7 @@ class OpenSearchMemoryHealthyTest {
 
   @Test
   void constructOpenSearchMemoryMonitorWithoutArguments() {
-    OpenSearchMemoryHealthy monitor = new OpenSearchMemoryHealthy();
+    OpenSearchMemoryHealthy monitor = new OpenSearchMemoryHealthy(null);
     assertNotNull(monitor);
   }
 
@@ -70,8 +70,14 @@ class OpenSearchMemoryHealthyTest {
   }
 
   @Test
-  void setMemoryUsage() {
-    OpenSearchMemoryHealthy.MemoryUsage usage = new OpenSearchMemoryHealthy.MemoryUsage();
+  void getMemoryUsage() {
+    MemoryUsage usage = RuntimeMemoryUsage.getInstance();
     assertTrue(usage.usage() > 0);
+  }
+
+  @Test
+  void setMemoryUsage() {
+    MemoryUsage usage = RuntimeMemoryUsage.getInstance();
+    assertThrows(UnsupportedOperationException.class, () -> usage.setUsage(10L));
   }
 }

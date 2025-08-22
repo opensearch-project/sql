@@ -45,6 +45,28 @@ public class StatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testStatsSumWithEnhancement() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats sum(balance), sum(balance + 100), sum(balance - 100),"
+                    + " sum(balance * 100), sum(balance / 100) by gender",
+                TEST_INDEX_ACCOUNT));
+    verifySchema(
+        response,
+        schema("sum(balance)", null, "bigint"),
+        schema("sum(balance + 100)", null, "bigint"),
+        schema("sum(balance - 100)", null, "bigint"),
+        schema("sum(balance * 100)", null, "bigint"),
+        schema("sum(balance / 100)", null, "bigint"),
+        schema("gender", null, "string"));
+    verifyDataRows(
+        response,
+        rows(12632310, 12681610, 12583010, 1263231000, 126080, "F"),
+        rows(13082527, 13133227, 13031827, 1308252700, 130570, "M"));
+  }
+
+  @Test
   public void testStatsCount() throws IOException {
     JSONObject response =
         executeQuery(String.format("source=%s | stats count(account_number)", TEST_INDEX_ACCOUNT));
