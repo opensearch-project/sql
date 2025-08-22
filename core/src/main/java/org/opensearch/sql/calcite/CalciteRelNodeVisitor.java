@@ -101,7 +101,11 @@ import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
+<<<<<<< HEAD
 import org.opensearch.sql.ast.tree.SPath;
+=======
+import org.opensearch.sql.ast.tree.Rex;
+>>>>>>> d3efe0f08 (rex - initial implementation)
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
@@ -120,6 +124,7 @@ import org.opensearch.sql.common.patterns.PatternUtils;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.expression.parse.RegexCommonUtils;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.utils.ParseUtils;
@@ -174,6 +179,41 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
+  @Override
+  public RelNode visitRex(Rex node, CalcitePlanContext context) {
+    visitChildren(node, context);
+
+    RexNode fieldRex = rexVisitor.analyze(node.getField(), context);
+    String patternStr = (String) node.getPattern().getValue();
+    List<String> namedGroups = RegexCommonUtils.getNamedGroupCandidates(patternStr);
+    
+    if (namedGroups.isEmpty()) {
+      throw new IllegalArgumentException("Rex pattern must contain at least one named capture group");
+    }
+
+    // Filter matching rows on data nodes using script pushdown
+    RexNode regexMatchCondition = context.rexBuilder.makeCall(
+        org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_CONTAINS,
+        fieldRex,
+        context.rexBuilder.makeLiteral(patternStr)
+    );
+    context.relBuilder.filter(regexMatchCondition);
+
+    // Extract fields from filtered data
+    List<RexNode> newFields = new ArrayList<>();
+    for (int i = 0; i < namedGroups.size(); i++) {
+      RexNode extractCall = PPLFuncImpTable.INSTANCE.resolve(
+          context.rexBuilder,
+          BuiltinFunctionName.REX_EXTRACT,
+          fieldRex,
+          context.rexBuilder.makeLiteral(patternStr),
+          context.relBuilder.literal(i + 1));
+      newFields.add(extractCall);
+    }
+
+    projectPlusOverriding(newFields, namedGroups, context);
+    return context.relBuilder.peek();
+  }
   private boolean containsSubqueryExpression(Node expr) {
     if (expr == null) {
       return false;

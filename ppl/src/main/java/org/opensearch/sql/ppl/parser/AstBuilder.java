@@ -86,6 +86,7 @@ import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
+import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Sort;
@@ -906,6 +907,21 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return new AppendCol(override, subsearch.get());
   }
 
+  @Override
+  public UnresolvedPlan visitRexCommand(OpenSearchPPLParser.RexCommandContext ctx) {
+    UnresolvedExpression field = null;
+    Literal pattern = (Literal) internalVisitExpression(ctx.rexExpr().pattern);
+    Optional<Integer> maxMatch = Optional.empty();
+
+    if (ctx.rexExpr().field != null) {
+      field = internalVisitExpression(ctx.rexExpr().field);
+    }
+    if (ctx.rexExpr().maxMatch != null) {
+      maxMatch = Optional.of(Integer.parseInt(ctx.rexExpr().maxMatch.getText()));
+    }
+
+    return new Rex(field, pattern, maxMatch);
+  }
   /** Get original text in query. */
   private String getTextInQuery(ParserRuleContext ctx) {
     Token start = ctx.getStart();

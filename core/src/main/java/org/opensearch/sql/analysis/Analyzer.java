@@ -81,6 +81,7 @@ import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.RelationSubquery;
+import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Sort;
@@ -741,6 +742,12 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   public LogicalPlan visitReverse(Reverse node, AnalysisContext context) {
     throw new UnsupportedOperationException(
         "REVERSE is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+  }
+
+  @Override
+  public LogicalPlan visitRex(Rex node, AnalysisContext context) {
+    throw new UnsupportedOperationException(
+        "REX is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
   }
 
   @Override
