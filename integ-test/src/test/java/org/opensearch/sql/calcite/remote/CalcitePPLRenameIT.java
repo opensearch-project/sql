@@ -40,6 +40,12 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
         schema("country", "string"),
         schema("year", "int"),
         schema("month", "int"));
+    verifyDataRows(
+        result,
+        rows("Jake", "USA", "California", 4, 2023, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30),
+        rows("John", "Canada", "Ontario", 4, 2023, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20));
   }
 
   @Test
@@ -79,6 +85,12 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
         schema("country", "string"),
         schema("year", "int"),
         schema("month", "int"));
+    verifyDataRows(
+        result,
+        rows("Jake", "USA", "California", 4, 2023, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30),
+        rows("John", "Canada", "Ontario", 4, 2023, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20));
   }
 
   @Test
@@ -284,10 +296,10 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
         schema("month", "int"));
     verifyDataRows(
         result,
-        rows("Jake", "California", "USA", 2023, 4),
-        rows("Hello", "New York", "USA", 2023, 4),
-        rows("John", "Ontario", "Canada", 2023, 4),
-        rows("Jane", "Quebec", "Canada", 2023, 4));
+        rows("Jake", "USA", "California", 4, 2023),
+        rows("Hello", "USA", "New York", 4, 2023),
+        rows("John", "Canada", "Ontario", 4, 2023),
+        rows("Jane", "Canada", "Quebec", 4, 2023));
   }
 
   @Test
@@ -305,10 +317,10 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
         schema("month", "int"));
     verifyDataRows(
         result,
-        rows("Jake", 70, "California", "USA", 2023, 4),
-        rows("Hello", 30, "New York", "USA", 2023, 4),
-        rows("John", 25, "Ontario", "Canada", 2023, 4),
-        rows("Jane", 20, "Quebec", "Canada", 2023, 4));
+        rows("Jake", "USA", "California", 4, 2023, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30),
+        rows("John", "Canada", "Ontario", 4, 2023, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20));
   }
 
   @Test
@@ -324,10 +336,10 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
         schema("month", "int"));
     verifyDataRows(
         result,
-        rows("Jake", "California", "USA", 2023, 4),
-        rows("Hello", "New York", "USA", 2023, 4),
-        rows("John", "Ontario", "Canada", 2023, 4),
-        rows("Jane", "Quebec", "Canada", 2023, 4));
+        rows("Jake", "USA", "California", 4, 2023),
+        rows("Hello", "USA", "New York", 4, 2023),
+        rows("John", "Canada", "Ontario", 4, 2023),
+        rows("Jane", "Canada", "Quebec", 4, 2023));
   }
 
   @Test
