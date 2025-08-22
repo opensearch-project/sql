@@ -1001,8 +1001,8 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
             + "    LogicalTableScan(table=[[scott, EMP]])\n"
             + "    LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2])\n"
             + "      LogicalFilter(condition=[<=($3, 1)])\n"
-            + "        LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], _row_number_=[ROW_NUMBER()"
-            + " OVER (PARTITION BY $0 ORDER BY $0)])\n"
+            + "        LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2],"
+            + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $0)])\n"
             + "          LogicalTableScan(table=[[scott, DEPT]])\n";
     verifyLogical(root, expectedLogical);
     verifyResultCount(root, 14);
@@ -1013,9 +1013,9 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`\n"
             + "LEFT JOIN (SELECT `DEPTNO`, `DNAME`, `LOC`\n"
             + "FROM (SELECT `DEPTNO`, `DNAME`, `LOC`, ROW_NUMBER() OVER (PARTITION BY `DEPTNO`"
-            + " ORDER BY `DEPTNO` NULLS LAST) `_row_number_`\n"
+            + " ORDER BY `DEPTNO` NULLS LAST) `_row_number_dedup_`\n"
             + "FROM `scott`.`DEPT`) `t`\n"
-            + "WHERE `_row_number_` <= 1) `t1` ON `EMP`.`DEPTNO` = `t1`.`DEPTNO`";
+            + "WHERE `_row_number_dedup_` <= 1) `t1` ON `EMP`.`DEPTNO` = `t1`.`DEPTNO`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -1030,8 +1030,8 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
             + "    LogicalTableScan(table=[[scott, EMP]])\n"
             + "    LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2])\n"
             + "      LogicalFilter(condition=[<=($3, 1)])\n"
-            + "        LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], _row_number_=[ROW_NUMBER()"
-            + " OVER (PARTITION BY $0 ORDER BY $0)])\n"
+            + "        LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2],"
+            + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $0)])\n"
             + "          LogicalTableScan(table=[[scott, DEPT]])\n";
     verifyLogical(root, expectedLogical);
     verifyResultCount(root, 14);
@@ -1043,9 +1043,9 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`\n"
             + "LEFT JOIN (SELECT `DEPTNO`, `DNAME`, `LOC`\n"
             + "FROM (SELECT `DEPTNO`, `DNAME`, `LOC`, ROW_NUMBER() OVER (PARTITION BY `DEPTNO`"
-            + " ORDER BY `DEPTNO` NULLS LAST) `_row_number_`\n"
+            + " ORDER BY `DEPTNO` NULLS LAST) `_row_number_dedup_`\n"
             + "FROM `scott`.`DEPT`) `t`\n"
-            + "WHERE `_row_number_` <= 1) `t1` ON `EMP`.`DEPTNO` = `t1`.`DEPTNO`";
+            + "WHERE `_row_number_dedup_` <= 1) `t1` ON `EMP`.`DEPTNO` = `t1`.`DEPTNO`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
