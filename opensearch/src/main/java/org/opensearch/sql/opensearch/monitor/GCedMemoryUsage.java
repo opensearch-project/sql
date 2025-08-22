@@ -56,12 +56,18 @@ public class GCedMemoryUsage implements MemoryUsage {
   }
 
   private void registerGCListener() {
-    boolean registered = false;
     List<GarbageCollectorMXBean> gcBeans = ManagementFactory.getGarbageCollectorMXBeans();
+    if (gcBeans.stream()
+        .filter(b -> b instanceof NotificationEmitter)
+        .noneMatch(b -> containConcurrentGcBean(b.getName()))) {
+      // Concurrent Garbage Collector MXBean only existed since Java 21.
+      // fallback to RuntimeMemoryUsage
+      LOG.info("No Concurrent Garbage Collector MXBean, fallback to RuntimeMemoryUsage");
+      throw new OpenSearchMemoryHealthy.MemoryUsageException();
+    }
     for (GarbageCollectorMXBean gcBean : gcBeans) {
       if (gcBean instanceof NotificationEmitter && isOldGenGc(gcBean.getName())) {
         LOG.info("{} listener registered for memory usage monitor.", gcBean.getName());
-        registered = true;
         NotificationEmitter emitter = (NotificationEmitter) gcBean;
         emitter.addNotificationListener(
             new OldGenGCListener(),
@@ -78,11 +84,10 @@ public class GCedMemoryUsage implements MemoryUsage {
             null);
       }
     }
-    if (!registered) {
-      // fallback to RuntimeMemoryUsage
-      LOG.info("No old gen GC listener registered, fallback to RuntimeMemoryUsage");
-      throw new OpenSearchMemoryHealthy.MemoryUsageException();
-    }
+  }
+
+  private boolean containConcurrentGcBean(String beanName) {
+    return beanName.toLowerCase(Locale.ROOT).contains("concurrent");
   }
 
   private boolean isOldGenGc(String gcKeyword) {
