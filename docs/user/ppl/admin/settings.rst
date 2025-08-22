@@ -17,7 +17,7 @@ Introduction
 When OpenSearch bootstraps, PPL plugin will register a few settings in OpenSearch cluster settings. Most of the settings are able to change dynamically so you can control the behavior of PPL plugin without need to bounce your cluster.
 
 plugins.ppl.enabled
-======================
+===================
 
 Description
 -----------
@@ -90,7 +90,7 @@ PPL query::
     }
 
 plugins.query.memory_limit
-=================================
+==========================
 
 Description
 -----------
@@ -120,7 +120,7 @@ PPL query::
 Note: the legacy settings of ``opendistro.ppl.query.memory_limit`` is deprecated, it will fallback to the new settings if you request an update with the legacy name.
 
 plugins.query.size_limit
-===========================
+========================
 
 Description
 -----------

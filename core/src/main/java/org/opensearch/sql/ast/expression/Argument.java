@@ -39,13 +39,22 @@ public class Argument extends UnresolvedExpression {
     private final Map<String, Literal> map;
 
     public ArgumentMap(List<Argument> arguments) {
-      this.map =
-          arguments.stream()
-              .collect(java.util.stream.Collectors.toMap(Argument::getArgName, Argument::getValue));
+      if (arguments == null || arguments.isEmpty()) {
+        this.map = Map.of();
+      } else {
+        this.map =
+            arguments.stream()
+                .collect(
+                    java.util.stream.Collectors.toMap(Argument::getArgName, Argument::getValue));
+      }
     }
 
     public static ArgumentMap of(List<Argument> arguments) {
       return new ArgumentMap(arguments);
+    }
+
+    public static ArgumentMap empty() {
+      return new ArgumentMap(null);
     }
 
     /**
