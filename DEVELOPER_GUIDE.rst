@@ -290,6 +290,7 @@ Developing User-Defined Functions (UDFs)
 
   * Implement the ``ImplementorUDF`` interface
   * Instantiate and convert it to a ``SqlOperator`` in ``PPLBuiltinOperators``
+  * For optimal UDF performance, implement any data-independent logic during the compilation phase instead of at runtime. Specifically, use ling4j expressions for these operations rather than internal static method calls, as expressions are evaluated during compilation.
 
 | ✅ Type Checking for UDFs
 - Each ``SqlOperator`` provides an operand type checker via the ``getOperandTypeChecker`` method
