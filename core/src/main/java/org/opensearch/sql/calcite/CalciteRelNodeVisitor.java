@@ -237,11 +237,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           "Rex pattern must contain at least one named capture group");
     }
 
+    String filterPattern = patternStr.replaceAll("\\(\\?<[a-zA-Z][a-zA-Z0-9]*>", "(");
     RexNode regexMatchCondition =
         context.rexBuilder.makeCall(
             SqlLibraryOperators.REGEXP_CONTAINS,
             fieldRex,
-            context.rexBuilder.makeLiteral(patternStr));
+            context.rexBuilder.makeLiteral(filterPattern));
     context.relBuilder.filter(regexMatchCondition);
 
     List<RexNode> newFields = new ArrayList<>();
