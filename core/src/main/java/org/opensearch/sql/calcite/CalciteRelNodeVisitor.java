@@ -98,6 +98,7 @@ import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
+import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
@@ -168,6 +169,25 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     } else {
       context.relBuilder.filter(condition);
     }
+    return context.relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitRegex(Regex node, CalcitePlanContext context) {
+    visitChildren(node, context);
+
+    RexNode fieldRex = rexVisitor.analyze(node.getField(), context);
+    RexNode patternRex = rexVisitor.analyze(node.getPattern(), context);
+
+    RexNode regexCondition =
+        context.rexBuilder.makeCall(
+            org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_CONTAINS, fieldRex, patternRex);
+
+    if (node.isNegated()) {
+      regexCondition = context.rexBuilder.makeCall(SqlStdOperatorTable.NOT, regexCondition);
+    }
+
+    context.relBuilder.filter(regexCondition);
     return context.relBuilder.peek();
   }
 

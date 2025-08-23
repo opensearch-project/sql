@@ -66,6 +66,7 @@ import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
+import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
@@ -246,6 +247,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitReverse(Reverse node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitRegex(Regex node, C context) {
     return visitChildren(node, context);
   }
 
