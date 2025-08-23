@@ -514,8 +514,7 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testRegex() {
     assertEquals("source=t | regex field=***", anonymize("source=t | regex field='pattern'"));
-    assertEquals(
-        "source=t | regex field!=***", anonymize("source=t | regex field!='pattern'"));
+    assertEquals("source=t | regex field!=***", anonymize("source=t | regex field!='pattern'"));
     assertEquals("source=t | regex ***", anonymize("source=t | regex 'pattern'"));
     assertEquals(
         "source=t | regex email=*** | fields + email",

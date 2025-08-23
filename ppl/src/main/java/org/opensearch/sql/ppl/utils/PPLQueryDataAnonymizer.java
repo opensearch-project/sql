@@ -72,8 +72,8 @@ import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RangeBin;
-import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.RareTopN;
+import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Reverse;
@@ -448,7 +448,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String child = node.getChild().get(0).accept(this, context);
     String operator = node.isNegated() ? "!=" : "=";
     String pattern = MASK_LITERAL;
-    
+
     if (node.getField() != null) {
       String field = visitExpression(node.getField());
       return StringUtils.format("%s | regex %s%s%s", child, field, operator, pattern);
