@@ -8,8 +8,10 @@ package org.opensearch.sql.security;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
+import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
@@ -145,5 +147,32 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
     verifyColumn(tableResult, columnName("dog_name"), columnName("age"));
     verifySchema(fieldsResult, schema("dog_name", "string"), schema("age", "bigint"));
     verifySchema(tableResult, schema("dog_name", "string"), schema("age", "bigint"));
+  }
+
+  @Test
+  public void testCrossClusterRegexBasic() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | regex firstname='.*att.*' | fields firstname",
+                TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(result, rows("Hattie"));
+  }
+
+  @Test
+  public void testCrossClusterRegexWithNegation() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | regex firstname!='.*att.*' | fields firstname",
+                TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(
+        result,
+        rows("Virginia"),
+        rows("Elinor"),
+        rows("Dillard"),
+        rows("Dale"),
+        rows("Amber JOHnny"),
+        rows("Nanette"));
   }
 }
