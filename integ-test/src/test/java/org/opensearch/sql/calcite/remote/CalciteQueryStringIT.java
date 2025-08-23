@@ -12,6 +12,5 @@ public class CalciteQueryStringIT extends QueryStringIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 }

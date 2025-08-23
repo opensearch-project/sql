@@ -174,8 +174,50 @@ public class RelevanceFunctionIT extends PPLIntegTestCase {
     String query1 =
         "SOURCE="
             + TEST_INDEX_BEER
-            + " | EVAL answerId = AcceptedAnswerId + 1"
-            + " | WHERE simple_query_string(['Tags'], 'taste') and answerId > 200";
+            + " | STATS count(AcceptedAnswerId) as count"
+            + " | EVAL dateStr = makedate(2025, count)"
+            + " | WHERE simple_query_string(['dateStr'], 'taste')";
     assertThrows(Exception.class, () -> executeQuery(query1));
+  }
+
+  @Test
+  public void test_multi_match_without_fields() throws IOException {
+    // Test multi_match without fields parameter - should search in default fields
+    String query =
+        "SOURCE=" + TEST_INDEX_BEER + " | WHERE multi_match('taste brewing') | fields Id";
+    var result = executeQuery(query);
+    assertTrue("multi_match without fields should return results", result.getInt("total") > 0);
+  }
+
+  @Test
+  public void test_simple_query_string_without_fields() throws IOException {
+    // Test simple_query_string without fields parameter - should search in default fields
+    String query =
+        "SOURCE="
+            + TEST_INDEX_BEER
+            + " | WHERE simple_query_string('brewing AND taste') | fields Id";
+    var result = executeQuery(query);
+    assertTrue(
+        "simple_query_string without fields should return results", result.getInt("total") > 0);
+  }
+
+  @Test
+  public void test_query_string_without_fields() throws IOException {
+    // Test query_string without fields parameter - should search in default fields
+    String query =
+        "SOURCE=" + TEST_INDEX_BEER + " | WHERE query_string('brewing AND taste') | fields Id";
+    var result = executeQuery(query);
+    assertTrue("query_string without fields should return results", result.getInt("total") > 0);
+  }
+
+  @Test
+  public void test_multi_match_without_fields_with_options() throws IOException {
+    // Test multi_match without fields but with optional parameters
+    String query =
+        "SOURCE=" + TEST_INDEX_BEER + " | WHERE multi_match('taste', operator='and') | fields Id";
+    var result = executeQuery(query);
+    assertTrue(
+        "multi_match without fields with options should return results",
+        result.getInt("total") > 0);
   }
 }

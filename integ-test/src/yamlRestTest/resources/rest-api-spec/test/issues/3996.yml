@@ -1,0 +1,52 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+
+  - do:
+      indices.create:
+        index: test
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              body:
+                type: text
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
+"Fix incorrectly push down aggregate with filter":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      bulk:
+        index: test
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"body": "[2025-07-31T05:44:45.164Z] \"GET /api/data HTTP/1.1\" 200 - via_upstream - \"-\" 0 221 2 2 \"-\" \"python-requests/2.32.4\" \"80a2a234-bbb2-9bf3-bbc6-ba7554aee8b6\" \"frontend-proxy:8080\" \"172.18.0.25:8080\" frontend 172.18.0.27:46596 172.18.0.27:8080 172.18.0.26:53294 - -"}'
+
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test | parse body 'HTTP/1.1\" (?<httpstatus>\d+)' | eval status2xx=if(httpstatus>='200' and httpstatus<'300', 1, 0), status3xx=if(httpstatus>='300' and httpstatus<'400', 1, 0), status4xx=if(httpstatus>='400' and httpstatus<'500', 1, 0), status5xx=if(httpstatus>='500' and httpstatus<'600', 1, 0), statusOther=if(httpstatus>='600', 1, 0) | stats count() as `Request Count`, sum(status2xx) as `HTTP 2xx`, sum(status3xx) as `HTTP 3xx`, sum(status4xx) as `HTTP 4xx`, sum(status5xx) as `HTTP 5xx`, sum(statusOther) as `Other`
+  - match: {"total": 1}
+  - match: {"schema": [{"name": "Request Count", "type": "bigint"}, {"name": "HTTP 2xx", "type": "bigint"}, {"name": "HTTP 3xx", "type": "bigint"}, {"name": "HTTP 4xx", "type": "bigint"}, {"name": "HTTP 5xx", "type": "bigint"}, {"name": "Other", "type": "bigint"}]}
+  - match: {"datarows": [[1, 1, 0, 0, 0, 0]]}

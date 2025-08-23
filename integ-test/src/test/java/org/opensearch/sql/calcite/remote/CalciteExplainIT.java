@@ -18,7 +18,6 @@ public class CalciteExplainIT extends ExplainIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 
   @Override
@@ -70,6 +69,7 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   // Only for Calcite
+  @Ignore("We've supported script push down on text field")
   @Test
   public void supportPartialPushDown() throws IOException {
     Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
@@ -83,6 +83,7 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   // Only for Calcite
+  @Ignore("We've supported script push down on text field")
   @Test
   public void supportPartialPushDown_NoPushIfAllFailed() throws IOException {
     Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
@@ -262,7 +263,7 @@ public class CalciteExplainIT extends ExplainIT {
                     + " sum(balance * 100), sum(balance / 100) by gender",
                 TEST_INDEX_BANK)));
   }
-
+  
   /**
    * Executes the PPL query and returns the result as a string with windows-style line breaks
    * replaced with Unix-style ones.

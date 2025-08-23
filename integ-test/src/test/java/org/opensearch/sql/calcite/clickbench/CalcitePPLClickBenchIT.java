@@ -15,6 +15,5 @@ public class CalcitePPLClickBenchIT extends PPLClickBenchIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 }

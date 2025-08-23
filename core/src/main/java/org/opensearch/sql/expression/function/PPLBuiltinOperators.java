@@ -7,10 +7,13 @@ package org.opensearch.sql.expression.function;
 
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.adaptExprMethodToUDF;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.adaptExprMethodWithPropertiesToUDF;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.adaptMathFunctionToUDF;
 
+import com.google.common.base.Suppliers;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.function.Supplier;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexImpTable;
 import org.apache.calcite.adapter.enumerable.RexImpTable.RexCallImplementor;
@@ -19,10 +22,7 @@ import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
-import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
@@ -73,14 +73,19 @@ import org.opensearch.sql.expression.function.udf.datetime.WeekdayFunction;
 import org.opensearch.sql.expression.function.udf.datetime.YearweekFunction;
 import org.opensearch.sql.expression.function.udf.ip.CidrMatchFunction;
 import org.opensearch.sql.expression.function.udf.ip.CompareIpFunction;
+import org.opensearch.sql.expression.function.udf.ip.IPFunction;
 import org.opensearch.sql.expression.function.udf.math.CRC32Function;
 import org.opensearch.sql.expression.function.udf.math.ConvFunction;
 import org.opensearch.sql.expression.function.udf.math.DivideFunction;
 import org.opensearch.sql.expression.function.udf.math.EulerFunction;
 import org.opensearch.sql.expression.function.udf.math.ModFunction;
+import org.opensearch.sql.expression.function.udf.math.NumberToStringFunction;
 
 /** Defines functions and operators that are implemented only by PPL */
 public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
+
+  private static final Supplier<PPLBuiltinOperators> INSTANCE =
+      Suppliers.memoize(() -> (PPLBuiltinOperators) new PPLBuiltinOperators().init());
 
   // Json Functions
   public static final SqlOperator JSON = new JsonFunctionImpl().toUDF("JSON");
@@ -103,6 +108,26 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator DIVIDE = new DivideFunction().toUDF("DIVIDE");
   public static final SqlOperator SHA2 = CryptographicFunction.sha2().toUDF("SHA2");
   public static final SqlOperator CIDRMATCH = new CidrMatchFunction().toUDF("CIDRMATCH");
+
+  public static final SqlOperator COSH =
+      adaptMathFunctionToUDF(
+              "cosh", ReturnTypes.DOUBLE_FORCE_NULLABLE, NullPolicy.ANY, PPLOperandTypes.NUMERIC)
+          .toUDF("COSH");
+
+  public static final SqlOperator SINH =
+      adaptMathFunctionToUDF(
+              "sinh", ReturnTypes.DOUBLE_FORCE_NULLABLE, NullPolicy.ANY, PPLOperandTypes.NUMERIC)
+          .toUDF("SINH");
+
+  public static final SqlOperator RINT =
+      adaptMathFunctionToUDF(
+              "rint", ReturnTypes.DOUBLE_FORCE_NULLABLE, NullPolicy.ANY, PPLOperandTypes.NUMERIC)
+          .toUDF("RINT");
+
+  public static final SqlOperator EXPM1 =
+      adaptMathFunctionToUDF(
+              "expm1", ReturnTypes.DOUBLE_FORCE_NULLABLE, NullPolicy.ANY, PPLOperandTypes.NUMERIC)
+          .toUDF("EXPM1");
 
   // IP comparing functions
   public static final SqlOperator NOT_EQUALS_IP =
@@ -138,7 +163,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               "exprAddTime",
               PPLReturnTypes.TIME_APPLY_RETURN_TYPE,
               NullPolicy.ANY,
-              PPLOperandTypes.DATETIME_OR_STRING_DATETIME_OR_STRING)
+              PPLOperandTypes.DATETIME_DATETIME)
           .toUDF("ADDTIME");
   public static final SqlOperator SUBTIME =
       adaptExprMethodWithPropertiesToUDF(
@@ -146,7 +171,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               "exprSubTime",
               PPLReturnTypes.TIME_APPLY_RETURN_TYPE,
               NullPolicy.ANY,
-              PPLOperandTypes.DATETIME_OR_STRING_DATETIME_OR_STRING)
+              PPLOperandTypes.DATETIME_DATETIME)
           .toUDF("SUBTIME");
   public static final SqlOperator ADDDATE = new AddSubDateFunction(true).toUDF("ADDDATE");
   public static final SqlOperator SUBDATE = new AddSubDateFunction(false).toUDF("SUBDATE");
@@ -192,11 +217,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               "exprConvertTZ",
               PPLReturnTypes.TIMESTAMP_FORCE_NULLABLE,
               NullPolicy.ANY,
-              UDFOperandMetadata.wrap(
-                  (CompositeOperandTypeChecker)
-                      OperandTypes.STRING_STRING_STRING.or(
-                          OperandTypes.family(
-                              SqlTypeFamily.DATETIME, SqlTypeFamily.STRING, SqlTypeFamily.STRING))))
+              PPLOperandTypes.TIMESTAMP_OR_STRING_STRING_STRING)
           .toUDF("CONVERT_TZ");
   public static final SqlOperator DATEDIFF =
       adaptExprMethodWithPropertiesToUDF(
@@ -204,7 +225,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               "exprDateDiff",
               ReturnTypes.BIGINT_FORCE_NULLABLE,
               NullPolicy.ANY,
-              PPLOperandTypes.DATETIME_OR_STRING_DATETIME_OR_STRING)
+              PPLOperandTypes.DATETIME_DATETIME)
           .toUDF("DATEDIFF");
   public static final SqlOperator TIMESTAMPDIFF =
       new TimestampDiffFunction().toUDF("TIMESTAMPDIFF");
@@ -276,13 +297,17 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               NullPolicy.ARG0,
               PPLOperandTypes.DATETIME_OR_STRING)
           .toUDF("TIME");
+
+  // IP cast function
+  public static final SqlOperator IP =
+      new IPFunction().toUDF(UserDefinedFunctionUtils.IP_FUNCTION_NAME);
   public static final SqlOperator TIME_TO_SEC =
       adaptExprMethodToUDF(
               DateTimeFunctions.class,
               "exprTimeToSec",
               ReturnTypes.BIGINT_FORCE_NULLABLE,
               NullPolicy.ARG0,
-              PPLOperandTypes.DATETIME_OR_STRING)
+              PPLOperandTypes.TIME_OR_TIMESTAMP_OR_STRING)
           .toUDF("TIME_TO_SEC");
   public static final SqlOperator TIMEDIFF =
       UserDefinedFunctionUtils.adaptExprMethodToUDF(
@@ -290,7 +315,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               "exprTimeDiff",
               PPLReturnTypes.TIME_FORCE_NULLABLE,
               NullPolicy.ANY,
-              PPLOperandTypes.DATETIME_OR_STRING_DATETIME_OR_STRING)
+              PPLOperandTypes.TIME_TIME)
           .toUDF("TIME_DIFF");
   public static final SqlOperator TIMESTAMPADD = new TimestampAddFunction().toUDF("TIMESTAMPADD");
   public static final SqlOperator TO_DAYS =
@@ -353,6 +378,17 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
       RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("query_string", false);
   public static final SqlOperator MULTI_MATCH =
       RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("multi_match", false);
+  public static final SqlOperator NUMBER_TO_STRING =
+      new NumberToStringFunction().toUDF("NUMBER_TO_STRING");
+
+  /**
+   * Returns the PPL specific operator table, creating it if necessary.
+   *
+   * @return PPLBuiltinOperators operator table
+   */
+  public static PPLBuiltinOperators instance() {
+    return INSTANCE.get();
+  }
 
   /**
    * Invoking an implementor registered in {@link RexImpTable}, need to use reflection since they're

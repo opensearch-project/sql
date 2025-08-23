@@ -25,7 +25,6 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.hint.RelHint;
-import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -35,12 +34,13 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.planner.physical.EnumerableIndexScanRule;
 import org.opensearch.sql.opensearch.planner.physical.OpenSearchIndexRules;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer;
@@ -110,21 +110,27 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
 
   public AbstractRelNode pushDownFilter(Filter filter) {
     try {
-      List<String> schema = this.getRowType().getFieldNames();
-      Map<String, ExprType> filedTypes = this.osIndex.getFieldTypes();
-      QueryExpression queryExpression =
-          PredicateAnalyzer.analyze_(filter.getCondition(), schema, filedTypes);
-      QueryBuilder queryBuilder = queryExpression.builder();
+      RelDataType rowType = filter.getRowType();
       CalciteLogicalIndexScan newScan = this.copyWithNewSchema(filter.getRowType());
+      List<String> schema = this.getRowType().getFieldNames();
+      Map<String, ExprType> fieldTypes =
+          this.osIndex.getFieldTypes().entrySet().stream()
+              .filter(entry -> schema.contains(entry.getKey()))
+              .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+      QueryExpression queryExpression =
+          PredicateAnalyzer.analyzeExpression(
+              filter.getCondition(), schema, fieldTypes, rowType, getCluster());
       // TODO: handle the case where condition contains a score function
       newScan.pushDownContext.add(
           new PushDownAction(
-              PushDownType.FILTER,
+              QueryExpression.containsScript(queryExpression)
+                  ? PushDownType.SCRIPT
+                  : PushDownType.FILTER,
               queryExpression.isPartial()
                   ? constructCondition(
                       queryExpression.getAnalyzedNodes(), getCluster().getRexBuilder())
                   : filter.getCondition(),
-              requestBuilder -> requestBuilder.pushDownFilter(queryBuilder)));
+              requestBuilder -> requestBuilder.pushDownFilter(queryExpression.builder())));
 
       // If the query expression is partial, we need to replace the input of the filter with the
       // partial pushed scan and the filter condition with non-pushed-down conditions.
@@ -138,8 +144,6 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Cannot pushdown the filter condition.", e);
-      } else {
-        LOG.info("Cannot pushdown the filter condition.");
       }
     }
     return null;
@@ -149,6 +153,44 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     return conditions.size() > 1
         ? rexBuilder.makeCall(SqlStdOperatorTable.AND, conditions)
         : conditions.get(0);
+  }
+
+  public CalciteLogicalIndexScan pushDownCollapse(Project finalOutput, String fieldName) {
+    ExprType fieldType = osIndex.getFieldTypes().get(fieldName);
+    if (fieldType == null) {
+      // the fieldName must be one of index fields
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Cannot pushdown the dedup '{}' due to it is not a index field", fieldName);
+      }
+      return null;
+    }
+    ExprType originalExprType = fieldType.getOriginalExprType();
+    String originalFieldName = originalExprType.getOriginalPath().orElse(fieldName);
+    if (!ExprCoreType.numberTypes().contains(originalExprType)
+        && !originalExprType.legacyTypeName().equals("KEYWORD")
+        && !originalExprType.legacyTypeName().equals("TEXT")) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(
+            "Cannot pushdown the dedup '{}' due to only keyword and number type are accepted, but"
+                + " its type is {}",
+            originalFieldName,
+            originalExprType.legacyTypeName());
+      }
+      return null;
+    }
+    // For text, use its subfield if exists.
+    String field = OpenSearchTextType.toKeywordSubField(originalFieldName, fieldType);
+    if (field == null) {
+      LOG.debug("Cannot pushdown the dedup due to no keyword subfield for {}.", fieldName);
+      return null;
+    }
+    CalciteLogicalIndexScan newScan = this.copyWithNewSchema(finalOutput.getRowType());
+    newScan.pushDownContext.add(
+        new PushDownAction(
+            PushDownType.COLLAPSE,
+            fieldName,
+            requestBuilder -> requestBuilder.pushDownCollapse(field)));
+    return newScan;
   }
 
   /**
@@ -223,11 +265,11 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               aggregate.getRowType(),
               // Aggregation will eliminate all collations.
               cloneWithoutSort(pushDownContext));
-      List<String> schema = this.getRowType().getFieldNames();
       Map<String, ExprType> fieldTypes = this.osIndex.getFieldTypes();
       List<String> outputFields = aggregate.getRowType().getFieldNames();
       final Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder =
-          AggregateAnalyzer.analyze(aggregate, project, schema, fieldTypes, outputFields);
+          AggregateAnalyzer.analyze(
+              aggregate, project, getRowType(), fieldTypes, outputFields, getCluster());
       Map<String, OpenSearchDataType> extendedTypeMapping =
           aggregate.getRowType().getFieldList().stream()
               .collect(
@@ -237,20 +279,12 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
                           OpenSearchDataType.of(
                               OpenSearchTypeFactory.convertRelDataTypeToExprType(
                                   field.getType()))));
-      newScan.pushDownContext.add(
-          new PushDownAction(
-              PushDownType.AGGREGATION,
-              aggregate,
-              requestBuilder -> {
-                requestBuilder.pushDownAggregation(aggregationBuilder);
-                requestBuilder.pushTypeMapping(extendedTypeMapping);
-              }));
+      AggPushDownAction action = new AggPushDownAction(aggregationBuilder, extendedTypeMapping);
+      newScan.pushDownContext.add(new PushDownAction(PushDownType.AGGREGATION, aggregate, action));
       return newScan;
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Cannot pushdown the aggregate {}", aggregate, e);
-      } else {
-        LOG.info("Cannot pushdown the aggregate {}, ", aggregate);
       }
     }
     return null;
@@ -268,8 +302,6 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Cannot pushdown limit {} with offset {}", limit, offset, e);
-      } else {
-        LOG.info("Cannot pushdown limit {} with offset {}", limit, offset);
       }
     }
     return null;

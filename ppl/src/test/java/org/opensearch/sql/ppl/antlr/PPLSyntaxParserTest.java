@@ -305,6 +305,39 @@ public class PPLSyntaxParserTest {
   }
 
   @Test
+  public void testMultiFieldRelevanceFunctionsWithoutFields() {
+    // Test multi_match without fields parameter
+    assertNotEquals(
+        null, new PPLSyntaxParser().parse("SOURCE=test | WHERE multi_match('query text')"));
+
+    // Test multi_match without fields but with optional parameters
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE multi_match('query text', analyzer='keyword')"));
+
+    // Test simple_query_string without fields parameter
+    assertNotEquals(
+        null, new PPLSyntaxParser().parse("SOURCE=test | WHERE simple_query_string('query text')"));
+
+    // Test simple_query_string without fields but with optional parameters
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE simple_query_string('query text', flags='ALL')"));
+
+    // Test query_string without fields parameter
+    assertNotEquals(
+        null, new PPLSyntaxParser().parse("SOURCE=test | WHERE query_string('query text')"));
+
+    // Test query_string without fields but with optional parameters
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE query_string('query text', default_operator='AND')"));
+  }
+
+  @Test
   public void testDescribeCommandShouldPass() {
     ParseTree tree = new PPLSyntaxParser().parse("describe t");
     assertNotEquals(null, tree);
@@ -332,14 +365,6 @@ public class PPLSyntaxParserTest {
   public void testDescribeFieldsCommandShouldPass() {
     ParseTree tree = new PPLSyntaxParser().parse("describe t | fields a,b");
     assertNotEquals(null, tree);
-  }
-
-  @Test
-  public void testDescribeCommandWithSourceShouldFail() {
-    exceptionRule.expect(RuntimeException.class);
-    exceptionRule.expectMessage("Failed to parse query due to offending symbol");
-
-    new PPLSyntaxParser().parse("describe source=t");
   }
 
   @Test
@@ -455,5 +480,45 @@ public class PPLSyntaxParserTest {
                     + "|/*\n"
                     + "    This is a        multiple    line    block        comment */ fields a,b"
                     + " /* block comment */ "));
+  }
+
+  @Test
+  public void testWhereCommand() {
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x = 1"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x = y"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x OR y"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE true"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE (1 >= 0)"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE (x >= 0)"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE (x < 1) = (y > 1)"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x = (1 + 2) * 3"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x = 1 + 2 * 3"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE (day_of_week_i < 2) OR (day_of_week_i > 5)"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE match('message', 'test query', analyzer='keyword')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse(
+                "SOURCE=test | WHERE multi_match(['field1', 'field2' ^ 3.2], 'test query',"
+                    + " analyzer='keyword')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse(
+                "SOURCE=test | WHERE simple_query_string(['field1', 'field2' ^ 3.2], 'test query',"
+                    + " analyzer='keyword')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse(
+                "SOURCE=test | WHERE query_string(['field1', 'field2' ^ 3.2], 'test query',"
+                    + " analyzer='keyword')"));
   }
 }

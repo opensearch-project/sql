@@ -40,25 +40,49 @@ The query start with search command and then flowing a set of command delimited 
 
   - `Cross-Cluster Search <admin/cross_cluster_search.rst>`_
 
+* **Language Structure**
+
+  - `Identifiers <general/identifiers.rst>`_
+
+  - `Data Types <general/datatypes.rst>`_
+
 * **Commands**
 
   - `Syntax <cmd/syntax.rst>`_
 
   - `ad command <cmd/ad.rst>`_
 
+  - `appendcol command <cmd/appendcol.rst>`_
+
   - `dedup command <cmd/dedup.rst>`_
 
   - `describe command <cmd/describe.rst>`_
 
-  - `show datasources command <cmd/showdatasources.rst>`_
-
   - `eval command <cmd/eval.rst>`_
+
+  - `eventstats command <cmd/eventstats.rst>`_
+
+  - `expand command <cmd/expand.rst>`_
+
+  - `explain command <cmd/explain.rst>`_
 
   - `fields command <cmd/fields.rst>`_
 
+  - `fillnull command <cmd/fillnull.rst>`_
+
+  - `flatten command  <cmd/flatten.rst>`_
+
   - `grok command <cmd/grok.rst>`_
 
+  - `head command <cmd/head.rst>`_
+  
+  - `join command  <cmd/join.rst>`_
+
   - `kmeans command <cmd/kmeans.rst>`_
+
+  - `lookup command <cmd/lookup.rst>`_
+
+  - `metadata commands <cmd/information_schema.rst>`_
 
   - `ml command <cmd/ml.rst>`_
 
@@ -66,33 +90,27 @@ The query start with search command and then flowing a set of command delimited 
 
   - `patterns command <cmd/patterns.rst>`_
 
+  - `rare command <cmd/rare.rst>`_
+
   - `rename command <cmd/rename.rst>`_
 
   - `search command <cmd/search.rst>`_
+
+  - `show datasources command <cmd/showdatasources.rst>`_
 
   - `sort command <cmd/sort.rst>`_
 
   - `stats command <cmd/stats.rst>`_
 
-  - `trendline command <cmd/trendline.rst>`_
+  - `subquery (aka subsearch) command <cmd/subquery.rst>`_
 
-  - `where command <cmd/where.rst>`_
-
-  - `head command <cmd/head.rst>`_
-  
-  - `rare command <cmd/rare.rst>`_
+  - `reverse command <cmd/reverse.rst>`_
 
   - `top command <cmd/top.rst>`_
 
-  - `metadata commands <cmd/information_schema.rst>`_
+  - `trendline command <cmd/trendline.rst>`_
 
-  - `(Experimental)(From 3.0.0) join command <cmd/join.rst>`_
-
-  - `(Experimental)(From 3.0.0) lookup command <cmd/lookup.rst>`_
-
-  - `(Experimental)(From 3.0.0) subquery (aka subsearch) command <cmd/subquery.rst>`_
-
-  - `(Experimental)(From 3.1.0) eventstats command <cmd/eventstats.rst>`_
+  - `where command <cmd/where.rst>`_
 
 * **Functions**
 
@@ -123,12 +141,6 @@ The query start with search command and then flowing a set of command delimited 
 * **Optimization**
 
   - `Optimization <../../user/optimization/optimization.rst>`_
-
-* **Language Structure**
-
-  - `Identifiers <general/identifiers.rst>`_
-
-  - `Data Types <general/datatypes.rst>`_
 
 * **Limitations**
 

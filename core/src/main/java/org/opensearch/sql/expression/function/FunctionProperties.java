@@ -9,6 +9,7 @@ import java.io.Serializable;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.opensearch.sql.executor.QueryType;
@@ -17,7 +18,7 @@ import org.opensearch.sql.executor.QueryType;
 public class FunctionProperties implements Serializable {
 
   private final Instant nowInstant;
-  private final ZoneId currentZoneId;
+  @Getter private final ZoneId currentZoneId;
   @Getter private final QueryType queryType;
 
   /** By default, use current time and current timezone. */
@@ -26,7 +27,7 @@ public class FunctionProperties implements Serializable {
   }
 
   public FunctionProperties(QueryType queryType) {
-    this(Instant.now(), ZoneId.systemDefault(), queryType);
+    this(Instant.now(), ZoneOffset.UTC, queryType);
   }
 
   public FunctionProperties(Instant nowInstant, ZoneId currentZoneId) {

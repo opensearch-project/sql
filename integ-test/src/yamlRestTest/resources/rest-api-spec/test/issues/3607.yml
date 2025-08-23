@@ -10,7 +10,6 @@ setup:
         body:
           transient:
             plugins.calcite.enabled : true
-            plugins.calcite.fallback.allowed : false
             plugins.query.size_limit : 200
 
 ---
@@ -20,13 +19,13 @@ teardown:
         body:
           transient:
             plugins.calcite.enabled : false
-            plugins.calcite.fallback.allowed : true
 
 ---
 "Handle aggregation with window_size_limit is less than query.size_limit":
   - skip:
       features:
         - headers
+        - allowed_warnings
   - do:
       bulk:
         refresh: true
@@ -37,6 +36,8 @@ teardown:
              {"regionId": "2", "action": "file_upload", "timestamp": "2024-04-29T10:05:00Z"}'
 
   - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
       headers:
         Content-Type: 'application/json'
       ppl:

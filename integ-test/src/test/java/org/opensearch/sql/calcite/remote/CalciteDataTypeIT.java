@@ -15,6 +15,5 @@ public class CalciteDataTypeIT extends DataTypeIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 }

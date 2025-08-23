@@ -13,6 +13,5 @@ public class CalciteSystemFunctionIT extends SystemFunctionIT {
     super.init();
     enableCalcite();
     datetimeDataType = "TIMESTAMP";
-    disallowCalciteFallback();
   }
 }

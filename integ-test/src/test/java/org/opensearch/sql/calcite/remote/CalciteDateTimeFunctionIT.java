@@ -15,10 +15,10 @@ public class CalciteDateTimeFunctionIT extends DateTimeFunctionIT {
     super.init();
     enableCalcite();
     dataType = "timestamp";
-    disallowCalciteFallback();
   }
 
   // TODO: Remove this when supporting type coercion and casting with Calcite
+  //  https://github.com/opensearch-project/sql/issues/3761
   @Ignore
   @Override
   public void testUnixTimestampWithTimestampString() throws IOException {}

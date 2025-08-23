@@ -14,12 +14,8 @@ root
 
 // statement
 pplStatement
-   : dmlStatement
-   ;
-
-dmlStatement
-   : queryStatement
-   | explainStatement
+   : explainStatement
+   | queryStatement
    ;
 
 queryStatement
@@ -43,14 +39,15 @@ subSearch
 
 // commands
 pplCommands
-   : searchCommand
-   | describeCommand
+   : describeCommand
    | showDataSourcesCommand
+   | searchCommand
    ;
 
 commands
    : whereCommand
    | fieldsCommand
+   | tableCommand
    | joinCommand
    | renameCommand
    | statsCommand
@@ -73,6 +70,7 @@ commands
    | appendcolCommand
    | expandCommand
    | flattenCommand
+   | reverseCommand
    ;
 
 commandName
@@ -81,6 +79,7 @@ commandName
    | SHOW
    | WHERE
    | FIELDS
+   | TABLE
    | JOIN
    | RENAME
    | STATS
@@ -107,12 +106,11 @@ commandName
    | mlCommand
    | patternsCommand
    | EXPLAIN
+   | REVERSE
    ;
 
 searchCommand
-   : (SEARCH)? fromClause                       # searchFrom
-   | (SEARCH)? fromClause logicalExpression     # searchFromFilter
-   | (SEARCH)? logicalExpression fromClause     # searchFilterFrom
+   : (SEARCH)? (logicalExpression)* fromClause (logicalExpression)*     # searchFrom
    ;
 
 describeCommand
@@ -128,7 +126,21 @@ whereCommand
    ;
 
 fieldsCommand
-   : FIELDS (PLUS | MINUS)? fieldList
+   : FIELDS fieldsCommandBody
+   ;
+
+// Table command - alias for fields command
+tableCommand
+   : TABLE fieldsCommandBody
+   ;
+
+fieldsCommandBody
+   : (PLUS | MINUS)? wcFieldList
+   ;
+
+// Wildcard field list supporting both comma-separated and space-separated fields
+wcFieldList
+   : selectFieldExpression (COMMA? selectFieldExpression)*
    ;
 
 renameCommand
@@ -148,7 +160,11 @@ dedupCommand
    ;
 
 sortCommand
-   : SORT sortbyClause
+   : SORT (count = integerLiteral)? sortbyClause (DESC | D)?
+   ;
+
+reverseCommand
+   : REVERSE
    ;
 
 evalCommand
@@ -377,7 +393,7 @@ sortbyClause
    ;
 
 evalClause
-   : fieldExpression EQUAL expression
+   : fieldExpression EQUAL logicalExpression
    ;
 
 eventstatsAggTerm
@@ -453,68 +469,52 @@ numericLiteral
     | floatLiteral
     ;
 
-// expressions
-expression
-   : logicalExpression
-   | comparisonExpression
-   | valueExpression
-   ;
-
 // predicates
 logicalExpression
-   : LT_PRTHS logicalExpression RT_PRTHS                        # parentheticLogicalExpr
-   | NOT logicalExpression                                      # logicalNot
-   | left = logicalExpression (AND)? right = logicalExpression  # logicalAnd
+   : NOT logicalExpression                                      # logicalNot
+   | left = logicalExpression AND right = logicalExpression     # logicalAnd
    | left = logicalExpression XOR right = logicalExpression     # logicalXor
    | left = logicalExpression OR right = logicalExpression      # logicalOr
-   | comparisonExpression                                       # comparsion
-   | booleanExpression                                          # booleanExpr
+   | expression                                                 # logicalExpr
+   ;
+
+expression
+   : valueExpression                                            # valueExpr
    | relevanceExpression                                        # relevanceExpr
-   ;
-
-comparisonExpression
-   : left = valueExpression comparisonOperator right = valueExpression      # compareExpr
-   | valueExpression NOT? IN valueList                                      # inExpr
-   | valueExpression NOT? BETWEEN valueExpression AND valueExpression       # between
-   ;
-
-valueExpressionList
-   : valueExpression
-   | LT_PRTHS valueExpression (COMMA valueExpression)* RT_PRTHS
+   | left = expression comparisonOperator right = expression    # compareExpr
+   | expression NOT? IN valueList                               # inExpr
+   | expression NOT? BETWEEN expression AND expression          # between
    ;
 
 valueExpression
-   : left = valueExpression binaryOperator = (STAR | DIVIDE | MODULE) right = valueExpression   # binaryArithmetic
-   | left = valueExpression binaryOperator = (PLUS | MINUS) right = valueExpression             # binaryArithmetic
-   | primaryExpression                                                                          # valueExpressionDefault
-   | positionFunction                                                                           # positionFunctionCall
-   | caseFunction                                                                               # caseExpr
-   | extractFunction                                                                            # extractFunctionCall
-   | getFormatFunction                                                                          # getFormatFunctionCall
-   | timestampFunction                                                                          # timestampFunctionCall
-   | LT_PRTHS valueExpression RT_PRTHS                                                          # parentheticValueExpr
-   | LT_SQR_PRTHS subSearch RT_SQR_PRTHS                                                        # scalarSubqueryExpr
-   | lambda                                                                                     # lambdaExpr
+   : left = valueExpression binaryOperator = (STAR | DIVIDE | MODULE) right = valueExpression                   # binaryArithmetic
+   | left = valueExpression binaryOperator = (PLUS | MINUS) right = valueExpression                             # binaryArithmetic
+   | literalValue                                                                                               # literalValueExpr
+   | functionCall                                                                                               # functionCallExpr
+   | lambda                                                                                                     # lambdaExpr
+   | LT_SQR_PRTHS subSearch RT_SQR_PRTHS                                                                        # scalarSubqueryExpr
+   | valueExpression NOT? IN LT_SQR_PRTHS subSearch RT_SQR_PRTHS                                                # inSubqueryExpr
+   | LT_PRTHS valueExpression (COMMA valueExpression)* RT_PRTHS NOT? IN LT_SQR_PRTHS subSearch RT_SQR_PRTHS     # inSubqueryExpr
+   | EXISTS LT_SQR_PRTHS subSearch RT_SQR_PRTHS                                                                 # existsSubqueryExpr
+   | fieldExpression                                                                                            # fieldExpr
+   | LT_PRTHS logicalExpression RT_PRTHS                                                                        # nestedValueExpr
    ;
 
-primaryExpression
+functionCall
    : evalFunctionCall
    | dataTypeFunctionCall
-   | fieldExpression
-   | literalValue
+   | positionFunctionCall
+   | caseFunctionCall
+   | timestampFunctionCall
+   | extractFunctionCall
+   | getFormatFunctionCall
    ;
 
-positionFunction
+positionFunctionCall
    : positionFunctionName LT_PRTHS functionArg IN functionArg RT_PRTHS
    ;
 
-booleanExpression
-   : booleanFunctionCall                                                # booleanFunctionCallExpr
-   | valueExpressionList NOT? IN LT_SQR_PRTHS subSearch RT_SQR_PRTHS    # inSubqueryExpr
-   | EXISTS LT_SQR_PRTHS subSearch RT_SQR_PRTHS                         # existsSubqueryExpr
-   ;
-
-caseFunction
+caseFunctionCall
    : CASE LT_PRTHS logicalExpression COMMA valueExpression (COMMA logicalExpression COMMA valueExpression)* (ELSE valueExpression)? RT_PRTHS
    ;
 
@@ -530,7 +530,7 @@ singleFieldRelevanceFunction
 
 // Field is a list of columns
 multiFieldRelevanceFunction
-   : multiFieldRelevanceFunctionName LT_PRTHS LT_SQR_PRTHS field = relevanceFieldAndWeight (COMMA field = relevanceFieldAndWeight)* RT_SQR_PRTHS COMMA query = relevanceQuery (COMMA relevanceArg)* RT_PRTHS
+   : multiFieldRelevanceFunctionName LT_PRTHS (LT_SQR_PRTHS field = relevanceFieldAndWeight (COMMA field = relevanceFieldAndWeight)* RT_SQR_PRTHS COMMA)? query = relevanceQuery (COMMA relevanceArg)* RT_PRTHS
    ;
 
 // tables
@@ -540,16 +540,12 @@ tableSource
    ;
 
 tableFunction
-   : qualifiedName LT_PRTHS functionArgs RT_PRTHS
+   : qualifiedName LT_PRTHS namedFunctionArgs RT_PRTHS
    ;
 
 // fields
 fieldList
    : fieldExpression (COMMA fieldExpression)*
-   ;
-
-wcFieldList
-   : wcFieldExpression (COMMA wcFieldExpression)*
    ;
 
 sortField
@@ -572,6 +568,11 @@ wcFieldExpression
    : wcQualifiedName
    ;
 
+selectFieldExpression
+   : wcQualifiedName
+   | STAR
+   ;
+
 // functions
 evalFunctionCall
    : evalFunctionName LT_PRTHS functionArgs RT_PRTHS
@@ -579,12 +580,7 @@ evalFunctionCall
 
 // cast function
 dataTypeFunctionCall
-   : CAST LT_PRTHS expression AS convertedDataType RT_PRTHS
-   ;
-
-// boolean functions
-booleanFunctionCall
-   : conditionFunctionName LT_PRTHS functionArgs RT_PRTHS
+   : CAST LT_PRTHS logicalExpression AS convertedDataType RT_PRTHS
    ;
 
 convertedDataType
@@ -620,19 +616,26 @@ functionArgs
    : (functionArg (COMMA functionArg)*)?
    ;
 
+namedFunctionArgs
+   : (namedFunctionArg (COMMA namedFunctionArg)*)?
+   ;
+
 functionArg
+   : functionArgExpression
+   ;
+
+namedFunctionArg
    : (ident EQUAL)? functionArgExpression
    ;
 
-
 functionArgExpression
    : lambda
-   | expression
+   | logicalExpression
    ;
 
 lambda
-   : ident ARROW expression
-   | LT_PRTHS ident (COMMA ident)+ RT_PRTHS ARROW expression
+   : ident ARROW logicalExpression
+   | LT_PRTHS ident (COMMA ident)+ RT_PRTHS ARROW logicalExpression
    ;
 
 relevanceArg
@@ -704,6 +707,10 @@ relevanceArgValue
 
 mathematicalFunctionName
    : ABS
+   | PLUS_FUCTION
+   | MINUS_FUCTION
+   | STAR_FUNCTION
+   | DIVIDE_FUNCTION
    | CBRT
    | CEIL
    | CEILING
@@ -711,12 +718,14 @@ mathematicalFunctionName
    | CRC32
    | E
    | EXP
+   | EXPM1
    | FLOOR
    | LN
    | LOG
    | LOG10
    | LOG2
    | MOD
+   | MODULUS
    | PI
    | POW
    | POWER
@@ -725,6 +734,10 @@ mathematicalFunctionName
    | SIGN
    | SQRT
    | TRUNCATE
+   | RINT
+   | SIGNUM
+   | SUM
+   | AVG
    | trigonometricFunctionName
    ;
 
@@ -749,10 +762,12 @@ trigonometricFunctionName
    | ATAN
    | ATAN2
    | COS
+   | COSH
    | COT
    | DEGREES
    | RADIANS
    | SIN
+   | SINH
    | TAN
    ;
 
@@ -843,7 +858,7 @@ dateTimeFunctionName
    | YEARWEEK
    ;
 
-getFormatFunction
+getFormatFunctionCall
    : GET_FORMAT LT_PRTHS getFormatType COMMA functionArg RT_PRTHS
    ;
 
@@ -854,7 +869,7 @@ getFormatType
    | TIMESTAMP
    ;
 
-extractFunction
+extractFunctionCall
    : EXTRACT LT_PRTHS datetimePart FROM functionArg RT_PRTHS
    ;
 
@@ -889,7 +904,7 @@ datetimePart
    | complexDateTimePart
    ;
 
-timestampFunction
+timestampFunctionCall
    : timestampFunctionName LT_PRTHS simpleDateTimePart COMMA firstArg = functionArg COMMA secondArg = functionArg RT_PRTHS
    ;
 

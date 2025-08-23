@@ -17,6 +17,7 @@ EXPLAIN:                            'EXPLAIN';
 FROM:                               'FROM';
 WHERE:                              'WHERE';
 FIELDS:                             'FIELDS';
+TABLE:                              'TABLE';  // Alias for FIELDS command
 RENAME:                             'RENAME';
 STATS:                              'STATS';
 EVENTSTATS:                         'EVENTSTATS';
@@ -264,6 +265,10 @@ NTH:                                'NTH';
 NTILE:                              'NTILE';
 
 // BASIC FUNCTIONS
+PLUS_FUCTION:                       'ADD';
+MINUS_FUCTION:                      'SUBTRACT';
+STAR_FUNCTION:                      'MULTIPLY';
+DIVIDE_FUNCTION:                    'DIVIDE';
 ABS:                                'ABS';
 CBRT:                               'CBRT';
 CEIL:                               'CEIL';
@@ -272,12 +277,14 @@ CONV:                               'CONV';
 CRC32:                              'CRC32';
 E:                                  'E';
 EXP:                                'EXP';
+EXPM1:                              'EXPM1';
 FLOOR:                              'FLOOR';
 LN:                                 'LN';
 LOG:                                'LOG';
 LOG10:                              'LOG10';
 LOG2:                               'LOG2';
 MOD:                                'MOD';
+MODULUS:                            'MODULUS';
 PI:                                 'PI';
 POSITION:                           'POSITION';
 POW:                                'POW';
@@ -287,6 +294,8 @@ ROUND:                              'ROUND';
 SIGN:                               'SIGN';
 SQRT:                               'SQRT';
 TRUNCATE:                           'TRUNCATE';
+RINT:                               'RINT';
+SIGNUM:                             'SIGNUM';
 
 // TRIGONOMETRIC FUNCTIONS
 ACOS:                               'ACOS';
@@ -294,10 +303,12 @@ ASIN:                               'ASIN';
 ATAN:                               'ATAN';
 ATAN2:                              'ATAN2';
 COS:                                'COS';
+COSH:                               'COSH';
 COT:                                'COT';
 DEGREES:                            'DEGREES';
 RADIANS:                            'RADIANS';
 SIN:                                'SIN';
+SINH:                               'SINH';
 TAN:                                'TAN';
 
 // CRYPTOGRAPHIC FUNCTIONS

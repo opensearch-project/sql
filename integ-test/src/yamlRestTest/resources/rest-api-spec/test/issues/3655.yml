@@ -2,6 +2,7 @@ setup:
   - skip:
       features:
         - headers
+        - allowed_warnings
   - do:
       indices.create:
         index: test
@@ -33,7 +34,6 @@ teardown:
         body:
           transient:
             plugins.calcite.enabled : false
-            plugins.calcite.fallback.allowed : true
 
 ---
 "Support match_only_text field type with Calcite enabled":
@@ -42,7 +42,6 @@ teardown:
         body:
           transient:
             plugins.calcite.enabled : true
-            plugins.calcite.fallback.allowed : false
 
   - do:
       headers:
@@ -77,6 +76,8 @@ teardown:
   - match: {"datarows": [["This is a match_only_text field 1"]]}
 
   - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
       headers:
         Content-Type: 'application/json'
       ppl:
