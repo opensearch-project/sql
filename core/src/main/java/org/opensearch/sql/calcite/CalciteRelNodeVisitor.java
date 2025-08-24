@@ -225,6 +225,17 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               fieldRex,
               context.rexBuilder.makeLiteral(patternStr));
 
+      // Extract regex pattern from sed command for pushdown optimization
+      String filterPattern = extractRegexFromSedPattern(patternStr);
+      if (filterPattern != null) {
+        RexNode regexMatchCondition =
+            context.rexBuilder.makeCall(
+                SqlLibraryOperators.REGEXP_CONTAINS,
+                fieldRex,
+                context.rexBuilder.makeLiteral(filterPattern));
+        context.relBuilder.filter(regexMatchCondition);
+      }
+
       String fieldName = node.getField().toString();
       projectPlusOverriding(List.of(sedCall), List.of(fieldName), context);
       return context.relBuilder.peek();
@@ -285,6 +296,30 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     projectPlusOverriding(newFields, newFieldNames, context);
     return context.relBuilder.peek();
+  }
+
+  /**
+   * Extract regex pattern from sed command for filter pushdown. Supports basic sed patterns like
+   * s/pattern/replacement/flags Returns the search pattern that can be used for filtering.
+   */
+  private String extractRegexFromSedPattern(String sedPattern) {
+    if (sedPattern == null || sedPattern.isEmpty()) {
+      return null;
+    }
+
+    // Handle sed substitute command: s/pattern/replacement/flags
+    if (sedPattern.startsWith("s/")) {
+      int firstSlash = sedPattern.indexOf('/', 2);
+      if (firstSlash != -1) {
+        String pattern = sedPattern.substring(2, firstSlash);
+        // Return the pattern if it's not empty and looks like a valid regex
+        if (!pattern.isEmpty() && !pattern.equals(".*")) {
+          return pattern;
+        }
+      }
+    }
+
+    return null;
   }
 
   private boolean containsSubqueryExpression(Node expr) {
