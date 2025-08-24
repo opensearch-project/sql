@@ -28,6 +28,7 @@ HEAD:                               'HEAD';
 TOP:                                'TOP';
 RARE:                               'RARE';
 PARSE:                              'PARSE';
+SPATH:                              'SPATH';
 REGEX:                              'REGEX';
 PUNCT:                              'PUNCT';
 GROK:                               'GROK';
@@ -114,6 +115,9 @@ ANOMALY_SCORE_THRESHOLD:            'ANOMALY_SCORE_THRESHOLD';
 APPEND:                             'APPEND';
 COUNTFIELD:                         'COUNTFIELD';
 SHOWCOUNT:                          'SHOWCOUNT';
+INPUT: 'INPUT';
+OUTPUT: 'OUTPUT';
+PATH: 'PATH';
 
 // COMPARISON FUNCTION KEYWORDS
 CASE:                               'CASE';

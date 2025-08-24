@@ -60,6 +60,7 @@ commands
    | rareCommand
    | grokCommand
    | parseCommand
+   | spathCommand
    | patternsCommand
    | lookupCommand
    | kmeansCommand
@@ -185,6 +186,10 @@ grokCommand
 
 parseCommand
    : PARSE (source_field = expression) (pattern = stringLiteral)
+   ;
+
+spathCommand
+   : SPATH (INPUT EQUAL input = expression) (OUTPUT EQUAL output = expression)? ((PATH EQUAL)? path = stringLiteral)
    ;
 
 patternsMethod
