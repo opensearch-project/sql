@@ -80,6 +80,7 @@ import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Reverse;
+import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
@@ -525,6 +526,18 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     Literal pattern = (Literal) internalVisitExpression(ctx.pattern);
 
     return new Parse(ParseMethod.REGEX, sourceField, pattern, ImmutableMap.of());
+  }
+
+  @Override
+  public UnresolvedPlan visitSpathCommand(OpenSearchPPLParser.SpathCommandContext ctx) {
+      UnresolvedExpression inField = internalVisitExpression(ctx.input);
+      UnresolvedExpression outField = null;
+      if (ctx.output != null) {
+          outField = internalVisitExpression(ctx.output);
+      }
+      String path = ctx.path.getText();
+
+      return new SPath(inField, outField, path);
   }
 
   @Override

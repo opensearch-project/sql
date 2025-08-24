@@ -189,7 +189,19 @@ parseCommand
    ;
 
 spathCommand
-   : SPATH (INPUT EQUAL input = expression) (OUTPUT EQUAL output = expression)? ((PATH EQUAL)? path = stringLiteral)
+   : SPATH (INPUT EQUAL input = expression) (OUTPUT EQUAL output = expression)? ((PATH EQUAL)? path = indexablePath)
+   ;
+
+indexablePath
+   : pathElement (DOT pathElement)*
+   ;
+
+pathElement
+   : ident pathArrayAccess?
+   ;
+
+pathArrayAccess
+   : LT_CURLY (INTEGER_LITERAL)? RT_CURLY
    ;
 
 patternsMethod
