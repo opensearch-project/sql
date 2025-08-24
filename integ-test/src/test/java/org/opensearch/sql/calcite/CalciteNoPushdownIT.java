@@ -82,6 +82,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalcitePrometheusDataSourceCommandsIT.class,
   CalciteQueryAnalysisIT.class,
   CalciteRareCommandIT.class,
+  CalciteRexCommandIT.class,
   CalciteRenameCommandIT.class,
   CalciteRenameCommandIT.class,
   CalciteResourceMonitorIT.class,

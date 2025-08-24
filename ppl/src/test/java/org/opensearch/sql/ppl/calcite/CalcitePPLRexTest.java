@@ -75,11 +75,14 @@ public class CalcitePPLRexTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(ENAME=[REX_SED($1, 's/A/X/')])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+            + "  LogicalFilter(condition=[REGEXP_CONTAINS($1, 'A')])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `REX_SED`(`ENAME`, 's/A/X/') `ENAME`\n" + "FROM `scott`.`EMP`";
+        "SELECT `REX_SED`(`ENAME`, 's/A/X/') `ENAME`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE REGEXP_CONTAINS(`ENAME`, 'A')";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
