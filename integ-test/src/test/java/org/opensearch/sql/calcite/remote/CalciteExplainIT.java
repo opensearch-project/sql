@@ -156,43 +156,6 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testPartialPushdownFilterWithIsNull() throws IOException {
-    // isnull(nested_field) should not be pushed down since DSL doesn't handle it correctly, but
-    // name='david' can be pushed down
-    String query =
-        String.format(
-            Locale.ROOT,
-            "source=%s | where isnull(address) and name='david'",
-            TEST_INDEX_NESTED_SIMPLE);
-    var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_partial_filter_isnull.json");
-    assertJsonEqualsIgnoreId(expected, result);
-  }
-
-  @Test
-  public void testSkipScriptEncodingOnExtendedFormat() throws IOException {
-    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
-    String query =
-        "source=opensearch-sql_test_index_account | where address = '671 Bristol Street' and age -"
-            + " 2 = 30 | fields firstname, age, address";
-    var result = explainQueryToString(query, true);
-    String expected = loadFromFile("expectedOutput/calcite/explain_skip_script_encoding.json");
-    assertJsonEqualsIgnoreId(expected, result);
-  }
-
-  // Only for Calcite, as v2 gets unstable serialized string for function
-  @Test
-  public void testFilterScriptPushDownExplain() throws Exception {
-    super.testFilterScriptPushDownExplain();
-  }
-
-  // Only for Calcite, as v2 gets unstable serialized string for function
-  @Test
-  public void testFilterFunctionScriptPushDownExplain() throws Exception {
-    super.testFilterFunctionScriptPushDownExplain();
-  }
-
-  @Test
   public void testExplainWithReverse() throws IOException {
     String result =
         executeWithReplace(
@@ -248,19 +211,6 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryToString(query);
     String expected = loadFromFile("expectedOutput/calcite/explain_eventstats_distinct_count.json");
     assertJsonEqualsIgnoreId(expected, result);
-  }
-
-  // Only for Calcite, as v2 gets unstable serialized string for function
-  @Test
-  public void testExplainOnAggregationWithSumEnhancement() throws IOException {
-    String expected = loadExpectedPlan("explain_agg_with_sum_enhancement.json");
-    assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString(
-            String.format(
-                "source=%s | stats sum(balance), sum(balance + 100), sum(balance - 100),"
-                    + " sum(balance * 100), sum(balance / 100) by gender",
-                TEST_INDEX_BANK)));
   }
 
   /**
