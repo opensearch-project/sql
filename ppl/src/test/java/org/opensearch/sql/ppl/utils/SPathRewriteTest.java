@@ -30,10 +30,9 @@ public class SPathRewriteTest {
     // Control test to make sure something fundamental hasn't changed about the json_extract parsing
     @Test
     public void testEvalControl() {
-        Eval plan = (Eval) plan("source = t | eval o=json_extract(f, \"simple.nested\")");
         assertEquals(
                 eval(relation("t"), let(field("o"), function("json_extract", field("f"), stringLiteral("simple.nested")))),
-                plan
+                plan("source = t | eval o=json_extract(f, \"simple.nested\")")
         );
     }
 
@@ -41,11 +40,13 @@ public class SPathRewriteTest {
     public void testSpathSimpleRewrite() {
         SPath sp = spath(
                 relation("t"),
-                argument("input", stringLiteral("f")),
-                argument("output", stringLiteral("o")),
-                argument("path", stringLiteral("simple.nested")));
+                "f",
+                "o",
+                "simple.nested");
+        Eval ev = (Eval) plan("source = t | eval o=json_extract(f, \"simple.nested\")");
+
         assertEquals(
-                plan("source = t | eval o=json_extract(f, \"simple.nested\")"),
+                ev,
                 sp.rewriteAsEval()
         );
     }

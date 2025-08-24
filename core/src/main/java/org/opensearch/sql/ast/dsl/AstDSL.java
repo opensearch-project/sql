@@ -523,10 +523,15 @@ public class AstDSL {
 
   public static SPath spath(
             UnresolvedPlan input,
-            Argument inField,
-            Argument outField,
-            Argument path) {
-        return new SPath(input, inField, outField, path);
+            String inField,
+            String outField,
+            String path) {
+        return new SPath(
+                input,
+                inField,
+                outField,
+                path
+        );
     }
 
   public static Patterns patterns(

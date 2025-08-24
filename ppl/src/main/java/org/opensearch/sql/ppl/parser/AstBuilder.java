@@ -530,11 +530,11 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   @Override
   public UnresolvedPlan visitSpathCommand(OpenSearchPPLParser.SpathCommandContext ctx) {
-      Argument inField = new Argument("input", new Literal(ctx.input.getText(), DataType.STRING));
-      Argument path = new Argument("path", new Literal(ctx.path.getText(), DataType.STRING));
-      Argument outField = new Argument("output", null);
+      String inField = ctx.input.getText();
+      String path = ctx.path.getText();
+      String outField = null;
       if (ctx.output != null) {
-          outField = new Argument("output", new Literal(ctx.output.getText(), DataType.STRING));
+          outField = ctx.output.getText();
       }
 
       return new SPath(inField, outField, path);

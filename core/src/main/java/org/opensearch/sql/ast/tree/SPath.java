@@ -8,7 +8,6 @@ import lombok.ToString;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.dsl.AstDSL;
-import org.opensearch.sql.ast.expression.Argument;
 
 import java.util.List;
 
@@ -19,12 +18,12 @@ import java.util.List;
 public class SPath extends UnresolvedPlan {
     private UnresolvedPlan child;
 
-    private final Argument inField;
+    private final String inField;
 
     @Nullable
-    private final Argument outField;
+    private final String outField;
 
-    private final Argument path;
+    private final String path;
 
     @Override
     public UnresolvedPlan attach(UnresolvedPlan child) {
@@ -43,15 +42,15 @@ public class SPath extends UnresolvedPlan {
     }
 
     public Eval rewriteAsEval() {
-        Argument outField = this.outField;
+        String outField = this.outField;
         if (outField == null) {
-            outField = new Argument("output", this.path.getValue());
+            outField = this.path;
         }
 
         return AstDSL.eval(
                 this.child,
-                AstDSL.let(AstDSL.field(outField.getValue()), AstDSL.function(
-                        "json_extract", AstDSL.field(inField.getValue()), this.path.getValue()))
+                AstDSL.let(AstDSL.field(outField), AstDSL.function(
+                        "json_extract", AstDSL.field(inField), AstDSL.stringLiteral(this.path)))
         );
     }
 }

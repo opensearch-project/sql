@@ -688,9 +688,10 @@ public class AstBuilderTest {
                 "source=t | spath input=f path=simple.nested",
                 spath(
                         relation("t"),
-                        argument("input", stringLiteral("f")),
-                        argument("output", null),  // no output field specified
-                        argument("path", stringLiteral("simple.nested"))));
+                        "f",
+                        null,  // no output field specified
+                        "simple.nested"
+                ));
     }
 
     @Test
@@ -699,9 +700,9 @@ public class AstBuilderTest {
                 "source=t | spath input=f output=o path=simple.nested",
                 spath(
                         relation("t"),
-                        argument("input", stringLiteral("f")),
-                        argument("output", stringLiteral("o")),
-                        argument("path", stringLiteral("simple.nested"))));
+                        "f",
+                        "o",
+                        "simple.nested"));
     }
 
     @Test
@@ -710,9 +711,9 @@ public class AstBuilderTest {
                 "source=t | spath input=f path=array{}.nested",
                 spath(
                         relation("t"),
-                        argument("input", stringLiteral("f")),
-                        argument("output", null),
-                        argument("path", stringLiteral("array{}.nested"))
+                        "f",
+                        null,
+                        "array{}.nested"
                 ));
     }
 
@@ -722,9 +723,9 @@ public class AstBuilderTest {
                 "source=t | spath input=f path=array{1}.nested",
                 spath(
                         relation("t"),
-                        argument("input", stringLiteral("f")),
-                        argument("output", null),
-                        argument("path", stringLiteral("array{1}.nested"))
+                        "f",
+                        null,
+                        "array{1}.nested"
                 ));
     }
 
@@ -734,9 +735,9 @@ public class AstBuilderTest {
                 "source=t | spath input=f path=outer{}.middle{2}.inner",
                 spath(
                         relation("t"),
-                        argument("input", stringLiteral("f")),
-                        argument("output", null),
-                        argument("path", stringLiteral("outer{}.middle{2}.inner"))
+                        "f",
+                        null,
+                        "outer{}.middle{2}.inner"
                 ));
     }
 
@@ -746,9 +747,9 @@ public class AstBuilderTest {
                 "source=t | spath input=f simple.nested",
                 spath(
                         relation("t"),
-                        argument("input", stringLiteral("f")),
-                        argument("output", null),
-                        argument("path", stringLiteral("simple.nested"))
+                        "f",
+                        null,
+                        "simple.nested"
                 ));
     }
 
