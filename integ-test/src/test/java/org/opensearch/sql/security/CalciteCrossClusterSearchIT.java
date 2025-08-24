@@ -239,4 +239,87 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
         rows("2025-07-28 01:00:00", 7623),
         rows("2025-07-28 02:00:00", 9187));
   }
+
+  public void testCrossClusterRegexBasic() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | regex firstname='.*att.*' | fields firstname",
+                TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(result, rows("Hattie"));
+  }
+
+  @Test
+  public void testCrossClusterRegexWithNegation() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | regex firstname!='.*att.*' | fields firstname",
+                TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(
+        result,
+        rows("Virginia"),
+        rows("Elinor"),
+        rows("Dillard"),
+        rows("Dale"),
+        rows("Amber JOHnny"),
+        rows("Nanette"));
+  }
+
+  @Test
+  public void testCrossClusterRexBasic() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | rex field=firstname \\\"(?<initial>^[A-Z])\\\" | fields"
+                    + " firstname, initial | head 3",
+                TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(result, rows("Amber JOHnny", "A"), rows("Hattie", "H"), rows("Nanette", "N"));
+  }
+
+  @Test
+  public void testCrossClusterRexMultipleGroups() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | rex field=lastname \\\"(?<first>[A-Z])(?<rest>[a-z]+)\\\" |"
+                    + " fields lastname, first, rest | head 2",
+                TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(result, rows("Duke Willmington", "D", "uke"), rows("Bond", "B", "ond"));
+  }
+
+  @Test
+  public void testCrossClusterRexSedMode() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | rex field=firstname mode=sed \\\"s/^[A-Z]/X/\\\" | fields"
+                    + " firstname | head 3",
+                TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(result, rows("Xmber JOHnny"), rows("Xattie"), rows("Xanette"));
+  }
+
+  @Test
+  public void testCrossClusterRexWithMaxMatch() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | rex field=firstname \\\"(?<letter>[A-Z])\\\" max_match=2 |"
+                    + " fields firstname, letter | head 2",
+                TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(
+        result, rows("Amber JOHnny", new String[] {"A", "J"}), rows("Hattie", new String[] {"H"}));
+  }
+
+  @Test
+  public void testCrossClusterRexWithOffsetField() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | rex field=lastname \\\"(?<vowel>[aeiou])\\\" offset_field=pos |"
+                    + " fields lastname, vowel, pos | head 2",
+                TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(
+        result, rows("Duke Willmington", "u", "vowel=1-1"), rows("Bond", "o", "vowel=1-1"));
+  }
 }
