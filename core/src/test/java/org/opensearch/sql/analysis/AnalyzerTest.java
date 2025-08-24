@@ -1943,4 +1943,17 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertEquals(
         "Regex is supported only when plugins.calcite.enabled=true", exception.getMessage());
   }
+
+  @Test
+  public void rex_command_throws_unsupported_operation_exception_in_legacy_engine() {
+    UnsupportedOperationException exception =
+        assertThrows(
+            UnsupportedOperationException.class,
+            () ->
+                analyze(
+                    new org.opensearch.sql.ast.tree.Rex(
+                            field("email"), stringLiteral("(?<user>[^@]+)@(?<domain>.+)"))
+                        .attach(relation("schema"))));
+    assertEquals("REX is supported only when plugins.calcite.enabled=true", exception.getMessage());
+  }
 }
