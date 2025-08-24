@@ -47,6 +47,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexWindowBounds;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
@@ -100,6 +101,7 @@ import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
+import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
@@ -119,6 +121,7 @@ import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
+import org.opensearch.sql.expression.parse.RegexExpression;
 import org.opensearch.sql.utils.ParseUtils;
 
 public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalcitePlanContext> {
@@ -169,6 +172,118 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       context.relBuilder.filter(condition);
     }
     return context.relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitRex(Rex node, CalcitePlanContext context) {
+    visitChildren(node, context);
+
+    RexNode fieldRex = rexVisitor.analyze(node.getField(), context);
+    String patternStr = (String) node.getPattern().getValue();
+
+    if (node.getMode() == Rex.RexMode.SED) {
+      RexNode sedCall =
+          PPLFuncImpTable.INSTANCE.resolve(
+              context.rexBuilder,
+              BuiltinFunctionName.REX_SED,
+              fieldRex,
+              context.rexBuilder.makeLiteral(patternStr));
+
+      // Extract regex pattern from sed command for pushdown optimization
+      String filterPattern = extractRegexFromSedPattern(patternStr);
+      if (filterPattern != null) {
+        RexNode regexMatchCondition =
+            context.rexBuilder.makeCall(
+                SqlLibraryOperators.REGEXP_CONTAINS,
+                fieldRex,
+                context.rexBuilder.makeLiteral(filterPattern));
+        context.relBuilder.filter(regexMatchCondition);
+      }
+
+      String fieldName = node.getField().toString();
+      projectPlusOverriding(List.of(sedCall), List.of(fieldName), context);
+      return context.relBuilder.peek();
+    }
+
+    List<String> namedGroups = RegexExpression.getNamedGroupCandidates(patternStr);
+
+    if (namedGroups.isEmpty()) {
+      throw new IllegalArgumentException(
+          "Rex pattern must contain at least one named capture group");
+    }
+
+    String filterPattern = patternStr.replaceAll("\\(\\?<[a-zA-Z][a-zA-Z0-9]*>", "(");
+    RexNode regexMatchCondition =
+        context.rexBuilder.makeCall(
+            SqlLibraryOperators.REGEXP_CONTAINS,
+            fieldRex,
+            context.rexBuilder.makeLiteral(filterPattern));
+    context.relBuilder.filter(regexMatchCondition);
+
+    List<RexNode> newFields = new ArrayList<>();
+    List<String> newFieldNames = new ArrayList<>();
+
+    for (int i = 0; i < namedGroups.size(); i++) {
+      RexNode extractCall;
+      if (node.getMaxMatch().isPresent() && node.getMaxMatch().get() != 1) {
+        extractCall =
+            PPLFuncImpTable.INSTANCE.resolve(
+                context.rexBuilder,
+                BuiltinFunctionName.REX_EXTRACT_MULTI,
+                fieldRex,
+                context.rexBuilder.makeLiteral(patternStr),
+                context.relBuilder.literal(i + 1),
+                context.relBuilder.literal(node.getMaxMatch().get()));
+      } else {
+        extractCall =
+            PPLFuncImpTable.INSTANCE.resolve(
+                context.rexBuilder,
+                BuiltinFunctionName.REX_EXTRACT,
+                fieldRex,
+                context.rexBuilder.makeLiteral(patternStr),
+                context.relBuilder.literal(i + 1));
+      }
+      newFields.add(extractCall);
+      newFieldNames.add(namedGroups.get(i));
+    }
+
+    if (node.getOffsetField().isPresent()) {
+      RexNode offsetCall =
+          PPLFuncImpTable.INSTANCE.resolve(
+              context.rexBuilder,
+              BuiltinFunctionName.REX_OFFSET,
+              fieldRex,
+              context.rexBuilder.makeLiteral(patternStr));
+      newFields.add(offsetCall);
+      newFieldNames.add(node.getOffsetField().get());
+    }
+
+    projectPlusOverriding(newFields, newFieldNames, context);
+    return context.relBuilder.peek();
+  }
+
+  /**
+   * Extract regex pattern from sed command for filter pushdown. Supports basic sed patterns like
+   * s/pattern/replacement/flags Returns the search pattern that can be used for filtering.
+   */
+  private String extractRegexFromSedPattern(String sedPattern) {
+    if (sedPattern == null || sedPattern.isEmpty()) {
+      return null;
+    }
+
+    // Handle sed substitute command: s/pattern/replacement/flags
+    if (sedPattern.startsWith("s/")) {
+      int firstSlash = sedPattern.indexOf('/', 2);
+      if (firstSlash != -1) {
+        String pattern = sedPattern.substring(2, firstSlash);
+        // Return the pattern if it's not empty and looks like a valid regex
+        if (!pattern.isEmpty() && !pattern.equals(".*")) {
+          return pattern;
+        }
+      }
+    }
+
+    return null;
   }
 
   private boolean containsSubqueryExpression(Node expr) {

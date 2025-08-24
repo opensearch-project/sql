@@ -48,6 +48,10 @@ import org.opensearch.sql.expression.function.jsonUDF.JsonSetFunctionImpl;
 import org.opensearch.sql.expression.function.udf.CryptographicFunction;
 import org.opensearch.sql.expression.function.udf.GrokFunction;
 import org.opensearch.sql.expression.function.udf.RelevanceQueryFunction;
+import org.opensearch.sql.expression.function.udf.RexExtractFunction;
+import org.opensearch.sql.expression.function.udf.RexExtractMultiFunction;
+import org.opensearch.sql.expression.function.udf.RexOffsetFunction;
+import org.opensearch.sql.expression.function.udf.RexSedFunction;
 import org.opensearch.sql.expression.function.udf.SpanFunction;
 import org.opensearch.sql.expression.function.udf.condition.EarliestFunction;
 import org.opensearch.sql.expression.function.udf.condition.LatestFunction;
@@ -380,6 +384,11 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
       RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("multi_match", false);
   public static final SqlOperator NUMBER_TO_STRING =
       new NumberToStringFunction().toUDF("NUMBER_TO_STRING");
+  public static final SqlOperator REX_EXTRACT = new RexExtractFunction().toUDF("REX_EXTRACT");
+  public static final SqlOperator REX_EXTRACT_MULTI =
+      new RexExtractMultiFunction().toUDF("REX_EXTRACT_MULTI");
+  public static final SqlOperator REX_OFFSET = new RexOffsetFunction().toUDF("REX_OFFSET");
+  public static final SqlOperator REX_SED = new RexSedFunction().toUDF("REX_SED");
 
   /**
    * Returns the PPL specific operator table, creating it if necessary.

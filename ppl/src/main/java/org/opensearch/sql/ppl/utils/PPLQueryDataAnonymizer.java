@@ -71,6 +71,7 @@ import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Reverse;
+import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
@@ -361,6 +362,32 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   public String visitReverse(Reverse node, String context) {
     String child = node.getChild().get(0).accept(this, context);
     return StringUtils.format("%s | reverse", child);
+  }
+
+  @Override
+  public String visitRex(Rex node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    String field = visitExpression(node.getField());
+    String pattern = "\"" + node.getPattern().toString() + "\"";
+    StringBuilder command = new StringBuilder();
+
+    // Build the base command
+    if (node.getMode() == Rex.RexMode.SED) {
+      command.append(String.format("%s | rex field=%s mode=sed %s", child, field, pattern));
+    } else {
+      command.append(String.format("%s | rex field=%s %s", child, field, pattern));
+    }
+
+    // Add optional parameters
+    if (node.getMaxMatch().isPresent()) {
+      command.append(" max_match=").append(node.getMaxMatch().get());
+    }
+
+    if (node.getOffsetField().isPresent()) {
+      command.append(" offset_field=").append(node.getOffsetField().get());
+    }
+
+    return command.toString();
   }
 
   @Override
@@ -677,6 +704,12 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     public String visitCast(Cast node, String context) {
       String expr = analyze(node.getExpression(), context);
       return StringUtils.format("cast(%s as %s)", expr, node.getConvertedType().toString());
+    }
+
+    @Override
+    public String visitQualifiedName(
+        org.opensearch.sql.ast.expression.QualifiedName node, String context) {
+      return String.join(".", node.getParts());
     }
   }
 }

@@ -268,6 +268,26 @@ public class CalciteExplainIT extends ExplainIT {
                 TEST_INDEX_BANK)));
   }
 
+  @Test
+  public void testRexExplain() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | rex field=lastname \\\"(?<initial>^[A-Z])\\\" |"
+            + " head 5";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_rex.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testRexSedModeExplain() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | rex field=lastname mode=sed \\\"s/^[A-Z]/X/\\\""
+            + " | head 5";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_rex_sed.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
   /**
    * Executes the PPL query and returns the result as a string with windows-style line breaks
    * replaced with Unix-style ones.
