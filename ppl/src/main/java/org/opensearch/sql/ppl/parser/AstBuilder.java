@@ -530,12 +530,12 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   @Override
   public UnresolvedPlan visitSpathCommand(OpenSearchPPLParser.SpathCommandContext ctx) {
-      UnresolvedExpression inField = internalVisitExpression(ctx.input);
-      UnresolvedExpression outField = null;
+      Argument inField = new Argument("input", new Literal(ctx.input.getText(), DataType.STRING));
+      Argument path = new Argument("path", new Literal(ctx.path.getText(), DataType.STRING));
+      Argument outField = new Argument("output", null);
       if (ctx.output != null) {
-          outField = internalVisitExpression(ctx.output);
+          outField = new Argument("output", new Literal(ctx.output.getText(), DataType.STRING));
       }
-      String path = ctx.path.getText();
 
       return new SPath(inField, outField, path);
   }

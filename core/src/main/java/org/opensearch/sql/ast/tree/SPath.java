@@ -3,17 +3,15 @@ package org.opensearch.sql.ast.tree;
 import com.google.common.collect.ImmutableList;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import lombok.ToString;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.dsl.AstDSL;
+import org.opensearch.sql.ast.expression.Argument;
 
 import java.util.List;
 
-@Getter
-@Setter
 @ToString
 @EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
@@ -21,12 +19,12 @@ import java.util.List;
 public class SPath extends UnresolvedPlan {
     private UnresolvedPlan child;
 
-    private final UnresolvedExpression inField;
+    private final Argument inField;
 
     @Nullable
-    private final UnresolvedExpression outField;
+    private final Argument outField;
 
-    private final String path;
+    private final Argument path;
 
     @Override
     public UnresolvedPlan attach(UnresolvedPlan child) {
@@ -37,5 +35,23 @@ public class SPath extends UnresolvedPlan {
     @Override
     public List<UnresolvedPlan> getChild() {
         return this.child == null ? ImmutableList.of() : ImmutableList.of(this.child);
+    }
+
+    @Override
+    public <T, C> T accept(AbstractNodeVisitor<T, C> nodeVisitor, C context) {
+        return nodeVisitor.visitSpath(this, context);
+    }
+
+    public Eval rewriteAsEval() {
+        Argument outField = this.outField;
+        if (outField == null) {
+            outField = new Argument("output", this.path.getValue());
+        }
+
+        return AstDSL.eval(
+                this.child,
+                AstDSL.let(AstDSL.field(outField.getValue()), AstDSL.function(
+                        "json_extract", AstDSL.field(inField.getValue()), this.path.getValue()))
+        );
     }
 }

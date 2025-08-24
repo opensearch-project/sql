@@ -22,21 +22,21 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
 
         // Create test data for string concatenation
         Request request1 = new Request("PUT", "/test_spath/_doc/1?refresh=true");
-        request1.setJsonEntity("{\"doc\": \"{\\\"n\\\": 0}\"}");
+        request1.setJsonEntity("{\"doc\": \"{\\\"n\\\": 1}\"}");
         client().performRequest(request1);
 
         Request request2 = new Request("PUT", "/test_spath/_doc/2?refresh=true");
-        request2.setJsonEntity("{\"doc\": \"{\\\"n\\\": 1}\"}");
+        request2.setJsonEntity("{\"doc\": \"{\\\"n\\\": 2}\"}");
         client().performRequest(request2);
 
         Request request3 = new Request("PUT", "/test_spath/_doc/3?refresh=true");
-        request3.setJsonEntity("{\"doc\": \"{\\\"n\\\": 2}\"}");
+        request3.setJsonEntity("{\"doc\": \"{\\\"n\\\": 3}\"}");
         client().performRequest(request3);
     }
 
     @Test
-    public void testEvalStringConcatenation() throws IOException {
-        JSONObject result = executeQuery("source=test_eval | spath input=doc output=result path=n");
+    public void testSimpleSpath() throws IOException {
+        JSONObject result = executeQuery("source=test_spath | spath input=doc output=result path=n | fields result");
         verifySchema(
                 result,
                 schema("result", "string"));

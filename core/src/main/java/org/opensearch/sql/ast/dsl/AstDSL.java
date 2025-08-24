@@ -523,9 +523,9 @@ public class AstDSL {
 
   public static SPath spath(
             UnresolvedPlan input,
-            UnresolvedExpression inField,
-            UnresolvedExpression outField,
-            String path) {
+            Argument inField,
+            Argument outField,
+            Argument path) {
         return new SPath(input, inField, outField, path);
     }
 
