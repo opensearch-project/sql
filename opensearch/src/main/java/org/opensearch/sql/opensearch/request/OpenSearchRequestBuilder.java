@@ -35,6 +35,7 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.search.collapse.CollapseBuilder;
 import org.opensearch.search.fetch.subphase.FetchSourceContext;
 import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.opensearch.search.sort.SortBuilder;
@@ -321,6 +322,10 @@ public class OpenSearchRequestBuilder {
 
   public void pushTypeMapping(Map<String, OpenSearchDataType> typeMapping) {
     exprValueFactory.extendTypeMapping(typeMapping);
+  }
+
+  public void pushDownCollapse(String field) {
+    sourceBuilder.collapse(new CollapseBuilder(field));
   }
 
   private boolean isSortByDocOnly() {

@@ -29,7 +29,7 @@ import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder.PushDownUn
 import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder;
 import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder.ScriptQueryUnSupportedException;
 import org.opensearch.sql.opensearch.storage.script.sort.SortQueryBuilder;
-import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
+import org.opensearch.sql.opensearch.storage.serde.DefaultExpressionSerializer;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalHighlight;
 import org.opensearch.sql.planner.logical.LogicalLimit;
@@ -84,6 +84,11 @@ class OpenSearchIndexScanQueryBuilder implements PushDownQueryBuilder {
         sortList.stream()
             .map(sortItem -> builder.build(sortItem.getValue(), sortItem.getKey()))
             .collect(Collectors.toList()));
+    // Handle count parameter for sort with limit
+    if (sort.getCount() != 0) {
+      requestBuilder.pushDownLimit(sort.getCount(), 0);
+    }
+
     return true;
   }
 

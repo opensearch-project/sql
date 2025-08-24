@@ -59,4 +59,29 @@ public class SimpleQueryStringIT extends PPLIntegTestCase {
     JSONObject result3 = executeQuery(query3);
     assertEquals(10, result3.getInt("total"));
   }
+
+  @Test
+  public void test_simple_query_string_without_fields() throws IOException {
+    // Test simple_query_string without fields parameter - should search in default fields
+    String query =
+        "SOURCE="
+            + TEST_INDEX_BEER
+            + " | WHERE simple_query_string('brewing AND taste') | fields Id";
+    var result = executeQuery(query);
+    assertTrue(
+        "simple_query_string without fields should return results", result.getInt("total") > 0);
+  }
+
+  @Test
+  public void test_simple_query_string_without_fields_with_options() throws IOException {
+    // Test simple_query_string without fields but with optional parameters
+    String query =
+        "SOURCE="
+            + TEST_INDEX_BEER
+            + " | WHERE simple_query_string('taste', flags='ALL') | fields Id";
+    var result = executeQuery(query);
+    assertTrue(
+        "simple_query_string without fields with options should return results",
+        result.getInt("total") > 0);
+  }
 }

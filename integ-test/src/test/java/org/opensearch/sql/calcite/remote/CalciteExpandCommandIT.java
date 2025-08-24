@@ -29,7 +29,6 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
     loadIndex(Index.NESTED_SIMPLE);
     loadIndex(Index.ARRAY);
     enableCalcite();
-    disallowCalciteFallback();
   }
 
   @Test

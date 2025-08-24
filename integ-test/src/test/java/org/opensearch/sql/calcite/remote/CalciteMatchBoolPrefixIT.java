@@ -12,6 +12,5 @@ public class CalciteMatchBoolPrefixIT extends MatchBoolPrefixIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 }

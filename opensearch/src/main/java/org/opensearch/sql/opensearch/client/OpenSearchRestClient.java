@@ -115,6 +115,11 @@ public class OpenSearchRestClient implements OpenSearchClient {
     return request.search(
         req -> {
           try {
+            // For RestClient with PIT: remove indices to avoid validation error
+            // "indices cannot be used with point in time"
+            if (req.source() != null && req.source().pointInTimeBuilder() != null) {
+              req = new SearchRequest().source(req.source());
+            }
             return client.search(req, RequestOptions.DEFAULT);
           } catch (IOException e) {
             throw new IllegalStateException(
@@ -225,7 +230,8 @@ public class OpenSearchRestClient implements OpenSearchClient {
       DeletePitResponse deletePitResponse =
           client.deletePit(deletePitRequest, RequestOptions.DEFAULT);
     } catch (IOException e) {
-      throw new RuntimeException("Error occurred while creating PIT for new engine SQL query", e);
+      throw new RuntimeException(
+          "Error occurred while deleting PIT for internal plugin operation", e);
     }
   }
 }

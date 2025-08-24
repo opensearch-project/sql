@@ -5,10 +5,6 @@
 
 package org.opensearch.sql.utils;
 
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_DATE;
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIME;
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIMESTAMP;
-
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -19,18 +15,11 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.regex.Pattern;
 import lombok.experimental.UtilityClass;
-import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.type.SqlTypeName;
-import org.opensearch.sql.calcite.CalcitePlanContext;
-import org.opensearch.sql.calcite.type.ExprSqlType;
-import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
-import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
 @UtilityClass
 public class DateTimeUtils {
@@ -47,7 +36,8 @@ public class DateTimeUtils {
    * @return Rounded date/time value in utc millis
    */
   public static long roundFloor(long utcMillis, long unitMillis) {
-    return utcMillis - utcMillis % unitMillis;
+    long res = utcMillis - utcMillis % unitMillis;
+    return (utcMillis < 0 && res != utcMillis) ? res - unitMillis : res;
   }
 
   /**
@@ -76,7 +66,9 @@ public class DateTimeUtils {
         (zonedDateTime.getYear() - initDateTime.getYear()) * 12L
             + zonedDateTime.getMonthValue()
             - initDateTime.getMonthValue();
-    long monthToAdd = (monthDiff / interval - 1) * interval;
+    long multiplier = monthDiff / interval - 1;
+    if (monthDiff < 0 && monthDiff % interval != 0) --multiplier;
+    long monthToAdd = multiplier * interval;
     return initDateTime.plusMonths(monthToAdd).toInstant().toEpochMilli();
   }
 
@@ -95,7 +87,9 @@ public class DateTimeUtils {
         ((zonedDateTime.getYear() - initDateTime.getYear()) * 12L
             + zonedDateTime.getMonthValue()
             - initDateTime.getMonthValue());
-    long monthToAdd = (monthDiff / (interval * 3L) - 1) * interval * 3;
+    long multiplier = monthDiff / (interval * 3L) - 1;
+    if (monthDiff < 0 && monthDiff % (interval * 3L) != 0) --multiplier;
+    long monthToAdd = multiplier * interval * 3;
     return initDateTime.plusMonths(monthToAdd).toInstant().toEpochMilli();
   }
 
@@ -110,7 +104,9 @@ public class DateTimeUtils {
     ZonedDateTime initDateTime = ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, UTC_ZONE_ID);
     ZonedDateTime zonedDateTime = Instant.ofEpochMilli(utcMillis).atZone(UTC_ZONE_ID);
     int yearDiff = zonedDateTime.getYear() - initDateTime.getYear();
-    int yearToAdd = (yearDiff / interval) * interval;
+    int multiplier = yearDiff / interval;
+    if (yearDiff < 0 && yearDiff % interval != 0) --multiplier;
+    int yearToAdd = multiplier * interval;
     return initDateTime.plusYears(yearToAdd).toInstant().toEpochMilli();
   }
 
@@ -367,83 +363,5 @@ public class DateTimeUtils {
         if (lower.matches("w[0-7]")) return lower;
         throw new IllegalArgumentException("Unsupported unit alias: " + rawUnit);
     }
-  }
-
-  /**
-   * The function add cast for date-related target node
-   *
-   * @param candidate The candidate node
-   * @param context calcite context
-   * @param castTarget the target cast type
-   * @return the rexnode after casting
-   */
-  public static RexNode transferCompareForDateRelated(
-      RexNode candidate, CalcitePlanContext context, SqlTypeName castTarget) {
-    if (!(Objects.isNull(castTarget))) {
-      switch (castTarget) {
-        case DATE:
-          if (!(candidate.getType() instanceof ExprSqlType
-              && ((ExprSqlType) candidate.getType()).getUdt() == EXPR_DATE)) {
-            return context.rexBuilder.makeCall(PPLBuiltinOperators.DATE, candidate);
-          }
-          break;
-        case TIME:
-          if (!(candidate.getType() instanceof ExprSqlType
-              && ((ExprSqlType) candidate.getType()).getUdt() == EXPR_TIME)) {
-            return context.rexBuilder.makeCall(PPLBuiltinOperators.TIME, candidate);
-          }
-          break;
-        case TIMESTAMP:
-          if (!(candidate.getType() instanceof ExprSqlType
-              && ((ExprSqlType) candidate.getType()).getUdt() == EXPR_TIMESTAMP)) {
-            return context.rexBuilder.makeCall(PPLBuiltinOperators.TIMESTAMP, candidate);
-          }
-          break;
-        default:
-          return candidate;
-      }
-    }
-    return candidate;
-  }
-
-  /**
-   * The function find the target cast type according to the left and right node. When the two node
-   * are both related to date with different type, cast to timestamp
-   *
-   * @param left
-   * @param right
-   * @return
-   */
-  public static SqlTypeName findCastType(RexNode left, RexNode right) {
-    SqlTypeName leftType = returnCorrespondingSqlType(left);
-    SqlTypeName rightType = returnCorrespondingSqlType(right);
-    if (leftType != null && rightType != null && rightType != leftType) {
-      return SqlTypeName.TIMESTAMP;
-    }
-    return leftType == null ? rightType : leftType;
-  }
-
-  /**
-   * Find corresponding cast type according to the node's type. If they're not related to the date,
-   * return null
-   *
-   * @param node the candidate node
-   * @return the sql type name
-   */
-  public static SqlTypeName returnCorrespondingSqlType(RexNode node) {
-    if (node.getType() instanceof ExprSqlType) {
-      OpenSearchTypeFactory.ExprUDT udt = ((ExprSqlType) node.getType()).getUdt();
-      switch (udt) {
-        case EXPR_DATE:
-          return SqlTypeName.DATE;
-        case EXPR_TIME:
-          return SqlTypeName.TIME;
-        case EXPR_TIMESTAMP:
-          return SqlTypeName.TIMESTAMP;
-        default:
-          return null;
-      }
-    }
-    return null;
   }
 }

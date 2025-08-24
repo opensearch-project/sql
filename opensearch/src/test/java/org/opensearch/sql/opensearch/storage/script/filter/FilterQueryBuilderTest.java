@@ -56,7 +56,7 @@ import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
-import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
+import org.opensearch.sql.opensearch.storage.serde.ExpressionSerializer;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
@@ -182,8 +182,9 @@ class FilterQueryBuilderTest {
         "{\n"
             + "  \"script\" : {\n"
             + "    \"script\" : {\n"
-            + "      \"source\" : \"is not null(age)\",\n"
-            + "      \"lang\" : \"opensearch_query_expression\"\n"
+            + "      \"source\" : \"{\\\"langType\\\":\\\"v2\\\",\\\"script\\\":\\\"is not"
+            + " null(age)\\\"}\",\n"
+            + "      \"lang\" : \"opensearch_compounded_script\"\n"
             + "    },\n"
             + "    \"boost\" : 1.0\n"
             + "  }\n"
@@ -198,8 +199,9 @@ class FilterQueryBuilderTest {
         "{\n"
             + "  \"script\" : {\n"
             + "    \"script\" : {\n"
-            + "      \"source\" : \"=(abs(age), 30)\",\n"
-            + "      \"lang\" : \"opensearch_query_expression\"\n"
+            + "      \"source\" : \"{\\\"langType\\\":\\\"v2\\\",\\\"script\\\":\\\"=(abs(age),"
+            + " 30)\\\"}\",\n"
+            + "      \"lang\" : \"opensearch_compounded_script\"\n"
             + "    },\n"
             + "    \"boost\" : 1.0\n"
             + "  }\n"
@@ -214,8 +216,9 @@ class FilterQueryBuilderTest {
         "{\n"
             + "  \"script\" : {\n"
             + "    \"script\" : {\n"
-            + "      \"source\" : \"=(age1, age2)\",\n"
-            + "      \"lang\" : \"opensearch_query_expression\"\n"
+            + "      \"source\" : \"{\\\"langType\\\":\\\"v2\\\",\\\"script\\\":\\\"=(age1,"
+            + " age2)\\\"}\",\n"
+            + "      \"lang\" : \"opensearch_compounded_script\"\n"
             + "    },\n"
             + "    \"boost\" : 1.0\n"
             + "  }\n"
@@ -1457,19 +1460,25 @@ class FilterQueryBuilderTest {
   }
 
   @Test
-  void multi_match_missing_fields_even_with_struct() {
-    FunctionExpression expr =
-        DSL.multi_match(
-            DSL.namedArgument(
-                "something-but-not-fields",
-                DSL.literal(
-                    new ExprTupleValue(
-                        new LinkedHashMap<>(
-                            ImmutableMap.of("pewpew", ExprValueUtils.integerValue(42)))))),
-            DSL.namedArgument("query", literal("search query")),
-            DSL.namedArgument("analyzer", literal("keyword")));
-    var msg = assertThrows(SemanticCheckException.class, () -> buildQuery(expr)).getMessage();
-    assertEquals("'fields' parameter is missing.", msg);
+  void multi_match_without_fields_parameter() {
+    // Test that multi_match works without fields parameter (searches default fields)
+    assertJsonEquals(
+        "{\n"
+            + "  \"multi_match\" : {\n"
+            + "    \"query\" : \"search query\",\n"
+            + "    \"fields\" : [ ],\n"
+            + "    \"type\" : \"best_fields\",\n"
+            + "    \"operator\" : \"OR\",\n"
+            + "    \"slop\" : 0,\n"
+            + "    \"prefix_length\" : 0,\n"
+            + "    \"max_expansions\" : 50,\n"
+            + "    \"zero_terms_query\" : \"NONE\",\n"
+            + "    \"auto_generate_synonyms_phrase_query\" : true,\n"
+            + "    \"fuzzy_transpositions\" : true,\n"
+            + "    \"boost\" : 1.0\n"
+            + "  }\n"
+            + "}",
+        buildQuery(DSL.multi_match(DSL.namedArgument("query", literal("search query")))));
   }
 
   @Test
@@ -1919,8 +1928,9 @@ class FilterQueryBuilderTest {
         "{\n"
             + "  \"script\" : {\n"
             + "    \"script\" : {\n"
-            + "      \"source\" : \"=(string_value, cast_to_string(+(1, 0)))\",\n"
-            + "      \"lang\" : \"opensearch_query_expression\"\n"
+            + "      \"source\" : \"{\\\"langType\\\":\\\"v2\\\",\\\"script\\\":\\\"=(string_value,"
+            + " cast_to_string(+(1, 0)))\\\"}\",\n"
+            + "      \"lang\" : \"opensearch_compounded_script\"\n"
             + "    },\n"
             + "    \"boost\" : 1.0\n"
             + "  }\n"
@@ -1937,8 +1947,10 @@ class FilterQueryBuilderTest {
         "{\n"
             + "  \"script\" : {\n"
             + "    \"script\" : {\n"
-            + "      \"source\" : \"=(integer_value, abs(+(1, 0)))\",\n"
-            + "      \"lang\" : \"opensearch_query_expression\"\n"
+            + "      \"source\" :"
+            + " \"{\\\"langType\\\":\\\"v2\\\",\\\"script\\\":\\\"=(integer_value, abs(+(1,"
+            + " 0)))\\\"}\",\n"
+            + "      \"lang\" : \"opensearch_compounded_script\"\n"
             + "    },\n"
             + "    \"boost\" : 1.0\n"
             + "  }\n"

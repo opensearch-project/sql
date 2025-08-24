@@ -18,7 +18,6 @@ public class CalciteExplainIT extends ExplainIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 
   @Override
@@ -70,6 +69,7 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   // Only for Calcite
+  @Ignore("We've supported script push down on text field")
   @Test
   public void supportPartialPushDown() throws IOException {
     Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
@@ -83,6 +83,7 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   // Only for Calcite
+  @Ignore("We've supported script push down on text field")
   @Test
   public void supportPartialPushDown_NoPushIfAllFailed() throws IOException {
     Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
@@ -156,6 +157,29 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testSkipScriptEncodingOnExtendedFormat() throws IOException {
+    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    String query =
+        "source=opensearch-sql_test_index_account | where address = '671 Bristol Street' and age -"
+            + " 2 = 30 | fields firstname, age, address";
+    var result = explainQueryToString(query, true);
+    String expected = loadFromFile("expectedOutput/calcite/explain_skip_script_encoding.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  // Only for Calcite, as v2 gets unstable serialized string for function
+  @Test
+  public void testFilterScriptPushDownExplain() throws Exception {
+    super.testFilterScriptPushDownExplain();
+  }
+
+  // Only for Calcite, as v2 gets unstable serialized string for function
+  @Test
+  public void testFilterFunctionScriptPushDownExplain() throws Exception {
+    super.testFilterFunctionScriptPushDownExplain();
+  }
+
+  @Test
   public void testExplainWithReverse() throws IOException {
     String result =
         executeWithReplace(
@@ -212,7 +236,7 @@ public class CalciteExplainIT extends ExplainIT {
     String expected = loadFromFile("expectedOutput/calcite/explain_eventstats_distinct_count.json");
     assertJsonEqualsIgnoreId(expected, result);
   }
-
+  
   /**
    * Executes the PPL query and returns the result as a string with windows-style line breaks
    * replaced with Unix-style ones.

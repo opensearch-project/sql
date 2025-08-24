@@ -14,7 +14,5 @@ public class CalciteInformationSchemaCommandIT extends InformationSchemaCommandI
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    // TODO: "https://github.com/opensearch-project/sql/issues/3455"
-    // disallowCalciteFallback();
   }
 }

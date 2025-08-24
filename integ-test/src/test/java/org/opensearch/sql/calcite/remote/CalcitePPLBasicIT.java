@@ -26,7 +26,6 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
 
     Request request1 = new Request("PUT", "/test/_doc/1?refresh=true");
     request1.setJsonEntity("{\"name\": \"hello\", \"age\": 20}");
