@@ -324,21 +324,21 @@ Example with string fields::
 
     PPL> source=accounts | stats list(firstname);
     fetched rows / total rows = 1/1
-    +-----------------------------+
-    | list(firstname)             |
-    |-----------------------------|
-    | [Amber,Hattie,Nanette,Dale] |
-    +-----------------------------+
+    +-------------------------------------+
+    | list(firstname)                     |
+    |-------------------------------------|
+    | ["Amber","Hattie","Nanette","Dale"] |
+    +-------------------------------------+
 
 Example with result field rename::
 
     PPL> source=accounts | stats list(firstname) as names;
     fetched rows / total rows = 1/1
-    +-----------------------------+
-    | names                       |
-    |-----------------------------|
-    | [Amber,Hattie,Nanette,Dale] |
-    +-----------------------------+
+    +-------------------------------------+
+    | names                               |
+    |-------------------------------------|
+    | ["Amber","Hattie","Nanette","Dale"] |
+    +-------------------------------------+
 
 
 VALUES
@@ -362,7 +362,7 @@ Example with string fields::
     +----------------+
     | values(gender) |
     |----------------|
-    | [F,M]          |
+    | ["F","M"]      |
     +----------------+
 
 Example with integer fields::
@@ -372,7 +372,7 @@ Example with integer fields::
     +--------------------+
     | values(status_code)|
     |--------------------|
-    | [200,404,500]      |
+    | ["200","404","500"]|
     +--------------------+
 
 
@@ -608,11 +608,11 @@ PPL query::
 
     PPL> source=accounts | stats list(firstname);
     fetched rows / total rows = 1/1
-    +-----------------------------+
-    | list(firstname)             |
-    |-----------------------------|
-    | [Amber,Hattie,Nanette,Dale] |
-    +-----------------------------+
+    +-------------------------------------+
+    | list(firstname)                     |
+    |-------------------------------------|
+    | ["Amber","Hattie","Nanette","Dale"] |
+    +-------------------------------------+
 
 Example 15: Get unique values using VALUES
 ==========================================
@@ -626,7 +626,7 @@ PPL query::
     +----------------+
     | values(gender) |
     |----------------|
-    | [F,M]          |
+    | ["F","M"]      |
     +----------------+
 
 Example 16: Compare LIST and VALUES functions
@@ -638,9 +638,9 @@ PPL query::
 
     PPL> source=accounts | stats list(gender) as all_genders, values(gender) as unique_genders;
     fetched rows / total rows = 1/1
-    +---------------+----------------+
-    | all_genders   | unique_genders |
-    |---------------+----------------|
-    | [M,F,M,M]     | [F,M]          |
-    +---------------+----------------+
+    +-------------------+----------------+
+    | all_genders       | unique_genders |
+    |-------------------+----------------|
+    | ["M","F","M","M"] | ["F","M"]      |
+    +-------------------+----------------+
 
