@@ -317,25 +317,25 @@ Usage: EARLIEST(field [, time_field]). Return the earliest value of a field base
 
 Example::
 
-    os> source=logs | stats earliest(message) by host;
+    os> source=events | stats earliest(message, event_time) by host | sort host;
     fetched rows / total rows = 2/2
-    +------------------+----------+
-    | earliest(message)| host     |
-    |------------------+----------|
-    | "Starting up"    | server1  |
-    | "Initializing"   | server2  |
-    +------------------+----------+
+    +-----------------------------+--------+
+    | earliest(message, event_time) | host   |
+    |-----------------------------+--------|
+    | Starting up                 | server1|
+    | Initializing                | server2|
+    +-----------------------------+--------+
 
 Example with custom time field::
 
-    os> source=events | stats earliest(status, event_time) by category;
+    os> source=events | stats earliest(status, event_time) by category | sort category;
     fetched rows / total rows = 2/2
-    +----------------+----------+
-    | earliest(status)| category |
-    |----------------+----------|
-    | "pending"      | orders   |
-    | "active"       | users    |
-    +----------------+----------+
+    +----------------------------+----------+
+    | earliest(status, event_time)| category |
+    |----------------------------+----------|
+    | pending                    | orders   |
+    | active                     | users    |
+    +----------------------------+----------+
 
 LATEST
 ------
@@ -352,25 +352,25 @@ Usage: LATEST(field [, time_field]). Return the latest value of a field based on
 
 Example::
 
-    os> source=logs | stats latest(message) by host;
+    os> source=events | stats latest(message, event_time) by host | sort host;
     fetched rows / total rows = 2/2
-    +----------------+----------+
-    | latest(message)| host     |
-    |----------------+----------|
-    | "Shutting down"| server1  |
-    | "Ready"        | server2  |
-    +----------------+----------+
+    +---------------------------+--------+
+    | latest(message, event_time) | host   |
+    |---------------------------+--------|
+    | Shutting down             | server1|
+    | Maintenance mode          | server2|
+    +---------------------------+--------+
 
 Example with custom time field::
 
-    os> source=events | stats latest(status, event_time) by category;
+    os> source=events | stats latest(status, event_time) by category | sort category;
     fetched rows / total rows = 2/2
-    +--------------+----------+
-    | latest(status)| category |
-    |--------------+----------|
-    | "completed"  | orders   |
-    | "inactive"   | users    |
-    +--------------+----------+
+    +--------------------------+----------+
+    | latest(status, event_time)| category |
+    |--------------------------+----------|
+    | cancelled                | orders   |
+    | inactive                 | users    |
+    +--------------------------+----------+
 
 Example 1: Calculate the count of events
 ========================================

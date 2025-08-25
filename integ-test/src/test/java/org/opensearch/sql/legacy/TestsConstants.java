@@ -15,6 +15,8 @@ public class TestsConstants {
 
   public static final String TEST_INDEX_ONLINE = TEST_INDEX + "_online";
   public static final String TEST_INDEX_ACCOUNT = TEST_INDEX + "_account";
+  public static final String TEST_INDEX_ACCOUNT_WITH_TIMESTAMP =
+      TEST_INDEX + "_account_with_timestamp";
   public static final String TEST_INDEX_PHRASE = TEST_INDEX + "_phrase";
   public static final String TEST_INDEX_DOG = TEST_INDEX + "_dog";
   public static final String TEST_INDEX_DOG2 = TEST_INDEX + "_dog2";

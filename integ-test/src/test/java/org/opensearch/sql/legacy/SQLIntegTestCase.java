@@ -560,6 +560,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "account",
         getAccountIndexMapping(),
         "src/test/resources/accounts.json"),
+    ACCOUNT_WITH_TIMESTAMP(
+        TestsConstants.TEST_INDEX_ACCOUNT_WITH_TIMESTAMP,
+        "account",
+        getAccountIndexMapping(),
+        "src/test/resources/accounts_with_timestamp.json"),
     PHRASE(
         TestsConstants.TEST_INDEX_PHRASE,
         "phrase",

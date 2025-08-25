@@ -12,6 +12,7 @@ import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 
 import java.io.IOException;
 import java.util.Locale;
+
 import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -25,6 +26,7 @@ public class CalciteExplainIT extends ExplainIT {
     loadIndex(Index.BANK_WITH_STRING_VALUES);
     loadIndex(Index.NESTED_SIMPLE);
     loadIndex(Index.TIME_TEST_DATA);
+    loadIndex(Index.ACCOUNT_WITH_TIMESTAMP);
   }
 
   @Override
@@ -335,6 +337,29 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryToString(query);
     String expected = loadFromFile("expectedOutput/calcite/explain_regex_match_in_eval.json");
     assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  // Only for Calcite
+  @Test
+  public void testExplainOnEarliestLatest() throws IOException {
+    String expected = loadExpectedPlan("explain_earliest_latest.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account_with_timestamp | stats earliest(firstname) as"
+                + " earliest_name, latest(firstname) as latest_name by state"));
+  }
+
+  // Only for Calcite
+  @Test
+  public void testExplainOnEarliestLatestWithCustomTimeField() throws IOException {
+    String expected = loadExpectedPlan("explain_earliest_latest_custom_time.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account_with_timestamp | stats earliest(firstname,"
+                + " created_time) as earliest_name, latest(firstname, created_time) as latest_name"
+                + " by gender"));
   }
 
   /**

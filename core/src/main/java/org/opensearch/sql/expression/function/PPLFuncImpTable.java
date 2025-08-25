@@ -863,14 +863,14 @@ public class PPLFuncImpTable {
 
     private static RexNode resolveTimeField(List<RexNode> argList, CalcitePlanContext ctx) {
       if (argList.isEmpty()) {
-        try {
-          return ctx.rexBuilder.makeInputRef(
-              ctx.relBuilder.peek().getRowType().getField("@timestamp", false, false).getType(),
-              ctx.relBuilder.peek().getRowType().getField("@timestamp", false, false).getIndex());
-        } catch (Exception e) {
+        // Try to find @timestamp field
+        var timestampField =
+            ctx.relBuilder.peek().getRowType().getField("@timestamp", false, false);
+        if (timestampField == null) {
           throw new IllegalArgumentException(
-              "Default @timestamp field not found. Please specify a time field explicitly.", e);
+              "Default @timestamp field not found. Please specify a time field explicitly.");
         }
+        return ctx.rexBuilder.makeInputRef(timestampField.getType(), timestampField.getIndex());
       } else {
         return PlanUtils.derefMapCall(argList.get(0));
       }

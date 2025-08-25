@@ -556,18 +556,18 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     verifyDataRows(actual, rows(3, "F"), rows(4, "M"));
   }
 
-  @Ignore
   @Test
   public void testEarliestAndLatest() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | stats latest(datetime0), earliest(datetime0)", TEST_INDEX_CALCS));
+                "source=%s | stats latest(datetime0, datetime0), earliest(datetime0, datetime0)",
+                TEST_INDEX_CALCS));
 
     verifySchema(
         actual,
-        schema("latest(datetime0)", "timestamp"),
-        schema("earliest(datetime0)", "timestamp"));
+        schema("latest(datetime0, datetime0)", "timestamp"),
+        schema("earliest(datetime0, datetime0)", "timestamp"));
     verifyDataRows(actual, rows("2004-08-02 07:59:23", "2004-07-04 22:49:28"));
   }
 
