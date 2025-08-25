@@ -200,6 +200,8 @@ public enum BuiltinFunctionName {
   PERCENTILE_APPROX(FunctionName.of("percentile_approx")),
   EARLIEST(FunctionName.of("earliest")),
   LATEST(FunctionName.of("latest")),
+  MAX_BY(FunctionName.of("max_by")),
+  MIN_BY(FunctionName.of("min_by")),
   DISTINCT_COUNT_APPROX(FunctionName.of("distinct_count_approx")),
   // Not always an aggregation query
   NESTED(FunctionName.of("nested")),
@@ -343,8 +345,8 @@ public enum BuiltinFunctionName {
           .put("take", BuiltinFunctionName.TAKE)
           .put("percentile", BuiltinFunctionName.PERCENTILE_APPROX)
           .put("percentile_approx", BuiltinFunctionName.PERCENTILE_APPROX)
-          // .put("earliest", BuiltinFunctionName.EARLIEST)
-          // .put("latest", BuiltinFunctionName.LATEST)
+          .put("earliest", BuiltinFunctionName.EARLIEST)
+          .put("latest", BuiltinFunctionName.LATEST)
           .put("distinct_count_approx", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
           .put("pattern", BuiltinFunctionName.INTERNAL_PATTERN)
           .build();

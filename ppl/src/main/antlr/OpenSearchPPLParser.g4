@@ -463,6 +463,7 @@ statsFunction
    | (DISTINCT_COUNT | DC | DISTINCT_COUNT_APPROX) LT_PRTHS valueExpression RT_PRTHS    # distinctCountFunctionCall
    | takeAggFunction                                            # takeAggFunctionCall
    | percentileApproxFunction                                   # percentileApproxFunctionCall
+   | earliestLatestFunction                                     # earliestLatestFunctionCall
    ;
 
 statsFunctionName
@@ -477,8 +478,10 @@ statsFunctionName
    | STDDEV_POP
    | PERCENTILE
    | PERCENTILE_APPROX
-   | EARLIEST
-   | LATEST
+   ;
+
+earliestLatestFunction
+   : (EARLIEST | LATEST) LT_PRTHS valueExpression (COMMA timeField = valueExpression)? RT_PRTHS
    ;
 
 takeAggFunction
