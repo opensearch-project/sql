@@ -341,8 +341,7 @@ public class PPLQueryDataAnonymizerTest {
         "source=t | stats count() by b | append [ stats sum(c) by b ]",
         anonymize("source=t | stats count() by b | append [ stats sum(c) by b ]"));
     assertEquals(
-        "source=t | append [ where a = *** ]",
-        anonymize("source=t | append [ where a = 1 ]"));
+        "source=t | append [ where a = *** ]", anonymize("source=t | append [ where a = 1 ]"));
   }
 
   @Test

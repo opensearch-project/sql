@@ -419,8 +419,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     transformPlanToAttachChild(node.getSubSearch(), relation);
     String subsearch = anonymizeData(node.getSubSearch());
     String subsearchWithoutRelation = subsearch.substring(subsearch.indexOf("|") + 1);
-    return StringUtils.format(
-        "%s | append [%s ]", child, subsearchWithoutRelation);
+    return StringUtils.format("%s | append [%s ]", child, subsearchWithoutRelation);
   }
 
   private String visitFieldList(List<Field> fieldList) {
