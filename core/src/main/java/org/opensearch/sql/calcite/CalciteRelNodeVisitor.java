@@ -114,6 +114,7 @@ import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.calcite.utils.WildcardUtils;
 import org.opensearch.sql.common.patterns.PatternUtils;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
@@ -193,28 +194,116 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitProject(Project node, CalcitePlanContext context) {
     visitChildren(node, context);
-    List<RexNode> projectList;
-    if (node.getProjectList().size() == 1
-        && node.getProjectList().getFirst() instanceof AllFields allFields) {
-      tryToRemoveNestedFields(context);
-      tryToRemoveMetaFields(context, allFields instanceof AllFieldsExcludeMeta);
-      return context.relBuilder.peek();
-    } else {
-      projectList =
-          node.getProjectList().stream()
-              .map(expr -> rexVisitor.analyze(expr, context))
-              .collect(Collectors.toList());
+
+    if (isSingleAllFieldsProject(node)) {
+      return handleAllFieldsProject(node, context);
     }
+
+    List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
+    List<RexNode> expandedFields =
+        expandProjectFields(node.getProjectList(), currentFields, context);
+
     if (node.isExcluded()) {
-      context.relBuilder.projectExcept(projectList);
+      validateExclusion(expandedFields, currentFields);
+      context.relBuilder.projectExcept(expandedFields);
     } else {
-      // Only set when not resolving subquery and it's not projectExcept.
       if (!context.isResolvingSubquery()) {
         context.setProjectVisited(true);
       }
-      context.relBuilder.project(projectList);
+      context.relBuilder.project(expandedFields);
     }
     return context.relBuilder.peek();
+  }
+
+  private boolean isSingleAllFieldsProject(Project node) {
+    return node.getProjectList().size() == 1
+        && node.getProjectList().getFirst() instanceof AllFields;
+  }
+
+  private RelNode handleAllFieldsProject(Project node, CalcitePlanContext context) {
+    if (node.isExcluded()) {
+      throw new IllegalArgumentException(
+          "Invalid field exclusion: operation would exclude all fields from the result set");
+    }
+    AllFields allFields = (AllFields) node.getProjectList().getFirst();
+    tryToRemoveNestedFields(context);
+    tryToRemoveMetaFields(context, allFields instanceof AllFieldsExcludeMeta);
+    return context.relBuilder.peek();
+  }
+
+  private List<RexNode> expandProjectFields(
+      List<UnresolvedExpression> projectList,
+      List<String> currentFields,
+      CalcitePlanContext context) {
+    List<RexNode> expandedFields = new ArrayList<>();
+    Set<String> addedFields = new HashSet<>();
+
+    for (UnresolvedExpression expr : projectList) {
+      switch (expr) {
+        case Field field -> {
+          String fieldName = field.getField().toString();
+          if (WildcardUtils.containsWildcard(fieldName)) {
+            List<String> matchingFields =
+                WildcardUtils.expandWildcardPattern(fieldName, currentFields).stream()
+                    .filter(f -> !isMetadataField(f))
+                    .filter(addedFields::add)
+                    .toList();
+            if (matchingFields.isEmpty()) {
+              continue;
+            }
+            matchingFields.forEach(f -> expandedFields.add(context.relBuilder.field(f)));
+          } else if (addedFields.add(fieldName)) {
+            expandedFields.add(rexVisitor.analyze(field, context));
+          }
+        }
+        case AllFields ignored -> {
+          currentFields.stream()
+              .filter(field -> !isMetadataField(field))
+              .filter(addedFields::add)
+              .forEach(field -> expandedFields.add(context.relBuilder.field(field)));
+        }
+        default -> throw new IllegalStateException(
+            "Unexpected expression type in project list: " + expr.getClass().getSimpleName());
+      }
+    }
+
+    if (expandedFields.isEmpty()) {
+      validateWildcardPatterns(projectList, currentFields);
+    }
+
+    return expandedFields;
+  }
+
+  private void validateExclusion(List<RexNode> fieldsToExclude, List<String> currentFields) {
+    Set<String> nonMetaFields =
+        currentFields.stream().filter(field -> !isMetadataField(field)).collect(Collectors.toSet());
+
+    if (fieldsToExclude.size() >= nonMetaFields.size()) {
+      throw new IllegalArgumentException(
+          "Invalid field exclusion: operation would exclude all fields from the result set");
+    }
+  }
+
+  private void validateWildcardPatterns(
+      List<UnresolvedExpression> projectList, List<String> currentFields) {
+    String firstWildcardPattern =
+        projectList.stream()
+            .filter(
+                expr ->
+                    expr instanceof Field field
+                        && WildcardUtils.containsWildcard(field.getField().toString()))
+            .map(expr -> ((Field) expr).getField().toString())
+            .findFirst()
+            .orElse(null);
+
+    if (firstWildcardPattern != null) {
+      throw new IllegalArgumentException(
+          String.format("wildcard pattern [%s] matches no fields", firstWildcardPattern));
+    }
+  }
+
+  private boolean isMetadataField(String fieldName) {
+    return OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(fieldName);
   }
 
   /** See logic in {@link org.opensearch.sql.analysis.symbol.SymbolTable#lookupAllFields} */
@@ -501,7 +590,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitEval(Eval node, CalcitePlanContext context) {
     visitChildren(node, context);
-    List<String> originalFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
     node.getExpressionList()
         .forEach(
             expr -> {

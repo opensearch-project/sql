@@ -47,6 +47,7 @@ pplCommands
 commands
    : whereCommand
    | fieldsCommand
+   | tableCommand
    | joinCommand
    | renameCommand
    | statsCommand
@@ -79,6 +80,7 @@ commandName
    | SHOW
    | WHERE
    | FIELDS
+   | TABLE
    | JOIN
    | RENAME
    | STATS
@@ -121,7 +123,21 @@ whereCommand
    ;
 
 fieldsCommand
-   : FIELDS (PLUS | MINUS)? fieldList
+   : FIELDS fieldsCommandBody
+   ;
+
+// Table command - alias for fields command
+tableCommand
+   : TABLE fieldsCommandBody
+   ;
+
+fieldsCommandBody
+   : (PLUS | MINUS)? wcFieldList
+   ;
+
+// Wildcard field list supporting both comma-separated and space-separated fields
+wcFieldList
+   : selectFieldExpression (COMMA? selectFieldExpression)*
    ;
 
 renameCommand
@@ -404,6 +420,8 @@ scalarWindowFunctionName
    | LAST
    | NTH
    | NTILE
+   | DISTINCT_COUNT
+   | DC
    ;
 
 // aggregation terms
@@ -513,7 +531,7 @@ singleFieldRelevanceFunction
 
 // Field is a list of columns
 multiFieldRelevanceFunction
-   : multiFieldRelevanceFunctionName LT_PRTHS LT_SQR_PRTHS field = relevanceFieldAndWeight (COMMA field = relevanceFieldAndWeight)* RT_SQR_PRTHS COMMA query = relevanceQuery (COMMA relevanceArg)* RT_PRTHS
+   : multiFieldRelevanceFunctionName LT_PRTHS (LT_SQR_PRTHS field = relevanceFieldAndWeight (COMMA field = relevanceFieldAndWeight)* RT_SQR_PRTHS COMMA)? query = relevanceQuery (COMMA relevanceArg)* RT_PRTHS
    ;
 
 // tables
@@ -529,10 +547,6 @@ tableFunction
 // fields
 fieldList
    : fieldExpression (COMMA fieldExpression)*
-   ;
-
-wcFieldList
-   : wcFieldExpression (COMMA wcFieldExpression)*
    ;
 
 sortField
@@ -553,6 +567,11 @@ fieldExpression
 
 wcFieldExpression
    : wcQualifiedName
+   ;
+
+selectFieldExpression
+   : wcQualifiedName
+   | STAR
    ;
 
 // functions
