@@ -1,0 +1,3 @@
+source = big5
+| eval result = coalesce(`host.name`, 123, 'fallback')
+| head 10
