@@ -100,12 +100,12 @@ public class SpanBinHandler implements BinHandler {
   private RexNode processAligntime(
       SpanBin node, RexNode fieldExpr, CalcitePlanContext context, CalciteRexNodeVisitor visitor) {
 
-    if (node.getAligntime() == null) {
+    if (!node.getAligntime().isPresent()) {
       return null;
     }
 
-    if (node.getAligntime() instanceof Literal) {
-      Literal aligntimeLiteral = (Literal) node.getAligntime();
+    if (node.getAligntime().get() instanceof Literal) {
+      Literal aligntimeLiteral = (Literal) node.getAligntime().get();
       String aligntimeStr =
           aligntimeLiteral.getValue().toString().replace("\"", "").replace("'", "").trim();
 
@@ -121,11 +121,11 @@ public class SpanBinHandler implements BinHandler {
           long epochValue = Long.parseLong(aligntimeStr);
           return context.relBuilder.literal(BinConstants.ALIGNTIME_EPOCH_PREFIX + epochValue);
         } catch (NumberFormatException e) {
-          return visitor.analyze(node.getAligntime(), context);
+          return visitor.analyze(node.getAligntime().get(), context);
         }
       }
     } else {
-      return visitor.analyze(node.getAligntime(), context);
+      return visitor.analyze(node.getAligntime().get(), context);
     }
   }
 }

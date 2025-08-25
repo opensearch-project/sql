@@ -22,6 +22,7 @@ public class CalciteExplainIT extends ExplainIT {
     super.init();
     enableCalcite();
     loadIndex(Index.NESTED_SIMPLE);
+    loadIndex(Index.TIME_TEST_DATA);
   }
 
   @Override

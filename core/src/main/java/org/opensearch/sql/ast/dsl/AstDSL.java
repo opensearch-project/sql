@@ -609,8 +609,8 @@ public class AstDSL {
           break;
         case "bins":
           bins =
-              ((Literal) arg.getValue()).getValue() instanceof Integer
-                  ? (Integer) ((Literal) arg.getValue()).getValue()
+              (arg.getValue()).getValue() instanceof Integer
+                  ? (Integer) (arg.getValue()).getValue()
                   : null;
           break;
         case "minspan":
@@ -634,25 +634,41 @@ public class AstDSL {
     // Create appropriate Bin subclass based on priority order
     if (span != null) {
       // 1. SPAN (highest priority) -> SpanBin
-      return SpanBin.builder().field(field).span(span).aligntime(aligntime).alias(alias).build();
+      return SpanBin.builder()
+          .field(field)
+          .span(span)
+          .aligntime(Optional.ofNullable(aligntime))
+          .alias(Optional.ofNullable(alias))
+          .build();
     } else if (minspan != null) {
       // 2. MINSPAN (second priority) -> MinSpanBin
       return MinSpanBin.builder()
           .field(field)
           .minspan(minspan)
-          .start(start)
-          .end(end)
-          .alias(alias)
+          .start(Optional.ofNullable(start))
+          .end(Optional.ofNullable(end))
+          .alias(Optional.ofNullable(alias))
           .build();
     } else if (bins != null) {
       // 3. BINS (third priority) -> CountBin
-      return CountBin.builder().field(field).bins(bins).start(start).end(end).alias(alias).build();
+      return CountBin.builder()
+          .field(field)
+          .bins(bins)
+          .start(Optional.ofNullable(start))
+          .end(Optional.ofNullable(end))
+          .alias(Optional.ofNullable(alias))
+          .build();
     } else if (start != null || end != null) {
       // 4. START/END only (fourth priority) -> RangeBin
-      return RangeBin.builder().field(field).start(start).end(end).alias(alias).build();
+      return RangeBin.builder()
+          .field(field)
+          .start(Optional.ofNullable(start))
+          .end(Optional.ofNullable(end))
+          .alias(Optional.ofNullable(alias))
+          .build();
     } else {
       // 5. No parameters (default) -> DefaultBin
-      return DefaultBin.builder().field(field).alias(alias).build();
+      return DefaultBin.builder().field(field).alias(Optional.ofNullable(alias)).build();
     }
   }
 }

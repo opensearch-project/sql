@@ -260,41 +260,41 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     if (node instanceof SpanBin) {
       SpanBin spanBin = (SpanBin) node;
       binCommand.append(" span=").append(visitExpression(spanBin.getSpan()));
-      if (spanBin.getAligntime() != null) {
-        binCommand.append(" aligntime=").append(visitExpression(spanBin.getAligntime()));
+      if (spanBin.getAligntime().isPresent()) {
+        binCommand.append(" aligntime=").append(visitExpression(spanBin.getAligntime().get()));
       }
     } else if (node instanceof MinSpanBin) {
       MinSpanBin minSpanBin = (MinSpanBin) node;
       binCommand.append(" minspan=").append(visitExpression(minSpanBin.getMinspan()));
-      if (minSpanBin.getStart() != null) {
-        binCommand.append(" start=").append(visitExpression(minSpanBin.getStart()));
+      if (minSpanBin.getStart().isPresent()) {
+        binCommand.append(" start=").append(visitExpression(minSpanBin.getStart().get()));
       }
-      if (minSpanBin.getEnd() != null) {
-        binCommand.append(" end=").append(visitExpression(minSpanBin.getEnd()));
+      if (minSpanBin.getEnd().isPresent()) {
+        binCommand.append(" end=").append(visitExpression(minSpanBin.getEnd().get()));
       }
     } else if (node instanceof CountBin) {
       CountBin countBin = (CountBin) node;
       binCommand.append(" bins=").append(MASK_LITERAL);
-      if (countBin.getStart() != null) {
-        binCommand.append(" start=").append(visitExpression(countBin.getStart()));
+      if (countBin.getStart().isPresent()) {
+        binCommand.append(" start=").append(visitExpression(countBin.getStart().get()));
       }
-      if (countBin.getEnd() != null) {
-        binCommand.append(" end=").append(visitExpression(countBin.getEnd()));
+      if (countBin.getEnd().isPresent()) {
+        binCommand.append(" end=").append(visitExpression(countBin.getEnd().get()));
       }
     } else if (node instanceof RangeBin) {
       RangeBin rangeBin = (RangeBin) node;
-      if (rangeBin.getStart() != null) {
-        binCommand.append(" start=").append(visitExpression(rangeBin.getStart()));
+      if (rangeBin.getStart().isPresent()) {
+        binCommand.append(" start=").append(visitExpression(rangeBin.getStart().get()));
       }
-      if (rangeBin.getEnd() != null) {
-        binCommand.append(" end=").append(visitExpression(rangeBin.getEnd()));
+      if (rangeBin.getEnd().isPresent()) {
+        binCommand.append(" end=").append(visitExpression(rangeBin.getEnd().get()));
       }
     } else if (node instanceof DefaultBin) {
       // DefaultBin has no additional parameters
     }
 
-    if (node.getAlias() != null) {
-      binCommand.append(" as ").append(node.getAlias());
+    if (node.getAlias().isPresent()) {
+      binCommand.append(" as ").append(node.getAlias().get());
     }
 
     return StringUtils.format("%s%s", child, binCommand.toString());

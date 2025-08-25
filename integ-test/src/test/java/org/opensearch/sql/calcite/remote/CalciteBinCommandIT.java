@@ -23,7 +23,6 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK);
     loadIndex(Index.TIME_TEST_DATA);

@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.ast.tree;
 
-import javax.annotation.Nullable;
+import java.util.Optional;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -22,7 +22,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 public class DefaultBin extends Bin {
 
   @Builder
-  public DefaultBin(UnresolvedExpression field, @Nullable String alias) {
+  public DefaultBin(UnresolvedExpression field, Optional<String> alias) {
     super(field, alias);
     validate();
   }

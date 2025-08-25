@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.ast.tree;
 
-import javax.annotation.Nullable;
+import java.util.Optional;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -23,14 +23,14 @@ public class SpanBin extends Bin {
 
   private final UnresolvedExpression span;
 
-  @Nullable private final UnresolvedExpression aligntime; // Only valid for time-based fields
+  private final Optional<UnresolvedExpression> aligntime; // Only valid for time-based fields
 
   @Builder
   public SpanBin(
       UnresolvedExpression field,
-      @Nullable String alias,
+      Optional<String> alias,
       UnresolvedExpression span,
-      @Nullable UnresolvedExpression aligntime) {
+      Optional<UnresolvedExpression> aligntime) {
     super(field, alias);
     this.span = span;
     this.aligntime = aligntime;

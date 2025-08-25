@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.ast.tree;
 
-import javax.annotation.Nullable;
+import java.util.Optional;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -22,16 +22,16 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 @EqualsAndHashCode(callSuper = true)
 public class RangeBin extends Bin {
 
-  @Nullable private final UnresolvedExpression start;
+  private final Optional<UnresolvedExpression> start;
 
-  @Nullable private final UnresolvedExpression end;
+  private final Optional<UnresolvedExpression> end;
 
   @Builder
   public RangeBin(
       UnresolvedExpression field,
-      @Nullable String alias,
-      @Nullable UnresolvedExpression start,
-      @Nullable UnresolvedExpression end) {
+      Optional<String> alias,
+      Optional<UnresolvedExpression> start,
+      Optional<UnresolvedExpression> end) {
     super(field, alias);
     this.start = start; // At least one of start/end should be specified
     this.end = end; // At least one of start/end should be specified
@@ -41,7 +41,7 @@ public class RangeBin extends Bin {
   @Override
   public void validate() {
     // Range-specific validation
-    if (start == null && end == null) {
+    if (!start.isPresent() && !end.isPresent()) {
       throw new IllegalArgumentException(
           "At least one of start or end parameter must be specified for range-based binning");
     }

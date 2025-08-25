@@ -27,8 +27,8 @@ public class RangeBinHandler implements BinHandler {
     RexNode dataMax = context.relBuilder.max(fieldExpr).over().toRex();
 
     // Convert start/end parameters
-    RexNode startParam = convertParameter(rangeBin.getStart(), context, visitor);
-    RexNode endParam = convertParameter(rangeBin.getEnd(), context, visitor);
+    RexNode startParam = convertParameter(rangeBin.getStart().orElse(null), context, visitor);
+    RexNode endParam = convertParameter(rangeBin.getEnd().orElse(null), context, visitor);
 
     // Use RANGE_BUCKET with data bounds and user parameters
     return context.rexBuilder.makeCall(

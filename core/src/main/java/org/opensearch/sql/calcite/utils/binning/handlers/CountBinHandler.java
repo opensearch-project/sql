@@ -36,8 +36,8 @@ public class CountBinHandler implements BinHandler {
     RexNode dataRange = context.relBuilder.call(SqlStdOperatorTable.MINUS, maxValue, minValue);
 
     // Convert start/end parameters
-    RexNode startValue = convertParameter(countBin.getStart(), context);
-    RexNode endValue = convertParameter(countBin.getEnd(), context);
+    RexNode startValue = convertParameter(countBin.getStart().orElse(null), context);
+    RexNode endValue = convertParameter(countBin.getEnd().orElse(null), context);
 
     // WIDTH_BUCKET(field_value, num_bins, data_range, max_value)
     RexNode numBins = context.relBuilder.literal(requestedBins);

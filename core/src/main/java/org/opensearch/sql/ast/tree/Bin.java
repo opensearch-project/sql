@@ -7,7 +7,7 @@ package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import javax.annotation.Nullable;
+import java.util.Optional;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -26,9 +26,9 @@ public abstract class Bin extends UnresolvedPlan {
 
   protected final UnresolvedExpression field;
 
-  @Nullable protected final String alias;
+  protected final Optional<String> alias;
 
-  protected Bin(UnresolvedExpression field, @Nullable String alias) {
+  protected Bin(UnresolvedExpression field, Optional<String> alias) {
     this.field = field;
     this.alias = alias;
   }

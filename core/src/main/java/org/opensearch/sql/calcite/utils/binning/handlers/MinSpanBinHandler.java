@@ -42,8 +42,8 @@ public class MinSpanBinHandler implements BinHandler {
     RexNode dataRange = context.relBuilder.call(SqlStdOperatorTable.MINUS, maxValue, minValue);
 
     // Convert start/end parameters
-    RexNode startValue = convertParameter(minSpanBin.getStart(), context);
-    RexNode endValue = convertParameter(minSpanBin.getEnd(), context);
+    RexNode startValue = convertParameter(minSpanBin.getStart().orElse(null), context);
+    RexNode endValue = convertParameter(minSpanBin.getEnd().orElse(null), context);
 
     // MINSPAN_BUCKET(field_value, min_span, data_range, max_value)
     RexNode minSpanParam = context.relBuilder.literal(minspan);
