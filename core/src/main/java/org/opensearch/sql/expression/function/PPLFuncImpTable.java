@@ -110,6 +110,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.LEFT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LENGTH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LESS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LIKE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LIST;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOCALTIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOCALTIMESTAMP;
@@ -209,6 +210,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.UPPER;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.UTC_DATE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.UTC_TIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.UTC_TIMESTAMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.VALUES;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.VARPOP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.VARSAMP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEK;
@@ -258,12 +260,15 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.udf.udaf.ListAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.LogPatternAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.PercentileApproxFunction;
 import org.opensearch.sql.calcite.udf.udaf.TakeAggFunction;
+import org.opensearch.sql.calcite.udf.udaf.ValuesAggFunction;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.executor.QueryType;
 
@@ -1158,6 +1163,60 @@ public class PPLFuncImpTable {
                   argList,
                   ctx.relBuilder),
           null);
+
+      register(
+          LIST,
+          (distinct, field, argList, ctx) ->
+              createAggregateFunction(
+                  ListAggFunction.class,
+                  "LIST",
+                  UserDefinedFunctionUtils.getReturnTypeInferenceForStringArray(),
+                  List.of(field),
+                  argList,
+                  ctx.relBuilder),
+          PPLTypeChecker.wrapUDT(
+              List.of(
+                  List.of(ExprCoreType.BOOLEAN),
+                  List.of(ExprCoreType.BYTE),
+                  List.of(ExprCoreType.SHORT),
+                  List.of(ExprCoreType.INTEGER),
+                  List.of(ExprCoreType.LONG),
+                  List.of(ExprCoreType.FLOAT),
+                  List.of(ExprCoreType.DOUBLE),
+                  List.of(ExprCoreType.STRING),
+                  List.of(ExprCoreType.DATE),
+                  List.of(ExprCoreType.TIME),
+                  List.of(ExprCoreType.TIMESTAMP),
+                  List.of(ExprCoreType.IP),
+                  List.of(ExprCoreType.BINARY),
+                  List.of(ExprCoreType.GEO_POINT))));
+
+      register(
+          VALUES,
+          (distinct, field, argList, ctx) ->
+              createAggregateFunction(
+                  ValuesAggFunction.class,
+                  "VALUES",
+                  UserDefinedFunctionUtils.getReturnTypeInferenceForStringArray(),
+                  List.of(field),
+                  argList,
+                  ctx.relBuilder),
+          PPLTypeChecker.wrapUDT(
+              List.of(
+                  List.of(ExprCoreType.BOOLEAN),
+                  List.of(ExprCoreType.BYTE),
+                  List.of(ExprCoreType.SHORT),
+                  List.of(ExprCoreType.INTEGER),
+                  List.of(ExprCoreType.LONG),
+                  List.of(ExprCoreType.FLOAT),
+                  List.of(ExprCoreType.DOUBLE),
+                  List.of(ExprCoreType.STRING),
+                  List.of(ExprCoreType.DATE),
+                  List.of(ExprCoreType.TIME),
+                  List.of(ExprCoreType.TIMESTAMP),
+                  List.of(ExprCoreType.IP),
+                  List.of(ExprCoreType.BINARY),
+                  List.of(ExprCoreType.GEO_POINT))));
     }
   }
 
