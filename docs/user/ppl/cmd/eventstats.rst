@@ -277,6 +277,28 @@ Example::
     +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+
 
 
+DISTINCT_COUNT, DC(Since 3.3)
+------------------
+
+Description
+>>>>>>>>>>>
+
+Usage: DISTINCT_COUNT(expr), DC(expr). Returns the approximate number of distinct values of expr using HyperLogLog++ algorithm. Both ``DISTINCT_COUNT`` and ``DC`` are equivalent and provide the same functionality.
+
+Example::
+
+    PPL> source=accounts | eventstats dc(state) as distinct_states, distinct_count(state) as dc_states_alt by gender;
+    fetched rows / total rows = 4/4
+    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+-----------------+-----------------+
+    | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | distinct_states | dc_states_alt   |
+    |----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+-----------------|-----------------|
+    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | 1               | 1               |
+    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | 3               | 3               |
+    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 3               | 3               |
+    | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    | 3               | 3               |
+    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+-----------------+-----------------+
+
+
 Configuration
 =============
 This command requires Calcite enabled.
@@ -312,6 +334,8 @@ Eventstats::
     source = table | where a < 50 | eventstats count(c)
     source = table | eventstats min(c), max(c) by b
     source = table | eventstats count(c) as count_by by b | where count_by > 1000
+    source = table | eventstats dc(field) as distinct_count
+    source = table | eventstats distinct_count(category) by region
 
 
 Example 1: Calculate the average, sum and count of a field by group
