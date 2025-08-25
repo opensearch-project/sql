@@ -1,3 +1,0 @@
-source = big5
-| table `@timestamp`, `metrics.size`
-| head 10000
