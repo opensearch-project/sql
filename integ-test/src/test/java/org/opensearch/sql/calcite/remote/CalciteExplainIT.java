@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 
 import java.io.IOException;
@@ -235,6 +236,18 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryToString(query);
     String expected = loadFromFile("expectedOutput/calcite/explain_eventstats_distinct_count.json");
     assertJsonEqualsIgnoreId(expected, result);
+
+  // Only for Calcite, as v2 gets unstable serialized string for function
+  @Test
+  public void testExplainOnAggregationWithSumEnhancement() throws IOException {
+    String expected = loadExpectedPlan("explain_agg_with_sum_enhancement.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | stats sum(balance), sum(balance + 100), sum(balance - 100),"
+                    + " sum(balance * 100), sum(balance / 100) by gender",
+                TEST_INDEX_BANK)));
   }
 
   /**

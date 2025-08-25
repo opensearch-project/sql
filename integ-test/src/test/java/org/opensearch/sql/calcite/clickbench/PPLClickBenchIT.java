@@ -49,8 +49,10 @@ public class PPLClickBenchIT extends PPLIntegTestCase {
   }
 
   /**
-   * Ignore queries that are not supported by Calcite. Ignore q30 because of too much script push
-   * down, which will cause ResourceMonitor restriction.
+   * Ignore queries that are not supported by Calcite.
+   *
+   * <p>q30 is ignored because it will trigger ResourceMonitory health check. TODO: should be
+   * addressed by: https://github.com/opensearch-project/sql/issues/3981
    */
   protected Set<Integer> ignored() {
     return Set.of(29, 30);
