@@ -10,7 +10,6 @@ import java.util.List;
 import javax.annotation.Nullable;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.Setter;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
@@ -29,7 +28,7 @@ public abstract class Bin extends UnresolvedPlan {
 
   @Nullable protected final String alias;
 
-  protected Bin(@NonNull UnresolvedExpression field, @Nullable String alias) {
+  protected Bin(UnresolvedExpression field, @Nullable String alias) {
     this.field = field;
     this.alias = alias;
   }

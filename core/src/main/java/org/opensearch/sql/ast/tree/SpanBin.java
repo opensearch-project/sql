@@ -9,7 +9,6 @@ import javax.annotation.Nullable;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.ToString;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
@@ -28,9 +27,9 @@ public class SpanBin extends Bin {
 
   @Builder
   public SpanBin(
-      @NonNull UnresolvedExpression field,
+      UnresolvedExpression field,
       @Nullable String alias,
-      @NonNull UnresolvedExpression span,
+      UnresolvedExpression span,
       @Nullable UnresolvedExpression aligntime) {
     super(field, alias);
     this.span = span;

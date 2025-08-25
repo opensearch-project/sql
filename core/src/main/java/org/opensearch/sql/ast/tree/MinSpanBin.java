@@ -9,7 +9,6 @@ import javax.annotation.Nullable;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.ToString;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
@@ -30,9 +29,9 @@ public class MinSpanBin extends Bin {
 
   @Builder
   public MinSpanBin(
-      @NonNull UnresolvedExpression field,
+      UnresolvedExpression field,
       @Nullable String alias,
-      @NonNull UnresolvedExpression minspan,
+      UnresolvedExpression minspan,
       @Nullable UnresolvedExpression start,
       @Nullable UnresolvedExpression end) {
     super(field, alias);

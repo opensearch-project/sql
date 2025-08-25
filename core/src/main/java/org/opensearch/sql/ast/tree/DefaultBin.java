@@ -9,7 +9,6 @@ import javax.annotation.Nullable;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.ToString;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
@@ -23,7 +22,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 public class DefaultBin extends Bin {
 
   @Builder
-  public DefaultBin(@NonNull UnresolvedExpression field, @Nullable String alias) {
+  public DefaultBin(UnresolvedExpression field, @Nullable String alias) {
     super(field, alias);
     validate();
   }

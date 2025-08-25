@@ -9,7 +9,6 @@ import javax.annotation.Nullable;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.ToString;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
@@ -29,7 +28,7 @@ public class RangeBin extends Bin {
 
   @Builder
   public RangeBin(
-      @NonNull UnresolvedExpression field,
+      UnresolvedExpression field,
       @Nullable String alias,
       @Nullable UnresolvedExpression start,
       @Nullable UnresolvedExpression end) {

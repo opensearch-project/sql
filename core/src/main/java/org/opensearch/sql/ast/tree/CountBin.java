@@ -9,7 +9,6 @@ import javax.annotation.Nullable;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.ToString;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.calcite.utils.binning.BinConstants;
@@ -31,9 +30,9 @@ public class CountBin extends Bin {
 
   @Builder
   public CountBin(
-      @NonNull UnresolvedExpression field,
+      UnresolvedExpression field,
       @Nullable String alias,
-      @NonNull Integer bins,
+      Integer bins,
       @Nullable UnresolvedExpression start,
       @Nullable UnresolvedExpression end) {
     super(field, alias);
