@@ -308,7 +308,7 @@ EARLIEST
 Description
 >>>>>>>>>>>
 
-Version: 3.1.0
+Version: 3.3.0
 
 Usage: EARLIEST(field [, time_field]). Return the earliest value of a field based on timestamp ordering.
 
@@ -343,7 +343,7 @@ LATEST
 Description
 >>>>>>>>>>>
 
-Version: 3.1.0
+Version: 3.3.0
 
 Usage: LATEST(field [, time_field]). Return the latest value of a field based on timestamp ordering.
 
