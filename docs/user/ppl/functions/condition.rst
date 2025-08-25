@@ -252,12 +252,14 @@ Usage: coalesce(field1, field2, ...) return the first non-null, non-missing valu
 
 Argument type: all the supported data type. Supports mixed data types with automatic type coercion.
 
-Return type: matches the type of the first non-null, non-missing argument
+Return type: determined by the least restrictive common type among all arguments, with fallback to string if no common type can be determined
 
 Behavior:
 - Returns the first value that is not null and not missing
 - Empty strings ("") and whitespace strings (" ") are considered valid values
 - If all arguments are null or missing, returns null
+- Automatic type coercion is applied to match the determined return type
+- If type conversion fails, the value is converted to string representation
 
 Example::
 
