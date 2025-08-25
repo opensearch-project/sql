@@ -154,12 +154,24 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     if (ctx.logicalExpression().isEmpty()) {
       return visitFromClause(ctx.fromClause());
     } else {
-      return new Filter(
-              ctx.logicalExpression().stream()
-                  .map(this::internalVisitExpression)
-                  .reduce(And::new)
-                  .get())
-          .attach(visit(ctx.fromClause()));
+      // Process logical expressions - let SearchTextTranslator determine what's search text
+      // Set search context only for direct value expressions, not for function calls
+      expressionBuilder.setSearchContext(true);
+
+      List<UnresolvedExpression> searchExprs =
+          ctx.logicalExpression().stream()
+              .map(this::internalVisitExpression)
+              .collect(Collectors.toList());
+
+      expressionBuilder.setSearchContext(false);
+
+      SearchTextTranslator translator = new SearchTextTranslator();
+      UnresolvedExpression translated = translator.translate(searchExprs);
+      if (translated == null) {
+        return visitFromClause(ctx.fromClause());
+      }
+
+      return new Filter(translated).attach(visit(ctx.fromClause()));
     }
   }
 

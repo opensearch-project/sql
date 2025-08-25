@@ -12,6 +12,7 @@ import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTOR
 
 import java.sql.Connection;
 import java.util.List;
+import java.util.Map;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.type.ArraySqlType;
@@ -207,5 +208,26 @@ public class CalciteRexNodeVisitorTest {
     assertEquals(
         lambdaContext.getRexLambdaRefMap().get("acc").getType().getSqlTypeName(),
         SqlTypeName.FLOAT);
+  }
+
+  @Test
+  public void testVisitRelevanceFieldListWithEmptyFields() {
+    // Create an empty RelevanceFieldList
+    Map<String, Float> emptyFieldMap = Map.of();
+    org.opensearch.sql.ast.expression.RelevanceFieldList emptyFieldList =
+        new org.opensearch.sql.ast.expression.RelevanceFieldList(emptyFieldMap);
+
+    // Test visitRelevanceFieldList with empty field list
+    RexNode result = visitor.visitRelevanceFieldList(emptyFieldList, context);
+
+    // Should return a null literal with map type (VARCHAR -> DOUBLE)
+    assertNotNull(result);
+    assertTrue(result instanceof org.apache.calcite.rex.RexLiteral);
+    org.apache.calcite.rex.RexLiteral literal = (org.apache.calcite.rex.RexLiteral) result;
+    assertTrue(literal.isNull());
+
+    // Verify the type is a map of VARCHAR -> DOUBLE
+    RelDataType resultType = literal.getType();
+    assertTrue(resultType.isStruct() || resultType.getSqlTypeName() == SqlTypeName.MAP);
   }
 }
