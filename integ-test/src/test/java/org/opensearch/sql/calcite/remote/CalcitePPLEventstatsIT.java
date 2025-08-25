@@ -580,7 +580,9 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eventstats dc(state) as dc_state", TEST_INDEX_STATE_COUNTRY));
+                "source=%s | eventstats dc(state) as dc_state | fields name, country, state, month,"
+                    + " year, age, dc_state",
+                TEST_INDEX_STATE_COUNTRY));
 
     verifySchemaInOrder(
         actual,
@@ -605,7 +607,8 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eventstats dc(state) as dc_state by country",
+                "source=%s | eventstats dc(state) as dc_state by country | fields name, country,"
+                    + " state, month, year, age, dc_state",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifySchemaInOrder(
@@ -631,7 +634,8 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eventstats distinct_count(country) as dc_country",
+                "source=%s | eventstats distinct_count(country) as dc_country | fields name,"
+                    + " country, state, month, year, age, dc_country",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifySchemaInOrder(
@@ -657,7 +661,8 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eventstats dc(state) as dc_state",
+                "source=%s | eventstats dc(state) as dc_state | fields name, country, state, month,"
+                    + " year, age, dc_state",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchemaInOrder(
