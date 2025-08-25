@@ -189,7 +189,13 @@ parseCommand
    ;
 
 spathCommand
-   : SPATH (INPUT EQUAL input = expression) (OUTPUT EQUAL output = expression)? ((PATH EQUAL)? path = indexablePath)
+   : SPATH spathParameter*
+   ;
+
+spathParameter
+   : (INPUT EQUAL input = expression)
+   | (OUTPUT EQUAL output = expression)
+   | ((PATH EQUAL)? path = indexablePath)
    ;
 
 indexablePath
@@ -1216,6 +1222,10 @@ keywordsCanBeId
    | ANOMALY_SCORE_THRESHOLD
    | COUNTFIELD
    | SHOWCOUNT
+   | PATH
+   | INPUT
+   | OUTPUT
+
    // AGGREGATIONS AND WINDOW
    | statsFunctionName
    | windowFunctionName

@@ -44,4 +44,19 @@ public class SPathRewriteTest {
 
     assertEquals(ev, sp.rewriteAsEval());
   }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testSpathMissingInputArgumentHandling() {
+    plan("source = t | spath path=a output=a");
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testSpathMissingPathArgumentHandling() {
+    plan("source = t | spath input=a output=a");
+  }
+
+  @Test
+  public void testSpathArgumentDeshuffle() {
+    assertEquals(plan("source = t | spath path=a input=a"), plan("source = t | spath input=a a"));
+  }
 }

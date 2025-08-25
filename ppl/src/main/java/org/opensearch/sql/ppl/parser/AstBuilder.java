@@ -530,11 +530,27 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   @Override
   public UnresolvedPlan visitSpathCommand(OpenSearchPPLParser.SpathCommandContext ctx) {
-    String inField = ctx.input.getText();
-    String path = ctx.path.getText();
+    String inField = null;
     String outField = null;
-    if (ctx.output != null) {
-      outField = ctx.output.getText();
+    String path = null;
+
+    for (OpenSearchPPLParser.SpathParameterContext param : ctx.spathParameter()) {
+      if (param.input != null) {
+        inField = param.input.getText();
+      }
+      if (param.output != null) {
+        outField = param.output.getText();
+      }
+      if (param.path != null) {
+        path = param.path.getText();
+      }
+    }
+
+    if (inField == null) {
+      throw new IllegalArgumentException("`input` parameter is required for `spath`");
+    }
+    if (path == null) {
+      throw new IllegalArgumentException("`path` parameter is required for `spath`");
     }
 
     return new SPath(inField, outField, path);
