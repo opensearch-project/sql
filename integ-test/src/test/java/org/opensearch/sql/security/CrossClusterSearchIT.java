@@ -245,9 +245,10 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
   public void testCrossClusterListFunction() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format("search source=%s | stats list(firstname) as all_names", TEST_INDEX_BANK_REMOTE));
+            String.format(
+                "search source=%s | stats list(firstname) as all_names", TEST_INDEX_BANK_REMOTE));
     verifyColumn(result, columnName("all_names"));
-    
+
     // Verify list results do not exceed 100 values
     JSONArray datarows = result.getJSONArray("datarows");
     assertTrue("List aggregation should return results", datarows.length() > 0);
@@ -264,9 +265,11 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
   public void testCrossClusterValuesFunction() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format("search source=%s | stats values(gender) as unique_genders", TEST_INDEX_BANK_REMOTE));
+            String.format(
+                "search source=%s | stats values(gender) as unique_genders",
+                TEST_INDEX_BANK_REMOTE));
     verifyColumn(result, columnName("unique_genders"));
-    
+
     // Verify values results do not contain duplicates
     JSONArray datarows = result.getJSONArray("datarows");
     assertTrue("Values aggregation should return results", datarows.length() > 0);
@@ -292,7 +295,7 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
                 "search source=%s | stats list(firstname) as names by state | fields state, names",
                 TEST_INDEX_BANK_REMOTE));
     verifyColumn(result, columnName("state"), columnName("names"));
-    
+
     // Verify list results in grouped data do not exceed 100 values per group
     JSONArray datarows = result.getJSONArray("datarows");
     assertTrue("Grouped list aggregation should return results", datarows.length() > 0);
@@ -300,7 +303,8 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
       JSONArray row = datarows.getJSONArray(i);
       if (row.length() >= 2 && row.get(1) instanceof JSONArray) {
         JSONArray namesInGroup = row.getJSONArray(1);
-        assertTrue("List results per group should not exceed 100 values", namesInGroup.length() <= 100);
+        assertTrue(
+            "List results per group should not exceed 100 values", namesInGroup.length() <= 100);
       }
     }
   }
@@ -310,10 +314,11 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s | stats values(city) as unique_cities by state | fields state, unique_cities",
+                "search source=%s | stats values(city) as unique_cities by state | fields state,"
+                    + " unique_cities",
                 TEST_INDEX_BANK_REMOTE));
     verifyColumn(result, columnName("state"), columnName("unique_cities"));
-    
+
     // Verify values results in grouped data do not contain duplicates per group
     JSONArray datarows = result.getJSONArray("datarows");
     assertTrue("Grouped values aggregation should return results", datarows.length() > 0);
@@ -324,7 +329,9 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
         Set<String> seenValues = new HashSet<>();
         for (int j = 0; j < citiesInGroup.length(); j++) {
           String value = citiesInGroup.getString(j);
-          assertFalse("Values should not contain duplicates in group: " + value, seenValues.contains(value));
+          assertFalse(
+              "Values should not contain duplicates in group: " + value,
+              seenValues.contains(value));
           seenValues.add(value);
         }
       }
