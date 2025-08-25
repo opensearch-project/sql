@@ -25,6 +25,7 @@ import org.opensearch.sql.spark.dispatcher.model.FullyQualifiedTableName;
 import org.opensearch.sql.spark.dispatcher.model.IndexQueryActionType;
 import org.opensearch.sql.spark.dispatcher.model.IndexQueryDetails;
 import org.opensearch.sql.spark.flint.FlintIndexType;
+import org.opensearch.sql.spark.utils.SQLQueryUtils.TableExtractionResult;
 
 @ExtendWith(MockitoExtension.class)
 public class SQLQueryUtilsTest {
@@ -442,6 +443,69 @@ public class SQLQueryUtilsTest {
     assertTrue(SQLQueryUtils.isFlintExtensionQuery(refreshSkippingIndex));
     IndexQueryDetails indexDetails = SQLQueryUtils.extractIndexDetails(refreshSkippingIndex);
     assertEquals(IndexQueryActionType.RECOVER, indexDetails.getIndexQueryActionType());
+  }
+
+  @Test
+  void testExtractFullyQualifiedTableNamesWithMetadata() {
+    // Test CREATE TABLE queries
+    String createTableQuery =
+        "CREATE EXTERNAL TABLE\n"
+            + "myS3.default.alb_logs\n"
+            + "[ PARTITIONED BY (col_name [, … ] ) ]\n"
+            + "[ ROW FORMAT DELIMITED row_format ]\n"
+            + "STORED AS file_format\n"
+            + "LOCATION { 's3://bucket/folder/' }";
+
+    TableExtractionResult result =
+        SQLQueryUtils.extractFullyQualifiedTableNamesWithMetadata(createTableQuery);
+    assertTrue(result.isCreateTableQuery());
+    assertEquals(1, result.getFullyQualifiedTableNames().size());
+    assertFullyQualifiedTableName(
+        "myS3", "default", "alb_logs", result.getFullyQualifiedTableNames().get(0));
+
+    String createTableQuery2 =
+        "CREATE TABLE myS3.default.new_table (id INT, name STRING) USING PARQUET";
+    result = SQLQueryUtils.extractFullyQualifiedTableNamesWithMetadata(createTableQuery2);
+    assertTrue(result.isCreateTableQuery());
+    assertEquals(1, result.getFullyQualifiedTableNames().size());
+    assertFullyQualifiedTableName(
+        "myS3", "default", "new_table", result.getFullyQualifiedTableNames().get(0));
+
+    // Test SELECT queries
+    String selectQuery = "SELECT * FROM myS3.default.alb_logs";
+    result = SQLQueryUtils.extractFullyQualifiedTableNamesWithMetadata(selectQuery);
+    assertFalse(result.isCreateTableQuery());
+    assertEquals(1, result.getFullyQualifiedTableNames().size());
+    assertFullyQualifiedTableName(
+        "myS3", "default", "alb_logs", result.getFullyQualifiedTableNames().get(0));
+
+    // Test DROP TABLE queries
+    String dropTableQuery = "DROP TABLE myS3.default.alb_logs";
+    result = SQLQueryUtils.extractFullyQualifiedTableNamesWithMetadata(dropTableQuery);
+    assertFalse(result.isCreateTableQuery());
+    assertEquals(1, result.getFullyQualifiedTableNames().size());
+    assertFullyQualifiedTableName(
+        "myS3", "default", "alb_logs", result.getFullyQualifiedTableNames().get(0));
+
+    // Test DESCRIBE TABLE queries
+    String describeTableQuery = "DESCRIBE TABLE myS3.default.alb_logs";
+    result = SQLQueryUtils.extractFullyQualifiedTableNamesWithMetadata(describeTableQuery);
+    assertFalse(result.isCreateTableQuery());
+    assertEquals(1, result.getFullyQualifiedTableNames().size());
+    assertFullyQualifiedTableName(
+        "myS3", "default", "alb_logs", result.getFullyQualifiedTableNames().get(0));
+
+    // Test JOIN queries
+    String joinQuery =
+        "SELECT * FROM myS3.default.alb_logs JOIN myS3.default.http_logs ON alb_logs.id ="
+            + " http_logs.id";
+    result = SQLQueryUtils.extractFullyQualifiedTableNamesWithMetadata(joinQuery);
+    assertFalse(result.isCreateTableQuery());
+    assertEquals(2, result.getFullyQualifiedTableNames().size());
+    assertFullyQualifiedTableName(
+        "myS3", "default", "alb_logs", result.getFullyQualifiedTableNames().get(0));
+    assertFullyQualifiedTableName(
+        "myS3", "default", "http_logs", result.getFullyQualifiedTableNames().get(1));
   }
 
   @Getter
