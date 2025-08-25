@@ -22,5 +22,5 @@ public class DataSource {
 
   private final DataSourceType connectorType;
 
-  @EqualsAndHashCode.Exclude private final StorageEngine storageEngine;
+  @EqualsAndHashCode.Exclude @Getter private final StorageEngine storageEngine;
 }

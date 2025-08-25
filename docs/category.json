@@ -8,6 +8,7 @@
   ],
   "ppl_cli": [
     "user/ppl/cmd/ad.rst",
+    "user/ppl/cmd/bin.rst",
     "user/ppl/cmd/dedup.rst",
     "user/ppl/cmd/describe.rst",
     "user/ppl/cmd/showdatasources.rst",

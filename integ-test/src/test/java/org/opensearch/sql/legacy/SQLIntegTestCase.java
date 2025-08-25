@@ -905,7 +905,12 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         TestsConstants.TEST_INDEX_HDFS_LOGS,
         "hdfs_logs",
         getHdfsLogsIndexMapping(),
-        "src/test/resources/hdfs_logs.json");
+        "src/test/resources/hdfs_logs.json"),
+    TIME_TEST_DATA(
+        "opensearch-sql_test_index_time_data",
+        "time_data",
+        getMappingFile("time_test_data_index_mapping.json"),
+        "src/test/resources/time_test_data.json");
 
     private final String name;
     private final String type;
