@@ -215,20 +215,19 @@ Java files are formatted using `Spotless <https://github.com/diffplug/spotless>`
 New PPL Command Checklist
 =========================
 
-If you are working on contributing a new PPL command, please read this guide and review all items in the checklist are done before
-code review. You also can leverage this checklist to guide how to add new PPL command.
+If you are working on contributing a new PPL command, please read this guide and review all items in the checklist are done before code review. You also can leverage this checklist to guide how to add new PPL command.
 
 Prerequisite
 ------------
 
-| ✅ Open an RFC issue describing the command:
-- Specify the purpose and need for the new command
-- Include syntax definition, usage and examples
-- Outline implementation options if multiple approaches exist
+| ✅ Open an RFC issue before starting to code:
+- Describe the purpose of the new command
+- Include at least syntax definition, usage and examples
+- Implementation options are welcome if you have multiple ways to implement it
 
 | ✅ Obtain PM review approval for the RFC:
-- Consult repository maintainers if PM is unavailable
-- Be prepared for meetings to discuss syntax and usage details
+- If PM unavailable, consult repository maintainers as alternative
+- An offline meeting might be required to discuss the syntax and usage
 
 Coding & Tests
 --------------
@@ -282,15 +281,15 @@ Prerequisites
 Developing User-Defined Functions (UDFs)
 ----------------------------------------
 
-| ✅ Creating UDFs: A user-defined function is an instance of ``SqlOperator`` that transforms input row expressions (``RexNode``) into a new one. There are three approaches to implementing UDFs:
+| ✅ Creating UDFs: A user-defined function is an instance of `SqlOperator <https://calcite.apache.org/javadocAggregate/org/apache/calcite/sql/SqlOperator.html>`_ that transforms input row expressions (`RexNode <https://calcite.apache.org/javadocAggregate/org/apache/calcite/rex/RexNode.html>`_) into a new one. There are three approaches to implementing UDFs:
 
-- Use existing Calcite operators: Leverage operators already declared in Calcite's ``SqlStdOperatorTable`` or ``SqlLibraryOperators``, and defined in ``RexImpTable.java``
+- Use existing Calcite operators: Leverage operators already declared in Calcite's `SqlStdOperatorTable <https://calcite.apache.org/javadocAggregate/org/apache/calcite/sql/fun/SqlStdOperatorTable.html>`_ or `SqlLibraryOperators <https://calcite.apache.org/javadocAggregate/org/apache/calcite/sql/fun/SqlLibraryOperators.html>`_, and defined in `RexImpTable.java <https://calcite.apache.org/javadocAggregate/org/apache/calcite/adapter/enumerable/RexImpTable.html>`_
 - Adapt existing static methods: Convert Java static methods to UDFs using utility functions like ``UserDefinedFunctionUtils.adaptExprMethodToUDF``
 - Implement from scratch
 
   * Implement the ``ImplementorUDF`` interface
   * Instantiate and convert it to a ``SqlOperator`` in ``PPLBuiltinOperators``
-  * For optimal UDF performance, implement any data-independent logic during the compilation phase instead of at runtime. Specifically, use ling4j expressions for these operations rather than internal static method calls, as expressions are evaluated during compilation.
+  * For optimal UDF performance, implement any data-independent logic during the compilation phase instead of at runtime. Specifically, use `linq4j expressions <https://calcite.apache.org/javadocAggregate/org/apache/calcite/linq4j/tree/Expression.html>`_ for these operations rather than internal static method calls, as expressions are evaluated during compilation.
 
 | ✅ Type Checking for UDFs
 - Each ``SqlOperator`` provides an operand type checker via the ``getOperandTypeChecker`` method
