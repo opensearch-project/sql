@@ -6,13 +6,13 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STRINGS;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 
 import java.io.IOException;
 import java.util.Locale;
-
 import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -26,7 +26,7 @@ public class CalciteExplainIT extends ExplainIT {
     loadIndex(Index.BANK_WITH_STRING_VALUES);
     loadIndex(Index.NESTED_SIMPLE);
     loadIndex(Index.TIME_TEST_DATA);
-    loadIndex(Index.ACCOUNT_WITH_TIMESTAMP);
+    loadIndex(Index.LOGS);
   }
 
   @Override
@@ -346,8 +346,10 @@ public class CalciteExplainIT extends ExplainIT {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            "source=opensearch-sql_test_index_account_with_timestamp | stats earliest(firstname) as"
-                + " earliest_name, latest(firstname) as latest_name by state"));
+            String.format(
+                "source=%s | stats earliest(message) as earliest_message, latest(message) as"
+                    + " latest_message by server",
+                TEST_INDEX_LOGS)));
   }
 
   // Only for Calcite
@@ -357,9 +359,10 @@ public class CalciteExplainIT extends ExplainIT {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            "source=opensearch-sql_test_index_account_with_timestamp | stats earliest(firstname,"
-                + " created_time) as earliest_name, latest(firstname, created_time) as latest_name"
-                + " by gender"));
+            String.format(
+                "source=%s | stats earliest(message, created_at) as earliest_message,"
+                    + " latest(message, created_at) as latest_message by level",
+                TEST_INDEX_LOGS)));
   }
 
   /**

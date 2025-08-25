@@ -8,11 +8,12 @@ package org.opensearch.sql.ppl;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_ENGINE_ENABLED;
-import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STRINGS;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
 
 import java.io.IOException;
-
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
@@ -26,6 +27,7 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
     loadIndex(Index.DOG);
     loadIndex(Index.BANK_WITH_STRING_VALUES);
     loadIndex(Index.ACCOUNT_WITH_TIMESTAMP);
+    loadIndex(Index.LOGS);
   }
 
   @Test
@@ -157,9 +159,10 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
     try {
       result =
           executeQuery(
-              "search source=opensearch-sql_test_index_account_with_timestamp | stats"
-                  + " earliest(firstname) as earliest_name, latest(firstname) as latest_name by"
-                  + " gender");
+              String.format(
+                  "search source=%s | stats earliest(message) as earliest_message, latest(message)"
+                      + " as latest_message by server",
+                  TEST_INDEX_LOGS));
     } catch (ResponseException e) {
       result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
     }

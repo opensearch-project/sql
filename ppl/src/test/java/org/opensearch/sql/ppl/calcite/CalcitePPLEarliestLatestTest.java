@@ -5,9 +5,10 @@
 
 package org.opensearch.sql.ppl.calcite;
 
+import com.google.common.collect.ImmutableList;
 import java.sql.Date;
 import java.util.List;
-
+import lombok.RequiredArgsConstructor;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.linq4j.Enumerable;
@@ -33,10 +34,6 @@ import org.apache.calcite.tools.Programs;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableList;
-
-import lombok.RequiredArgsConstructor;
-
 /** Unit tests for {@code earliest/latest} functions with @timestamp field in PPL. */
 public class CalcitePPLEarliestLatestTest extends CalcitePPLAbstractTest {
   public CalcitePPLEarliestLatestTest() {
@@ -47,18 +44,48 @@ public class CalcitePPLEarliestLatestTest extends CalcitePPLAbstractTest {
   protected Frameworks.ConfigBuilder config(CalciteAssert.SchemaSpec... schemaSpecs) {
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     final SchemaPlus schema = CalciteAssert.addSchema(rootSchema, schemaSpecs);
-    
+
     // Add a test table with @timestamp and created_at fields
     // Note: @timestamp and created_at have different orderings to test explicit field usage
     ImmutableList<Object[]> rows =
         ImmutableList.of(
-            new Object[] {"server1", "ERROR", "Database connection failed", Date.valueOf("2023-01-01"), Date.valueOf("2023-01-05")},
-            new Object[] {"server2", "INFO", "Service started", Date.valueOf("2023-01-02"), Date.valueOf("2023-01-04")},
-            new Object[] {"server1", "WARN", "High memory usage", Date.valueOf("2023-01-03"), Date.valueOf("2023-01-03")},
-            new Object[] {"server3", "ERROR", "Disk space low", Date.valueOf("2023-01-04"), Date.valueOf("2023-01-02")},
-            new Object[] {"server2", "INFO", "Backup completed", Date.valueOf("2023-01-05"), Date.valueOf("2023-01-01")});
+            new Object[] {
+              "server1",
+              "ERROR",
+              "Database connection failed",
+              Date.valueOf("2023-01-01"),
+              Date.valueOf("2023-01-05")
+            },
+            new Object[] {
+              "server2",
+              "INFO",
+              "Service started",
+              Date.valueOf("2023-01-02"),
+              Date.valueOf("2023-01-04")
+            },
+            new Object[] {
+              "server1",
+              "WARN",
+              "High memory usage",
+              Date.valueOf("2023-01-03"),
+              Date.valueOf("2023-01-03")
+            },
+            new Object[] {
+              "server3",
+              "ERROR",
+              "Disk space low",
+              Date.valueOf("2023-01-04"),
+              Date.valueOf("2023-01-02")
+            },
+            new Object[] {
+              "server2",
+              "INFO",
+              "Backup completed",
+              Date.valueOf("2023-01-05"),
+              Date.valueOf("2023-01-01")
+            });
     schema.add("LOGS", new LogsTable(rows));
-    
+
     return Frameworks.newConfigBuilder()
         .parserConfig(SqlParser.Config.DEFAULT)
         .defaultSchema(schema)

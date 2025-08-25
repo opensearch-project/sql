@@ -560,11 +560,6 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "account",
         getAccountIndexMapping(),
         "src/test/resources/accounts.json"),
-    ACCOUNT_WITH_TIMESTAMP(
-        TestsConstants.TEST_INDEX_ACCOUNT_WITH_TIMESTAMP,
-        "account",
-        getAccountIndexMapping(),
-        "src/test/resources/accounts_with_timestamp.json"),
     PHRASE(
         TestsConstants.TEST_INDEX_PHRASE,
         "phrase",
@@ -900,6 +895,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "hdfs_logs",
         getHdfsLogsIndexMapping(),
         "src/test/resources/hdfs_logs.json"),
+    LOGS(TestsConstants.TEST_INDEX_LOGS, "logs", null, "src/test/resources/logs.json"),
     TIME_TEST_DATA(
         "opensearch-sql_test_index_time_data",
         "time_data",

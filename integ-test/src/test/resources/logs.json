@@ -1,0 +1,10 @@
+{"index":{"_id":"1"}}
+{"server":"server1","level":"ERROR","message":"Database connection failed","@timestamp":"2023-01-01T00:00:00.000Z","created_at":"2023-01-05T00:00:00.000Z"}
+{"index":{"_id":"2"}}
+{"server":"server2","level":"INFO","message":"Service started","@timestamp":"2023-01-02T00:00:00.000Z","created_at":"2023-01-04T00:00:00.000Z"}
+{"index":{"_id":"3"}}
+{"server":"server1","level":"WARN","message":"High memory usage","@timestamp":"2023-01-03T00:00:00.000Z","created_at":"2023-01-03T00:00:00.000Z"}
+{"index":{"_id":"4"}}
+{"server":"server3","level":"ERROR","message":"Disk space low","@timestamp":"2023-01-04T00:00:00.000Z","created_at":"2023-01-02T00:00:00.000Z"}
+{"index":{"_id":"5"}}
+{"server":"server2","level":"INFO","message":"Backup completed","@timestamp":"2023-01-05T00:00:00.000Z","created_at":"2023-01-01T00:00:00.000Z"}

@@ -15,8 +15,6 @@ public class TestsConstants {
 
   public static final String TEST_INDEX_ONLINE = TEST_INDEX + "_online";
   public static final String TEST_INDEX_ACCOUNT = TEST_INDEX + "_account";
-  public static final String TEST_INDEX_ACCOUNT_WITH_TIMESTAMP =
-      TEST_INDEX + "_account_with_timestamp";
   public static final String TEST_INDEX_PHRASE = TEST_INDEX + "_phrase";
   public static final String TEST_INDEX_DOG = TEST_INDEX + "_dog";
   public static final String TEST_INDEX_DOG2 = TEST_INDEX + "_dog2";
@@ -81,6 +79,7 @@ public class TestsConstants {
   public static final String TEST_INDEX_MERGE_TEST_WILDCARD = TEST_INDEX + "_merge_test_*";
   public static final String TEST_INDEX_ARRAY = TEST_INDEX + "_array";
   public static final String TEST_INDEX_HDFS_LOGS = TEST_INDEX + "_hdfs_logs";
+  public static final String TEST_INDEX_LOGS = TEST_INDEX + "_logs";
 
   public static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
   public static final String TS_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";
