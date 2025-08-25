@@ -979,4 +979,10 @@ public class AstBuilderTest {
   private String mappingTable(String indexName) {
     return SystemIndexUtils.mappingTable(indexName, PPL_SPEC);
   }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testBinCommandDuplicateParameter() {
+    // Test that duplicate parameters throw an exception
+    plan("search source=test | bin field span=10 span=20");
+  }
 }
