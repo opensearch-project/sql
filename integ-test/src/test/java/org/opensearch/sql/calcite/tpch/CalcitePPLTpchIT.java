@@ -14,11 +14,15 @@ import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
+import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.Retry;
 
+@Retry
 public class CalcitePPLTpchIT extends PPLIntegTestCase {
 
   @Override
@@ -142,7 +146,6 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
   // TODO: Aggregation push down has a hard-coded limit of 1000 buckets for output, so this query
   // will not return the correct results with aggregation push down and it's unstable
   @Ignore
-  @Test
   public void testQ4() throws IOException {
     String ppl = sanitize(loadFromFile("tpch/queries/q4.ppl"));
     JSONObject actual = executeQuery(ppl);
@@ -173,7 +176,10 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
     verifyDataRows(actual, rows(77949.9186));
   }
 
+  @Test
   public void testQ7() throws IOException {
+    String osName = System.getProperty("os.name").toLowerCase(Locale.ROOT);
+    Assume.assumeFalse("testQ7 on macOS CI could socket timeout", osName.contains("mac"));
     String ppl = sanitize(loadFromFile("tpch/queries/q7.ppl"));
     JSONObject actual = executeQuery(ppl);
     verifySchemaInOrder(
@@ -185,6 +191,7 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
     verifyNumOfRows(actual, 0);
   }
 
+  @Test
   public void testQ8() throws IOException {
     String ppl = sanitize(loadFromFile("tpch/queries/q8.ppl"));
     JSONObject actual = executeQuery(ppl);

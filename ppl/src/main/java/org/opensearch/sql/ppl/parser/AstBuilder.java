@@ -19,6 +19,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameComm
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchFromContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableFunctionContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WhereCommandContext;
@@ -43,6 +44,7 @@ import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
@@ -266,14 +268,66 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return joinType;
   }
 
-  /** Fields command. */
   @Override
   public UnresolvedPlan visitFieldsCommand(FieldsCommandContext ctx) {
-    return new Project(
-        ctx.fieldList().fieldExpression().stream()
-            .map(this::internalVisitExpression)
-            .collect(Collectors.toList()),
-        ArgumentFactory.getArgumentList(ctx));
+    return buildProjectCommand(ctx.fieldsCommandBody(), ArgumentFactory.getArgumentList(ctx));
+  }
+
+  /** Table command as an alias for fields command. */
+  @Override
+  public UnresolvedPlan visitTableCommand(TableCommandContext ctx) {
+    if (settings != null
+        && Boolean.TRUE.equals(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED))) {
+      // Table command uses the same structure as fields command
+      List<Argument> arguments =
+          Collections.singletonList(
+              ctx.fieldsCommandBody().MINUS() != null
+                  ? new Argument("exclude", new Literal(true, DataType.BOOLEAN))
+                  : new Argument("exclude", new Literal(false, DataType.BOOLEAN)));
+      return buildProjectCommand(ctx.fieldsCommandBody(), arguments);
+    }
+    throw new UnsupportedOperationException(
+        "Table command is supported only when "
+            + Key.CALCITE_ENGINE_ENABLED.getKeyValue()
+            + "=true");
+  }
+
+  private UnresolvedPlan buildProjectCommand(
+      OpenSearchPPLParser.FieldsCommandBodyContext bodyCtx, List<Argument> arguments) {
+    List<UnresolvedExpression> fields = extractFieldExpressions(bodyCtx);
+
+    // Check for enhanced field features when Calcite is explicitly disabled
+    if (settings != null
+        && Boolean.FALSE.equals(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED))) {
+      if (hasEnhancedFieldFeatures(bodyCtx, fields)) {
+        throw new UnsupportedOperationException(
+            "Enhanced fields features are supported only when "
+                + Key.CALCITE_ENGINE_ENABLED.getKeyValue()
+                + "=true");
+      }
+    }
+
+    return new Project(fields, arguments);
+  }
+
+  private List<UnresolvedExpression> extractFieldExpressions(
+      OpenSearchPPLParser.FieldsCommandBodyContext bodyCtx) {
+    if (bodyCtx.wcFieldList() != null) {
+      return processFieldExpressions(bodyCtx.wcFieldList().selectFieldExpression());
+    }
+    return Collections.emptyList();
+  }
+
+  private List<UnresolvedExpression> processFieldExpressions(
+      List<OpenSearchPPLParser.SelectFieldExpressionContext> fieldExpressions) {
+    var stream = fieldExpressions.stream().map(this::internalVisitExpression);
+
+    if (settings != null
+        && Boolean.TRUE.equals(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED))) {
+      stream = stream.distinct();
+    }
+
+    return stream.collect(Collectors.toList());
   }
 
   /** Rename command. */
@@ -760,5 +814,84 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
                     .collect(Collectors.toList()))
         .ifPresent(partExprListBuilder::addAll);
     return partExprListBuilder.build();
+  }
+
+  private boolean hasEnhancedFieldFeatures(
+      OpenSearchPPLParser.FieldsCommandBodyContext bodyCtx, List<UnresolvedExpression> fields) {
+    if (hasActualWildcards(bodyCtx)) {
+      return true;
+    }
+
+    return hasSpaceDelimitedFields(bodyCtx);
+  }
+
+  private boolean hasSpaceDelimitedFields(OpenSearchPPLParser.FieldsCommandBodyContext bodyCtx) {
+    if (bodyCtx.wcFieldList() == null) {
+      return false;
+    }
+
+    String fieldsText = getTextInQuery(bodyCtx.wcFieldList());
+
+    // If all fields are backtick-enclosed (like eval expressions), don't treat as enhanced
+    if (isAllFieldsBacktickEnclosed(bodyCtx)) {
+      return false;
+    }
+
+    if (bodyCtx.wcFieldList().selectFieldExpression().size() > 1 && !fieldsText.contains(",")) {
+      return true;
+    }
+
+    if (fieldsText.contains(",") && hasSpacesBetweenFields(fieldsText)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private boolean hasSpacesBetweenFields(String fieldsText) {
+    String[] parts = fieldsText.split(",");
+    for (String part : parts) {
+      String trimmed = part.trim();
+      if (trimmed.contains(" ") && trimmed.split("\\s+").length > 1) {
+        // If the field is backtick-enclosed, it's likely an eval expression, not space-delimited
+        if (!trimmed.startsWith("`") || !trimmed.endsWith("`")) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  private boolean isAllFieldsBacktickEnclosed(
+      OpenSearchPPLParser.FieldsCommandBodyContext bodyCtx) {
+    for (var fieldExpr : bodyCtx.wcFieldList().selectFieldExpression()) {
+      if (fieldExpr.wcQualifiedName() != null) {
+        String originalText = getTextInQuery(fieldExpr.wcQualifiedName());
+        if (!originalText.startsWith("`") || !originalText.endsWith("`")) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  private boolean hasActualWildcards(OpenSearchPPLParser.FieldsCommandBodyContext bodyCtx) {
+    if (bodyCtx.wcFieldList() == null) {
+      return false;
+    }
+
+    for (var fieldExpr : bodyCtx.wcFieldList().selectFieldExpression()) {
+      if (fieldExpr.STAR() != null) {
+        return true;
+      }
+
+      if (fieldExpr.wcQualifiedName() != null) {
+        String originalText = getTextInQuery(fieldExpr.wcQualifiedName());
+        if (originalText.contains("*") && !originalText.contains("`")) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 }
