@@ -5,259 +5,261 @@
 
 package org.opensearch.sql.ppl.calcite;
 
+import java.sql.Date;
+import java.util.List;
+
+import org.apache.calcite.DataContext;
+import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.schema.ScannableTable;
+import org.apache.calcite.schema.Schema;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Statistic;
+import org.apache.calcite.schema.Statistics;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.tools.Programs;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Test;
 
-public class CalcitePPLEarliestLatestTest extends CalcitePPLAggregationTestBase {
+import com.google.common.collect.ImmutableList;
 
-  @Test
-  public void testEarliestFunction() {
-    testAggregationWithAlias(
-        "earliest(ENAME, HIREDATE)",
-        "earliest_name",
-        createSimpleAggLogicalPattern(
-            "earliest_name=[ARG_MIN($0, $1)]", "LogicalProject(ENAME=[$1], HIREDATE=[$4])"),
-        "earliest_name=SMITH\n",
-        createSimpleAggSparkSql("ARG_MIN(`ENAME`, `HIREDATE`) `earliest_name`"));
+import lombok.RequiredArgsConstructor;
+
+/** Unit tests for {@code earliest/latest} functions with @timestamp field in PPL. */
+public class CalcitePPLEarliestLatestTest extends CalcitePPLAbstractTest {
+  public CalcitePPLEarliestLatestTest() {
+    super(CalciteAssert.SchemaSpec.POST);
+  }
+
+  @Override
+  protected Frameworks.ConfigBuilder config(CalciteAssert.SchemaSpec... schemaSpecs) {
+    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    final SchemaPlus schema = CalciteAssert.addSchema(rootSchema, schemaSpecs);
+    
+    // Add a test table with @timestamp and created_at fields
+    // Note: @timestamp and created_at have different orderings to test explicit field usage
+    ImmutableList<Object[]> rows =
+        ImmutableList.of(
+            new Object[] {"server1", "ERROR", "Database connection failed", Date.valueOf("2023-01-01"), Date.valueOf("2023-01-05")},
+            new Object[] {"server2", "INFO", "Service started", Date.valueOf("2023-01-02"), Date.valueOf("2023-01-04")},
+            new Object[] {"server1", "WARN", "High memory usage", Date.valueOf("2023-01-03"), Date.valueOf("2023-01-03")},
+            new Object[] {"server3", "ERROR", "Disk space low", Date.valueOf("2023-01-04"), Date.valueOf("2023-01-02")},
+            new Object[] {"server2", "INFO", "Backup completed", Date.valueOf("2023-01-05"), Date.valueOf("2023-01-01")});
+    schema.add("LOGS", new LogsTable(rows));
+    
+    return Frameworks.newConfigBuilder()
+        .parserConfig(SqlParser.Config.DEFAULT)
+        .defaultSchema(schema)
+        .traitDefs((List<RelTraitDef>) null)
+        .programs(Programs.heuristicJoinOrder(Programs.RULE_SET, true, 2));
   }
 
   @Test
-  public void testLatestFunction() {
-    testAggregationWithAlias(
-        "latest(ENAME, HIREDATE)",
-        "latest_name",
-        createSimpleAggLogicalPattern(
-            "latest_name=[ARG_MAX($0, $1)]", "LogicalProject(ENAME=[$1], HIREDATE=[$4])"),
-        "latest_name=ADAMS\n",
-        createSimpleAggSparkSql("ARG_MAX(`ENAME`, `HIREDATE`) `latest_name`"));
-  }
-
-  @Test
-  public void testEarliestWithCustomTimeField() {
-    String ppl = "source=EMP | stats earliest(ENAME, HIREDATE) as earliest_name";
+  public void testEarliestWithoutSecondArgument() {
+    String ppl = "source=LOGS | stats earliest(message) as earliest_message";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalAggregate(group=[{}], earliest_name=[ARG_MIN($0, $1)])\n"
-            + "  LogicalProject(ENAME=[$1], HIREDATE=[$4])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalAggregate(group=[{}], earliest_message=[ARG_MIN($0, $1)])\n"
+            + "  LogicalProject(message=[$2], @timestamp=[$3])\n"
+            + "    LogicalTableScan(table=[[POST, LOGS]])\n";
     verifyLogical(root, expectedLogical);
 
-    String expectedResult = "earliest_name=SMITH\n";
+    String expectedResult = "earliest_message=Database connection failed\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT ARG_MIN(`ENAME`, `HIREDATE`) `earliest_name`\n" + "FROM `scott`.`EMP`";
+        "SELECT ARG_MIN(`message`, `@timestamp`) `earliest_message`\n" + "FROM `POST`.`LOGS`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
-  public void testLatestWithCustomTimeField() {
-    String ppl = "source=EMP | stats latest(ENAME, HIREDATE) as latest_name";
+  public void testLatestWithoutSecondArgument() {
+    String ppl = "source=LOGS | stats latest(message) as latest_message";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalAggregate(group=[{}], latest_name=[ARG_MAX($0, $1)])\n"
-            + "  LogicalProject(ENAME=[$1], HIREDATE=[$4])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalAggregate(group=[{}], latest_message=[ARG_MAX($0, $1)])\n"
+            + "  LogicalProject(message=[$2], @timestamp=[$3])\n"
+            + "    LogicalTableScan(table=[[POST, LOGS]])\n";
     verifyLogical(root, expectedLogical);
 
-    String expectedResult = "latest_name=ADAMS\n";
+    String expectedResult = "latest_message=Backup completed\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT ARG_MAX(`ENAME`, `HIREDATE`) `latest_name`\n" + "FROM `scott`.`EMP`";
+        "SELECT ARG_MAX(`message`, `@timestamp`) `latest_message`\n" + "FROM `POST`.`LOGS`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
-  public void testEarliestByDepartment() {
-    String ppl = "source=EMP | stats earliest(ENAME, HIREDATE) as earliest_name by DEPTNO";
+  public void testEarliestByServerWithoutSecondArgument() {
+    String ppl = "source=LOGS | stats earliest(message) as earliest_message by server";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(earliest_name=[$1], DEPTNO=[$0])\n"
-            + "  LogicalAggregate(group=[{0}], earliest_name=[ARG_MIN($1, $2)])\n"
-            + "    LogicalProject(DEPTNO=[$7], ENAME=[$1], HIREDATE=[$4])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
-    verifyLogical(root, expectedLogical);
-
-    // Results should show earliest hired employee per department
-    String expectedResult =
-        "earliest_name=SMITH; DEPTNO=20\n"
-            + "earliest_name=CLARK; DEPTNO=10\n"
-            + "earliest_name=BLAKE; DEPTNO=30\n";
-    verifyResult(root, expectedResult);
-
-    String expectedSparkSql =
-        "SELECT ARG_MIN(`ENAME`, `HIREDATE`) `earliest_name`, `DEPTNO`\n"
-            + "FROM `scott`.`EMP`\n"
-            + "GROUP BY `DEPTNO`";
-    verifyPPLToSparkSQL(root, expectedSparkSql);
-  }
-
-  @Test
-  public void testLatestByDepartment() {
-    String ppl = "source=EMP | stats latest(ENAME, HIREDATE) as latest_name by DEPTNO";
-    RelNode root = getRelNode(ppl);
-    String expectedLogical =
-        "LogicalProject(latest_name=[$1], DEPTNO=[$0])\n"
-            + "  LogicalAggregate(group=[{0}], latest_name=[ARG_MAX($1, $2)])\n"
-            + "    LogicalProject(DEPTNO=[$7], ENAME=[$1], HIREDATE=[$4])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(earliest_message=[$1], server=[$0])\n"
+            + "  LogicalAggregate(group=[{0}], earliest_message=[ARG_MIN($1, $2)])\n"
+            + "    LogicalProject(server=[$0], message=[$2], @timestamp=[$3])\n"
+            + "      LogicalTableScan(table=[[POST, LOGS]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedResult =
-        "latest_name=ADAMS; DEPTNO=20\n"
-            + "latest_name=MILLER; DEPTNO=10\n"
-            + "latest_name=JAMES; DEPTNO=30\n";
+        "earliest_message=Disk space low; server=server3\n"
+            + "earliest_message=Service started; server=server2\n"
+            + "earliest_message=Database connection failed; server=server1\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT ARG_MAX(`ENAME`, `HIREDATE`) `latest_name`, `DEPTNO`\n"
-            + "FROM `scott`.`EMP`\n"
-            + "GROUP BY `DEPTNO`";
+        "SELECT ARG_MIN(`message`, `@timestamp`) `earliest_message`, `server`\n"
+            + "FROM `POST`.`LOGS`\n"
+            + "GROUP BY `server`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
-  public void testEarliestLatestCombined() {
+  public void testLatestByServerWithoutSecondArgument() {
+    String ppl = "source=LOGS | stats latest(message) as latest_message by server";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(latest_message=[$1], server=[$0])\n"
+            + "  LogicalAggregate(group=[{0}], latest_message=[ARG_MAX($1, $2)])\n"
+            + "    LogicalProject(server=[$0], message=[$2], @timestamp=[$3])\n"
+            + "      LogicalTableScan(table=[[POST, LOGS]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedResult =
+        "latest_message=Disk space low; server=server3\n"
+            + "latest_message=Backup completed; server=server2\n"
+            + "latest_message=High memory usage; server=server1\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT ARG_MAX(`message`, `@timestamp`) `latest_message`, `server`\n"
+            + "FROM `POST`.`LOGS`\n"
+            + "GROUP BY `server`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testEarliestWithOtherAggregatesWithoutSecondArgument() {
     String ppl =
-        "source=EMP | stats earliest(ENAME, HIREDATE) as earliest_name, latest(ENAME, HIREDATE) as"
-            + " latest_name by DEPTNO";
+        "source=LOGS | stats earliest(message) as earliest_message, count() as cnt by server";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(earliest_name=[$1], latest_name=[$2], DEPTNO=[$0])\n"
-            + "  LogicalAggregate(group=[{0}], earliest_name=[ARG_MIN($1, $2)],"
-            + " latest_name=[ARG_MAX($1, $2)])\n"
-            + "    LogicalProject(DEPTNO=[$7], ENAME=[$1], HIREDATE=[$4])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(earliest_message=[$1], cnt=[$2], server=[$0])\n"
+            + "  LogicalAggregate(group=[{0}], earliest_message=[ARG_MIN($1, $2)], cnt=[COUNT()])\n"
+            + "    LogicalProject(server=[$0], message=[$2], @timestamp=[$3])\n"
+            + "      LogicalTableScan(table=[[POST, LOGS]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedResult =
-        "earliest_name=SMITH; latest_name=ADAMS; DEPTNO=20\n"
-            + "earliest_name=CLARK; latest_name=MILLER; DEPTNO=10\n"
-            + "earliest_name=BLAKE; latest_name=JAMES; DEPTNO=30\n";
+        "earliest_message=Disk space low; cnt=1; server=server3\n"
+            + "earliest_message=Service started; cnt=2; server=server2\n"
+            + "earliest_message=Database connection failed; cnt=2; server=server1\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT ARG_MIN(`ENAME`, `HIREDATE`) `earliest_name`, "
-            + "ARG_MAX(`ENAME`, `HIREDATE`) `latest_name`, `DEPTNO`\n"
-            + "FROM `scott`.`EMP`\n"
-            + "GROUP BY `DEPTNO`";
+        "SELECT ARG_MIN(`message`, `@timestamp`) `earliest_message`, "
+            + "COUNT(*) `cnt`, `server`\n"
+            + "FROM `POST`.`LOGS`\n"
+            + "GROUP BY `server`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
-  public void testEarliestWithOtherAggregates() {
-    String ppl =
-        "source=EMP | stats earliest(ENAME, HIREDATE) as earliest_name, count() as cnt, avg(SAL) as"
-            + " avg_sal by DEPTNO";
+  public void testEarliestWithExplicitTimestampField() {
+    String ppl = "source=LOGS | stats earliest(message, created_at) as earliest_message";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(earliest_name=[$1], cnt=[$2], avg_sal=[$3], DEPTNO=[$0])\n"
-            + "  LogicalAggregate(group=[{0}], earliest_name=[ARG_MIN($1, $2)], cnt=[COUNT()],"
-            + " avg_sal=[AVG($3)])\n"
-            + "    LogicalProject(DEPTNO=[$7], ENAME=[$1], HIREDATE=[$4], SAL=[$5])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalAggregate(group=[{}], earliest_message=[ARG_MIN($0, $1)])\n"
+            + "  LogicalProject(message=[$2], created_at=[$4])\n"
+            + "    LogicalTableScan(table=[[POST, LOGS]])\n";
     verifyLogical(root, expectedLogical);
 
-    String expectedResult =
-        "earliest_name=SMITH; cnt=5; avg_sal=2175.; DEPTNO=20\n"
-            + "earliest_name=CLARK; cnt=3; avg_sal=2916.666666; DEPTNO=10\n"
-            + "earliest_name=BLAKE; cnt=6; avg_sal=1566.666666; DEPTNO=30\n";
+    String expectedResult = "earliest_message=Backup completed\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT ARG_MIN(`ENAME`, `HIREDATE`) `earliest_name`, "
-            + "COUNT(*) `cnt`, AVG(`SAL`) `avg_sal`, `DEPTNO`\n"
-            + "FROM `scott`.`EMP`\n"
-            + "GROUP BY `DEPTNO`";
+        "SELECT ARG_MIN(`message`, `created_at`) `earliest_message`\n" + "FROM `POST`.`LOGS`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
-  public void testEarliestSalaryByJob() {
-    String ppl = "source=EMP | stats earliest(SAL, HIREDATE) as earliest_salary by JOB";
+  public void testLatestWithExplicitTimestampField() {
+    String ppl = "source=LOGS | stats latest(message, created_at) as latest_message";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(earliest_salary=[$1], JOB=[$0])\n"
-            + "  LogicalAggregate(group=[{0}], earliest_salary=[ARG_MIN($1, $2)])\n"
-            + "    LogicalProject(JOB=[$2], SAL=[$5], HIREDATE=[$4])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalAggregate(group=[{}], latest_message=[ARG_MAX($0, $1)])\n"
+            + "  LogicalProject(message=[$2], created_at=[$4])\n"
+            + "    LogicalTableScan(table=[[POST, LOGS]])\n";
     verifyLogical(root, expectedLogical);
 
-    String expectedResult =
-        "earliest_salary=1600.00; JOB=SALESMAN\n"
-            + "earliest_salary=3000.00; JOB=ANALYST\n"
-            + "earliest_salary=800.00; JOB=CLERK\n"
-            + "earliest_salary=5000.00; JOB=PRESIDENT\n"
-            + "earliest_salary=2850.00; JOB=MANAGER\n";
+    String expectedResult = "latest_message=Database connection failed\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT ARG_MIN(`SAL`, `HIREDATE`) `earliest_salary`, `JOB`\n"
-            + "FROM `scott`.`EMP`\n"
-            + "GROUP BY `JOB`";
+        "SELECT ARG_MAX(`message`, `created_at`) `latest_message`\n" + "FROM `POST`.`LOGS`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
-  @Test
-  public void testLatestSalaryByJob() {
-    String ppl = "source=EMP | stats latest(SAL, HIREDATE) as latest_salary by JOB";
-    RelNode root = getRelNode(ppl);
-    String expectedLogical =
-        "LogicalProject(latest_salary=[$1], JOB=[$0])\n"
-            + "  LogicalAggregate(group=[{0}], latest_salary=[ARG_MAX($1, $2)])\n"
-            + "    LogicalProject(JOB=[$2], SAL=[$5], HIREDATE=[$4])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
-    verifyLogical(root, expectedLogical);
+  // Custom table implementation with @timestamp field
+  @RequiredArgsConstructor
+  public static class LogsTable implements ScannableTable {
+    private final ImmutableList<Object[]> rows;
 
-    String expectedResult =
-        "latest_salary=1250.00; JOB=SALESMAN\n"
-            + "latest_salary=3000.00; JOB=ANALYST\n"
-            + "latest_salary=1100.00; JOB=CLERK\n"
-            + "latest_salary=5000.00; JOB=PRESIDENT\n"
-            + "latest_salary=2450.00; JOB=MANAGER\n";
-    verifyResult(root, expectedResult);
+    protected final RelProtoDataType protoRowType =
+        factory ->
+            factory
+                .builder()
+                .add("server", SqlTypeName.VARCHAR)
+                .add("level", SqlTypeName.VARCHAR)
+                .add("message", SqlTypeName.VARCHAR)
+                .add("@timestamp", SqlTypeName.DATE)
+                .add("created_at", SqlTypeName.DATE)
+                .build();
 
-    String expectedSparkSql =
-        "SELECT ARG_MAX(`SAL`, `HIREDATE`) `latest_salary`, `JOB`\n"
-            + "FROM `scott`.`EMP`\n"
-            + "GROUP BY `JOB`";
-    verifyPPLToSparkSQL(root, expectedSparkSql);
-  }
+    @Override
+    public Enumerable<@Nullable Object[]> scan(DataContext root) {
+      return Linq4j.asEnumerable(rows);
+    }
 
-  @Test
-  public void testEarliestWithAlias() {
-    String ppl = "source=EMP | stats earliest(ENAME, HIREDATE) as first_hired";
-    RelNode root = getRelNode(ppl);
-    String expectedLogical =
-        "LogicalAggregate(group=[{}], first_hired=[ARG_MIN($0, $1)])\n"
-            + "  LogicalProject(ENAME=[$1], HIREDATE=[$4])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    verifyLogical(root, expectedLogical);
+    @Override
+    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      return protoRowType.apply(typeFactory);
+    }
 
-    String expectedResult = "first_hired=SMITH\n";
-    verifyResult(root, expectedResult);
+    @Override
+    public Statistic getStatistic() {
+      return Statistics.of(0d, ImmutableList.of(), RelCollations.createSingleton(0));
+    }
 
-    String expectedSparkSql =
-        "SELECT ARG_MIN(`ENAME`, `HIREDATE`) `first_hired`\n" + "FROM `scott`.`EMP`";
-    verifyPPLToSparkSQL(root, expectedSparkSql);
-  }
+    @Override
+    public Schema.TableType getJdbcTableType() {
+      return Schema.TableType.TABLE;
+    }
 
-  @Test
-  public void testLatestWithAlias() {
-    String ppl = "source=EMP | stats latest(ENAME, HIREDATE) as last_hired";
-    RelNode root = getRelNode(ppl);
-    String expectedLogical =
-        "LogicalAggregate(group=[{}], last_hired=[ARG_MAX($0, $1)])\n"
-            + "  LogicalProject(ENAME=[$1], HIREDATE=[$4])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    verifyLogical(root, expectedLogical);
+    @Override
+    public boolean isRolledUp(String column) {
+      return false;
+    }
 
-    String expectedResult = "last_hired=ADAMS\n";
-    verifyResult(root, expectedResult);
-
-    String expectedSparkSql =
-        "SELECT ARG_MAX(`ENAME`, `HIREDATE`) `last_hired`\n" + "FROM `scott`.`EMP`";
-    verifyPPLToSparkSQL(root, expectedSparkSql);
+    @Override
+    public boolean rolledUpColumnValidInsideAgg(
+        String column,
+        SqlCall call,
+        @Nullable SqlNode parent,
+        @Nullable CalciteConnectionConfig config) {
+      return false;
+    }
   }
 }
