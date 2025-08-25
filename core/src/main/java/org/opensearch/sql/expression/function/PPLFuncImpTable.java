@@ -55,8 +55,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.udf.udaf.LogPatternAggFunction;
-import org.opensearch.sql.calcite.udf.udaf.MaxByAggFunction;
-import org.opensearch.sql.calcite.udf.udaf.MinByAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.PercentileApproxFunction;
 import org.opensearch.sql.calcite.udf.udaf.TakeAggFunction;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
@@ -973,6 +971,7 @@ public class PPLFuncImpTable {
                   ctx.relBuilder),
           null);
 
+      // Use Calcite's built-in ARG_MAX and ARG_MIN functions
       register(
           MAX_BY,
           (distinct, field, argList, ctx) -> {
@@ -980,17 +979,11 @@ public class PPLFuncImpTable {
               throw new IllegalArgumentException(
                   "MAX_BY requires exactly 2 arguments: value_field and order_field");
             }
-            List<RexNode> newArgList =
-                argList.stream().map(PlanUtils::derefMapCall).collect(Collectors.toList());
-            return createAggregateFunction(
-                MaxByAggFunction.class,
-                "MAX_BY",
-                ReturnTypes.ARG0_FORCE_NULLABLE,
-                List.of(field),
-                newArgList,
-                ctx.relBuilder);
+            RexNode orderField = PlanUtils.derefMapCall(argList.get(0));
+            return ctx.relBuilder.aggregateCall(SqlStdOperatorTable.ARG_MAX, field, orderField);
           },
-          null);
+          wrapSqlOperandTypeChecker(
+              SqlStdOperatorTable.ARG_MAX.getOperandTypeChecker(), MAX_BY.name(), false));
 
       register(
           MIN_BY,
@@ -999,47 +992,29 @@ public class PPLFuncImpTable {
               throw new IllegalArgumentException(
                   "MIN_BY requires exactly 2 arguments: value_field and order_field");
             }
-            List<RexNode> newArgList =
-                argList.stream().map(PlanUtils::derefMapCall).collect(Collectors.toList());
-            return createAggregateFunction(
-                MinByAggFunction.class,
-                "MIN_BY",
-                ReturnTypes.ARG0_FORCE_NULLABLE,
-                List.of(field),
-                newArgList,
-                ctx.relBuilder);
+            RexNode orderField = PlanUtils.derefMapCall(argList.get(0));
+            return ctx.relBuilder.aggregateCall(SqlStdOperatorTable.ARG_MIN, field, orderField);
           },
-          null);
+          wrapSqlOperandTypeChecker(
+              SqlStdOperatorTable.ARG_MIN.getOperandTypeChecker(), MIN_BY.name(), false));
 
       register(
           EARLIEST,
           (distinct, field, argList, ctx) -> {
             RexNode timeField = resolveTimeField(argList, ctx);
-
-            return createAggregateFunction(
-                MinByAggFunction.class,
-                "MIN_BY",
-                ReturnTypes.ARG0_FORCE_NULLABLE,
-                List.of(field),
-                List.of(timeField),
-                ctx.relBuilder);
+            return ctx.relBuilder.aggregateCall(SqlStdOperatorTable.ARG_MIN, field, timeField);
           },
-          null);
+          wrapSqlOperandTypeChecker(
+              SqlStdOperatorTable.ARG_MIN.getOperandTypeChecker(), EARLIEST.name(), false));
 
       register(
           LATEST,
           (distinct, field, argList, ctx) -> {
             RexNode timeField = resolveTimeField(argList, ctx);
-
-            return createAggregateFunction(
-                MaxByAggFunction.class,
-                "MAX_BY",
-                ReturnTypes.ARG0_FORCE_NULLABLE,
-                List.of(field),
-                List.of(timeField),
-                ctx.relBuilder);
+            return ctx.relBuilder.aggregateCall(SqlStdOperatorTable.ARG_MAX, field, timeField);
           },
-          null);
+          wrapSqlOperandTypeChecker(
+              SqlStdOperatorTable.ARG_MAX.getOperandTypeChecker(), LATEST.name(), false));
     }
   }
 

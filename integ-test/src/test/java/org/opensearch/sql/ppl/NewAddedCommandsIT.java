@@ -24,6 +24,7 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
     loadIndex(Index.BANK);
     loadIndex(Index.DOG);
     loadIndex(Index.BANK_WITH_STRING_VALUES);
+    loadIndex(Index.ACCOUNT_WITH_TIMESTAMP);
   }
 
   @Test
@@ -155,10 +156,9 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
     try {
       result =
           executeQuery(
-              String.format(
-                  "search source=%s | stats earliest(firstname) as earliest_name,"
-                      + " latest(firstname) as latest_name by gender",
-                  TEST_INDEX_BANK));
+              "search source=opensearch-sql_test_index_account_with_timestamp | stats"
+                  + " earliest(firstname) as earliest_name, latest(firstname) as latest_name by"
+                  + " gender");
     } catch (ResponseException e) {
       result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
     }

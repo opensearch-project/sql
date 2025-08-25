@@ -16,9 +16,9 @@ public class CalcitePPLEarliestLatestTest extends CalcitePPLAggregationTestBase 
         "earliest(ENAME, HIREDATE)",
         "earliest_name",
         createSimpleAggLogicalPattern(
-            "earliest_name=[MIN_BY($0, $1)]", "LogicalProject(ENAME=[$1], HIREDATE=[$4])"),
+            "earliest_name=[ARG_MIN($0, $1)]", "LogicalProject(ENAME=[$1], HIREDATE=[$4])"),
         "earliest_name=SMITH\n",
-        createSimpleAggSparkSql("`MIN_BY`(`ENAME`, `HIREDATE`) `earliest_name`"));
+        createSimpleAggSparkSql("ARG_MIN(`ENAME`, `HIREDATE`) `earliest_name`"));
   }
 
   @Test
@@ -27,9 +27,9 @@ public class CalcitePPLEarliestLatestTest extends CalcitePPLAggregationTestBase 
         "latest(ENAME, HIREDATE)",
         "latest_name",
         createSimpleAggLogicalPattern(
-            "latest_name=[MAX_BY($0, $1)]", "LogicalProject(ENAME=[$1], HIREDATE=[$4])"),
+            "latest_name=[ARG_MAX($0, $1)]", "LogicalProject(ENAME=[$1], HIREDATE=[$4])"),
         "latest_name=ADAMS\n",
-        createSimpleAggSparkSql("`MAX_BY`(`ENAME`, `HIREDATE`) `latest_name`"));
+        createSimpleAggSparkSql("ARG_MAX(`ENAME`, `HIREDATE`) `latest_name`"));
   }
 
   @Test
@@ -37,7 +37,7 @@ public class CalcitePPLEarliestLatestTest extends CalcitePPLAggregationTestBase 
     String ppl = "source=EMP | stats earliest(ENAME, HIREDATE) as earliest_name";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalAggregate(group=[{}], earliest_name=[MIN_BY($0, $1)])\n"
+        "LogicalAggregate(group=[{}], earliest_name=[ARG_MIN($0, $1)])\n"
             + "  LogicalProject(ENAME=[$1], HIREDATE=[$4])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
@@ -46,7 +46,7 @@ public class CalcitePPLEarliestLatestTest extends CalcitePPLAggregationTestBase 
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT `MIN_BY`(`ENAME`, `HIREDATE`) `earliest_name`\n" + "FROM `scott`.`EMP`";
+        "SELECT ARG_MIN(`ENAME`, `HIREDATE`) `earliest_name`\n" + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -55,7 +55,7 @@ public class CalcitePPLEarliestLatestTest extends CalcitePPLAggregationTestBase 
     String ppl = "source=EMP | stats latest(ENAME, HIREDATE) as latest_name";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalAggregate(group=[{}], latest_name=[MAX_BY($0, $1)])\n"
+        "LogicalAggregate(group=[{}], latest_name=[ARG_MAX($0, $1)])\n"
             + "  LogicalProject(ENAME=[$1], HIREDATE=[$4])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
@@ -64,7 +64,7 @@ public class CalcitePPLEarliestLatestTest extends CalcitePPLAggregationTestBase 
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT `MAX_BY`(`ENAME`, `HIREDATE`) `latest_name`\n" + "FROM `scott`.`EMP`";
+        "SELECT ARG_MAX(`ENAME`, `HIREDATE`) `latest_name`\n" + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -74,7 +74,7 @@ public class CalcitePPLEarliestLatestTest extends CalcitePPLAggregationTestBase 
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(earliest_name=[$1], DEPTNO=[$0])\n"
-            + "  LogicalAggregate(group=[{0}], earliest_name=[MIN_BY($1, $2)])\n"
+            + "  LogicalAggregate(group=[{0}], earliest_name=[ARG_MIN($1, $2)])\n"
             + "    LogicalProject(DEPTNO=[$7], ENAME=[$1], HIREDATE=[$4])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
@@ -87,7 +87,7 @@ public class CalcitePPLEarliestLatestTest extends CalcitePPLAggregationTestBase 
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT `MIN_BY`(`ENAME`, `HIREDATE`) `earliest_name`, `DEPTNO`\n"
+        "SELECT ARG_MIN(`ENAME`, `HIREDATE`) `earliest_name`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `DEPTNO`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -99,7 +99,7 @@ public class CalcitePPLEarliestLatestTest extends CalcitePPLAggregationTestBase 
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(latest_name=[$1], DEPTNO=[$0])\n"
-            + "  LogicalAggregate(group=[{0}], latest_name=[MAX_BY($1, $2)])\n"
+            + "  LogicalAggregate(group=[{0}], latest_name=[ARG_MAX($1, $2)])\n"
             + "    LogicalProject(DEPTNO=[$7], ENAME=[$1], HIREDATE=[$4])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
@@ -111,7 +111,7 @@ public class CalcitePPLEarliestLatestTest extends CalcitePPLAggregationTestBase 
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT `MAX_BY`(`ENAME`, `HIREDATE`) `latest_name`, `DEPTNO`\n"
+        "SELECT ARG_MAX(`ENAME`, `HIREDATE`) `latest_name`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `DEPTNO`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -125,8 +125,8 @@ public class CalcitePPLEarliestLatestTest extends CalcitePPLAggregationTestBase 
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(earliest_name=[$1], latest_name=[$2], DEPTNO=[$0])\n"
-            + "  LogicalAggregate(group=[{0}], earliest_name=[MIN_BY($1, $2)],"
-            + " latest_name=[MAX_BY($1, $2)])\n"
+            + "  LogicalAggregate(group=[{0}], earliest_name=[ARG_MIN($1, $2)],"
+            + " latest_name=[ARG_MAX($1, $2)])\n"
             + "    LogicalProject(DEPTNO=[$7], ENAME=[$1], HIREDATE=[$4])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
@@ -138,8 +138,8 @@ public class CalcitePPLEarliestLatestTest extends CalcitePPLAggregationTestBase 
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT `MIN_BY`(`ENAME`, `HIREDATE`) `earliest_name`, "
-            + "`MAX_BY`(`ENAME`, `HIREDATE`) `latest_name`, `DEPTNO`\n"
+        "SELECT ARG_MIN(`ENAME`, `HIREDATE`) `earliest_name`, "
+            + "ARG_MAX(`ENAME`, `HIREDATE`) `latest_name`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `DEPTNO`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -153,7 +153,7 @@ public class CalcitePPLEarliestLatestTest extends CalcitePPLAggregationTestBase 
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(earliest_name=[$1], cnt=[$2], avg_sal=[$3], DEPTNO=[$0])\n"
-            + "  LogicalAggregate(group=[{0}], earliest_name=[MIN_BY($1, $2)], cnt=[COUNT()],"
+            + "  LogicalAggregate(group=[{0}], earliest_name=[ARG_MIN($1, $2)], cnt=[COUNT()],"
             + " avg_sal=[AVG($3)])\n"
             + "    LogicalProject(DEPTNO=[$7], ENAME=[$1], HIREDATE=[$4], SAL=[$5])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
@@ -166,7 +166,7 @@ public class CalcitePPLEarliestLatestTest extends CalcitePPLAggregationTestBase 
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT `MIN_BY`(`ENAME`, `HIREDATE`) `earliest_name`, "
+        "SELECT ARG_MIN(`ENAME`, `HIREDATE`) `earliest_name`, "
             + "COUNT(*) `cnt`, AVG(`SAL`) `avg_sal`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `DEPTNO`";
@@ -179,7 +179,7 @@ public class CalcitePPLEarliestLatestTest extends CalcitePPLAggregationTestBase 
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(earliest_salary=[$1], JOB=[$0])\n"
-            + "  LogicalAggregate(group=[{0}], earliest_salary=[MIN_BY($1, $2)])\n"
+            + "  LogicalAggregate(group=[{0}], earliest_salary=[ARG_MIN($1, $2)])\n"
             + "    LogicalProject(JOB=[$2], SAL=[$5], HIREDATE=[$4])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
@@ -193,7 +193,7 @@ public class CalcitePPLEarliestLatestTest extends CalcitePPLAggregationTestBase 
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT `MIN_BY`(`SAL`, `HIREDATE`) `earliest_salary`, `JOB`\n"
+        "SELECT ARG_MIN(`SAL`, `HIREDATE`) `earliest_salary`, `JOB`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `JOB`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -205,7 +205,7 @@ public class CalcitePPLEarliestLatestTest extends CalcitePPLAggregationTestBase 
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(latest_salary=[$1], JOB=[$0])\n"
-            + "  LogicalAggregate(group=[{0}], latest_salary=[MAX_BY($1, $2)])\n"
+            + "  LogicalAggregate(group=[{0}], latest_salary=[ARG_MAX($1, $2)])\n"
             + "    LogicalProject(JOB=[$2], SAL=[$5], HIREDATE=[$4])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
@@ -219,7 +219,7 @@ public class CalcitePPLEarliestLatestTest extends CalcitePPLAggregationTestBase 
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT `MAX_BY`(`SAL`, `HIREDATE`) `latest_salary`, `JOB`\n"
+        "SELECT ARG_MAX(`SAL`, `HIREDATE`) `latest_salary`, `JOB`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `JOB`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -230,7 +230,7 @@ public class CalcitePPLEarliestLatestTest extends CalcitePPLAggregationTestBase 
     String ppl = "source=EMP | stats earliest(ENAME, HIREDATE) as first_hired";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalAggregate(group=[{}], first_hired=[MIN_BY($0, $1)])\n"
+        "LogicalAggregate(group=[{}], first_hired=[ARG_MIN($0, $1)])\n"
             + "  LogicalProject(ENAME=[$1], HIREDATE=[$4])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
@@ -239,7 +239,7 @@ public class CalcitePPLEarliestLatestTest extends CalcitePPLAggregationTestBase 
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT `MIN_BY`(`ENAME`, `HIREDATE`) `first_hired`\n" + "FROM `scott`.`EMP`";
+        "SELECT ARG_MIN(`ENAME`, `HIREDATE`) `first_hired`\n" + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -248,7 +248,7 @@ public class CalcitePPLEarliestLatestTest extends CalcitePPLAggregationTestBase 
     String ppl = "source=EMP | stats latest(ENAME, HIREDATE) as last_hired";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalAggregate(group=[{}], last_hired=[MAX_BY($0, $1)])\n"
+        "LogicalAggregate(group=[{}], last_hired=[ARG_MAX($0, $1)])\n"
             + "  LogicalProject(ENAME=[$1], HIREDATE=[$4])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
@@ -257,7 +257,7 @@ public class CalcitePPLEarliestLatestTest extends CalcitePPLAggregationTestBase 
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT `MAX_BY`(`ENAME`, `HIREDATE`) `last_hired`\n" + "FROM `scott`.`EMP`";
+        "SELECT ARG_MAX(`ENAME`, `HIREDATE`) `last_hired`\n" + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }
