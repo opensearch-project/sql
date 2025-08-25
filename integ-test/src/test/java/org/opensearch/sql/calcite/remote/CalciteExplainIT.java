@@ -229,10 +229,8 @@ public class CalciteExplainIT extends ExplainIT {
         "source=opensearch-sql_test_index_account | where account_number < 10 | stats"
             + " values(gender) as unique_genders";
     var result = explainQueryToString(query);
-
-    // Verify that the plan contains proper aggregation with VALUES function
-    assertTrue("Plan should contain LogicalAggregate", result.contains("LogicalAggregate"));
-    assertTrue("Plan should contain VALUES function", result.contains("VALUES"));
+    String expected = loadExpectedPlan("explain_values_function.json");
+    assertJsonEqualsIgnoreId(expected, result);
   }
 
   // Only for Calcite - LIST function explain tests
@@ -242,10 +240,8 @@ public class CalciteExplainIT extends ExplainIT {
         "source=opensearch-sql_test_index_account | where account_number < 10 | stats"
             + " list(firstname) as all_names";
     var result = explainQueryToString(query);
-
-    // Verify that the plan contains proper aggregation with LIST function
-    assertTrue("Plan should contain LogicalAggregate", result.contains("LogicalAggregate"));
-    assertTrue("Plan should contain LIST function", result.contains("LIST"));
+    String expected = loadExpectedPlan("explain_list_function.json");
+    assertJsonEqualsIgnoreId(expected, result);
   }
 
   // Only for Calcite - Combined VALUES and LIST functions explain tests
@@ -255,11 +251,8 @@ public class CalciteExplainIT extends ExplainIT {
         "source=opensearch-sql_test_index_account | where account_number < 10 | stats"
             + " values(gender) as unique_genders, list(firstname) as all_names";
     var result = explainQueryToString(query);
-
-    // Verify that the plan contains proper aggregation with both functions
-    assertTrue("Plan should contain LogicalAggregate", result.contains("LogicalAggregate"));
-    assertTrue("Plan should contain VALUES function", result.contains("VALUES"));
-    assertTrue("Plan should contain LIST function", result.contains("LIST"));
+    String expected = loadExpectedPlan("explain_values_with_list_function.json");
+    assertJsonEqualsIgnoreId(expected, result);
   }
 
   // Only for Calcite - Multivalue stats functions with other aggregates
@@ -270,15 +263,8 @@ public class CalciteExplainIT extends ExplainIT {
             + " total_count, values(state) as unique_states, list(lastname) as all_lastnames by"
             + " employer";
     var result = explainQueryToString(query);
-
-    // Verify that the plan contains proper aggregation with mixed functions
-    assertTrue("Plan should contain LogicalAggregate", result.contains("LogicalAggregate"));
-    assertTrue("Plan should contain COUNT function", result.contains("COUNT"));
-    assertTrue("Plan should contain VALUES function", result.contains("VALUES"));
-    assertTrue("Plan should contain LIST function", result.contains("LIST"));
-    assertTrue(
-        "Plan should contain group by employer",
-        result.contains("employer") || result.contains("group="));
+    String expected = loadExpectedPlan("explain_multi_value_stats_functions.json");
+    assertJsonEqualsIgnoreId(expected, result);
   }
 
   // Only for Calcite
