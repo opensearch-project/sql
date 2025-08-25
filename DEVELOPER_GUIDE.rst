@@ -211,133 +211,13 @@ Java files are formatted using `Spotless <https://github.com/diffplug/spotless>`
    * - Javadoc format can be maintained by wrapping javadoc with `<pre></pre>` HTML tags
    * - Strings can be formatted on multiple lines with a `+` with the correct indentation for the string.
 
+Development Guidelines
+----------------------
 
-New PPL Command Checklist
-=========================
+For detailed development documentation, please refer to the `development documentation <docs/dev/index.md>`_. For specific guidance on implementing PPL components, see the following resources:
 
-If you are working on contributing a new PPL command, please read this guide and review all items in the checklist are done before code review. You also can leverage this checklist to guide how to add new PPL command.
-
-Prerequisite
-------------
-
-| ✅ Open an RFC issue before starting to code:
-- Describe the purpose of the new command
-- Include at least syntax definition, usage and examples
-- Implementation options are welcome if you have multiple ways to implement it
-
-| ✅ Obtain PM review approval for the RFC:
-- If PM unavailable, consult repository maintainers as alternative
-- An offline meeting might be required to discuss the syntax and usage
-
-Coding & Tests
---------------
-
-| ✅ Lexer/Parser Updates:
-- Add new keywords to OpenSearchPPLLexer.g4
-- Add grammar rules to OpenSearchPPLParser.g4
-- Update ``commandName`` and ``keywordsCanBeId``
-| ✅ AST Implementation:
-- Add new tree nodes under package ``org.opensearch.sql.ast.tree``
-- Prefer reusing ``Argument`` for command arguments **over** creating new expression nodes under ``org.opensearch.sql.ast.expression``
-| ✅ Visitor Pattern:
-- Add ``visit*`` in ``AbstractNodeVisitor``
-- Overriding ``visit*`` in ``Analyzer``, ``CalciteRelNodeVisitor`` and ``PPLQueryDataAnonymizer``
-| ✅ Unit Tests:
-- Extend ``CalcitePPLAbstractTest``
-- Keep test queries minimal
-- Include ``verifyLogical()`` and ``verifyPPLToSparkSQL()``
-| ✅ Integration tests (pushdown):
-- Extend ``PPLIntegTestCase``
-- Use complex real-world queries
-- Include ``verifySchema()`` and ``verifyDataRows()``
-| ✅ Integration tests (Non-pushdown):
-- Add test class to ``CalciteNoPushdownIT``
-| ✅ Explain tests:
-- Add tests to ``ExplainIT`` or ``CalciteExplainIT``
-| ✅ Unsupported in v2 test:
-- Add a test in ``NewAddedCommandsIT``
-| ✅ Anonymizer tests:
-- Add a test in ``PPLQueryDataAnonymizerTest``
-| ✅ Cross-cluster Tests (optional, nice to have):
-- Add a test in ``CrossClusterSearchIT``
-| ✅ User doc:
-- Add a xxx.rst under ``docs/user/ppl/cmd`` and link the new doc to ``docs/user/ppl/index.rst``
-
-Developing PPL Functions
-========================
-
-PPL functions include user-defined functions (UDFs) and user-defined aggregation functions (UDAFs). This section
-provides guidance on implementing and integrating these functions with the OpenSearch SQL engine.
-
-Prerequisites
--------------
-
-| ✅ Create an issue describing the purpose and expected behavior of the function
-
-| ✅ Ensure the function name is recognized by PPL syntax by checking ``OpenSearchPPLLexer.g4``, ``OpenSearchPPLParser.g4``, and ``BuiltinFunctionName.java``
-
-| ✅ Plan the documentation of the function under ``docs/user/ppl/functions/`` directory
-
-Developing User-Defined Functions (UDFs)
-----------------------------------------
-
-| ✅ Creating UDFs: A user-defined function is an instance of `SqlOperator <https://calcite.apache.org/javadocAggregate/org/apache/calcite/sql/SqlOperator.html>`_ that transforms input row expressions (`RexNode <https://calcite.apache.org/javadocAggregate/org/apache/calcite/rex/RexNode.html>`_) into a new one. There are three approaches to implementing UDFs:
-
-- Use existing Calcite operators: Leverage operators already declared in Calcite's `SqlStdOperatorTable <https://calcite.apache.org/javadocAggregate/org/apache/calcite/sql/fun/SqlStdOperatorTable.html>`_ or `SqlLibraryOperators <https://calcite.apache.org/javadocAggregate/org/apache/calcite/sql/fun/SqlLibraryOperators.html>`_, and defined in `RexImpTable.java <https://calcite.apache.org/javadocAggregate/org/apache/calcite/adapter/enumerable/RexImpTable.html>`_
-- Adapt existing static methods: Convert Java static methods to UDFs using utility functions like ``UserDefinedFunctionUtils.adaptExprMethodToUDF``
-- Implement from scratch
-
-  * Implement the ``ImplementorUDF`` interface
-  * Instantiate and convert it to a ``SqlOperator`` in ``PPLBuiltinOperators``
-  * For optimal UDF performance, implement any data-independent logic during the compilation phase instead of at runtime. Specifically, use `linq4j expressions <https://calcite.apache.org/javadocAggregate/org/apache/calcite/linq4j/tree/Expression.html>`_ for these operations rather than internal static method calls, as expressions are evaluated during compilation.
-
-| ✅ Type Checking for UDFs
-- Each ``SqlOperator`` provides an operand type checker via the ``getOperandTypeChecker`` method
-- Calcite's built-in operators come with predefined type checkers of type ``SqlOperandTypeChecker``
-- For custom UDFs, the ``UDFOperandMetadata`` interface is used to feed function type information so that a ``SqlOperandTypeChecker`` can be retrieved in a same way as Calcite's built-in operators. Most of the operand types are defined in ``PPLOperandTypes`` as instances of ``UDFOperandMetadata``.
-- ``SqlOperandTypeChecker`` works on parsed SQL tree, which is not tapped in our architecture. Therefore, ``PPLTypeChecker`` interface is created to perform actual type checking. most of instances of ``PPLTypeChecker`` are created by wrapping Calcite's built-in type checkers.
-
-| ✅ Registering UDFs: UDF should be registered in ``PPLFuncImpTable``.
-- The preferred API is ``AbstractBuilder::registerOperator(BuiltinFunctionName functionName, SqlOperator... operators)``
-
-  * This automatically extracts type checkers from operators and converts them to ``PPLTypeChecker`` instances
-  * Multiple implementations can be registered to the same function name for overloading
-  * The system will try to resolve functions based on argument types, with automatic coercion when needed
-
-- A lower-level registration API is also available: ``AbstractBuilder::register(BuiltinFunctionName functionName, FunctionImp functionImp, PPLTypeChecker typeChecker)``
-
-  * This explicitly defines how ``RexNode`` expressions should be converted and checked
-  * Use this when you need a custom type checker or to customize an existing function by tweaking its arguments
-  * Setting ``typeChecker`` to ``null`` will bypass type checking (use with caution)
-
-| ✅ External Functions: Some functions require integration with underlying data sources:
-- Register external functions using ``PPLFuncImpTable::registerExternalOperator``
-- For example, the ``GEOIP`` function relies on the `opensearch-geospatial <https://github.com/opensearch-project/geospatial>`_ plugin.
-  It is registered as an external function in ``OpenSearchExecutionEngine``.
-
-| ✅ Testing UDFs
-- Integration tests in ``Calcite*IT`` classes to verify function correctness
-- Unit tests in ``CalcitePPLFunctionTypeTest`` to validate type checker behavior
-- Push-down tests in ``CalciteExplainIT`` if the function can be pushed down as a domain-specific language (DSL)
-
-Developing User-Defined Aggregation Functions (UDAFs)
------------------------------------------------------
-
-| ✅ User-defined aggregation functions aggregate data across multiple rows. There are two main approaches to create a UDAF
-- Use existing Calcite aggregation operators
-- Implement from scratch:
-
-  * Extend ``SqlUserDefinedAggFunction`` with custom aggregation logic
-  * Instantiate the new aggregation function in ``PPLBuiltinOperators``
-
-| ✅ Registering UDAFs
-- Use ``AggBuilder::registerOperator(BuiltinFunctionName functionName, SqlAggFunction aggFunction)`` for standard registration
-- For more control, use ``AggBuilder::register(BuiltinFunctionName functionName, AggHandler aggHandler, PPLTypeChecker typeChecker)``
-- For functions dependent on data engines, use ``PPLFuncImpTable::registerExternalAggOperator``
-
-| ✅ Testing UDAFs
-- Verify result correctness in ``CalcitePPLAggregationIT``
-- Test logical plans in ``CalcitePPLAggregationTest``
+- `PPL Commands <docs/dev/ppl-commands.md>`_: Guidelines for adding new commands to PPL
+- `PPL Functions <docs/dev/ppl-functions.md>`_: Instructions for implementing and integrating custom functions
 
 Building and Running Tests
 ==========================

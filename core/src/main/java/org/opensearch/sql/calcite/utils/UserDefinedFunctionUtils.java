@@ -229,6 +229,38 @@ public class UserDefinedFunctionUtils {
   }
 
   /**
+   * Adapts a method from the v2 implementation whose parameters include a {@link
+   * FunctionProperties} at the beginning to a Calcite-compatible UserDefinedFunctionBuilder.
+   */
+  public static ImplementorUDF adaptExprMethodWithPropertiesToUDF(
+      java.lang.reflect.Type type,
+      String methodName,
+      SqlReturnTypeInference returnTypeInference,
+      NullPolicy nullPolicy,
+      UDFOperandMetadata operandMetadata) {
+    NotNullImplementor implementor =
+        (translator, call, translatedOperands) -> {
+          List<Expression> operands =
+              convertToExprValues(
+                  translatedOperands, call.getOperands().stream().map(RexNode::getType).toList());
+          List<Expression> operandsWithProperties = prependFunctionProperties(operands, translator);
+          Expression exprResult = Expressions.call(type, methodName, operandsWithProperties);
+          return Expressions.call(exprResult, "valueForCalcite");
+        };
+    return new ImplementorUDF(implementor, nullPolicy) {
+      @Override
+      public SqlReturnTypeInference getReturnTypeInference() {
+        return returnTypeInference;
+      }
+
+      @Override
+      public UDFOperandMetadata getOperandMetadata() {
+        return operandMetadata;
+      }
+    };
+  }
+
+  /**
    * Adapt a static math function (e.g., Math.expm1, Math.rint) to a UserDefinedFunctionBuilder.
    * This method generates a Calcite-compatible UDF by boxing the operand, converting it to a
    * double, and then calling the corresponding method in {@link Math}.
@@ -277,33 +309,5 @@ public class UserDefinedFunctionUtils {
             UserDefinedFunctionUtils.class, "restoreFunctionProperties", translator.getRoot());
     operandsWithProperties.addFirst(properties);
     return Collections.unmodifiableList(operandsWithProperties);
-  }
-
-  public static ImplementorUDF adaptExprMethodWithPropertiesToUDF(
-      java.lang.reflect.Type type,
-      String methodName,
-      SqlReturnTypeInference returnTypeInference,
-      NullPolicy nullPolicy,
-      UDFOperandMetadata operandMetadata) {
-    NotNullImplementor implementor =
-        (translator, call, translatedOperands) -> {
-          List<Expression> operands =
-              convertToExprValues(
-                  translatedOperands, call.getOperands().stream().map(RexNode::getType).toList());
-          List<Expression> operandsWithProperties = prependFunctionProperties(operands, translator);
-          Expression exprResult = Expressions.call(type, methodName, operandsWithProperties);
-          return Expressions.call(exprResult, "valueForCalcite");
-        };
-    return new ImplementorUDF(implementor, nullPolicy) {
-      @Override
-      public SqlReturnTypeInference getReturnTypeInference() {
-        return returnTypeInference;
-      }
-
-      @Override
-      public UDFOperandMetadata getOperandMetadata() {
-        return operandMetadata;
-      }
-    };
   }
 }
