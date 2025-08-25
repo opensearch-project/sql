@@ -115,9 +115,9 @@ ANOMALY_SCORE_THRESHOLD:            'ANOMALY_SCORE_THRESHOLD';
 APPEND:                             'APPEND';
 COUNTFIELD:                         'COUNTFIELD';
 SHOWCOUNT:                          'SHOWCOUNT';
-INPUT: 'INPUT';
-OUTPUT: 'OUTPUT';
-PATH: 'PATH';
+INPUT:                              'INPUT';
+OUTPUT:                             'OUTPUT';
+PATH:                               'PATH';
 
 // COMPARISON FUNCTION KEYWORDS
 CASE:                               'CASE';
@@ -206,8 +206,8 @@ LT_PRTHS:                           '(';
 RT_PRTHS:                           ')';
 LT_SQR_PRTHS:                       '[';
 RT_SQR_PRTHS:                       ']';
-LT_CURLY: '{';
-RT_CURLY: '}';
+LT_CURLY:                           '{';
+RT_CURLY:                           '}';
 SINGLE_QUOTE:                       '\'';
 DOUBLE_QUOTE:                       '"';
 BACKTICK:                           '`';

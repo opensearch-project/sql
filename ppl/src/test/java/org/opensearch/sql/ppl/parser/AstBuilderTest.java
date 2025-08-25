@@ -682,76 +682,50 @@ public class AstBuilderTest {
             ImmutableMap.of()));
   }
 
-    @Test
-    public void testBasicSpathCommand() {
-        assertEqual(
-                "source=t | spath input=f path=simple.nested",
-                spath(
-                        relation("t"),
-                        "f",
-                        null,  // no output field specified
-                        "simple.nested"
-                ));
-    }
+  @Test
+  public void testBasicSpathCommand() {
+    assertEqual(
+        "source=t | spath input=f path=simple.nested",
+        spath(
+            relation("t"),
+            "f",
+            null, // no output field specified
+            "simple.nested"));
+  }
 
-    @Test
-    public void testSpathWithOutput() {
-        assertEqual(
-                "source=t | spath input=f output=o path=simple.nested",
-                spath(
-                        relation("t"),
-                        "f",
-                        "o",
-                        "simple.nested"));
-    }
+  @Test
+  public void testSpathWithOutput() {
+    assertEqual(
+        "source=t | spath input=f output=o path=simple.nested",
+        spath(relation("t"), "f", "o", "simple.nested"));
+  }
 
-    @Test
-    public void testSpathWithArrayWildcard() {
-        assertEqual(
-                "source=t | spath input=f path=array{}.nested",
-                spath(
-                        relation("t"),
-                        "f",
-                        null,
-                        "array{}.nested"
-                ));
-    }
+  @Test
+  public void testSpathWithArrayWildcard() {
+    assertEqual(
+        "source=t | spath input=f path=array{}.nested",
+        spath(relation("t"), "f", null, "array{}.nested"));
+  }
 
-    @Test
-    public void testSpathWithArrayIndex() {
-        assertEqual(
-                "source=t | spath input=f path=array{1}.nested",
-                spath(
-                        relation("t"),
-                        "f",
-                        null,
-                        "array{1}.nested"
-                ));
-    }
+  @Test
+  public void testSpathWithArrayIndex() {
+    assertEqual(
+        "source=t | spath input=f path=array{1}.nested",
+        spath(relation("t"), "f", null, "array{1}.nested"));
+  }
 
-    @Test
-    public void testSpathWithMultipleArrays() {
-        assertEqual(
-                "source=t | spath input=f path=outer{}.middle{2}.inner",
-                spath(
-                        relation("t"),
-                        "f",
-                        null,
-                        "outer{}.middle{2}.inner"
-                ));
-    }
+  @Test
+  public void testSpathWithMultipleArrays() {
+    assertEqual(
+        "source=t | spath input=f path=outer{}.middle{2}.inner",
+        spath(relation("t"), "f", null, "outer{}.middle{2}.inner"));
+  }
 
-    @Test
-    public void testSpathWithNoPathKeyword() {
-        assertEqual(
-                "source=t | spath input=f simple.nested",
-                spath(
-                        relation("t"),
-                        "f",
-                        null,
-                        "simple.nested"
-                ));
-    }
+  @Test
+  public void testSpathWithNoPathKeyword() {
+    assertEqual(
+        "source=t | spath input=f simple.nested", spath(relation("t"), "f", null, "simple.nested"));
+  }
 
   @Test
   public void testKmeansCommand() {

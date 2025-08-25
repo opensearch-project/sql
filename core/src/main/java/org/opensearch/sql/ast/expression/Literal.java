@@ -44,6 +44,6 @@ public class Literal extends UnresolvedExpression {
 
   @Override
   public String toString() {
-    return this.getType().toString() + ":" + String.valueOf(value);
+    return String.valueOf(value);
   }
 }

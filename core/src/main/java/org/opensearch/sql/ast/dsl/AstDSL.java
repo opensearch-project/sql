@@ -521,18 +521,9 @@ public class AstDSL {
     return new Parse(parseMethod, sourceField, pattern, arguments, input);
   }
 
-  public static SPath spath(
-            UnresolvedPlan input,
-            String inField,
-            String outField,
-            String path) {
-        return new SPath(
-                input,
-                inField,
-                outField,
-                path
-        );
-    }
+  public static SPath spath(UnresolvedPlan input, String inField, String outField, String path) {
+    return new SPath(input, inField, outField, path);
+  }
 
   public static Patterns patterns(
       UnresolvedPlan input,

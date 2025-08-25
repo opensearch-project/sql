@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.ast;
 
-import org.apache.calcite.rel.RelNode;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFields;
@@ -240,8 +239,8 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitSpath(SPath node, C context) {
-        return visitChildren(node, context);
-    }
+    return visitChildren(node, context);
+  }
 
   public T visitLet(Let node, C context) {
     return visitChildren(node, context);
