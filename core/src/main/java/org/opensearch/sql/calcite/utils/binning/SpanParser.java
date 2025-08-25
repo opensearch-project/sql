@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.utils.binning;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -62,13 +63,13 @@ public class SpanParser {
 
     // Build direct lookup map for efficient unit detection
     for (String unit : NORMALIZED_UNITS.keySet()) {
-      UNIT_LOOKUP.put(unit.toLowerCase(), unit);
+      UNIT_LOOKUP.put(unit.toLowerCase(Locale.ROOT), unit);
     }
   }
 
   /** Parses a span string and returns span information. */
   public static SpanInfo parse(String spanStr) {
-    String lowerSpanStr = spanStr.toLowerCase().trim();
+    String lowerSpanStr = spanStr.toLowerCase(Locale.ROOT).trim();
 
     // Special handling for common log spans
     switch (lowerSpanStr) {
@@ -134,7 +135,7 @@ public class SpanParser {
 
   /** Extracts time unit from span string (returns original matched unit, not normalized). */
   public static String extractTimeUnit(String spanStr) {
-    String lowerSpanStr = spanStr.toLowerCase();
+    String lowerSpanStr = spanStr.toLowerCase(Locale.ROOT);
     String longestMatch = null;
 
     // Find the longest unit that matches as a suffix

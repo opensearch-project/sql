@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.ast.tree;
 
-import java.util.Optional;
+import javax.annotation.Nullable;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -24,17 +24,17 @@ public class CountBin extends Bin {
 
   private final Integer bins;
 
-  private final Optional<UnresolvedExpression> start;
+  @Nullable private final UnresolvedExpression start;
 
-  private final Optional<UnresolvedExpression> end;
+  @Nullable private final UnresolvedExpression end;
 
   @Builder
   public CountBin(
       UnresolvedExpression field,
-      Optional<String> alias,
+      @Nullable String alias,
       Integer bins,
-      Optional<UnresolvedExpression> start,
-      Optional<UnresolvedExpression> end) {
+      @Nullable UnresolvedExpression start,
+      @Nullable UnresolvedExpression end) {
     super(field, alias);
     this.bins = bins;
     this.start = start;

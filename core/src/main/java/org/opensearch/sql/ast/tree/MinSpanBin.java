@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.ast.tree;
 
-import java.util.Optional;
+import javax.annotation.Nullable;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -23,17 +23,17 @@ public class MinSpanBin extends Bin {
 
   private final UnresolvedExpression minspan;
 
-  private final Optional<UnresolvedExpression> start;
+  @Nullable private final UnresolvedExpression start;
 
-  private final Optional<UnresolvedExpression> end;
+  @Nullable private final UnresolvedExpression end;
 
   @Builder
   public MinSpanBin(
       UnresolvedExpression field,
-      Optional<String> alias,
+      @Nullable String alias,
       UnresolvedExpression minspan,
-      Optional<UnresolvedExpression> start,
-      Optional<UnresolvedExpression> end) {
+      @Nullable UnresolvedExpression start,
+      @Nullable UnresolvedExpression end) {
     super(field, alias);
     this.minspan = minspan;
     this.start = start;

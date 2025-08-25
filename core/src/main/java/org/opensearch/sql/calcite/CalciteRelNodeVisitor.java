@@ -483,7 +483,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     RexNode binExpression = BinUtils.createBinExpression(node, fieldExpr, context, rexVisitor);
 
-    String alias = node.getAlias().orElse(fieldName);
+    String alias = node.getAlias() != null ? node.getAlias() : fieldName;
     projectPlusOverriding(List.of(binExpression), List.of(alias), context);
 
     return context.relBuilder.peek();

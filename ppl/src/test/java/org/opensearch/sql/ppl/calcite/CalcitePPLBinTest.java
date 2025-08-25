@@ -22,13 +22,13 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
 
     String expectedLogical =
         "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], "
-            + "SAL=[SPAN_BUCKET($5, 1000)], COMM=[$6], DEPTNO=[$7])\n"
+            + "COMM=[$6], DEPTNO=[$7], SAL=[SPAN_BUCKET($5, 1000)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SPAN_BUCKET`(`SAL`, 1000) `SAL`,"
-            + " `COMM`, `DEPTNO`\n"
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `COMM`, `DEPTNO`, `SPAN_BUCKET`(`SAL`,"
+            + " 1000) `SAL`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -43,9 +43,9 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
     verifyLogical(
         root,
         "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], "
-            + "SAL=[WIDTH_BUCKET($5, 10, "
+            + "COMM=[$6], DEPTNO=[$7], SAL=[WIDTH_BUCKET($5, 10, "
             + "-(MAX($5) OVER (), MIN($5) OVER ()), "
-            + "MAX($5) OVER ())], COMM=[$6], DEPTNO=[$7])\n"
+            + "MAX($5) OVER ())])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n");
   }
 
@@ -59,9 +59,9 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
     verifyLogical(
         root,
         "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], "
-            + "SAL=[MINSPAN_BUCKET($5, 100.0E0:DOUBLE, "
+            + "COMM=[$6], DEPTNO=[$7], SAL=[MINSPAN_BUCKET($5, 100.0E0:DOUBLE, "
             + "-(MAX($5) OVER (), MIN($5) OVER ()), "
-            + "MAX($5) OVER ())], COMM=[$6], DEPTNO=[$7])\n"
+            + "MAX($5) OVER ())])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n");
   }
 
@@ -74,9 +74,9 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
     verifyLogical(
         root,
         "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], "
-            + "SAL=[RANGE_BUCKET($5, "
+            + "COMM=[$6], DEPTNO=[$7], SAL=[RANGE_BUCKET($5, "
             + "MIN($5) OVER (), MAX($5) OVER (), "
-            + "1000, 5000)], COMM=[$6], DEPTNO=[$7])\n"
+            + "1000, 5000)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n");
   }
 
@@ -88,15 +88,14 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
     // Time span binning generates FROM_UNIXTIME expression
     verifyLogical(
         root,
-        "LogicalProject(ID=[$0], SUPPLIER=[$1], "
-            + "SYS_START=[FROM_UNIXTIME(*(FLOOR(/(/(UNIX_TIMESTAMP($2), 3600), 1)), 3600))], "
-            + "SYS_END=[$3])\n"
+        "LogicalProject(ID=[$0], SUPPLIER=[$1], SYS_END=[$3],"
+            + " SYS_START=[FROM_UNIXTIME(*(FLOOR(/(/(UNIX_TIMESTAMP($2), 3600), 1)), 3600))])\n"
             + "  LogicalTableScan(table=[[scott, products_temporal]])\n");
 
     verifyPPLToSparkSQL(
         root,
-        "SELECT `ID`, `SUPPLIER`, `FROM_UNIXTIME`(FLOOR(`UNIX_TIMESTAMP`(`SYS_START`) / 3600 / 1) *"
-            + " 3600) `SYS_START`, `SYS_END`\n"
+        "SELECT `ID`, `SUPPLIER`, `SYS_END`, `FROM_UNIXTIME`(FLOOR(`UNIX_TIMESTAMP`(`SYS_START`) /"
+            + " 3600 / 1) * 3600) `SYS_START`\n"
             + "FROM `scott`.`products_temporal`");
   }
 
@@ -109,15 +108,14 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
     // case
     verifyLogical(
         root,
-        "LogicalProject(ID=[$0], SUPPLIER=[$1], "
-            + "SYS_START=[FROM_UNIXTIME(*(FLOOR(/(/(UNIX_TIMESTAMP($2), 3600), 1)), 3600))], "
-            + "SYS_END=[$3])\n"
+        "LogicalProject(ID=[$0], SUPPLIER=[$1], SYS_END=[$3],"
+            + " SYS_START=[FROM_UNIXTIME(*(FLOOR(/(/(UNIX_TIMESTAMP($2), 3600), 1)), 3600))])\n"
             + "  LogicalTableScan(table=[[scott, products_temporal]])\n");
 
     verifyPPLToSparkSQL(
         root,
-        "SELECT `ID`, `SUPPLIER`, `FROM_UNIXTIME`(FLOOR(`UNIX_TIMESTAMP`(`SYS_START`) / 3600 / 1) *"
-            + " 3600) `SYS_START`, `SYS_END`\n"
+        "SELECT `ID`, `SUPPLIER`, `SYS_END`, `FROM_UNIXTIME`(FLOOR(`UNIX_TIMESTAMP`(`SYS_START`) /"
+            + " 3600 / 1) * 3600) `SYS_START`\n"
             + "FROM `scott`.`products_temporal`");
   }
 }
