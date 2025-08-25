@@ -24,7 +24,7 @@ spath input=<field> [output=<field>] [path=]<path>
 
 * input: mandatory. The field to scan for JSON data.
 * output: optional. The destination field that the data will be loaded to. Defaults to the value of `path`.
-* path: mandatory. The path of the data to load for the object. For more information on path syntax, see `json_extract <../functions/json.rst>`_.
+* path: mandatory. The path of the data to load for the object. For more information on path syntax, see `json_extract <../functions/json.rst#json_extract>`_.
 
 Note
 =====
