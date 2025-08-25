@@ -215,6 +215,7 @@ public enum BuiltinFunctionName {
   LTRIM(FunctionName.of("ltrim")),
   POSITION(FunctionName.of("position")),
   REGEXP(FunctionName.of("regexp")),
+  REGEX_MATCH(FunctionName.of("regex_match")),
   REPLACE(FunctionName.of("replace")),
   REVERSE(FunctionName.of("reverse")),
   RIGHT(FunctionName.of("right")),

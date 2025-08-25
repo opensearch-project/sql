@@ -437,3 +437,60 @@ Example::
     |-----|
     | 968 |
     +-----+
+
+REGEX_MATCH
+-----------
+
+Description
+>>>>>>>>>>>
+
+Version: 3.3.0
+
+Usage: regex_match(string, pattern) returns true if the regular expression pattern finds a match against any substring of the string value, otherwise returns false.
+
+The function uses Java regular expression syntax for the pattern.
+
+Argument type: STRING, STRING
+
+Return type: BOOLEAN
+
+Example::
+
+    #os> source=logs | where regex_match(message, 'ERROR|WARN|FATAL') | fields timestamp, message
+    fetched rows / total rows = 3/100
+    +---------------------+------------------------------------------+
+    | timestamp           | message                                  |
+    |---------------------+------------------------------------------|
+    | 2024-01-15 10:23:45 | ERROR: Connection timeout to database   |
+    | 2024-01-15 10:24:12 | WARN: High memory usage detected        |
+    | 2024-01-15 10:25:33 | FATAL: System crashed unexpectedly      |
+    +---------------------+------------------------------------------+
+
+    #os> source=users | where regex_match(email, '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}') | fields name, email
+    fetched rows / total rows = 2/3
+    +-------+----------------------+
+    | name  | email                |
+    |-------+----------------------|
+    | John  | john@example.com     |
+    | Alice | alice@company.org    |
+    +-------+----------------------+
+
+    #os> source=network | where regex_match(ip_address, '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$') AND NOT regex_match(ip_address, '^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)') | fields ip_address, status
+    fetched rows / total rows = 2/10
+    +---------------+--------+
+    | ip_address    | status |
+    |---------------+--------|
+    | 8.8.8.8       | active |
+    | 1.1.1.1       | active |
+    +---------------+--------+
+
+    #os> source=products | eval category = if(regex_match(name, '(?i)(laptop|computer|desktop)'), 'Computing', if(regex_match(name, '(?i)(phone|tablet|mobile)'), 'Mobile', 'Other')) | fields name, category
+    fetched rows / total rows = 4/4
+    +------------------------+----------+
+    | name                   | category |
+    |------------------------+----------|
+    | Dell Laptop XPS        | Computing|
+    | iPhone 15 Pro          | Mobile   |
+    | Wireless Mouse         | Other    |
+    | Desktop Computer Tower | Computing|
+    +------------------------+----------+
