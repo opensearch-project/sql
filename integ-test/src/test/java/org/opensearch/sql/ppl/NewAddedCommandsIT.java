@@ -12,6 +12,7 @@ import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STRINGS;
 
 import java.io.IOException;
+
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
@@ -159,22 +160,6 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
               "search source=opensearch-sql_test_index_account_with_timestamp | stats"
                   + " earliest(firstname) as earliest_name, latest(firstname) as latest_name by"
                   + " gender");
-    } catch (ResponseException e) {
-      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
-    }
-    verifyQuery(result);
-  }
-
-  @Test
-  public void testMaxByMinByAggregates() throws IOException {
-    JSONObject result;
-    try {
-      result =
-          executeQuery(
-              String.format(
-                  "search source=%s | stats max_by(firstname, age) as oldest_name,"
-                      + " min_by(firstname, age) as youngest_name by gender",
-                  TEST_INDEX_BANK));
     } catch (ResponseException e) {
       result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
     }

@@ -5,11 +5,13 @@
 
 package org.opensearch.sql.expression.function;
 
-import com.google.common.collect.ImmutableMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+
+import com.google.common.collect.ImmutableMap;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -200,8 +202,6 @@ public enum BuiltinFunctionName {
   PERCENTILE_APPROX(FunctionName.of("percentile_approx")),
   EARLIEST(FunctionName.of("earliest")),
   LATEST(FunctionName.of("latest")),
-  MAX_BY(FunctionName.of("max_by")),
-  MIN_BY(FunctionName.of("min_by")),
   DISTINCT_COUNT_APPROX(FunctionName.of("distinct_count_approx")),
   // Not always an aggregation query
   NESTED(FunctionName.of("nested")),

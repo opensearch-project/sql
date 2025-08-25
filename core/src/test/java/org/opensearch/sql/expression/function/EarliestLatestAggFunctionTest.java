@@ -8,6 +8,7 @@ package org.opensearch.sql.expression.function;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.Set;
+
 import org.junit.jupiter.api.Test;
 
 public class EarliestLatestAggFunctionTest extends AggFunctionTestBase {
@@ -55,8 +56,6 @@ public class EarliestLatestAggFunctionTest extends AggFunctionTestBase {
   @Test
   void testFunctionRegistryIntegrity() {
     assertFunctionsAreRegistered(
-        BuiltinFunctionName.MAX_BY,
-        BuiltinFunctionName.MIN_BY,
         BuiltinFunctionName.EARLIEST,
         BuiltinFunctionName.LATEST);
   }
@@ -77,8 +76,6 @@ public class EarliestLatestAggFunctionTest extends AggFunctionTestBase {
             BuiltinFunctionName.AVG,
             BuiltinFunctionName.MAX,
             BuiltinFunctionName.MIN,
-            BuiltinFunctionName.MAX_BY,
-            BuiltinFunctionName.MIN_BY,
             BuiltinFunctionName.EARLIEST,
             BuiltinFunctionName.LATEST);
 

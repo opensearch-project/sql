@@ -15,8 +15,6 @@ import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getLegacyTy
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.createAggregateFunction;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.*;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,7 +27,9 @@ import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 import javax.annotation.Nullable;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLambda;
@@ -62,6 +62,9 @@ import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.executor.QueryType;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 public class PPLFuncImpTable {
   private static final Logger logger = LogManager.getLogger(PPLFuncImpTable.class);
@@ -970,33 +973,6 @@ public class PPLFuncImpTable {
                   argList,
                   ctx.relBuilder),
           null);
-
-      // Use Calcite's built-in ARG_MAX and ARG_MIN functions
-      register(
-          MAX_BY,
-          (distinct, field, argList, ctx) -> {
-            if (argList.isEmpty()) {
-              throw new IllegalArgumentException(
-                  "MAX_BY requires exactly 2 arguments: value_field and order_field");
-            }
-            RexNode orderField = PlanUtils.derefMapCall(argList.get(0));
-            return ctx.relBuilder.aggregateCall(SqlStdOperatorTable.ARG_MAX, field, orderField);
-          },
-          wrapSqlOperandTypeChecker(
-              SqlStdOperatorTable.ARG_MAX.getOperandTypeChecker(), MAX_BY.name(), false));
-
-      register(
-          MIN_BY,
-          (distinct, field, argList, ctx) -> {
-            if (argList.isEmpty()) {
-              throw new IllegalArgumentException(
-                  "MIN_BY requires exactly 2 arguments: value_field and order_field");
-            }
-            RexNode orderField = PlanUtils.derefMapCall(argList.get(0));
-            return ctx.relBuilder.aggregateCall(SqlStdOperatorTable.ARG_MIN, field, orderField);
-          },
-          wrapSqlOperandTypeChecker(
-              SqlStdOperatorTable.ARG_MIN.getOperandTypeChecker(), MIN_BY.name(), false));
 
       register(
           EARLIEST,
