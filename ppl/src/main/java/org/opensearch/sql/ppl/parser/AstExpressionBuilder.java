@@ -7,8 +7,6 @@ package org.opensearch.sql.ppl.parser;
 
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.*;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collections;
@@ -19,6 +17,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
 import org.opensearch.sql.ast.dsl.AstDSL;
@@ -69,6 +68,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DecimalLiteralCon
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DistinctCountFunctionCallContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DoubleLiteralContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalClauseContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalFunctionCallContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldExpressionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FloatLiteralContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsQualifiedNameContext;
@@ -92,6 +92,9 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WcFieldExpression
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+
 /** Class of building AST Expression nodes. */
 public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedExpression> {
 
@@ -110,11 +113,13 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     this.astBuilder = astBuilder;
   }
 
+  /** Eval clause. */
   @Override
   public UnresolvedExpression visitEvalClause(EvalClauseContext ctx) {
     return new Let((Field) visit(ctx.fieldExpression()), visit(ctx.logicalExpression()));
   }
 
+  /** Trendline clause. */
   @Override
   public Trendline.TrendlineComputation visitTrendlineClause(
       OpenSearchPPLParser.TrendlineClauseContext ctx) {
@@ -136,6 +141,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
         numberOfDataPoints, dataField, alias, computationType);
   }
 
+  /** Logical expression excluding boolean, comparison. */
   @Override
   public UnresolvedExpression visitLogicalNot(LogicalNotContext ctx) {
     return new Not(visit(ctx.logicalExpression()));
@@ -156,6 +162,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return new Xor(visit(ctx.left), visit(ctx.right));
   }
 
+  /** lambda expression */
   @Override
   public UnresolvedExpression visitLambda(OpenSearchPPLParser.LambdaContext ctx) {
     List<QualifiedName> arguments =
@@ -166,6 +173,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return new LambdaFunction(function, arguments);
   }
 
+  /** Comparison expression. */
   @Override
   public UnresolvedExpression visitCompareExpr(CompareExprContext ctx) {
     String operator = ctx.comparisonOperator().getText();
@@ -188,6 +196,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return ctx.NOT() != null ? new Not(expr) : expr;
   }
 
+  /** Value Expression. */
   @Override
   public UnresolvedExpression visitBinaryArithmetic(BinaryArithmeticContext ctx) {
     return new Function(ctx.binaryOperator.getText(), buildArguments(ctx.left, ctx.right));
@@ -205,9 +214,10 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitNestedValueExpr(OpenSearchPPLParser.NestedValueExprContext ctx) {
-    return visit(ctx.logicalExpression());
+    return visit(ctx.logicalExpression()); // Discard parenthesis around
   }
 
+  /** Field expression. */
   @Override
   public UnresolvedExpression visitFieldExpression(FieldExpressionContext ctx) {
     return new Field((QualifiedName) visit(ctx.qualifiedName()));
@@ -244,11 +254,10 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return new Field(fieldExpression, ArgumentFactory.getArgumentList(ctx));
   }
 
+  /** Aggregation function. */
   @Override
   public UnresolvedExpression visitStatsFunctionCall(StatsFunctionCallContext ctx) {
-    String functionName = ctx.statsFunctionName().getText();
-    UnresolvedExpression argument = visit(ctx.valueExpression());
-    return new AggregateFunction(functionName, argument);
+    return new AggregateFunction(ctx.statsFunctionName().getText(), visit(ctx.valueExpression()));
   }
 
   @Override
@@ -356,22 +365,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     }
   }
 
-  @Override
-  public UnresolvedExpression visitEvalFunctionCall(
-      OpenSearchPPLParser.EvalFunctionCallContext ctx) {
-    final String functionName = ctx.evalFunctionName().getText();
-    final String mappedName =
-        FUNCTION_NAME_MAPPING.getOrDefault(functionName.toLowerCase(Locale.ROOT), functionName);
-
-    // Rewrite sum and avg functions to arithmetic expressions
-    if (SUM.getName().getFunctionName().equalsIgnoreCase(mappedName)
-        || AVG.getName().getFunctionName().equalsIgnoreCase(mappedName)) {
-      return rewriteSumAvgFunction(mappedName, ctx.functionArgs().functionArg());
-    }
-
-    return buildFunction(mappedName, ctx.functionArgs().functionArg());
-  }
-
+  /** Case function. */
   @Override
   public UnresolvedExpression visitCaseFunctionCall(
       OpenSearchPPLParser.CaseFunctionCallContext ctx) {
@@ -391,6 +385,23 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return new Case(null, whens, Optional.ofNullable(elseValue));
   }
 
+  /** Eval function. */
+  @Override
+  public UnresolvedExpression visitEvalFunctionCall(EvalFunctionCallContext ctx) {
+    final String functionName = ctx.evalFunctionName().getText();
+    final String mappedName =
+        FUNCTION_NAME_MAPPING.getOrDefault(functionName.toLowerCase(Locale.ROOT), functionName);
+
+    // Rewrite sum and avg functions to arithmetic expressions
+    if (SUM.getName().getFunctionName().equalsIgnoreCase(mappedName)
+        || AVG.getName().getFunctionName().equalsIgnoreCase(mappedName)) {
+      return rewriteSumAvgFunction(mappedName, ctx.functionArgs().functionArg());
+    }
+
+    return buildFunction(mappedName, ctx.functionArgs().functionArg());
+  }
+
+  /** Cast function. */
   @Override
   public UnresolvedExpression visitDataTypeFunctionCall(DataTypeFunctionCallContext ctx) {
     return new Cast(visit(ctx.logicalExpression()), visit(ctx.convertedDataType()));
@@ -535,6 +546,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return args;
   }
 
+  /** Literal and value. */
   @Override
   public UnresolvedExpression visitIdentsAsQualifiedName(IdentsAsQualifiedNameContext ctx) {
     return visitIdentifiers(ctx.ident());
