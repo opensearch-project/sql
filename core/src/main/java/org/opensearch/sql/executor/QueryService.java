@@ -253,12 +253,45 @@ public class QueryService {
   }
 
   /**
-   * Try to optimize the plan by appending a limit operator for QUERY_SIZE_LIMIT Don't add for
-   * `EXPLAIN` to avoid changing its output plan.
+   * Try to optimize the plan by applying transformation rules and appending a limit operator for 
+   * QUERY_SIZE_LIMIT. Don't add for `EXPLAIN` to avoid changing its output plan.
    */
   public RelNode optimize(RelNode plan, CalcitePlanContext context) {
+    RelNode optimized = plan;
+    
+    // Set the plan as the root and register additional rules
+    org.apache.calcite.plan.RelOptPlanner planner = context.relBuilder.getCluster().getPlanner();
+    
+    // Register standard rules from Calcite
+    org.apache.calcite.tools.RuleSets.ofList(
+        org.apache.calcite.rel.rules.CoreRules.FILTER_PROJECT_TRANSPOSE,
+        org.apache.calcite.rel.rules.CoreRules.FILTER_MERGE,
+        org.apache.calcite.rel.rules.CoreRules.PROJECT_MERGE,
+        org.apache.calcite.rel.rules.CoreRules.PROJECT_REMOVE,
+        org.apache.calcite.rel.rules.CoreRules.SORT_PROJECT_TRANSPOSE,
+        org.apache.calcite.rel.rules.CoreRules.SORT_JOIN_TRANSPOSE,
+        org.apache.calcite.rel.rules.CoreRules.SORT_UNION_TRANSPOSE,
+        org.apache.calcite.rel.rules.CoreRules.SORT_REMOVE,
+
+        org.apache.calcite.adapter.enumerable.EnumerableRules.ENUMERABLE_LIMIT_RULE,
+        org.apache.calcite.adapter.enumerable.EnumerableRules.ENUMERABLE_SORT_RULE,
+        org.apache.calcite.adapter.enumerable.EnumerableRules.ENUMERABLE_PROJECT_RULE,
+        org.apache.calcite.adapter.enumerable.EnumerableRules.ENUMERABLE_FILTER_RULE
+    ).forEach(planner::addRule);
+    
+    // Register OpenSearch-specific rules
+    org.opensearch.sql.calcite.plan.OpenSearchRules.OPEN_SEARCH_OPT_RULES.forEach(planner::addRule);
+    
+    // Set the plan as root and find the best expression
+    planner.setRoot(optimized);
+    optimized = planner.findBestExp();
+    
+    // Apply system limit only if not already a Sort with fetch
+    if (optimized instanceof Sort && ((Sort) optimized).fetch != null) {
+      return optimized; // Don't add system limit if already has fetch
+    }
     return LogicalSystemLimit.create(
-        SystemLimitType.QUERY_SIZE_LIMIT, plan, context.relBuilder.literal(context.querySizeLimit));
+        SystemLimitType.QUERY_SIZE_LIMIT, optimized, context.relBuilder.literal(context.querySizeLimit));
   }
 
   private boolean isCalciteFallbackAllowed() {

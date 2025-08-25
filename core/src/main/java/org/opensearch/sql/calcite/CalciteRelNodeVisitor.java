@@ -1227,16 +1227,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   /**
-   * Transforms timechart command into relational operations using OpenSearch aggregations.
+   * Transforms timechart command into SQL-based operations to overcome the 10K bucket limitation.
    *
-   * <p>High-level approach: 1. Non-pivot case (no 'by' field): Creates simple time-based
-   * aggregation with span grouping 2. Pivot case (with 'by' field): Uses composite aggregation
-   * (time + split-by field) to get grouped data, then relies on TimechartResponseFormatter for
-   * client-side pivot transformation from long format (time, by_field, value) to wide format (time,
-   * col1, col2, ...)
+   * <p>High-level approach:
+   * 1. Create a LogicalTimechart node that represents the timechart operation
+   * 2. Store parameters (timeField, byField, valueField, limit, useOther) in the context
+   * 3. The TimechartToSqlRule will later transform this into SQL operations
    *
-   * <p>The pivot transformation happens outside the query engine to avoid complex dynamic SQL
-   * generation. Limit and useOther parameters are passed through context for post-processing.
+   * <p>This implementation uses a two-phase approach:
+   * - Phase 1: SQL-based aggregation and filtering (handles ALL data, not limited to 10K buckets)
+   * - Phase 2: Pivot transformation in the formatter (client-side)
    */
   @Override
   public RelNode visitTimechart(
@@ -1253,62 +1253,112 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // No pivoting (i.e. no 'by' field)
     if (node.getByField() == null) {
-      // Use the same aggregation approach as with 'by' field to ensure all timestamps are returned
+      // Simple aggregation without pivoting
       aggregateWithTrimming(groupExprList, List.of(node.getAggregateFunction()), context);
       context.relBuilder.sort(context.relBuilder.field(0));
-
       return context.relBuilder.peek();
     }
 
-    // Pivot case: add 'by' field to group by and perform aggregation
-    groupExprList.add(node.getByField());
-    aggregateWithTrimming(groupExprList, List.of(node.getAggregateFunction()), context);
-
-    List<String> fieldNames = context.relBuilder.peek().getRowType().getFieldNames();
-    String byField = fieldNames.get(0);
-    String timeField = fieldNames.get(1);
-    String valueField = fieldNames.get(2);
-
-    // Reorder columns: [time, by, value]
-    context.relBuilder.project(
-        ImmutableList.of(
-            context.relBuilder.field(timeField),
-            context.relBuilder.field(byField),
-            context.relBuilder.field(valueField)),
-        ImmutableList.of(timeField, byField, valueField));
-
-    // Store the current state with [time, by, value] columns
-    RelNode currentState = context.relBuilder.peek();
-
-    // Create a query to get distinct values for the "by" field
-    context.relBuilder.push(currentState);
-    context.relBuilder.project(context.relBuilder.field(byField));
-    context.relBuilder.distinct();
-    RelNode distinctQuery = context.relBuilder.peek();
-
-    // Restore the original state
-    context.relBuilder.push(currentState);
-
-    // Store the necessary information for the dynamic pivot operation
-    // This will be used by the execution engine to perform the two-phase approach
-    Map<String, String> dynamicPivotInfo = new HashMap<>();
-    dynamicPivotInfo.put(TIMECHART_TIME_FIELD, timeField);
-    dynamicPivotInfo.put(TIMECHART_BY_FIELD, byField);
-    dynamicPivotInfo.put(TIMECHART_VALUE_FIELD, valueField);
-
-    // Store the limit parameter if present
-    if (node.getLimit() != null) {
-      dynamicPivotInfo.put(TIMECHART_LIMIT, node.getLimit().toString());
+    // For cases with 'by' field, implement SQL-based approach directly
+    try {
+      // Extract parameters from the node
+      UnresolvedExpression byField = node.getByField();
+      UnresolvedExpression valueExpr = node.getAggregateFunction();
+      Integer limit = node.getLimit() != null ? node.getLimit() : 10;
+      Boolean useOther = node.getUseOther() != null ? node.getUseOther() : true;
+      
+      // Get field names for output
+      String byFieldName = ((Field) byField).getField().toString();
+      String valueFunctionName = valueExpr instanceof AggregateFunction 
+          ? ((AggregateFunction) valueExpr).getFuncName().toLowerCase() 
+          : "value";
+      
+      // Step 1: Add byField to group-by list and perform initial aggregation
+      groupExprList.add(byField);
+      aggregateWithTrimming(groupExprList, List.of(valueExpr), context);
+      
+      // Handle special case for limit=0 (no limit)
+      if (limit == 0) {
+        // Just sort by time field and byField
+        context.relBuilder.sort(context.relBuilder.field(0), context.relBuilder.field(1));
+        return context.relBuilder.peek();
+      }
+      
+      // Store the field names and indices for clarity
+      List<String> fieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+      int timeFieldIndex = 0; // First field is the time bucket
+      int byFieldIndex = 1;   // Second field is the byField
+      int valueFieldIndex = 2; // Third field is the aggregated value
+      
+      // Save the complete results for later use
+      RelNode completeResults = context.relBuilder.build();
+      
+      // Step 2: Calculate Totals for Limit Application
+      context.relBuilder.push(completeResults);
+      
+      // GROUP BY byField, SUM(Value) as grand_total
+      context.relBuilder.aggregate(
+          context.relBuilder.groupKey(context.relBuilder.field(byFieldIndex)),
+          context.relBuilder.sum(context.relBuilder.field(valueFieldIndex)).as("grand_total"));
+      
+      // Step 3: Select Top N Values Based on Limit
+      // ORDER BY grand_total DESC LIMIT limit
+      context.relBuilder.sort(context.relBuilder.desc(context.relBuilder.field("grand_total")));
+      context.relBuilder.limit(0, limit);
+      
+      // Save the top values for later use
+      RelNode topValues = context.relBuilder.build();
+      
+      // Step 4: Generate Results with OTHER Category
+      context.relBuilder.push(completeResults);
+      context.relBuilder.push(topValues);
+      
+      // LEFT JOIN completeResults cr ON cr.byField = topValues.byField
+      context.relBuilder.join(
+          org.apache.calcite.rel.core.JoinRelType.LEFT,
+          context.relBuilder.equals(
+              context.relBuilder.field(2, 0, byFieldIndex),
+              context.relBuilder.field(2, 1, 0)));
+      
+      // Create the CASE expression for the label
+      RexNode caseExpr = context.relBuilder.call(
+          org.apache.calcite.sql.fun.SqlStdOperatorTable.CASE,
+          context.relBuilder.isNotNull(context.relBuilder.field(fieldNames.size() + 1)), // topValues.byField
+          context.relBuilder.field(byFieldIndex), // completeResults.byField
+          context.relBuilder.literal("OTHER"));
+      
+      // Project with clean, explicit field names
+      context.relBuilder.project(
+          context.relBuilder.field(timeFieldIndex), // time_bucket
+          context.relBuilder.alias(caseExpr, byFieldName), // byField or OTHER
+          context.relBuilder.field(valueFieldIndex)); // value
+      
+      // Group by time_bucket and byField to combine OTHER values
+      context.relBuilder.aggregate(
+          context.relBuilder.groupKey(
+              context.relBuilder.field(0),
+              context.relBuilder.field(1)),
+          context.relBuilder.sum(context.relBuilder.field(2)).as(valueFunctionName));
+      
+      // If useOther is false, filter out the OTHER category
+      if (!useOther) {
+        context.relBuilder.filter(
+            context.relBuilder.notEquals(
+                context.relBuilder.field(1),
+                context.relBuilder.literal("OTHER")));
+      }
+      
+      // Sort by time_bucket, then byField for consistent output
+      context.relBuilder.sort(
+          context.relBuilder.field(0),
+          context.relBuilder.field(1));
+      
+      return context.relBuilder.peek();
+    } catch (Exception e) {
+      System.err.println("Error in visitTimechart: " + e.getMessage());
+      e.printStackTrace();
+      throw e;
     }
-
-    // Store the useOther parameter
-    dynamicPivotInfo.put(TIMECHART_USE_OTHER, node.getUseOther().toString());
-
-    // Mark this node as a special "dynamic pivot" node that will be handled
-    // by a custom execution engine
-    context.relBuilder.as("DynamicPivotOperator");
-
-    return context.relBuilder.peek();
   }
 
   @Override

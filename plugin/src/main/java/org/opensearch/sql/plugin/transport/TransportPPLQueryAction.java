@@ -155,15 +155,6 @@ public class TransportPPLQueryAction
       formatter = new RawResponseFormatter();
     } else if (format.equals(Format.VIZ)) {
       formatter = new VisualizationResponseFormatter(pplRequest.style());
-    } else if (pplRequest.getRequest().toLowerCase().contains("| timechart")) {
-      // Check if this is a timechart query and if it uses count() aggregation
-      String lowerQuery = pplRequest.getRequest().toLowerCase();
-      boolean isCountAggregation = lowerQuery.contains("count()");
-
-      // Create formatter with parameters extracted from the query
-      formatter =
-          PPLService.createTimechartFormatterFromQuery(
-              JsonResponseFormatter.Style.PRETTY, pplRequest.getRequest(), isCountAggregation);
     } else {
       formatter = new SimpleJsonResponseFormatter(JsonResponseFormatter.Style.PRETTY);
     }
