@@ -32,13 +32,13 @@ Parameter Priority Order
 ========================
 When multiple parameters are specified, the bin command follows this priority order:
 
-1. **span** (highest priority) - Fixed interval binning
-2. **minspan** (second priority) - Minimum span constraint binning  
+1. **span** (highest priority) - Set the interval for binning
+2. **minspan** (second priority) - Set the Minimum span for binning
 3. **bins** (third priority) - Sets the maximum amount of bins
-4. **start/end** (fourth priority) - Range-only binning
+4. **start/end** (fourth priority) - Expand the range for binning
 5. **default** (lowest priority) - Automatic magnitude-based binning
 
-Only the highest priority parameter group is used; lower priority parameters are ignored when higher priority ones are present.
+**Note**: The **aligntime** parameter is a modifier that only applies to span-based binning (when using **span**) for time-based fields. It does not affect the priority order for bin type selection.
 
 Parameters
 ============
