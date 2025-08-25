@@ -811,4 +811,52 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(response, rows(1, 4));
   }
+
+  @Test
+  public void testCountEvalSimpleCondition() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format("source=%s | stats count(eval(age > 30)) as c", TEST_INDEX_BANK));
+    verifySchema(actual, schema("c", "bigint"));
+    verifyDataRows(actual, rows(6));
+  }
+
+  @Test
+  public void testCountEvalComplexCondition() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats count(eval(balance > 20000 and age < 35)) as c",
+                TEST_INDEX_BANK));
+    verifySchema(actual, schema("c", "bigint"));
+    verifyDataRows(actual, rows(3));
+  }
+
+  @Test
+  public void testCountEvalGroupBy() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats count(eval(balance > 25000)) as high_balance by gender",
+                TEST_INDEX_BANK));
+    verifySchema(actual, schema("gender", "string"), schema("high_balance", "bigint"));
+    verifyDataRows(actual, rows(3, "F"), rows(1, "M"));
+  }
+
+  @Test
+  public void testCountEvalWithMultipleAggregations() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats count(eval(age > 30)) as mature_count, "
+                    + "count(eval(balance > 25000)) as high_balance_count, "
+                    + "count() as total_count",
+                TEST_INDEX_BANK));
+    verifySchema(
+        actual,
+        schema("mature_count", "bigint"),
+        schema("high_balance_count", "bigint"),
+        schema("total_count", "bigint"));
+    verifyDataRows(actual, rows(6, 4, 7));
+  }
 }
