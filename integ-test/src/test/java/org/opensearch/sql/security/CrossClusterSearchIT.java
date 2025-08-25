@@ -5,6 +5,9 @@
 
 package org.opensearch.sql.security;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_ENGINE_ENABLED;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
@@ -23,6 +26,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.TestUtils;
 
 /** Cross Cluster Search tests to be executed with security plugin. */
 public class CrossClusterSearchIT extends PPLIntegTestCase {
@@ -243,98 +247,146 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
 
   @Test
   public void testCrossClusterListFunction() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | stats list(firstname) as all_names", TEST_INDEX_BANK_REMOTE));
-    verifyColumn(result, columnName("all_names"));
-
-    // Verify list results do not exceed 100 values
-    JSONArray datarows = result.getJSONArray("datarows");
-    assertTrue("List aggregation should return results", datarows.length() > 0);
-    if (datarows.length() > 0) {
-      JSONArray listResult = datarows.getJSONArray(0);
-      if (listResult.length() > 0 && listResult.get(0) instanceof JSONArray) {
-        JSONArray allNames = listResult.getJSONArray(0);
-        assertTrue("List results should not exceed 100 values", allNames.length() <= 100);
+    JSONObject result;
+    try {
+      result =
+          executeQuery(
+              String.format(
+                  "search source=%s | stats list(firstname) as all_names", TEST_INDEX_BANK_REMOTE));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+    
+    if (isCalciteEnabled()) {
+      verifyColumn(result, columnName("all_names"));
+      
+      // Verify list results do not exceed 100 values
+      JSONArray datarows = result.getJSONArray("datarows");
+      assertTrue("List aggregation should return results", datarows.length() > 0);
+      if (datarows.length() > 0) {
+        JSONArray listResult = datarows.getJSONArray(0);
+        if (listResult.length() > 0 && listResult.get(0) instanceof JSONArray) {
+          JSONArray allNames = listResult.getJSONArray(0);
+          assertTrue("List results should not exceed 100 values", allNames.length() <= 100);
+        }
       }
+    } else {
+      JSONObject error = result.getJSONObject("error");
+      assertThat(error.getString("details"), containsString("unsupported function name"));
+      assertThat(error.getString("type"), equalTo("ExpressionEvaluationException"));
     }
   }
 
   @Test
   public void testCrossClusterValuesFunction() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | stats values(gender) as unique_genders",
-                TEST_INDEX_BANK_REMOTE));
-    verifyColumn(result, columnName("unique_genders"));
-
-    // Verify values results do not contain duplicates
-    JSONArray datarows = result.getJSONArray("datarows");
-    assertTrue("Values aggregation should return results", datarows.length() > 0);
-    if (datarows.length() > 0) {
-      JSONArray valuesResult = datarows.getJSONArray(0);
-      if (valuesResult.length() > 0 && valuesResult.get(0) instanceof JSONArray) {
-        JSONArray uniqueGenders = valuesResult.getJSONArray(0);
-        Set<String> seenValues = new HashSet<>();
-        for (int i = 0; i < uniqueGenders.length(); i++) {
-          String value = uniqueGenders.getString(i);
-          assertFalse("Values should not contain duplicates: " + value, seenValues.contains(value));
-          seenValues.add(value);
+    JSONObject result;
+    try {
+      result =
+          executeQuery(
+              String.format(
+                  "search source=%s | stats values(gender) as unique_genders",
+                  TEST_INDEX_BANK_REMOTE));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+    
+    if (isCalciteEnabled()) {
+      verifyColumn(result, columnName("unique_genders"));
+      
+      // Verify values results do not contain duplicates
+      JSONArray datarows = result.getJSONArray("datarows");
+      assertTrue("Values aggregation should return results", datarows.length() > 0);
+      if (datarows.length() > 0) {
+        JSONArray valuesResult = datarows.getJSONArray(0);
+        if (valuesResult.length() > 0 && valuesResult.get(0) instanceof JSONArray) {
+          JSONArray uniqueGenders = valuesResult.getJSONArray(0);
+          Set<String> seenValues = new HashSet<>();
+          for (int i = 0; i < uniqueGenders.length(); i++) {
+            String value = uniqueGenders.getString(i);
+            assertFalse("Values should not contain duplicates: " + value, seenValues.contains(value));
+            seenValues.add(value);
+          }
         }
       }
+    } else {
+      JSONObject error = result.getJSONObject("error");
+      assertThat(error.getString("details"), containsString("unsupported function name"));
+      assertThat(error.getString("type"), equalTo("ExpressionEvaluationException"));
     }
   }
 
   @Test
   public void testCrossClusterListWithGroupBy() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | stats list(firstname) as names by state | fields state, names",
-                TEST_INDEX_BANK_REMOTE));
-    verifyColumn(result, columnName("state"), columnName("names"));
-
-    // Verify list results in grouped data do not exceed 100 values per group
-    JSONArray datarows = result.getJSONArray("datarows");
-    assertTrue("Grouped list aggregation should return results", datarows.length() > 0);
-    for (int i = 0; i < datarows.length(); i++) {
-      JSONArray row = datarows.getJSONArray(i);
-      if (row.length() >= 2 && row.get(1) instanceof JSONArray) {
-        JSONArray namesInGroup = row.getJSONArray(1);
-        assertTrue(
-            "List results per group should not exceed 100 values", namesInGroup.length() <= 100);
+    JSONObject result;
+    try {
+      result =
+          executeQuery(
+              String.format(
+                  "search source=%s | stats list(firstname) as names by state | fields state, names",
+                  TEST_INDEX_BANK_REMOTE));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+    
+    if (isCalciteEnabled()) {
+      verifyColumn(result, columnName("state"), columnName("names"));
+      
+      // Verify list results in grouped data do not exceed 100 values per group
+      JSONArray datarows = result.getJSONArray("datarows");
+      assertTrue("Grouped list aggregation should return results", datarows.length() > 0);
+      for (int i = 0; i < datarows.length(); i++) {
+        JSONArray row = datarows.getJSONArray(i);
+        if (row.length() >= 2 && row.get(1) instanceof JSONArray) {
+          JSONArray namesInGroup = row.getJSONArray(1);
+          assertTrue(
+              "List results per group should not exceed 100 values", namesInGroup.length() <= 100);
+        }
       }
+    } else {
+      JSONObject error = result.getJSONObject("error");
+      assertThat(error.getString("details"), containsString("unsupported function name"));
+      assertThat(error.getString("type"), equalTo("ExpressionEvaluationException"));
     }
   }
 
   @Test
   public void testCrossClusterValuesWithGroupBy() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | stats values(city) as unique_cities by state | fields state,"
-                    + " unique_cities",
-                TEST_INDEX_BANK_REMOTE));
-    verifyColumn(result, columnName("state"), columnName("unique_cities"));
-
-    // Verify values results in grouped data do not contain duplicates per group
-    JSONArray datarows = result.getJSONArray("datarows");
-    assertTrue("Grouped values aggregation should return results", datarows.length() > 0);
-    for (int i = 0; i < datarows.length(); i++) {
-      JSONArray row = datarows.getJSONArray(i);
-      if (row.length() >= 2 && row.get(1) instanceof JSONArray) {
-        JSONArray citiesInGroup = row.getJSONArray(1);
-        Set<String> seenValues = new HashSet<>();
-        for (int j = 0; j < citiesInGroup.length(); j++) {
-          String value = citiesInGroup.getString(j);
-          assertFalse(
-              "Values should not contain duplicates in group: " + value,
-              seenValues.contains(value));
-          seenValues.add(value);
+    JSONObject result;
+    try {
+      result =
+          executeQuery(
+              String.format(
+                  "search source=%s | stats values(city) as unique_cities by state | fields state,"
+                      + " unique_cities",
+                  TEST_INDEX_BANK_REMOTE));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+    
+    if (isCalciteEnabled()) {
+      verifyColumn(result, columnName("state"), columnName("unique_cities"));
+      
+      // Verify values results in grouped data do not contain duplicates per group
+      JSONArray datarows = result.getJSONArray("datarows");
+      assertTrue("Grouped values aggregation should return results", datarows.length() > 0);
+      for (int i = 0; i < datarows.length(); i++) {
+        JSONArray row = datarows.getJSONArray(i);
+        if (row.length() >= 2 && row.get(1) instanceof JSONArray) {
+          JSONArray citiesInGroup = row.getJSONArray(1);
+          Set<String> seenValues = new HashSet<>();
+          for (int j = 0; j < citiesInGroup.length(); j++) {
+            String value = citiesInGroup.getString(j);
+            assertFalse(
+                "Values should not contain duplicates in group: " + value,
+                seenValues.contains(value));
+            seenValues.add(value);
+          }
         }
       }
+    } else {
+      JSONObject error = result.getJSONObject("error");
+      assertThat(error.getString("details"), containsString("unsupported function name"));
+      assertThat(error.getString("type"), equalTo("ExpressionEvaluationException"));
     }
   }
 }
