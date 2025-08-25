@@ -641,4 +641,25 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
                             DataType.STRING))));
     return builder.build();
   }
+
+  // New visitor methods for spanValue grammar rules
+
+  @Override
+  public UnresolvedExpression visitNumericSpanValue(
+      OpenSearchPPLParser.NumericSpanValueContext ctx) {
+    String spanValue = ctx.literalValue().getText();
+    String spanUnit = ctx.timespanUnit() != null ? ctx.timespanUnit().getText() : null;
+
+    if (spanUnit != null) {
+      // Create combined span like "1h", "30m", etc.
+      return org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(spanValue + spanUnit);
+    } else {
+      return visit(ctx.literalValue());
+    }
+  }
+
+  @Override
+  public UnresolvedExpression visitLogWithBaseSpan(OpenSearchPPLParser.LogWithBaseSpanContext ctx) {
+    return org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(ctx.getText());
+  }
 }
