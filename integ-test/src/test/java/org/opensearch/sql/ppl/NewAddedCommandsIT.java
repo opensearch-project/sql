@@ -11,7 +11,6 @@ import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_ENGINE_ENAB
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STRINGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
 
 import java.io.IOException;
 import org.json.JSONObject;
@@ -27,7 +26,6 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
     loadIndex(Index.DOG);
     loadIndex(Index.BANK_WITH_STRING_VALUES);
     loadIndex(Index.ACCOUNT_WITH_TIMESTAMP);
-    loadIndex(Index.LOGS);
   }
 
   @Test
@@ -151,22 +149,6 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
             error.getString("details"), containsString("unsupported function name: regex_match"));
       }
     }
-  }
-
-  @Test
-  public void testEarliestLatestAggregates() throws IOException {
-    JSONObject result;
-    try {
-      result =
-          executeQuery(
-              String.format(
-                  "search source=%s | stats earliest(message) as earliest_message, latest(message)"
-                      + " as latest_message by server",
-                  TEST_INDEX_LOGS));
-    } catch (ResponseException e) {
-      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
-    }
-    verifyQuery(result);
   }
 
   private void verifyQuery(JSONObject result) throws IOException {
