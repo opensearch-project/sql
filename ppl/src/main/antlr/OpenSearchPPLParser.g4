@@ -964,12 +964,14 @@ positionFunctionName
 // operators
  comparisonOperator
    : EQUAL
+   | DOUBLE_EQUAL
    | NOT_EQUAL
    | LESS
    | NOT_LESS
    | GREATER
    | NOT_GREATER
    | REGEXP
+   | LIKE
    ;
 
 singleFieldRelevanceFunctionName
