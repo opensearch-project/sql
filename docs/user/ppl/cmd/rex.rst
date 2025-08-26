@@ -57,10 +57,10 @@ PPL query::
     +--------------------------+--------------+---------+
 
 
-Example 2: Extract with Filtering
-==================================
+Example 2: Handling Non-matching Patterns
+==========================================
 
-The rex command automatically filters out events that don't match the pattern.
+The rex command returns all events, setting extracted fields to null for non-matching patterns.
 
 PPL query::
 
@@ -173,7 +173,7 @@ Feature                        rex          parse
 ============================= ============ ============
 Pattern Type                   Java Regex   Java Regex
 Named Groups Required          Yes          Yes
-Filtering by Match             Yes          Yes  
+Filtering by Match             No           Yes  
 Multiple Matches               Yes          No
 Text Substitution              Yes          No
 Offset Tracking                Yes          No
