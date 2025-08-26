@@ -7,7 +7,6 @@ package org.opensearch.sql.security;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
-import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_ENGINE_ENABLED;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
@@ -256,10 +255,10 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
     } catch (ResponseException e) {
       result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
     }
-    
+
     if (isCalciteEnabled()) {
       verifyColumn(result, columnName("all_names"));
-      
+
       // Verify list results do not exceed 100 values
       JSONArray datarows = result.getJSONArray("datarows");
       assertTrue("List aggregation should return results", datarows.length() > 0);
@@ -289,10 +288,10 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
     } catch (ResponseException e) {
       result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
     }
-    
+
     if (isCalciteEnabled()) {
       verifyColumn(result, columnName("unique_genders"));
-      
+
       // Verify values results do not contain duplicates
       JSONArray datarows = result.getJSONArray("datarows");
       assertTrue("Values aggregation should return results", datarows.length() > 0);
@@ -303,7 +302,8 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
           Set<String> seenValues = new HashSet<>();
           for (int i = 0; i < uniqueGenders.length(); i++) {
             String value = uniqueGenders.getString(i);
-            assertFalse("Values should not contain duplicates: " + value, seenValues.contains(value));
+            assertFalse(
+                "Values should not contain duplicates: " + value, seenValues.contains(value));
             seenValues.add(value);
           }
         }
@@ -322,15 +322,16 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
       result =
           executeQuery(
               String.format(
-                  "search source=%s | stats list(firstname) as names by state | fields state, names",
+                  "search source=%s | stats list(firstname) as names by state | fields state,"
+                      + " names",
                   TEST_INDEX_BANK_REMOTE));
     } catch (ResponseException e) {
       result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
     }
-    
+
     if (isCalciteEnabled()) {
       verifyColumn(result, columnName("state"), columnName("names"));
-      
+
       // Verify list results in grouped data do not exceed 100 values per group
       JSONArray datarows = result.getJSONArray("datarows");
       assertTrue("Grouped list aggregation should return results", datarows.length() > 0);
@@ -362,10 +363,10 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
     } catch (ResponseException e) {
       result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
     }
-    
+
     if (isCalciteEnabled()) {
       verifyColumn(result, columnName("state"), columnName("unique_cities"));
-      
+
       // Verify values results in grouped data do not contain duplicates per group
       JSONArray datarows = result.getJSONArray("datarows");
       assertTrue("Grouped values aggregation should return results", datarows.length() > 0);
