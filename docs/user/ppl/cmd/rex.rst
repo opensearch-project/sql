@@ -39,23 +39,6 @@ rex [mode=<mode>] field=<field> <pattern> [max_match=<int>] [offset_field=<strin
 * max_match: optional integer (default=1). Maximum number of matches to extract. If greater than 1, extracted fields become arrays.
 * offset_field: optional string. Field name to store the character offset positions of matches.
 
-Named Capture Group Limitations
-================================
-**Important**: Due to Java regex engine limitations, named capture groups cannot contain underscores.
-
-**Valid group names:**
-
-* ``(?<username>pattern)`` 
-* ``(?<field1>pattern)``
-* ``(?<emaildomain>pattern)``
-
-**Invalid group names:**
-
-* ``(?<user_name>pattern)`` ← Contains underscore
-* ``(?<first_initial>pattern)`` ← Contains underscore  
-* ``(?<email_domain>pattern)`` ← Contains underscore
-
-
 Example 1: Basic Field Extraction
 ==================================
 
@@ -213,23 +196,3 @@ There are several important limitations with the rex command:
 
 - Pattern must contain at least one named capture group
 - Regular capture groups ``(...)`` without names are not allowed
-- Pattern must use Java regex syntax, not Perl or other flavors
-
-**Field Behavior:**
-
-- rex automatically filters out events that don't match the pattern
-- In extract mode, creates new fields from named capture groups
-- In sed mode, modifies the original field content
-- When max_match > 1, extracted fields become arrays
-
-**Performance Considerations:**
-
-- Complex patterns with large max_match values may impact performance
-- Consider the specificity of patterns to avoid unnecessary processing
-- Use anchors (^ $) appropriately to improve matching efficiency
-
-**Integration:**
-
-- Extracted fields can be used in subsequent PPL commands (where, stats, sort, etc.)
-- sed mode modifications affect the field for subsequent operations
-- offset_field provides debugging information for pattern matching
