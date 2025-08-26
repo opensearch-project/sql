@@ -91,7 +91,7 @@ public class QueryResult implements Iterable<Object[]> {
   }
 
   private String getColumnName(Column column) {
-    return column.getAlias() != null ? column.getAlias() : column.getName();
+    return (column.getAlias() != null) ? column.getAlias() : column.getName();
   }
 
   private Object[] convertExprValuesToValues(Collection<ExprValue> exprValues) {
