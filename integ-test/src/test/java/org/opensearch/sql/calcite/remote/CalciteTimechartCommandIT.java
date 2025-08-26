@@ -308,12 +308,7 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
   }
 
   private void createEventsIndex() throws IOException {
-    String eventsMapping =
-        "{\"mappings\":{\"properties\":{\"@timestamp\":{\"type\":\"date\"},\"host\":{\"type\":\"keyword\"},\"service\":{\"type\":\"keyword\"},\"response_time\":{\"type\":\"integer\"},\"status_code\":{\"type\":\"integer\"},\"bytes_sent\":{\"type\":\"long\"},\"cpu_usage\":{\"type\":\"double\"},\"memory_usage\":{\"type\":\"double\"},\"region\":{\"type\":\"keyword\"},\"environment\":{\"type\":\"keyword\"}}}}";
-    if (!isIndexExist(client(), "events")) {
-      createIndexByRestClient(client(), "events", eventsMapping);
-      loadDataByRestClient(client(), "events", "src/test/resources/events_test.json");
-    }
+    loadIndex(Index.EVENTS);
   }
 
   private void createEventsManyHostsIndex() throws IOException {
