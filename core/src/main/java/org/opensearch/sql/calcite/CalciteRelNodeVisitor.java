@@ -1369,9 +1369,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
   }
 
-  /**
-   * Transforms timechart command into SQL-based operations to overcome the 10K bucket limitation.
-   */
+  /** Transforms timechart command into SQL-based operations. */
   @Override
   public RelNode visitTimechart(
       org.opensearch.sql.ast.tree.Timechart node, CalcitePlanContext context) {
@@ -1390,9 +1388,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       String valueFunctionName = getValueFunctionName(node.getAggregateFunction());
 
       aggregateWithTrimming(groupExprList, List.of(node.getAggregateFunction()), context);
-      context.relBuilder.project(
-          context.relBuilder.alias(context.relBuilder.field(0), "@timestamp"),
-          context.relBuilder.alias(context.relBuilder.field(1), valueFunctionName));
+
+      // Store original field names in context for later use
+      context.getOriginalFieldNames().put(0, "@timestamp");
+      context.getOriginalFieldNames().put(1, valueFunctionName);
 
       context.relBuilder.sort(context.relBuilder.field(0));
       return context.relBuilder.peek();

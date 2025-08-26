@@ -205,7 +205,8 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
                     () -> {
                       try (PreparedStatement statement = OpenSearchRelRunners.run(context, rel)) {
                         ResultSet result = statement.executeQuery();
-                        buildResultSet(result, rel.getRowType(), context.querySizeLimit, listener);
+                        buildResultSet(
+                            result, rel.getRowType(), context.querySizeLimit, context, listener);
                       } catch (SQLException e) {
                         throw new RuntimeException(e);
                       }
@@ -217,6 +218,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       ResultSet resultSet,
       RelDataType rowTypes,
       Integer querySizeLimit,
+      CalcitePlanContext context,
       ResponseListener<QueryResponse> listener)
       throws SQLException {
     // Get the ResultSet metadata to know about columns
@@ -231,12 +233,14 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       // Loop through each column
       for (int i = 1; i <= columnCount; i++) {
         String columnName = metaData.getColumnName(i);
+        // Use original field name from context if available, fallback to metadata column name
+        String fieldName = context.getOriginalFieldNames().getOrDefault(i - 1, columnName);
         int sqlType = metaData.getColumnType(i);
         RelDataType fieldType = fieldTypes.get(i - 1);
         ExprValue exprValue =
             JdbcOpenSearchDataTypeConvertor.getExprValueFromSqlType(
                 resultSet, i, sqlType, fieldType, columnName);
-        row.put(columnName, exprValue);
+        row.put(fieldName, exprValue);
       }
       values.add(ExprTupleValue.fromExprValueMap(row));
     }
@@ -244,6 +248,9 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     List<Column> columns = new ArrayList<>(metaData.getColumnCount());
     for (int i = 1; i <= columnCount; ++i) {
       String columnName = metaData.getColumnName(i);
+      // Use original field name from context if available, fallback to metadata column name
+      String fieldName = context.getOriginalFieldNames().getOrDefault(i - 1, columnName);
+
       RelDataType fieldType = fieldTypes.get(i - 1);
       // TODO: Correct this after fixing issue github.com/opensearch-project/sql/issues/3751
       //  The element type of struct and array is currently set to ANY.
@@ -251,7 +258,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       ExprType exprType;
       if (fieldType.getSqlTypeName() == SqlTypeName.ANY) {
         if (!values.isEmpty()) {
-          exprType = values.getFirst().tupleValue().get(columnName).type();
+          exprType = values.getFirst().tupleValue().get(fieldName).type();
         } else {
           // Using UNDEFINED instead of UNKNOWN to avoid throwing exception
           exprType = ExprCoreType.UNDEFINED;
@@ -259,7 +266,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       } else {
         exprType = OpenSearchTypeFactory.convertRelDataTypeToExprType(fieldType);
       }
-      columns.add(new Column(columnName, null, exprType));
+      columns.add(new Column(fieldName, null, exprType));
     }
     Schema schema = new Schema(columns);
     QueryResponse response = new QueryResponse(schema, values, null);

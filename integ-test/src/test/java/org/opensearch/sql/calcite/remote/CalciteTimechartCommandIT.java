@@ -89,7 +89,7 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
   @Test
   public void testTimechartWithMinuteSpanNoGroupBy() throws IOException {
     JSONObject result = executeQuery("source=events | timechart span=1m avg(cpu_usage)");
-    verifySchema(result, schema("$f2", "timestamp"), schema("$f1", "double"));
+    verifySchema(result, schema("@timestamp", "timestamp"), schema("avg(cpu_usage)", "double"));
     verifyDataRows(
         result,
         rows("2024-07-01 00:00:00", 45.2),

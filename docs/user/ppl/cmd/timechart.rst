@@ -11,7 +11,7 @@ timechart
 
 Description
 ============
-| The ``timechart`` command creates a time-based visualization of aggregated data. It groups data by time intervals and optionally by a field, then applies an aggregation function to each group.
+| The ``timechart`` command creates a time-based aggregation of data. It groups data by time intervals and optionally by a field, then applies an aggregation function to each group. The results are returned in an unpivoted format with separate rows for each time-field combination.
 
 Version
 =======
@@ -70,17 +70,16 @@ Notes
 =====
 
 * The ``timechart`` command requires a timestamp field named ``@timestamp`` in the data.
-* For count() aggregation, when no data exists for a specific combination of timestamp and field value, ``0`` is displayed instead of ``null``.
-* For other aggregation functions, when no data exists for a specific combination of timestamp and field value, ``null`` is displayed rather than ``0``. This preserves the distinction between "no data" and "zero value".
+* Results are returned in an unpivoted format with separate rows for each time-field combination that has data.
+* Only combinations with actual data are included in the results - empty combinations are omitted rather than showing null or zero values.
 * The "top N" values for the ``limit`` parameter are selected based on the sum of values across all time intervals for each distinct field value.
+* When using the ``limit`` parameter, values beyond the limit are grouped into an "OTHER" category (unless ``useother=false``).
 * Examples 5 and 6 use different datasets: Example 5 uses the ``events`` dataset with fewer hosts for simplicity, while Example 6 uses the ``events_many_hosts`` dataset with 11 distinct hosts.
 
 Limitations
 ============
-* The ``timechart`` command must be the last command in the PPL query pipeline since the pivot formatting is applied as the final step.
 * Only a single aggregation function is supported per timechart command.
 * The ``bins`` parameter and other bin options are not supported since the ``bin`` command is not implemented yet. Use the ``span`` parameter to control time intervals.
-* Cannot be combined with other commands that expect tabular data after timechart due to the pivot transformation.
 
 Examples
 ========
@@ -96,11 +95,13 @@ PPL query::
 
 Result::
 
-    +---------------------+-------+--------+--------+
-    | @timestamp          | db-01 | web-01 | web-02 |
-    +---------------------+-------+--------+--------+
-    | 2024-07-01 00:00:00 | 1     | 2      | 2      |
-    +---------------------+-------+--------+--------+
+    +---------------------+--------+-------+
+    | @timestamp          | host   | count |
+    +---------------------+--------+-------+
+    | 2024-07-01 00:00:00 | db-01  | 1     |
+    | 2024-07-01 00:00:00 | web-01 | 2     |
+    | 2024-07-01 00:00:00 | web-02 | 2     |
+    +---------------------+--------+-------+
 
 Example 2: Count events by minute
 =================================
@@ -113,15 +114,15 @@ PPL query::
 
 Result::
 
-    +---------------------+-------+--------+--------+
-    | @timestamp          | db-01 | web-01 | web-02 |
-    +---------------------+-------+--------+--------+
-    | 2024-07-01 00:00:00 | 0     | 1      | 0      |
-    | 2024-07-01 00:01:00 | 0     | 0      | 1      |
-    | 2024-07-01 00:02:00 | 0     | 1      | 0      |
-    | 2024-07-01 00:03:00 | 1     | 0      | 0      |
-    | 2024-07-01 00:04:00 | 0     | 0      | 1      |
-    +---------------------+-------+--------+--------+
+    +---------------------+--------+-------+
+    | @timestamp          | host   | count |
+    +---------------------+--------+-------+
+    | 2024-07-01 00:00:00 | web-01 | 1     |
+    | 2024-07-01 00:01:00 | web-02 | 1     |
+    | 2024-07-01 00:02:00 | web-01 | 1     |
+    | 2024-07-01 00:03:00 | db-01  | 1     |
+    | 2024-07-01 00:04:00 | web-02 | 1     |
+    +---------------------+--------+-------+
 
 Example 3: Calculate average CPU usage by minute
 ================================================
@@ -134,15 +135,15 @@ PPL query::
 
 Result::
 
-    +---------------------+--------+
-    | @timestamp          | $f1    |
-    +---------------------+--------+
-    | 2024-07-01 00:00:00 | 45.2   |
-    | 2024-07-01 00:01:00 | 38.7   |
-    | 2024-07-01 00:02:00 | 55.3   |
-    | 2024-07-01 00:03:00 | 42.1   |
-    | 2024-07-01 00:04:00 | 41.8   |
-    +---------------------+--------+
+    +---------------------+------------------+
+    | @timestamp          | avg(cpu_usage)   |
+    +---------------------+------------------+
+    | 2024-07-01 00:00:00 | 45.2             |
+    | 2024-07-01 00:01:00 | 38.7             |
+    | 2024-07-01 00:02:00 | 55.3             |
+    | 2024-07-01 00:03:00 | 42.1             |
+    | 2024-07-01 00:04:00 | 41.8             |
+    +---------------------+------------------+
 
 Example 4: Count events by second and region
 ============================================
@@ -155,15 +156,15 @@ PPL query::
 
 Result::
 
-    +---------------------+---------+---------+---------+
-    | @timestamp          | eu-west | us-east | us-west |
-    +---------------------+---------+---------+---------+
-    | 2024-07-01 00:00:00 | 0       | 1       | 0       |
-    | 2024-07-01 00:01:00 | 0       | 0       | 1       |
-    | 2024-07-01 00:02:00 | 0       | 1       | 0       |
-    | 2024-07-01 00:03:00 | 1       | 0       | 0       |
-    | 2024-07-01 00:04:00 | 0       | 0       | 1       |
-    +---------------------+---------+---------+---------+
+    +---------------------+---------+-------+
+    | @timestamp          | region  | count |
+    +---------------------+---------+-------+
+    | 2024-07-01 00:00:00 | us-east | 1     |
+    | 2024-07-01 00:01:00 | us-west | 1     |
+    | 2024-07-01 00:02:00 | us-east | 1     |
+    | 2024-07-01 00:03:00 | eu-west | 1     |
+    | 2024-07-01 00:04:00 | us-west | 1     |
+    +---------------------+---------+-------+
 
 Example 5: Using the limit parameter
 ====================================
@@ -176,15 +177,15 @@ Example::
 
 Result::
 
-    +---------------------+--------+--------+-------+
-    | @timestamp          | web-01 | web-02 | OTHER |
-    +---------------------+--------+--------+-------+
-    | 2024-07-01 00:00:00 | 45.2   | null   | null  |
-    | 2024-07-01 00:01:00 | null   | 38.7   | null  |
-    | 2024-07-01 00:02:00 | 55.3   | null   | null  |
-    | 2024-07-01 00:03:00 | null   | null   | 42.1  |
-    | 2024-07-01 00:04:00 | null   | 41.8   | null  |
-    +---------------------+--------+--------+-------+
+    +---------------------+--------+------------------+
+    | @timestamp          | host   | avg(cpu_usage)   |
+    +---------------------+--------+------------------+
+    | 2024-07-01 00:00:00 | web-01 | 45.2             |
+    | 2024-07-01 00:01:00 | web-02 | 38.7             |
+    | 2024-07-01 00:02:00 | web-01 | 55.3             |
+    | 2024-07-01 00:03:00 | OTHER  | 42.1             |
+    | 2024-07-01 00:04:00 | web-02 | 41.8             |
+    +---------------------+--------+------------------+
 
 Example 6: Using limit=0 to show all values
 ===========================================
@@ -197,13 +198,23 @@ PPL query::
 
 Result::
 
-    +---------------------+--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
-    | @timestamp          | web-01 | web-02 | web-03 | web-04 | web-05 | web-06 | web-07 | web-08 | web-09 | web-10 | web-11 |
-    +---------------------+--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
-    | 2024-07-01 00:00:00 | 45.2   | 38.7   | 55.3   | 42.1   | 41.8   | 39.4   | 48.6   | 44.2   | 67.8   | 35.9   | 43.1   |
-    +---------------------+--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+    +---------------------+--------+------------------+
+    | @timestamp          | host   | avg(cpu_usage)   |
+    +---------------------+--------+------------------+
+    | 2024-07-01 00:00:00 | web-01 | 45.2             |
+    | 2024-07-01 00:00:00 | web-02 | 38.7             |
+    | 2024-07-01 00:00:00 | web-03 | 55.3             |
+    | 2024-07-01 00:00:00 | web-04 | 42.1             |
+    | 2024-07-01 00:00:00 | web-05 | 41.8             |
+    | 2024-07-01 00:00:00 | web-06 | 39.4             |
+    | 2024-07-01 00:00:00 | web-07 | 48.6             |
+    | 2024-07-01 00:00:00 | web-08 | 44.2             |
+    | 2024-07-01 00:00:00 | web-09 | 67.8             |
+    | 2024-07-01 00:00:00 | web-10 | 35.9             |
+    | 2024-07-01 00:00:00 | web-11 | 43.1             |
+    +---------------------+--------+------------------+
 
-This shows all 11 hosts as separate columns without an "OTHER" category.
+This shows all 11 hosts as separate rows without an "OTHER" category.
 
 Example 7: Using limit with useother parameter
 ==============================================
@@ -216,11 +227,14 @@ PPL query::
 
 Result::
 
-    +---------------------+--------+--------+--------+-------+
-    | @timestamp          | web-03 | web-07 | web-09 | OTHER |
-    +---------------------+--------+--------+--------+-------+
-    | 2024-07-01 00:00:00 | 55.3   | 48.6   | 67.8   | 330.4 |
-    +---------------------+--------+--------+--------+-------+
+    +---------------------+--------+------------------+
+    | @timestamp          | host   | avg(cpu_usage)   |
+    +---------------------+--------+------------------+
+    | 2024-07-01 00:00:00 | web-03 | 55.3             |
+    | 2024-07-01 00:00:00 | web-07 | 48.6             |
+    | 2024-07-01 00:00:00 | web-09 | 67.8             |
+    | 2024-07-01 00:00:00 | OTHER  | 35.9             |
+    +---------------------+--------+------------------+
 
 Limit to top 3 hosts without OTHER category (useother=false):
 
@@ -230,8 +244,10 @@ PPL query::
 
 Result::
 
-    +---------------------+--------+--------+--------+
-    | @timestamp          | web-03 | web-07 | web-09 |
-    +---------------------+--------+--------+--------+
-    | 2024-07-01 00:00:00 | 55.3   | 48.6   | 67.8   |
-    +---------------------+--------+--------+--------+
+    +---------------------+--------+------------------+
+    | @timestamp          | host   | avg(cpu_usage)   |
+    +---------------------+--------+------------------+
+    | 2024-07-01 00:00:00 | web-03 | 55.3             |
+    | 2024-07-01 00:00:00 | web-07 | 48.6             |
+    | 2024-07-01 00:00:00 | web-09 | 67.8             |
+    +---------------------+--------+------------------+
