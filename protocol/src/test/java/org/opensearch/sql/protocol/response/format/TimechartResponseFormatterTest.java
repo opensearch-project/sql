@@ -368,7 +368,7 @@ class TimechartResponseFormatterTest {
     Object[] dataRow = response.getDatarows()[0];
     assertEquals(null, dataRow[3]); // OTHER should be null when sum is 0.0
   }
-  
+
   @Test
   void testOtherCategoryWithZeroSumAndCountAggregation() {
     QueryResult queryResult =
@@ -390,14 +390,10 @@ class TimechartResponseFormatterTest {
     Object[] dataRow = response.getDatarows()[0];
     assertEquals(0L, dataRow[3]); // OTHER should be 0L when sum is 0.0 for count aggregation
   }
-  
+
   @Test
   void testEmptyColumnNames() {
-    QueryResult queryResult =
-        mockQueryResult(
-            Arrays.asList(),
-            Map.of(),
-            Arrays.<Object[]>asList());
+    QueryResult queryResult = mockQueryResult(Arrays.asList(), Map.of(), Arrays.<Object[]>asList());
 
     TimechartResponseFormatter formatter =
         new TimechartResponseFormatter(JsonResponseFormatter.Style.COMPACT);
@@ -406,7 +402,7 @@ class TimechartResponseFormatterTest {
     assertEquals(0, response.getTotal());
     assertEquals(0, response.getSchema().size());
   }
-  
+
   @Test
   void testSpecialCaseForCountAggregationWithZeroValue() {
     QueryResult queryResult =

@@ -5,10 +5,10 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.opensearch.sql.legacy.TestUtils.*;
 import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.MatcherUtils.*;
-import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
 import org.json.JSONObject;
@@ -45,9 +45,9 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
     JSONObject result = executeQuery("source=events | timechart span=1h count() by host");
     verifySchema(
         result,
-        schema("T", "timestamp"),
-        schema("Label", "keyword"),
-        schema("Value", "bigint"));
+        schema("@timestamp", "timestamp"),
+        schema("host", "string"),
+        schema("count", "bigint"));
     verifyDataRows(
         result,
         rows("2024-07-01 00:00:00", "db-01", 1),
@@ -61,9 +61,9 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
     JSONObject result = executeQuery("source=events | timechart span=1m count() by host");
     verifySchema(
         result,
-        schema("T", "timestamp"),
-        schema("Label", "keyword"),
-        schema("Value", "bigint"));
+        schema("@timestamp", "timestamp"),
+        schema("host", "string"),
+        schema("count", "bigint"));
     verifyDataRows(
         result,
         rows("2024-07-01 00:00:00", "web-01", 1),
@@ -95,10 +95,7 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
   @Test
   public void testTimechartWithMinuteSpanNoGroupBy() throws IOException {
     JSONObject result = executeQuery("source=events | timechart span=1m avg(cpu_usage)");
-    verifySchema(
-        result,
-        schema("T", "timestamp"),
-        schema("Value", "double"));
+    verifySchema(result, schema("$f2", "timestamp"), schema("$f1", "double"));
     assertEquals(5, result.getInt("total"));
   }
 
@@ -107,9 +104,9 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
     JSONObject result = executeQuery("source=events | timechart span=1s count() by region");
     verifySchema(
         result,
-        schema("T", "timestamp"),
-        schema("Label", "keyword"),
-        schema("Value", "bigint"));
+        schema("@timestamp", "timestamp"),
+        schema("region", "string"),
+        schema("count", "bigint"));
     verifyDataRows(
         result,
         rows("2024-07-01 00:00:00", "us-east", 1),
@@ -127,9 +124,9 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
 
     verifySchema(
         result,
-        schema("T", "timestamp"),
-        schema("Label", "keyword"),
-        schema("Value", "double"));
+        schema("@timestamp", "timestamp"),
+        schema("host", "string"),
+        schema("avg(cpu_usage)", "double"));
 
     // Verify we have 11 data rows (10 hosts + OTHER)
     assertEquals(11, result.getJSONArray("datarows").length());
@@ -154,9 +151,9 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
 
     verifySchema(
         result,
-        schema("T", "timestamp"),
-        schema("Label", "keyword"),
-        schema("Value", "double"));
+        schema("@timestamp", "timestamp"),
+        schema("host", "string"),
+        schema("avg(cpu_usage)", "double"));
 
     // Verify we have rows for web-01, web-02, and OTHER
     boolean foundWeb01 = false;
@@ -166,7 +163,7 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
     for (int i = 0; i < result.getJSONArray("datarows").length(); i++) {
       Object[] row = result.getJSONArray("datarows").getJSONArray(i).toList().toArray();
       String label = (String) row[1];
-      
+
       if ("web-01".equals(label)) {
         foundWeb01 = true;
       } else if ("web-02".equals(label)) {
@@ -190,9 +187,9 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
 
     verifySchema(
         result,
-        schema("T", "timestamp"),
-        schema("Label", "keyword"),
-        schema("Value", "double"));
+        schema("@timestamp", "timestamp"),
+        schema("host", "string"),
+        schema("avg(cpu_usage)", "double"));
 
     // Verify we have 11 data rows (all 11 hosts, no OTHER)
     assertEquals(11, result.getJSONArray("datarows").length());
@@ -217,9 +214,9 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
 
     verifySchema(
         result,
-        schema("T", "timestamp"),
-        schema("Label", "keyword"),
-        schema("Value", "double"));
+        schema("@timestamp", "timestamp"),
+        schema("host", "string"),
+        schema("avg(cpu_usage)", "double"));
 
     // Verify we have 10 data rows (top 10 hosts, no OTHER)
     assertEquals(10, result.getJSONArray("datarows").length());
@@ -242,9 +239,9 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
 
     verifySchema(
         result,
-        schema("T", "timestamp"),
-        schema("Label", "keyword"),
-        schema("Value", "bigint"));
+        schema("@timestamp", "timestamp"),
+        schema("host", "string"),
+        schema("count", "bigint"));
 
     // In unpivoted format, we only have rows with actual values, not zeros
     verifyDataRows(
@@ -267,9 +264,9 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
 
     verifySchema(
         result,
-        schema("T", "timestamp"),
-        schema("Label", "keyword"),
-        schema("Value", "double"));
+        schema("@timestamp", "timestamp"),
+        schema("host", "string"),
+        schema("avg(cpu_usage)", "double"));
 
     // Verify we have 4 data rows (3 hosts + OTHER)
     assertEquals(4, result.getJSONArray("datarows").length());
@@ -284,7 +281,7 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
     for (int i = 0; i < result.getJSONArray("datarows").length(); i++) {
       Object[] row = result.getJSONArray("datarows").getJSONArray(i).toList().toArray();
       String label = (String) row[1];
-      
+
       if ("web-03".equals(label)) {
         foundWeb03 = true;
         assertEquals(55.3, ((Number) row[2]).doubleValue(), 0.01);
@@ -304,7 +301,7 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
     assertTrue("web-07 not found in results", foundWeb07);
     assertTrue("web-09 not found in results", foundWeb09);
     assertTrue("OTHER category not found in results", foundOther);
-    
+
     // In the unpivoted format, OTHER is not a sum but represents each individual value
     // So we can't check for the exact sum value
   }

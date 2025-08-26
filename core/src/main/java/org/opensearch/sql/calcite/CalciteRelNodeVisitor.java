@@ -16,11 +16,6 @@ import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME_MAIN;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME_SUBSEARCH;
-import static org.opensearch.sql.calcite.utils.PlanUtils.TIMECHART_BY_FIELD;
-import static org.opensearch.sql.calcite.utils.PlanUtils.TIMECHART_LIMIT;
-import static org.opensearch.sql.calcite.utils.PlanUtils.TIMECHART_TIME_FIELD;
-import static org.opensearch.sql.calcite.utils.PlanUtils.TIMECHART_USE_OTHER;
-import static org.opensearch.sql.calcite.utils.PlanUtils.TIMECHART_VALUE_FIELD;
 import static org.opensearch.sql.calcite.utils.PlanUtils.getRelation;
 import static org.opensearch.sql.calcite.utils.PlanUtils.transformPlanToAttachChild;
 
@@ -29,8 +24,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -1226,139 +1221,283 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return relBuilder.peek();
   }
 
+  /** Helper method to get the function name for proper column naming */
+  private String getValueFunctionName(UnresolvedExpression aggregateFunction) {
+    if (aggregateFunction instanceof AggregateFunction) {
+      AggregateFunction aggFunc = (AggregateFunction) aggregateFunction;
+      String funcName = aggFunc.getFuncName().toLowerCase();
+      List<UnresolvedExpression> args = new ArrayList<>();
+      if (aggFunc.getField() != null) {
+        args.add(aggFunc.getField());
+      }
+      if (aggFunc.getArgList() != null) {
+        args.addAll(aggFunc.getArgList());
+      }
+
+      if (args.isEmpty() || funcName.equals("count")) {
+        // Special case for count() to show as just "count" instead of "count(AllFields())"
+        return "count";
+      } else {
+        // Build the full function call string like "avg(cpu_usage)"
+        StringBuilder sb = new StringBuilder(funcName).append("(");
+        for (int i = 0; i < args.size(); i++) {
+          if (i > 0) sb.append(", ");
+          if (args.get(i) instanceof Field) {
+            sb.append(((Field) args.get(i)).getField().toString());
+          } else {
+            sb.append(args.get(i).toString());
+          }
+        }
+        sb.append(")");
+        return sb.toString();
+      }
+    } else {
+      return "value";
+    }
+  }
+
   /**
    * Transforms timechart command into SQL-based operations to overcome the 10K bucket limitation.
-   *
-   * <p>High-level approach:
-   * 1. Create a LogicalTimechart node that represents the timechart operation
-   * 2. Store parameters (timeField, byField, valueField, limit, useOther) in the context
-   * 3. The TimechartToSqlRule will later transform this into SQL operations
-   *
-   * <p>This implementation uses a two-phase approach:
-   * - Phase 1: SQL-based aggregation and filtering (handles ALL data, not limited to 10K buckets)
-   * - Phase 2: Pivot transformation in the formatter (client-side)
    */
   @Override
   public RelNode visitTimechart(
       org.opensearch.sql.ast.tree.Timechart node, CalcitePlanContext context) {
     visitChildren(node, context);
 
-    // Create group-by list with span expression
-    List<UnresolvedExpression> groupExprList = new ArrayList<>();
+    // Extract parameters
     UnresolvedExpression spanExpr =
         node.getBinExpression() != null
             ? node.getBinExpression()
             : AstDSL.span(AstDSL.field("@timestamp"), AstDSL.stringLiteral("1m"), null);
-    groupExprList.add(spanExpr);
 
-    // No pivoting (i.e. no 'by' field)
+    List<UnresolvedExpression> groupExprList = Arrays.asList(spanExpr);
+
+    // Handle simple case without pivoting
     if (node.getByField() == null) {
-      // Simple aggregation without pivoting
+      // Get the function name for proper column naming
+      String valueFunctionName = getValueFunctionName(node.getAggregateFunction());
+
       aggregateWithTrimming(groupExprList, List.of(node.getAggregateFunction()), context);
+
+      // Rename fields to proper names (@timestamp and function name)
+      context.relBuilder.project(
+          context.relBuilder.alias(context.relBuilder.field(0), "@timestamp"),
+          context.relBuilder.alias(context.relBuilder.field(1), valueFunctionName));
+
       context.relBuilder.sort(context.relBuilder.field(0));
       return context.relBuilder.peek();
     }
 
-    // For cases with 'by' field, implement SQL-based approach directly
+    // Extract parameters for pivoting case
+    UnresolvedExpression byField = node.getByField();
+    String byFieldName = ((Field) byField).getField().toString();
+    // Get the full aggregate expression string for proper naming
+    String valueFunctionName;
+    if (node.getAggregateFunction() instanceof AggregateFunction) {
+      AggregateFunction aggFunc = (AggregateFunction) node.getAggregateFunction();
+      String funcName = aggFunc.getFuncName().toLowerCase();
+      List<UnresolvedExpression> args = new ArrayList<>();
+      if (aggFunc.getField() != null) {
+        args.add(aggFunc.getField());
+      }
+      if (aggFunc.getArgList() != null) {
+        args.addAll(aggFunc.getArgList());
+      }
+
+      if (args.isEmpty() || funcName.equals("count")) {
+        // Special case for count() to show as just "count" instead of "count(AllFields())"
+        valueFunctionName = "count";
+      } else {
+        // Build the full function call string like "avg(cpu_usage)"
+        StringBuilder sb = new StringBuilder(funcName).append("(");
+        for (int i = 0; i < args.size(); i++) {
+          if (i > 0) sb.append(", ");
+          if (args.get(i) instanceof Field) {
+            sb.append(((Field) args.get(i)).getField().toString());
+          } else {
+            sb.append(args.get(i).toString());
+          }
+        }
+        sb.append(")");
+        valueFunctionName = sb.toString();
+      }
+    } else {
+      valueFunctionName = "value";
+    }
+
+    int limit = Optional.ofNullable(node.getLimit()).orElse(10);
+    boolean useOther = Optional.ofNullable(node.getUseOther()).orElse(true);
+
     try {
-      // Extract parameters from the node
-      UnresolvedExpression byField = node.getByField();
-      UnresolvedExpression valueExpr = node.getAggregateFunction();
-      Integer limit = node.getLimit() != null ? node.getLimit() : 10;
-      Boolean useOther = node.getUseOther() != null ? node.getUseOther() : true;
-      
-      // Get field names for output
-      String byFieldName = ((Field) byField).getField().toString();
-      String valueFunctionName = valueExpr instanceof AggregateFunction 
-          ? ((AggregateFunction) valueExpr).getFuncName().toLowerCase() 
-          : "value";
-      
-      // Step 1: Add byField to group-by list and perform initial aggregation
-      groupExprList.add(byField);
-      aggregateWithTrimming(groupExprList, List.of(valueExpr), context);
-      
-      // Handle special case for limit=0 (no limit)
+      // Step 1: Initial aggregation - IMPORTANT: order is [spanExpr, byField]
+      groupExprList = Arrays.asList(spanExpr, byField);
+      aggregateWithTrimming(groupExprList, List.of(node.getAggregateFunction()), context);
+
+      // Handle no limit case - just sort and return with correct field order
       if (limit == 0) {
-        // Just sort by time field and byField
+        // Detect field indices first
+        FieldIndices indices =
+            detectFieldIndices(context.relBuilder.peek().getRowType().getFieldNames(), byFieldName);
+
+        // Project to ensure correct field order: [@timestamp, host, value]
+        context.relBuilder.project(
+            context.relBuilder.alias(context.relBuilder.field(indices.timeIndex), "@timestamp"),
+            context.relBuilder.alias(context.relBuilder.field(indices.byIndex), byFieldName),
+            context.relBuilder.alias(
+                context.relBuilder.field(indices.valueIndex), valueFunctionName));
+
         context.relBuilder.sort(context.relBuilder.field(0), context.relBuilder.field(1));
         return context.relBuilder.peek();
       }
-      
-      // Store the field names and indices for clarity
-      List<String> fieldNames = context.relBuilder.peek().getRowType().getFieldNames();
-      int timeFieldIndex = 0; // First field is the time bucket
-      int byFieldIndex = 1;   // Second field is the byField
-      int valueFieldIndex = 2; // Third field is the aggregated value
-      
-      // Save the complete results for later use
+
+      // Detect field indices efficiently
+      FieldIndices indices =
+          detectFieldIndices(context.relBuilder.peek().getRowType().getFieldNames(), byFieldName);
       RelNode completeResults = context.relBuilder.build();
-      
-      // Step 2: Calculate Totals for Limit Application
-      context.relBuilder.push(completeResults);
-      
-      // GROUP BY byField, SUM(Value) as grand_total
-      context.relBuilder.aggregate(
-          context.relBuilder.groupKey(context.relBuilder.field(byFieldIndex)),
-          context.relBuilder.sum(context.relBuilder.field(valueFieldIndex)).as("grand_total"));
-      
-      // Step 3: Select Top N Values Based on Limit
-      // ORDER BY grand_total DESC LIMIT limit
-      context.relBuilder.sort(context.relBuilder.desc(context.relBuilder.field("grand_total")));
-      context.relBuilder.limit(0, limit);
-      
-      // Save the top values for later use
-      RelNode topValues = context.relBuilder.build();
-      
-      // Step 4: Generate Results with OTHER Category
-      context.relBuilder.push(completeResults);
-      context.relBuilder.push(topValues);
-      
-      // LEFT JOIN completeResults cr ON cr.byField = topValues.byField
-      context.relBuilder.join(
-          org.apache.calcite.rel.core.JoinRelType.LEFT,
-          context.relBuilder.equals(
-              context.relBuilder.field(2, 0, byFieldIndex),
-              context.relBuilder.field(2, 1, 0)));
-      
-      // Create the CASE expression for the label
-      RexNode caseExpr = context.relBuilder.call(
-          org.apache.calcite.sql.fun.SqlStdOperatorTable.CASE,
-          context.relBuilder.isNotNull(context.relBuilder.field(fieldNames.size() + 1)), // topValues.byField
-          context.relBuilder.field(byFieldIndex), // completeResults.byField
-          context.relBuilder.literal("OTHER"));
-      
-      // Project with clean, explicit field names
-      context.relBuilder.project(
-          context.relBuilder.field(timeFieldIndex), // time_bucket
-          context.relBuilder.alias(caseExpr, byFieldName), // byField or OTHER
-          context.relBuilder.field(valueFieldIndex)); // value
-      
-      // Group by time_bucket and byField to combine OTHER values
-      context.relBuilder.aggregate(
-          context.relBuilder.groupKey(
-              context.relBuilder.field(0),
-              context.relBuilder.field(1)),
-          context.relBuilder.sum(context.relBuilder.field(2)).as(valueFunctionName));
-      
-      // If useOther is false, filter out the OTHER category
-      if (!useOther) {
-        context.relBuilder.filter(
-            context.relBuilder.notEquals(
-                context.relBuilder.field(1),
-                context.relBuilder.literal("OTHER")));
-      }
-      
-      // Sort by time_bucket, then byField for consistent output
-      context.relBuilder.sort(
-          context.relBuilder.field(0),
-          context.relBuilder.field(1));
-      
-      return context.relBuilder.peek();
+
+      // Step 2: Find top N categories using window function approach (more efficient than separate
+      // aggregation)
+      RelNode topCategories = buildTopCategoriesQuery(completeResults, indices, limit, context);
+
+      // Step 3: Apply OTHER logic with single pass
+      return buildFinalResultWithOther(
+          completeResults,
+          topCategories,
+          indices,
+          byFieldName,
+          valueFunctionName,
+          useOther,
+          context);
+
     } catch (Exception e) {
-      System.err.println("Error in visitTimechart: " + e.getMessage());
-      e.printStackTrace();
-      throw e;
+      throw new RuntimeException("Error in visitTimechart: " + e.getMessage(), e);
     }
+  }
+
+  /** Efficiently detect field indices in a single pass */
+  private static class FieldIndices {
+    final int timeIndex;
+    final int byIndex;
+    final int valueIndex;
+
+    FieldIndices(int timeIndex, int byIndex, int valueIndex) {
+      this.timeIndex = timeIndex;
+      this.byIndex = byIndex;
+      this.valueIndex = valueIndex;
+    }
+  }
+
+  private FieldIndices detectFieldIndices(List<String> fieldNames, String byFieldName) {
+    int timeIndex = -1, byIndex = -1, valueIndex = -1;
+
+    // Debug output
+    System.out.println(
+        "Detecting field indices from: " + fieldNames + ", byFieldName: " + byFieldName);
+
+    for (int i = 0; i < fieldNames.size(); i++) {
+      String fieldName = fieldNames.get(i);
+      System.out.println("Field " + i + ": " + fieldName);
+
+      if (fieldName.equals(byFieldName)) {
+        byIndex = i;
+      } else if (fieldName.startsWith("$f") && timeIndex == -1) {
+        // First $f field we encounter should be the time field
+        timeIndex = i;
+      } else if (fieldName.startsWith("$f") && timeIndex != -1) {
+        // Second $f field should be the value field
+        valueIndex = i;
+      }
+    }
+
+    // Fallback logic - if we didn't find value field, it's the remaining one
+    if (valueIndex == -1) {
+      for (int i = 0; i < fieldNames.size(); i++) {
+        if (i != timeIndex && i != byIndex) {
+          valueIndex = i;
+          break;
+        }
+      }
+    }
+
+    System.out.println(
+        "Detected indices - time: " + timeIndex + ", by: " + byIndex + ", value: " + valueIndex);
+    return new FieldIndices(timeIndex, byIndex, valueIndex);
+  }
+
+  /** Build top categories query using more efficient approach */
+  private RelNode buildTopCategoriesQuery(
+      RelNode completeResults, FieldIndices indices, int limit, CalcitePlanContext context) {
+    context.relBuilder.push(completeResults);
+
+    // Single aggregation to get totals and apply limit
+    context.relBuilder.aggregate(
+        context.relBuilder.groupKey(context.relBuilder.field(indices.byIndex)),
+        context.relBuilder.sum(context.relBuilder.field(indices.valueIndex)).as("grand_total"));
+
+    context
+        .relBuilder
+        .sort(context.relBuilder.desc(context.relBuilder.field("grand_total")))
+        .limit(0, limit);
+
+    return context.relBuilder.build();
+  }
+
+  /** Build final result with OTHER category using efficient single-pass approach */
+  private RelNode buildFinalResultWithOther(
+      RelNode completeResults,
+      RelNode topCategories,
+      FieldIndices indices,
+      String byFieldName,
+      String valueFunctionName,
+      boolean useOther,
+      CalcitePlanContext context) {
+    context.relBuilder.push(completeResults);
+    context.relBuilder.push(topCategories);
+
+    // LEFT JOIN to identify top categories
+    context.relBuilder.join(
+        org.apache.calcite.rel.core.JoinRelType.LEFT,
+        context.relBuilder.equals(
+            context.relBuilder.field(2, 0, indices.byIndex), context.relBuilder.field(2, 1, 0)));
+
+    // Calculate field position after join - topCategories fields start after completeResults fields
+    int topCategoryFieldIndex = completeResults.getRowType().getFieldCount();
+
+    System.out.println(
+        "After join - completeResults field count: "
+            + completeResults.getRowType().getFieldCount());
+    System.out.println("Top category field index: " + topCategoryFieldIndex);
+
+    // Create CASE expression for OTHER logic
+    RexNode categoryExpr =
+        context.relBuilder.call(
+            org.apache.calcite.sql.fun.SqlStdOperatorTable.CASE,
+            context.relBuilder.isNotNull(context.relBuilder.field(topCategoryFieldIndex)),
+            context.relBuilder.field(indices.byIndex),
+            context.relBuilder.literal("OTHER"));
+
+    // Project final fields - CRITICAL: maintain correct field order
+    context.relBuilder.project(
+        context.relBuilder.alias(context.relBuilder.field(indices.timeIndex), "@timestamp"),
+        context.relBuilder.alias(categoryExpr, byFieldName),
+        context.relBuilder.alias(context.relBuilder.field(indices.valueIndex), valueFunctionName));
+
+    // Final aggregation to combine OTHER values
+    context.relBuilder.aggregate(
+        context.relBuilder.groupKey(context.relBuilder.field(0), context.relBuilder.field(1)),
+        context.relBuilder.sum(context.relBuilder.field(2)).as(valueFunctionName));
+
+    // Filter out OTHER if not wanted - FIXED: this should work now
+    if (!useOther) {
+      context.relBuilder.filter(
+          context.relBuilder.notEquals(
+              context.relBuilder.field(1), context.relBuilder.literal("OTHER")));
+    }
+
+    // Final sort
+    context.relBuilder.sort(context.relBuilder.field(0), context.relBuilder.field(1));
+
+    return context.relBuilder.peek();
   }
 
   @Override
