@@ -5,9 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
-import static org.opensearch.sql.legacy.TestUtils.createIndexByRestClient;
-import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
-import static org.opensearch.sql.legacy.TestUtils.loadDataByRestClient;
+import static org.opensearch.sql.legacy.TestUtils.*;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
@@ -17,7 +15,6 @@ import java.util.Locale;
 import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.ppl.ExplainIT;
 
 public class CalciteExplainIT extends ExplainIT {
@@ -27,6 +24,7 @@ public class CalciteExplainIT extends ExplainIT {
     enableCalcite();
     loadIndex(Index.NESTED_SIMPLE);
     loadIndex(Index.TIME_TEST_DATA);
+    loadIndex(Index.EVENTS);
   }
 
   @Override
@@ -218,12 +216,6 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testExplainWithTimechart() throws IOException {
-    // Create events index with timestamp data for timechart test
-    String eventsMapping = TestUtils.getMappingFile("events_index_mapping.json");
-    if (!isIndexExist(client(), "events")) {
-      createIndexByRestClient(client(), "events", eventsMapping);
-      loadDataByRestClient(client(), "events", "src/test/resources/events_test.json");
-    }
     var result = explainQueryToString("source=events | timechart span=1m avg(cpu_usage) by host");
     String expected =
         isPushdownEnabled()

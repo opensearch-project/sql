@@ -1385,14 +1385,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     List<UnresolvedExpression> groupExprList = Arrays.asList(spanExpr);
 
-    // Handle simple case without pivoting
+    // Handle no by field case
     if (node.getByField() == null) {
-      // Get the function name for proper column naming
       String valueFunctionName = getValueFunctionName(node.getAggregateFunction());
 
       aggregateWithTrimming(groupExprList, List.of(node.getAggregateFunction()), context);
-
-      // Rename fields to proper names (@timestamp and function name)
       context.relBuilder.project(
           context.relBuilder.alias(context.relBuilder.field(0), "@timestamp"),
           context.relBuilder.alias(context.relBuilder.field(1), valueFunctionName));
@@ -1401,42 +1398,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       return context.relBuilder.peek();
     }
 
-    // Extract parameters for pivoting case
+    // Extract parameters for byField case
     UnresolvedExpression byField = node.getByField();
     String byFieldName = ((Field) byField).getField().toString();
-    // Get the full aggregate expression string for proper naming
-    String valueFunctionName;
-    if (node.getAggregateFunction() instanceof AggregateFunction) {
-      AggregateFunction aggFunc = (AggregateFunction) node.getAggregateFunction();
-      String funcName = aggFunc.getFuncName().toLowerCase();
-      List<UnresolvedExpression> args = new ArrayList<>();
-      if (aggFunc.getField() != null) {
-        args.add(aggFunc.getField());
-      }
-      if (aggFunc.getArgList() != null) {
-        args.addAll(aggFunc.getArgList());
-      }
-
-      if (args.isEmpty() || funcName.equals("count")) {
-        // Special case for count() to show as just "count" instead of "count(AllFields())"
-        valueFunctionName = "count";
-      } else {
-        // Build the full function call string like "avg(cpu_usage)"
-        StringBuilder sb = new StringBuilder(funcName).append("(");
-        for (int i = 0; i < args.size(); i++) {
-          if (i > 0) sb.append(", ");
-          if (args.get(i) instanceof Field) {
-            sb.append(((Field) args.get(i)).getField().toString());
-          } else {
-            sb.append(args.get(i).toString());
-          }
-        }
-        sb.append(")");
-        valueFunctionName = sb.toString();
-      }
-    } else {
-      valueFunctionName = "value";
-    }
+    String valueFunctionName = getValueFunctionName(node.getAggregateFunction());
 
     int limit = Optional.ofNullable(node.getLimit()).orElse(10);
     boolean useOther = Optional.ofNullable(node.getUseOther()).orElse(true);
@@ -1503,13 +1468,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   private FieldIndices detectFieldIndices(List<String> fieldNames, String byFieldName) {
     int timeIndex = -1, byIndex = -1, valueIndex = -1;
 
-    // Debug output
-    System.out.println(
-        "Detecting field indices from: " + fieldNames + ", byFieldName: " + byFieldName);
-
     for (int i = 0; i < fieldNames.size(); i++) {
       String fieldName = fieldNames.get(i);
-      System.out.println("Field " + i + ": " + fieldName);
 
       if (fieldName.equals(byFieldName)) {
         byIndex = i;
@@ -1532,8 +1492,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       }
     }
 
-    System.out.println(
-        "Detected indices - time: " + timeIndex + ", by: " + byIndex + ", value: " + valueIndex);
     return new FieldIndices(timeIndex, byIndex, valueIndex);
   }
 
@@ -1576,11 +1534,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Calculate field position after join - topCategories fields start after completeResults fields
     int topCategoryFieldIndex = completeResults.getRowType().getFieldCount();
 
-    System.out.println(
-        "After join - completeResults field count: "
-            + completeResults.getRowType().getFieldCount());
-    System.out.println("Top category field index: " + topCategoryFieldIndex);
-
     // Create CASE expression for OTHER logic
     RexNode categoryExpr =
         context.relBuilder.call(
@@ -1600,7 +1553,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         context.relBuilder.groupKey(context.relBuilder.field(0), context.relBuilder.field(1)),
         context.relBuilder.sum(context.relBuilder.field(2)).as(valueFunctionName));
 
-    // Filter out OTHER if not wanted - FIXED: this should work now
+    // Filter out OTHER if not wanted
     if (!useOther) {
       context.relBuilder.filter(
           context.relBuilder.notEquals(

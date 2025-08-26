@@ -5,7 +5,7 @@
         "type": "date"
       },
       "host": {
-        "type": "keyword"
+        "type": "text"
       },
       "cpu_usage": {
         "type": "double"

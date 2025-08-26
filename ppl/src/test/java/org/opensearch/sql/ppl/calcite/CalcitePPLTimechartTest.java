@@ -7,7 +7,6 @@ package org.opensearch.sql.ppl.calcite;
 
 import static org.junit.Assert.assertNotNull;
 
-import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Test;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;

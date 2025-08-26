@@ -25,19 +25,8 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
     disallowCalciteFallback();
 
     // Create events index with timestamp data
-    String eventsMapping =
-        "{\"mappings\":{\"properties\":{\"@timestamp\":{\"type\":\"date\"},\"host\":{\"type\":\"keyword\"},\"service\":{\"type\":\"keyword\"},\"response_time\":{\"type\":\"integer\"},\"status_code\":{\"type\":\"integer\"},\"bytes_sent\":{\"type\":\"long\"},\"cpu_usage\":{\"type\":\"double\"},\"memory_usage\":{\"type\":\"double\"},\"region\":{\"type\":\"keyword\"},\"environment\":{\"type\":\"keyword\"}}}}";
-    if (!isIndexExist(client(), "events")) {
-      createIndexByRestClient(client(), "events", eventsMapping);
-      loadDataByRestClient(client(), "events", "src/test/resources/events_test.json");
-    }
-
-    // Create events_many_hosts index with many distinct host values
-    if (!isIndexExist(client(), "events_many_hosts")) {
-      createIndexByRestClient(client(), "events_many_hosts", eventsMapping);
-      loadDataByRestClient(
-          client(), "events_many_hosts", "src/test/resources/events_many_hosts.json");
-    }
+    createEventsIndex();
+    createEventsManyHostsIndex();
   }
 
   @Test
@@ -85,17 +74,29 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
     }
 
     // Test should throw exception for missing @timestamp field
-    assertThrowsWithReplace(
-        ResponseException.class,
-        () -> {
-          executeQuery("source=no_timestamp | timechart count()");
-        });
+    Throwable exception =
+        assertThrowsWithReplace(
+            ResponseException.class,
+            () -> {
+              executeQuery("source=no_timestamp | timechart count()");
+            });
+    assertTrue(
+        "Error message should mention missing @timestamp field",
+        exception.getMessage().contains("@timestamp")
+            || exception.getMessage().contains("timestamp"));
   }
 
   @Test
   public void testTimechartWithMinuteSpanNoGroupBy() throws IOException {
     JSONObject result = executeQuery("source=events | timechart span=1m avg(cpu_usage)");
     verifySchema(result, schema("$f2", "timestamp"), schema("$f1", "double"));
+    verifyDataRows(
+        result,
+        rows("2024-07-01 00:00:00", 45.2),
+        rows("2024-07-01 00:01:00", 38.7),
+        rows("2024-07-01 00:02:00", 55.3),
+        rows("2024-07-01 00:03:00", 42.1),
+        rows("2024-07-01 00:04:00", 41.8));
     assertEquals(5, result.getInt("total"));
   }
 
@@ -304,5 +305,24 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
 
     // In the unpivoted format, OTHER is not a sum but represents each individual value
     // So we can't check for the exact sum value
+  }
+
+  private void createEventsIndex() throws IOException {
+    String eventsMapping =
+        "{\"mappings\":{\"properties\":{\"@timestamp\":{\"type\":\"date\"},\"host\":{\"type\":\"keyword\"},\"service\":{\"type\":\"keyword\"},\"response_time\":{\"type\":\"integer\"},\"status_code\":{\"type\":\"integer\"},\"bytes_sent\":{\"type\":\"long\"},\"cpu_usage\":{\"type\":\"double\"},\"memory_usage\":{\"type\":\"double\"},\"region\":{\"type\":\"keyword\"},\"environment\":{\"type\":\"keyword\"}}}}";
+    if (!isIndexExist(client(), "events")) {
+      createIndexByRestClient(client(), "events", eventsMapping);
+      loadDataByRestClient(client(), "events", "src/test/resources/events_test.json");
+    }
+  }
+
+  private void createEventsManyHostsIndex() throws IOException {
+    String eventsMapping =
+        "{\"mappings\":{\"properties\":{\"@timestamp\":{\"type\":\"date\"},\"host\":{\"type\":\"keyword\"},\"service\":{\"type\":\"keyword\"},\"response_time\":{\"type\":\"integer\"},\"status_code\":{\"type\":\"integer\"},\"bytes_sent\":{\"type\":\"long\"},\"cpu_usage\":{\"type\":\"double\"},\"memory_usage\":{\"type\":\"double\"},\"region\":{\"type\":\"keyword\"},\"environment\":{\"type\":\"keyword\"}}}}";
+    if (!isIndexExist(client(), "events_many_hosts")) {
+      createIndexByRestClient(client(), "events_many_hosts", eventsMapping);
+      loadDataByRestClient(
+          client(), "events_many_hosts", "src/test/resources/events_many_hosts.json");
+    }
   }
 }
