@@ -1336,37 +1336,37 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   /** Helper method to get the function name for proper column naming */
   private String getValueFunctionName(UnresolvedExpression aggregateFunction) {
-    if (aggregateFunction instanceof AggregateFunction) {
-      AggregateFunction aggFunc = (AggregateFunction) aggregateFunction;
-      String funcName = aggFunc.getFuncName().toLowerCase();
-      List<UnresolvedExpression> args = new ArrayList<>();
-      if (aggFunc.getField() != null) {
-        args.add(aggFunc.getField());
-      }
-      if (aggFunc.getArgList() != null) {
-        args.addAll(aggFunc.getArgList());
-      }
-
-      if (args.isEmpty() || funcName.equals("count")) {
-        // Special case for count() to show as just "count" instead of "count(AllFields())"
-        return "count";
-      } else {
-        // Build the full function call string like "avg(cpu_usage)"
-        StringBuilder sb = new StringBuilder(funcName).append("(");
-        for (int i = 0; i < args.size(); i++) {
-          if (i > 0) sb.append(", ");
-          if (args.get(i) instanceof Field) {
-            sb.append(((Field) args.get(i)).getField().toString());
-          } else {
-            sb.append(args.get(i).toString());
-          }
-        }
-        sb.append(")");
-        return sb.toString();
-      }
-    } else {
+    if (!(aggregateFunction instanceof AggregateFunction)) {
       return "value";
     }
+
+    AggregateFunction aggFunc = (AggregateFunction) aggregateFunction;
+    String funcName = aggFunc.getFuncName().toLowerCase();
+    List<UnresolvedExpression> args = new ArrayList<>();
+    if (aggFunc.getField() != null) {
+      args.add(aggFunc.getField());
+    }
+    if (aggFunc.getArgList() != null) {
+      args.addAll(aggFunc.getArgList());
+    }
+
+    if (args.isEmpty() || funcName.equals("count")) {
+      // Special case for count() to show as just "count" instead of "count(AllFields())"
+      return "count";
+    }
+
+    // Build the full function call string like "avg(cpu_usage)"
+    StringBuilder sb = new StringBuilder(funcName).append("(");
+    for (int i = 0; i < args.size(); i++) {
+      if (i > 0) sb.append(", ");
+      if (args.get(i) instanceof Field) {
+        sb.append(((Field) args.get(i)).getField().toString());
+      } else {
+        sb.append(args.get(i).toString());
+      }
+    }
+    sb.append(")");
+    return sb.toString();
   }
 
   /** Transforms timechart command into SQL-based operations. */
