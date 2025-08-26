@@ -47,6 +47,7 @@ pplCommands
 commands
    : whereCommand
    | fieldsCommand
+   | tableCommand
    | joinCommand
    | renameCommand
    | statsCommand
@@ -55,6 +56,7 @@ commands
    | sortCommand
    | evalCommand
    | headCommand
+   | binCommand
    | topCommand
    | rareCommand
    | grokCommand
@@ -79,6 +81,7 @@ commandName
    | SHOW
    | WHERE
    | FIELDS
+   | TABLE
    | JOIN
    | RENAME
    | STATS
@@ -87,6 +90,7 @@ commandName
    | SORT
    | EVAL
    | HEAD
+   | BIN
    | TOP
    | RARE
    | GROK
@@ -122,7 +126,21 @@ whereCommand
    ;
 
 fieldsCommand
-   : FIELDS (PLUS | MINUS)? fieldList
+   : FIELDS fieldsCommandBody
+   ;
+
+// Table command - alias for fields command
+tableCommand
+   : TABLE fieldsCommandBody
+   ;
+
+fieldsCommandBody
+   : (PLUS | MINUS)? wcFieldList
+   ;
+
+// Wildcard field list supporting both comma-separated and space-separated fields
+wcFieldList
+   : selectFieldExpression (COMMA? selectFieldExpression)*
    ;
 
 renameCommand
@@ -142,7 +160,7 @@ dedupCommand
    ;
 
 sortCommand
-   : SORT sortbyClause
+   : SORT (count = integerLiteral)? sortbyClause (DESC | D)?
    ;
 
 reverseCommand
@@ -174,6 +192,36 @@ evalCommand
 
 headCommand
    : HEAD (number = integerLiteral)? (FROM from = integerLiteral)?
+   ;
+
+binCommand
+   : BIN fieldExpression binOption* (AS alias = qualifiedName)?
+   ;
+
+binOption
+   : SPAN EQUAL span = spanValue
+   | BINS EQUAL bins = integerLiteral
+   | MINSPAN EQUAL minspan = literalValue (minspanUnit = timespanUnit)?
+   | ALIGNTIME EQUAL aligntime = aligntimeValue
+   | START EQUAL start = numericLiteral
+   | END EQUAL end = numericLiteral
+   ;
+
+aligntimeValue
+   : EARLIEST
+   | LATEST
+   | literalValue
+   ;
+
+spanValue
+   : literalValue (timespanUnit)?           # numericSpanValue
+   | logSpanValue                           # logBasedSpanValue
+   | ident timespanUnit                     # extendedTimeSpanValue
+   | ident                                  # identifierSpanValue
+   ;
+
+logSpanValue
+   : LOG_WITH_BASE                                                   # logWithBaseSpan
    ;
 
 topCommand
@@ -420,6 +468,8 @@ scalarWindowFunctionName
    | LAST
    | NTH
    | NTILE
+   | DISTINCT_COUNT
+   | DC
    ;
 
 // aggregation terms
@@ -529,7 +579,7 @@ singleFieldRelevanceFunction
 
 // Field is a list of columns
 multiFieldRelevanceFunction
-   : multiFieldRelevanceFunctionName LT_PRTHS LT_SQR_PRTHS field = relevanceFieldAndWeight (COMMA field = relevanceFieldAndWeight)* RT_SQR_PRTHS COMMA query = relevanceQuery (COMMA relevanceArg)* RT_PRTHS
+   : multiFieldRelevanceFunctionName LT_PRTHS (LT_SQR_PRTHS field = relevanceFieldAndWeight (COMMA field = relevanceFieldAndWeight)* RT_SQR_PRTHS COMMA)? query = relevanceQuery (COMMA relevanceArg)* RT_PRTHS
    ;
 
 // tables
@@ -539,16 +589,12 @@ tableSource
    ;
 
 tableFunction
-   : qualifiedName LT_PRTHS functionArgs RT_PRTHS
+   : qualifiedName LT_PRTHS namedFunctionArgs RT_PRTHS
    ;
 
 // fields
 fieldList
    : fieldExpression (COMMA fieldExpression)*
-   ;
-
-wcFieldList
-   : wcFieldExpression (COMMA wcFieldExpression)*
    ;
 
 sortField
@@ -569,6 +615,11 @@ fieldExpression
 
 wcFieldExpression
    : wcQualifiedName
+   ;
+
+selectFieldExpression
+   : wcQualifiedName
+   | STAR
    ;
 
 // functions
@@ -614,10 +665,17 @@ functionArgs
    : (functionArg (COMMA functionArg)*)?
    ;
 
-functionArg
-   : (ident EQUAL)? functionArgExpression
+namedFunctionArgs
+   : (namedFunctionArg (COMMA namedFunctionArg)*)?
    ;
 
+functionArg
+   : functionArgExpression
+   ;
+
+namedFunctionArg
+   : (ident EQUAL)? functionArgExpression
+   ;
 
 functionArgExpression
    : lambda
@@ -713,8 +771,7 @@ mathematicalFunctionName
    | FLOOR
    | LN
    | LOG
-   | LOG10
-   | LOG2
+   | LOG_WITH_BASE
    | MOD
    | MODULUS
    | PI
@@ -727,6 +784,8 @@ mathematicalFunctionName
    | TRUNCATE
    | RINT
    | SIGNUM
+   | SUM
+   | AVG
    | trigonometricFunctionName
    ;
 
@@ -1078,6 +1137,20 @@ timespanUnit
    | MONTH
    | QUARTER
    | YEAR
+   | SEC
+   | SECS  
+   | SECONDS
+   | MINS
+   | MINUTES
+   | HR
+   | HRS
+   | HOURS
+   | DAYS
+   | MON
+   | MONTHS
+   | US
+   | CS
+   | DS
    ;
 
 valueList

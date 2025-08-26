@@ -99,6 +99,73 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  public void testEvalSum() {
+    String ppl = "source=EMP | eval total = sum(1, 2, 3) | fields EMPNO, total";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], total=[+(1, +(2, 3))])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql = "SELECT `EMPNO`, 1 + (2 + 3) `total`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testEvalSumWithFields() {
+    String ppl = "source=EMP | eval total = sum(SAL, COMM, 100) | fields EMPNO, total";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], total=[+($5, +($6, 100))])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `SAL` + (`COMM` + 100) `total`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testEvalAvg() {
+    String ppl = "source=EMP | eval average = avg(10, 20, 30) | fields EMPNO, average";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], average=[DIVIDE(+(10, +(20, 30)), 3.0E0:DOUBLE)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `DIVIDE`(10 + (20 + 30), 3.0E0) `average`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testEvalAvgWithFields() {
+    String ppl = "source=EMP | eval avgSal = avg(SAL, COMM) | fields EMPNO, avgSal";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], avgSal=[DIVIDE(+($5, $6), 2.0E0:DOUBLE)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `DIVIDE`(`SAL` + `COMM`, 2.0E0) `avgSal`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testEvalSumSingleArg() {
+    String ppl = "source=EMP | eval total = sum(42) | fields EMPNO, total";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], total=[42])\n" + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql = "SELECT `EMPNO`, 42 `total`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
   public void testEvalWithSort() {
     String ppl = "source=EMP | eval a = EMPNO | sort - a | fields a";
     RelNode root = getRelNode(ppl);

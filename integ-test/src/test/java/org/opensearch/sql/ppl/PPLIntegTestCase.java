@@ -20,6 +20,7 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
@@ -28,10 +29,14 @@ import org.opensearch.common.collect.MapBuilder;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.util.RetryProcessor;
 
 /** OpenSearch Rest integration test base for PPL testing. */
 public abstract class PPLIntegTestCase extends SQLIntegTestCase {
+  private static final String EXTENDED_EXPLAIN_API_ENDPOINT =
+      "/_plugins/_ppl/_explain?format=extended";
   private static final Logger LOG = LogManager.getLogger();
+  @Rule public final RetryProcessor retryProcessor = new RetryProcessor();
 
   @Override
   protected void init() throws Exception {
@@ -50,7 +55,15 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   }
 
   protected String explainQueryToString(String query) throws IOException {
-    Response response = client().performRequest(buildRequest(query, EXPLAIN_API_ENDPOINT));
+    return explainQueryToString(query, false);
+  }
+
+  protected String explainQueryToString(String query, boolean extended) throws IOException {
+    Response response =
+        client()
+            .performRequest(
+                buildRequest(
+                    query, extended ? EXTENDED_EXPLAIN_API_ENDPOINT : EXPLAIN_API_ENDPOINT));
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
     String responseBody = getResponseBody(response, true);
     return responseBody.replace("\\r\\n", "\\n");

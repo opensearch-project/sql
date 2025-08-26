@@ -23,7 +23,6 @@ import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalSort;
-import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.tools.FrameworkConfig;
@@ -112,11 +111,14 @@ public class QueryService {
         log.warn("Fallback to V2 query engine since got exception", t);
         executeWithLegacy(plan, queryType, listener, Optional.of(t));
       } else {
-        if (t instanceof Error) {
+        if (t instanceof Exception) {
+          listener.onFailure((Exception) t);
+        } else if (t instanceof VirtualMachineError) {
+          // throw and fast fail the VM errors such as OOM (same with v2).
+          throw t;
+        } else {
           // Calcite may throw AssertError during query execution.
           listener.onFailure(new CalciteUnsupportedException(t.getMessage(), t));
-        } else {
-          listener.onFailure((Exception) t);
         }
       }
     }
@@ -298,7 +300,7 @@ public class QueryService {
             .parserConfig(SqlParser.Config.DEFAULT) // TODO check
             .defaultSchema(opensearchSchema)
             .traitDefs((List<RelTraitDef>) null)
-            .programs(Programs.calc(DefaultRelMetadataProvider.INSTANCE))
+            .programs(Programs.standard())
             .typeSystem(OpenSearchTypeSystem.INSTANCE);
     return configBuilder.build();
   }

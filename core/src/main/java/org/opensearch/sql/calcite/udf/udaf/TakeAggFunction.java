@@ -24,7 +24,7 @@ public class TakeAggFunction implements UserDefinedAggFunction<TakeAggFunction.T
   @Override
   public TakeAccumulator add(TakeAccumulator acc, Object... values) {
     Object candidateValue = values[0];
-    int size = 0;
+    int size;
     if (values.length > 1) {
       size = (int) values[1];
     } else {
