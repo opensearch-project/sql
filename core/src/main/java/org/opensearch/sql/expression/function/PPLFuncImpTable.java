@@ -1166,41 +1166,15 @@ public class PPLFuncImpTable {
 
       register(
           LIST,
-          (distinct, field, argList, ctx) ->
-              createAggregateFunction(
-                  ListAggFunction.class,
-                  "LIST",
-                  UserDefinedFunctionUtils.getReturnTypeInferenceForStringArray(),
-                  List.of(field),
-                  argList,
-                  ctx.relBuilder),
-          PPLTypeChecker.wrapUDT(
-              List.of(
-                  List.of(ExprCoreType.BOOLEAN),
-                  List.of(ExprCoreType.BYTE),
-                  List.of(ExprCoreType.SHORT),
-                  List.of(ExprCoreType.INTEGER),
-                  List.of(ExprCoreType.LONG),
-                  List.of(ExprCoreType.FLOAT),
-                  List.of(ExprCoreType.DOUBLE),
-                  List.of(ExprCoreType.STRING),
-                  List.of(ExprCoreType.DATE),
-                  List.of(ExprCoreType.TIME),
-                  List.of(ExprCoreType.TIMESTAMP),
-                  List.of(ExprCoreType.IP),
-                  List.of(ExprCoreType.BINARY),
-                  List.of(ExprCoreType.GEO_POINT))));
+          (distinct, field, argList, ctx) -> {
+            RelDataType varcharType = ctx.relBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+            RexNode castToVarchar = ctx.relBuilder.getRexBuilder().makeCast(varcharType, field);
 
-      register(
-          VALUES,
-          (distinct, field, argList, ctx) ->
-              createAggregateFunction(
-                  ValuesAggFunction.class,
-                  "VALUES",
-                  UserDefinedFunctionUtils.getReturnTypeInferenceForStringArray(),
-                  List.of(field),
-                  argList,
-                  ctx.relBuilder),
+            ctx.relBuilder.limit(0, 100);
+
+            // Apply ARRAY_AGG with the existing filter
+            return ctx.relBuilder.aggregateCall(SqlLibraryOperators.ARRAY_AGG, castToVarchar);
+          },
           PPLTypeChecker.wrapUDT(
               List.of(
                   List.of(ExprCoreType.BOOLEAN),
@@ -1215,8 +1189,36 @@ public class PPLFuncImpTable {
                   List.of(ExprCoreType.TIME),
                   List.of(ExprCoreType.TIMESTAMP),
                   List.of(ExprCoreType.IP),
-                  List.of(ExprCoreType.BINARY),
-                  List.of(ExprCoreType.GEO_POINT))));
+                  List.of(ExprCoreType.BINARY))));
+
+    register(
+    VALUES,
+    (distinct, field, argList, ctx) -> {
+        RelDataType varcharType = ctx.relBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+        RexNode castToVarchar = ctx.relBuilder.getRexBuilder().makeCast(varcharType, field);
+        
+        // ctx.relBuilder
+        //     .sort(castToVarchar); // Sort values
+        
+        return ctx.relBuilder.aggregateCall(SqlLibraryOperators.ARRAY_AGG, castToVarchar)
+                      .distinct(true)
+                      .ignoreNulls(true).sort(castToVarchar); 
+    },
+    PPLTypeChecker.wrapUDT(
+        List.of(
+            List.of(ExprCoreType.BOOLEAN),
+            List.of(ExprCoreType.BYTE),
+            List.of(ExprCoreType.SHORT),
+            List.of(ExprCoreType.INTEGER),
+            List.of(ExprCoreType.LONG),
+            List.of(ExprCoreType.FLOAT),
+            List.of(ExprCoreType.DOUBLE),
+            List.of(ExprCoreType.STRING),
+            List.of(ExprCoreType.DATE),
+            List.of(ExprCoreType.TIME),
+            List.of(ExprCoreType.TIMESTAMP),
+            List.of(ExprCoreType.IP),
+            List.of(ExprCoreType.BINARY))));
     }
   }
 
