@@ -294,7 +294,7 @@ Most of the time you just need to run ./gradlew build which will make sure you p
    * - ./gradlew :integ-test:yamlRestTest
      - Run rest integration test.
    * - ./gradlew :doctest:doctest
-     - Run doctests
+     - Run doctests in docs folder. You can use ``-Pdocs=file1,file2`` to run specific file(s). See more info in `Documentation <#documentation>`_ section.
    * - ./gradlew build
      - Build plugin by run all tasks above (this takes time).
    * - ./gradlew pitest
@@ -466,6 +466,18 @@ Doctest
 
 Python doctest library makes our document executable which keeps it up-to-date to source code. The doc generator aforementioned served as scaffolding and generated many docs in short time. Now the examples inside is changed to doctest gradually. For more details please read `testing-doctest <./docs/dev/testing-doctest.md>`_.
 
+.. code-block:: bash
+   # Test all docs
+   ./gradlew :doctest:doctest
+
+   # Test single file using main doctest task
+   ./gradlew :doctest:doctest -Pdocs=search
+   
+   # Test multiple files at once
+   ./gradlew :doctest:doctest -Pdocs=search,fields,basics
+   
+   # With verbose output
+   ./gradlew :doctest:doctest -Pdocs=stats -Pverbose=true
 
 Backports
 >>>>>>>>>
