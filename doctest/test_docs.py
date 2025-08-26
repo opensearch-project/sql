@@ -37,6 +37,7 @@ STATE_COUNTRY = "state_country"
 OCCUPATION = "occupation"
 WORKER = "worker"
 WORK_INFORMATION = "work_information"
+EVENTS = "events"
 
 class DocTestConnection(OpenSearchConnection):
 
