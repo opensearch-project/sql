@@ -10,6 +10,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -21,7 +22,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import org.json.JSONObject;
-import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
@@ -38,6 +38,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     loadIndex(Index.CALCS);
     loadIndex(Index.DATE_FORMATS);
     loadIndex(Index.DATA_TYPE_NUMERIC);
+    loadIndex(Index.LOGS);
   }
 
   @Test
@@ -560,63 +561,39 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   public void testEarliestAndLatest() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | stats latest(datetime0, datetime0), earliest(datetime0, datetime0)",
-                TEST_INDEX_CALCS));
+            String.format("source=%s | stats latest(server), earliest(server)", TEST_INDEX_LOGS));
 
-    verifySchema(
-        actual,
-        schema("latest(datetime0, datetime0)", "timestamp"),
-        schema("earliest(datetime0, datetime0)", "timestamp"));
-    verifyDataRows(actual, rows("2004-08-02 07:59:23", "2004-07-04 22:49:28"));
+    verifySchema(actual, schema("latest(server)", "string"), schema("earliest(server)", "string"));
+    verifyDataRows(actual, rows("server2", "server1"));
   }
 
-  @Ignore
   @Test
   public void testEarliestAndLatestWithAlias() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | stats latest(datetime0) as late, earliest(datetime0) as early",
-                TEST_INDEX_CALCS));
+                "source=%s | stats latest(server) as late, earliest(server) as early",
+                TEST_INDEX_LOGS));
 
-    verifySchema(actual, schema("late", "timestamp"), schema("early", "timestamp"));
-    verifyDataRows(actual, rows("2004-08-02 07:59:23", "2004-07-04 22:49:28"));
+    verifySchema(actual, schema("late", "string"), schema("early", "string"));
+    verifyDataRows(actual, rows("server2", "server1"));
   }
 
-  @Ignore
   @Test
   public void testEarliestAndLatestWithBy() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | stats latest(datetime0) as late, earliest(datetime0) as early by"
-                    + " bool2",
-                TEST_INDEX_CALCS));
+                "source=%s | stats latest(server) as late, earliest(server) as early by" + " level",
+                TEST_INDEX_LOGS));
 
     verifySchema(
-        actual,
-        schema("late", "timestamp"),
-        schema("early", "timestamp"),
-        schema("bool2", "boolean"));
+        actual, schema("late", "string"), schema("early", "string"), schema("level", "string"));
     verifyDataRows(
         actual,
-        rows("2004-07-31 11:57:52", "2004-07-12 17:30:16", true),
-        rows("2004-08-02 07:59:23", "2004-07-04 22:49:28", false));
-  }
-
-  @Ignore
-  @Test
-  public void testEarliestAndLatestWithTimeBy() throws IOException {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | stats latest(time1) as late, earliest(time1) as early by" + " bool2",
-                TEST_INDEX_CALCS));
-
-    verifySchema(
-        actual, schema("late", "time"), schema("early", "time"), schema("bool2", "boolean"));
-    verifyDataRows(actual, rows("19:57:33", "04:40:49", true), rows("22:50:16", "00:05:57", false));
+        rows("server3", "server1", "ERROR"),
+        rows("server2", "server2", "INFO"),
+        rows("server1", "server1", "WARN"));
   }
 
   @Test
