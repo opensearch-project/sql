@@ -191,6 +191,7 @@ There are several important limitations with the rex command:
 - Named capture groups cannot contain underscores due to Java regex limitations
 - Group names must start with a letter and contain only letters and digits
 - Use ``(?<username>...)`` not ``(?<user_name>...)``
+- For detailed Java regex pattern syntax and usage, refer to the `official Java Pattern documentation <https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html>`_
 
 **Pattern Requirements:**
 
