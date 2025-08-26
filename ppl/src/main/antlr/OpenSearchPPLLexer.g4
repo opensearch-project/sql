@@ -237,6 +237,7 @@ VAR_SAMP:                           'VAR_SAMP';
 VAR_POP:                            'VAR_POP';
 STDDEV_SAMP:                        'STDDEV_SAMP';
 STDDEV_POP:                         'STDDEV_POP';
+PERC:                               'PERC';
 PERCENTILE:                         'PERCENTILE';
 PERCENTILE_APPROX:                  'PERCENTILE_APPROX';
 EARLIEST:                           'EARLIEST';
@@ -499,6 +500,10 @@ US:                                 'US';
 CS:                                 'CS';
 DS:                                 'DS';
 
+
+// PERCENTILE SHORTCUT FUNCTIONS
+// Must precede ID to avoid conflicts with identifier matching
+PERCENTILE_SHORTCUT:                PERC(INTEGER_LITERAL | DECIMAL_LITERAL) | 'P'(INTEGER_LITERAL | DECIMAL_LITERAL);
 
 // LITERALS AND VALUES
 //STRING_LITERAL:                     DQUOTA_STRING | SQUOTA_STRING | BQUOTA_STRING;

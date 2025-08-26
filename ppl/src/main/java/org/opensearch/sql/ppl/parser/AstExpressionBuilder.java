@@ -6,38 +6,6 @@
 package org.opensearch.sql.ppl.parser;
 
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.*;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BinaryArithmeticContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BySpanClauseContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CompareExprContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ConvertedDataTypeContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CountAllFunctionCallContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DataTypeFunctionCallContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DecimalLiteralContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DistinctCountFunctionCallContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DoubleLiteralContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalClauseContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalFunctionCallContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldExpressionContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FloatLiteralContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsQualifiedNameContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsTableQualifiedNameContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsWildcardQualifiedNameContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.InExprContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLiteralContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntervalLiteralContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalAndContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalNotContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalOrContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalXorContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.MultiFieldRelevanceFunctionContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SingleFieldRelevanceFunctionContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SpanClauseContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsFunctionCallContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StringLiteralContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WcFieldExpressionContext;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -62,6 +30,38 @@ import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BinaryArithmeticContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BySpanClauseContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CompareExprContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ConvertedDataTypeContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CountAllFunctionCallContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DataTypeFunctionCallContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DecimalLiteralContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DistinctCountFunctionCallContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DoubleLiteralContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalClauseContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalFunctionCallContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldExpressionContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FloatLiteralContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsQualifiedNameContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsTableQualifiedNameContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsWildcardQualifiedNameContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.InExprContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLiteralContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntervalLiteralContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalAndContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalNotContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalOrContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalXorContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.MultiFieldRelevanceFunctionContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SingleFieldRelevanceFunctionContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SpanClauseContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsFunctionCallContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StringLiteralContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WcFieldExpressionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
 
@@ -266,6 +266,27 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
                 : AstDSL.intLiteral(DEFAULT_TAKE_FUNCTION_SIZE_VALUE)));
     return new AggregateFunction(
         "take", visit(ctx.takeAggFunction().fieldExpression()), builder.build());
+  }
+
+  @Override
+  public UnresolvedExpression visitPercentileShortcutFunctionCall(
+      OpenSearchPPLParser.PercentileShortcutFunctionCallContext ctx) {
+    String functionName = ctx.getStart().getText();
+
+    int prefixLength = functionName.toLowerCase().startsWith("perc") ? 4 : 1;
+    String percentileValue = functionName.substring(prefixLength);
+
+    double percent = Double.parseDouble(percentileValue);
+    if (percent < 0.0 || percent > 100.0) {
+      throw new SyntaxCheckException(
+          String.format("Percentile value must be between 0 and 100, got: %s", percent));
+    }
+
+    return new AggregateFunction(
+        "percentile",
+        visit(ctx.valueExpression()),
+        Collections.singletonList(
+            new UnresolvedArgument("percent", AstDSL.doubleLiteral(percent))));
   }
 
   /** Case function. */

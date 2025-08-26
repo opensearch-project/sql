@@ -6,6 +6,7 @@ package org.opensearch.sql.ppl.parser;
 
 import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.opensearch.sql.ast.dsl.AstDSL.agg;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
@@ -50,9 +51,11 @@ import java.util.Locale;
 import java.util.stream.Collectors;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.RelevanceFieldList;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 
 public class AstExpressionBuilderTest extends AstBuilderTest {
   @Test
@@ -1165,5 +1168,114 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                     stringLiteral("YEAR"),
                     stringLiteral("1997-01-01 00:00:00"),
                     stringLiteral("2001-03-06 00:00:00")))));
+  }
+
+  @Test
+  public void testPercentileShortcutFunctions() {
+    // Test integer percentile shortcuts
+    assertEqual(
+        "source=t | stats perc50(a)",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "perc50(a)",
+                    aggregate(
+                        "percentile", field("a"), unresolvedArg("percent", doubleLiteral(50.0))))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+
+    assertEqual(
+        "source=t | stats p95(a)",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "p95(a)",
+                    aggregate(
+                        "percentile", field("a"), unresolvedArg("percent", doubleLiteral(95.0))))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+  }
+
+  @Test
+  public void testPercentileShortcutFunctionsWithDecimals() {
+    // Test decimal percentile shortcuts
+    assertEqual(
+        "source=t | stats perc25.5(a)",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "perc25.5(a)",
+                    aggregate(
+                        "percentile", field("a"), unresolvedArg("percent", doubleLiteral(25.5))))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+
+    assertEqual(
+        "source=t | stats p99.9(a)",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "p99.9(a)",
+                    aggregate(
+                        "percentile", field("a"), unresolvedArg("percent", doubleLiteral(99.9))))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+  }
+
+  @Test
+  public void testPercentileShortcutFunctionsBoundaryValues() {
+    // Test boundary values (0 and 100)
+    assertEqual(
+        "source=t | stats perc0(a)",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "perc0(a)",
+                    aggregate(
+                        "percentile", field("a"), unresolvedArg("percent", doubleLiteral(0.0))))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+
+    assertEqual(
+        "source=t | stats p100(a)",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "p100(a)",
+                    aggregate(
+                        "percentile", field("a"), unresolvedArg("percent", doubleLiteral(100.0))))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+  }
+
+  @Test
+  public void testPercentileShortcutFunctionInvalidNegativeValue() {
+    assertThrows(
+        SyntaxCheckException.class, () -> assertEqual("source=t | stats perc-1(a)", (Node) null));
+  }
+
+  @Test
+  public void testPercentileShortcutFunctionInvalidValueAbove100() {
+    assertThrows(
+        SyntaxCheckException.class, () -> assertEqual("source=t | stats p101(a)", (Node) null));
+  }
+
+  @Test
+  public void testPercentileShortcutFunctionInvalidDecimalValueAbove100() {
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> assertEqual("source=t | stats perc100.1(a)", (Node) null));
   }
 }
