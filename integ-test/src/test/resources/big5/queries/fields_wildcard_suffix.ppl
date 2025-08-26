@@ -1,3 +1,0 @@
-source = big5
-| fields *size
-| head 10

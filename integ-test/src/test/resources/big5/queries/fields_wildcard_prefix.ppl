@@ -1,3 +1,0 @@
-source = big5
-| fields metrics*
-| head 10

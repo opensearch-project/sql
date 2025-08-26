@@ -1,3 +1,0 @@
-source = big5
-| table *size
-| head 10
