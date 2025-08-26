@@ -161,7 +161,6 @@ dependencies {
     api project(':prometheus')
     api project(':datasources')
     api project(':async-query')
-    api project(':protocol')
 
     testImplementation group: 'net.bytebuddy', name: 'byte-buddy-agent', version: '1.15.11'
     testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: "${hamcrest_version}"
