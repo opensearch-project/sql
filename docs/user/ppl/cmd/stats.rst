@@ -71,6 +71,19 @@ stats <aggregation>... [by-clause]
 | year (y)                   |
 +----------------------------+
 
+Calcite-Enabled Functions
+
+Some aggregation functions require Calcite to be enabled for proper functionality. These include advanced functions like EARLIEST and LATEST. To enable Calcite, use the following command:
+
+.. code-block::
+
+    PUT /_cluster/settings
+    {
+      "persistent":{
+          "plugins.calcite.enabled": true
+      }
+    }
+
 Aggregation Functions
 =====================
 
@@ -315,27 +328,29 @@ Usage: EARLIEST(field [, time_field]). Return the earliest value of a field base
 * field: mandatory. The field to return the earliest value for.
 * time_field: optional. The field to use for time-based ordering. Defaults to @timestamp if not specified.
 
+Note: This function requires Calcite to be enabled (see `Calcite-Enabled Functions`_ section above).
+
 Example::
 
-    os> source=events | stats earliest(message, event_time) by host | sort host;
+    os> source=events | stats earliest(message) by host | sort host;
     fetched rows / total rows = 2/2
-    +-----------------------------+--------+
-    | earliest(message, event_time) | host   |
-    |-----------------------------+--------|
-    | Starting up                 | server1|
-    | Initializing                | server2|
-    +-----------------------------+--------+
+    +-------------------+---------+
+    | earliest(message) | host    |
+    |-------------------+---------|
+    | Starting up       | server1 |
+    | Initializing      | server2 |
+    +-------------------+---------+
 
 Example with custom time field::
 
     os> source=events | stats earliest(status, event_time) by category | sort category;
     fetched rows / total rows = 2/2
-    +----------------------------+----------+
-    | earliest(status, event_time)| category |
-    |----------------------------+----------|
-    | pending                    | orders   |
-    | active                     | users    |
-    +----------------------------+----------+
+    +------------------------------+----------+
+    | earliest(status, event_time) | category |
+    |------------------------------+----------|
+    | pending                      | orders   |
+    | active                       | users    |
+    +------------------------------+----------+
 
 LATEST
 ------
@@ -350,27 +365,29 @@ Usage: LATEST(field [, time_field]). Return the latest value of a field based on
 * field: mandatory. The field to return the latest value for.
 * time_field: optional. The field to use for time-based ordering. Defaults to @timestamp if not specified.
 
+Note: This function requires Calcite to be enabled (see `Calcite-Enabled Functions`_ section above).
+
 Example::
 
-    os> source=events | stats latest(message, event_time) by host | sort host;
+    os> source=events | stats latest(message) by host | sort host;
     fetched rows / total rows = 2/2
-    +---------------------------+--------+
-    | latest(message, event_time) | host   |
-    |---------------------------+--------|
-    | Shutting down             | server1|
-    | Maintenance mode          | server2|
-    +---------------------------+--------+
+    +------------------+---------+
+    | latest(message)  | host    |
+    |------------------+---------|
+    | Shutting down    | server1 |
+    | Maintenance mode | server2 |
+    +------------------+---------+
 
 Example with custom time field::
 
     os> source=events | stats latest(status, event_time) by category | sort category;
     fetched rows / total rows = 2/2
-    +--------------------------+----------+
-    | latest(status, event_time)| category |
-    |--------------------------+----------|
-    | cancelled                | orders   |
-    | inactive                 | users    |
-    +--------------------------+----------+
+    +----------------------------+----------+
+    | latest(status, event_time) | category |
+    |----------------------------+----------|
+    | cancelled                  | orders   |
+    | inactive                   | users    |
+    +----------------------------+----------+
 
 Example 1: Calculate the count of events
 ========================================

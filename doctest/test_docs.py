@@ -137,6 +137,7 @@ def set_up_test_indices(test):
     load_file("occupation.json", index_name=OCCUPATION)
     load_file("worker.json", index_name=WORKER)
     load_file("work_information.json", index_name=WORK_INFORMATION)
+    load_file("events.json", index_name=EVENTS)
 
 
 def load_file(filename, index_name):
@@ -165,7 +166,7 @@ def set_up(test):
 
 def tear_down(test):
     # drop leftover tables after each test
-    test_data_client.indices.delete(index=[ACCOUNTS, EMPLOYEES, PEOPLE, ACCOUNT2, NYC_TAXI, BOOKS, APACHE, WILDCARD, NESTED, WEBLOGS, JSON_TEST, STATE_COUNTRY, OCCUPATION, WORKER, WORK_INFORMATION], ignore_unavailable=True)
+    test_data_client.indices.delete(index=[ACCOUNTS, EMPLOYEES, PEOPLE, ACCOUNT2, NYC_TAXI, BOOKS, APACHE, WILDCARD, NESTED, WEBLOGS, JSON_TEST, STATE_COUNTRY, OCCUPATION, WORKER, WORK_INFORMATION, EVENTS], ignore_unavailable=True)
 
 
 docsuite = partial(doctest.DocFileSuite,
