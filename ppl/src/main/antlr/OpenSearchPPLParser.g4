@@ -118,8 +118,53 @@ commandName
    ;
 
 searchCommand
-   : (SEARCH)? (logicalExpression)* fromClause (logicalExpression)*     # searchFrom
+   : (SEARCH)? (searchExpression)* fromClause (searchExpression)*     # searchFrom
    ;
+
+searchExpression
+ : LT_PRTHS searchExpression RT_PRTHS                 # groupedExpression
+ | NOT searchExpression                               # notExpression
+ | searchExpression OR searchExpression               # orExpression
+ | searchExpression AND searchExpression              # andExpression
+ | searchTerm                                         # termExpression
+ ;
+
+searchTerm
+ : searchFieldComparison                                   # searchComparisonTerm
+ | searchFieldInList                                       # searchInListTerm
+ | searchLiteral                                           # searchLiteralTerm
+ ;
+
+// Unified search literal for both free text and field comparisons
+searchLiteral
+   : numericLiteral
+   | booleanLiteral
+   | ID
+   | stringLiteral
+   | searchableKeyWord
+   ;
+
+searchFieldComparison
+ : fieldExpression searchComparisonOperator searchLiteral          # searchFieldCompare
+ ;
+
+searchFieldInList
+ : fieldExpression IN LT_PRTHS searchLiteralList RT_PRTHS          # searchFieldInValues
+ ;
+
+searchLiteralList
+ : searchLiteral (COMMA searchLiteral)*          # searchLiterals
+ ;
+
+searchComparisonOperator
+ : EQUAL                                             # equals
+ | NOT_EQUAL                                         # notEquals
+ | LESS                                              # lessThan
+ | NOT_GREATER                                       # lessOrEqual
+ | GREATER                                           # greaterThan
+ | NOT_LESS                                          # greaterOrEqual
+ ;
+
 
 describeCommand
    : DESCRIBE tableSourceClause
@@ -1330,6 +1375,11 @@ wildcard
    ;
 
 keywordsCanBeId
+   : searchableKeyWord
+   | IN
+   ;
+
+searchableKeyWord
    : D // OD SQL and ODBC special
    | timespanUnit
    | SPAN
@@ -1342,12 +1392,12 @@ keywordsCanBeId
    | multiFieldRelevanceFunctionName
    | commandName
    | collectionFunctionName
+   | REGEX
    | explainMode
    | REGEXP
    // commands assist keywords
    | CASE
    | ELSE
-   | IN
    | ARROW
    | BETWEEN
    | EXISTS
