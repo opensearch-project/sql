@@ -917,9 +917,9 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       field = internalVisitExpression(ctx.regexExpr().field);
     }
     if (ctx.regexExpr().EQUAL() != null) {
-      operator = "=";
+      operator = Regex.EQUALS_OPERATOR;
     } else if (ctx.regexExpr().NOT_EQUAL() != null) {
-      operator = "!=";
+      operator = Regex.NOT_EQUALS_OPERATOR;
     }
 
     return new Regex(field, operator, pattern);

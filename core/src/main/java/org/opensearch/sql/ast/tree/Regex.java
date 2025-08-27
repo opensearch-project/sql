@@ -20,6 +20,10 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 @ToString
 @EqualsAndHashCode(callSuper = false)
 public class Regex extends UnresolvedPlan {
+  /** Operator constants. */
+  public static final String EQUALS_OPERATOR = "=";
+  public static final String NOT_EQUALS_OPERATOR = "!=";
+
   /** Field to match against. */
   private final UnresolvedExpression field;
 
@@ -34,7 +38,7 @@ public class Regex extends UnresolvedPlan {
 
   public Regex(UnresolvedExpression field, String operator, Literal pattern) {
     this.field = field;
-    this.negated = "!=".equals(operator);
+    this.negated = NOT_EQUALS_OPERATOR.equals(operator);
     this.pattern = pattern;
   }
 

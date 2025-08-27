@@ -446,7 +446,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   @Override
   public String visitRegex(Regex node, String context) {
     String child = node.getChild().get(0).accept(this, context);
-    String operator = node.isNegated() ? "!=" : "=";
+    String operator = node.isNegated() ? Regex.NOT_EQUALS_OPERATOR : Regex.EQUALS_OPERATOR;
     String pattern = MASK_LITERAL;
 
     if (node.getField() != null) {
