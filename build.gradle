@@ -65,7 +65,6 @@ buildscript {
     repositories {
         mavenLocal()
         maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
-        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
         mavenCentral()
     }
 
@@ -90,7 +89,6 @@ apply plugin: 'opensearch.java'
 repositories {
     mavenLocal()
     maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
-    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
     mavenCentral() // For Elastic Libs that you can use to get started coding until open OpenSearch libs are available
     maven { url 'https://jitpack.io' }
 }
@@ -159,7 +157,6 @@ subprojects {
     repositories {
         mavenLocal()
         maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
-        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
         mavenCentral()
         maven { url "https://d1nvenhzbhpy0q.cloudfront.net/snapshots/lucene/" }
         maven { url 'https://jitpack.io' }
