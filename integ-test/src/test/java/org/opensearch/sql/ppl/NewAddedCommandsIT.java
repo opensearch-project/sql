@@ -25,7 +25,6 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
     loadIndex(Index.BANK);
     loadIndex(Index.DOG);
     loadIndex(Index.BANK_WITH_STRING_VALUES);
-    loadIndex(Index.ACCOUNT_WITH_TIMESTAMP);
   }
 
   @Test
