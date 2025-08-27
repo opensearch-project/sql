@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.expression.parse;
 
-import java.util.List;
 import java.util.regex.Pattern;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -40,7 +39,6 @@ public class RegexExpression extends ParseExpression {
   ExprValue parseValue(ExprValue value) throws ExpressionEvaluationException {
     String rawString = value.stringValue();
 
-    // Extract the specific named group
     String extracted = RegexCommonUtils.extractNamedGroup(rawString, regexPattern, identifierStr);
 
     if (extracted != null) {
@@ -48,15 +46,5 @@ public class RegexExpression extends ParseExpression {
     }
     log.debug("failed to extract pattern {} from input ***", regexPattern.pattern());
     return new ExprStringValue("");
-  }
-
-  /**
-   * Get list of derived fields based on parse pattern. Delegates to shared utility.
-   *
-   * @param pattern pattern used for parsing
-   * @return list of names of the derived fields
-   */
-  public static List<String> getNamedGroupCandidates(String pattern) {
-    return RegexCommonUtils.getNamedGroupCandidates(pattern);
   }
 }
