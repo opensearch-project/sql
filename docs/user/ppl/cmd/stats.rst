@@ -71,18 +71,17 @@ stats <aggregation>... [by-clause]
 | year (y)                   |
 +----------------------------+
 
-Calcite-Enabled Functions
+Configuration
+=============
+Some aggregation functions require Calcite to be enabled for proper functionality. To enable Calcite, use the following command:
 
-Some aggregation functions require Calcite to be enabled for proper functionality. These include advanced functions like EARLIEST and LATEST. To enable Calcite, use the following command:
+Enable Calcite::
 
-.. code-block::
-
-    PUT /_cluster/settings
-    {
-      "persistent":{
-          "plugins.calcite.enabled": true
+    >> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
+      "persistent" : {
+        "plugins.calcite.enabled" : true
       }
-    }
+    }'
 
 Aggregation Functions
 =====================
@@ -328,7 +327,7 @@ Usage: EARLIEST(field [, time_field]). Return the earliest value of a field base
 * field: mandatory. The field to return the earliest value for.
 * time_field: optional. The field to use for time-based ordering. Defaults to @timestamp if not specified.
 
-Note: This function requires Calcite to be enabled (see `Calcite-Enabled Functions`_ section above).
+Note: This function requires Calcite to be enabled (see `Configuration`_ section above).
 
 Example::
 
@@ -365,7 +364,7 @@ Usage: LATEST(field [, time_field]). Return the latest value of a field based on
 * field: mandatory. The field to return the latest value for.
 * time_field: optional. The field to use for time-based ordering. Defaults to @timestamp if not specified.
 
-Note: This function requires Calcite to be enabled (see `Calcite-Enabled Functions`_ section above).
+Note: This function requires Calcite to be enabled (see `Configuration`_ section above).
 
 Example::
 

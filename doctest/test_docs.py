@@ -39,6 +39,9 @@ WORKER = "worker"
 WORK_INFORMATION = "work_information"
 EVENTS = "events"
 
+DEBUG_MODE = os.environ.get('DOCTEST_DEBUG', 'false').lower() == 'true'
+
+
 class DocTestConnection(OpenSearchConnection):
 
     def __init__(self, query_language="sql"):
@@ -49,7 +52,17 @@ class DocTestConnection(OpenSearchConnection):
         self.formatter = Formatter(settings)
 
     def process(self, statement):
+        debug(f"Executing {self.query_language.upper()} query: {statement}")
+        
         data = self.execute_query(statement, use_console=False)
+        
+        debug(f"Query result: {data}")
+        
+        if data is None:
+            debug("Query returned None - this may indicate an error or unsupported function")
+            print("Error: Query returned no data")
+            return
+            
         output = self.formatter.format_output(data)
         output = "\n".join(output)
 
@@ -94,6 +107,37 @@ ppl_cmd = DocTestConnection(query_language="ppl")
 test_data_client = OpenSearch([ENDPOINT], verify_certs=True)
 
 
+def debug(message):
+    if DEBUG_MODE:
+        print(f"[DEBUG] {message}", file=sys.stderr)
+
+
+def enable_calcite():
+    """Enable Calcite for functions that require it (like EARLIEST/LATEST)"""
+    try:
+        import requests
+        calcite_settings = {
+            "transient": {
+                "plugins.calcite.enabled": True
+            }
+        }
+        response = requests.put(f"{ENDPOINT}/_plugins/_query/settings", 
+                              json=calcite_settings, 
+                              timeout=10)
+        debug(f"Calcite enable response: {response.status_code} - {response.text}")
+        
+        if response.status_code == 200:
+            debug("Calcite enabled successfully")
+            return True
+        else:
+            debug(f"Failed to enable Calcite: HTTP {response.status_code}")
+            return False
+            
+    except Exception as e:
+        debug(f"Failed to enable Calcite: {e}")
+        return False
+
+
 def sql_cli_transform(s):
     return u'sql_cmd.process({0})'.format(repr(s.strip().rstrip(';')))
 
@@ -122,6 +166,8 @@ bash_parser = zc.customdoctests.DocTestParser(
 
 def set_up_test_indices(test):
     set_up(test)
+    enable_calcite()
+    
     load_file("accounts.json", index_name=ACCOUNTS)
     load_file("people.json", index_name=PEOPLE)
     load_file("account2.json", index_name=ACCOUNT2)

@@ -81,6 +81,12 @@ task doctest(type: Exec, dependsOn: ['bootstrap']) {
     def docs = project.findProperty('docs')
     def verbose = project.findProperty('verbose')
     def endpoint = project.findProperty('endpoint')
+    def debug = project.findProperty('debug')
+    
+    // Set environment variables for debug mode
+    if (debug == 'true') {
+        environment 'DOCTEST_DEBUG', 'true'
+    }
     
     if (docs) {
         // Single file or multiple files mode
