@@ -13,7 +13,6 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
-import org.opensearch.client.ResponseException;
 
 public class OperatorIT extends PPLIntegTestCase {
   @Override
@@ -155,7 +154,12 @@ public class OperatorIT extends PPLIntegTestCase {
         executeQuery(String.format("source=%s age = 32 | fields age", TEST_INDEX_BANK));
     verifyDataRows(result, rows(32));
 
-    result = executeQuery(String.format("source=%s 32 = age | fields age", TEST_INDEX_BANK));
+    result =
+        executeQuery(String.format("source=%s | where age = 32 | fields age", TEST_INDEX_BANK));
+    verifyDataRows(result, rows(32));
+
+    result =
+        executeQuery(String.format("source=%s | where 32 = age | fields age", TEST_INDEX_BANK));
     verifyDataRows(result, rows(32));
   }
 
@@ -165,7 +169,12 @@ public class OperatorIT extends PPLIntegTestCase {
         executeQuery(String.format("source=%s age != 32 | fields age", TEST_INDEX_BANK));
     verifyDataRows(result, rows(28), rows(33), rows(34), rows(36), rows(36), rows(39));
 
-    result = executeQuery(String.format("source=%s 32 != age | fields age", TEST_INDEX_BANK));
+    result =
+        executeQuery(String.format("source=%s | where age != 32 | fields age", TEST_INDEX_BANK));
+    verifyDataRows(result, rows(28), rows(33), rows(34), rows(36), rows(36), rows(39));
+
+    result =
+        executeQuery(String.format("source=%s | where 32 != age | fields age", TEST_INDEX_BANK));
     verifyDataRows(result, rows(28), rows(33), rows(34), rows(36), rows(36), rows(39));
   }
 
@@ -202,7 +211,7 @@ public class OperatorIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s like(firstname, 'Hatti_') | fields firstname", TEST_INDEX_BANK));
+                "source=%s | where like(firstname, 'Hatti_') | fields firstname", TEST_INDEX_BANK));
     verifyDataRows(result, rows("Hattie"));
   }
 
@@ -223,23 +232,5 @@ public class OperatorIT extends PPLIntegTestCase {
                 "source=%s | where balance > 40000 | fields balance",
                 TEST_INDEX_BANK_WITH_NULL_VALUES));
     verifyDataRows(result, rows(48086));
-  }
-
-  private void queryExecutionShouldThrowExceptionDueToNullOrMissingValue(
-      String query, String... errorMsgs) {
-    try {
-      executeQuery(query);
-      fail(
-          "Expected to throw ExpressionEvaluationException, but none was thrown for query: "
-              + query);
-    } catch (ResponseException e) {
-      String errorMsg = e.getMessage();
-      assertTrue(errorMsg.contains("ExpressionEvaluationException"));
-      for (String msg : errorMsgs) {
-        assertTrue(errorMsg.contains(msg));
-      }
-    } catch (IOException e) {
-      throw new IllegalStateException("Unexpected exception raised for query: " + query);
-    }
   }
 }

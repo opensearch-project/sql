@@ -62,6 +62,7 @@
     "user/ppl/cmd/rename.rst",
     "user/ppl/cmd/rex.rst",
     "user/ppl/cmd/stats.rst",
-    "user/ppl/cmd/timechart.rst"
+    "user/ppl/cmd/timechart.rst",
+    "user/ppl/cmd/search.rst"
   ]
 }

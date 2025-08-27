@@ -9,12 +9,7 @@
 package org.opensearch.sql.ppl.parser;
 
 import static org.junit.Assert.assertEquals;
-import static org.opensearch.sql.ast.dsl.AstDSL.compare;
-import static org.opensearch.sql.ast.dsl.AstDSL.field;
-import static org.opensearch.sql.ast.dsl.AstDSL.filter;
-import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
-import static org.opensearch.sql.ast.dsl.AstDSL.project;
-import static org.opensearch.sql.ast.dsl.AstDSL.relation;
+import static org.opensearch.sql.ast.dsl.AstDSL.*;
 import static org.opensearch.sql.executor.QueryType.PPL;
 
 import org.junit.Rule;
@@ -40,17 +35,20 @@ public class AstStatementBuilderTest {
   @Test
   public void buildQueryStatement() {
     assertEqual(
-        "search source=t a=1",
+        "search source=t | where a=1",
         new Query(
             project(filter(relation("t"), compare("=", field("a"), intLiteral(1))), AllFields.of()),
             0,
             PPL));
+    assertEqual(
+        "search source=t a=1",
+        new Query(project(search(relation("t"), "a:1"), AllFields.of()), 0, PPL));
   }
 
   @Test
   public void buildExplainStatement() {
     assertExplainEqual(
-        "search source=t a=1",
+        "search source=t | where a=1",
         new Explain(
             new Query(
                 project(
@@ -58,6 +56,9 @@ public class AstStatementBuilderTest {
                 0,
                 PPL),
             PPL));
+    assertExplainEqual(
+        "search source=t a=1",
+        new Explain(new Query(project(search(relation("t"), "a:1"), AllFields.of()), 0, PPL), PPL));
   }
 
   private void assertEqual(String query, Statement expectedStatement) {

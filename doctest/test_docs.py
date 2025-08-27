@@ -40,7 +40,8 @@ TEST_DATA = {
     'occupation': 'occupation.json',
     'worker': 'worker.json',
     'work_information': 'work_information.json',
-    'events': 'events.json'
+    'events': 'events.json',
+    'otellogs': 'otellogs.json'
 }
 
 DEBUG_MODE = os.environ.get('DOCTEST_DEBUG', 'false').lower() == 'true'
