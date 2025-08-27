@@ -730,12 +730,12 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   @Override
   public LogicalPlan visitFlatten(Flatten node, AnalysisContext context) {
-    throw getOnlyForCalciteException("FLATTEN");
+    throw getOnlyForCalciteException("Flatten");
   }
 
   @Override
   public LogicalPlan visitReverse(Reverse node, AnalysisContext context) {
-    throw getOnlyForCalciteException("REVERSE");
+    throw getOnlyForCalciteException("Reverse");
   }
 
   @Override
@@ -768,7 +768,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   @Override
   public LogicalPlan visitAppendCol(AppendCol node, AnalysisContext context) {
-    throw getOnlyForCalciteException("AppendCol");
+    throw getOnlyForCalciteException("Appendcol");
   }
 
 
