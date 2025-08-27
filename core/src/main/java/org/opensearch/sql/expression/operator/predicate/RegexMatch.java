@@ -43,10 +43,7 @@ public class RegexMatch implements Expression {
     ExprValue fieldValue = field.valueOf(valueEnv);
     ExprValue patternValue = pattern.valueOf(valueEnv);
 
-    if (fieldValue.isNull()
-        || fieldValue.isMissing()
-        || patternValue.isNull()
-        || patternValue.isMissing()) {
+    if (fieldValue.isNull() || fieldValue.isMissing()) {
       return ExprValueUtils.booleanValue(false);
     }
 

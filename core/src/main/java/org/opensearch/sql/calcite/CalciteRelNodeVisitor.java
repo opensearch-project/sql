@@ -179,6 +179,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitRegex(Regex node, CalcitePlanContext context) {
     visitChildren(node, context);
 
+    // TODO: Handle the default field case, tracking by
+    // https://github.com/opensearch-project/sql/issues/4111
+    if (node.getField() == null) {
+      throw new IllegalArgumentException("Regex command requires a field to be specified");
+    }
+
     RexNode fieldRex = rexVisitor.analyze(node.getField(), context);
     RexNode patternRex = rexVisitor.analyze(node.getPattern(), context);
 
