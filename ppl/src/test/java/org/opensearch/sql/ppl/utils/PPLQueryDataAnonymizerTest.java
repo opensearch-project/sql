@@ -207,7 +207,8 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testTimechartCommand() {
     assertEquals(
-        "source=t | timechart count() by host", anonymize("source=t | timechart count() by host"));
+        "source=t | timechart span=span(@timestamp, *** m) useother=true count() by host",
+        anonymize("source=t | timechart count() by host"));
   }
 
   // todo, sort order is ignored, it doesn't impact the log analysis.

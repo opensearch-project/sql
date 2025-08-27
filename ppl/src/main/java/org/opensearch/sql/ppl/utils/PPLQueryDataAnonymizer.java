@@ -422,7 +422,34 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   @Override
   public String visitTimechart(Timechart node, String context) {
-    return "source=t | timechart count() by host";
+    String child = node.getChild().get(0).accept(this, context);
+    StringBuilder timechartCommand = new StringBuilder();
+    timechartCommand.append(" | timechart");
+
+    // Add span if present
+    if (node.getBinExpression() != null) {
+      timechartCommand.append(" span=").append(visitExpression(node.getBinExpression()));
+    }
+
+    // Add limit if present
+    if (node.getLimit() != null) {
+      timechartCommand.append(" limit=").append(node.getLimit());
+    }
+
+    // Add useother if present
+    if (node.getUseOther() != null) {
+      timechartCommand.append(" useother=").append(node.getUseOther());
+    }
+
+    // Add aggregation function
+    timechartCommand.append(" ").append(visitExpression(node.getAggregateFunction()));
+
+    // Add by clause if present
+    if (node.getByField() != null) {
+      timechartCommand.append(" by ").append(visitExpression(node.getByField()));
+    }
+
+    return StringUtils.format("%s%s", child, timechartCommand.toString());
   }
 
   @Override

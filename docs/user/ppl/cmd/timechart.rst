@@ -44,9 +44,9 @@ Syntax
 * **limit**: optional. Specifies the maximum number of distinct values to display when using the "by" clause.
 
   * Default: 10
-  * When there are more distinct values than the limit, the additional values are grouped into an "OTHER" category.
+  * When there are more distinct values than the limit, the additional values are grouped into an "OTHER" category if useother is not set to false.
   * The "most distinct" values are determined by calculating the sum of the aggregation values across all time intervals for each distinct field value. The top N values with the highest sums are displayed individually, while the rest are grouped into the "OTHER" category.
-  * Set to 0 to show all distinct values without any limit.
+  * Set to 0 to show all distinct values without any limit (when limit=0, useother is automatically set to false).
   * The parameters can be specified in any order before the aggregation function.
   * Only applies when using the "by" clause to group results.
 
@@ -60,7 +60,7 @@ Syntax
 * **aggregation_function**: mandatory. The aggregation function to apply to each time bucket.
 
   * Currently, only a single aggregation function is supported.
-  * Available functions: All standard aggregation functions supported by stats are supported.
+  * Available functions: All aggregation functions supported by the :doc:`stats <stats>` command are supported.
 
 * **by**: optional. Groups the results by the specified field in addition to time intervals.
 
@@ -74,7 +74,7 @@ Notes
 * Only combinations with actual data are included in the results - empty combinations are omitted rather than showing null or zero values.
 * The "top N" values for the ``limit`` parameter are selected based on the sum of values across all time intervals for each distinct field value.
 * When using the ``limit`` parameter, values beyond the limit are grouped into an "OTHER" category (unless ``useother=false``).
-* Examples 5 and 6 use different datasets: Example 5 uses the ``events`` dataset with fewer hosts for simplicity, while Example 6 uses the ``events_many_hosts`` dataset with 11 distinct hosts.
+* Examples 6 and 7 use different datasets: Example 6 uses the ``events`` dataset with fewer hosts for simplicity, while Example 7 uses the ``events_many_hosts`` dataset with 11 distinct hosts.
 
 Limitations
 ============
@@ -103,10 +103,10 @@ Result::
     | 2024-07-01 00:00:00 | web-02 | 2     |
     +---------------------+--------+-------+
 
-Example 2: Count events by minute
-=================================
+Example 2: Count events by minute with zero-filled results
+==========================================================
 
-This example counts events for each minute and groups them by host.
+This example counts events for each minute and groups them by host, showing zero values for time-host combinations with no data.
 
 PPL query::
 
@@ -118,10 +118,20 @@ Result::
     | @timestamp          | host   | count |
     +---------------------+--------+-------+
     | 2024-07-01 00:00:00 | web-01 | 1     |
+    | 2024-07-01 00:00:00 | web-02 | 0     |
+    | 2024-07-01 00:00:00 | db-01  | 0     |
+    | 2024-07-01 00:01:00 | web-01 | 0     |
     | 2024-07-01 00:01:00 | web-02 | 1     |
+    | 2024-07-01 00:01:00 | db-01  | 0     |
     | 2024-07-01 00:02:00 | web-01 | 1     |
+    | 2024-07-01 00:02:00 | web-02 | 0     |
+    | 2024-07-01 00:02:00 | db-01  | 0     |
+    | 2024-07-01 00:03:00 | web-01 | 0     |
+    | 2024-07-01 00:03:00 | web-02 | 0     |
     | 2024-07-01 00:03:00 | db-01  | 1     |
+    | 2024-07-01 00:04:00 | web-01 | 0     |
     | 2024-07-01 00:04:00 | web-02 | 1     |
+    | 2024-07-01 00:04:00 | db-01  | 0     |
     +---------------------+--------+-------+
 
 Example 3: Calculate average CPU usage by minute
@@ -145,10 +155,31 @@ Result::
     | 2024-07-01 00:04:00 | 41.8             |
     +---------------------+------------------+
 
-Example 4: Count events by second and region
-============================================
+Example 4: Calculate average CPU usage by second and region
+===========================================================
 
-This example counts events for each second and groups them by region.
+This example calculates the average CPU usage for each second and groups them by region.
+
+PPL query::
+
+    PPL> source=events | timechart span=1s avg(cpu_usage) by region
+
+Result::
+
+    +---------------------+---------+------------------+
+    | @timestamp          | region  | avg(cpu_usage)   |
+    +---------------------+---------+------------------+
+    | 2024-07-01 00:00:00 | us-east | 45.2             |
+    | 2024-07-01 00:01:00 | us-west | 38.7             |
+    | 2024-07-01 00:02:00 | us-east | 55.3             |
+    | 2024-07-01 00:03:00 | eu-west | 42.1             |
+    | 2024-07-01 00:04:00 | us-west | 41.8             |
+    +---------------------+---------+------------------+
+
+Example 5: Count events by second and region with zero-filled results
+=====================================================================
+
+This example counts events for each second and groups them by region, showing zero values for time-region combinations with no data.
 
 PPL query::
 
@@ -160,64 +191,111 @@ Result::
     | @timestamp          | region  | count |
     +---------------------+---------+-------+
     | 2024-07-01 00:00:00 | us-east | 1     |
+    | 2024-07-01 00:00:00 | us-west | 0     |
+    | 2024-07-01 00:00:00 | eu-west | 0     |
+    | 2024-07-01 00:01:00 | us-east | 0     |
     | 2024-07-01 00:01:00 | us-west | 1     |
+    | 2024-07-01 00:01:00 | eu-west | 0     |
     | 2024-07-01 00:02:00 | us-east | 1     |
+    | 2024-07-01 00:02:00 | us-west | 0     |
+    | 2024-07-01 00:02:00 | eu-west | 0     |
+    | 2024-07-01 00:03:00 | us-east | 0     |
+    | 2024-07-01 00:03:00 | us-west | 0     |
     | 2024-07-01 00:03:00 | eu-west | 1     |
+    | 2024-07-01 00:04:00 | us-east | 0     |
     | 2024-07-01 00:04:00 | us-west | 1     |
+    | 2024-07-01 00:04:00 | eu-west | 0     |
     +---------------------+---------+-------+
 
-Example 5: Using the limit parameter
-====================================
+Example 6: Using the limit parameter with count() function
+==========================================================
 
 When there are many distinct values in the "by" field, the timechart command will display the top values based on the limit parameter and group the rest into an "OTHER" category.
-This query will display the top 2 hosts with the highest average sum of CPU usage values, and group the remaining hosts into an "OTHER" category.
-Example::
+This query will display the top 2 hosts with the highest count values, and group the remaining hosts into an "OTHER" category.
 
-    PPL> source=events | timechart span=1m limit=2 avg(cpu_usage) by host
+PPL query::
+
+    PPL> source=events | timechart span=1m limit=2 count() by host
 
 Result::
 
-    +---------------------+--------+------------------+
-    | @timestamp          | host   | avg(cpu_usage)   |
-    +---------------------+--------+------------------+
-    | 2024-07-01 00:00:00 | web-01 | 45.2             |
-    | 2024-07-01 00:01:00 | web-02 | 38.7             |
-    | 2024-07-01 00:02:00 | web-01 | 55.3             |
-    | 2024-07-01 00:03:00 | OTHER  | 42.1             |
-    | 2024-07-01 00:04:00 | web-02 | 41.8             |
-    +---------------------+--------+------------------+
+    +---------------------+--------+-------+
+    | @timestamp          | host   | count |
+    +---------------------+--------+-------+
+    | 2024-07-01 00:00:00 | web-01 | 1     |
+    | 2024-07-01 00:00:00 | web-02 | 0     |
+    | 2024-07-01 00:00:00 | OTHER  | 0     |
+    | 2024-07-01 00:01:00 | web-01 | 0     |
+    | 2024-07-01 00:01:00 | web-02 | 1     |
+    | 2024-07-01 00:01:00 | OTHER  | 0     |
+    | 2024-07-01 00:02:00 | web-01 | 1     |
+    | 2024-07-01 00:02:00 | web-02 | 0     |
+    | 2024-07-01 00:02:00 | OTHER  | 0     |
+    | 2024-07-01 00:03:00 | web-01 | 0     |
+    | 2024-07-01 00:03:00 | web-02 | 0     |
+    | 2024-07-01 00:03:00 | OTHER  | 1     |
+    | 2024-07-01 00:04:00 | web-01 | 0     |
+    | 2024-07-01 00:04:00 | web-02 | 1     |
+    | 2024-07-01 00:04:00 | OTHER  | 0     |
+    +---------------------+--------+-------+
 
-Example 6: Using limit=0 to show all values
-===========================================
+Example 7: Using limit=0 with count() to show all values
+========================================================
 
 To display all distinct values without any limit, set limit=0:
 
 PPL query::
 
-    PPL> source=events_many_hosts | timechart span=1h limit=0 avg(cpu_usage) by host
+    PPL> source=events_many_hosts | timechart span=1h limit=0 count() by host
 
 Result::
 
-    +---------------------+--------+------------------+
-    | @timestamp          | host   | avg(cpu_usage)   |
-    +---------------------+--------+------------------+
-    | 2024-07-01 00:00:00 | web-01 | 45.2             |
-    | 2024-07-01 00:00:00 | web-02 | 38.7             |
-    | 2024-07-01 00:00:00 | web-03 | 55.3             |
-    | 2024-07-01 00:00:00 | web-04 | 42.1             |
-    | 2024-07-01 00:00:00 | web-05 | 41.8             |
-    | 2024-07-01 00:00:00 | web-06 | 39.4             |
-    | 2024-07-01 00:00:00 | web-07 | 48.6             |
-    | 2024-07-01 00:00:00 | web-08 | 44.2             |
-    | 2024-07-01 00:00:00 | web-09 | 67.8             |
-    | 2024-07-01 00:00:00 | web-10 | 35.9             |
-    | 2024-07-01 00:00:00 | web-11 | 43.1             |
-    +---------------------+--------+------------------+
+    +---------------------+--------+-------+
+    | @timestamp          | host   | count |
+    +---------------------+--------+-------+
+    | 2024-07-01 00:00:00 | web-01 | 1     |
+    | 2024-07-01 00:00:00 | web-02 | 1     |
+    | 2024-07-01 00:00:00 | web-03 | 1     |
+    | 2024-07-01 00:00:00 | web-04 | 1     |
+    | 2024-07-01 00:00:00 | web-05 | 1     |
+    | 2024-07-01 00:00:00 | web-06 | 1     |
+    | 2024-07-01 00:00:00 | web-07 | 1     |
+    | 2024-07-01 00:00:00 | web-08 | 1     |
+    | 2024-07-01 00:00:00 | web-09 | 1     |
+    | 2024-07-01 00:00:00 | web-10 | 1     |
+    | 2024-07-01 00:00:00 | web-11 | 1     |
+    +---------------------+--------+-------+
 
 This shows all 11 hosts as separate rows without an "OTHER" category.
 
-Example 7: Using limit with useother parameter
-==============================================
+Example 8: Using useother=false with count() function
+=====================================================
+
+Limit to top 10 hosts without OTHER category (useother=false):
+
+PPL query::
+
+    PPL> source=events_many_hosts | timechart span=1h useother=false count() by host
+
+Result::
+
+    +---------------------+--------+-------+
+    | @timestamp          | host   | count |
+    +---------------------+--------+-------+
+    | 2024-07-01 00:00:00 | web-01 | 1     |
+    | 2024-07-01 00:00:00 | web-02 | 1     |
+    | 2024-07-01 00:00:00 | web-03 | 1     |
+    | 2024-07-01 00:00:00 | web-04 | 1     |
+    | 2024-07-01 00:00:00 | web-05 | 1     |
+    | 2024-07-01 00:00:00 | web-06 | 1     |
+    | 2024-07-01 00:00:00 | web-07 | 1     |
+    | 2024-07-01 00:00:00 | web-08 | 1     |
+    | 2024-07-01 00:00:00 | web-09 | 1     |
+    | 2024-07-01 00:00:00 | web-10 | 1     |
+    +---------------------+--------+-------+
+
+Example 9: Using limit with useother parameter and avg() function
+=================================================================
 
 Limit to top 3 hosts with OTHER category (default useother=true):
 
@@ -233,7 +311,7 @@ Result::
     | 2024-07-01 00:00:00 | web-03 | 55.3             |
     | 2024-07-01 00:00:00 | web-07 | 48.6             |
     | 2024-07-01 00:00:00 | web-09 | 67.8             |
-    | 2024-07-01 00:00:00 | OTHER  | 35.9             |
+    | 2024-07-01 00:00:00 | OTHER  | 330.4            |
     +---------------------+--------+------------------+
 
 Limit to top 3 hosts without OTHER category (useother=false):
@@ -251,3 +329,4 @@ Result::
     | 2024-07-01 00:00:00 | web-07 | 48.6             |
     | 2024-07-01 00:00:00 | web-09 | 67.8             |
     +---------------------+--------+------------------+
+

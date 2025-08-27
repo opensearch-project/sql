@@ -53,14 +53,27 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
         schema("@timestamp", "timestamp"),
         schema("host", "string"),
         schema("count", "bigint"));
+
+    // For count aggregation with default limit (no OTHER needed): 3 hosts × 5 time spans = 15 rows
+    assertEquals(15, result.getInt("total"));
+
     verifyDataRows(
         result,
+        rows("2024-07-01 00:00:00", "db-01", 0),
         rows("2024-07-01 00:00:00", "web-01", 1),
+        rows("2024-07-01 00:00:00", "web-02", 0),
+        rows("2024-07-01 00:01:00", "db-01", 0),
+        rows("2024-07-01 00:01:00", "web-01", 0),
         rows("2024-07-01 00:01:00", "web-02", 1),
+        rows("2024-07-01 00:02:00", "db-01", 0),
         rows("2024-07-01 00:02:00", "web-01", 1),
+        rows("2024-07-01 00:02:00", "web-02", 0),
         rows("2024-07-01 00:03:00", "db-01", 1),
+        rows("2024-07-01 00:03:00", "web-01", 0),
+        rows("2024-07-01 00:03:00", "web-02", 0),
+        rows("2024-07-01 00:04:00", "db-01", 0),
+        rows("2024-07-01 00:04:00", "web-01", 0),
         rows("2024-07-01 00:04:00", "web-02", 1));
-    assertEquals(5, result.getInt("total"));
   }
 
   @Test
@@ -101,21 +114,34 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testTimechartWithSecondSpanAndRegionGroupBy() throws IOException {
+  public void testTimechartWithSpanCountGroupBy() throws IOException {
     JSONObject result = executeQuery("source=events | timechart span=1s count() by region");
     verifySchema(
         result,
         schema("@timestamp", "timestamp"),
         schema("region", "string"),
         schema("count", "bigint"));
+    // For count aggregation with 3 regions (< default limit 10), should show zero-filled results: 3
+    // regions × 5 time spans = 15 rows
+    assertEquals(15, result.getInt("total"));
+
     verifyDataRows(
         result,
         rows("2024-07-01 00:00:00", "us-east", 1),
+        rows("2024-07-01 00:00:00", "us-west", 0),
+        rows("2024-07-01 00:00:00", "eu-west", 0),
+        rows("2024-07-01 00:01:00", "us-east", 0),
         rows("2024-07-01 00:01:00", "us-west", 1),
+        rows("2024-07-01 00:01:00", "eu-west", 0),
         rows("2024-07-01 00:02:00", "us-east", 1),
+        rows("2024-07-01 00:02:00", "us-west", 0),
+        rows("2024-07-01 00:02:00", "eu-west", 0),
+        rows("2024-07-01 00:03:00", "us-east", 0),
+        rows("2024-07-01 00:03:00", "us-west", 0),
         rows("2024-07-01 00:03:00", "eu-west", 1),
-        rows("2024-07-01 00:04:00", "us-west", 1));
-    assertEquals(5, result.getInt("total"));
+        rows("2024-07-01 00:04:00", "us-east", 0),
+        rows("2024-07-01 00:04:00", "us-west", 1),
+        rows("2024-07-01 00:04:00", "eu-west", 0));
   }
 
   @Test
@@ -180,7 +206,40 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testTimechartWithLimitZero() throws IOException {
+  public void testTimechartWithLimitCountGroupBy() throws IOException {
+    JSONObject result = executeQuery("source=events | timechart span=1m limit=2 count() by host");
+
+    verifySchema(
+        result,
+        schema("@timestamp", "timestamp"),
+        schema("host", "string"),
+        schema("count", "bigint"));
+
+    // For count with limit=2, should show zero-filled results: 3 hosts (web-01, web-02, OTHER) × 5
+    // time spans = 15 rows
+    assertEquals(15, result.getInt("total"));
+
+    verifyDataRows(
+        result,
+        rows("2024-07-01 00:00:00", "web-01", 1),
+        rows("2024-07-01 00:00:00", "web-02", 0),
+        rows("2024-07-01 00:00:00", "OTHER", 0),
+        rows("2024-07-01 00:01:00", "web-01", 0),
+        rows("2024-07-01 00:01:00", "web-02", 1),
+        rows("2024-07-01 00:01:00", "OTHER", 0),
+        rows("2024-07-01 00:02:00", "web-01", 1),
+        rows("2024-07-01 00:02:00", "web-02", 0),
+        rows("2024-07-01 00:02:00", "OTHER", 0),
+        rows("2024-07-01 00:03:00", "web-01", 0),
+        rows("2024-07-01 00:03:00", "web-02", 0),
+        rows("2024-07-01 00:03:00", "OTHER", 1),
+        rows("2024-07-01 00:04:00", "web-01", 0),
+        rows("2024-07-01 00:04:00", "web-02", 1),
+        rows("2024-07-01 00:04:00", "OTHER", 0));
+  }
+
+  @Test
+  public void testTimechartWithLimitZeroAndAvg() throws IOException {
     JSONObject result =
         executeQuery(
             "source=events_many_hosts | timechart span=1h limit=0 useother=t avg(cpu_usage) by"
@@ -208,7 +267,23 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testTimechartWithUseOtherFalse() throws IOException {
+  public void testTimechartWithLimitZeroAndCount() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=events_many_hosts | timechart span=1h limit=0 useother=t count() by host");
+
+    verifySchema(
+        result,
+        schema("@timestamp", "timestamp"),
+        schema("host", "string"),
+        schema("count", "bigint"));
+
+    // For count with limit=0, should show zero-filled results: 11 hosts × 1 time span = 11 rows
+    assertEquals(11, result.getInt("total"));
+  }
+
+  @Test
+  public void testTimechartWithUseOtherFalseAndAvg() throws IOException {
     JSONObject result =
         executeQuery(
             "source=events_many_hosts | timechart span=1h useother=false avg(cpu_usage) by host");
@@ -235,7 +310,23 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testTimechartWithCountAggregationShowsZeroInsteadOfNull() throws IOException {
+  public void testTimechartWithUseOtherFalseAndCount() throws IOException {
+    JSONObject result =
+        executeQuery("source=events_many_hosts | timechart span=1h useother=false count() by host");
+
+    verifySchema(
+        result,
+        schema("@timestamp", "timestamp"),
+        schema("host", "string"),
+        schema("count", "bigint"));
+
+    // For count with useother=false, should show zero-filled results: 10 hosts × 1 time span = 10
+    // rows
+    assertEquals(10, result.getInt("total"));
+  }
+
+  @Test
+  public void testTimechartWithCountNoLimitByHostShowZero() throws IOException {
     JSONObject result = executeQuery("source=events | timechart span=1m count() by host");
 
     verifySchema(
@@ -244,16 +335,26 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
         schema("host", "string"),
         schema("count", "bigint"));
 
-    // In unpivoted format, we only have rows with actual values, not zeros
+    // For count aggregation, should show zero-filled results: 3 hosts × 5 time spans = 15 rows
+    assertEquals(15, result.getInt("total"));
+
     verifyDataRows(
         result,
         rows("2024-07-01 00:00:00", "web-01", 1),
+        rows("2024-07-01 00:00:00", "web-02", 0),
+        rows("2024-07-01 00:00:00", "db-01", 0),
+        rows("2024-07-01 00:01:00", "web-01", 0),
         rows("2024-07-01 00:01:00", "web-02", 1),
+        rows("2024-07-01 00:01:00", "db-01", 0),
         rows("2024-07-01 00:02:00", "web-01", 1),
+        rows("2024-07-01 00:02:00", "web-02", 0),
+        rows("2024-07-01 00:02:00", "db-01", 0),
+        rows("2024-07-01 00:03:00", "web-01", 0),
+        rows("2024-07-01 00:03:00", "web-02", 0),
         rows("2024-07-01 00:03:00", "db-01", 1),
-        rows("2024-07-01 00:04:00", "web-02", 1));
-
-    assertEquals(5, result.getInt("total"));
+        rows("2024-07-01 00:04:00", "web-01", 0),
+        rows("2024-07-01 00:04:00", "web-02", 1),
+        rows("2024-07-01 00:04:00", "db-01", 0));
   }
 
   @Test
@@ -272,39 +373,31 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
     // Verify we have 4 data rows (3 hosts + OTHER)
     assertEquals(4, result.getJSONArray("datarows").length());
 
-    // Verify the top 3 hosts and OTHER category
-    boolean foundWeb03 = false;
-    boolean foundWeb07 = false;
-    boolean foundWeb09 = false;
-    boolean foundOther = false;
-    double otherValue = 0.0;
-
+    // Verify specific values with tolerance for floating point precision
+    boolean foundOther = false, foundWeb03 = false, foundWeb07 = false, foundWeb09 = false;
     for (int i = 0; i < result.getJSONArray("datarows").length(); i++) {
       Object[] row = result.getJSONArray("datarows").getJSONArray(i).toList().toArray();
-      String label = (String) row[1];
+      String host = (String) row[1];
+      double cpuUsage = ((Number) row[2]).doubleValue();
 
-      if ("web-03".equals(label)) {
-        foundWeb03 = true;
-        assertEquals(55.3, ((Number) row[2]).doubleValue(), 0.01);
-      } else if ("web-07".equals(label)) {
-        foundWeb07 = true;
-        assertEquals(48.6, ((Number) row[2]).doubleValue(), 0.01);
-      } else if ("web-09".equals(label)) {
-        foundWeb09 = true;
-        assertEquals(67.8, ((Number) row[2]).doubleValue(), 0.01);
-      } else if ("OTHER".equals(label)) {
+      if ("OTHER".equals(host)) {
         foundOther = true;
-        otherValue = ((Number) row[2]).doubleValue();
+        assertEquals(330.4, cpuUsage, 0.1);
+      } else if ("web-03".equals(host)) {
+        foundWeb03 = true;
+        assertEquals(55.3, cpuUsage, 0.1);
+      } else if ("web-07".equals(host)) {
+        foundWeb07 = true;
+        assertEquals(48.6, cpuUsage, 0.1);
+      } else if ("web-09".equals(host)) {
+        foundWeb09 = true;
+        assertEquals(67.8, cpuUsage, 0.1);
       }
     }
-
-    assertTrue("web-03 not found in results", foundWeb03);
-    assertTrue("web-07 not found in results", foundWeb07);
-    assertTrue("web-09 not found in results", foundWeb09);
-    assertTrue("OTHER category not found in results", foundOther);
-
-    // In the unpivoted format, OTHER is not a sum but represents each individual value
-    // So we can't check for the exact sum value
+    assertTrue("OTHER not found", foundOther);
+    assertTrue("web-03 not found", foundWeb03);
+    assertTrue("web-07 not found", foundWeb07);
+    assertTrue("web-09 not found", foundWeb09);
   }
 
   private void createEventsIndex() throws IOException {
