@@ -257,20 +257,20 @@ public class CalcitePPLSortIT extends PPLIntegTestCase {
   @Test
   public void testSortWithAKeyword() throws IOException {
     JSONObject result =
-            executeQuery(
-                    String.format(
-                            "source=%s | sort account_number a | fields account_number, firstname",
-                            TEST_INDEX_BANK));
+        executeQuery(
+            String.format(
+                "source=%s | sort account_number a | fields account_number, firstname",
+                TEST_INDEX_BANK));
     verifySchema(result, schema("account_number", "bigint"), schema("firstname", "string"));
     verifyDataRowsInOrder(
-            result,
-            rows(1, "Amber JOHnny"),
-            rows(6, "Hattie"),
-            rows(13, "Nanette"),
-            rows(18, "Dale"),
-            rows(20, "Elinor"),
-            rows(25, "Virginia"),
-            rows(32, "Dillard"));
+        result,
+        rows(1, "Amber JOHnny"),
+        rows(6, "Hattie"),
+        rows(13, "Nanette"),
+        rows(18, "Dale"),
+        rows(20, "Elinor"),
+        rows(25, "Virginia"),
+        rows(32, "Dillard"));
   }
 
   @Test
