@@ -771,7 +771,6 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     throw getOnlyForCalciteException("Appendcol");
   }
 
-
   private LogicalSort buildSort(
       LogicalPlan child, AnalysisContext context, Integer count, List<Field> sortFields) {
     ExpressionReferenceOptimizer optimizer =
