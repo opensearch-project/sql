@@ -317,27 +317,6 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
             new UnresolvedArgument("percent", AstDSL.doubleLiteral(percent))));
   }
 
-  @Override
-  public UnresolvedExpression visitPercentileShortcutFunctionCall(
-      OpenSearchPPLParser.PercentileShortcutFunctionCallContext ctx) {
-    String functionName = ctx.getStart().getText();
-
-    int prefixLength = functionName.toLowerCase().startsWith("perc") ? 4 : 1;
-    String percentileValue = functionName.substring(prefixLength);
-
-    double percent = Double.parseDouble(percentileValue);
-    if (percent < 0.0 || percent > 100.0) {
-      throw new SyntaxCheckException(
-          String.format("Percentile value must be between 0 and 100, got: %s", percent));
-    }
-
-    return new AggregateFunction(
-        "percentile",
-        visit(ctx.valueExpression()),
-        Collections.singletonList(
-            new UnresolvedArgument("percent", AstDSL.doubleLiteral(percent))));
-  }
-
   /** Case function. */
   public UnresolvedExpression visitEarliestLatestFunctionCall(
       OpenSearchPPLParser.EarliestLatestFunctionCallContext ctx) {
