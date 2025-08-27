@@ -60,6 +60,10 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         executeQuery(String.format("source=%s | stats count() as c", TEST_INDEX_BANK));
     verifySchema(actual, schema("c", "bigint"));
     verifyDataRows(actual, rows(7));
+
+    actual = executeQuery(String.format("source=%s | stats c() as count_emp", TEST_INDEX_BANK));
+    verifySchema(actual, schema("count_emp", "bigint"));
+    verifyDataRows(actual, rows(7));
   }
 
   @Test

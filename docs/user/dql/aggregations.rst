@@ -129,11 +129,12 @@ The aggregation could has expression as arguments::
 COUNT Aggregations
 ------------------
 
-Besides regular identifiers, ``COUNT`` aggregate function also accepts arguments such as ``*`` or literals like ``1``. The meaning of these different forms are as follows:
+Besides regular identifiers, ``COUNT`` aggregate function also accepts arguments such as ``*`` or literals like ``1``. The ``C()`` function can be used as an abbreviation for ``COUNT()`` with no arguments. The meaning of these different forms are as follows:
 
 1. ``COUNT(field)`` will count only if given field (or expression) is not null or missing in the input rows.
 2. ``COUNT(*)`` will count the number of all its input rows.
 3. ``COUNT(1)`` is same as ``COUNT(*)`` because any non-null literal will count.
+4. ``C()`` is equivalent to ``COUNT()`` and ``COUNT(*)``.
 
 Aggregation Functions
 =====================
