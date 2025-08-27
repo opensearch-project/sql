@@ -306,7 +306,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     if (settings != null
         && Boolean.FALSE.equals(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED))) {
       if (hasEnhancedFieldFeatures(bodyCtx, fields)) {
-        throw getOnlyForCalciteException("Enhanced fields features");
+        throw getOnlyForCalciteException("Enhanced fields feature");
       }
     }
 
