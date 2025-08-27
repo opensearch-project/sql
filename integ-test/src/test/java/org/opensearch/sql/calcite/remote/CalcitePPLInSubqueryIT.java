@@ -90,7 +90,7 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source = %s id in ["
+                "source = %s | where id in ["
                     + "    source = %s | fields uid"
                     + "  ]"
                     + "| sort  - salary"
@@ -118,26 +118,9 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
                     + "| sort  - salary"
                     + "| fields id, name, salary",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
-    JSONObject result2 =
-        executeQuery(
-            String.format(
-                "source = %s (id) in ["
-                    + "    source = %s | fields uid"
-                    + "  ]"
-                    + "| sort  - salary"
-                    + "| fields id, name, salary",
-                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(result1, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
-    verifySchema(result2, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
     verifyDataRowsInOrder(
         result1,
-        rows(1002, "John", 120000),
-        rows(1003, "David", 120000),
-        rows(1000, "Jake", 100000),
-        rows(1005, "Jane", 90000),
-        rows(1006, "Tommy", 30000));
-    verifyDataRowsInOrder(
-        result2,
         rows(1002, "John", 120000),
         rows(1003, "David", 120000),
         rows(1000, "Jake", 100000),
@@ -187,7 +170,7 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source = %s id not in ["
+                "source = %s | where id not in ["
                     + "    source = %s | fields uid"
                     + "  ]"
                     + "| sort  - salary"
@@ -219,7 +202,7 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source = %s id not in ["
+                "source = %s | where id not in ["
                     + "    source = %s | where uid = 0000 | fields uid"
                     + "  ]"
                     + "| sort  - salary"

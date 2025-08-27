@@ -689,4 +689,136 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   public UnresolvedExpression visitLogWithBaseSpan(OpenSearchPPLParser.LogWithBaseSpanContext ctx) {
     return org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(ctx.getText());
   }
+
+  // Visitor methods for search expressions
+  @Override
+  public SearchExpression visitGroupedExpression(OpenSearchPPLParser.GroupedExpressionContext ctx) {
+    return new SearchGroup((SearchExpression) visit(ctx.searchExpression()));
+  }
+
+  @Override
+  public SearchExpression visitNotExpression(OpenSearchPPLParser.NotExpressionContext ctx) {
+    return new SearchNot((SearchExpression) visit(ctx.searchExpression()));
+  }
+
+  @Override
+  public SearchExpression visitAndExpression(OpenSearchPPLParser.AndExpressionContext ctx) {
+    SearchExpression left = (SearchExpression) visit(ctx.searchExpression(0));
+    SearchExpression right = (SearchExpression) visit(ctx.searchExpression(1));
+    // Wrap the entire AND expression in parentheses
+    return new SearchGroup(new SearchAnd(left, right));
+  }
+
+  @Override
+  public SearchExpression visitOrExpression(OpenSearchPPLParser.OrExpressionContext ctx) {
+    SearchExpression left = (SearchExpression) visit(ctx.searchExpression(0));
+    SearchExpression right = (SearchExpression) visit(ctx.searchExpression(1));
+    // Wrap the entire OR expression in parentheses
+    return new SearchGroup(new SearchOr(left, right));
+  }
+
+  @Override
+  public SearchExpression visitTermExpression(OpenSearchPPLParser.TermExpressionContext ctx) {
+    return (SearchExpression) visit(ctx.searchTerm());
+  }
+
+  @Override
+  public SearchExpression visitLiteralTerm(OpenSearchPPLParser.LiteralTermContext ctx) {
+    return visitSearchLiteral(ctx.searchLiteral());
+  }
+
+  @Override
+  public SearchExpression visitComparisonTerm(OpenSearchPPLParser.ComparisonTermContext ctx) {
+    OpenSearchPPLParser.FieldCompareContext fieldComp =
+        (OpenSearchPPLParser.FieldCompareContext) ctx.fieldComparison();
+
+    Field field = (Field) visit(fieldComp.fieldExpression());
+    SearchComparison.Operator op =
+        visitSearchComparisonOperator(fieldComp.searchComparisonOperator());
+
+    // For comparison values, check if it's a literal that needs special handling
+    OpenSearchPPLParser.ComparisonValueContext valueCtx = fieldComp.comparisonValue();
+    UnresolvedExpression value;
+
+    // Check if this is a numeric literal (through literalValue)
+    if (valueCtx.literalValue() != null) {
+      // Use raw text for the entire literal value to preserve suffixes
+      String rawText = valueCtx.literalValue().getText();
+      // Check if it looks like a numeric literal with suffix
+      if (rawText.matches("-?\\d+(\\.\\d+)?[dDfF]?")) {
+        value = new Literal(rawText, DataType.STRING); // Store as string to preserve exact format
+      } else {
+        value = visit(valueCtx);
+      }
+    } else {
+      value = visit(valueCtx);
+    }
+
+    return new SearchComparison(field, op, value);
+  }
+
+  @Override
+  public SearchExpression visitInListTerm(OpenSearchPPLParser.InListTermContext ctx) {
+    OpenSearchPPLParser.FieldInValuesContext fieldIn =
+        (OpenSearchPPLParser.FieldInValuesContext) ctx.fieldInList();
+
+    Field field = (Field) visit(fieldIn.fieldExpression());
+    OpenSearchPPLParser.ComparisonValuesContext valueList =
+        (OpenSearchPPLParser.ComparisonValuesContext) fieldIn.comparisonValueList();
+    List<UnresolvedExpression> values =
+        valueList.comparisonValue().stream().map(this::visit).collect(Collectors.toList());
+
+    return new SearchIn(field, values);
+  }
+
+  private SearchComparison.Operator visitSearchComparisonOperator(
+      OpenSearchPPLParser.SearchComparisonOperatorContext ctx) {
+    if (ctx instanceof OpenSearchPPLParser.EqualsContext) {
+      return SearchComparison.Operator.EQUALS;
+    } else if (ctx instanceof OpenSearchPPLParser.NotEqualsContext) {
+      return SearchComparison.Operator.NOT_EQUALS;
+    } else if (ctx instanceof OpenSearchPPLParser.LessThanContext) {
+      return SearchComparison.Operator.LESS_THAN;
+    } else if (ctx instanceof OpenSearchPPLParser.LessOrEqualContext) {
+      return SearchComparison.Operator.LESS_OR_EQUAL;
+    } else if (ctx instanceof OpenSearchPPLParser.GreaterThanContext) {
+      return SearchComparison.Operator.GREATER_THAN;
+    } else if (ctx instanceof OpenSearchPPLParser.GreaterOrEqualContext) {
+      return SearchComparison.Operator.GREATER_OR_EQUAL;
+    }
+    return SearchComparison.Operator.EQUALS; // Default to equals
+  }
+
+  @Override
+  public SearchExpression visitSearchLiteral(OpenSearchPPLParser.SearchLiteralContext ctx) {
+    if (ctx.DQUOTA_STRING() != null) {
+      // Phrase search - preserve quotes
+      String text = ctx.getText();
+      // Remove outer quotes and create phrase search
+      String content = text.substring(1, text.length() - 1);
+      return new SearchLiteral(new Literal(content, DataType.STRING), true);
+    } else if (ctx.numericLiteral() != null) {
+      // Numeric literal - use raw text to preserve suffixes like 'd' and 'f'
+      String rawText = ctx.numericLiteral().getText();
+      return new SearchLiteral(rawText);
+    } else if (ctx.SQUOTA_STRING() != null || ctx.BQUOTA_STRING() != null) {
+      // Single quotes or backticks - literal search
+      String text = ctx.getText();
+      return new SearchLiteral(new Literal(text, DataType.STRING));
+    } else if (ctx.tableQualifiedName() != null) {
+      // Table name
+      UnresolvedExpression tableExpr = visit(ctx.tableQualifiedName());
+      return new SearchLiteral(tableExpr);
+    } else if (ctx.booleanLiteral() != null) {
+      // Boolean literal
+      UnresolvedExpression boolExpr = visit(ctx.booleanLiteral());
+      return new SearchLiteral(boolExpr);
+    } else if (ctx.datetimeLiteral() != null) {
+      // Datetime literal
+      UnresolvedExpression dateExpr = visit(ctx.datetimeLiteral());
+      return new SearchLiteral(dateExpr);
+    }
+    // Default
+    return new SearchLiteral(new Literal(ctx.getText(), DataType.STRING));
+  }
 }

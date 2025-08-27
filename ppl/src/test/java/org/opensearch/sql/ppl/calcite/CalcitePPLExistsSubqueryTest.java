@@ -222,7 +222,7 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
   public void testExistsSubqueryInFilter() {
     String ppl =
         """
-        source=EMP exists [
+        source=EMP | where exists [
             source=SALGRADE
             | where SAL = HISAL
           ]
@@ -255,7 +255,7 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
   public void testNotExistsSubqueryInFilter() {
     String ppl =
         """
-        source=EMP not exists [
+        source=EMP | where not exists [
             source=SALGRADE
             | where SAL = HISAL
           ]
