@@ -6,8 +6,10 @@
 package org.opensearch.sql.expression.parse;
 
 import com.google.common.collect.ImmutableList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -21,11 +23,17 @@ public class RegexCommonUtils {
   private static final Pattern NAMED_GROUP_PATTERN =
       Pattern.compile("\\(\\?<([a-zA-Z][a-zA-Z0-9]*)>");
 
-  // Pattern cache to avoid recompiling the same patterns
-  private static final ConcurrentHashMap<String, Pattern> patternCache = new ConcurrentHashMap<>();
-
   // Maximum cache size to prevent memory issues
   private static final int MAX_CACHE_SIZE = 1000;
+
+  private static final Map<String, Pattern> patternCache =
+      Collections.synchronizedMap(
+          new LinkedHashMap<>(MAX_CACHE_SIZE + 1, 0.75f, true) {
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<String, Pattern> eldest) {
+              return size() > MAX_CACHE_SIZE;
+            }
+          });
 
   /**
    * Get compiled pattern from cache or compile and cache it.
@@ -35,12 +43,12 @@ public class RegexCommonUtils {
    * @throws PatternSyntaxException if the regex is invalid
    */
   public static Pattern getCompiledPattern(String regex) {
-    // Check cache size and clear if needed (simple LRU-like behavior)
-    if (patternCache.size() > MAX_CACHE_SIZE) {
-      patternCache.clear();
+    Pattern pattern = patternCache.get(regex);
+    if (pattern == null) {
+      pattern = Pattern.compile(regex);
+      patternCache.put(regex, pattern);
     }
-
-    return patternCache.computeIfAbsent(regex, Pattern::compile);
+    return pattern;
   }
 
   /**
@@ -89,12 +97,10 @@ public class RegexCommonUtils {
 
     Matcher matcher = pattern.matcher(text);
 
-    // Use matches() for parse command (full match required)
     if (matcher.matches()) {
       try {
         return matcher.group(groupName);
       } catch (IllegalArgumentException e) {
-        // Group name not found
         return null;
       }
     }
