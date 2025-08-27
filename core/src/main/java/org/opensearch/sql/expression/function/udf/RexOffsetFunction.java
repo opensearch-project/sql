@@ -62,13 +62,12 @@ public final class RexOffsetFunction extends ImplementorUDF {
         return null;
       }
 
-      StringBuilder result = new StringBuilder();
+      List<String> offsetPairs = new java.util.ArrayList<>();
 
       Pattern namedGroupPattern = Pattern.compile("\\(\\?<([^>]+)>");
       Matcher namedGroupMatcher = namedGroupPattern.matcher(patternStr);
 
       int groupIndex = 1;
-      boolean firstGroup = true;
 
       while (namedGroupMatcher.find()) {
         String groupName = namedGroupMatcher.group(1);
@@ -78,17 +77,14 @@ public final class RexOffsetFunction extends ImplementorUDF {
           int end = matcher.end(groupIndex);
 
           if (start >= 0 && end >= 0) {
-            if (!firstGroup) {
-              result.append(",");
-            }
-            result.append(groupName).append("=").append(start).append("-").append(end - 1);
-            firstGroup = false;
+            offsetPairs.add(groupName + "=" + start + "-" + (end - 1));
           }
         }
         groupIndex++;
       }
 
-      return result.length() > 0 ? result.toString() : null;
+      java.util.Collections.reverse(offsetPairs);
+      return offsetPairs.isEmpty() ? null : String.join("&", offsetPairs);
     } catch (Exception e) {
       return null;
     }
