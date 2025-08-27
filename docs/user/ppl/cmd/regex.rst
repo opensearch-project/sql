@@ -13,6 +13,10 @@ Description
 ============
 | The ``regex`` command filters search results by matching field values against a regular expression pattern. Only documents where the specified field matches the pattern are included in the results.
 
+Version
+=======
+3.3.0
+
 Syntax
 ============
 regex <field> = <pattern>
@@ -32,17 +36,9 @@ The regex command uses Java's built-in regular expression engine, which supports
 * **Standard regex features**: Character classes, quantifiers, anchors
 * **Named capture groups**: ``(?<name>pattern)`` syntax
 * **Lookahead/lookbehind**: ``(?=...)`` and ``(?<=...)`` assertions
-* **Case sensitivity**: Patterns are case-sensitive by default
+* **Inline flags**: Case-insensitive ``(?i)``, multiline ``(?m)``, dotall ``(?s)``, and other modes
 
-Field Type Handling
-===================
-
-The regex command automatically converts non-string field values to strings before pattern matching:
-
-* **String fields**: Used directly
-* **Numeric fields**: Converted to string representation (e.g., ``42`` becomes ``"42"``)
-* **Boolean fields**: Converted to ``"true"`` or ``"false"``
-* **Null/missing fields**: Treated as non-matching
+For complete documentation of Java regex patterns and available modes, see the `Java Pattern documentation <https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html>`_.
 
 Example 1: Basic pattern matching
 =================================
@@ -97,24 +93,7 @@ PPL query::
     +----------------+----------------------+
 
 
-Example 4: Numeric field matching
-=================================
-
-The example shows how to match patterns in numeric fields (automatically converted to strings).
-
-PPL query::
-
-    os> source=accounts | regex account_number="^1\d" | fields account_number, firstname;
-    fetched rows / total rows = 2/2
-    +----------------+-----------+
-    | account_number | firstname |
-    |----------------+-----------|
-    | 13             | Nanette   |
-    | 18             | Dale      |
-    +----------------+-----------+
-
-
-Example 5: Complex patterns with character classes
+Example 4: Complex patterns with character classes
 ==================================================
 
 The example shows how to use complex regex patterns with character classes and quantifiers.
@@ -131,7 +110,7 @@ PPL query::
     +----------------+------------------+
 
 
-Example 6: Case-sensitive matching
+Example 5: Case-sensitive matching
 ==================================
 
 The example demonstrates that regex matching is case-sensitive by default.
@@ -159,26 +138,6 @@ PPL query::
 Limitations
 ===========
 
-* **Calcite engine required**: The regex command only works when the Calcite query engine is enabled (``plugins.calcite.enabled=true``)
+* **String fields only**: The regex command currently only supports string fields. Using it on numeric or boolean fields will result in an error
 * **Performance**: Complex regex patterns may impact query performance, especially on large datasets
 * **Memory usage**: Pattern compilation results are cached, but very large numbers of unique patterns may consume memory
-
-Comparison with Related Commands
-===============================
-
-**regex vs parse**:
-
-* ``regex``: Filters documents based on pattern matching (boolean result)
-* ``parse``: Extracts new fields from text using named capture groups
-
-**regex vs where with LIKE**:
-
-* ``regex``: Supports full Java regex syntax with advanced features
-* ``LIKE``: Supports only basic SQL wildcards (``%`` and ``_``)
-
-Usage Notes
-===========
-
-* Use ``regex`` when you need powerful pattern matching for filtering
-* For simple wildcard matching, ``where field LIKE pattern`` is an alternative option
-* Always test regex patterns with representative data to ensure good performance
