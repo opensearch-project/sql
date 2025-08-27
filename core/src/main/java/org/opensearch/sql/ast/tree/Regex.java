@@ -22,6 +22,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 public class Regex extends UnresolvedPlan {
   /** Operator constants. */
   public static final String EQUALS_OPERATOR = "=";
+
   public static final String NOT_EQUALS_OPERATOR = "!=";
 
   /** Field to match against. */

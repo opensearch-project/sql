@@ -21,7 +21,7 @@ import org.opensearch.sql.expression.parse.RegexCommonUtils;
 /**
  * Expression for regex matching using Java's built-in regex engine. Supports standard Java regex
  * features including named groups, lookahead/lookbehind, backreferences, and inline flags. Uses
- * find() for partial matching to align with SPL semantics.
+ * find() for partial matching semantics.
  */
 @ToString
 @EqualsAndHashCode
