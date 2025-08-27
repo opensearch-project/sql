@@ -84,6 +84,7 @@ import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Reverse;
+import org.opensearch.sql.ast.tree.Search;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
@@ -274,6 +275,20 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   public LogicalPlan visitLimit(Limit node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
     return new LogicalLimit(child, node.getLimit(), node.getOffset());
+  }
+
+  @Override
+  public LogicalPlan visitSearch(Search node, AnalysisContext context) {
+    LogicalPlan child = node.getChild().get(0).accept(this, context);
+    // Create query_string function using UnresolvedExpression
+    org.opensearch.sql.ast.expression.Function queryStringFunc =
+        AstDSL.function(
+            "query_string",
+            AstDSL.unresolvedArg("query", AstDSL.stringLiteral(node.getQueryString())));
+
+    // Analyze the function to resolve it properly
+    Expression analyzed = expressionAnalyzer.analyze(queryStringFunc, context);
+    return new LogicalFilter(child, analyzed);
   }
 
   @Override
