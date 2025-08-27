@@ -317,7 +317,6 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
             new UnresolvedArgument("percent", AstDSL.doubleLiteral(percent))));
   }
 
-  /** Case function. */
   public UnresolvedExpression visitEarliestLatestFunctionCall(
       OpenSearchPPLParser.EarliestLatestFunctionCallContext ctx) {
     return visit(ctx.earliestLatestFunction());
