@@ -10,7 +10,7 @@ import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_FIRST;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
-import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_ENGINE_ENABLED;
+import static org.opensearch.sql.calcite.utils.CalciteUtils.getOnlyForCalciteException;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
@@ -181,8 +181,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
           STRUCT);
       return child;
     } else {
-      throw new UnsupportedOperationException(
-          "Subsearch is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+      throw getOnlyForCalciteException("Subsearch");
     }
   }
 
@@ -672,14 +671,12 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   @Override
   public LogicalPlan visitBin(Bin node, AnalysisContext context) {
-    throw new UnsupportedOperationException(
-        "Bin command is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+    throw getOnlyForCalciteException("Bin");
   }
 
   @Override
   public LogicalPlan visitExpand(Expand expand, AnalysisContext context) {
-    throw new UnsupportedOperationException(
-        "Expand is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+    throw getOnlyForCalciteException("Expand");
   }
 
   /** Build {@link LogicalTrendline} for Trendline command. */
@@ -733,14 +730,12 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   @Override
   public LogicalPlan visitFlatten(Flatten node, AnalysisContext context) {
-    throw new UnsupportedOperationException(
-        "FLATTEN is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+    throw getOnlyForCalciteException("FLATTEN");
   }
 
   @Override
   public LogicalPlan visitReverse(Reverse node, AnalysisContext context) {
-    throw new UnsupportedOperationException(
-        "REVERSE is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+    throw getOnlyForCalciteException("REVERSE");
   }
 
   @Override
@@ -763,21 +758,19 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   @Override
   public LogicalPlan visitJoin(Join node, AnalysisContext context) {
-    throw new UnsupportedOperationException(
-        "Join is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+    throw getOnlyForCalciteException("Join");
   }
 
   @Override
   public LogicalPlan visitLookup(Lookup node, AnalysisContext context) {
-    throw new UnsupportedOperationException(
-        "Lookup is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+    throw getOnlyForCalciteException("Lookup");
   }
 
   @Override
   public LogicalPlan visitAppendCol(AppendCol node, AnalysisContext context) {
-    throw new UnsupportedOperationException(
-        "AppendCol is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+    throw getOnlyForCalciteException("AppendCol");
   }
+
 
   private LogicalSort buildSort(
       LogicalPlan child, AnalysisContext context, Integer count, List<Field> sortFields) {
