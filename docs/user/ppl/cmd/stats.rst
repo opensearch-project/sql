@@ -45,8 +45,8 @@ stats <aggregation>... [by-clause]
 
 * span-expression: optional, at most one.
 
- * Syntax: span(field_expr, interval_expr)
- * Description: The unit of the interval expression is the natural unit by default. If the field is a date and time type field, and the interval is in date/time units, you will need to specify the unit in the interval expression. For example, to split the field ``age`` into buckets by 10 years, it looks like ``span(age, 10)``. And here is another example of time span, the span to split a ``timestamp`` field into hourly intervals, it looks like ``span(timestamp, 1h)``.
+ * Syntax: span([field_expr,] interval_expr)
+ * Description: The unit of the interval expression is the natural unit by default. If ``field_expr`` is omitted, span will use the implicit ``@timestamp`` field. An error will be thrown if this field doesn't exist. If the field is a date and time type field, and the interval is in date/time units, you will need to specify the unit in the interval expression. For example, to split the field ``age`` into buckets by 10 years, it looks like ``span(age, 10)``. And here is another example of time span, the span to split a ``timestamp`` field into hourly intervals, it looks like ``span(timestamp, 1h)``.
 
 * Available time unit:
 +----------------------------+
@@ -525,3 +525,17 @@ PPL query::
     | 36  | 30       | M      |
     +-----+----------+--------+
 
+Example 14: Calculate the count by the implicit @timestamp field
+================================================================
+
+This example demonstrates that if you omit the field parameter in the span function, it will automatically use the implicit ``@timestamp`` field.
+
+PPL query::
+
+    PPL> source=big5 | stats count() by span(1month)
+    fetched rows / total rows = 1/1
+    +---------+---------------------+
+    | count() | span(1month)        |
+    |---------+---------------------|
+    | 1       | 2023-01-01 00:00:00 |
+    +---------+---------------------+

@@ -20,7 +20,9 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 @RequiredArgsConstructor
 @ToString
 public class Span extends UnresolvedExpression {
+  /** When field is {@code null}, span implicitly refers to {@code @timestamp} field */
   @Nullable private final UnresolvedExpression field;
+
   private final UnresolvedExpression value;
   private final SpanUnit unit;
 
