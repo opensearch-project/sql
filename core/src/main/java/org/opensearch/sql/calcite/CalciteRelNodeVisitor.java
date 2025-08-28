@@ -101,6 +101,7 @@ import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
+import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
@@ -494,6 +495,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     visitChildren(node, context);
     buildParseRelNode(node, context);
     return context.relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitSpath(SPath node, CalcitePlanContext context) {
+    return visitEval(node.rewriteAsEval(), context);
   }
 
   @Override
