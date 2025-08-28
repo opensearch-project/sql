@@ -910,19 +910,17 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitRegexCommand(OpenSearchPPLParser.RegexCommandContext ctx) {
     UnresolvedExpression field = null;
-    String operator = null;
+    boolean negated = false;
     Literal pattern = (Literal) internalVisitExpression(ctx.regexExpr().pattern);
 
     if (ctx.regexExpr().field != null) {
       field = internalVisitExpression(ctx.regexExpr().field);
     }
-    if (ctx.regexExpr().EQUAL() != null) {
-      operator = Regex.EQUALS_OPERATOR;
-    } else if (ctx.regexExpr().NOT_EQUAL() != null) {
-      operator = Regex.NOT_EQUALS_OPERATOR;
+    if (ctx.regexExpr().NOT_EQUAL() != null) {
+      negated = true;
     }
 
-    return new Regex(field, operator, pattern);
+    return new Regex(field, negated, pattern);
   }
 
   /** Get original text in query. */

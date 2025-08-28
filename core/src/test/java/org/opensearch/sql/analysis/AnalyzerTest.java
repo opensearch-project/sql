@@ -1938,7 +1938,7 @@ class AnalyzerTest extends AnalyzerTestBase {
             () ->
                 analyze(
                     new org.opensearch.sql.ast.tree.Regex(
-                            field("lastname"), "=", stringLiteral("^[A-Z][a-z]+$"))
+                            field("lastname"), false, stringLiteral("^[A-Z][a-z]+$"))
                         .attach(relation("schema"))));
     assertEquals(
         "REGEX is supported only when plugins.calcite.enabled=true", exception.getMessage());

@@ -140,4 +140,3 @@ Limitations
 
 * **String fields only**: The regex command currently only supports string fields. Using it on numeric or boolean fields will result in an error
 * **Performance**: Complex regex patterns may impact query performance, especially on large datasets
-* **Memory usage**: Pattern compilation results are cached, but very large numbers of unique patterns may consume memory

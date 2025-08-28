@@ -37,9 +37,9 @@ public class Regex extends UnresolvedPlan {
   /** Child Plan. */
   @Setter private UnresolvedPlan child;
 
-  public Regex(UnresolvedExpression field, String operator, Literal pattern) {
+  public Regex(UnresolvedExpression field, boolean negated, Literal pattern) {
     this.field = field;
-    this.negated = NOT_EQUALS_OPERATOR.equals(operator);
+    this.negated = negated;
     this.pattern = pattern;
   }
 
