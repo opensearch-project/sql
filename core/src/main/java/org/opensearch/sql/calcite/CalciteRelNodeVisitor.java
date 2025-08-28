@@ -537,7 +537,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 context.relBuilder.field(node.getAlias()),
                 context.relBuilder.field(PatternUtils.SAMPLE_LOGS));
         flattenParsedPattern(node.getAlias(), parsedNode, context, false);
-        context.relBuilder.projectExcept(context.relBuilder.field(PatternUtils.SAMPLE_LOGS));
+        context.relBuilder.project(
+            context.relBuilder.field(node.getAlias()),
+            context.relBuilder.field(PatternUtils.PATTERN_COUNT),
+            context.relBuilder.field(PatternUtils.TOKENS),
+            context.relBuilder.field(PatternUtils.SAMPLE_LOGS));
       } else {
         RexNode parsedNode =
             PPLFuncImpTable.INSTANCE.resolve(
@@ -1524,7 +1528,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       String originalPatternResultAlias,
       RexNode parsedNode,
       CalcitePlanContext context,
-      boolean flattenPatternCount) {
+      boolean flattenPatternAggResult) {
     List<RexNode> fattenedNodes = new ArrayList<>();
     List<String> projectNames = new ArrayList<>();
     // Flatten map struct fields
@@ -1540,7 +1544,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             true);
     fattenedNodes.add(context.relBuilder.alias(patternExpr, originalPatternResultAlias));
     projectNames.add(originalPatternResultAlias);
-    if (flattenPatternCount) {
+    if (flattenPatternAggResult) {
       RexNode patternCountExpr =
           context.rexBuilder.makeCast(
               context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT),
@@ -1566,6 +1570,24 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             true);
     fattenedNodes.add(context.relBuilder.alias(tokensExpr, PatternUtils.TOKENS));
     projectNames.add(PatternUtils.TOKENS);
+    if (flattenPatternAggResult) {
+      RexNode sampleLogsExpr =
+          context.rexBuilder.makeCast(
+              context
+                  .rexBuilder
+                  .getTypeFactory()
+                  .createArrayType(
+                      context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), -1),
+              PPLFuncImpTable.INSTANCE.resolve(
+                  context.rexBuilder,
+                  BuiltinFunctionName.INTERNAL_ITEM,
+                  parsedNode,
+                  context.rexBuilder.makeLiteral(PatternUtils.SAMPLE_LOGS)),
+              true,
+              true);
+      fattenedNodes.add(context.relBuilder.alias(sampleLogsExpr, PatternUtils.SAMPLE_LOGS));
+      projectNames.add(PatternUtils.SAMPLE_LOGS);
+    }
     projectPlusOverriding(fattenedNodes, projectNames, context);
   }
 
