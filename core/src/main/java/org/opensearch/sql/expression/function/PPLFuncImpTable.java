@@ -236,11 +236,18 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
+
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLambda;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -260,17 +267,16 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.calcite.CalcitePlanContext;
-import org.opensearch.sql.calcite.udf.udaf.ListAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.LogPatternAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.PercentileApproxFunction;
 import org.opensearch.sql.calcite.udf.udaf.TakeAggFunction;
-import org.opensearch.sql.calcite.udf.udaf.ValuesAggFunction;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.executor.QueryType;
+
 
 public class PPLFuncImpTable {
   private static final Logger logger = LogManager.getLogger(PPLFuncImpTable.class);
@@ -1167,13 +1173,38 @@ public class PPLFuncImpTable {
       register(
           LIST,
           (distinct, field, argList, ctx) -> {
-            RelDataType varcharType = ctx.relBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+            RelDataType varcharType = ctx.relBuilder.getTypeFactory().createTypeWithNullability(
+                ctx.relBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), true);
             RexNode castToVarchar = ctx.relBuilder.getRexBuilder().makeCast(varcharType, field);
+            RexBuilder rexBuilder = ctx.relBuilder.getRexBuilder();
 
-            ctx.relBuilder.limit(0, 100);
+            // Create ROW_NUMBER() OVER() window function properly
+            RexNode rowNumber = ctx.relBuilder
+                .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+                .over()
+                .rowsTo(RexWindowBounds.CURRENT_ROW)
+                .toRex();
 
-            // Apply ARRAY_AGG with the existing filter
-            return ctx.relBuilder.aggregateCall(SqlLibraryOperators.ARRAY_AGG, castToVarchar);
+            // Create condition: ROW_NUMBER() OVER() <= 100
+            RelDataType intType = ctx.relBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
+            RexNode hundredLiteral = rexBuilder.makeLiteral(100, intType, false);
+            RexNode rowNumCondition = rexBuilder.makeCall(
+                SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
+                rowNumber,
+                hundredLiteral);
+
+            // Create CASE expression: CASE WHEN ROW_NUMBER() OVER() <= 100 THEN cast_field
+            // ELSE NULL END
+            RexNode limitedCastExpr = rexBuilder.makeCall(
+                SqlStdOperatorTable.CASE,
+                rowNumCondition,
+                castToVarchar,
+                rexBuilder.makeNullLiteral(varcharType));
+
+            // Apply ARRAY_AGG directly to the CASE expression
+            // DON'T use filter() or projectPlus() - this keeps it contained within the
+            // aggregation
+            return ctx.relBuilder.aggregateCall(SqlLibraryOperators.ARRAY_AGG, limitedCastExpr).ignoreNulls(true);
           },
           PPLTypeChecker.wrapUDT(
               List.of(
@@ -1191,34 +1222,39 @@ public class PPLFuncImpTable {
                   List.of(ExprCoreType.IP),
                   List.of(ExprCoreType.BINARY))));
 
-    register(
-    VALUES,
-    (distinct, field, argList, ctx) -> {
-        RelDataType varcharType = ctx.relBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
-        RexNode castToVarchar = ctx.relBuilder.getRexBuilder().makeCast(varcharType, field);
-        
-        // ctx.relBuilder
-        //     .sort(castToVarchar); // Sort values
-        
-        return ctx.relBuilder.aggregateCall(SqlLibraryOperators.ARRAY_AGG, castToVarchar)
-                      .distinct(true)
-                      .ignoreNulls(true).sort(castToVarchar); 
-    },
-    PPLTypeChecker.wrapUDT(
-        List.of(
-            List.of(ExprCoreType.BOOLEAN),
-            List.of(ExprCoreType.BYTE),
-            List.of(ExprCoreType.SHORT),
-            List.of(ExprCoreType.INTEGER),
-            List.of(ExprCoreType.LONG),
-            List.of(ExprCoreType.FLOAT),
-            List.of(ExprCoreType.DOUBLE),
-            List.of(ExprCoreType.STRING),
-            List.of(ExprCoreType.DATE),
-            List.of(ExprCoreType.TIME),
-            List.of(ExprCoreType.TIMESTAMP),
-            List.of(ExprCoreType.IP),
-            List.of(ExprCoreType.BINARY))));
+      register(
+          VALUES,
+          (distinct, field, argList, ctx) -> {
+            // RelDataType varcharType = ctx.relBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+            // RexNode castToVarchar = ctx.relBuilder.getRexBuilder().makeCast(varcharType, field);
+
+            // ctx.relBuilder.projectPlus(castToVarchar);
+
+            // List<String> fieldNames = ctx.relBuilder.peek().getRowType().getFieldNames();
+            // String castFieldName = fieldNames.get(fieldNames.size() - 1);
+            // RexNode castFieldRef = ctx.relBuilder.field(castFieldName);
+            return ctx.relBuilder.aggregateCall(SqlLibraryOperators.ARRAY_AGG, field)
+                .distinct(true)
+                .ignoreNulls(true)
+                .sort(field);
+
+          },
+          PPLTypeChecker.wrapUDT(
+              List.of(
+                  List.of(ExprCoreType.BOOLEAN),
+                  List.of(ExprCoreType.BYTE),
+                  List.of(ExprCoreType.SHORT),
+                  List.of(ExprCoreType.INTEGER),
+                  List.of(ExprCoreType.LONG),
+                  List.of(ExprCoreType.FLOAT),
+                  List.of(ExprCoreType.DOUBLE),
+                  List.of(ExprCoreType.STRING),
+                  List.of(ExprCoreType.DATE),
+                  List.of(ExprCoreType.TIME),
+                  List.of(ExprCoreType.TIMESTAMP),
+                  List.of(ExprCoreType.IP),
+                  List.of(ExprCoreType.BINARY))));
+
     }
   }
 

@@ -421,4 +421,88 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
             + "GROUP BY `DEPTNO`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+    @Test
+  public void testlistEval() {
+    String ppl = "source=EMP | stats list(DEPTNO), avg(DEPTNO)";
+    RelNode root = getRelNode(ppl);
+    System.out.println(root);
+    verifyPPLToSparkSQL(root, "");
+    // String expectedLogical =
+    //     ""
+    //         + "LogicalProject(avg(b)=[$1], DEPTNO=[$0])\n"
+    //         + "  LogicalAggregate(group=[{0}], avg(b)=[AVG($1)])\n"
+    //         + "    LogicalProject(DEPTNO=[$7], b=[+($5, 10000)])\n"
+    //         + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    // verifyLogical(root, expectedLogical);
+    // String expectedResult =
+    //     ""
+    //         + "avg(b)=12175.; DEPTNO=20\n"
+    //         + "avg(b)=12916.666666; DEPTNO=10\n"
+    //         + "avg(b)=11566.666666; DEPTNO=30\n";
+    // verifyResult(root, expectedResult);
+
+    // String expectedSparkSql =
+    //     ""
+    //         + "SELECT AVG(`SAL` + 10000) `avg(b)`, `DEPTNO`\n"
+    //         + "FROM `scott`.`EMP`\n"
+    //         + "GROUP BY `DEPTNO`";
+    // verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+      @Test
+  public void testValuesEval() {
+    String ppl = "source=EMP | stats avg(DEPTNO), values(DEPTNO)";
+    RelNode root = getRelNode(ppl);
+    System.out.println(root);
+    verifyPPLToSparkSQL(root, "");
+    // String expectedLogical =
+    //     ""
+    //         + "LogicalProject(avg(b)=[$1], DEPTNO=[$0])\n"
+    //         + "  LogicalAggregate(group=[{0}], avg(b)=[AVG($1)])\n"
+    //         + "    LogicalProject(DEPTNO=[$7], b=[+($5, 10000)])\n"
+    //         + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    // verifyLogical(root, expectedLogical);
+    // String expectedResult =
+    //     ""
+    //         + "avg(b)=12175.; DEPTNO=20\n"
+    //         + "avg(b)=12916.666666; DEPTNO=10\n"
+    //         + "avg(b)=11566.666666; DEPTNO=30\n";
+    // verifyResult(root, expectedResult);
+
+    // String expectedSparkSql =
+    //     ""
+    //         + "SELECT AVG(`SAL` + 10000) `avg(b)`, `DEPTNO`\n"
+    //         + "FROM `scott`.`EMP`\n"
+    //         + "GROUP BY `DEPTNO`";
+    // verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+        @Test
+  public void testValuesAndLISTEval() {
+    String ppl = "source=EMP | stats  values(DEPTNO),list(DEPTNO)";
+    RelNode root = getRelNode(ppl);
+    System.out.println(root);
+    verifyPPLToSparkSQL(root, "");
+    // String expectedLogical =
+    //     ""
+    //         + "LogicalProject(avg(b)=[$1], DEPTNO=[$0])\n"
+    //         + "  LogicalAggregate(group=[{0}], avg(b)=[AVG($1)])\n"
+    //         + "    LogicalProject(DEPTNO=[$7], b=[+($5, 10000)])\n"
+    //         + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    // verifyLogical(root, expectedLogical);
+    // String expectedResult =
+    //     ""
+    //         + "avg(b)=12175.; DEPTNO=20\n"
+    //         + "avg(b)=12916.666666; DEPTNO=10\n"
+    //         + "avg(b)=11566.666666; DEPTNO=30\n";
+    // verifyResult(root, expectedResult);
+
+    // String expectedSparkSql =
+    //     ""
+    //         + "SELECT AVG(`SAL` + 10000) `avg(b)`, `DEPTNO`\n"
+    //         + "FROM `scott`.`EMP`\n"
+    //         + "GROUP BY `DEPTNO`";
+    // verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
 }
