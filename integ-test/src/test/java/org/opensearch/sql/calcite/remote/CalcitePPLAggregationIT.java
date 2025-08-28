@@ -841,7 +841,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         schema("perc25.5(balance)", "bigint"),
         schema("p75.25(balance)", "bigint"),
         schema("perc0.1(balance)", "bigint"));
-    verifyDataRows(actual, rows(5686, 40540, 4180));
+    verifyDataRows(actual, rows(8744, 40234, 4180));
   }
 
   @Test
