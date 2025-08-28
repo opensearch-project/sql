@@ -34,7 +34,7 @@ public class PercentileApproxFunction
     if (Objects.isNull(targetValue)) {
       return acc;
     }
-    percentile = ((Number) values[1]).intValue() / 100.0;
+    percentile = ((Number) values[1]).doubleValue() / 100.0;
     returnType = (SqlTypeName) values[values.length - 1];
     if (values.length > 3) { // have compression
       compression = ((Number) values[values.length - 2]).doubleValue();
