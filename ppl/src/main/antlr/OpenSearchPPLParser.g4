@@ -108,8 +108,64 @@ commandName
    ;
 
 searchCommand
-   : (SEARCH)? (logicalExpression)* fromClause (logicalExpression)*     # searchFrom
+   : (SEARCH)? (searchExpression)* fromClause (searchExpression)*     # searchFrom
    ;
+
+searchExpression
+ : LT_PRTHS searchExpression RT_PRTHS                 # groupedExpression
+ | NOT searchExpression                               # notExpression
+ | searchExpression OR searchExpression               # orExpression
+ | searchExpression AND searchExpression              # andExpression
+ | searchTerm                                         # termExpression
+ ;
+
+searchTerm
+ : searchLiteral                                     # literalTerm
+ | fieldComparison                                   # comparisonTerm
+ | fieldInList                                       # inListTerm
+ ;
+
+// Standalone search literal - quotes have special meaning
+searchLiteral
+   : DQUOTA_STRING      // Double quotes = phrase search (preserve quotes)
+   | SQUOTA_STRING      // Single quotes searching for quotes
+   | BQUOTA_STRING      // Backticks will also be searched.
+   | tableQualifiedName
+   | numericLiteral
+   | booleanLiteral
+   | datetimeLiteral
+   ;
+
+// Field comparison - quotes are just string delimiters
+fieldComparison
+ : fieldExpression searchComparisonOperator comparisonValue          # fieldCompare
+ ;
+
+// Field IN list - quotes are just string delimiters
+fieldInList
+ : fieldExpression IN LT_PRTHS comparisonValueList RT_PRTHS          # fieldInValues
+ ;
+
+// Comparison value - reuse literalValue which already handles signed numbers
+comparisonValue
+   : literalValue          // Includes all literal types with proper sign support
+   | tableQualifiedName
+   ;
+
+// Value list for IN operator
+comparisonValueList
+ : comparisonValue (COMMA comparisonValue)*          # comparisonValues
+ ;
+
+// Comparison operators (limited set)
+searchComparisonOperator
+ : EQUAL                                             # equals
+ | NOT_EQUAL                                         # notEquals
+ | LESS                                              # lessThan
+ | NOT_GREATER                                       # lessOrEqual
+ | GREATER                                           # greaterThan
+ | NOT_LESS                                          # greaterOrEqual
+ ;
 
 describeCommand
    : DESCRIBE tableSourceClause
@@ -1190,7 +1246,7 @@ keywordsCanBeId
    | multiFieldRelevanceFunctionName
    | commandName
    | collectionFunctionName
-   | comparisonOperator
+   | REGEX
    | explainMode
    // commands assist keywords
    | CASE

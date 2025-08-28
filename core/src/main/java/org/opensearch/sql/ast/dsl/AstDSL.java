@@ -70,6 +70,7 @@ import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
+import org.opensearch.sql.ast.tree.Search;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.SpanBin;
@@ -106,6 +107,10 @@ public class AstDSL {
 
   public UnresolvedPlan describe(String tableName) {
     return new DescribeRelation(qualifiedName(tableName));
+  }
+
+  public static UnresolvedPlan search(UnresolvedPlan input, String queryString) {
+    return new Search(input, queryString);
   }
 
   public UnresolvedPlan subqueryAlias(UnresolvedPlan child, String alias) {

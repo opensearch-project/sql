@@ -101,6 +101,7 @@ import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
+import org.opensearch.sql.ast.tree.Search;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
@@ -152,6 +153,51 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .createScan(ViewExpanders.simpleContext(context.relBuilder.getCluster()), tableSchema);
     context.relBuilder.push(scan);
     return context.relBuilder;
+  }
+
+  @Override
+  public RelNode visitSearch(Search node, CalcitePlanContext context) {
+    // Visit the Relation child to get the scan
+    node.getChild().get(0).accept(this, context);
+    RelNode scan = context.relBuilder.peek();
+
+    // Create query_string function
+    Function queryStringFunc =
+        AstDSL.function(
+            "query_string",
+            AstDSL.unresolvedArg("query", AstDSL.stringLiteral(node.getQueryString())));
+    RexNode queryStringRex = rexVisitor.analyze(queryStringFunc, context);
+
+    // Check if it's CalciteLogicalIndexScan using reflection to avoid dependency
+    // The direct pushdown will be handled by optimization rules instead
+    String scanClassName = scan.getClass().getName();
+    if (scanClassName.equals(
+        "org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan")) {
+      // Try to push down using reflection
+      try {
+        // Create LogicalFilter
+        org.apache.calcite.rel.logical.LogicalFilter filter =
+            org.apache.calcite.rel.logical.LogicalFilter.create(scan, queryStringRex);
+
+        // Call pushDownFilter method via reflection
+        java.lang.reflect.Method pushDownMethod =
+            scan.getClass().getMethod("pushDownFilter", org.apache.calcite.rel.core.Filter.class);
+        Object pushed = pushDownMethod.invoke(scan, filter);
+
+        if (pushed != null) {
+          // Successfully pushed down - update the builder stack
+          context.relBuilder.clear();
+          context.relBuilder.push((RelNode) pushed);
+          return (RelNode) pushed;
+        }
+      } catch (Exception e) {
+        // Fall through to regular filter creation
+      }
+    }
+
+    // Create regular filter
+    context.relBuilder.filter(queryStringRex);
+    return context.relBuilder.peek();
   }
 
   @Override
