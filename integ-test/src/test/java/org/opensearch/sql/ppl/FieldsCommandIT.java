@@ -147,8 +147,10 @@ public class FieldsCommandIT extends PPLIntegTestCase {
   }
 
   private void verifyQueryThrowsCalciteError(String query) {
-    Exception e = assertThrows(Exception.class, () -> executeQuery(String.format(query, TEST_INDEX_ACCOUNT)));
-    verifyErrorMessageContains(e, "Enhanced fields feature is supported only when plugins.calcite.enabled=true");
+    Exception e =
+        assertThrows(Exception.class, () -> executeQuery(String.format(query, TEST_INDEX_ACCOUNT)));
+    verifyErrorMessageContains(
+        e, "Enhanced fields feature is supported only when plugins.calcite.enabled=true");
   }
 
   @Ignore(
