@@ -364,6 +364,15 @@ public class CalciteExplainIT extends ExplainIT {
                     + " latest(message, created_at) as latest_message by level",
                 TEST_INDEX_LOGS)));
   }
+  
+  @Test
+  public void testListAggregationExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_list_aggregation.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats list(age) as age_list"));
+  }
 
   /**
    * Executes the PPL query and returns the result as a string with windows-style line breaks

@@ -503,6 +503,7 @@ statsFunctionName
    | STDDEV_POP
    | PERCENTILE
    | PERCENTILE_APPROX
+   | LIST
    ;
 
 earliestLatestFunction
