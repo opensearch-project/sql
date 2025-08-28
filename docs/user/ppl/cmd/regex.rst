@@ -21,12 +21,11 @@ Syntax
 ============
 regex <field> = <pattern>
 regex <field> != <pattern>
-regex <pattern>
 
-* field: optional. The field name to match against. If not specified, the pattern will be matched against the default field.
+* field: mandatory. The field name to match against.
 * pattern: mandatory string. The regular expression pattern to match. Supports Java regex syntax including named groups, lookahead/lookbehind, and character classes.
-* = : optional operator for positive matching (default behavior)
-* != : optional operator for negative matching (exclude matches)
+* = : operator for positive matching (include matches)
+* != : operator for negative matching (exclude matches)
 
 Regular Expression Engine
 ==========================
@@ -138,5 +137,5 @@ PPL query::
 Limitations
 ===========
 
+* **Field specification required**: A field name must be specified in the regex command. Pattern-only syntax (e.g., ``regex "pattern"``) is not currently supported
 * **String fields only**: The regex command currently only supports string fields. Using it on numeric or boolean fields will result in an error
-* **Performance**: Complex regex patterns may impact query performance, especially on large datasets

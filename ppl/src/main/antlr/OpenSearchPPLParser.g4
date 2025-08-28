@@ -248,8 +248,7 @@ regexCommand
     ;
 
 regexExpr
-    : pattern=stringLiteral
-    | field=qualifiedName EQUAL pattern=stringLiteral
+    : field=qualifiedName EQUAL pattern=stringLiteral
     | field=qualifiedName NOT_EQUAL pattern=stringLiteral
     ;
 

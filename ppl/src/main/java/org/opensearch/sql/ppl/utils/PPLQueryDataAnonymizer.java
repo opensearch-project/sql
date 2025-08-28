@@ -449,12 +449,8 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String operator = node.isNegated() ? Regex.NOT_EQUALS_OPERATOR : Regex.EQUALS_OPERATOR;
     String pattern = MASK_LITERAL;
 
-    if (node.getField() != null) {
-      String field = visitExpression(node.getField());
-      return StringUtils.format("%s | regex %s%s%s", child, field, operator, pattern);
-    } else {
-      return StringUtils.format("%s | regex %s", child, pattern);
-    }
+    String field = visitExpression(node.getField());
+    return StringUtils.format("%s | regex %s%s%s", child, field, operator, pattern);
   }
 
   @Override
