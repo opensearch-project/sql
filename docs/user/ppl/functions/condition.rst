@@ -255,7 +255,7 @@ Argument type: all the supported data type. Supports mixed data types with autom
 Return type: determined by the least restrictive common type among all arguments, with fallback to string if no common type can be determined
 
 Behavior:
-- Returns the first value that is not null and not missing
+- Returns the first value that is not null and not missing (missing includes non-existent fields)
 - Empty strings ("") and whitespace strings (" ") are considered valid values
 - If all arguments are null or missing, returns null
 - Automatic type coercion is applied to match the determined return type

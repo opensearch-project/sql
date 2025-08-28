@@ -55,7 +55,7 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
   @Test
   public void testCoalesceWithSameType() {
     String ppl = "source=EMP | eval coalesce_name = coalesce(ENAME, 'Jack') | fields coalesce_name";
-    getRelNode(ppl);
+    Assert.assertNotNull(getRelNode(ppl));
   }
 
   @Test
@@ -63,7 +63,7 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
     String ppl =
         "source=EMP | eval coalesce_name = coalesce(EMPNO, 'Jack', ENAME) | fields"
             + " coalesce_name";
-    getRelNode(ppl);
+    Assert.assertNotNull(getRelNode(ppl));
   }
 
   @Test

@@ -16,7 +16,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-/** Cross Cluster Search tests for enhanced coalesce function with Calcite. */
 public class CrossClusterCoalesceIT extends PPLIntegTestCase {
 
   static {
