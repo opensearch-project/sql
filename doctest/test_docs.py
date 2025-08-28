@@ -29,7 +29,6 @@ ENDPOINT = "http://localhost:9200"
 
 TEST_DATA = {
     'accounts': 'accounts.json',
-    'employees': None,  # Skip loading employee index - comes from test cases in docs
     'people': 'people.json',
     'account2': 'account2.json',
     'nyc_taxi': 'nyc_taxi.json',
