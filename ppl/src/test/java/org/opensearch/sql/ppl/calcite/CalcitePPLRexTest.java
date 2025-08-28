@@ -278,4 +278,56 @@ public class CalcitePPLRexTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  @Test
+  public void testRexModeExtractExplicit() {
+    String ppl =
+        "source=EMP | rex field=ENAME mode=extract '(?<first>[A-Z]).*' | fields ENAME, first";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(ENAME=[$1], first=[REGEXP_EXTRACT($1, '(?<first>[A-Z]).*', 1)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `ENAME`, REGEXP_EXTRACT(`ENAME`, '(?<first>[A-Z]).*', 1) `first`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testRexModeExtractMultipleGroups() {
+    String ppl =
+        "source=EMP | rex field=ENAME mode=extract '(?<first>[A-Z])(?<rest>.*)' | fields ENAME,"
+            + " first, rest";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(ENAME=[$1], first=[REX_EXTRACT($1, '(?<first>[A-Z])(?<rest>.*)', 1)],"
+            + " rest=[REX_EXTRACT($1, '(?<first>[A-Z])(?<rest>.*)', 2)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `ENAME`, `REX_EXTRACT`(`ENAME`, '(?<first>[A-Z])(?<rest>.*)', 1) `first`,"
+            + " `REX_EXTRACT`(`ENAME`, '(?<first>[A-Z])(?<rest>.*)', 2) `rest`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testRexModeExtractWithMaxMatch() {
+    String ppl =
+        "source=EMP | rex field=ENAME mode=extract '(?<letter>[A-Z])' max_match=3 | fields ENAME,"
+            + " letter";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(ENAME=[$1], letter=[REX_EXTRACT_MULTI($1, '(?<letter>[A-Z])', 1, 3)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `ENAME`, `REX_EXTRACT_MULTI`(`ENAME`, '(?<letter>[A-Z])', 1, 3) `letter`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
 }

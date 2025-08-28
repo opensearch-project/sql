@@ -1006,6 +1006,9 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       if (optionCtx.MODE() != null && optionCtx.SED() != null) {
         mode = Rex.RexMode.SED;
       }
+      if (optionCtx.MODE() != null && optionCtx.EXTRACT() != null) {
+        mode = Rex.RexMode.EXTRACT;
+      }
     }
 
     return new Rex(field, pattern, maxMatch, offsetField, mode);
