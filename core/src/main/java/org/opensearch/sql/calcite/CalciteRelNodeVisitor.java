@@ -537,11 +537,19 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 context.relBuilder.field(node.getAlias()),
                 context.relBuilder.field(PatternUtils.SAMPLE_LOGS));
         flattenParsedPattern(node.getAlias(), parsedNode, context, false);
-        context.relBuilder.project(
-            context.relBuilder.field(node.getAlias()),
-            context.relBuilder.field(PatternUtils.PATTERN_COUNT),
-            context.relBuilder.field(PatternUtils.TOKENS),
-            context.relBuilder.field(PatternUtils.SAMPLE_LOGS));
+        // Reorder fields for consistency with Brain's output
+        projectPlusOverriding(
+            List.of(
+                context.relBuilder.field(node.getAlias()),
+                context.relBuilder.field(PatternUtils.PATTERN_COUNT),
+                context.relBuilder.field(PatternUtils.TOKENS),
+                context.relBuilder.field(PatternUtils.SAMPLE_LOGS)),
+            List.of(
+                node.getAlias(),
+                PatternUtils.PATTERN_COUNT,
+                PatternUtils.TOKENS,
+                PatternUtils.SAMPLE_LOGS),
+            context);
       } else {
         RexNode parsedNode =
             PPLFuncImpTable.INSTANCE.resolve(
