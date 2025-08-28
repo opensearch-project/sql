@@ -55,7 +55,35 @@ import java.util.stream.Stream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
 import org.opensearch.sql.ast.dsl.AstDSL;
-import org.opensearch.sql.ast.expression.*;
+import org.opensearch.sql.ast.expression.AggregateFunction;
+import org.opensearch.sql.ast.expression.Alias;
+import org.opensearch.sql.ast.expression.AllFields;
+import org.opensearch.sql.ast.expression.And;
+import org.opensearch.sql.ast.expression.Between;
+import org.opensearch.sql.ast.expression.Case;
+import org.opensearch.sql.ast.expression.Cast;
+import org.opensearch.sql.ast.expression.Compare;
+import org.opensearch.sql.ast.expression.DataType;
+import org.opensearch.sql.ast.expression.EqualTo;
+import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.In;
+import org.opensearch.sql.ast.expression.Interval;
+import org.opensearch.sql.ast.expression.IntervalUnit;
+import org.opensearch.sql.ast.expression.LambdaFunction;
+import org.opensearch.sql.ast.expression.Let;
+import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.ast.expression.Not;
+import org.opensearch.sql.ast.expression.Or;
+import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.RelevanceFieldList;
+import org.opensearch.sql.ast.expression.Span;
+import org.opensearch.sql.ast.expression.SpanUnit;
+import org.opensearch.sql.ast.expression.UnresolvedArgument;
+import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.expression.When;
+import org.opensearch.sql.ast.expression.WindowFunction;
+import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
@@ -337,6 +365,30 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
         visit(ctx.valueExpression()),
         Collections.singletonList(
             new UnresolvedArgument("percent", AstDSL.doubleLiteral(percent))));
+  }
+
+  public UnresolvedExpression visitEarliestLatestFunctionCall(
+      OpenSearchPPLParser.EarliestLatestFunctionCallContext ctx) {
+    return visit(ctx.earliestLatestFunction());
+  }
+
+  @Override
+  public UnresolvedExpression visitEarliestLatestFunction(
+      OpenSearchPPLParser.EarliestLatestFunctionContext ctx) {
+    String functionName = ctx.EARLIEST() != null ? "earliest" : "latest";
+    UnresolvedExpression valueField = visit(ctx.valueExpression(0));
+
+    if (ctx.timeField != null) {
+      // Two parameters: earliest(field, time_field) or latest(field, time_field)
+      UnresolvedExpression timeField = visit(ctx.timeField);
+      return new AggregateFunction(
+          functionName,
+          valueField,
+          Collections.singletonList(new UnresolvedArgument("time_field", timeField)));
+    } else {
+      // Single parameter: earliest(field) or latest(field) - uses default @timestamp
+      return new AggregateFunction(functionName, valueField);
+    }
   }
 
   /** Case function. */

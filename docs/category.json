@@ -24,7 +24,6 @@
     "user/ppl/cmd/rename.rst",
     "user/ppl/cmd/search.rst",
     "user/ppl/cmd/sort.rst",
-    "user/ppl/cmd/stats.rst",
     "user/ppl/cmd/syntax.rst",
     "user/ppl/cmd/trendline.rst",
     "user/ppl/cmd/top.rst",
@@ -56,5 +55,8 @@
     "user/dql/aggregations.rst",
     "user/dql/complex.rst",
     "user/dql/metadata.rst"
+  ],
+  "ppl_cli_calcite": [
+    "user/ppl/cmd/stats.rst"
   ]
 }
