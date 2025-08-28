@@ -8,7 +8,6 @@ package org.opensearch.sql.expression.function;
 import static org.apache.calcite.sql.SqlJsonConstructorNullClause.NULL_ON_NULL;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getLegacyTypeName;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.createAggregateFunction;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ABS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ACOS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ADD;
@@ -828,7 +827,8 @@ public class PPLFuncImpTable {
           SqlStdOperatorTable.PLUS,
           PPLTypeChecker.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC));
       // Replace with a custom CompositeOperandTypeChecker to check both operands as
-      // SqlStdOperatorTable.ITEM.getOperandTypeChecker() checks only the first operand instead
+      // SqlStdOperatorTable.ITEM.getOperandTypeChecker() checks only the first
+      // operand instead
       // of all operands.
       registerOperator(
           INTERNAL_ITEM,
@@ -842,14 +842,18 @@ public class PPLFuncImpTable {
           XOR,
           SqlStdOperatorTable.NOT_EQUALS,
           PPLTypeChecker.family(SqlTypeFamily.BOOLEAN, SqlTypeFamily.BOOLEAN));
-      // SqlStdOperatorTable.CASE.getOperandTypeChecker is null. We manually create a type checker
-      // for it. The second and third operands are required to be of the same type. If not,
-      // it will throw an IllegalArgumentException with information Can't find leastRestrictive type
+      // SqlStdOperatorTable.CASE.getOperandTypeChecker is null. We manually create a
+      // type checker
+      // for it. The second and third operands are required to be of the same type. If
+      // not,
+      // it will throw an IllegalArgumentException with information Can't find
+      // leastRestrictive type
       registerOperator(
           IF,
           SqlStdOperatorTable.CASE,
           PPLTypeChecker.family(SqlTypeFamily.BOOLEAN, SqlTypeFamily.ANY, SqlTypeFamily.ANY));
-      // Re-define the type checker for is not null, is present, and is null since their original
+      // Re-define the type checker for is not null, is present, and is null since
+      // their original
       // type checker ANY isn't compatible with struct types.
       registerOperator(
           IS_NOT_NULL,
@@ -902,7 +906,8 @@ public class PPLFuncImpTable {
           (FunctionImp2)
               (builder, arg1, arg2) -> builder.makeCall(SqlLibraryOperators.STRCMP, arg2, arg1),
           PPLTypeChecker.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER));
-      // SqlStdOperatorTable.SUBSTRING.getOperandTypeChecker is null. We manually create a type
+      // SqlStdOperatorTable.SUBSTRING.getOperandTypeChecker is null. We manually
+      // create a type
       // checker for it.
       register(
           SUBSTRING,
