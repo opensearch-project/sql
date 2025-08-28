@@ -178,9 +178,9 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
-        "LogicalProject(patterns_field=[SAFE_CAST(ITEM(PATTERN_PARSER($1, $3), 'pattern'))],"
-            + " pattern_count=[$2], tokens=[SAFE_CAST(ITEM(PATTERN_PARSER($1, $3), 'tokens'))],"
-            + " sample_logs=[$3])\n"
+        "LogicalProject(DEPTNO=[$0], patterns_field=[SAFE_CAST(ITEM(PATTERN_PARSER($1, $3),"
+            + " 'pattern'))], pattern_count=[$2], tokens=[SAFE_CAST(ITEM(PATTERN_PARSER($1, $3),"
+            + " 'tokens'))], sample_logs=[$3])\n"
             + "  LogicalAggregate(group=[{1, 2}], pattern_count=[COUNT($2)], sample_logs=[TAKE($0,"
             + " $3)])\n"
             + "    LogicalProject(ENAME=[$1], DEPTNO=[$7], patterns_field=[REGEXP_REPLACE($1,"
@@ -189,8 +189,8 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT SAFE_CAST(`PATTERN_PARSER`(REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>'),"
-            + " `TAKE`(`ENAME`, 10))['pattern'] AS STRING) `patterns_field`,"
+        "SELECT `DEPTNO`, SAFE_CAST(`PATTERN_PARSER`(REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+',"
+            + " '<*>'), `TAKE`(`ENAME`, 10))['pattern'] AS STRING) `patterns_field`,"
             + " COUNT(REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>')) `pattern_count`,"
             + " SAFE_CAST(`PATTERN_PARSER`(REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>'),"
             + " `TAKE`(`ENAME`, 10))['tokens'] AS MAP< VARCHAR, VARCHAR ARRAY >) `tokens`,"
