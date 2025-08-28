@@ -13,6 +13,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.alias;
 import static org.opensearch.sql.ast.dsl.AstDSL.and;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
+import static org.opensearch.sql.ast.dsl.AstDSL.caseWhen;
 import static org.opensearch.sql.ast.dsl.AstDSL.cast;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
 import static org.opensearch.sql.ast.dsl.AstDSL.decimalLiteral;
@@ -42,6 +43,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 import static org.opensearch.sql.ast.dsl.AstDSL.sort;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
+import static org.opensearch.sql.ast.dsl.AstDSL.when;
 import static org.opensearch.sql.ast.dsl.AstDSL.xor;
 
 import com.google.common.collect.ImmutableMap;
@@ -602,6 +604,24 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         agg(
             relation("t"),
             exprList(alias("count()", aggregate("count", AllFields.of()))),
+            emptyList(),
+            exprList(alias("b", field("b"))),
+            defaultStatsArgs()));
+  }
+
+  @Test
+  public void testCountEvalFuncCallExpr() {
+    assertEqual(
+        "source=t | stats count(eval(a > 0)) by b",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "count(eval(a > 0))",
+                    aggregate(
+                        "count",
+                        caseWhen(
+                            null, when(compare(">", field("a"), intLiteral(0)), intLiteral(1)))))),
             emptyList(),
             exprList(alias("b", field("b"))),
             defaultStatsArgs()));
