@@ -222,7 +222,6 @@ public enum BuiltinFunctionName {
   REX_EXTRACT(FunctionName.of("REX_EXTRACT")),
   REX_EXTRACT_MULTI(FunctionName.of("REX_EXTRACT_MULTI")),
   REX_OFFSET(FunctionName.of("REX_OFFSET")),
-  REX_SED(FunctionName.of("REX_SED")),
   REPLACE(FunctionName.of("replace")),
   REVERSE(FunctionName.of("reverse")),
   RIGHT(FunctionName.of("right")),
@@ -319,7 +318,12 @@ public enum BuiltinFunctionName {
   INTERNAL_UNCOLLECT_PATTERNS(FunctionName.of("uncollect_patterns")),
   INTERNAL_REGEXP_EXTRACT(FunctionName.of("regexp_extract"), true),
   INTERNAL_GROK(FunctionName.of("grok"), true),
-  INTERNAL_REGEXP_REPLACE_3(FunctionName.of("regexp_replace_3"), true);
+  INTERNAL_REGEXP_REPLACE_3(FunctionName.of("regexp_replace_3"), true),
+  INTERNAL_REGEXP_REPLACE_PG_3(FunctionName.of("regexp_replace_pg_3"), true),
+  INTERNAL_REGEXP_REPLACE_PG_4(FunctionName.of("regexp_replace_pg_4"), true),
+  INTERNAL_REGEXP_REPLACE_5(FunctionName.of("regexp_replace_5"), true),
+  INTERNAL_TRANSLATE3(FunctionName.of("translate3"), true),
+  INTERNAL_REGEXP_EXTRACT_ALL(FunctionName.of("regexp_extract_all"), true);
 
   private final FunctionName name;
   private boolean isInternal;

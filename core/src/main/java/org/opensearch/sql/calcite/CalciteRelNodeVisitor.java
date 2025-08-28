@@ -49,7 +49,6 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexWindowBounds;
-import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -218,24 +217,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     String patternStr = (String) node.getPattern().getValue();
 
     if (node.getMode() == Rex.RexMode.SED) {
-      RexNode sedCall =
-          PPLFuncImpTable.INSTANCE.resolve(
-              context.rexBuilder,
-              BuiltinFunctionName.REX_SED,
-              fieldRex,
-              context.rexBuilder.makeLiteral(patternStr));
-
-      // Extract regex pattern from sed command for pushdown optimization
-      String filterPattern = extractRegexFromSedPattern(patternStr);
-      if (filterPattern != null) {
-        RexNode regexMatchCondition =
-            context.rexBuilder.makeCall(
-                SqlLibraryOperators.REGEXP_CONTAINS,
-                fieldRex,
-                context.rexBuilder.makeLiteral(filterPattern));
-        context.relBuilder.filter(regexMatchCondition);
-      }
-
+      RexNode sedCall = createOptimizedSedCall(fieldRex, patternStr, context);
       String fieldName = node.getField().toString();
       projectPlusOverriding(List.of(sedCall), List.of(fieldName), context);
       return context.relBuilder.peek();
@@ -263,13 +245,23 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 context.relBuilder.literal(i + 1),
                 context.relBuilder.literal(node.getMaxMatch().get()));
       } else {
-        extractCall =
-            PPLFuncImpTable.INSTANCE.resolve(
-                context.rexBuilder,
-                BuiltinFunctionName.REX_EXTRACT,
-                fieldRex,
-                context.rexBuilder.makeLiteral(patternStr),
-                context.relBuilder.literal(i + 1));
+        if (namedGroups.size() == 1) {
+          extractCall =
+              PPLFuncImpTable.INSTANCE.resolve(
+                  context.rexBuilder,
+                  BuiltinFunctionName.INTERNAL_REGEXP_EXTRACT,
+                  fieldRex,
+                  context.rexBuilder.makeLiteral(patternStr),
+                  context.relBuilder.literal(i + 1));
+        } else {
+          extractCall =
+              PPLFuncImpTable.INSTANCE.resolve(
+                  context.rexBuilder,
+                  BuiltinFunctionName.REX_EXTRACT,
+                  fieldRex,
+                  context.rexBuilder.makeLiteral(patternStr),
+                  context.relBuilder.literal(i + 1));
+        }
       }
       newFields.add(extractCall);
       newFieldNames.add(namedGroups.get(i));
@@ -288,30 +280,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     projectPlusOverriding(newFields, newFieldNames, context);
     return context.relBuilder.peek();
-  }
-
-  /**
-   * Extract regex pattern from sed command for filter pushdown. Supports basic sed patterns like
-   * s/pattern/replacement/flags Returns the search pattern that can be used for filtering.
-   */
-  private String extractRegexFromSedPattern(String sedPattern) {
-    if (sedPattern == null || sedPattern.isEmpty()) {
-      return null;
-    }
-
-    // Handle sed substitute command: s/pattern/replacement/flags
-    if (sedPattern.startsWith("s/")) {
-      int firstSlash = sedPattern.indexOf('/', 2);
-      if (firstSlash != -1) {
-        String pattern = sedPattern.substring(2, firstSlash);
-        // Return the pattern if it's not empty and looks like a valid regex
-        if (!pattern.isEmpty() && !pattern.equals(".*")) {
-          return pattern;
-        }
-      }
-    }
-
-    return null;
   }
 
   private boolean containsSubqueryExpression(Node expr) {
@@ -2166,6 +2134,120 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       List<String> names = new ArrayList<>(context.relBuilder.peek().getRowType().getFieldNames());
       names.set(expandedField.getIndex(), alias);
       context.relBuilder.rename(names);
+    }
+  }
+
+  /**
+   * Creates an optimized sed call using native Calcite functions where possible. Falls back to
+   * custom REX_SED for complex cases.
+   */
+  private RexNode createOptimizedSedCall(
+      RexNode fieldRex, String sedExpression, CalcitePlanContext context) {
+    if (sedExpression.startsWith("s/")) {
+      return createOptimizedSubstitution(fieldRex, sedExpression, context);
+    } else if (sedExpression.startsWith("y/")) {
+      return createOptimizedTransliteration(fieldRex, sedExpression, context);
+    } else {
+      // No fallback - throw error to see what patterns we're missing
+      throw new RuntimeException("Unsupported sed pattern: " + sedExpression);
+    }
+  }
+
+  /** Creates optimized substitution calls for s/pattern/replacement/flags syntax. */
+  private RexNode createOptimizedSubstitution(
+      RexNode fieldRex, String sedExpression, CalcitePlanContext context) {
+    try {
+      // Parse sed substitution: s/pattern/replacement/flags
+      if (!sedExpression.matches("s/.+/.*/.*")) {
+        throw new IllegalArgumentException("Invalid sed substitution format");
+      }
+
+      // Find the delimiters - sed format is s/pattern/replacement/flags
+      int firstDelimiter = sedExpression.indexOf('/', 2); // First '/' after 's/'
+      int secondDelimiter = sedExpression.indexOf('/', firstDelimiter + 1); // Second '/'
+      int thirdDelimiter = sedExpression.indexOf('/', secondDelimiter + 1); // Third '/' (optional)
+
+      if (firstDelimiter == -1 || secondDelimiter == -1) {
+        throw new IllegalArgumentException("Invalid sed substitution format");
+      }
+
+      String pattern = sedExpression.substring(2, firstDelimiter);
+      String replacement = sedExpression.substring(firstDelimiter + 1, secondDelimiter);
+      String flags =
+          thirdDelimiter != -1 ? sedExpression.substring(secondDelimiter + 1, thirdDelimiter) : "";
+
+      // Convert sed backreferences (\1, \2) to Java style ($1, $2)
+      String javaReplacement = replacement.replaceAll("\\\\(\\d+)", "\\$$1");
+
+      // Route to appropriate Calcite function based on flags
+      if (flags.isEmpty()) {
+        // s/pattern/replacement/ -> REGEXP_REPLACE_PG_3 (first occurrence)
+        return PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder,
+            BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_PG_3,
+            fieldRex,
+            context.rexBuilder.makeLiteral(pattern),
+            context.rexBuilder.makeLiteral(javaReplacement));
+      } else if (flags.matches("[gi]+")) {
+        // s/pattern/replacement/g|i|gi -> REGEXP_REPLACE_PG_4 with flags
+        return PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder,
+            BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_PG_4,
+            fieldRex,
+            context.rexBuilder.makeLiteral(pattern),
+            context.rexBuilder.makeLiteral(javaReplacement),
+            context.rexBuilder.makeLiteral(flags));
+      } else if (flags.matches("\\d+")) {
+        // s/pattern/replacement/3 -> REGEXP_REPLACE_5 with occurrence
+        int occurrence = Integer.parseInt(flags);
+        return PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder,
+            BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_5,
+            fieldRex,
+            context.rexBuilder.makeLiteral(pattern),
+            context.rexBuilder.makeLiteral(javaReplacement),
+            context.relBuilder.literal(1), // start position
+            context.relBuilder.literal(occurrence));
+      } else {
+        // Unsupported complex flags
+        throw new RuntimeException(
+            "Unsupported sed flags: " + flags + " in expression: " + sedExpression);
+      }
+    } catch (Exception e) {
+      // No fallback - throw the error to see what's wrong
+      throw new RuntimeException("Failed to optimize sed expression: " + sedExpression, e);
+    }
+  }
+
+  /** Creates optimized transliteration calls for y/from/to/ syntax. */
+  private RexNode createOptimizedTransliteration(
+      RexNode fieldRex, String sedExpression, CalcitePlanContext context) {
+    try {
+      // Parse sed transliteration: y/from/to/
+      if (!sedExpression.matches("y/.+/.*/.*")) {
+        throw new IllegalArgumentException("Invalid sed transliteration format");
+      }
+
+      int firstSlash = sedExpression.indexOf('/', 1);
+      int secondSlash = sedExpression.indexOf('/', firstSlash + 1);
+
+      if (firstSlash == -1 || secondSlash == -1) {
+        throw new IllegalArgumentException("Invalid sed transliteration format");
+      }
+
+      String from = sedExpression.substring(2, firstSlash);
+      String to = sedExpression.substring(firstSlash + 1, secondSlash);
+
+      // Use Calcite's native TRANSLATE3 function
+      return PPLFuncImpTable.INSTANCE.resolve(
+          context.rexBuilder,
+          BuiltinFunctionName.INTERNAL_TRANSLATE3,
+          fieldRex,
+          context.rexBuilder.makeLiteral(from),
+          context.rexBuilder.makeLiteral(to));
+    } catch (Exception e) {
+      // No fallback - throw the error to see what's wrong
+      throw new RuntimeException("Failed to optimize sed expression: " + sedExpression, e);
     }
   }
 }
