@@ -60,24 +60,35 @@ public class EnhancedCoalesceFunction extends ImplementorUDF {
   }
 
   private static ExprValue coerceToType(ExprValue value, String typeName) {
-    return switch (typeName) {
-      case "INTEGER" -> tryConvert(() -> ExprValueUtils.integerValue(value.integerValue()), value);
-      case "BIGINT" -> tryConvert(() -> ExprValueUtils.longValue(value.longValue()), value);
-      case "SMALLINT", "TINYINT" -> tryConvert(
-          () -> ExprValueUtils.integerValue(value.integerValue()), value);
-      case "DOUBLE" -> tryConvert(() -> ExprValueUtils.doubleValue(value.doubleValue()), value);
-      case "FLOAT", "REAL" -> tryConvert(
-          () -> ExprValueUtils.floatValue(value.floatValue()), value);
-      case "BOOLEAN" -> tryConvert(() -> ExprValueUtils.booleanValue(value.booleanValue()), value);
-      case "VARCHAR", "CHAR" -> tryConvert(
-          () -> ExprValueUtils.stringValue(String.valueOf(value.value())), value);
-      case "DATE" -> tryConvert(() -> ExprValueUtils.dateValue(value.dateValue()), value);
-      case "TIME" -> tryConvert(() -> ExprValueUtils.timeValue(value.timeValue()), value);
-      case "TIMESTAMP" -> tryConvert(
-          () -> ExprValueUtils.timestampValue(value.timestampValue()), value);
-      case "DECIMAL" -> tryConvert(() -> ExprValueUtils.doubleValue(value.doubleValue()), value);
-      default -> value;
-    };
+    switch (typeName) {
+      case "INTEGER":
+        return tryConvert(() -> ExprValueUtils.integerValue(value.integerValue()), value);
+      case "BIGINT":
+        return tryConvert(() -> ExprValueUtils.longValue(value.longValue()), value);
+      case "SMALLINT":
+      case "TINYINT":
+        return tryConvert(() -> ExprValueUtils.integerValue(value.integerValue()), value);
+      case "DOUBLE":
+        return tryConvert(() -> ExprValueUtils.doubleValue(value.doubleValue()), value);
+      case "FLOAT":
+      case "REAL":
+        return tryConvert(() -> ExprValueUtils.floatValue(value.floatValue()), value);
+      case "BOOLEAN":
+        return tryConvert(() -> ExprValueUtils.booleanValue(value.booleanValue()), value);
+      case "VARCHAR":
+      case "CHAR":
+        return tryConvert(() -> ExprValueUtils.stringValue(String.valueOf(value.value())), value);
+      case "DATE":
+        return tryConvert(() -> ExprValueUtils.dateValue(value.dateValue()), value);
+      case "TIME":
+        return tryConvert(() -> ExprValueUtils.timeValue(value.timeValue()), value);
+      case "TIMESTAMP":
+        return tryConvert(() -> ExprValueUtils.timestampValue(value.timestampValue()), value);
+      case "DECIMAL":
+        return tryConvert(() -> ExprValueUtils.doubleValue(value.doubleValue()), value);
+      default:
+        return value;
+    }
   }
 
   private static ExprValue tryConvert(Supplier<ExprValue> converter, ExprValue fallbackValue) {
