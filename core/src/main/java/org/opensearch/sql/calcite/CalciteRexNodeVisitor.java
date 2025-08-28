@@ -290,6 +290,12 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       return context.getRexLambdaRefMap().get(qualifiedName);
     }
     List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
+
+    if (!currentFields.contains(qualifiedName) && context.isInCoalesceFunction()) {
+      return context.rexBuilder.makeNullLiteral(
+          context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR));
+    }
+
     if (currentFields.contains(qualifiedName)) {
       // 2.1 resolve QualifiedName from stack top
       // Note: QualifiedName with multiple parts also could be applied in step 2.1,
@@ -467,25 +473,37 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   public RexNode visitFunction(Function node, CalcitePlanContext context) {
     List<UnresolvedExpression> args = node.getFuncArgs();
     List<RexNode> arguments = new ArrayList<>();
-    for (UnresolvedExpression arg : args) {
-      if (arg instanceof LambdaFunction) {
-        CalcitePlanContext lambdaContext =
-            prepareLambdaContext(
-                context, (LambdaFunction) arg, arguments, node.getFuncName(), null);
-        RexNode lambdaNode = analyze(arg, lambdaContext);
-        if (node.getFuncName().equalsIgnoreCase("reduce")) { // analyze again with calculate type
-          lambdaContext =
+
+    boolean isCoalesce = "coalesce".equalsIgnoreCase(node.getFuncName());
+    if (isCoalesce) {
+      context.setInCoalesceFunction(true);
+    }
+
+    try {
+      for (UnresolvedExpression arg : args) {
+        if (arg instanceof LambdaFunction) {
+          CalcitePlanContext lambdaContext =
               prepareLambdaContext(
-                  context,
-                  (LambdaFunction) arg,
-                  arguments,
-                  node.getFuncName(),
-                  lambdaNode.getType());
-          lambdaNode = analyze(arg, lambdaContext);
+                  context, (LambdaFunction) arg, arguments, node.getFuncName(), null);
+          RexNode lambdaNode = analyze(arg, lambdaContext);
+          if (node.getFuncName().equalsIgnoreCase("reduce")) {
+            lambdaContext =
+                prepareLambdaContext(
+                    context,
+                    (LambdaFunction) arg,
+                    arguments,
+                    node.getFuncName(),
+                    lambdaNode.getType());
+            lambdaNode = analyze(arg, lambdaContext);
+          }
+          arguments.add(lambdaNode);
+        } else {
+          arguments.add(analyze(arg, context));
         }
-        arguments.add(lambdaNode);
-      } else {
-        arguments.add(analyze(arg, context));
+      }
+    } finally {
+      if (isCoalesce) {
+        context.setInCoalesceFunction(false);
       }
     }
 

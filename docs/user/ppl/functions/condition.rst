@@ -248,11 +248,18 @@ Description
 
 Version: 3.1.0
 
-Usage: coalesce(field1, field2, ...) return the first non-null value in the argument list.
+Usage: coalesce(field1, field2, ...) return the first non-null, non-missing value in the argument list.
 
-Argument type: all the supported data type. The data types of all fields must be same.
+Argument type: all the supported data type. Supports mixed data types with automatic type coercion.
 
-Return type: any
+Return type: determined by the least restrictive common type among all arguments, with fallback to string if no common type can be determined
+
+Behavior:
+- Returns the first value that is not null and not missing (missing includes non-existent fields)
+- Empty strings ("") and whitespace strings (" ") are considered valid values
+- If all arguments are null or missing, returns null
+- Automatic type coercion is applied to match the determined return type
+- If type conversion fails, the value is converted to string representation
 
 Example::
 
@@ -266,6 +273,56 @@ Example::
     | Quility | Nanette   | Bates    | Quility  |
     | Dale    | Dale      | Adams    | null     |
     +---------+-----------+----------+----------+
+
+Empty String Handling Examples::
+
+    PPL> source=accounts | eval empty_field = "" | eval result = coalesce(empty_field, firstname) | fields result, empty_field, firstname
+    fetched rows / total rows = 4/4
+    +--------+-------------+-----------+
+    | result | empty_field | firstname |
+    |--------+-------------+-----------|
+    |        |             | Amber     |
+    |        |             | Hattie    |
+    |        |             | Nanette   |
+    |        |             | Dale      |
+    +--------+-------------+-----------+
+
+    PPL> source=accounts | eval result = coalesce(" ", firstname) | fields result, firstname
+    fetched rows / total rows = 4/4
+    +--------+-----------+
+    | result | firstname |
+    |--------+-----------|
+    |        | Amber     |
+    |        | Hattie    |
+    |        | Nanette   |
+    |        | Dale      |
+    +--------+-----------+
+
+Mixed Data Types with Auto Coercion::
+
+    PPL> source=accounts | eval result = coalesce(employer, balance, "fallback") | fields result, employer, balance
+    fetched rows / total rows = 4/4
+    +---------+----------+---------+
+    | result  | employer | balance |
+    |---------+----------+---------|
+    | Pyrami  | Pyrami   | 39225   |
+    | Netagy  | Netagy   | 32838   |
+    | Quility | Quility  | 4180    |
+    | 5686    | null     | 5686    |
+    +---------+----------+---------+
+
+Non-existent Field Handling::
+
+    PPL> source=accounts | eval result = coalesce(nonexistent_field, firstname, "unknown") | fields result, firstname
+    fetched rows / total rows = 4/4
+    +---------+-----------+
+    | result  | firstname |
+    |---------+-----------|
+    | Amber   | Amber     |
+    | Hattie  | Hattie    |
+    | Nanette | Nanette   |
+    | Dale    | Dale      |
+    +---------+-----------+
 
 ISPRESENT
 ---------
