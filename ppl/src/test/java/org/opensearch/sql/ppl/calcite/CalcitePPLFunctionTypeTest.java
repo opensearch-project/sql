@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.ppl.calcite;
 
-import static org.junit.Assert.assertTrue;
-
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Assert;
 import org.junit.Test;
@@ -297,7 +295,7 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
             + " but got [STRING,INTEGER]");
   }
 
-   @Test
+  @Test
   public void testListFunctionWithArrayArgType() {
     // Test LIST function with array expression (which is not a supported scalar type)
     Exception e =
@@ -306,6 +304,8 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
             () -> getRelNode("source=EMP | stats list(array(ENAME, JOB)) as name_list"));
     verifyErrorMessageContains(
         e,
-        "Aggregation function LIST expects field type {[BOOLEAN],[BYTE],[SHORT],[INTEGER],[LONG],[FLOAT],[DOUBLE],[STRING],[DATE],[TIME],[TIMESTAMP],[IP],[BINARY]}, but got [ARRAY]");
+        "Aggregation function LIST expects field type"
+            + " {[BOOLEAN],[BYTE],[SHORT],[INTEGER],[LONG],[FLOAT],[DOUBLE],[STRING],[DATE],[TIME],[TIMESTAMP],[IP],[BINARY]},"
+            + " but got [ARRAY]");
   }
 }
