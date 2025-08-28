@@ -101,11 +101,8 @@ import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
-<<<<<<< HEAD
-import org.opensearch.sql.ast.tree.SPath;
-=======
 import org.opensearch.sql.ast.tree.Rex;
->>>>>>> d3efe0f08 (rex - initial implementation)
+import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
