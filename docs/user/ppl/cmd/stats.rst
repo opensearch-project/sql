@@ -80,25 +80,37 @@ COUNT
 Description
 >>>>>>>>>>>
 
-Usage: Returns a count of the number of expr in the rows retrieved by a SELECT statement. The ``C()`` function can be used as an abbreviation for ``COUNT()``.
+Usage: Returns a count of the number of expr in the rows retrieved. The ``C()`` function can be used as an abbreviation for ``COUNT()``. To perform a filtered counting, wrap the condition to satisfy in an `eval` expression.
 
 Example::
 
-    os> source=accounts | stats count();
+    os> source=accounts | stats count(), c();
     fetched rows / total rows = 1/1
-    +---------+
-    | count() |
-    |---------|
-    | 4       |
-    +---------+
+    +---------+-----+
+    | count() | c() |
+    |---------+-----|
+    | 4       | 4   |
+    +---------+-----+
 
-    os> source=accounts | stats c();
+Example of filtered counting::
+
+    os> source=accounts | stats count(eval(age > 30)) as mature_users;
     fetched rows / total rows = 1/1
-    +-----+
-    | c() |
-    |-----|
-    | 4   |
-    +-----+
+    +--------------+
+    | mature_users |
+    |--------------|
+    | 3            |
+    +--------------+
+
+Example of filtered counting with complex conditions::
+
+    os> source=accounts | stats count(eval(age > 30 and balance > 25000)) as high_value_users;
+    fetched rows / total rows = 1/1
+    +------------------+
+    | high_value_users |
+    |------------------|
+    | 1                |
+    +------------------+
 
 SUM
 ---
