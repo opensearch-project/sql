@@ -82,4 +82,29 @@ public class CalcitePPLCountEvalTest extends CalcitePPLAbstractTest {
             "SELECT COUNT(CASE WHEN `MGR` IS NOT NULL THEN 1 ELSE NULL END) `non_null_mgr`\n"
                 + "FROM `scott`.`EMP`");
   }
+
+  @Test
+  public void testShortcutCEvalSimpleCondition() {
+    withPPLQuery("source=EMP | stats c(eval(SAL > 2000)) as c")
+        .expectLogical(
+            "LogicalAggregate(group=[{}], c=[COUNT($0)])\n"
+                + "  LogicalProject($f1=[CASE(>($5, 2000), 1, null:NULL)])\n"
+                + "    LogicalTableScan(table=[[scott, EMP]])\n")
+        .expectResult("c=6\n")
+        .expectSparkSQL(
+            "SELECT COUNT(CASE WHEN `SAL` > 2000 THEN 1 ELSE NULL END) `c`\nFROM `scott`.`EMP`");
+  }
+
+  @Test
+  public void testShortcutCEvalComplexCondition() {
+    withPPLQuery("source=EMP | stats c(eval(JOB = 'MANAGER')) as manager_count")
+        .expectLogical(
+            "LogicalAggregate(group=[{}], manager_count=[COUNT($0)])\n"
+                + "  LogicalProject($f1=[CASE(=($2, 'MANAGER':VARCHAR), 1, null:NULL)])\n"
+                + "    LogicalTableScan(table=[[scott, EMP]])\n")
+        .expectResult("manager_count=3\n")
+        .expectSparkSQL(
+            "SELECT COUNT(CASE WHEN `JOB` = 'MANAGER' THEN 1 ELSE NULL END) `manager_count`\n"
+                + "FROM `scott`.`EMP`");
+  }
 }

@@ -864,6 +864,25 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     verifyDataRows(actual, rows(6, 4, 7));
   }
 
+  @Test
+  public void testShortcutCEvalSimpleCondition() throws IOException {
+    JSONObject actual =
+        executeQuery(String.format("source=%s | stats c(eval(age > 30)) as c", TEST_INDEX_BANK));
+    verifySchema(actual, schema("c", "bigint"));
+    verifyDataRows(actual, rows(6));
+  }
+
+  @Test
+  public void testShortcutCEvalComplexCondition() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats c(eval(balance > 20000 and age < 35)) as c", TEST_INDEX_BANK));
+    verifySchema(actual, schema("c", "bigint"));
+    verifyDataRows(actual, rows(3));
+  }
+
+  @Test
   public void testPercentileShortcuts() throws IOException {
     JSONObject actual =
         executeQuery(

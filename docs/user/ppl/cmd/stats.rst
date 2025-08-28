@@ -86,11 +86,11 @@ Example::
 
     os> source=accounts | stats count(), c();
     fetched rows / total rows = 1/1
-    +---------+
-    | count() |
-    |---------|
-    | 4       |
-    +---------+
+    +---------+-----+
+    | count() | c() |
+    |---------+-----|
+    | 4       | 4   |
+    +---------+-----+
 
 Example of filtered counting::
 
