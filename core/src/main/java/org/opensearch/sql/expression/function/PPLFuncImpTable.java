@@ -1070,9 +1070,15 @@ public class PPLFuncImpTable {
 
       register(
           COUNT,
-          (distinct, field, argList, ctx) ->
-              ctx.relBuilder.count(
-                  distinct, null, field == null ? ImmutableList.of() : ImmutableList.of(field)),
+          (distinct, field, argList, ctx) -> {
+            if (field == null) {
+              // count() without arguments should count all rows
+              return ctx.relBuilder.count(distinct, null);
+            } else {
+              // count(field) should count non-null values of the field
+              return ctx.relBuilder.count(distinct, null, field);
+            }
+          },
           wrapSqlOperandTypeChecker(
               SqlStdOperatorTable.COUNT.getOperandTypeChecker(), COUNT.name(), false));
 
