@@ -80,11 +80,11 @@ COUNT
 Description
 >>>>>>>>>>>
 
-Usage: Returns a count of the number of expr in the rows retrieved. To perform a filtered counting, wrap the condition to satisfy in an `eval` expression.
+Usage: Returns a count of the number of expr in the rows retrieved. The ``C()`` function can be used as an abbreviation for ``COUNT()``. To perform a filtered counting, wrap the condition to satisfy in an `eval` expression.
 
 Example::
 
-    os> source=accounts | stats count();
+    os> source=accounts | stats count(), c();
     fetched rows / total rows = 1/1
     +---------+
     | count() |

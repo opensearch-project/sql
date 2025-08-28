@@ -147,11 +147,22 @@ Description
 
 ``multi_match([field_expression+], query_expression[, option=<option_value>]*)``
 
+``multi_match(query_expression[, option=<option_value>]*)``
+
 The multi_match function maps to the multi_match query used in search engine, to return the documents that match a provided text, number, date or boolean value with a given field or fields.
+
+**Two syntax forms are supported:**
+
+1. **With explicit fields** (classic syntax): ``multi_match([field_list], query, ...)``
+2. **Without fields** (search default fields): ``multi_match(query, ...)``
+
+When fields are omitted, the query searches in the fields specified by the ``index.query.default_field`` setting.
+
 The **^** lets you *boost* certain fields. Boosts are multipliers that weigh matches in one field more heavily than matches in other fields. The syntax allows to specify the fields in double quotes, single quotes, in backtick or even without any wrap. All fields search using star ``"*"`` is also available (star symbol should be wrapped). The weight is optional and should be specified using after the field name, it could be delimeted by the `caret` character or by whitespace. Please, refer to examples below:
 
 | ``multi_match(["Tags" ^ 2, 'Title' 3.4, `Body`, Comments ^ 0.3], ...)``
 | ``multi_match(["*"], ...)``
+| ``multi_match("search text", ...)`` (searches default fields)
 
 
 Available parameters include:
@@ -192,6 +203,17 @@ Another example to show how to set custom values for the optional parameters::
     | 1  | The House at Pooh Corner | Alan Alexander Milne |
     +----+--------------------------+----------------------+
 
+Example using the new syntax without specifying fields (searches in index.query.default_field)::
+
+    os> source=books | where multi_match('Pooh House') | fields id, title, author;
+    fetched rows / total rows = 2/2
+    +----+--------------------------+----------------------+
+    | id | title                    | author               |
+    |----+--------------------------+----------------------|
+    | 1  | The House at Pooh Corner | Alan Alexander Milne |
+    | 2  | Winnie-the-Pooh          | Alan Alexander Milne |
+    +----+--------------------------+----------------------+
+
 
 SIMPLE_QUERY_STRING
 -------------------
@@ -201,11 +223,22 @@ Description
 
 ``simple_query_string([field_expression+], query_expression[, option=<option_value>]*)``
 
+``simple_query_string(query_expression[, option=<option_value>]*)``
+
 The simple_query_string function maps to the simple_query_string query used in search engine, to return the documents that match a provided text, number, date or boolean value with a given field or fields.
+
+**Two syntax forms are supported:**
+
+1. **With explicit fields** (classic syntax): ``simple_query_string([field_list], query, ...)``
+2. **Without fields** (search default fields): ``simple_query_string(query, ...)``
+
+When fields are omitted, the query searches in the fields specified by the ``index.query.default_field`` setting.
+
 The **^** lets you *boost* certain fields. Boosts are multipliers that weigh matches in one field more heavily than matches in other fields. The syntax allows to specify the fields in double quotes, single quotes, in backtick or even without any wrap. All fields search using star ``"*"`` is also available (star symbol should be wrapped). The weight is optional and should be specified using after the field name, it could be delimeted by the `caret` character or by whitespace. Please, refer to examples below:
 
 | ``simple_query_string(["Tags" ^ 2, 'Title' 3.4, `Body`, Comments ^ 0.3], ...)``
 | ``simple_query_string(["*"], ...)``
+| ``simple_query_string("search text", ...)`` (searches default fields)
 
 
 Available parameters include:
@@ -243,6 +276,17 @@ Another example to show how to set custom values for the optional parameters::
     | id | title                    | author               |
     |----+--------------------------+----------------------|
     | 1  | The House at Pooh Corner | Alan Alexander Milne |
+    +----+--------------------------+----------------------+
+
+Example using the new syntax without specifying fields (searches in index.query.default_field)::
+
+    os> source=books | where simple_query_string('Pooh House') | fields id, title, author;
+    fetched rows / total rows = 2/2
+    +----+--------------------------+----------------------+
+    | id | title                    | author               |
+    |----+--------------------------+----------------------|
+    | 1  | The House at Pooh Corner | Alan Alexander Milne |
+    | 2  | Winnie-the-Pooh          | Alan Alexander Milne |
     +----+--------------------------+----------------------+
 
 
@@ -296,13 +340,24 @@ Description
 
 ``query_string([field_expression+], query_expression[, option=<option_value>]*)``
 
+``query_string(query_expression[, option=<option_value>]*)``
+
 The query_string function maps to the query_string query used in search engine, to return the documents that match a provided text, number, date or boolean value with a given field or fields.
+
+**Two syntax forms are supported:**
+
+1. **With explicit fields** (classic syntax): ``query_string([field_list], query, ...)``
+2. **Without fields** (search default fields): ``query_string(query, ...)``
+
+When fields are omitted, the query searches in the fields specified by the ``index.query.default_field`` setting.
+
 The **^** lets you *boost* certain fields. Boosts are multipliers that weigh matches in one field more heavily than matches in other fields. The syntax allows to specify the fields in double quotes,
 single quotes, in backtick or even without any wrap. All fields search using star ``"*"`` is also available (star symbol should be wrapped). The weight is optional and should be specified using after the field name,
 it could be delimeted by the `caret` character or by whitespace. Please, refer to examples below:
 
 | ``query_string(["Tags" ^ 2, 'Title' 3.4, `Body`, Comments ^ 0.3], ...)``
 | ``query_string(["*"], ...)``
+| ``query_string("search text", ...)`` (searches default fields)
 
 
 Available parameters include:
@@ -350,6 +405,17 @@ Another example to show how to set custom values for the optional parameters::
     | id | title                    | author               |
     |----+--------------------------+----------------------|
     | 1  | The House at Pooh Corner | Alan Alexander Milne |
+    +----+--------------------------+----------------------+
+
+Example using the new syntax without specifying fields (searches in index.query.default_field)::
+
+    os> source=books | where query_string('Pooh House') | fields id, title, author;
+    fetched rows / total rows = 2/2
+    +----+--------------------------+----------------------+
+    | id | title                    | author               |
+    |----+--------------------------+----------------------|
+    | 1  | The House at Pooh Corner | Alan Alexander Milne |
+    | 2  | Winnie-the-Pooh          | Alan Alexander Milne |
     +----+--------------------------+----------------------+
 
 Limitations

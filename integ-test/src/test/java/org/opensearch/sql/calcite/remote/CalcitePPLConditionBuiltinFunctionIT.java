@@ -10,6 +10,7 @@ import static org.opensearch.sql.util.MatcherUtils.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
@@ -24,6 +25,8 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
     loadIndex(Index.STATE_COUNTRY);
     loadIndex(Index.STATE_COUNTRY_WITH_NULL);
     loadIndex(Index.CALCS);
+    loadIndex(Index.NESTED_SIMPLE);
+    loadIndex(Index.BIG5);
     Request request1 =
         new Request("PUT", "/" + TEST_INDEX_STATE_COUNTRY_WITH_NULL + "/_doc/7?refresh=true");
     request1.setJsonEntity(
@@ -50,6 +53,25 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testIsNullWithStruct() throws IOException {
+    JSONObject actual = executeQuery("source=big5 | where isnull(aws) | fields aws");
+    verifySchema(actual, schema("aws", "struct"));
+    verifyNumOfRows(actual, 0);
+  }
+
+  @Test
+  public void testIsNullWithNested() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                Locale.ROOT,
+                "source=%s | where isnull(address) | fields address",
+                TEST_INDEX_NESTED_SIMPLE));
+    verifySchema(actual, schema("address", "array"));
+    verifyNumOfRows(actual, 0);
+  }
+
+  @Test
   public void testIsNotNull() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -68,6 +90,25 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
         rows("Kevin"),
         rows("    "),
         rows(""));
+  }
+
+  @Test
+  public void testIsNotNullWithStruct() throws IOException {
+    JSONObject actual = executeQuery("source=big5 | where isnotnull(aws) | fields aws");
+    verifySchema(actual, schema("aws", "struct"));
+    verifyNumOfRows(actual, 1);
+  }
+
+  @Test
+  public void testIsNotNullWithNested() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                Locale.ROOT,
+                "source=%s | where isnotnull(address) | fields address",
+                TEST_INDEX_NESTED_SIMPLE));
+    verifySchema(actual, schema("address", "array"));
+    verifyNumOfRows(actual, 5);
   }
 
   @Test

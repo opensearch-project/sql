@@ -38,6 +38,8 @@
   + [Nested Function In Select Clause](sql-nested-function-select-clause.md): Nested function support in sql select clause
   + [Nested Function In Where Clause](sql-nested-function-where-clause.md): Nested function support in sql where clause
 + **Piped Processing Language**
+  + [PPL Command Checklist](ppl-commands.md): A checklist of developing a new PPL command
+  + [PPL Functions](ppl-functions.md): Guidance on developing a PPL function
 
 ### Query Processing
 

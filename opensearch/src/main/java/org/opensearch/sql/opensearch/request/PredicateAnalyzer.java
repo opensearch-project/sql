@@ -55,6 +55,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.calcite.DataContext.Variable;
@@ -72,6 +73,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.NlsString;
@@ -175,6 +177,15 @@ public class PredicateAnalyzer {
     return analyzeExpression(expression, schema, fieldTypes, rowType, cluster).builder();
   }
 
+  /**
+   * Analyzes the expression and returns a {@link QueryExpression}.
+   *
+   * @param expression expression to analyze
+   * @param schema current schema of scan operator
+   * @param fieldTypes mapping of OpenSearch field name to ExprType, nested fields are flattened
+   * @return search query which can be used to query OS cluster
+   * @throws ExpressionNotAnalyzableException when expression can't processed by this analyzer
+   */
   public static QueryExpression analyzeExpression(
       RexNode expression,
       List<String> schema,
@@ -183,10 +194,28 @@ public class PredicateAnalyzer {
       RelOptCluster cluster)
       throws ExpressionNotAnalyzableException {
     requireNonNull(expression, "expression");
+    return analyzeExpression(
+        expression,
+        schema,
+        fieldTypes,
+        rowType,
+        cluster,
+        new Visitor(schema, fieldTypes, rowType, cluster));
+  }
+
+  /** For test only, passing a customer Visitor */
+  public static QueryExpression analyzeExpression(
+      RexNode expression,
+      List<String> schema,
+      Map<String, ExprType> fieldTypes,
+      RelDataType rowType,
+      RelOptCluster cluster,
+      Visitor visitor)
+      throws ExpressionNotAnalyzableException {
+    requireNonNull(expression, "expression");
     try {
       // visits expression tree
-      QueryExpression queryExpression =
-          (QueryExpression) expression.accept(new Visitor(schema, fieldTypes, rowType, cluster));
+      QueryExpression queryExpression = (QueryExpression) expression.accept(visitor);
       return queryExpression;
     } catch (Throwable e) {
       if (e instanceof UnsupportedScriptException) {
@@ -201,14 +230,14 @@ public class PredicateAnalyzer {
   }
 
   /** Traverses {@link RexNode} tree and builds OpenSearch query. */
-  private static class Visitor extends RexVisitorImpl<Expression> {
+  static class Visitor extends RexVisitorImpl<Expression> {
 
     List<String> schema;
     Map<String, ExprType> fieldTypes;
     RelDataType rowType;
     RelOptCluster cluster;
 
-    private Visitor(
+    Visitor(
         List<String> schema,
         Map<String, ExprType> fieldTypes,
         RelDataType rowType,
@@ -355,9 +384,15 @@ public class PredicateAnalyzer {
     private QueryExpression visitRelevanceFunc(RexCall call) {
       String funcName = call.getOperator().getName().toLowerCase(Locale.ROOT);
       List<RexNode> ops = call.getOperands();
-      if (ops.size() < 2) {
+
+      // Validate minimum operand count based on function type
+      if (SINGLE_FIELD_RELEVANCE_FUNCTION_SET.contains(funcName) && ops.size() < 2) {
         throw new PredicateAnalyzerException(
-            "Relevance query function should at least have 2 operands");
+            "Single field relevance query function should at least have 2 operands (field and"
+                + " query)");
+      } else if (MULTI_FIELDS_RELEVANCE_FUNCTION_SET.contains(funcName) && ops.size() < 1) {
+        throw new PredicateAnalyzerException(
+            "Multi field relevance query function should at least have 1 operand (query)");
       }
 
       if (SINGLE_FIELD_RELEVANCE_FUNCTION_SET.contains(funcName)) {
@@ -376,13 +411,39 @@ public class PredicateAnalyzer {
             .get(funcName)
             .apply(namedFieldExpression, queryLiteralOperand, optionalArguments);
       } else if (MULTI_FIELDS_RELEVANCE_FUNCTION_SET.contains(funcName)) {
-        RexCall fieldsRexCall = (RexCall) AliasPair.from(ops.get(0), funcName).value;
-        String queryLiteralOperand =
-            ((LiteralExpression)
-                    visitList(List.of(AliasPair.from(ops.get(1), funcName).value)).get(0))
-                .stringValue();
-        Map<String, String> optionalArguments =
-            parseRelevanceFunctionOptionalArguments(ops, funcName);
+        // Handle both syntaxes:
+        // 1. func([fieldExpressions], query, option) - fields are present
+        // 2. func(query, optional) - fields are not present
+        RexCall fieldsRexCall = null;
+        String queryLiteralOperand;
+        Map<String, String> optionalArguments;
+
+        // Check if the first argument is fields or query by looking for "fields" key
+        AliasPair firstPair = AliasPair.from(ops.get(0), funcName);
+        String firstKey = ((RexLiteral) firstPair.alias).getValueAs(String.class);
+
+        if ("fields".equals(firstKey)) {
+          // Syntax 1: func([fieldExpressions], query, option)
+          fieldsRexCall = (RexCall) firstPair.value;
+          queryLiteralOperand =
+              ((LiteralExpression)
+                      visitList(List.of(AliasPair.from(ops.get(1), funcName).value)).get(0))
+                  .stringValue();
+          optionalArguments = parseRelevanceFunctionOptionalArguments(ops, funcName, 2);
+        } else if ("query".equals(firstKey)) {
+          // Syntax 2: func(query, optional) - no fields parameter
+          queryLiteralOperand =
+              ((LiteralExpression) visitList(List.of(firstPair.value)).get(0)).stringValue();
+          optionalArguments = parseRelevanceFunctionOptionalArguments(ops, funcName, 1);
+        } else {
+          throw new PredicateAnalyzerException(
+              format(
+                  Locale.ROOT,
+                  "Invalid first parameter for function [%s]: expected 'fields' or 'query', got"
+                      + " '%s'",
+                  funcName,
+                  firstKey));
+        }
 
         return MULTI_FIELDS_RELEVANCE_FUNCTION_HANDLERS
             .get(funcName)
@@ -432,9 +493,14 @@ public class PredicateAnalyzer {
 
     private Map<String, String> parseRelevanceFunctionOptionalArguments(
         List<RexNode> operands, String funcName) {
+      return parseRelevanceFunctionOptionalArguments(operands, funcName, 2);
+    }
+
+    private Map<String, String> parseRelevanceFunctionOptionalArguments(
+        List<RexNode> operands, String funcName, int startIndex) {
       Map<String, String> optionalArguments = new HashMap<>();
 
-      for (int i = 2; i < operands.size(); i++) {
+      for (int i = startIndex; i < operands.size(); i++) {
         AliasPair aliasPair = AliasPair.from(operands.get(i), funcName);
         String key = ((RexLiteral) aliasPair.alias).getValueAs(String.class);
         if (optionalArguments.containsKey(key)) {
@@ -498,6 +564,10 @@ public class PredicateAnalyzer {
         String message = format(Locale.ROOT, "Unsupported operator: [%s]", call);
         throw new PredicateAnalyzerException(message);
       }
+
+      // OpenSearch DSL does not handle IS_NULL / IS_NOT_NULL on nested fields correctly
+      checkForNestedFieldOperands(call);
+
       Expression a = call.getOperands().get(0).accept(this);
       // OpenSearch does not want is null/is not null (exists query)
       // for _id and _index, although it supports for all other metadata column
@@ -699,7 +769,7 @@ public class PredicateAnalyzer {
       }
     }
 
-    private Expression tryAnalyzeOperand(RexNode node) {
+    public Expression tryAnalyzeOperand(RexNode node) {
       try {
         Expression expr = node.accept(this);
         if (expr instanceof NamedFieldExpression) {
@@ -1374,18 +1444,27 @@ public class PredicateAnalyzer {
   }
 
   public static class ScriptQueryExpression extends QueryExpression {
-    private final String code;
     private RexNode analyzedNode;
+    // use lambda to generate code lazily to avoid store generated code
+    private final Supplier<String> codeGenerator;
 
     public ScriptQueryExpression(
         RexNode rexNode,
         RelDataType rowType,
         Map<String, ExprType> fieldTypes,
         RelOptCluster cluster) {
+      // We prevent is_null(nested_field) from being pushed down because pushed-down scripts can not
+      // access nested fields for the time being
+      if (rexNode instanceof RexCall
+          && (rexNode.getKind().equals(SqlKind.IS_NULL)
+              || rexNode.getKind().equals(SqlKind.IS_NOT_NULL))) {
+        checkForNestedFieldOperands((RexCall) rexNode);
+      }
       RelJsonSerializer serializer = new RelJsonSerializer(cluster);
-      this.code =
-          SerializationWrapper.wrapWithLangType(
-              ScriptEngineType.CALCITE, serializer.serialize(rexNode, rowType, fieldTypes));
+      this.codeGenerator =
+          () ->
+              SerializationWrapper.wrapWithLangType(
+                  ScriptEngineType.CALCITE, serializer.serialize(rexNode, rowType, fieldTypes));
     }
 
     @Override
@@ -1402,7 +1481,7 @@ public class PredicateAnalyzer {
       return new Script(
           DEFAULT_SCRIPT_TYPE,
           COMPOUNDED_LANG_NAME,
-          code,
+          codeGenerator.get(),
           Collections.emptyMap(),
           Map.of(Variable.UTC_TIMESTAMP.camelName, currentTime));
     }
@@ -1670,6 +1749,31 @@ public class PredicateAnalyzer {
         || (SqlTypeFamily.TIME.contains(op2) && !SqlTypeFamily.TIME.contains(op1))) {
       throw new PredicateAnalyzerException(
           "Cannot handle " + call.getKind() + " expression for _id field, " + call);
+    }
+  }
+
+  /**
+   * Examines the operands of a RexCall to check for nested fields and throws an exception if any
+   * are found.
+   *
+   * <p>This check prevents operations (IS_NULL, IS_NOT_NULL) that would produce incorrect results
+   * in OpenSearch when pushed down as either DSL queries or scripts.
+   *
+   * @param call The RexCall to check for nested field operands
+   * @throws PredicateAnalyzerException if any nested fields are detected in the operands
+   */
+  private static void checkForNestedFieldOperands(RexCall call) throws PredicateAnalyzerException {
+    boolean conditionContainsNestedField =
+        call.getOperands().stream()
+            .map(RexNode::getType)
+            // Nested fields are of type ArraySqlType
+            .anyMatch(type -> type instanceof ArraySqlType);
+    if (conditionContainsNestedField) {
+      throw new PredicateAnalyzerException(
+          format(
+              Locale.ROOT,
+              "OpenSearch DSL does not handle %s on nested fields correctly",
+              call.getKind()));
     }
   }
 }

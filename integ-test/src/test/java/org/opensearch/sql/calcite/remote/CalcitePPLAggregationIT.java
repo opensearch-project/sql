@@ -60,6 +60,10 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         executeQuery(String.format("source=%s | stats count() as c", TEST_INDEX_BANK));
     verifySchema(actual, schema("c", "bigint"));
     verifyDataRows(actual, rows(7));
+
+    actual = executeQuery(String.format("source=%s | stats c() as count_emp", TEST_INDEX_BANK));
+    verifySchema(actual, schema("count_emp", "bigint"));
+    verifyDataRows(actual, rows(7));
   }
 
   @Test
@@ -858,5 +862,70 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         schema("high_balance_count", "bigint"),
         schema("total_count", "bigint"));
     verifyDataRows(actual, rows(6, 4, 7));
+  }
+
+  public void testPercentileShortcuts() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format("source=%s | stats perc50(balance), p95(balance)", TEST_INDEX_BANK));
+    verifySchema(actual, schema("perc50(balance)", "bigint"), schema("p95(balance)", "bigint"));
+    verifyDataRows(actual, rows(32838, 48086));
+  }
+
+  @Test
+  public void testPercentileShortcutsWithDecimals() throws IOException {
+    JSONObject actual =
+        executeQuery(String.format("source=%s | stats perc99.5(balance)", TEST_INDEX_BANK));
+    verifySchema(actual, schema("perc99.5(balance)", "bigint"));
+    verifyDataRows(actual, rows(48086));
+  }
+
+  @Test
+  public void testPercentileShortcutsFloatingPoint() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats perc25.5(balance), p75.25(balance), perc0.1(balance)",
+                TEST_INDEX_BANK));
+    verifySchema(
+        actual,
+        schema("perc25.5(balance)", "bigint"),
+        schema("p75.25(balance)", "bigint"),
+        schema("perc0.1(balance)", "bigint"));
+    verifyDataRows(actual, rows(5686, 40540, 4180));
+  }
+
+  @Test
+  public void testPercentileShortcutsFloatingEquivalence() throws IOException {
+    JSONObject shortcut =
+        executeQuery(String.format("source=%s | stats perc25.5(balance)", TEST_INDEX_BANK));
+    JSONObject standard =
+        executeQuery(String.format("source=%s | stats percentile(balance, 25.5)", TEST_INDEX_BANK));
+
+    verifySchema(shortcut, schema("perc25.5(balance)", "bigint"));
+    verifySchema(standard, schema("percentile(balance, 25.5)", "bigint"));
+
+    Object shortcutValue = shortcut.getJSONArray("datarows").getJSONArray(0).get(0);
+    Object standardValue = standard.getJSONArray("datarows").getJSONArray(0).get(0);
+
+    verifyDataRows(shortcut, rows(shortcutValue));
+    verifyDataRows(standard, rows(standardValue));
+  }
+
+  @Test
+  public void testPercentileShortcutsEquivalentToStandard() throws IOException {
+    JSONObject shortcut =
+        executeQuery(String.format("source=%s | stats perc50(balance)", TEST_INDEX_BANK));
+    JSONObject standard =
+        executeQuery(String.format("source=%s | stats percentile(balance, 50)", TEST_INDEX_BANK));
+
+    verifySchema(shortcut, schema("perc50(balance)", "bigint"));
+    verifySchema(standard, schema("percentile(balance, 50)", "bigint"));
+
+    Object shortcutValue = shortcut.getJSONArray("datarows").getJSONArray(0).get(0);
+    Object standardValue = standard.getJSONArray("datarows").getJSONArray(0).get(0);
+
+    verifyDataRows(shortcut, rows(shortcutValue));
+    verifyDataRows(standard, rows(standardValue));
   }
 }

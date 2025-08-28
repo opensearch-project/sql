@@ -241,6 +241,18 @@ public class AstBuilderTest {
   }
 
   @Test
+  public void testStatsCommandWithCountAbbreviation() {
+    assertEqual(
+        "source=t | stats c()",
+        agg(
+            relation("t"),
+            exprList(alias("c()", aggregate("count", AstDSL.allFields()))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+  }
+
+  @Test
   public void testStatsCommandWithByClause() {
     assertEqual(
         "source=t | stats count(a) by b DEDUP_SPLITVALUES=false",
@@ -966,5 +978,11 @@ public class AstBuilderTest {
 
   private String mappingTable(String indexName) {
     return SystemIndexUtils.mappingTable(indexName, PPL_SPEC);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testBinCommandDuplicateParameter() {
+    // Test that duplicate parameters throw an exception
+    plan("search source=test | bin field span=10 span=20");
   }
 }

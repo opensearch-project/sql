@@ -48,6 +48,7 @@ class SimpleQueryStringTest {
   static Stream<List<Expression>> generateValidData() {
     return Stream.of(
         List.of(DSL.namedArgument("fields", fields_value), DSL.namedArgument("query", query_value)),
+        List.of(DSL.namedArgument("query", query_value)), // Test without fields parameter
         List.of(
             DSL.namedArgument("fields", fields_value),
             DSL.namedArgument("query", query_value),
@@ -143,11 +144,18 @@ class SimpleQueryStringTest {
   }
 
   @Test
-  public void test_SyntaxCheckException_when_one_argument() {
+  public void test_SemanticCheckException_when_only_fields_argument() {
     List<Expression> arguments = List.of(namedArgument("fields", fields_value));
     assertThrows(
-        SyntaxCheckException.class,
+        SemanticCheckException.class,
         () -> simpleQueryStringQuery.build(new SimpleQueryStringExpression(arguments)));
+  }
+
+  @Test
+  public void test_valid_query_without_fields() {
+    List<Expression> arguments = List.of(DSL.namedArgument("query", query_value));
+    Assertions.assertNotNull(
+        simpleQueryStringQuery.build(new SimpleQueryStringExpression(arguments)));
   }
 
   @Test
