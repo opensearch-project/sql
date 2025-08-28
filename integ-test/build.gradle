@@ -52,6 +52,7 @@ String calciteCodegen = "$projectDir/src/test/java/codegen/"
 repositories {
     mavenCentral()
     maven { url 'https://jitpack.io' }
+    maven { url "https://ci.opensearch.org/ci/dbc/snapshots/" }
 
     // Add extra repository for the JDBC driver if given by user
     if (System.getProperty("jdbcRepo") != null && new File(System.getProperty("jdbcRepo")).isDirectory()) {
@@ -65,8 +66,8 @@ ext {
     noticeFile = rootProject.file('NOTICE')
 
     getSecurityPluginDownloadLink = { ->
-        var repo = "https://central.sonatype.com/repository/maven-snapshots/org/opensearch/plugin/" +
-                "opensearch-security/$opensearch_build_snapshot/"
+        var repo = "https://ci.opensearch.org/ci/dbc/snapshots/org/opensearch/plugin/" +
+                   "opensearch-security/$opensearch_build_snapshot/"
         var metadataFile = Paths.get(projectDir.toString(), "build", "maven-metadata.xml").toAbsolutePath().toFile()
         download.run {
             src repo + "maven-metadata.xml"
