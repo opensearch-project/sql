@@ -65,8 +65,8 @@ ext {
     noticeFile = rootProject.file('NOTICE')
 
     getSecurityPluginDownloadLink = { ->
-        var repo = "https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/plugin/" +
-                   "opensearch-security/$opensearch_build_snapshot/"
+        var repo = "https://central.sonatype.com/repository/maven-snapshots/org/opensearch/plugin/" +
+                "opensearch-security/$opensearch_build_snapshot/"
         var metadataFile = Paths.get(projectDir.toString(), "build", "maven-metadata.xml").toAbsolutePath().toFile()
         download.run {
             src repo + "maven-metadata.xml"
