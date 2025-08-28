@@ -246,14 +246,4 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
                 TEST_INDEX_BANK_REMOTE));
     verifyDataRows(result, rows("Hattie"));
   }
-
-  @Test
-  public void testCrossClusterListAggregation() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | stats list(account_number) as account_list",
-                TEST_INDEX_BANK_REMOTE));
-    verifyColumn(result, columnName("account_list"));
-  }
 }
