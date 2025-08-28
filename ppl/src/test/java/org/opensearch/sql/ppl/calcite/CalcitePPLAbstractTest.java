@@ -100,6 +100,37 @@ public class CalcitePPLAbstractTest {
     return builder.visit(parser.parse(query));
   }
 
+  /**
+   * Fluent API for building count(eval) test cases. Provides a clean and readable way to define PPL
+   * queries and their expected outcomes.
+   */
+  protected PPLQueryTestBuilder withPPLQuery(String ppl) {
+    return new PPLQueryTestBuilder(ppl);
+  }
+
+  protected class PPLQueryTestBuilder {
+    private final RelNode relNode;
+
+    public PPLQueryTestBuilder(String ppl) {
+      this.relNode = getRelNode(ppl);
+    }
+
+    public PPLQueryTestBuilder expectLogical(String expectedLogical) {
+      verifyLogical(relNode, expectedLogical);
+      return this;
+    }
+
+    public PPLQueryTestBuilder expectResult(String expectedResult) {
+      verifyResult(relNode, expectedResult);
+      return this;
+    }
+
+    public PPLQueryTestBuilder expectSparkSQL(String expectedSparkSql) {
+      verifyPPLToSparkSQL(relNode, expectedSparkSql);
+      return this;
+    }
+  }
+
   /** Verify the logical plan of the given RelNode */
   public void verifyLogical(RelNode rel, String expectedLogical) {
     assertThat(rel, hasTree(expectedLogical));

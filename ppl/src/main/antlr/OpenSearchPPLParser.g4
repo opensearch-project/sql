@@ -429,6 +429,7 @@ statsAggTerm
 // aggregation functions
 statsFunction
    : statsFunctionName LT_PRTHS valueExpression RT_PRTHS        # statsFunctionCall
+   | (COUNT | C) LT_PRTHS evalExpression RT_PRTHS               # countEvalFunctionCall
    | (COUNT | C) LT_PRTHS RT_PRTHS                              # countAllFunctionCall
    | PERCENTILE_SHORTCUT LT_PRTHS valueExpression RT_PRTHS      # percentileShortcutFunctionCall
    | (DISTINCT_COUNT | DC | DISTINCT_COUNT_APPROX) LT_PRTHS valueExpression RT_PRTHS    # distinctCountFunctionCall
@@ -500,6 +501,10 @@ valueExpression
    | fieldExpression                                                                                            # fieldExpr
    | LT_PRTHS logicalExpression RT_PRTHS                                                                        # nestedValueExpr
    ;
+
+evalExpression
+    : EVAL LT_PRTHS logicalExpression RT_PRTHS
+    ;
 
 functionCall
    : evalFunctionCall
