@@ -7,6 +7,7 @@ package org.opensearch.sql.expression.function.udf.condition;
 
 import java.util.List;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.linq4j.tree.Expression;
@@ -35,7 +36,7 @@ public class EnhancedCoalesceFunction extends ImplementorUDF {
                               ExprValueUtils.class,
                               "fromObjectValue",
                               Expressions.convert_(operand, Object.class)))
-              .toList();
+              .collect(Collectors.toList());
 
       Expression returnTypeName = Expressions.constant(call.getType().getSqlTypeName().toString());
 
