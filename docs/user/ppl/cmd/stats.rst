@@ -80,7 +80,7 @@ COUNT
 Description
 >>>>>>>>>>>
 
-Usage: Returns a count of the number of expr in the rows retrieved by a SELECT statement.
+Usage: Returns a count of the number of expr in the rows retrieved by a SELECT statement. The ``C()`` function can be used as an abbreviation for ``COUNT()``.
 
 Example::
 
@@ -91,6 +91,14 @@ Example::
     |---------|
     | 4       |
     +---------+
+
+    os> source=accounts | stats c();
+    fetched rows / total rows = 1/1
+    +-----+
+    | c() |
+    |-----|
+    | 4   |
+    +-----+
 
 SUM
 ---
