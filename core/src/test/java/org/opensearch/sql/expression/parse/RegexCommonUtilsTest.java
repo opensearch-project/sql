@@ -1,0 +1,221 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.parse;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+import java.util.List;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+import org.junit.jupiter.api.Test;
+
+public class RegexCommonUtilsTest {
+
+  @Test
+  public void testGetCompiledPattern() {
+    String regex = "test.*pattern";
+    Pattern pattern1 = RegexCommonUtils.getCompiledPattern(regex);
+    Pattern pattern2 = RegexCommonUtils.getCompiledPattern(regex);
+
+    assertNotNull(pattern1);
+    assertSame(pattern1, pattern2, "Should return cached pattern");
+    assertEquals(regex, pattern1.pattern());
+  }
+
+  @Test
+  public void testGetCompiledPatternWithInvalidRegex() {
+    String invalidRegex = "[invalid";
+
+    assertThrows(
+        PatternSyntaxException.class,
+        () -> {
+          RegexCommonUtils.getCompiledPattern(invalidRegex);
+        });
+  }
+
+  @Test
+  public void testGetNamedGroupCandidatesSingle() {
+    String pattern = "(?<name>[a-z]+)";
+    List<String> groups = RegexCommonUtils.getNamedGroupCandidates(pattern);
+
+    assertEquals(1, groups.size());
+    assertEquals("name", groups.get(0));
+  }
+
+  @Test
+  public void testGetNamedGroupCandidatesMultiple() {
+    String pattern = "(?<first>[a-z]+)\\s+(?<second>[0-9]+)\\s+(?<third>.*)";
+    List<String> groups = RegexCommonUtils.getNamedGroupCandidates(pattern);
+
+    assertEquals(3, groups.size());
+    assertEquals("first", groups.get(0));
+    assertEquals("second", groups.get(1));
+    assertEquals("third", groups.get(2));
+  }
+
+  @Test
+  public void testGetNamedGroupCandidatesWithMixedGroups() {
+    String pattern = "([a-z]+)\\s+(?<named1>[0-9]+)\\s+(\\d+)\\s+(?<named2>.*)";
+    List<String> groups = RegexCommonUtils.getNamedGroupCandidates(pattern);
+
+    assertEquals(2, groups.size());
+    assertEquals("named1", groups.get(0));
+    assertEquals("named2", groups.get(1));
+  }
+
+  @Test
+  public void testGetNamedGroupCandidatesNoGroups() {
+    String pattern = "[a-z]+\\s+[0-9]+";
+    List<String> groups = RegexCommonUtils.getNamedGroupCandidates(pattern);
+
+    assertEquals(0, groups.size());
+  }
+
+  @Test
+  public void testGetNamedGroupCandidatesEmailPattern() {
+    String pattern = ".+@(?<host>.+)";
+    List<String> groups = RegexCommonUtils.getNamedGroupCandidates(pattern);
+
+    assertEquals(1, groups.size());
+    assertEquals("host", groups.get(0));
+  }
+
+  @Test
+  public void testMatchesPartialWithMatch() {
+    assertTrue(RegexCommonUtils.matchesPartial("test string", "test"));
+    assertTrue(RegexCommonUtils.matchesPartial("test string", "string"));
+    assertTrue(RegexCommonUtils.matchesPartial("test string", "st.*ng"));
+    assertTrue(RegexCommonUtils.matchesPartial("user@domain.com", ".*@domain\\.com"));
+  }
+
+  @Test
+  public void testMatchesPartialWithoutMatch() {
+    assertFalse(RegexCommonUtils.matchesPartial("test string", "notfound"));
+    assertFalse(RegexCommonUtils.matchesPartial("test string", "^string"));
+    assertFalse(RegexCommonUtils.matchesPartial("user@domain.com", ".*@other\\.com"));
+  }
+
+  @Test
+  public void testMatchesPartialWithNullInputs() {
+    assertFalse(RegexCommonUtils.matchesPartial(null, "pattern"));
+    assertFalse(RegexCommonUtils.matchesPartial("text", null));
+    assertFalse(RegexCommonUtils.matchesPartial(null, null));
+  }
+
+  @Test
+  public void testMatchesPartialWithEmptyString() {
+    assertTrue(RegexCommonUtils.matchesPartial("", ""));
+    assertTrue(RegexCommonUtils.matchesPartial("text", ""));
+    assertFalse(RegexCommonUtils.matchesPartial("", "pattern"));
+  }
+
+  @Test
+  public void testMatchesPartialWithInvalidRegex() {
+    assertThrows(
+        PatternSyntaxException.class,
+        () -> {
+          RegexCommonUtils.matchesPartial("text", "[invalid");
+        });
+  }
+
+  @Test
+  public void testExtractNamedGroupSuccess() {
+    Pattern pattern = Pattern.compile("(?<user>[^@]+)@(?<domain>.+)");
+    String text = "john@example.com";
+
+    assertEquals("john", RegexCommonUtils.extractNamedGroup(text, pattern, "user"));
+    assertEquals("example.com", RegexCommonUtils.extractNamedGroup(text, pattern, "domain"));
+  }
+
+  @Test
+  public void testExtractNamedGroupNoMatch() {
+    Pattern pattern = Pattern.compile("(?<user>[^@]+)@(?<domain>.+)");
+    String text = "not_an_email";
+
+    assertNull(RegexCommonUtils.extractNamedGroup(text, pattern, "user"));
+    assertNull(RegexCommonUtils.extractNamedGroup(text, pattern, "domain"));
+  }
+
+  @Test
+  public void testExtractNamedGroupNonExistentGroup() {
+    Pattern pattern = Pattern.compile("(?<user>[^@]+)@(?<domain>.+)");
+    String text = "john@example.com";
+
+    assertNull(RegexCommonUtils.extractNamedGroup(text, pattern, "nonexistent"));
+  }
+
+  @Test
+  public void testExtractNamedGroupWithNullInputs() {
+    Pattern pattern = Pattern.compile("(?<user>[^@]+)@(?<domain>.+)");
+    String text = "john@example.com";
+
+    assertNull(RegexCommonUtils.extractNamedGroup(null, pattern, "user"));
+    assertNull(RegexCommonUtils.extractNamedGroup(text, null, "user"));
+    assertNull(RegexCommonUtils.extractNamedGroup(text, pattern, null));
+    assertNull(RegexCommonUtils.extractNamedGroup(null, null, null));
+  }
+
+  @Test
+  public void testExtractNamedGroupComplexPattern() {
+    Pattern pattern = Pattern.compile("(?<year>\\d{4})-(?<month>\\d{2})-(?<day>\\d{2})");
+    String text = "2024-03-15";
+
+    assertEquals("2024", RegexCommonUtils.extractNamedGroup(text, pattern, "year"));
+    assertEquals("03", RegexCommonUtils.extractNamedGroup(text, pattern, "month"));
+    assertEquals("15", RegexCommonUtils.extractNamedGroup(text, pattern, "day"));
+  }
+
+  @Test
+  public void testPatternCachingBehavior() {
+    // Test that patterns are cached and reused
+    String regex1 = "test1.*";
+    String regex2 = "test2.*";
+
+    Pattern p1a = RegexCommonUtils.getCompiledPattern(regex1);
+    Pattern p2a = RegexCommonUtils.getCompiledPattern(regex2);
+    Pattern p1b = RegexCommonUtils.getCompiledPattern(regex1);
+    Pattern p2b = RegexCommonUtils.getCompiledPattern(regex2);
+
+    assertSame(p1a, p1b, "Same regex should return cached pattern");
+    assertSame(p2a, p2b, "Same regex should return cached pattern");
+    assertNotSame(p1a, p2a, "Different regex should return different patterns");
+  }
+
+  @Test
+  public void testGetNamedGroupCandidatesWithNumericNames() {
+    String pattern = "(?<group1>[a-z]+)\\s+(?<group2>[0-9]+)";
+    List<String> groups = RegexCommonUtils.getNamedGroupCandidates(pattern);
+
+    assertEquals(2, groups.size());
+    assertEquals("group1", groups.get(0));
+    assertEquals("group2", groups.get(1));
+  }
+
+  @Test
+  public void testGetNamedGroupCandidatesSpecialCharacters() {
+    // Test that groups with special characters are not captured (only alphanumeric starting with
+    // letter)
+    String pattern = "(?<valid_group>[a-z]+)\\s+(?<123invalid>[0-9]+)\\s+(?<also-invalid>.*)";
+    List<String> groups = RegexCommonUtils.getNamedGroupCandidates(pattern);
+
+    // Based on the NAMED_GROUP_PATTERN regex, only groups starting with letter and containing
+    // alphanumeric are valid
+    // The pattern is: "\\(\\?<([a-zA-Z][a-zA-Z0-9]*)>"
+    // So "valid_group" won't match because of underscore, "123invalid" won't match because it
+    // starts with number
+    assertEquals(0, groups.size());
+  }
+
+  @Test
+  public void testGetNamedGroupCandidatesValidAlphanumeric() {
+    String pattern = "(?<groupA>[a-z]+)\\s+(?<group2B>[0-9]+)";
+    List<String> groups = RegexCommonUtils.getNamedGroupCandidates(pattern);
+
+    assertEquals(2, groups.size());
+    assertEquals("groupA", groups.get(0));
+    assertEquals("group2B", groups.get(1));
+  }
+}

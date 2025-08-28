@@ -19,11 +19,9 @@ import java.util.regex.PatternSyntaxException;
  */
 public class RegexCommonUtils {
 
-  // Pattern to identify named capture groups in regex
   private static final Pattern NAMED_GROUP_PATTERN =
       Pattern.compile("\\(\\?<([a-zA-Z][a-zA-Z0-9]*)>");
 
-  // Maximum cache size to prevent memory issues
   private static final int MAX_CACHE_SIZE = 1000;
 
   private static final Map<String, Pattern> patternCache =
