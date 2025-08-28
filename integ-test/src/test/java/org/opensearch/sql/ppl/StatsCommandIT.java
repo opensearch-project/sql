@@ -96,6 +96,14 @@ public class StatsCommandIT extends PPLIntegTestCase {
       verifySchema(response, schema("c()", null, "int"));
     }
     verifyDataRows(response, rows(1000));
+
+    response = executeQuery(String.format("source=%s | stats count", TEST_INDEX_ACCOUNT));
+    if (isCalciteEnabled()) {
+      verifySchema(response, schema("count", null, "bigint"));
+    } else {
+      verifySchema(response, schema("count", null, "int"));
+    }
+    verifyDataRows(response, rows(1000));
   }
 
   @Test
