@@ -2148,7 +2148,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     } else if (sedExpression.startsWith("y/")) {
       return createOptimizedTransliteration(fieldRex, sedExpression, context);
     } else {
-      // No fallback - throw error to see what patterns we're missing
       throw new RuntimeException("Unsupported sed pattern: " + sedExpression);
     }
   }
@@ -2174,22 +2173,23 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       String pattern = sedExpression.substring(2, firstDelimiter);
       String replacement = sedExpression.substring(firstDelimiter + 1, secondDelimiter);
       String flags =
-          thirdDelimiter != -1 ? sedExpression.substring(secondDelimiter + 1, thirdDelimiter) : "";
+          secondDelimiter + 1 < sedExpression.length()
+              ? sedExpression.substring(secondDelimiter + 1)
+              : "";
 
       // Convert sed backreferences (\1, \2) to Java style ($1, $2)
       String javaReplacement = replacement.replaceAll("\\\\(\\d+)", "\\$$1");
 
-      // Route to appropriate Calcite function based on flags
       if (flags.isEmpty()) {
-        // s/pattern/replacement/ -> REGEXP_REPLACE_PG_3 (first occurrence)
+        // 3-parameter REGEXP_REPLACE
         return PPLFuncImpTable.INSTANCE.resolve(
             context.rexBuilder,
-            BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_PG_3,
+            BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_3,
             fieldRex,
             context.rexBuilder.makeLiteral(pattern),
             context.rexBuilder.makeLiteral(javaReplacement));
       } else if (flags.matches("[gi]+")) {
-        // s/pattern/replacement/g|i|gi -> REGEXP_REPLACE_PG_4 with flags
+        // 4-parameter REGEXP_REPLACE with flags
         return PPLFuncImpTable.INSTANCE.resolve(
             context.rexBuilder,
             BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_PG_4,
@@ -2198,7 +2198,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             context.rexBuilder.makeLiteral(javaReplacement),
             context.rexBuilder.makeLiteral(flags));
       } else if (flags.matches("\\d+")) {
-        // s/pattern/replacement/3 -> REGEXP_REPLACE_5 with occurrence
+        // 5-parameter REGEXP_REPLACE with occurrence
         int occurrence = Integer.parseInt(flags);
         return PPLFuncImpTable.INSTANCE.resolve(
             context.rexBuilder,
@@ -2209,12 +2209,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             context.relBuilder.literal(1), // start position
             context.relBuilder.literal(occurrence));
       } else {
-        // Unsupported complex flags
         throw new RuntimeException(
             "Unsupported sed flags: " + flags + " in expression: " + sedExpression);
       }
     } catch (Exception e) {
-      // No fallback - throw the error to see what's wrong
       throw new RuntimeException("Failed to optimize sed expression: " + sedExpression, e);
     }
   }
@@ -2230,13 +2228,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
       int firstSlash = sedExpression.indexOf('/', 1);
       int secondSlash = sedExpression.indexOf('/', firstSlash + 1);
+      int thirdSlash = sedExpression.indexOf('/', secondSlash + 1);
 
       if (firstSlash == -1 || secondSlash == -1) {
         throw new IllegalArgumentException("Invalid sed transliteration format");
       }
 
-      String from = sedExpression.substring(2, firstSlash);
-      String to = sedExpression.substring(firstSlash + 1, secondSlash);
+      String from = sedExpression.substring(firstSlash + 1, secondSlash);
+      String to =
+          sedExpression.substring(
+              secondSlash + 1, thirdSlash != -1 ? thirdSlash : sedExpression.length());
 
       // Use Calcite's native TRANSLATE3 function
       return PPLFuncImpTable.INSTANCE.resolve(
@@ -2246,7 +2247,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           context.rexBuilder.makeLiteral(from),
           context.rexBuilder.makeLiteral(to));
     } catch (Exception e) {
-      // No fallback - throw the error to see what's wrong
       throw new RuntimeException("Failed to optimize sed expression: " + sedExpression, e);
     }
   }

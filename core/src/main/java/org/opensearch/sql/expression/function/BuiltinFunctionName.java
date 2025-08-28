@@ -319,11 +319,9 @@ public enum BuiltinFunctionName {
   INTERNAL_REGEXP_EXTRACT(FunctionName.of("regexp_extract"), true),
   INTERNAL_GROK(FunctionName.of("grok"), true),
   INTERNAL_REGEXP_REPLACE_3(FunctionName.of("regexp_replace_3"), true),
-  INTERNAL_REGEXP_REPLACE_PG_3(FunctionName.of("regexp_replace_pg_3"), true),
   INTERNAL_REGEXP_REPLACE_PG_4(FunctionName.of("regexp_replace_pg_4"), true),
   INTERNAL_REGEXP_REPLACE_5(FunctionName.of("regexp_replace_5"), true),
-  INTERNAL_TRANSLATE3(FunctionName.of("translate3"), true),
-  INTERNAL_REGEXP_EXTRACT_ALL(FunctionName.of("regexp_extract_all"), true);
+  INTERNAL_TRANSLATE3(FunctionName.of("translate3"), true);
 
   private final FunctionName name;
   private boolean isInternal;
