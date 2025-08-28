@@ -430,6 +430,7 @@ statsAggTerm
 statsFunction
    : statsFunctionName LT_PRTHS valueExpression RT_PRTHS        # statsFunctionCall
    | COUNT LT_PRTHS RT_PRTHS                                    # countAllFunctionCall
+   | PERCENTILE_SHORTCUT LT_PRTHS valueExpression RT_PRTHS      # percentileShortcutFunctionCall
    | (DISTINCT_COUNT | DC | DISTINCT_COUNT_APPROX) LT_PRTHS valueExpression RT_PRTHS    # distinctCountFunctionCall
    | takeAggFunction                                            # takeAggFunctionCall
    | percentileApproxFunction                                   # percentileApproxFunctionCall
@@ -450,6 +451,8 @@ statsFunctionName
    | EARLIEST
    | LATEST
    ;
+
+
 
 takeAggFunction
    : TAKE LT_PRTHS fieldExpression (COMMA size = integerLiteral)? RT_PRTHS
@@ -1277,4 +1280,5 @@ keywordsCanBeId
    | ANTI
    | LEFT_HINT
    | RIGHT_HINT
+   | PERCENTILE_SHORTCUT
    ;
