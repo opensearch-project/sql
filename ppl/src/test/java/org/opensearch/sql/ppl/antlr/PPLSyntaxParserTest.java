@@ -498,6 +498,20 @@ public class PPLSyntaxParserTest {
         null,
         new PPLSyntaxParser()
             .parse("SOURCE=test | WHERE (day_of_week_i < 2) OR (day_of_week_i > 5)"));
+  }
+
+  @Test
+  public void testWhereCommandWithDoubleEqual() {
+    // Test that == operator is supported in WHERE clause
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x == 1"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x == y"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE name == 'John'"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE (x == 1) AND (y == 2)"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x == 1 OR y == 2"));
+    // Test mixing = and == operators
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x == 1 AND y = 2"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x = 1 OR y == 2"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE (x < 1) == (y > 1)"));
     assertNotEquals(
         null,
         new PPLSyntaxParser()
