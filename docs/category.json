@@ -39,6 +39,7 @@
     "user/ppl/functions/json.rst",
     "user/ppl/functions/math.rst",
     "user/ppl/functions/relevance.rst",
+    "user/ppl/functions/rex.rst",
     "user/ppl/functions/string.rst"
   ],
   "sql_cli": [
