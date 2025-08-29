@@ -281,8 +281,7 @@ rexCommand
     ;
 
 rexExpr
-    : pattern=stringLiteral (rexOption)*
-    | FIELD EQUAL field=qualifiedName (rexOption)* pattern=stringLiteral (rexOption)*
+    : FIELD EQUAL field=qualifiedName (rexOption)* pattern=stringLiteral (rexOption)*
     ;
 
 rexOption

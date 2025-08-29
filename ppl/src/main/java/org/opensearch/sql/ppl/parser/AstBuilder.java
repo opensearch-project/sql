@@ -986,15 +986,11 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   @Override
   public UnresolvedPlan visitRexCommand(OpenSearchPPLParser.RexCommandContext ctx) {
-    UnresolvedExpression field = null;
+    UnresolvedExpression field = internalVisitExpression(ctx.rexExpr().field);
     Literal pattern = (Literal) internalVisitExpression(ctx.rexExpr().pattern);
     Optional<Integer> maxMatch = Optional.empty();
     Optional<String> offsetField = Optional.empty();
     Rex.RexMode mode = Rex.RexMode.EXTRACT;
-
-    if (ctx.rexExpr().field != null) {
-      field = internalVisitExpression(ctx.rexExpr().field);
-    }
 
     for (OpenSearchPPLParser.RexOptionContext optionCtx : ctx.rexExpr().rexOption()) {
       if (optionCtx.maxMatch != null) {
