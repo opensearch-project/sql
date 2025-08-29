@@ -13,7 +13,7 @@ Description
 ============
 | The `spath` command allows extracting fields from structured text data. It currently allows selecting from JSON data with JSON paths.
 
-If the inner data is unable to be extracted (malformed data, missing keys), `"null"` is returned.
+If the inner data is unable to be extracted (malformed data, missing keys), `"null"` is returned. `spath` always returns string values, except if the input field is `null`.
 
 Version
 =======
@@ -80,3 +80,19 @@ PPL query::
     |--------|
     | 6      |
     +--------+
+
+Example 4: Field traversal
+============================
+
+SPath can also traverse plain documents, in which case it acts similarly to renaming.
+
+PPL query::
+
+    PPL> source=sample | spath input=regular_object path=field;
+    fetched rows / total rows = 2/2
+    +----------------+-------+
+    | regular_object | field |
+    |----------------+-------|
+    | {'field': 'a'} | a     |
+    | {'field': 'b'} | b     |
+    +----------------+-------+
