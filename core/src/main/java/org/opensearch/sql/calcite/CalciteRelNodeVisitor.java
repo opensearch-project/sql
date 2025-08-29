@@ -1376,10 +1376,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     visitChildren(node, context);
 
     // Extract parameters
-    UnresolvedExpression spanExpr =
-        node.getBinExpression() != null
-            ? node.getBinExpression()
-            : AstDSL.span(AstDSL.field("@timestamp"), AstDSL.stringLiteral("1m"), null);
+    UnresolvedExpression spanExpr = node.getBinExpression();
 
     List<UnresolvedExpression> groupExprList = Arrays.asList(spanExpr);
 

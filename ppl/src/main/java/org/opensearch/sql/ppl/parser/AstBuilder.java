@@ -576,11 +576,10 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   /** Timechart command. */
   @Override
   public UnresolvedPlan visitTimechartCommand(OpenSearchPPLParser.TimechartCommandContext ctx) {
-    UnresolvedExpression binExpression = null;
-    // Extract limit parameter if present
-    Integer limit = null;
-    // Extract useOther parameter if present
-    Boolean useOther = true; // Default to true
+    UnresolvedExpression binExpression =
+        AstDSL.span(AstDSL.field("@timestamp"), AstDSL.intLiteral(1), SpanUnit.of("m"));
+    Integer limit = 10;
+    Boolean useOther = true;
 
     // Process timechart parameters
     for (OpenSearchPPLParser.TimechartParameterContext paramCtx : ctx.timechartParameter()) {
@@ -593,29 +592,32 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         OpenSearchPPLParser.TimechartArgContext argCtx = paramCtx.timechartArg();
         if (argCtx.LIMIT() != null && argCtx.integerLiteral() != null) {
           limit = Integer.parseInt(argCtx.integerLiteral().getText());
+          if (limit < 0) {
+            throw new IllegalArgumentException("Limit must be a non-negative number");
+          }
         } else if (argCtx.USEOTHER() != null) {
           if (argCtx.booleanLiteral() != null) {
             useOther = Boolean.parseBoolean(argCtx.booleanLiteral().getText());
           } else if (argCtx.ident() != null) {
             String useOtherValue = argCtx.ident().getText().toLowerCase();
-            useOther = "true".equals(useOtherValue) || "t".equals(useOtherValue);
+            if ("true".equals(useOtherValue) || "t".equals(useOtherValue)) {
+              useOther = true;
+            } else if ("false".equals(useOtherValue) || "f".equals(useOtherValue)) {
+              useOther = false;
+            } else {
+              throw new IllegalArgumentException(
+                  "Invalid useOther value: "
+                      + argCtx.ident().getText()
+                      + ". Expected true/false or t/f");
+            }
           }
         }
       }
     }
 
-    // If no span was specified, use the default
-    if (binExpression == null) {
-      binExpression =
-          AstDSL.span(AstDSL.field("@timestamp"), AstDSL.intLiteral(1), SpanUnit.of("m"));
-    }
-
     UnresolvedExpression aggregateFunction = internalVisitExpression(ctx.statsFunction());
     UnresolvedExpression byField =
         ctx.fieldExpression() != null ? internalVisitExpression(ctx.fieldExpression()) : null;
-
-    // The limit and useOther parameters are stored in the Timechart AST node
-    // and will be used by the TimechartResponseFormatter
 
     return new Timechart(null, aggregateFunction)
         .span(binExpression)
