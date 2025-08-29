@@ -108,6 +108,45 @@ publish_to_maven() {
   echo "Maven publishing completed"
 }
 
+# Function to preserve existing commit history before Maven publishing
+preserve_commit_history() {
+  local artifact_id="$1"
+  local snapshot_repo_url="${2:-$SNAPSHOT_REPO_URL}"
+  
+  if [ "$DISABLE_COMMIT_MAPPING" = "true" ]; then
+    return 0
+  fi
+
+  echo "Preserving existing commit history for ${artifact_id}"
+  
+  TEMP_DIR=$(mktemp -d)
+  OLD_METADATA_FILE="${TEMP_DIR}/old-maven-metadata.xml"
+  COMMIT_HISTORY_FILE="${TEMP_DIR}/commit-history.xml"
+  
+  # Download existing root metadata to preserve commit history
+  ROOT_META_URL="${snapshot_repo_url}org/opensearch/${artifact_id}/maven-metadata.xml"
+  HTTP_CODE=$(curl -s -o "${OLD_METADATA_FILE}" -w "%{http_code}" -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" "${ROOT_META_URL}" || echo "000")
+  
+  if [ "$HTTP_CODE" = "200" ] && [ -s "${OLD_METADATA_FILE}" ]; then
+    # Extract existing commit history if it exists
+    if grep -q "<commitHistory>" "${OLD_METADATA_FILE}"; then
+      echo "Extracting existing commit history"
+      sed -n '/<commitHistory>/,/<\/commitHistory>/p' "${OLD_METADATA_FILE}" > "${COMMIT_HISTORY_FILE}"
+      echo "Commit history preserved at: ${COMMIT_HISTORY_FILE}"
+    else
+      echo "No existing commit history found"
+      echo "" > "${COMMIT_HISTORY_FILE}"
+    fi
+  else
+    echo "No existing metadata found, starting fresh"
+    echo "" > "${COMMIT_HISTORY_FILE}"
+  fi
+  
+  # Export the file path for use by restore function
+  export PRESERVED_COMMIT_HISTORY_FILE="${COMMIT_HISTORY_FILE}"
+  export PRESERVED_TEMP_DIR="${TEMP_DIR}"
+}
+
 # Function to update root maven-metadata.xml with commit history
 update_root_metadata_with_commit_history() {
   local artifact_id="$1"
@@ -126,9 +165,9 @@ update_root_metadata_with_commit_history() {
   TEMP_DIR=$(mktemp -d)
   METADATA_FILE="${TEMP_DIR}/maven-metadata.xml"
 
-  # Download existing root metadata (artifact level, not version level)
+  # Download the fresh metadata that Maven just created
   ROOT_META_URL="${snapshot_repo_url}org/opensearch/${artifact_id}/maven-metadata.xml"
-  echo "Downloading root metadata from ${ROOT_META_URL}"
+  echo "Downloading fresh metadata from ${ROOT_META_URL}"
 
   HTTP_CODE=$(curl -s -o "${METADATA_FILE}" -w "%{http_code}" -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" "${ROOT_META_URL}" || echo "000")
   
@@ -146,13 +185,26 @@ update_root_metadata_with_commit_history() {
     </versions>
     <lastUpdated>$(date +%Y%m%d%H%M%S)</lastUpdated>
   </versioning>
+  <version>${version}</version>
 </metadata>
 EOF
   fi
 
-  # Check if commitHistory section exists, if not add it
-  if ! grep -q "<commitHistory>" "${METADATA_FILE}"; then
-    echo "Adding commitHistory section to metadata"
+  # Restore preserved commit history and add new entry
+  if [ -n "$PRESERVED_COMMIT_HISTORY_FILE" ] && [ -s "$PRESERVED_COMMIT_HISTORY_FILE" ]; then
+    echo "Restoring preserved commit history"
+    # Remove existing commitHistory if it exists (shouldn't, but just in case)
+    sed -i.bak '/<commitHistory>/,/<\/commitHistory>/d' "${METADATA_FILE}"
+    # Add preserved commit history before closing </metadata> tag
+    sed -i.bak2 '/<\/metadata>/i\
+  <commitHistory>\
+  </commitHistory>' "${METADATA_FILE}"
+    # Replace empty commitHistory with preserved content
+    PRESERVED_CONTENT=$(sed '1d;$d' "$PRESERVED_COMMIT_HISTORY_FILE") # Remove first and last line (<commitHistory> tags)
+    sed -i.bak3 "/<commitHistory>/a\\
+$PRESERVED_CONTENT" "${METADATA_FILE}"
+  else
+    echo "No preserved history, adding new commitHistory section"
     # Add commitHistory section before closing </metadata> tag
     sed -i.bak '/<\/metadata>/i\
   <commitHistory>\
@@ -218,6 +270,13 @@ ${NEW_MAPPING}" "${METADATA_FILE}"
 
   # Clean up
   rm -rf "${TEMP_DIR}"
+  
+  # Clean up preserved history files
+  if [ -n "$PRESERVED_TEMP_DIR" ]; then
+    rm -rf "$PRESERVED_TEMP_DIR"
+    unset PRESERVED_COMMIT_HISTORY_FILE
+    unset PRESERVED_TEMP_DIR
+  fi
 
   echo "Root metadata with commit history updated successfully"
   return 0
@@ -478,8 +537,11 @@ publish_grammar_files() {
 
   # Generate checksums
   generate_checksums
+  
+  # IMPORTANT: Preserve existing commit history BEFORE Maven publishing overwrites metadata
+  preserve_commit_history "$ARTIFACT_ID"
 
-  # Publish to Maven
+  # Publish to Maven (this will overwrite maven-metadata.xml)
   publish_to_maven
 
   # Extract the actual artifact version from metadata for commit history
@@ -534,8 +596,11 @@ publish_async_query_core() {
 
   # Generate checksums
   generate_checksums
+  
+  # IMPORTANT: Preserve existing commit history BEFORE Maven publishing overwrites metadata
+  preserve_commit_history "$ARTIFACT_ID"
 
-  # Publish to Maven
+  # Publish to Maven (this will overwrite maven-metadata.xml)
   publish_to_maven
 
   # Extract the actual artifact version from metadata for commit history
