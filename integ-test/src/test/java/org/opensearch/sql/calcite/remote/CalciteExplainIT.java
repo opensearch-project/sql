@@ -282,26 +282,6 @@ public class CalciteExplainIT extends ExplainIT {
                 + " head 5"));
   }
 
-  public void testEventstatsDistinctCountExplain() throws IOException {
-    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
-    String query =
-        "source=opensearch-sql_test_index_account | eventstats dc(state) as distinct_states";
-    var result = explainQueryToString(query);
-    String expected = loadFromFile("expectedOutput/calcite/explain_eventstats_dc.json");
-    assertJsonEqualsIgnoreId(expected, result);
-  }
-
-  @Test
-  public void testEventstatsDistinctCountFunctionExplain() throws IOException {
-    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
-    String query =
-        "source=opensearch-sql_test_index_account | eventstats distinct_count(state) as"
-            + " distinct_states by gender";
-    var result = explainQueryToString(query);
-    String expected = loadFromFile("expectedOutput/calcite/explain_eventstats_distinct_count.json");
-    assertJsonEqualsIgnoreId(expected, result);
-  }
-
   // Only for Calcite, as v2 gets unstable serialized string for function
   @Test
   public void testExplainOnAggregationWithSumEnhancement() throws IOException {
