@@ -7,13 +7,12 @@ on:
       - main
       - 1.*
       - 2.*
-      - poc/commit-metadata
     paths:
       - 'async-query-core/**'
       - '.github/workflows/publish-async-query-core.yml'
       - '.github/maven-publish-utils.sh'
       - '.github/get-sonatype-credentials.sh'
-        
+
 concurrency:
   group: maven-publish-async-query-core
   cancel-in-progress: false
@@ -72,7 +71,7 @@ jobs:
 
       - uses: actions/checkout@v4
         with:
-          repository: 'opensearch-project/opensearch-build'
+          repository: 'opensearch-project/opensearch-build-libraries'
           path: 'build'
 
       - name: Install required tools
