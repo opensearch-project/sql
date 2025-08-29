@@ -1931,7 +1931,7 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void regex_command_throws_unsupported_operation_exception_in_legacy_engine() {
+  public void regex_command_throws_unsupported_exception_with_legacy_engine() {
     UnsupportedOperationException exception =
         assertThrows(
             UnsupportedOperationException.class,

@@ -31,6 +31,7 @@
     "user/ppl/cmd/join.rst",
     "user/ppl/cmd/lookup.rst",
     "user/ppl/cmd/subquery.rst",
+    "user/ppl/cmd/regex.rst",
     "user/ppl/general/identifiers.rst",
     "user/ppl/general/datatypes.rst",
     "user/ppl/functions/condition.rst",
