@@ -109,6 +109,7 @@ import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.Trendline.TrendlineType;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
@@ -1166,13 +1167,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // 1. Resolve main plan
     visitChildren(node, context);
 
-    // 2. Build subsearch tree (attach relation to subsearch)
-    UnresolvedPlan relation = getRelation(node);
-    transformPlanToAttachChild(node.getSubSearch(), relation);
-    // 3. Resolve subsearch plan
-    node.getSubSearch().accept(this, context);
+    // 2. Resolve subsearch plan
+    if (node.getContainsEmptyValuesInput()) {
+      Append.EMPTY_VALUES_INPUT.accept(this, context);
+    } else {
+      node.getSubSearch().accept(this, context);
+    }
 
-    // 4. Merge two query schemas
+    // 3. Merge two query schemas
     RelNode subsearchNode = context.relBuilder.build();
     RelNode mainNode = context.relBuilder.build();
     List<RelDataTypeField> mainFields = mainNode.getRowType().getFieldList();
@@ -1186,7 +1188,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<RexNode> mainUnionProjects = new ArrayList<>();
     List<RexNode> subsearchUnionProjects = new ArrayList<>();
 
-    // 4.1 Start with main query's schema. If subsearch plan doesn't have matched column,
+    // 3.1 Start with main query's schema. If subsearch plan doesn't have matched column,
     // add same type column in place with NULL literal
     for (int i = 0; i < mainFields.size(); i++) {
       mainUnionProjects.add(context.rexBuilder.makeInputRef(mainNode, i));
@@ -1204,7 +1206,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       }
     }
 
-    // 4.2 Add remaining subsearch columns to the merged schema
+    // 3.2 Add remaining subsearch columns to the merged schema
     for (int j = 0; j < subsearchFields.size(); j++) {
       RelDataTypeField subsearchField = subsearchFields.get(j);
       if (!isSelected[j]) {
@@ -1214,17 +1216,17 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       }
     }
 
-    // 4.3 Uniquify names in case the merged names have duplicates
+    // 3.3 Uniquify names in case the merged names have duplicates
     List<String> uniqNames =
         SqlValidatorUtil.uniquify(names, SqlValidatorUtil.EXPR_SUGGESTER, true);
 
-    // 5. Apply new schema over two query plans
+    // 4. Apply new schema over two query plans
     RelNode projectedMainNode =
         context.relBuilder.push(mainNode).project(mainUnionProjects, uniqNames).build();
     RelNode projectedSubsearchNode =
         context.relBuilder.push(subsearchNode).project(subsearchUnionProjects, uniqNames).build();
 
-    // 6. Union all two projected plans
+    // 5. Union all two projected plans
     context.relBuilder.push(projectedMainNode);
     context.relBuilder.push(projectedSubsearchNode);
     context.relBuilder.union(true);
@@ -1534,6 +1536,19 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     buildExpandRelNode(arrayFieldRex, arrayField.getField().toString(), alias, context);
 
     return context.relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitValues(Values values, CalcitePlanContext context) {
+    if (values.getValues() == null || values.getValues().isEmpty()) {
+      context.relBuilder.push(
+          LogicalValues.createEmpty(
+              context.relBuilder.getCluster(),
+              context.rexBuilder.getTypeFactory().builder().build()));
+      return context.relBuilder.peek();
+    } else {
+      throw new CalciteUnsupportedException("Explicit values node is unsupported in Calcite");
+    }
   }
 
   private void buildParseRelNode(Parse node, CalcitePlanContext context) {

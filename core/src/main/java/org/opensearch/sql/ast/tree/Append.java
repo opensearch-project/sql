@@ -6,6 +6,7 @@
 package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
+import java.util.Collections;
 import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -25,7 +26,11 @@ public class Append extends UnresolvedPlan {
 
   private final UnresolvedPlan subSearch;
 
+  private final Boolean containsEmptyValuesInput;
+
   private UnresolvedPlan child;
+
+  public static final UnresolvedPlan EMPTY_VALUES_INPUT = new Values(Collections.emptyList());
 
   @Override
   public UnresolvedPlan attach(UnresolvedPlan child) {

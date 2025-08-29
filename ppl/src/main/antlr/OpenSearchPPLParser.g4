@@ -104,6 +104,7 @@ commandName
    | TRENDLINE
    | EXPLAIN
    | REVERSE
+   | APPEND
    ;
 
 searchCommand
@@ -277,7 +278,7 @@ appendcolCommand
    ;
 
 appendCommand
-   : APPEND LT_SQR_PRTHS commands (PIPE commands)* RT_SQR_PRTHS
+   : APPEND LT_SQR_PRTHS searchCommand? (PIPE commands)* RT_SQR_PRTHS
    ;
 
 kmeansCommand

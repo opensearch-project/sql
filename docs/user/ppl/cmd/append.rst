@@ -11,46 +11,18 @@ append
 
 Description
 ============
-| (Experimental)
-| (From 3.2.0)
 | Using ``append`` command to append the result of a sub-search and attach it as additional rows to the bottom of the input search results (The main search).
 The command aligns columns with the same field names and types. For different column fields between the main search and sub-search, NULL values are filled in the respective rows.
 
 Version
 =======
-3.2.0
+3.3.0
 
 Syntax
 ============
 append <sub-search>
 
 * sub-search: mandatory. Executes PPL commands as a secondary search. The sub-search uses the same data specified in the source clause of the main search results as its input.
-
-Configuration
-=============
-This command requires Calcite enabled.
-
-Enable Calcite::
-
-	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
-	  "transient" : {
-	    "plugins.calcite.enabled" : true
-	  }
-	}'
-
-Result set::
-
-    {
-      "acknowledged": true,
-      "persistent": {
-        "plugins": {
-          "calcite": {
-            "enabled": "true"
-          }
-        }
-      },
-      "transient": {}
-    }
 
 Example 1: Append rows from a count aggregation to existing search result
 ===============================================================
