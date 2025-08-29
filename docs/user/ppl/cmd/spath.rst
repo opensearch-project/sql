@@ -13,6 +13,8 @@ Description
 ============
 | The `spath` command allows extracting fields from structured text data. It currently allows selecting from JSON data with JSON paths.
 
+If the inner data is unable to be extracted (malformed data, missing keys), `"null"` is returned.
+
 Version
 =======
 3.3.0
