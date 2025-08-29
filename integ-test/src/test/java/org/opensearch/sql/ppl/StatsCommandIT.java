@@ -104,6 +104,26 @@ public class StatsCommandIT extends PPLIntegTestCase {
       verifySchema(response, schema("count", null, "int"));
     }
     verifyDataRows(response, rows(1000));
+
+    response = executeQuery(String.format("source=%s | stats c", TEST_INDEX_ACCOUNT));
+    if (isCalciteEnabled()) {
+      verifySchema(response, schema("c", null, "bigint"));
+    } else {
+      verifySchema(response, schema("c", null, "int"));
+    }
+    verifyDataRows(response, rows(1000));
+  }
+
+  @Test
+  public void testStatsCBy() throws IOException {
+    JSONObject response =
+        executeQuery(String.format("source=%s | stats c by gender", TEST_INDEX_ACCOUNT));
+    if (isCalciteEnabled()) {
+      verifySchema(response, schema("c", null, "bigint"), schema("gender", null, "string"));
+    } else {
+      verifySchema(response, schema("c", null, "int"), schema("gender", null, "string"));
+    }
+    verifyDataRows(response, rows(493, "F"), rows(507, "M"));
   }
 
   @Test
