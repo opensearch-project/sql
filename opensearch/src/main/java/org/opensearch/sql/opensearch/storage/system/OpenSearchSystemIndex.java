@@ -16,8 +16,11 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.calcite.plan.AbstractOpenSearchTable;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.monitor.OpenSearchMemoryHealthy;
+import org.opensearch.sql.opensearch.monitor.OpenSearchResourceMonitor;
 import org.opensearch.sql.opensearch.request.system.OpenSearchCatIndicesRequest;
 import org.opensearch.sql.opensearch.request.system.OpenSearchDescribeIndexRequest;
 import org.opensearch.sql.opensearch.request.system.OpenSearchSystemRequest;
@@ -33,8 +36,11 @@ public class OpenSearchSystemIndex extends AbstractOpenSearchTable {
   /** System Index Name. */
   private final Pair<OpenSearchSystemIndexSchema, OpenSearchSystemRequest> systemIndexBundle;
 
-  public OpenSearchSystemIndex(OpenSearchClient client, String indexName) {
+  @Getter private final Settings settings;
+
+  public OpenSearchSystemIndex(OpenSearchClient client, Settings settings, String indexName) {
     this.systemIndexBundle = buildIndexBundle(client, indexName);
+    this.settings = settings;
   }
 
   @Override
@@ -62,6 +68,10 @@ public class OpenSearchSystemIndex extends AbstractOpenSearchTable {
   @Override
   public PhysicalPlan implement(LogicalPlan plan) {
     return plan.accept(new OpenSearchSystemIndexDefaultImplementor(), null);
+  }
+
+  public OpenSearchResourceMonitor createOpenSearchResourceMonitor() {
+    return new OpenSearchResourceMonitor(getSettings(), new OpenSearchMemoryHealthy(settings));
   }
 
   @VisibleForTesting
