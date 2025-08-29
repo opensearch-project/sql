@@ -170,7 +170,6 @@ public class RegexCommonUtilsTest {
 
   @Test
   public void testPatternCachingBehavior() {
-    // Test that patterns are cached and reused
     String regex1 = "test1.*";
     String regex2 = "test2.*";
 
@@ -200,12 +199,6 @@ public class RegexCommonUtilsTest {
     // letter)
     String pattern = "(?<valid_group>[a-z]+)\\s+(?<123invalid>[0-9]+)\\s+(?<also-invalid>.*)";
     List<String> groups = RegexCommonUtils.getNamedGroupCandidates(pattern);
-
-    // Based on the NAMED_GROUP_PATTERN regex, only groups starting with letter and containing
-    // alphanumeric are valid
-    // The pattern is: "\\(\\?<([a-zA-Z][a-zA-Z0-9]*)>"
-    // So "valid_group" won't match because of underscore, "123invalid" won't match because it
-    // starts with number
     assertEquals(0, groups.size());
   }
 
