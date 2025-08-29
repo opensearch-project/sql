@@ -132,7 +132,7 @@ update_root_metadata_with_commit_history() {
 
   HTTP_CODE=$(curl -s -o "${METADATA_FILE}" -w "%{http_code}" -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" "${ROOT_META_URL}" || echo "000")
   
-  if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "000" ]; then
+  if [ "$HTTP_CODE" != "200" ]; then
     echo "Failed to download root metadata (HTTP ${HTTP_CODE}), creating new one"
     # Create a basic metadata structure if it doesn't exist
     cat > "${METADATA_FILE}" << EOF
@@ -489,10 +489,8 @@ publish_grammar_files() {
   # Update root metadata with commit history (replaces JSON approach)
   update_root_metadata_with_commit_history "$ARTIFACT_ID" "$version" "$commit_id" "$ARTIFACT_VERSION"
 
-  # Optional: Still update version metadata if needed
+  # Deprecated: Old approaches are no longer used
   # update_version_metadata "$ARTIFACT_ID" "$version" "$commit_id"
-
-  # Deprecated: JSON mapping no longer used
   # update_commit_mapping "$commit_id" "$version" "$ARTIFACT_ID" "zip"
 
   echo "Grammar files publishing workflow completed"
@@ -545,10 +543,8 @@ publish_async_query_core() {
   # Update root metadata with commit history (replaces JSON approach)
   update_root_metadata_with_commit_history "$ARTIFACT_ID" "$version" "$commit_id" "$ARTIFACT_VERSION"
 
-  # Optional: Still update version metadata if needed
+  # Deprecated: Old approaches are no longer used
   # update_version_metadata "$ARTIFACT_ID" "$version" "$commit_id"
-
-  # Deprecated: JSON mapping no longer used
   # update_commit_mapping "$commit_id" "$version" "$ARTIFACT_ID" "jar"
 
   echo "Async-query-core publishing workflow completed"

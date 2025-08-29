@@ -19,14 +19,14 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  SNAPSHOT_REPO_URL: https://aws.oss.sonatype.org/content/repositories/snapshots/
+  SNAPSHOT_REPO_URL: https://central.sonatype.com/repository/maven-snapshots/
   # Commit history is now embedded in maven-metadata.xml instead of JSON files
 
 jobs:
   publish-async-query-core:
     strategy:
       fail-fast: false
-    #if: github.repository == 'opensearch-project/sql'
+    if: github.repository == 'opensearch-project/sql'
     runs-on: ubuntu-latest
 
     permissions:
@@ -41,15 +41,15 @@ jobs:
 
       - uses: actions/checkout@v3
 
-      - uses: aws-actions/configure-aws-credentials@v1.7.0
+      - name: Load secret
+        uses: 1password/load-secrets-action@v2
         with:
-          role-to-assume: ${{ secrets.PUBLISH_SNAPSHOTS_ROLE }}
-          aws-region: us-east-1
-
-      - name: Setup publishing credentials
-        id: creds
-        run: |
-          .github/get-sonatype-credentials.sh
+          # Export loaded secrets as environment variables
+          export-env: true
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          SONATYPE_USERNAME: op://opensearch-infra-secrets/maven-central-portal-credentials/username
+          SONATYPE_PASSWORD: op://opensearch-infra-secrets/maven-central-portal-credentials/password
 
       - name: Set commit ID
         id: set_commit
