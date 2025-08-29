@@ -48,6 +48,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilder.AggCall;
@@ -181,6 +182,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     RexNode fieldRex = rexVisitor.analyze(node.getField(), context);
     RexNode patternRex = rexVisitor.analyze(node.getPattern(), context);
+
+    if (!SqlTypeFamily.CHARACTER.contains(fieldRex.getType())) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Regex command requires field of string type, but got %s for field '%s'",
+              fieldRex.getType().getSqlTypeName(), node.getField().toString()));
+    }
 
     RexNode regexCondition =
         context.rexBuilder.makeCall(

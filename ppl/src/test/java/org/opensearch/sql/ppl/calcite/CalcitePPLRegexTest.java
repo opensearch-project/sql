@@ -5,6 +5,9 @@
 
 package org.opensearch.sql.ppl.calcite;
 
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Test;
@@ -154,19 +157,16 @@ public class CalcitePPLRegexTest extends CalcitePPLAbstractTest {
   }
 
   @Test
-  public void testRegexWithNumericPattern() {
-    String ppl = "source=EMP | regex SAL='[0-9]{4,}' | fields ENAME, SAL";
-    RelNode root = getRelNode(ppl);
-    String expectedLogical =
-        "LogicalProject(ENAME=[$1], SAL=[$5])\n"
-            + "  LogicalFilter(condition=[REGEXP_CONTAINS($5, '[0-9]{4,}':VARCHAR)])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    verifyLogical(root, expectedLogical);
-
-    String expectedSparkSql =
-        "SELECT `ENAME`, `SAL`\n"
-            + "FROM `scott`.`EMP`\n"
-            + "WHERE REGEXP_CONTAINS(`SAL`, '[0-9]{4,}')";
-    verifyPPLToSparkSQL(root, expectedSparkSql);
+  public void testRegexWithNonStringFieldThrowsException() {
+    String ppl = "source=EMP | regex EMPNO='123.*'";
+    try {
+      getRelNode(ppl);
+      fail("Expected IllegalArgumentException for non-string field type");
+    } catch (IllegalArgumentException e) {
+      assertTrue(
+          "Expected error message about field type",
+          e.getMessage().contains("Regex command requires field of string type"));
+      assertTrue("Expected error message to mention field name", e.getMessage().contains("EMPNO"));
+    }
   }
 }
