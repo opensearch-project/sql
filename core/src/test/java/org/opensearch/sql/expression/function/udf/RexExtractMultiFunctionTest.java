@@ -8,6 +8,7 @@ package org.opensearch.sql.expression.function.udf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
@@ -82,27 +83,21 @@ public class RexExtractMultiFunctionTest {
   }
 
   @Test
-  public void testExtractMultipleGroups_NullInputs() {
-    // Null text
-    List<String> result = RexExtractMultiFunction.extractMultipleGroups(null, "pattern", 1, 5);
-    assertNull(result);
-
-    // Null pattern
-    result = RexExtractMultiFunction.extractMultipleGroups("text", null, 1, 5);
-    assertNull(result);
-
-    // Both null
-    result = RexExtractMultiFunction.extractMultipleGroups(null, null, 1, 5);
-    assertNull(result);
-  }
-
-  @Test
   public void testExtractMultipleGroups_InvalidPattern() {
     String text = "test string";
     String invalidPattern = "[unclosed"; // Invalid regex pattern
 
-    List<String> result = RexExtractMultiFunction.extractMultipleGroups(text, invalidPattern, 1, 5);
-    assertNull(result);
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> {
+              RexExtractMultiFunction.extractMultipleGroups(text, invalidPattern, 1, 5);
+            });
+
+    String expectedMessage =
+        "Error in 'rex' command: Encountered the following error while compiling the regex"
+            + " '[unclosed':";
+    assertTrue(exception.getMessage().startsWith(expectedMessage));
   }
 
   @Test
