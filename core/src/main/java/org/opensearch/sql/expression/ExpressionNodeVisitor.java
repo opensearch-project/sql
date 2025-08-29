@@ -10,7 +10,6 @@ import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.conditional.cases.CaseClause;
 import org.opensearch.sql.expression.conditional.cases.WhenClause;
 import org.opensearch.sql.expression.function.FunctionImplementation;
-import org.opensearch.sql.expression.operator.predicate.RegexMatch;
 import org.opensearch.sql.expression.parse.ParseExpression;
 
 /**
@@ -101,14 +100,5 @@ public abstract class ExpressionNodeVisitor<T, C> {
 
   public T visitNamedArgument(NamedArgumentExpression node, C context) {
     return visitNode(node, context);
-  }
-
-  public T visitRegex(RegexMatch node, C context) {
-    T result = defaultResult();
-    T fieldResult = node.getField().accept(this, context);
-    result = aggregateResult(result, fieldResult);
-    T patternResult = node.getPattern().accept(this, context);
-    result = aggregateResult(result, patternResult);
-    return result;
   }
 }
