@@ -19,23 +19,11 @@ Version
 
 Syntax
 ============
-rex [mode=<mode>] field=<field> <pattern> [max_match=<int>] [offset_field=<string>]
+rex field=<field> <pattern> [max_match=<int>]
 
 * field: mandatory. The field must be a string field to extract data from.
 * pattern: mandatory string. The regular expression pattern with named capture groups used to extract new fields. Pattern must contain at least one named capture group using ``(?<name>pattern)`` syntax.
-* mode: optional. Either ``extract`` (default) or ``sed``.
-
-  - **extract mode** (default): Creates new fields from regular expression named capture groups. This is the standard field extraction behavior.
-  - **sed mode**: Performs text substitution on the field using sed-style patterns:
-
-    - ``s/pattern/replacement/`` - Replace first occurrence
-    - ``s/pattern/replacement/g`` - Replace all occurrences (global)  
-    - ``s/pattern/replacement/n`` - Replace only the nth occurrence (where n is a number)
-    - ``y/from_chars/to_chars/`` - Character-by-character transliteration
-    - Backreferences: ``\1``, ``\2``, etc. reference captured groups in replacement
-
 * max_match: optional integer (default=1). Maximum number of matches to extract. If greater than 1, extracted fields become arrays.
-* offset_field: optional string. Field name to store the character offset positions of matches.
 
 Example 1: Basic Field Extraction
 ==================================
@@ -93,43 +81,7 @@ PPL query::
     +--------------------+-------------------+
 
 
-Example 4: Text Replacement with mode=sed
-==========================================
-
-Replace email domains using sed mode for text substitution. The extracted field is returned as string type.
-
-PPL query::
-
-    os> source=accounts | rex field=email mode=sed "s/@.*/@company.com/" | fields email | head 3 ;
-    fetched rows / total rows = 3/3
-    +---------------------------+
-    | email                     |
-    |---------------------------|
-    | amberduke@company.com     |
-    | hattiebond@company.com    |
-    | nanettebates@company.com  |
-    +---------------------------+
-
-
-Example 5: Using offset_field
-==============================
-
-Track the character positions where matches occur. Extracted fields are string type, and the offset_field is also string type.
-
-PPL query::
-
-    os> source=accounts | rex field=email "(?<username>[^@]+)@(?<domain>[^.]+)" offset_field=matchpos | fields email, username, domain, matchpos | head 3 ;
-    fetched rows / total rows = 3/3
-    +--------------------------+--------------+---------+-----------------------------+
-    | email                    | username     | domain  | matchpos                    |
-    |--------------------------+--------------+---------+-----------------------------|
-    | amberduke@pyrami.com     | amberduke    | pyrami  | domain=10-15&username=0-8   |
-    | hattiebond@netagy.com    | hattiebond   | netagy  | domain=11-16&username=0-9   |
-    | nanettebates@quility.com | nanettebates | quility | domain=13-19&username=0-11  |
-    +--------------------------+--------------+---------+-----------------------------+
-
-
-Example 6: Complex Email Pattern
+Example 4: Complex Email Pattern
 =================================
 
 Extract comprehensive email components including top-level domain. All extracted fields are returned as string type.
@@ -147,7 +99,7 @@ PPL query::
     +--------------------------+--------------+---------+-----+
 
 
-Example 7: Chaining Multiple rex Commands
+Example 5: Chaining Multiple rex Commands
 ==========================================
 
 Extract initial letters from both first and last names. All extracted fields are returned as string type.
@@ -165,7 +117,7 @@ PPL query::
     +-----------+----------+--------------+-------------+
 
 
-Example 8: Named Capture Group Limitations
+Example 6: Named Capture Group Limitations
 ============================================
 
 Demonstrates naming restrictions for capture groups. Group names cannot contain underscores due to Java regex limitations.
@@ -198,8 +150,6 @@ Pattern Type                   Java Regex   Java Regex
 Named Groups Required          Yes          Yes
 Filtering by Match             No           Yes  
 Multiple Matches               Yes          No
-Text Substitution              Yes          No
-Offset Tracking                Yes          No
 Underscores in Group Names     No           No
 ============================= ============ ============
 
