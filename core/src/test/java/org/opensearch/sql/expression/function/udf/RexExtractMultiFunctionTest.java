@@ -161,6 +161,19 @@ public class RexExtractMultiFunctionTest {
   }
 
   @Test
+  public void testNullReturnTypeCompatibility() {
+    List<String> result1 =
+        RexExtractMultiFunction.extractMultipleGroups("no match", "(\\d+)", 1, 5);
+    assertNull(result1, "Should return null when no matches found");
+
+    List<String> result2 = RexExtractMultiFunction.extractMultipleGroups("abc", "(\\w+)", 2, 5);
+    assertNull(result2, "Should return null for invalid group index");
+
+    List<String> result3 = RexExtractMultiFunction.extractMultipleGroups("", "(\\w+)", 1, 5);
+    assertNull(result3, "Should return null for empty string with no matches");
+  }
+
+  @Test
   public void testOperandMetadata() {
     assertNotNull(function.getOperandMetadata(), "Operand metadata should not be null");
   }

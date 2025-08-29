@@ -31,9 +31,11 @@ public final class RexExtractMultiFunction extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return call ->
-        call.getTypeFactory()
-            .createArrayType(call.getTypeFactory().createSqlType(SqlTypeName.VARCHAR, 2000), -1);
+    return call -> {
+      var elementType = call.getTypeFactory().createSqlType(SqlTypeName.VARCHAR, 2000);
+      return call.getTypeFactory()
+          .createArrayType(call.getTypeFactory().createTypeWithNullability(elementType, true), -1);
+    };
   }
 
   @Override
