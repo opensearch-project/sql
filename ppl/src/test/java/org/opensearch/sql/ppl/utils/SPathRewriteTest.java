@@ -21,9 +21,10 @@ import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
+import org.opensearch.sql.ppl.calcite.CalcitePPLAbstractTest;
 import org.opensearch.sql.ppl.parser.AstBuilder;
 
-public class SPathRewriteTest {
+public class SPathRewriteTest extends CalcitePPLAbstractTest {
   private final Settings settings = Mockito.mock(Settings.class);
   private final PPLSyntaxParser parser = new PPLSyntaxParser();
 
@@ -47,7 +48,7 @@ public class SPathRewriteTest {
     SPath sp = spath(relation("t"), "f", "o", "simple.nested");
     Eval ev = (Eval) plan("source = t | eval o=json_extract(f, \"simple.nested\")");
 
-    assertEquals(ev, sp.rewriteAsEval());
+    assertEquals(ev, sp.rewriteAsEval(this.createBuilderContext()));
   }
 
   @Test(expected = IllegalArgumentException.class)

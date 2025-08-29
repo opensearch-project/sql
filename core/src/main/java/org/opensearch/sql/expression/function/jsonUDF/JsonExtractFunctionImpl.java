@@ -61,7 +61,13 @@ public class JsonExtractFunctionImpl extends ImplementorUDF {
       return null;
     }
     JsonFunctions.StatefulFunction a = new JsonFunctions.StatefulFunction();
-    String jsonStr = (String) args[0];
+    String jsonStr;
+    try {
+      jsonStr = (String) args[0];
+    } catch (ClassCastException ex) {
+      throw new IllegalArgumentException(
+          "Attempted to do JSON extraction on a field which is not a string.");
+    }
     List<Object> jsonPaths = Arrays.asList(args).subList(1, args.length);
     List<String> pathSpecs =
         jsonPaths.stream().map(Object::toString).map(JsonUtils::convertToJsonPath).toList();

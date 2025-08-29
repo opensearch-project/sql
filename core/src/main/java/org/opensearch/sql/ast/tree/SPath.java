@@ -14,6 +14,7 @@ import lombok.ToString;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.dsl.AstDSL;
+import org.opensearch.sql.calcite.CalcitePlanContext;
 
 @ToString
 @EqualsAndHashCode(callSuper = false)
@@ -44,17 +45,25 @@ public class SPath extends UnresolvedPlan {
     return nodeVisitor.visitSpath(this, context);
   }
 
-  public Eval rewriteAsEval() {
+  public Eval rewriteAsEval(CalcitePlanContext context) {
+    String jsonPath = this.path;
+    if (jsonPath.startsWith("`") && jsonPath.endsWith("`")) {
+      // Escape backtick-encoded paths
+      jsonPath = jsonPath.substring(1, jsonPath.length() - 1);
+    }
+
     String outField = this.outField;
     if (outField == null) {
-      outField = this.path;
+      outField = jsonPath;
     }
+
+    //      Optional<RexNode> maybeNode = computePathField(context.relBuilder);
 
     return AstDSL.eval(
         this.child,
         AstDSL.let(
             AstDSL.field(outField),
             AstDSL.function(
-                "json_extract", AstDSL.field(inField), AstDSL.stringLiteral(this.path))));
+                "json_extract", AstDSL.field(inField), AstDSL.stringLiteral(jsonPath))));
   }
 }
