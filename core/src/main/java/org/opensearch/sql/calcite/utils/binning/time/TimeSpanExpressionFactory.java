@@ -33,18 +33,23 @@ public class TimeSpanExpressionFactory {
 
     TimeUnitRegistry.validateSubSecondSpan(config, intervalValue);
 
-    return switch (config) {
-      case MICROSECONDS,
-          MILLISECONDS,
-          CENTISECONDS,
-          DECISECONDS,
-          SECONDS,
-          MINUTES,
-          HOURS -> standardHandler.createExpression(
-          fieldExpr, intervalValue, config, alignmentOffsetMillis, context);
-      case DAYS -> dayHandler.createExpression(fieldExpr, intervalValue, context);
-      case MONTHS -> monthHandler.createExpression(fieldExpr, intervalValue, context);
-    };
+    switch (config) {
+      case MICROSECONDS:
+      case MILLISECONDS:
+      case CENTISECONDS:
+      case DECISECONDS:
+      case SECONDS:
+      case MINUTES:
+      case HOURS:
+        return standardHandler.createExpression(
+            fieldExpr, intervalValue, config, alignmentOffsetMillis, context);
+      case DAYS:
+        return dayHandler.createExpression(fieldExpr, intervalValue, context);
+      case MONTHS:
+        return monthHandler.createExpression(fieldExpr, intervalValue, context);
+      default:
+        throw new IllegalArgumentException("Unsupported time unit configuration: " + config);
+    }
   }
 
   /** Creates time span expression with time modifier alignment. */

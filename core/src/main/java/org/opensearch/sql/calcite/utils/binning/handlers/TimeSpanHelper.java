@@ -123,36 +123,42 @@ public class TimeSpanHelper {
 
   private String normalizeTimeUnit(String unit) {
     switch (unit.toLowerCase()) {
-      case "s", "sec", "secs", "second", "seconds" -> {
+      case "s":
+      case "sec":
+      case "secs":
+      case "second":
+      case "seconds":
         return "s";
-      }
-      case "m", "min", "mins", "minute", "minutes" -> {
+      case "m":
+      case "min":
+      case "mins":
+      case "minute":
+      case "minutes":
         return "m";
-      }
-      case "h", "hr", "hrs", "hour", "hours" -> {
+      case "h":
+      case "hr":
+      case "hrs":
+      case "hour":
+      case "hours":
         return "h";
-      }
-      case "d", "day", "days" -> {
+      case "d":
+      case "day":
+      case "days":
         return "d";
-      }
-      case "mon", "month", "months" -> {
+      case "mon":
+      case "month":
+      case "months":
         return "months";
-      }
-      case "us" -> {
+      case "us":
         return "us";
-      }
-      case "ms" -> {
+      case "ms":
         return "ms";
-      }
-      case "cs" -> {
+      case "cs":
         return "cs";
-      }
-      case "ds" -> {
+      case "ds":
         return "ds";
-      }
-      default -> {
+      default:
         return unit;
-      }
     }
   }
 }

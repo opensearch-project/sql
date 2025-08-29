@@ -49,7 +49,8 @@ public class BinFieldValidator {
     }
 
     // Check for OpenSearch UDT types (EXPR_TIMESTAMP mapped to VARCHAR)
-    if (fieldType instanceof AbstractExprRelDataType<?> exprType) {
+    if (fieldType instanceof AbstractExprRelDataType<?>) {
+      AbstractExprRelDataType<?> exprType = (AbstractExprRelDataType<?>) fieldType;
       ExprType udtType = exprType.getExprType();
       return udtType == ExprCoreType.TIMESTAMP
           || udtType == ExprCoreType.DATE

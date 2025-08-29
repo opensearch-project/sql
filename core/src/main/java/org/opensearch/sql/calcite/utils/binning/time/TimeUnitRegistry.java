@@ -82,14 +82,24 @@ public class TimeUnitRegistry {
     }
 
     // Convert interval to microseconds for comparison
-    long intervalMicros =
-        switch (config) {
-          case MICROSECONDS -> intervalValue;
-          case MILLISECONDS -> intervalValue * 1000L;
-          case CENTISECONDS -> intervalValue * 10000L;
-          case DECISECONDS -> intervalValue * 100000L;
-          default -> 0L;
-        };
+    long intervalMicros;
+    switch (config) {
+      case MICROSECONDS:
+        intervalMicros = intervalValue;
+        break;
+      case MILLISECONDS:
+        intervalMicros = intervalValue * 1000L;
+        break;
+      case CENTISECONDS:
+        intervalMicros = intervalValue * 10000L;
+        break;
+      case DECISECONDS:
+        intervalMicros = intervalValue * 100000L;
+        break;
+      default:
+        intervalMicros = 0L;
+        break;
+    }
 
     long oneSecondMicros = 1000000L;
 

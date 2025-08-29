@@ -147,16 +147,24 @@ public class StandardTimeSpanHandler {
       return 0;
     }
 
-    return switch (config) {
-      case MICROSECONDS -> offsetMillis * BinConstants.MICROS_PER_MILLI;
-      case MILLISECONDS -> offsetMillis;
-      case CENTISECONDS -> offsetMillis / BinConstants.MILLIS_PER_CENTISECOND;
-      case DECISECONDS -> offsetMillis / BinConstants.MILLIS_PER_DECISECOND;
-      case SECONDS -> offsetMillis / BinConstants.MILLIS_PER_SECOND;
-      case MINUTES -> offsetMillis / BinConstants.MILLIS_PER_MINUTE;
-      case HOURS -> offsetMillis / BinConstants.MILLIS_PER_HOUR;
-      default -> 0;
-    };
+    switch (config) {
+      case MICROSECONDS:
+        return offsetMillis * BinConstants.MICROS_PER_MILLI;
+      case MILLISECONDS:
+        return offsetMillis;
+      case CENTISECONDS:
+        return offsetMillis / BinConstants.MILLIS_PER_CENTISECOND;
+      case DECISECONDS:
+        return offsetMillis / BinConstants.MILLIS_PER_DECISECOND;
+      case SECONDS:
+        return offsetMillis / BinConstants.MILLIS_PER_SECOND;
+      case MINUTES:
+        return offsetMillis / BinConstants.MILLIS_PER_MINUTE;
+      case HOURS:
+        return offsetMillis / BinConstants.MILLIS_PER_HOUR;
+      default:
+        return 0;
+    }
   }
 
   private boolean isSubSecondUnit(TimeUnitConfig config) {

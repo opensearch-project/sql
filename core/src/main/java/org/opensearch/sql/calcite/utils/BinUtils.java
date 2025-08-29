@@ -21,7 +21,8 @@ public class BinUtils {
 
   /** Extracts the field name from a Bin node. */
   public static String extractFieldName(Bin node) {
-    if (node.getField() instanceof Field field) {
+    if (node.getField() instanceof Field) {
+      Field field = (Field) node.getField();
       return field.getField().toString();
     }
     throw new IllegalArgumentException("Bin field must be a Field expression");
