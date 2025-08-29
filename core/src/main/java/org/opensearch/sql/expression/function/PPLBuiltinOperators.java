@@ -381,6 +381,18 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
       RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("multi_match", false);
   public static final SqlOperator NUMBER_TO_STRING =
       new NumberToStringFunction().toUDF("NUMBER_TO_STRING");
+  public static final SqlOperator WIDTH_BUCKET =
+      new org.opensearch.sql.expression.function.udf.binning.WidthBucketFunction()
+          .toUDF("WIDTH_BUCKET");
+  public static final SqlOperator SPAN_BUCKET =
+      new org.opensearch.sql.expression.function.udf.binning.SpanBucketFunction()
+          .toUDF("SPAN_BUCKET");
+  public static final SqlOperator MINSPAN_BUCKET =
+      new org.opensearch.sql.expression.function.udf.binning.MinspanBucketFunction()
+          .toUDF("MINSPAN_BUCKET");
+  public static final SqlOperator RANGE_BUCKET =
+      new org.opensearch.sql.expression.function.udf.binning.RangeBucketFunction()
+          .toUDF("RANGE_BUCKET");
 
   public static final SqlOperator ENHANCED_COALESCE =
       new EnhancedCoalesceFunction().toUDF("COALESCE");

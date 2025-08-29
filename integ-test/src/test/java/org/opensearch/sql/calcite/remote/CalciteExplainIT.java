@@ -24,6 +24,7 @@ public class CalciteExplainIT extends ExplainIT {
     enableCalcite();
     loadIndex(Index.BANK_WITH_STRING_VALUES);
     loadIndex(Index.NESTED_SIMPLE);
+    loadIndex(Index.TIME_TEST_DATA);
   }
 
   @Override
@@ -234,6 +235,51 @@ public class CalciteExplainIT extends ExplainIT {
                 + " address_length = length(address) | stats count() by address_length");
     String expected = loadFromFile("expectedOutput/calcite/explain_script_push_on_text.json");
     assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testExplainBinWithBins() throws IOException {
+    String expected = loadExpectedPlan("explain_bin_bins.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString("source=opensearch-sql_test_index_account | bin age bins=3 | head 5"));
+  }
+
+  @Test
+  public void testExplainBinWithSpan() throws IOException {
+    String expected = loadExpectedPlan("explain_bin_span.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | bin age span=10 | head 5"));
+  }
+
+  @Test
+  public void testExplainBinWithMinspan() throws IOException {
+    String expected = loadExpectedPlan("explain_bin_minspan.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | bin age minspan=5 | head 5"));
+  }
+
+  @Test
+  public void testExplainBinWithStartEnd() throws IOException {
+    String expected = loadExpectedPlan("explain_bin_start_end.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | bin balance start=0 end=100001 | head 5"));
+  }
+
+  @Test
+  public void testExplainBinWithAligntime() throws IOException {
+    String expected = loadExpectedPlan("explain_bin_aligntime.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_time_data | bin @timestamp span=2h aligntime=latest |"
+                + " head 5"));
   }
 
   // Only for Calcite, as v2 gets unstable serialized string for function
