@@ -253,6 +253,18 @@ public class AstBuilderTest {
   }
 
   @Test
+  public void testStatsCommandWithCountAlias() {
+    assertEqual(
+        "source=t | stats count",
+        agg(
+            relation("t"),
+            exprList(alias("count", aggregate("count", AstDSL.allFields()))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+  }
+
+  @Test
   public void testStatsCommandWithByClause() {
     assertEqual(
         "source=t | stats count(a) by b DEDUP_SPLITVALUES=false",
