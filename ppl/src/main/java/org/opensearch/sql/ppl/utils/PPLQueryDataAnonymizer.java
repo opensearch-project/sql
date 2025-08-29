@@ -54,7 +54,10 @@ import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.AppendCol;
+import org.opensearch.sql.ast.tree.Bin;
+import org.opensearch.sql.ast.tree.CountBin;
 import org.opensearch.sql.ast.tree.Dedupe;
+import org.opensearch.sql.ast.tree.DefaultBin;
 import org.opensearch.sql.ast.tree.DescribeRelation;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Expand;
@@ -64,14 +67,17 @@ import org.opensearch.sql.ast.tree.Flatten;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Lookup;
+import org.opensearch.sql.ast.tree.MinSpanBin;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
+import org.opensearch.sql.ast.tree.RangeBin;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
@@ -242,6 +248,56 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     return StringUtils.format(
         "%s | stats %s",
         child, String.join(" ", visitExpressionList(node.getAggExprList()), groupBy(group)).trim());
+  }
+
+  @Override
+  public String visitBin(Bin node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    StringBuilder binCommand = new StringBuilder();
+    binCommand.append(" | bin ").append(visitExpression(node.getField()));
+
+    // Use instanceof for type-safe dispatch to access subclass-specific properties
+    if (node instanceof SpanBin) {
+      SpanBin spanBin = (SpanBin) node;
+      binCommand.append(" span=").append(visitExpression(spanBin.getSpan()));
+      if (spanBin.getAligntime() != null) {
+        binCommand.append(" aligntime=").append(visitExpression(spanBin.getAligntime()));
+      }
+    } else if (node instanceof MinSpanBin) {
+      MinSpanBin minSpanBin = (MinSpanBin) node;
+      binCommand.append(" minspan=").append(visitExpression(minSpanBin.getMinspan()));
+      if (minSpanBin.getStart() != null) {
+        binCommand.append(" start=").append(visitExpression(minSpanBin.getStart()));
+      }
+      if (minSpanBin.getEnd() != null) {
+        binCommand.append(" end=").append(visitExpression(minSpanBin.getEnd()));
+      }
+    } else if (node instanceof CountBin) {
+      CountBin countBin = (CountBin) node;
+      binCommand.append(" bins=").append(MASK_LITERAL);
+      if (countBin.getStart() != null) {
+        binCommand.append(" start=").append(visitExpression(countBin.getStart()));
+      }
+      if (countBin.getEnd() != null) {
+        binCommand.append(" end=").append(visitExpression(countBin.getEnd()));
+      }
+    } else if (node instanceof RangeBin) {
+      RangeBin rangeBin = (RangeBin) node;
+      if (rangeBin.getStart() != null) {
+        binCommand.append(" start=").append(visitExpression(rangeBin.getStart()));
+      }
+      if (rangeBin.getEnd() != null) {
+        binCommand.append(" end=").append(visitExpression(rangeBin.getEnd()));
+      }
+    } else if (node instanceof DefaultBin) {
+      // DefaultBin has no additional parameters
+    }
+
+    if (node.getAlias() != null) {
+      binCommand.append(" as ").append(node.getAlias());
+    }
+
+    return StringUtils.format("%s%s", child, binCommand.toString());
   }
 
   @Override

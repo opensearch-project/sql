@@ -248,11 +248,18 @@ Description
 
 Version: 3.1.0
 
-Usage: coalesce(field1, field2, ...) return the first non-null value in the argument list.
+Usage: coalesce(field1, field2, ...) return the first non-null, non-missing value in the argument list.
 
-Argument type: all the supported data type. The data types of all fields must be same.
+Argument type: all the supported data type. Supports mixed data types with automatic type coercion.
 
-Return type: any
+Return type: determined by the least restrictive common type among all arguments, with fallback to string if no common type can be determined
+
+Behavior:
+- Returns the first value that is not null and not missing (missing includes non-existent fields)
+- Empty strings ("") and whitespace strings (" ") are considered valid values
+- If all arguments are null or missing, returns null
+- Automatic type coercion is applied to match the determined return type
+- If type conversion fails, the value is converted to string representation
 
 Example::
 
@@ -266,6 +273,56 @@ Example::
     | Quility | Nanette   | Bates    | Quility  |
     | Dale    | Dale      | Adams    | null     |
     +---------+-----------+----------+----------+
+
+Empty String Handling Examples::
+
+    PPL> source=accounts | eval empty_field = "" | eval result = coalesce(empty_field, firstname) | fields result, empty_field, firstname
+    fetched rows / total rows = 4/4
+    +--------+-------------+-----------+
+    | result | empty_field | firstname |
+    |--------+-------------+-----------|
+    |        |             | Amber     |
+    |        |             | Hattie    |
+    |        |             | Nanette   |
+    |        |             | Dale      |
+    +--------+-------------+-----------+
+
+    PPL> source=accounts | eval result = coalesce(" ", firstname) | fields result, firstname
+    fetched rows / total rows = 4/4
+    +--------+-----------+
+    | result | firstname |
+    |--------+-----------|
+    |        | Amber     |
+    |        | Hattie    |
+    |        | Nanette   |
+    |        | Dale      |
+    +--------+-----------+
+
+Mixed Data Types with Auto Coercion::
+
+    PPL> source=accounts | eval result = coalesce(employer, balance, "fallback") | fields result, employer, balance
+    fetched rows / total rows = 4/4
+    +---------+----------+---------+
+    | result  | employer | balance |
+    |---------+----------+---------|
+    | Pyrami  | Pyrami   | 39225   |
+    | Netagy  | Netagy   | 32838   |
+    | Quility | Quility  | 4180    |
+    | 5686    | null     | 5686    |
+    +---------+----------+---------+
+
+Non-existent Field Handling::
+
+    PPL> source=accounts | eval result = coalesce(nonexistent_field, firstname, "unknown") | fields result, firstname
+    fetched rows / total rows = 4/4
+    +---------+-----------+
+    | result  | firstname |
+    |---------+-----------|
+    | Amber   | Amber     |
+    | Hattie  | Hattie    |
+    | Nanette | Nanette   |
+    | Dale    | Dale      |
+    +---------+-----------+
 
 ISPRESENT
 ---------
@@ -437,3 +494,60 @@ Example::
     |-----|
     | 968 |
     +-----+
+
+REGEX_MATCH
+-----------
+
+Description
+>>>>>>>>>>>
+
+Version: 3.3.0
+
+Usage: regex_match(string, pattern) returns true if the regular expression pattern finds a match against any substring of the string value, otherwise returns false.
+
+The function uses Java regular expression syntax for the pattern.
+
+Argument type: STRING, STRING
+
+Return type: BOOLEAN
+
+Example::
+
+    #os> source=logs | where regex_match(message, 'ERROR|WARN|FATAL') | fields timestamp, message
+    fetched rows / total rows = 3/100
+    +---------------------+------------------------------------------+
+    | timestamp           | message                                  |
+    |---------------------+------------------------------------------|
+    | 2024-01-15 10:23:45 | ERROR: Connection timeout to database   |
+    | 2024-01-15 10:24:12 | WARN: High memory usage detected        |
+    | 2024-01-15 10:25:33 | FATAL: System crashed unexpectedly      |
+    +---------------------+------------------------------------------+
+
+    #os> source=users | where regex_match(email, '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}') | fields name, email
+    fetched rows / total rows = 2/3
+    +-------+----------------------+
+    | name  | email                |
+    |-------+----------------------|
+    | John  | john@example.com     |
+    | Alice | alice@company.org    |
+    +-------+----------------------+
+
+    #os> source=network | where regex_match(ip_address, '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$') AND NOT regex_match(ip_address, '^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)') | fields ip_address, status
+    fetched rows / total rows = 2/10
+    +---------------+--------+
+    | ip_address    | status |
+    |---------------+--------|
+    | 8.8.8.8       | active |
+    | 1.1.1.1       | active |
+    +---------------+--------+
+
+    #os> source=products | eval category = if(regex_match(name, '(?i)(laptop|computer|desktop)'), 'Computing', if(regex_match(name, '(?i)(phone|tablet|mobile)'), 'Mobile', 'Other')) | fields name, category
+    fetched rows / total rows = 4/4
+    +------------------------+----------+
+    | name                   | category |
+    |------------------------+----------|
+    | Dell Laptop XPS        | Computing|
+    | iPhone 15 Pro          | Mobile   |
+    | Wireless Mouse         | Other    |
+    | Desktop Computer Tower | Computing|
+    +------------------------+----------+

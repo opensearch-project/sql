@@ -10,6 +10,7 @@ import static java.util.Collections.emptyMap;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BinCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DescribeCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalCommandContext;
@@ -30,10 +31,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
@@ -60,7 +63,9 @@ import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.AppendCol;
+import org.opensearch.sql.ast.tree.CountBin;
 import org.opensearch.sql.ast.tree.Dedupe;
+import org.opensearch.sql.ast.tree.DefaultBin;
 import org.opensearch.sql.ast.tree.DescribeRelation;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Expand;
@@ -72,15 +77,19 @@ import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
+import org.opensearch.sql.ast.tree.MinSpanBin;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
+import org.opensearch.sql.ast.tree.RangeBin;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Reverse;
+import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
@@ -423,6 +432,111 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return new Head(size, from);
   }
 
+  /** Bin command visitor. */
+  @Override
+  public UnresolvedPlan visitBinCommand(BinCommandContext ctx) {
+    UnresolvedExpression field = internalVisitExpression(ctx.fieldExpression());
+
+    // Handle alias from binCommand context
+    String alias = ctx.alias != null ? StringUtils.unquoteIdentifier(ctx.alias.getText()) : null;
+
+    // Track seen parameters for duplicate detection
+    Set<String> seenParams = new HashSet<>();
+
+    // Initialize all optional parameters
+    UnresolvedExpression span = null;
+    Integer bins = null;
+    UnresolvedExpression minspan = null;
+    UnresolvedExpression aligntime = null;
+    UnresolvedExpression start = null;
+    UnresolvedExpression end = null;
+
+    // Process each bin option: detect duplicates and assign values in one shot
+    for (OpenSearchPPLParser.BinOptionContext option : ctx.binOption()) {
+      // SPAN parameter
+      if (option.span != null) {
+        if (!seenParams.add("SPAN")) {
+          throw new IllegalArgumentException("Duplicate SPAN parameter in bin command");
+        }
+        span = internalVisitExpression(option.span);
+      }
+
+      // BINS parameter
+      if (option.bins != null) {
+        if (!seenParams.add("BINS")) {
+          throw new IllegalArgumentException("Duplicate BINS parameter in bin command");
+        }
+        bins = Integer.parseInt(option.bins.getText());
+      }
+
+      // MINSPAN parameter
+      if (option.minspan != null) {
+        if (!seenParams.add("MINSPAN")) {
+          throw new IllegalArgumentException("Duplicate MINSPAN parameter in bin command");
+        }
+        String minspanValue = option.minspan.getText();
+        String minspanUnit = option.minspanUnit != null ? option.minspanUnit.getText() : null;
+        minspan =
+            minspanUnit != null
+                ? org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(minspanValue + minspanUnit)
+                : internalVisitExpression(option.minspan);
+      }
+
+      // ALIGNTIME parameter
+      if (option.aligntime != null) {
+        if (!seenParams.add("ALIGNTIME")) {
+          throw new IllegalArgumentException("Duplicate ALIGNTIME parameter in bin command");
+        }
+        aligntime =
+            option.aligntime.EARLIEST() != null
+                ? org.opensearch.sql.ast.dsl.AstDSL.stringLiteral("earliest")
+                : option.aligntime.LATEST() != null
+                    ? org.opensearch.sql.ast.dsl.AstDSL.stringLiteral("latest")
+                    : internalVisitExpression(option.aligntime.literalValue());
+      }
+
+      // START parameter
+      if (option.start != null) {
+        if (!seenParams.add("START")) {
+          throw new IllegalArgumentException("Duplicate START parameter in bin command");
+        }
+        start = internalVisitExpression(option.start);
+      }
+
+      // END parameter
+      if (option.end != null) {
+        if (!seenParams.add("END")) {
+          throw new IllegalArgumentException("Duplicate END parameter in bin command");
+        }
+        end = internalVisitExpression(option.end);
+      }
+    }
+
+    // Create appropriate Bin subclass based on priority order (matches AstDSL.bin() logic)
+    if (span != null) {
+      // 1. SPAN (highest priority) -> SpanBin
+      return SpanBin.builder().field(field).span(span).aligntime(aligntime).alias(alias).build();
+    } else if (minspan != null) {
+      // 2. MINSPAN (second priority) -> MinSpanBin
+      return MinSpanBin.builder()
+          .field(field)
+          .minspan(minspan)
+          .start(start)
+          .end(end)
+          .alias(alias)
+          .build();
+    } else if (bins != null) {
+      // 3. BINS (third priority) -> CountBin
+      return CountBin.builder().field(field).bins(bins).start(start).end(end).alias(alias).build();
+    } else if (start != null || end != null) {
+      // 4. START/END only (fourth priority) -> RangeBin
+      return RangeBin.builder().field(field).start(start).end(end).alias(alias).build();
+    } else {
+      // 5. No parameters (default) -> DefaultBin
+      return DefaultBin.builder().field(field).alias(alias).build();
+    }
+  }
+
   /** Sort command. */
   @Override
   public UnresolvedPlan visitSortCommand(SortCommandContext ctx) {
@@ -525,6 +639,34 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     Literal pattern = (Literal) internalVisitExpression(ctx.pattern);
 
     return new Parse(ParseMethod.REGEX, sourceField, pattern, ImmutableMap.of());
+  }
+
+  @Override
+  public UnresolvedPlan visitSpathCommand(OpenSearchPPLParser.SpathCommandContext ctx) {
+    String inField = null;
+    String outField = null;
+    String path = null;
+
+    for (OpenSearchPPLParser.SpathParameterContext param : ctx.spathParameter()) {
+      if (param.input != null) {
+        inField = param.input.getText();
+      }
+      if (param.output != null) {
+        outField = param.output.getText();
+      }
+      if (param.path != null) {
+        path = param.path.getText();
+      }
+    }
+
+    if (inField == null) {
+      throw new IllegalArgumentException("`input` parameter is required for `spath`");
+    }
+    if (path == null) {
+      throw new IllegalArgumentException("`path` parameter is required for `spath`");
+    }
+
+    return new SPath(inField, outField, path);
   }
 
   @Override
