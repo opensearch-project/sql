@@ -554,14 +554,15 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testRexCommand() {
     assertEquals(
-        "source=t | rex field=message \"(?<user>[A-Z]+)\"",
+        "source=t | rex field=message mode=extract \"(?<user>[A-Z]+)\"",
         anonymize("source=t | rex field=message \"(?<user>[A-Z]+)\""));
     assertEquals(
-        "source=t | rex field=lastname \"(?<initial>^[A-Z])\" | fields + lastname,initial",
+        "source=t | rex field=lastname mode=extract \"(?<initial>^[A-Z])\" | fields +"
+            + " lastname,initial",
         anonymize(
             "source=t | rex field=lastname \"(?<initial>^[A-Z])\" | fields lastname, initial"));
     assertEquals(
-        "source=t | rex field=name \"(?<first>[A-Z])\" max_match=3",
+        "source=t | rex field=name mode=extract \"(?<first>[A-Z])\" max_match=3",
         anonymize("source=t | rex field=name \"(?<first>[A-Z])\" max_match=3"));
   }
 
@@ -578,7 +579,7 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testRexWithOffsetField() {
     assertEquals(
-        "source=t | rex field=message \"(?<word>[a-z]+)\" offset_field=pos",
+        "source=t | rex field=message mode=extract \"(?<word>[a-z]+)\" offset_field=pos",
         anonymize("source=t | rex field=message \"(?<word>[a-z]+)\" offset_field=pos"));
   }
 

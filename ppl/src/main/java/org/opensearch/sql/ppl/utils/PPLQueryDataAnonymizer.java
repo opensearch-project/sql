@@ -463,11 +463,10 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     StringBuilder command = new StringBuilder();
 
     // Build the base command
-    if (node.getMode() == Rex.RexMode.SED) {
-      command.append(String.format("%s | rex field=%s mode=sed %s", child, field, pattern));
-    } else {
-      command.append(String.format("%s | rex field=%s %s", child, field, pattern));
-    }
+    command.append(
+        String.format(
+            "%s | rex field=%s mode=%s %s",
+            child, field, node.getMode().toString().toLowerCase(), pattern));
 
     // Add optional parameters
     if (node.getMaxMatch().isPresent()) {
