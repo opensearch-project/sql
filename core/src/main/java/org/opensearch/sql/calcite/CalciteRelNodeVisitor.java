@@ -81,6 +81,7 @@ import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
+import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
@@ -102,6 +103,7 @@ import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
+import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
@@ -112,6 +114,7 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
+import org.opensearch.sql.calcite.utils.BinUtils;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -476,10 +479,30 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   @Override
+  public RelNode visitBin(Bin node, CalcitePlanContext context) {
+    visitChildren(node, context);
+
+    RexNode fieldExpr = rexVisitor.analyze(node.getField(), context);
+    String fieldName = BinUtils.extractFieldName(node);
+
+    RexNode binExpression = BinUtils.createBinExpression(node, fieldExpr, context, rexVisitor);
+
+    String alias = node.getAlias() != null ? node.getAlias() : fieldName;
+    projectPlusOverriding(List.of(binExpression), List.of(alias), context);
+
+    return context.relBuilder.peek();
+  }
+
+  @Override
   public RelNode visitParse(Parse node, CalcitePlanContext context) {
     visitChildren(node, context);
     buildParseRelNode(node, context);
     return context.relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitSpath(SPath node, CalcitePlanContext context) {
+    return visitEval(node.rewriteAsEval(), context);
   }
 
   @Override

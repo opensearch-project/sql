@@ -39,6 +39,10 @@ public class PPLOperandTypes {
               OperandTypes.NUMERIC.or(
                   OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.CHARACTER)));
 
+  public static final UDFOperandMetadata ANY_OPTIONAL_INTEGER =
+      UDFOperandMetadata.wrap(
+          (CompositeOperandTypeChecker)
+              OperandTypes.ANY.or(OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.INTEGER)));
   public static final UDFOperandMetadata INTEGER_INTEGER =
       UDFOperandMetadata.wrap((FamilyOperandTypeChecker) OperandTypes.INTEGER_INTEGER);
   public static final UDFOperandMetadata STRING_STRING =
@@ -48,9 +52,30 @@ public class PPLOperandTypes {
   public static final UDFOperandMetadata STRING_INTEGER =
       UDFOperandMetadata.wrap(OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.INTEGER));
 
+  public static final UDFOperandMetadata NUMERIC_NUMERIC_OPTIONAL_NUMERIC =
+      UDFOperandMetadata.wrap(
+          (CompositeOperandTypeChecker)
+              OperandTypes.NUMERIC_NUMERIC.or(
+                  OperandTypes.family(
+                      SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC)));
   public static final UDFOperandMetadata NUMERIC_NUMERIC_NUMERIC =
       UDFOperandMetadata.wrap(
           OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC));
+  public static final UDFOperandMetadata NUMERIC_NUMERIC_NUMERIC_NUMERIC =
+      UDFOperandMetadata.wrap(
+          OperandTypes.family(
+              SqlTypeFamily.NUMERIC,
+              SqlTypeFamily.NUMERIC,
+              SqlTypeFamily.NUMERIC,
+              SqlTypeFamily.NUMERIC));
+  public static final UDFOperandMetadata NUMERIC_NUMERIC_NUMERIC_NUMERIC_NUMERIC =
+      UDFOperandMetadata.wrap(
+          OperandTypes.family(
+              SqlTypeFamily.NUMERIC,
+              SqlTypeFamily.NUMERIC,
+              SqlTypeFamily.NUMERIC,
+              SqlTypeFamily.NUMERIC,
+              SqlTypeFamily.NUMERIC));
   public static final UDFOperandMetadata STRING_OR_INTEGER_INTEGER_INTEGER =
       UDFOperandMetadata.wrap(
           (CompositeOperandTypeChecker)

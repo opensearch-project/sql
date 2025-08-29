@@ -14,7 +14,7 @@ Description
 Using ``field`` command to keep or remove fields from the search result.
 
 .. note::
-   Enhanced field features are available when the Calcite engine is enabled. For detailed documentation on enhanced features, see :doc:`fields-enhanced`.
+   Enhanced field features are available when the Calcite engine is enabled. For detailed documentation on enhanced features, see `fields-enhanced <fields-enhanced.rst>`_
 
 Syntax
 ============
