@@ -61,6 +61,7 @@ commands
    | rareCommand
    | grokCommand
    | parseCommand
+   | spathCommand
    | patternsCommand
    | lookupCommand
    | kmeansCommand
@@ -217,6 +218,28 @@ grokCommand
 
 parseCommand
    : PARSE (source_field = expression) (pattern = stringLiteral)
+   ;
+
+spathCommand
+   : SPATH spathParameter*
+   ;
+
+spathParameter
+   : (INPUT EQUAL input = expression)
+   | (OUTPUT EQUAL output = expression)
+   | ((PATH EQUAL)? path = indexablePath)
+   ;
+
+indexablePath
+   : pathElement (DOT pathElement)*
+   ;
+
+pathElement
+   : ident pathArrayAccess?
+   ;
+
+pathArrayAccess
+   : LT_CURLY (INTEGER_LITERAL)? RT_CURLY
    ;
 
 patternsMethod
@@ -459,10 +482,13 @@ statsAggTerm
 // aggregation functions
 statsFunction
    : statsFunctionName LT_PRTHS valueExpression RT_PRTHS        # statsFunctionCall
-   | COUNT LT_PRTHS RT_PRTHS                                    # countAllFunctionCall
+   | (COUNT | C) LT_PRTHS evalExpression RT_PRTHS               # countEvalFunctionCall
+   | (COUNT | C) (LT_PRTHS RT_PRTHS)?                           # countAllFunctionCall
+   | PERCENTILE_SHORTCUT LT_PRTHS valueExpression RT_PRTHS      # percentileShortcutFunctionCall
    | (DISTINCT_COUNT | DC | DISTINCT_COUNT_APPROX) LT_PRTHS valueExpression RT_PRTHS    # distinctCountFunctionCall
    | takeAggFunction                                            # takeAggFunctionCall
    | percentileApproxFunction                                   # percentileApproxFunctionCall
+   | earliestLatestFunction                                     # earliestLatestFunctionCall
    ;
 
 statsFunctionName
@@ -477,9 +503,13 @@ statsFunctionName
    | STDDEV_POP
    | PERCENTILE
    | PERCENTILE_APPROX
-   | EARLIEST
-   | LATEST
    ;
+
+earliestLatestFunction
+   : (EARLIEST | LATEST) LT_PRTHS valueExpression (COMMA timeField = valueExpression)? RT_PRTHS
+   ;
+
+
 
 takeAggFunction
    : TAKE LT_PRTHS fieldExpression (COMMA size = integerLiteral)? RT_PRTHS
@@ -527,6 +557,10 @@ valueExpression
    | fieldExpression                                                                                            # fieldExpr
    | LT_PRTHS logicalExpression RT_PRTHS                                                                        # nestedValueExpr
    ;
+
+evalExpression
+    : EVAL LT_PRTHS logicalExpression RT_PRTHS
+    ;
 
 functionCall
    : evalFunctionCall
@@ -946,6 +980,7 @@ conditionFunctionName
    | ISNULL
    | ISNOTNULL
    | CIDRMATCH
+   | REGEX_MATCH
    | JSON_VALID
    | ISPRESENT
    | ISEMPTY
@@ -993,12 +1028,14 @@ positionFunctionName
 // operators
  comparisonOperator
    : EQUAL
+   | DOUBLE_EQUAL
    | NOT_EQUAL
    | LESS
    | NOT_LESS
    | GREATER
    | NOT_GREATER
    | REGEXP
+   | LIKE
    ;
 
 singleFieldRelevanceFunctionName
@@ -1244,6 +1281,10 @@ keywordsCanBeId
    | ANOMALY_SCORE_THRESHOLD
    | COUNTFIELD
    | SHOWCOUNT
+   | PATH
+   | INPUT
+   | OUTPUT
+
    // AGGREGATIONS AND WINDOW
    | statsFunctionName
    | windowFunctionName
@@ -1282,4 +1323,5 @@ keywordsCanBeId
    | ANTI
    | LEFT_HINT
    | RIGHT_HINT
+   | PERCENTILE_SHORTCUT
    ;
