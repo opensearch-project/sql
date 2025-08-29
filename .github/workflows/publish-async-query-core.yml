@@ -7,7 +7,6 @@ on:
       - main
       - 1.*
       - 2.*
-      - poc/commit-metadata-2
     paths:
       - 'async-query-core/**'
       - '.github/workflows/publish-async-query-core.yml'
@@ -20,7 +19,7 @@ concurrency:
 
 env:
   SNAPSHOT_REPO_URL: https://central.sonatype.com/repository/maven-snapshots/
-  # Commit history is now embedded in maven-metadata.xml instead of JSON files
+  COMMIT_MAP_FILENAME: commit-history-async-query-core.json
 
 jobs:
   publish-async-query-core:
