@@ -5,8 +5,8 @@
 set -e
 
 # Flag to disable commit mapping functionality
-# Set to "false" to enable commit history embedding in maven-metadata.xml
-DISABLE_COMMIT_MAPPING="${DISABLE_COMMIT_MAPPING:-false}"
+# Set to "true" to disable commit mapping operations
+DISABLE_COMMIT_MAPPING="${DISABLE_COMMIT_MAPPING:-true}"
 
 # Function to execute curl commands with retry and error handling
 execute_curl_with_retry() {
@@ -106,121 +106,6 @@ publish_to_maven() {
   ./publish-snapshot.sh ./
 
   echo "Maven publishing completed"
-}
-
-# Function to update root maven-metadata.xml with commit history
-update_root_metadata_with_commit_history() {
-  local artifact_id="$1"
-  local version="$2"
-  local commit_id="$3"
-  local artifact_version="$4"
-  local snapshot_repo_url="${5:-$SNAPSHOT_REPO_URL}"
-
-  if [ "$DISABLE_COMMIT_MAPPING" = "true" ]; then
-    echo "Skipping commit history update (commit mapping disabled)"
-    return 0
-  fi
-
-  echo "Updating root maven-metadata.xml with commit history for ${artifact_id}"
-
-  TEMP_DIR=$(mktemp -d)
-  METADATA_FILE="${TEMP_DIR}/maven-metadata.xml"
-
-  # Download existing root metadata (artifact level, not version level)
-  ROOT_META_URL="${snapshot_repo_url}org/opensearch/${artifact_id}/maven-metadata.xml"
-  echo "Downloading root metadata from ${ROOT_META_URL}"
-
-  HTTP_CODE=$(curl -s -o "${METADATA_FILE}" -w "%{http_code}" -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" "${ROOT_META_URL}" || echo "000")
-  
-  if [ "$HTTP_CODE" != "200" ]; then
-    echo "Failed to download root metadata (HTTP ${HTTP_CODE}), creating new one"
-    # Create a basic metadata structure if it doesn't exist
-    cat > "${METADATA_FILE}" << EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<metadata modelVersion="1.1.0">
-  <groupId>org.opensearch</groupId>
-  <artifactId>${artifact_id}</artifactId>
-  <versioning>
-    <versions>
-      <version>${version}</version>
-    </versions>
-    <lastUpdated>$(date +%Y%m%d%H%M%S)</lastUpdated>
-  </versioning>
-</metadata>
-EOF
-  fi
-
-  # Check if commitHistory section exists, if not add it
-  if ! grep -q "<commitHistory>" "${METADATA_FILE}"; then
-    echo "Adding commitHistory section to metadata"
-    # Add commitHistory section before closing </metadata> tag
-    sed -i.bak '/<\/metadata>/i\
-  <commitHistory>\
-  </commitHistory>' "${METADATA_FILE}"
-  fi
-
-  # Get current timestamp
-  TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-
-  # Create a new mapping entry (properly formatted for sed)
-  NEW_MAPPING="    <mapping>\\
-      <commitId>${commit_id}<\/commitId>\\
-      <timestamp>${TIMESTAMP}<\/timestamp>\\
-      <baseVersion>${version}<\/baseVersion>\\
-      <artifactVersion>${artifact_version}<\/artifactVersion>\\
-    <\/mapping>"
-
-  # Check if this commit already exists in the history
-  if grep -q "<commitId>${commit_id}</commitId>" "${METADATA_FILE}"; then
-    echo "Commit ${commit_id} already exists in history, updating it"
-    # Update existing entry (remove old and add new)
-    sed -i.bak "/<commitId>${commit_id}<\/commitId>/,/<\/mapping>/d" "${METADATA_FILE}"
-  fi
-
-  # Insert the new mapping at the beginning of commitHistory section
-  sed -i.bak "/<commitHistory>/a\\
-${NEW_MAPPING}" "${METADATA_FILE}"
-
-  # Keep only the last 100 mappings to prevent file from growing too large
-  MAPPING_COUNT=$(grep -c "<mapping>" "${METADATA_FILE}" || echo 0)
-  if [ "$MAPPING_COUNT" -gt 100 ]; then
-    echo "Trimming commit history to last 100 entries"
-    # Use awk to trim old entries
-    awk '
-      BEGIN { mapping_count = 0; in_history = 0; skip = 0 }
-      /<commitHistory>/ { in_history = 1; print; next }
-      /<\/commitHistory>/ { in_history = 0; print; next }
-      in_history && /<mapping>/ { 
-        mapping_count++
-        if (mapping_count > 100) skip = 1
-        else skip = 0
-      }
-      in_history && /<\/mapping>/ && skip { skip = 0; next }
-      !skip { print }
-    ' "${METADATA_FILE}" > "${METADATA_FILE}.trimmed"
-    mv "${METADATA_FILE}.trimmed" "${METADATA_FILE}"
-  fi
-
-  echo "Modified metadata content:"
-  cat "${METADATA_FILE}"
-
-  # Upload modified metadata
-  echo "Uploading modified root metadata to ${ROOT_META_URL}"
-  curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "${METADATA_FILE}" "${ROOT_META_URL}"
-  
-  # Generate and upload checksums
-  cd "${TEMP_DIR}"
-  sha256sum "maven-metadata.xml" | awk '{print $1}' > "maven-metadata.xml.sha256"
-  sha512sum "maven-metadata.xml" | awk '{print $1}' > "maven-metadata.xml.sha512"
-
-  curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "maven-metadata.xml.sha256" "${ROOT_META_URL}.sha256"
-  curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "maven-metadata.xml.sha512" "${ROOT_META_URL}.sha512"
-
-  # Clean up
-  rm -rf "${TEMP_DIR}"
-
-  echo "Root metadata with commit history updated successfully"
-  return 0
 }
 
 # Function to update version metadata with commit ID
@@ -482,17 +367,11 @@ publish_grammar_files() {
   # Publish to Maven
   publish_to_maven
 
-  # Extract the actual artifact version from metadata for commit history
-  ARTIFACT_VERSION=$(extract_artifact_version "$ARTIFACT_ID" "$version" "zip")
-
-  # Update version metadata with commit ID (adds commitId to version-specific metadata)
+  # Update metadata with commit ID
   update_version_metadata "$ARTIFACT_ID" "$version" "$commit_id"
 
-  # Update root metadata with commit history (adds to root-level commit history)
-  update_root_metadata_with_commit_history "$ARTIFACT_ID" "$version" "$commit_id" "$ARTIFACT_VERSION"
-
-  # Deprecated: JSON mapping approach is no longer used
-  # update_commit_mapping "$commit_id" "$version" "$ARTIFACT_ID" "zip"
+  # Update commit mapping
+  update_commit_mapping "$commit_id" "$version" "$ARTIFACT_ID" "zip"
 
   echo "Grammar files publishing workflow completed"
 }
@@ -538,17 +417,11 @@ publish_async_query_core() {
   # Publish to Maven
   publish_to_maven
 
-  # Extract the actual artifact version from metadata for commit history
-  ARTIFACT_VERSION=$(extract_artifact_version "$ARTIFACT_ID" "$version" "jar")
-
-  # Update version metadata with commit ID (adds commitId to version-specific metadata)
+  # Update metadata with commit ID
   update_version_metadata "$ARTIFACT_ID" "$version" "$commit_id"
 
-  # Update root metadata with commit history (adds to root-level commit history)
-  update_root_metadata_with_commit_history "$ARTIFACT_ID" "$version" "$commit_id" "$ARTIFACT_VERSION"
-
-  # Deprecated: JSON mapping approach is no longer used
-  # update_commit_mapping "$commit_id" "$version" "$ARTIFACT_ID" "jar"
+  # Update commit mapping
+  update_commit_mapping "$commit_id" "$version" "$ARTIFACT_ID" "jar"
 
   echo "Async-query-core publishing workflow completed"
 }
