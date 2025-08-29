@@ -26,6 +26,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -1390,11 +1391,30 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (node.getByField() == null) {
       String valueFunctionName = getValueFunctionName(node.getAggregateFunction());
 
-      aggregateWithTrimming(groupExprList, List.of(node.getAggregateFunction()), context);
-
-      // Store original field names in context for later use
-      context.getOriginalFieldNames().put(0, "@timestamp");
-      context.getOriginalFieldNames().put(1, valueFunctionName);
+      // Create group expression list with just the timestamp span but use a different alias
+      // to avoid @timestamp naming conflict
+      List<UnresolvedExpression> simpleGroupExprList = new ArrayList<>();
+      simpleGroupExprList.add(new Alias("timestamp", spanExpr));
+      // Create agg expression list with the aggregate function
+      List<UnresolvedExpression> simpleAggExprList =
+          List.of(new Alias(valueFunctionName, node.getAggregateFunction()));
+      // Create an Aggregation object
+      Aggregation aggregation =
+          new Aggregation(
+              simpleAggExprList,
+              Collections.emptyList(),
+              simpleGroupExprList,
+              null,
+              Collections.emptyList());
+      // Use visitAggregation to handle the aggregation and column naming
+      RelNode result = visitAggregation(aggregation, context);
+      // Push the result and add explicit projection to get [@timestamp, count] order
+      context.relBuilder.push(result);
+      // Reorder fields: timestamp first, then count
+      context.relBuilder.project(
+          context.relBuilder.field("timestamp"), context.relBuilder.field(valueFunctionName));
+      // Rename timestamp to @timestamp
+      context.relBuilder.rename(List.of("@timestamp", valueFunctionName));
 
       context.relBuilder.sort(context.relBuilder.field(0));
       return context.relBuilder.peek();
