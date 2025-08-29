@@ -511,6 +511,21 @@ public class PPLQueryDataAnonymizerTest {
                 + " variable_count_threshold=5"));
   }
 
+  @Test
+  public void testRexCommand() {
+    assertEquals(
+        "source=t | rex field=message mode=extract \"(?<user>[A-Z]+)\"",
+        anonymize("source=t | rex field=message \"(?<user>[A-Z]+)\""));
+    assertEquals(
+        "source=t | rex field=lastname mode=extract \"(?<initial>^[A-Z])\" | fields +"
+            + " lastname,initial",
+        anonymize(
+            "source=t | rex field=lastname \"(?<initial>^[A-Z])\" | fields lastname, initial"));
+    assertEquals(
+        "source=t | rex field=name mode=extract \"(?<first>[A-Z])\" max_match=3",
+        anonymize("source=t | rex field=name \"(?<first>[A-Z])\" max_match=3"));
+  }
+
   private String anonymize(String query) {
     AstBuilder astBuilder = new AstBuilder(query, settings);
     return anonymize(astBuilder.visit(parser.parse(query)));
