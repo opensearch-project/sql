@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
@@ -25,9 +26,13 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
@@ -37,6 +42,7 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer.ExpressionNotAnalyzableException;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
+import org.opensearch.sql.opensearch.response.agg.FilterParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParserHelper;
 import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
@@ -332,6 +338,43 @@ class AggregateAnalyzerTest {
     assertEquals("[field] must not be null", exception.getCause().getMessage());
   }
 
+  @Test
+  void analyze_aggCall_simpleFilter() throws ExpressionNotAnalyzableException {
+    Pair<String, OpenSearchAggregationResponseParser> result =
+        analyzeAggregate(
+            "t",
+            List.of("cnt_filtered"),
+            b ->
+                b.scan("t")
+                    .aggregate(
+                        b.groupKey(),
+                        b.aggregateCall(
+                            SqlStdOperatorTable.COUNT,
+                            false,
+                            b.call(SqlStdOperatorTable.GREATER_THAN, b.field("a"), b.literal(0)),
+                            "cnt_filtered")));
+
+    assertEquals(
+        "[{\"cnt_filtered\":{\"filter\":{\"range\":{\"a\":{"
+            + "\"from\":0,"
+            + "\"to\":null,"
+            + "\"include_lower\":false,"
+            + "\"include_upper\":true,"
+            + "\"boost\":1.0}}},"
+            + "\"aggregations\":{\"cnt_filtered\":{\"value_count\":{\"field\":\"_index\"}}}}}]",
+        result.getLeft());
+
+    assertInstanceOf(NoBucketAggregationParser.class, result.getRight());
+    assertEquals(
+        new MetricParserHelper(
+            List.of(
+                FilterParser.builder()
+                    .name("cnt_filtered")
+                    .metricsParser(new SingleValueParser("cnt_filtered"))
+                    .build())),
+        ((NoBucketAggregationParser) result.getRight()).getMetricsParser());
+  }
+
   private Aggregate createMockAggregate(List<AggregateCall> calls, ImmutableBitSet groups) {
     Aggregate agg = mock(Aggregate.class);
     when(agg.getGroupSet()).thenReturn(groups);
@@ -351,5 +394,34 @@ class AggregateAnalyzerTest {
     when(project.getProjects()).thenReturn(rexNodes);
     when(project.getRowType()).thenReturn(rowType);
     return project;
+  }
+
+  private Pair<String, OpenSearchAggregationResponseParser> analyzeAggregate(
+      String tableName,
+      List<String> outputFields,
+      java.util.function.UnaryOperator<RelBuilder> planBuilder)
+      throws AggregateAnalyzer.ExpressionNotAnalyzableException {
+    // Create RelBuilder with test schema
+    SchemaPlus root = Frameworks.createRootSchema(true);
+    root.add(
+        tableName,
+        new AbstractTable() {
+          @Override
+          public RelDataType getRowType(RelDataTypeFactory tf) {
+            return rowType;
+          }
+        });
+    RelBuilder b = RelBuilder.create(Frameworks.newConfigBuilder().defaultSchema(root).build());
+
+    // Create test RelNode plan
+    RelNode rel = planBuilder.apply(b).build();
+
+    // Run analyzer
+    Aggregate agg = (Aggregate) rel;
+    Project project = (Project) agg.getInput(0);
+    Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
+        AggregateAnalyzer.analyze(
+            agg, project, rowType, fieldTypes, outputFields, agg.getCluster());
+    return Pair.of(result.getLeft().toString(), result.getRight());
   }
 }

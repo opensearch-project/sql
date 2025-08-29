@@ -206,7 +206,8 @@ public class AggregateAnalyzer {
       List<String> aggFieldNames,
       List<AggregateCall> aggCalls,
       Project project,
-      AggregateBuilderHelper helper) {
+      AggregateBuilderHelper helper)
+      throws PredicateAnalyzer.ExpressionNotAnalyzableException {
     Builder metricBuilder = new AggregatorFactories.Builder();
     List<MetricParser> metricParserList = new ArrayList<>();
 
@@ -234,16 +235,15 @@ public class AggregateAnalyzer {
       List<RexNode> args,
       String aggFieldName,
       AggregateBuilderHelper helper,
-      Project project) {
+      Project project)
+      throws PredicateAnalyzer.ExpressionNotAnalyzableException {
     Pair<AggregationBuilder, MetricParser> result;
     if (aggCall.isDistinct()) {
       result = createDistinctAggregation(aggCall, args, aggFieldName, helper);
     } else {
       result = createRegularAggregation(aggCall, args, aggFieldName, helper);
     }
-
-    // Apply filter to any aggregation if present
-    return applyFilterIfPresent(result, aggCall, aggFieldName, helper, project);
+    return applyAggregateFilterIfPresent(result, aggCall, aggFieldName, helper, project);
   }
 
   private static Pair<AggregationBuilder, MetricParser> createDistinctAggregation(
@@ -394,56 +394,35 @@ public class AggregateAnalyzer {
     return sourceBuilder;
   }
 
-  /**
-   * Apply filter to aggregation if the AggregateCall has a filter condition.
-   *
-   * @param result the original aggregation builder and parser pair
-   * @param aggCall the aggregate call that may have a filter
-   * @param aggFieldName the aggregation field name
-   * @param helper the aggregate builder helper
-   * @param project the project that contains filter conditions
-   * @return the original result or wrapped with filter aggregation
-   */
-  private static Pair<AggregationBuilder, MetricParser> applyFilterIfPresent(
+  /** Apply filter to aggregation if the AggregateCall has a filter condition. */
+  private static Pair<AggregationBuilder, MetricParser> applyAggregateFilterIfPresent(
       Pair<AggregationBuilder, MetricParser> result,
       AggregateCall aggCall,
       String aggFieldName,
       AggregateBuilderHelper helper,
-      Project project) {
-
-    if (!aggCall.hasFilter()
-        || project == null
-        || aggCall.filterArg < 0
-        || aggCall.filterArg >= project.getProjects().size()) {
+      Project project)
+      throws PredicateAnalyzer.ExpressionNotAnalyzableException {
+    if (!aggCall.hasFilter()) {
       return result;
     }
 
-    try {
-      // Get the filter condition from project
-      RexNode filterCondition = project.getProjects().get(aggCall.filterArg);
+    // Convert filter condition to OpenSearch DSL query. Assume there must be a Project with filter
+    // condition corresponded
+    RexNode filterCondition = project.getProjects().get(aggCall.filterArg);
+    PredicateAnalyzer.QueryExpression queryExpression =
+        PredicateAnalyzer.analyzeExpression(
+            filterCondition,
+            helper.rowType.getFieldNames(),
+            helper.fieldTypes,
+            helper.rowType,
+            helper.cluster);
 
-      // Convert filter condition to OpenSearch query
-      PredicateAnalyzer.QueryExpression queryExpression =
-          PredicateAnalyzer.analyzeExpression(
-              filterCondition,
-              helper.rowType.getFieldNames(),
-              helper.fieldTypes,
-              helper.rowType,
-              helper.cluster);
-
-      // Create filter aggregation with original aggregation as sub-aggregation
-      AggregationBuilder filterAgg =
-          AggregationBuilders.filter(aggFieldName, queryExpression.builder())
-              .subAggregation(result.getLeft());
-
-      // Wrap parser with FilterParser
-      MetricParser filterParser =
-          FilterParser.builder().name(aggFieldName).metricsParser(result.getRight()).build();
-
-      return Pair.of(filterAgg, filterParser);
-    } catch (Exception e) {
-      // Fallback to original result if filter cannot be analyzed
-      return result;
-    }
+    // Wrap original aggregation and parser with filter's
+    AggregationBuilder filterAgg =
+        AggregationBuilders.filter(aggFieldName, queryExpression.builder())
+            .subAggregation(result.getLeft());
+    MetricParser filterParser =
+        FilterParser.builder().name(aggFieldName).metricsParser(result.getRight()).build();
+    return Pair.of(filterAgg, filterParser);
   }
 }

@@ -431,6 +431,16 @@ public class CalciteExplainIT extends ExplainIT {
     assertJsonEqualsIgnoreId(expected, result);
   }
 
+  @Ignore("Case statement is pushed down as script")
+  @Test
+  public void testExplainAggWithFilter() throws IOException {
+    String query =
+            "source=opensearch-sql_test_index_bank | stats count(eval(age > 30)) as mature_count";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_count_eval_push_down.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
   /**
    * Executes the PPL query and returns the result as a string with windows-style line breaks
    * replaced with Unix-style ones.
