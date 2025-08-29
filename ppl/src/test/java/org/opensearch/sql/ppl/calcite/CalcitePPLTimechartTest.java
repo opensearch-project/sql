@@ -74,7 +74,7 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
 
     RelNode root = getRelNode(ppl);
     String expectedSparkSql =
-        "SELECT `SPAN`(`@timestamp`, 1, 'm') `$f1`, COUNT(*) `$f1_0`\n"
+        "SELECT `SPAN`(`@timestamp`, 1, 'm') `@timestamp`, COUNT(*) `count`\n"
             + "FROM `scott`.`events`\n"
             + "GROUP BY `SPAN`(`@timestamp`, 1, 'm')\n"
             + "ORDER BY 1 NULLS LAST";
@@ -87,7 +87,7 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
 
     RelNode root = getRelNode(ppl);
     String expectedSparkSql =
-        "SELECT `SPAN`(`@timestamp`, 1, 'h') `$f1`, COUNT(*) `$f1_0`\n"
+        "SELECT `SPAN`(`@timestamp`, 1, 'h') `@timestamp`, COUNT(*) `count`\n"
             + "FROM `scott`.`events`\n"
             + "GROUP BY `SPAN`(`@timestamp`, 1, 'h')\n"
             + "ORDER BY 1 NULLS LAST";
