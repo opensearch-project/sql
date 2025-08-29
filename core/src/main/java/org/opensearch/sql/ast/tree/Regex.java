@@ -15,26 +15,20 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
-/** AST node represent Regex filtering operation. */
 @Getter
 @ToString
 @EqualsAndHashCode(callSuper = false)
 public class Regex extends UnresolvedPlan {
-  /** Operator constants. */
   public static final String EQUALS_OPERATOR = "=";
 
   public static final String NOT_EQUALS_OPERATOR = "!=";
 
-  /** Field to match against. */
   private final UnresolvedExpression field;
 
-  /** Whether this is a negated match (!=). */
   private final boolean negated;
 
-  /** Pattern. */
   private final Literal pattern;
 
-  /** Child Plan. */
   @Setter private UnresolvedPlan child;
 
   public Regex(UnresolvedExpression field, boolean negated, Literal pattern) {
