@@ -81,19 +81,6 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testRexSedMode() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | rex field=email mode=sed \\\"s/@.*/@company.com/\\\" | fields email",
-                TEST_INDEX_ACCOUNT));
-
-    assertEquals(1000, result.getJSONArray("datarows").length());
-    assertEquals("amberduke@company.com", result.getJSONArray("datarows").getJSONArray(0).get(0));
-    assertEquals("hattiebond@company.com", result.getJSONArray("datarows").getJSONArray(1).get(0));
-  }
-
-  @Test
   public void testRexChainedCommands() throws IOException {
     JSONObject result =
         executeQuery(
@@ -108,24 +95,6 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
     assertEquals("Duke", result.getJSONArray("datarows").getJSONArray(0).get(1));
     assertEquals("A", result.getJSONArray("datarows").getJSONArray(0).get(2));
     assertEquals("D", result.getJSONArray("datarows").getJSONArray(0).get(3));
-  }
-
-  @Test
-  public void testRexWithOffsetField() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | rex field=email \\\"(?<user>[^@]+)@(?<domain>[^.]+)\\\""
-                    + " offset_field=matchpos | fields email, user, domain, matchpos",
-                TEST_INDEX_ACCOUNT));
-
-    assertEquals(1000, result.getJSONArray("datarows").length());
-    String email = result.getJSONArray("datarows").getJSONArray(0).get(0).toString();
-    String user = result.getJSONArray("datarows").getJSONArray(0).get(1).toString();
-    String matchPos = result.getJSONArray("datarows").getJSONArray(0).get(3).toString();
-    assertEquals(email.substring(0, email.indexOf("@")), user);
-    assertTrue(matchPos.contains("user=") && matchPos.contains("domain="));
-    assertTrue(matchPos.contains("-"));
   }
 
   @Test

@@ -566,23 +566,6 @@ public class PPLQueryDataAnonymizerTest {
         anonymize("source=t | rex field=name \"(?<first>[A-Z])\" max_match=3"));
   }
 
-  @Test
-  public void testRexSedMode() {
-    assertEquals(
-        "source=t | rex field=lastname mode=sed \"s/^[A-Z]/X/\"",
-        anonymize("source=t | rex field=lastname mode=sed \"s/^[A-Z]/X/\""));
-    assertEquals(
-        "source=t | rex field=data mode=sed \"s/sensitive/clean/g\" | fields + data",
-        anonymize("source=t | rex field=data mode=sed \"s/sensitive/clean/g\" | fields data"));
-  }
-
-  @Test
-  public void testRexWithOffsetField() {
-    assertEquals(
-        "source=t | rex field=message mode=extract \"(?<word>[a-z]+)\" offset_field=pos",
-        anonymize("source=t | rex field=message \"(?<word>[a-z]+)\" offset_field=pos"));
-  }
-
   private String anonymize(String query) {
     AstBuilder astBuilder = new AstBuilder(query, settings);
     return anonymize(astBuilder.visit(parser.parse(query)));

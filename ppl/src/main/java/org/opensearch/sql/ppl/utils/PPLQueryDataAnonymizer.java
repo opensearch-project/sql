@@ -473,10 +473,6 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
       command.append(" max_match=").append(node.getMaxMatch().get());
     }
 
-    if (node.getOffsetField().isPresent()) {
-      command.append(" offset_field=").append(node.getOffsetField().get());
-    }
-
     return command.toString();
   }
 

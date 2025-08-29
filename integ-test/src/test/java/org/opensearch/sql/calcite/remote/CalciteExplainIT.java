@@ -441,16 +441,6 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testRexSedModeExplain() throws IOException {
-    String query =
-        "source=opensearch-sql_test_index_account | rex field=lastname mode=sed \\\"s/^[A-Z]/X/\\\""
-            + " | head 5";
-    var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_rex_sed.json");
-    assertJsonEqualsIgnoreId(expected, result);
-  }
-
-  @Test
   public void testExplainAppendCommand() throws IOException {
     String expected = loadExpectedPlan("explain_append_command.json");
     assertJsonEqualsIgnoreId(
