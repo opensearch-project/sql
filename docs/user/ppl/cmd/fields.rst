@@ -33,7 +33,7 @@ The example show fetch account_number, firstname and lastname fields from search
 
 PPL query::
 
-    ppl> source=accounts | fields account_number, firstname, lastname;
+    os> source=accounts | fields account_number, firstname, lastname;
     fetched rows / total rows = 4/4
     +----------------+-----------+----------+
     | account_number | firstname | lastname |
@@ -51,7 +51,7 @@ The example show fetch remove account_number field from search results.
 
 PPL query::
 
-    ppl> source=accounts | fields account_number, firstname, lastname | fields - account_number ;
+    os> source=accounts | fields account_number, firstname, lastname | fields - account_number ;
     fetched rows / total rows = 4/4
     +-----------+----------+
     | firstname | lastname |
@@ -76,7 +76,7 @@ Fields can be specified using spaces instead of commas, providing a more concise
 
 PPL query::
 
-    ppl> source=accounts | fields firstname lastname age;
+    os> source=accounts | fields firstname lastname age;
     fetched rows / total rows = 4/4
     +-----------+----------+-----+
     | firstname | lastname | age |
@@ -94,7 +94,7 @@ Select fields starting with a pattern using prefix wildcards.
 
 PPL query::
 
-    ppl> source=accounts | fields account*;
+    os> source=accounts | fields account*;
     fetched rows / total rows = 4/4
     +----------------+
     | account_number |
@@ -112,7 +112,7 @@ Select fields ending with a pattern using suffix wildcards.
 
 PPL query::
 
-    ppl> source=accounts | fields *name;
+    os> source=accounts | fields *name;
     fetched rows / total rows = 4/4
     +-----------+----------+
     | firstname | lastname |
@@ -130,7 +130,7 @@ Select fields containing a pattern using contains wildcards.
 
 PPL query::
 
-    ppl> source=accounts | fields *a* | head 1;
+    os> source=accounts | fields *a* | head 1;
     fetched rows / total rows = 1/1
     +----------------+-----------+-----------------+---------+-------+-----+----------------------+----------+
     | account_number | firstname | address         | balance | state | age | email                | lastname |
@@ -145,7 +145,7 @@ Combine spaces and commas for flexible field specification.
 
 PPL query::
 
-    ppl> source=accounts | fields firstname, account* *name;
+    os> source=accounts | fields firstname, account* *name;
     fetched rows / total rows = 4/4
     +-----------+----------------+----------+
     | firstname | account_number | lastname |
@@ -163,7 +163,7 @@ Automatically prevents duplicate columns when wildcards expand to already specif
 
 PPL query::
 
-    ppl> source=accounts | fields firstname, *name;
+    os> source=accounts | fields firstname, *name;
     fetched rows / total rows = 4/4
     +-----------+----------+
     | firstname | lastname |
@@ -183,7 +183,7 @@ Select all available fields using ``*`` or ```*```. This selects all fields defi
 
 PPL query::
 
-    ppl> source=accounts | fields `*` | head 1;
+    os> source=accounts | fields `*` | head 1;
     fetched rows / total rows = 1/1
     +----------------+-----------+-----------------+---------+--------+--------+----------+-------+-----+----------------------+----------+
     | account_number | firstname | address         | balance | gender | city   | employer | state | age | email                | lastname |
@@ -200,7 +200,7 @@ Remove fields using wildcard patterns with the minus (-) operator.
 
 PPL query::
 
-    ppl> source=accounts | fields - *name;
+    os> source=accounts | fields - *name;
     fetched rows / total rows = 4/4
     +----------------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+
     | account_number | address              | balance | gender | city   | employer | state | age | email                 |

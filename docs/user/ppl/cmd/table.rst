@@ -11,9 +11,9 @@ table
 
 Description
 ============
-The ``table`` command is an alias for the ``fields`` command and provides the same field selection capabilities. It allows you to keep or remove fields from the search result using enhanced syntax options.
+The ``table`` command is an alias for the `fields <fields.rst>`_ command and provides the same field selection capabilities. It allows you to keep or remove fields from the search result using enhanced syntax options.
 
-Note: The ``table`` command requires the Calcite to be enabled. All enhanced field features are available through this command.
+Note: The ``table`` command requires the Calcite to be enabled. All enhanced field features are available through this command. For detailed examples and documentation of all enhanced features, see the `fields command documentation <fields.rst>`_.
 
 Version
 =======
@@ -33,7 +33,7 @@ The ``table`` command works identically to the ``fields`` command. This example 
 
 PPL query::
 
-    ppl> source=accounts | table firstname lastname age;
+    os> source=accounts | table firstname lastname age;
     fetched rows / total rows = 4/4
     +-----------+----------+-----+
     | firstname | lastname | age |
@@ -56,14 +56,8 @@ The ``table`` command supports all enhanced features available in the ``fields``
 - Full wildcard selection
 - Wildcard exclusion
 
-For detailed examples and documentation of all enhanced features, see the `fields command documentation <fields.rst>`_.
-
 Requirements
 ============
 - **Calcite Engine**: The ``table`` command requires the Calcite engine to be enabled
 - **Feature Parity**: All enhanced features available in ``fields`` are also available in ``table``
 - **Error Handling**: Attempting to use the ``table`` command without Calcite will result in an ``UnsupportedOperationException``
-
-See Also
-========
-- `fields <fields.rst>`_ - The primary field selection command
