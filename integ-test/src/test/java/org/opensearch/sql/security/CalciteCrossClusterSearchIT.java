@@ -240,6 +240,7 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
         rows("2025-07-28 02:00:00", 9187));
   }
 
+  @Test
   public void testCrossClusterRegexBasic() throws IOException {
     JSONObject result =
         executeQuery(
