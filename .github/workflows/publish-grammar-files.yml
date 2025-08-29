@@ -21,7 +21,7 @@ concurrency:
 
 env:
   SNAPSHOT_REPO_URL: https://aws.oss.sonatype.org/content/repositories/snapshots/
-  COMMIT_MAP_FILENAME: commit-history-language-grammar.json
+  # Commit history is now embedded in maven-metadata.xml instead of JSON files
 
 jobs:
   publish-grammar-files:
