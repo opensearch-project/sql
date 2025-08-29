@@ -29,6 +29,7 @@ BIN:                                'BIN';
 TOP:                                'TOP';
 RARE:                               'RARE';
 PARSE:                              'PARSE';
+SPATH:                              'SPATH';
 REGEX:                              'REGEX';
 PUNCT:                              'PUNCT';
 GROK:                               'GROK';
@@ -118,6 +119,9 @@ COUNTFIELD:                         'COUNTFIELD';
 SHOWCOUNT:                          'SHOWCOUNT';
 LIMIT:                              'LIMIT';
 USEOTHER:                           'USEOTHER';
+INPUT:                              'INPUT';
+OUTPUT:                             'OUTPUT';
+PATH:                               'PATH';
 
 // COMPARISON FUNCTION KEYWORDS
 CASE:                               'CASE';
@@ -136,6 +140,7 @@ XOR:                                'XOR';
 TRUE:                               'TRUE';
 FALSE:                              'FALSE';
 REGEXP:                             'REGEXP';
+REGEX_MATCH:                        'REGEX_MATCH';
 
 // DATETIME, INTERVAL AND UNIT KEYWORDS
 CONVERT_TZ:                         'CONVERT_TZ';
@@ -190,6 +195,7 @@ PIPE:                               '|';
 COMMA:                              ',';
 DOT:                                '.';
 EQUAL:                              '=';
+DOUBLE_EQUAL:                       '==';
 GREATER:                            '>';
 LESS:                               '<';
 NOT_GREATER:                        '<' '=';
@@ -206,6 +212,8 @@ LT_PRTHS:                           '(';
 RT_PRTHS:                           ')';
 LT_SQR_PRTHS:                       '[';
 RT_SQR_PRTHS:                       ']';
+LT_CURLY:                           '{';
+RT_CURLY:                           '}';
 SINGLE_QUOTE:                       '\'';
 DOUBLE_QUOTE:                       '"';
 BACKTICK:                           '`';
@@ -238,6 +246,7 @@ VAR_SAMP:                           'VAR_SAMP';
 VAR_POP:                            'VAR_POP';
 STDDEV_SAMP:                        'STDDEV_SAMP';
 STDDEV_POP:                         'STDDEV_POP';
+PERC:                               'PERC';
 PERCENTILE:                         'PERCENTILE';
 PERCENTILE_APPROX:                  'PERCENTILE_APPROX';
 EARLIEST:                           'EARLIEST';
@@ -500,6 +509,10 @@ US:                                 'US';
 CS:                                 'CS';
 DS:                                 'DS';
 
+
+// PERCENTILE SHORTCUT FUNCTIONS
+// Must precede ID to avoid conflicts with identifier matching
+PERCENTILE_SHORTCUT:                PERC(INTEGER_LITERAL | DECIMAL_LITERAL) | 'P'(INTEGER_LITERAL | DECIMAL_LITERAL);
 
 // LITERALS AND VALUES
 //STRING_LITERAL:                     DQUOTA_STRING | SQUOTA_STRING | BQUOTA_STRING;
