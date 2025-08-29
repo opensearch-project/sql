@@ -245,23 +245,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 context.relBuilder.literal(i + 1),
                 context.relBuilder.literal(node.getMaxMatch().get()));
       } else {
-        if (namedGroups.size() == 1) {
-          extractCall =
-              PPLFuncImpTable.INSTANCE.resolve(
-                  context.rexBuilder,
-                  BuiltinFunctionName.INTERNAL_REGEXP_EXTRACT,
-                  fieldRex,
-                  context.rexBuilder.makeLiteral(patternStr),
-                  context.relBuilder.literal(i + 1));
-        } else {
-          extractCall =
-              PPLFuncImpTable.INSTANCE.resolve(
-                  context.rexBuilder,
-                  BuiltinFunctionName.REX_EXTRACT,
-                  fieldRex,
-                  context.rexBuilder.makeLiteral(patternStr),
-                  context.relBuilder.literal(i + 1));
-        }
+        extractCall =
+            PPLFuncImpTable.INSTANCE.resolve(
+                context.rexBuilder,
+                BuiltinFunctionName.REX_EXTRACT,
+                fieldRex,
+                context.rexBuilder.makeLiteral(patternStr),
+                context.relBuilder.literal(i + 1));
       }
       newFields.add(extractCall);
       newFieldNames.add(namedGroups.get(i));
