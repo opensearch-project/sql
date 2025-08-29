@@ -8,6 +8,7 @@ package org.opensearch.sql.expression.function.udf;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -51,10 +52,6 @@ public final class RexExtractFunction extends ImplementorUDF {
   }
 
   public static String extractGroup(String text, String pattern, int groupIndex) {
-    if (text == null || pattern == null) {
-      return null;
-    }
-
     try {
       Pattern compiledPattern = Pattern.compile(pattern);
       Matcher matcher = compiledPattern.matcher(text);
@@ -62,10 +59,13 @@ public final class RexExtractFunction extends ImplementorUDF {
       if (matcher.find() && groupIndex > 0 && groupIndex <= matcher.groupCount()) {
         return matcher.group(groupIndex);
       }
-
       return null;
-    } catch (Exception e) {
-      return null;
+    } catch (PatternSyntaxException e) {
+      throw new IllegalArgumentException(
+          "Error in 'rex' command: Encountered the following error while compiling the regex '"
+              + pattern
+              + "': "
+              + e.getMessage());
     }
   }
 }

@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -62,10 +63,7 @@ public final class RexExtractMultiFunction extends ImplementorUDF {
 
   public static List<String> extractMultipleGroups(
       String text, String pattern, int groupIndex, int maxMatch) {
-    if (text == null || pattern == null) {
-      return null;
-    }
-
+    // Query planner already validates null inputs via NullPolicy.ARG0
     try {
       Pattern compiledPattern = Pattern.compile(pattern);
       Matcher matcher = compiledPattern.matcher(text);
@@ -83,8 +81,12 @@ public final class RexExtractMultiFunction extends ImplementorUDF {
       }
 
       return matches.isEmpty() ? null : matches;
-    } catch (Exception e) {
-      return null;
+    } catch (PatternSyntaxException e) {
+      throw new IllegalArgumentException(
+          "Error in 'rex' command: Encountered the following error while compiling the regex '"
+              + pattern
+              + "': "
+              + e.getMessage());
     }
   }
 }
