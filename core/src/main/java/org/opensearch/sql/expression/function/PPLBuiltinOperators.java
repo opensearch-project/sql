@@ -434,7 +434,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
           ListAggFunction.class,
           "LIST",
           PPLReturnTypes.STRING_ARRAY,
-          null);  
+          PPLOperandTypes.ANY_SCALAR);  
 
   public static final SqlOperator ENHANCED_COALESCE =
       new EnhancedCoalesceFunction().toUDF("COALESCE");

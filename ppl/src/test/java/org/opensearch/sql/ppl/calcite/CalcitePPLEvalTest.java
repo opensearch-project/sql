@@ -427,15 +427,13 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | stats list(DEPTNO), avg(DEPTNO)";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalAggregate(group=[{}], list(DEPTNO)=[ARRAY_AGG($1)], avg(DEPTNO)=[AVG($0)])\n"
-            + "  LogicalProject(DEPTNO=[$7], $f2=[CASE(<=(ROW_NUMBER() OVER (), 100),"
-            + " CAST($7):VARCHAR, null:VARCHAR)])\n"
+        "LogicalAggregate(group=[{}], list(DEPTNO)=[LIST($0)], avg(DEPTNO)=[AVG($0)])\n"
+            + "  LogicalProject(DEPTNO=[$7])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT ARRAY_AGG(CASE WHEN (ROW_NUMBER() OVER ()) <= 100 THEN CAST(`DEPTNO` AS STRING)"
-            + " ELSE NULL END) `list(DEPTNO)`, AVG(`DEPTNO`) `avg(DEPTNO)`\n"
+        "SELECT `LIST`(`DEPTNO`) `list(DEPTNO)`, AVG(`DEPTNO`) `avg(DEPTNO)`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -445,15 +443,13 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | stats list(DEPTNO)";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalAggregate(group=[{}], list(DEPTNO)=[ARRAY_AGG($0)])\n"
-            + "  LogicalProject($f1=[CASE(<=(ROW_NUMBER() OVER (), 100), CAST($7):VARCHAR,"
-            + " null:VARCHAR)])\n"
+        "LogicalAggregate(group=[{}], list(DEPTNO)=[LIST($0)])\n"
+            + "  LogicalProject(DEPTNO=[$7])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT ARRAY_AGG(CASE WHEN (ROW_NUMBER() OVER ()) <= 100 THEN CAST(`DEPTNO` AS STRING)"
-            + " ELSE NULL END) `list(DEPTNO)`\n"
+        "SELECT `LIST`(`DEPTNO`) `list(DEPTNO)`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }

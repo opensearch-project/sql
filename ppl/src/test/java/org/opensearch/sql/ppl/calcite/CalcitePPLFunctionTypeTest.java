@@ -305,7 +305,7 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
     verifyErrorMessageContains(
         e,
         "Aggregation function LIST expects field type"
-            + " {[BOOLEAN],[BYTE],[SHORT],[INTEGER],[LONG],[FLOAT],[DOUBLE],[STRING],[DATE],[TIME],[TIMESTAMP],[IP],[BINARY]},"
+            + " {[BYTE],[SHORT],[INTEGER],[LONG],[FLOAT],[DOUBLE],[STRING],[BOOLEAN],[DATE],[TIME],[TIMESTAMP],[IP],[BINARY]},"
             + " but got [ARRAY]");
   }
 }

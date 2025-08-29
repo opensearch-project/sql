@@ -40,7 +40,7 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
                 "source=%s | stats list(boolean_value) as bool_list",
                 TEST_INDEX_DATATYPE_NONNUMERIC));
     verifySchema(response, schema("bool_list", "array"));
-    verifyDataRows(response, rows(List.of("TRUE")));
+    verifyDataRows(response, rows(List.of("true")));
   }
 
   @Test
@@ -212,18 +212,46 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
 
     // Verify we get arrays for both fields
     assert response.has("datarows");
+    // Values should be collected from the first 3 rows (str2 and int2 columns)
+    // The actual values depend on the test data - int2 column contains 5, -4, 5
+    verifyDataRows(response, rows(List.of("one", "two", "three"), List.of("5", "-4", "5")));
   }
 
   @Test
   public void testListFunctionWithOrderBy() throws IOException {
-    // Test list function with sorting - just verify it returns a list with values
+    // Test LIST function with sorting
     JSONObject response =
         executeQuery(
             String.format(
                 "source=%s | sort int3 | stats list(int3) as sorted_list", TEST_INDEX_CALCS));
     verifySchema(response, schema("sorted_list", "array"));
 
-    // Verify the actual sorted output - all int3 values from calcs dataset in ascending order
+    // Verify we get a list with values
+    assert response.has("datarows");
+    var datarows = response.getJSONArray("datarows");
+    assert datarows.length() == 1;
+    var row = datarows.getJSONArray(0);
+    var listValues = row.getJSONArray(0);
+    // Should have 17 non-null values from int3 column
+    assert listValues.length() == 17;
+    
+    // Check if LIST maintains sort order
+    boolean isSorted = true;
+    for (int i = 1; i < listValues.length(); i++) {
+      int prev = Integer.parseInt(listValues.getString(i - 1));
+      int curr = Integer.parseInt(listValues.getString(i));
+      if (prev > curr) {
+        isSorted = false;
+        break;
+      }
+    }
+    
+    // When pushdown is enabled, LIST maintains sort order
+    // When pushdown is disabled, it also maintains sort order (both preserve input order)
+    // So we expect sorted values in both cases when input is sorted
+    assert isSorted : "LIST should preserve input order from sorted query";
+    
+    // Verify the actual values are what we expect
     verifyDataRows(
         response,
         rows(
@@ -248,6 +276,8 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
 
     // Should have multiple groups based on str0 and bool0 combinations
     assert response.has("datarows");
+    // Verify we get grouped results with proper values
+    assert response.getJSONArray("datarows").length() > 0;
   }
 
   @Test
@@ -261,6 +291,8 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
     verifySchema(response, schema("empty_list", "array"));
 
     assert response.has("datarows");
+    // When no records match, LIST returns null (not an empty list)
+    verifyDataRows(response, rows((List<Object>) null));
   }
 
   // ==================== Advanced Functionality Tests ====================
