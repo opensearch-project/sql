@@ -5,6 +5,10 @@
 
 package org.opensearch.sql.opensearch.executor;
 
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.convertRelDataTypeToExprType;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedAggFunction;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DISTINCT_COUNT_APPROX;
+
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.sql.PreparedStatement;
@@ -25,15 +29,9 @@ import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
-import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.ast.statement.Explain.ExplainFormat;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
-import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
-import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -47,7 +45,6 @@ import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
-import org.opensearch.sql.opensearch.client.OpenSearchNodeClient;
 import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
 import org.opensearch.sql.opensearch.functions.DistinctCountApproxAggFunction;
 import org.opensearch.sql.opensearch.functions.GeoIpFunction;
@@ -57,7 +54,6 @@ import org.opensearch.sql.storage.TableScanOperator;
 
 /** OpenSearch execution engine implementation. */
 public class OpenSearchExecutionEngine implements ExecutionEngine {
-  private static final Logger logger = LogManager.getLogger(OpenSearchExecutionEngine.class);
 
   private final OpenSearchClient client;
 
@@ -176,7 +172,6 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
               try (Hook.Closeable closeable = getPhysicalPlanInHook(physical, level)) {
                 if (format == ExplainFormat.EXTENDED) {
                   getCodegenInHook(javaCode);
-                  CalcitePlanContext.skipEncoding.set(true);
                 }
                 // triggers the hook
                 AccessController.doPrivileged(
@@ -189,8 +184,6 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
             }
           } catch (Exception e) {
             listener.onFailure(e);
-          } finally {
-            CalcitePlanContext.skipEncoding.remove();
           }
         });
   }
@@ -205,8 +198,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
                     () -> {
                       try (PreparedStatement statement = OpenSearchRelRunners.run(context, rel)) {
                         ResultSet result = statement.executeQuery();
-                        buildResultSet(
-                            result, rel.getRowType(), context.querySizeLimit, context, listener);
+                        buildResultSet(result, rel.getRowType(), context.querySizeLimit, listener);
                       } catch (SQLException e) {
                         throw new RuntimeException(e);
                       }
@@ -218,7 +210,6 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       ResultSet resultSet,
       RelDataType rowTypes,
       Integer querySizeLimit,
-      CalcitePlanContext context,
       ResponseListener<QueryResponse> listener)
       throws SQLException {
     // Get the ResultSet metadata to know about columns
@@ -246,7 +237,6 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     List<Column> columns = new ArrayList<>(metaData.getColumnCount());
     for (int i = 1; i <= columnCount; ++i) {
       String columnName = metaData.getColumnName(i);
-
       RelDataType fieldType = fieldTypes.get(i - 1);
       // TODO: Correct this after fixing issue github.com/opensearch-project/sql/issues/3751
       //  The element type of struct and array is currently set to ANY.
@@ -260,7 +250,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
           exprType = ExprCoreType.UNDEFINED;
         }
       } else {
-        exprType = OpenSearchTypeFactory.convertRelDataTypeToExprType(fieldType);
+        exprType = convertRelDataTypeToExprType(fieldType);
       }
       columns.add(new Column(columnName, null, exprType));
     }
@@ -271,23 +261,20 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
 
   /** Registers opensearch-dependent functions */
   private void registerOpenSearchFunctions() {
-    if (client instanceof OpenSearchNodeClient) {
-      SqlUserDefinedFunction geoIpFunction =
-          new GeoIpFunction(client.getNodeClient()).toUDF("GEOIP");
-      PPLFuncImpTable.INSTANCE.registerExternalOperator(BuiltinFunctionName.GEOIP, geoIpFunction);
-    } else {
-      logger.info(
-          "Function [GEOIP] not registered: incompatible client type {}",
-          client.getClass().getName());
-    }
+    PPLFuncImpTable.FunctionImp geoIpImpl =
+        (builder, args) ->
+            builder.makeCall(new GeoIpFunction(client.getNodeClient()).toUDF("GEOIP"), args);
+    PPLFuncImpTable.INSTANCE.registerExternalFunction(BuiltinFunctionName.GEOIP, geoIpImpl);
 
-    SqlUserDefinedAggFunction approxDistinctCountFunction =
-        UserDefinedFunctionUtils.createUserDefinedAggFunction(
-            DistinctCountApproxAggFunction.class,
-            "APPROX_DISTINCT_COUNT",
-            ReturnTypes.BIGINT_FORCE_NULLABLE,
-            null);
-    PPLFuncImpTable.INSTANCE.registerExternalAggOperator(
-        BuiltinFunctionName.DISTINCT_COUNT_APPROX, approxDistinctCountFunction);
+    PPLFuncImpTable.INSTANCE.registerExternalAggFunction(
+        DISTINCT_COUNT_APPROX,
+        (distinct, field, argList, ctx) ->
+            TransferUserDefinedAggFunction(
+                DistinctCountApproxAggFunction.class,
+                "APPROX_DISTINCT_COUNT",
+                ReturnTypes.BIGINT_FORCE_NULLABLE,
+                List.of(field),
+                argList,
+                ctx.relBuilder));
   }
 }
