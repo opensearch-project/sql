@@ -66,13 +66,14 @@ The example shows how to exclude documents where the ``lastname`` field ends wit
 PPL query::
 
     os> source=accounts | regex lastname!=".*son$" | fields account_number, lastname;
-    fetched rows / total rows = 3/3
+    fetched rows / total rows = 4/4
     +----------------+----------+
     | account_number | lastname |
     |----------------+----------|
     | 1              | Duke     |
     | 6              | Bond     |
     | 13             | Bates    |
+    | 18             | Adams    |
     +----------------+----------+
 
 
@@ -100,13 +101,15 @@ The example shows how to use complex regex patterns with character classes and q
 PPL query::
 
     os> source=accounts | regex address="\d{3,4}\s+[A-Z][a-z]+\s+(Street|Lane|Court)" | fields account_number, address;
-    fetched rows / total rows = 2/2
-    +----------------+------------------+
-    | account_number | address          |
-    |----------------+------------------|
-    | 6              | 671 Bristol Street |
-    | 18             | 880 Holmes Lane   |
-    +----------------+------------------+
+    fetched rows / total rows = 4/4
+    +----------------+----------------------+
+    | account_number | address              |
+    |----------------+----------------------|
+    | 1              | 880 Holmes Lane      |
+    | 6              | 671 Bristol Street   |
+    | 13             | 789 Madison Street   |
+    | 18             | 467 Hutchinson Court |
+    +----------------+----------------------+
 
 
 Example 5: Case-sensitive matching
@@ -114,18 +117,24 @@ Example 5: Case-sensitive matching
 
 The example demonstrates that regex matching is case-sensitive by default.
 
-PPL query::
+PPL query (case-sensitive - no match)::
 
-    os> source=accounts | regex state="virginia" | fields account_number, state;
+    source=accounts | regex state="virginia" | fields account_number, state;
+    
+Expected result::
+
     fetched rows / total rows = 0/0
     +----------------+-------+
     | account_number | state |
     |----------------+-------|
     +----------------+-------+
 
-PPL query::
+PPL query (case-sensitive - with match)::
 
-    os> source=accounts | regex state="Virginia" | fields account_number, state;
+    source=accounts | regex state="Virginia" | fields account_number, state;
+    
+Expected result::
+
     fetched rows / total rows = 1/1
     +----------------+-------+
     | account_number | state |
