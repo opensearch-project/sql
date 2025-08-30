@@ -145,7 +145,7 @@ wcFieldList
    ;
 
 renameCommand
-   : RENAME renameClasue (COMMA renameClasue)*
+   : RENAME renameClasue (COMMA? renameClasue)*
    ;
 
 statsCommand
@@ -1212,6 +1212,7 @@ tableIdent
 
 wildcard
    : ident (MODULE ident)* (MODULE)?
+   | STAR
    | SINGLE_QUOTE wildcard SINGLE_QUOTE
    | DOUBLE_QUOTE wildcard DOUBLE_QUOTE
    | BACKTICK wildcard BACKTICK
