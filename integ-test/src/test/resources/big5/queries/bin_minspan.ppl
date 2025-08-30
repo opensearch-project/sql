@@ -1,0 +1,3 @@
+source = big5
+| bin `metrics.size` minspan=100
+| head 10

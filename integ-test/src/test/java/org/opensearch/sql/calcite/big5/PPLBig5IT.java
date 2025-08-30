@@ -17,7 +17,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 @FixMethodOrder(MethodSorters.JVM)
 public class PPLBig5IT extends PPLIntegTestCase {
-  private static final MapBuilder<String, Long> summary = MapBuilder.newMapBuilder();
+  protected static final MapBuilder<String, Long> summary = MapBuilder.newMapBuilder();
 
   @Override
   public void init() throws Exception {
