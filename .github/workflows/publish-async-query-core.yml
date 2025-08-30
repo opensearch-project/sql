@@ -7,6 +7,7 @@ on:
       - main
       - 1.*
       - 2.*
+      - poc/commit-metadata-2
     paths:
       - 'async-query-core/**'
       - '.github/workflows/publish-async-query-core.yml'
