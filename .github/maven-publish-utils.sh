@@ -93,18 +93,24 @@ generate_checksums() {
 
 # Function to publish artifacts to Maven repository
 publish_to_maven() {
+  echo "=== LOG: publish_to_maven() - Starting ==="
   echo "Publishing artifacts to Maven repository..."
 
   # Make a temp directory for publish-snapshot.sh
+  echo "=== LOG: publish_to_maven() - Creating temp directory ==="
   mkdir -p build/resources/publish/
   cp build/publish/publish-snapshot.sh build/resources/publish/
   chmod +x build/resources/publish/publish-snapshot.sh
 
   # Continue with the original flow
+  echo "=== LOG: publish_to_maven() - Changing to build/resources/publish/ ==="
   cd build/resources/publish/
+  echo "=== LOG: publish_to_maven() - Copying local Maven repo contents ==="
   cp -a $HOME/.m2/repository/* ./
+  echo "=== LOG: publish_to_maven() - About to execute publish-snapshot.sh ==="
   ./publish-snapshot.sh ./
 
+  echo "=== LOG: publish_to_maven() - Completed ==="
   echo "Maven publishing completed"
 }
 
@@ -115,11 +121,17 @@ update_version_metadata() {
   local commit_id="$3"
   local snapshot_repo_url="${4:-$SNAPSHOT_REPO_URL}"
 
+  echo "=== LOG: update_version_metadata() - Starting for ${artifact_id} version ${version} ==="
+  echo "=== LOG: update_version_metadata() - Commit ID: ${commit_id} ==="
+  echo "=== LOG: update_version_metadata() - DISABLE_COMMIT_MAPPING: ${DISABLE_COMMIT_MAPPING} ==="
+
   if [ "$DISABLE_COMMIT_MAPPING" = "true" ]; then
+    echo "=== LOG: update_version_metadata() - Skipping (disabled) ==="
     echo "Skipping version metadata update (commit mapping disabled)"
     return 0
   fi
 
+  echo "=== LOG: update_version_metadata() - Proceeding with update ==="
   echo "Updating version metadata for ${artifact_id} version ${version} with commit ID ${commit_id}"
 
   TEMP_DIR=$(mktemp -d)
@@ -127,6 +139,7 @@ update_version_metadata() {
 
   # Download existing metadata
   META_URL="${snapshot_repo_url}org/opensearch/${artifact_id}/${version}/maven-metadata.xml"
+  echo "=== LOG: update_version_metadata() - Download URL: ${META_URL} ==="
   echo "Downloading metadata from ${META_URL}"
 
   if curl -s -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" -o "${METADATA_FILE}" "${META_URL}"; then
@@ -213,11 +226,20 @@ update_commit_mapping() {
   local commit_map_filename="${5:-$COMMIT_MAP_FILENAME}"
   local snapshot_repo_url="${6:-$SNAPSHOT_REPO_URL}"
 
+  echo "=== LOG: update_commit_mapping() - Starting for ${artifact_id} ==="
+  echo "=== LOG: update_commit_mapping() - Commit ID: ${commit_id} ==="
+  echo "=== LOG: update_commit_mapping() - Version: ${version} ==="
+  echo "=== LOG: update_commit_mapping() - Extension: ${extension} ==="
+  echo "=== LOG: update_commit_mapping() - Map filename: ${commit_map_filename} ==="
+  echo "=== LOG: update_commit_mapping() - DISABLE_COMMIT_MAPPING: ${DISABLE_COMMIT_MAPPING} ==="
+
   if [ "$DISABLE_COMMIT_MAPPING" = "true" ]; then
+    echo "=== LOG: update_commit_mapping() - Skipping (disabled) ==="
     echo "Skipping commit-version mapping update (commit mapping disabled)"
     return 0
   fi
 
+  echo "=== LOG: update_commit_mapping() - Proceeding with mapping update ==="
   echo "Updating commit-version mapping for ${artifact_id}"
 
   # Create temp directory for work
@@ -328,13 +350,19 @@ publish_grammar_files() {
   local version="$1"
   local commit_id="$2"
 
+  echo "=== LOG: publish_grammar_files() - Starting workflow ==="
+  echo "=== LOG: publish_grammar_files() - Version: ${version} ==="
+  echo "=== LOG: publish_grammar_files() - Commit ID: ${commit_id} ==="
   echo "Starting grammar files publishing workflow"
 
   # Define constants
   ARTIFACT_ID="language-grammar"
   GROUP_ID="org.opensearch"
+  echo "=== LOG: publish_grammar_files() - Artifact ID: ${ARTIFACT_ID} ==="
+  echo "=== LOG: publish_grammar_files() - Group ID: ${GROUP_ID} ==="
 
   # Package grammar files
+  echo "=== LOG: publish_grammar_files() - Starting packaging ==="
   echo "Packaging grammar files..."
   mkdir -p grammar_files
   find ./language-grammar/src/main/antlr4 -name "*.g4" -type f -exec cp {} grammar_files/ \;
@@ -362,17 +390,22 @@ publish_grammar_files() {
   echo "Grammar files prepared for Maven publishing as version ${version}"
 
   # Generate checksums
+  echo "=== LOG: publish_grammar_files() - About to generate checksums ==="
   generate_checksums
 
   # Publish to Maven
+  echo "=== LOG: publish_grammar_files() - About to publish to Maven ==="
   publish_to_maven
 
   # Update metadata with commit ID
+  echo "=== LOG: publish_grammar_files() - About to update version metadata ==="
   update_version_metadata "$ARTIFACT_ID" "$version" "$commit_id"
 
   # Update commit mapping
+  echo "=== LOG: publish_grammar_files() - About to update commit mapping ==="
   update_commit_mapping "$commit_id" "$version" "$ARTIFACT_ID" "zip"
 
+  echo "=== LOG: publish_grammar_files() - Workflow completed ==="
   echo "Grammar files publishing workflow completed"
 }
 
@@ -381,13 +414,19 @@ publish_async_query_core() {
   local version="$1"
   local commit_id="$2"
 
+  echo "=== LOG: publish_async_query_core() - Starting workflow ==="
+  echo "=== LOG: publish_async_query_core() - Version: ${version} ==="
+  echo "=== LOG: publish_async_query_core() - Commit ID: ${commit_id} ==="
   echo "Starting async-query-core publishing workflow"
 
   # Define constants
   ARTIFACT_ID="async-query-core"
   GROUP_ID="org.opensearch"
+  echo "=== LOG: publish_async_query_core() - Artifact ID: ${ARTIFACT_ID} ==="
+  echo "=== LOG: publish_async_query_core() - Group ID: ${GROUP_ID} ==="
 
   # Build the shadow JAR
+  echo "=== LOG: publish_async_query_core() - Building shadow JAR ==="
   echo "Building shadow JAR..."
   ./gradlew :async-query-core:shadowJar
 
@@ -412,16 +451,21 @@ publish_async_query_core() {
   echo "Shadow JAR and POM published to local Maven repository for version ${version}"
 
   # Generate checksums
+  echo "=== LOG: publish_async_query_core() - About to generate checksums ==="
   generate_checksums
 
   # Publish to Maven
+  echo "=== LOG: publish_async_query_core() - About to publish to Maven ==="
   publish_to_maven
 
   # Update metadata with commit ID
+  echo "=== LOG: publish_async_query_core() - About to update version metadata ==="
   update_version_metadata "$ARTIFACT_ID" "$version" "$commit_id"
 
   # Update commit mapping
+  echo "=== LOG: publish_async_query_core() - About to update commit mapping ==="
   update_commit_mapping "$commit_id" "$version" "$ARTIFACT_ID" "jar"
 
+  echo "=== LOG: publish_async_query_core() - Workflow completed ==="
   echo "Async-query-core publishing workflow completed"
 }
