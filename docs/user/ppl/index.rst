@@ -124,6 +124,8 @@ The query start with search command and then flowing a set of command delimited 
 
   - `Date and Time Functions <functions/datetime.rst>`_
 
+  - `STRFTIME Format Reference <functions/strftime_formats.rst>`_
+
   - `String Functions <functions/string.rst>`_
 
   - `Condition Functions <functions/condition.rst>`_

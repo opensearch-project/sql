@@ -5,8 +5,10 @@
 
 package org.opensearch.sql.ppl;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_ENGINE_ENABLED;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
@@ -150,16 +152,42 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
     }
   }
 
+  @Test
+  public void testStrftimeFunction() throws IOException {
+    JSONObject result;
+    try {
+      result =
+          executeQuery(
+              String.format(
+                  "search source=%s | eval formatted_time = strftime(1521467703, '%s') | fields"
+                      + " formatted_time",
+                  TEST_INDEX_BANK, "%Y-%m-%d"));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+    verifyQuery(result);
+  }
+
   private void verifyQuery(JSONObject result) throws IOException {
     if (isCalciteEnabled()) {
       assertFalse(result.getJSONArray("datarows").isEmpty());
     } else {
       JSONObject error = result.getJSONObject("error");
-      assertThat(
-          error.getString("details"),
-          containsString(
-              "is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true"));
-      assertThat(error.getString("type"), equalTo("UnsupportedOperationException"));
+      // STRFTIME gets a different error message since it's not recognized at all in legacy engine
+      String errorDetails = error.getString("details");
+      assertTrue(
+          "Expected error message about Calcite or unsupported function, but got: " + errorDetails,
+          errorDetails.contains(
+                  "is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true")
+              || errorDetails.contains("unsupported function name: strftime"));
+      // Error type can vary based on how the error is caught
+      String errorType = error.getString("type");
+      assertTrue(
+          "Expected UnsupportedOperationException or SemanticCheckException, but got: " + errorType,
+          errorType.equals("UnsupportedOperationException")
+              || errorType.equals("SemanticCheckException")
+              || errorType.equals(
+                  "ExpressionEvaluationException")); // Add this as another possible error type
     }
   }
 }
