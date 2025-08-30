@@ -1518,22 +1518,37 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return new FieldIndices(timeIndex, byIndex, valueIndex);
   }
 
-  /** Build top categories query using more efficient approach */
+  /** Build top categories query - NULL always included, limit applies only to non-null */
   private RelNode buildTopCategoriesQuery(
       RelNode completeResults, FieldIndices indices, int limit, CalcitePlanContext context) {
     context.relBuilder.push(completeResults);
 
-    // Single aggregation to get totals and apply limit
+    // Get totals for all categories
     context.relBuilder.aggregate(
         context.relBuilder.groupKey(context.relBuilder.field(indices.byIndex)),
         context.relBuilder.sum(context.relBuilder.field(indices.valueIndex)).as("grand_total"));
+    RelNode allCategoryTotals = context.relBuilder.build();
 
-    context
-        .relBuilder
-        .sort(context.relBuilder.desc(context.relBuilder.field("grand_total")))
-        .limit(0, limit);
+    if (limit > 0) {
+      // Split into NULL and non-NULL, apply limit only to non-NULL
+      context.relBuilder.push(allCategoryTotals);
+      context.relBuilder.filter(context.relBuilder.isNull(context.relBuilder.field(0)));
+      RelNode nullCategories = context.relBuilder.build();
 
-    return context.relBuilder.build();
+      context.relBuilder.push(allCategoryTotals);
+      context.relBuilder.filter(context.relBuilder.isNotNull(context.relBuilder.field(0)));
+      context.relBuilder.sort(context.relBuilder.desc(context.relBuilder.field("grand_total")));
+      context.relBuilder.limit(0, limit);
+      RelNode topNonNullCategories = context.relBuilder.build();
+
+      // Union NULL with top non-NULL categories
+      context.relBuilder.push(topNonNullCategories);
+      context.relBuilder.push(nullCategories);
+      context.relBuilder.union(false);
+      return context.relBuilder.build();
+    } else {
+      return allCategoryTotals;
+    }
   }
 
   /** Build final result with OTHER category using efficient single-pass approach */
@@ -1547,23 +1562,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       int limit,
       CalcitePlanContext context) {
 
-    // Check if this is a count aggregation that needs zero-filling
-    boolean isCountAggregation = valueFunctionName.toLowerCase().contains("count");
-
-    if (isCountAggregation) {
+    // Use zero-filling for count aggregations, standard result for others
+    if (valueFunctionName.equals("count")) {
       return buildZeroFilledResult(
-          completeResults,
-          topCategories,
-          indices,
-          byFieldName,
-          valueFunctionName,
-          useOther,
-          limit,
-          context);
+          completeResults, topCategories, indices, byFieldName, valueFunctionName, useOther, limit, context);
+    } else {
+      return buildStandardResult(
+          completeResults, topCategories, indices, byFieldName, valueFunctionName, useOther, context);
     }
-
-    return buildStandardResult(
-        completeResults, topCategories, indices, byFieldName, valueFunctionName, useOther, context);
   }
 
   /** Build standard result without zero-filling */
@@ -1606,14 +1612,18 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
-  /** Helper to create OTHER case expression */
+  /** Helper to create OTHER case expression - preserves NULL as a category */
   private RexNode createOtherCaseExpression(
       int topCategoryFieldIndex, int byIndex, CalcitePlanContext context) {
     return context.relBuilder.call(
         org.apache.calcite.sql.fun.SqlStdOperatorTable.CASE,
         context.relBuilder.isNotNull(context.relBuilder.field(topCategoryFieldIndex)),
-        context.relBuilder.field(byIndex),
-        context.relBuilder.literal("OTHER"));
+        context.relBuilder.field(byIndex), // Keep original value (including NULL)
+        context.relBuilder.call(
+            org.apache.calcite.sql.fun.SqlStdOperatorTable.CASE,
+            context.relBuilder.isNull(context.relBuilder.field(byIndex)),
+            context.relBuilder.literal(null), // Preserve NULL as NULL
+            context.relBuilder.literal("OTHER")));
   }
 
   /** Helper to apply filters and sorting */
@@ -1626,7 +1636,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     context.relBuilder.sort(context.relBuilder.field(0), context.relBuilder.field(1));
   }
 
-  /** Build zero-filled result for count aggregations */
+  /** Build zero-filled result using fillnull pattern - treat NULL as just another category */
   private RelNode buildZeroFilledResult(
       RelNode completeResults,
       RelNode topCategories,
@@ -1643,119 +1653,60 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         context.relBuilder.groupKey(context.relBuilder.field(indices.timeIndex)));
     RelNode allTimestamps = context.relBuilder.build();
 
-    // Get all unique categories from original data to check cardinality
-    context.relBuilder.push(completeResults);
-    context.relBuilder.aggregate(
-        context.relBuilder.groupKey(context.relBuilder.field(indices.byIndex)));
-    RelNode allUniqueCategories = context.relBuilder.build();
-
-    // Build category list for zero-filling
+    // Build categories for zero-filling (EXCLUDING nulls for zero-fill, but including in final result)
     context.relBuilder.push(topCategories);
     context.relBuilder.project(context.relBuilder.field(0));
+    context.relBuilder.filter(context.relBuilder.isNotNull(context.relBuilder.field(0)));
+    RelNode nonNullCategories = context.relBuilder.build();
 
-    // Add OTHER only if useOther is true AND there are actually excluded categories
-    // Check if there are categories not in the top list
-    if (useOther) {
-      context.relBuilder.push(allUniqueCategories);
-      context.relBuilder.push(topCategories);
-      context.relBuilder.join(
-          org.apache.calcite.rel.core.JoinRelType.LEFT,
-          context.relBuilder.equals(
-              context.relBuilder.field(2, 0, 0), context.relBuilder.field(2, 1, 0)));
-
-      // Filter to find categories not in top list (these become OTHER)
-      context.relBuilder.filter(context.relBuilder.isNull(context.relBuilder.field(1)));
-      RelNode excludedCategories = context.relBuilder.build();
-
-      // Only add OTHER if there are actually excluded categories
-      // We'll use a simple heuristic: if limit < 10 (default), assume OTHER is needed
-      // This is because the topCategories query already applied the limit
-      if (limit < 10) {
-        context.relBuilder.push(topCategories);
-        context.relBuilder.project(context.relBuilder.field(0));
-        context.relBuilder.projectPlus(
-            context.relBuilder.alias(context.relBuilder.literal("OTHER"), "other_category"));
-        context.relBuilder.project(context.relBuilder.field("other_category"));
-
-        // Union with top categories
-        context.relBuilder.push(topCategories);
-        context.relBuilder.project(context.relBuilder.field(0));
-        context.relBuilder.union(false);
-      }
-    }
-
-    RelNode allCategories = context.relBuilder.build();
-
-    // Cross join timestamps with categories to get all combinations
+    // Cross join timestamps with NON-NULL categories only for zero-filling
     context.relBuilder.push(allTimestamps);
-    context.relBuilder.push(allCategories);
-    context.relBuilder.join(
-        org.apache.calcite.rel.core.JoinRelType.INNER, context.relBuilder.literal(true));
+    context.relBuilder.push(nonNullCategories);
+    context.relBuilder.join(org.apache.calcite.rel.core.JoinRelType.INNER, context.relBuilder.literal(true));
 
-    // Project to rename fields properly
+    // Create zero-filled combinations with count=0 (only for non-null categories)
     context.relBuilder.project(
-        context.relBuilder.alias(context.relBuilder.field(0), "@timestamp"),
-        context.relBuilder.alias(context.relBuilder.field(1), byFieldName));
-    RelNode allCombinations = context.relBuilder.build();
+        context.relBuilder.alias(
+            context.relBuilder.cast(context.relBuilder.field(0), SqlTypeName.TIMESTAMP), "@timestamp"),
+        context.relBuilder.alias(context.relBuilder.field(1), byFieldName),
+        context.relBuilder.alias(context.relBuilder.literal(0), valueFunctionName));
+    RelNode zeroFilledCombinations = context.relBuilder.build();
 
-    // Now join with actual results to get counts, defaulting to 0
-    context.relBuilder.push(allCombinations);
+    // Get actual results with OTHER logic applied
     context.relBuilder.push(completeResults);
     context.relBuilder.push(topCategories);
-
-    // Join complete results with top categories to apply OTHER logic
     context.relBuilder.join(
         org.apache.calcite.rel.core.JoinRelType.LEFT,
-        context.relBuilder.equals(
+        // Use IS NOT DISTINCT FROM for proper null handling in join
+        context.relBuilder.call(
+            org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
             context.relBuilder.field(2, 0, indices.byIndex), context.relBuilder.field(2, 1, 0)));
 
     int topCategoryFieldIndex = completeResults.getRowType().getFieldCount();
-    RexNode categoryExpr =
-        context.relBuilder.call(
-            org.apache.calcite.sql.fun.SqlStdOperatorTable.CASE,
-            context.relBuilder.isNotNull(context.relBuilder.field(topCategoryFieldIndex)),
-            context.relBuilder.field(indices.byIndex),
-            context.relBuilder.literal("OTHER"));
+    RexNode categoryExpr = createOtherCaseExpression(topCategoryFieldIndex, indices.byIndex, context);
 
-    // Project with OTHER logic applied
     context.relBuilder.project(
-        context.relBuilder.field(indices.timeIndex),
-        categoryExpr,
-        context.relBuilder.field(indices.valueIndex));
+        context.relBuilder.alias(
+            context.relBuilder.cast(context.relBuilder.field(indices.timeIndex), SqlTypeName.TIMESTAMP), "@timestamp"),
+        context.relBuilder.alias(categoryExpr, byFieldName),
+        context.relBuilder.alias(context.relBuilder.field(indices.valueIndex), valueFunctionName));
 
-    // Aggregate to combine OTHER values
     context.relBuilder.aggregate(
         context.relBuilder.groupKey(context.relBuilder.field(0), context.relBuilder.field(1)),
         context.relBuilder.sum(context.relBuilder.field(2)).as("actual_count"));
     RelNode actualResults = context.relBuilder.build();
 
-    // LEFT JOIN all combinations with actual results
-    context.relBuilder.push(allCombinations);
+    // UNION zero-filled with actual results (simpler than complex joins)
     context.relBuilder.push(actualResults);
-    context.relBuilder.join(
-        org.apache.calcite.rel.core.JoinRelType.LEFT,
-        context.relBuilder.and(
-            context.relBuilder.equals(
-                context.relBuilder.field(2, 0, 0), context.relBuilder.field(2, 1, 0)),
-            context.relBuilder.equals(
-                context.relBuilder.field(2, 0, 1), context.relBuilder.field(2, 1, 1))));
+    context.relBuilder.push(zeroFilledCombinations);
+    context.relBuilder.union(false);
+    
+    // Aggregate to combine actual and zero-filled data
+    context.relBuilder.aggregate(
+        context.relBuilder.groupKey(context.relBuilder.field(0), context.relBuilder.field(1)),
+        context.relBuilder.sum(context.relBuilder.field(2)).as(valueFunctionName));
 
-    // Project final result with COALESCE to handle nulls as 0
-    // After LEFT JOIN: [timestamp, category, timestamp, category, actual_count]
-    // So actual_count is at index 4
-    context.relBuilder.project(
-        context.relBuilder.alias(context.relBuilder.field(0), "@timestamp"),
-        context.relBuilder.alias(context.relBuilder.field(1), byFieldName),
-        context.relBuilder.alias(
-            context.relBuilder.call(
-                org.apache.calcite.sql.fun.SqlStdOperatorTable.COALESCE,
-                context.relBuilder.field(4), // actual_count field
-                context.relBuilder.literal(0)),
-            valueFunctionName));
-
-    // Final sort
-    context.relBuilder.sort(context.relBuilder.field(0), context.relBuilder.field(1));
-
+    applyFiltersAndSort(useOther, context);
     return context.relBuilder.peek();
   }
 
