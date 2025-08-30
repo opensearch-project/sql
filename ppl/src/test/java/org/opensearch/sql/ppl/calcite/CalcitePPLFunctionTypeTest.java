@@ -294,4 +294,18 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
             + " {[INTEGER,INTEGER],[INTEGER,DOUBLE],[DOUBLE,INTEGER],[DOUBLE,DOUBLE],[INTEGER,INTEGER,INTEGER],[INTEGER,INTEGER,DOUBLE],[INTEGER,DOUBLE,INTEGER],[INTEGER,DOUBLE,DOUBLE],[DOUBLE,INTEGER,INTEGER],[DOUBLE,INTEGER,DOUBLE],[DOUBLE,DOUBLE,INTEGER],[DOUBLE,DOUBLE,DOUBLE]},"
             + " but got [STRING,INTEGER]");
   }
+
+  @Test
+  public void testListFunctionWithArrayArgType() {
+    // Test LIST function with array expression (which is not a supported scalar type)
+    Exception e =
+        Assert.assertThrows(
+            ExpressionEvaluationException.class,
+            () -> getRelNode("source=EMP | stats list(array(ENAME, JOB)) as name_list"));
+    verifyErrorMessageContains(
+        e,
+        "Aggregation function LIST expects field type"
+            + " {[BYTE],[SHORT],[INTEGER],[LONG],[FLOAT],[DOUBLE],[STRING],[BOOLEAN],[DATE],[TIME],[TIMESTAMP],[IP],[BINARY]},"
+            + " but got [ARRAY]");
+  }
 }

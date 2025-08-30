@@ -201,6 +201,9 @@ public enum BuiltinFunctionName {
   EARLIEST(FunctionName.of("earliest")),
   LATEST(FunctionName.of("latest")),
   DISTINCT_COUNT_APPROX(FunctionName.of("distinct_count_approx")),
+
+  // Multivalue aggregation function
+  LIST(FunctionName.of("list")),
   // Not always an aggregation query
   NESTED(FunctionName.of("nested")),
 
@@ -347,6 +350,7 @@ public enum BuiltinFunctionName {
           .put("earliest", BuiltinFunctionName.EARLIEST)
           .put("latest", BuiltinFunctionName.LATEST)
           .put("distinct_count_approx", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
+          .put("list", BuiltinFunctionName.LIST)
           .put("pattern", BuiltinFunctionName.INTERNAL_PATTERN)
           .build();
 
