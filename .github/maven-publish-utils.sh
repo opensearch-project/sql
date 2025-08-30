@@ -5,8 +5,8 @@
 set -e
 
 # Flag to disable commit mapping functionality
-# Set to "false" to enable commit history embedding in maven-metadata.xml
-DISABLE_COMMIT_MAPPING="${DISABLE_COMMIT_MAPPING:-false}"
+# Set to "true" to disable commit mapping operations
+DISABLE_COMMIT_MAPPING="${DISABLE_COMMIT_MAPPING:-true}"
 
 # Function to execute curl commands with retry and error handling
 execute_curl_with_retry() {
@@ -93,193 +93,25 @@ generate_checksums() {
 
 # Function to publish artifacts to Maven repository
 publish_to_maven() {
+  echo "=== LOG: publish_to_maven() - Starting ==="
   echo "Publishing artifacts to Maven repository..."
 
   # Make a temp directory for publish-snapshot.sh
+  echo "=== LOG: publish_to_maven() - Creating temp directory ==="
   mkdir -p build/resources/publish/
   cp build/publish/publish-snapshot.sh build/resources/publish/
   chmod +x build/resources/publish/publish-snapshot.sh
 
   # Continue with the original flow
+  echo "=== LOG: publish_to_maven() - Changing to build/resources/publish/ ==="
   cd build/resources/publish/
+  echo "=== LOG: publish_to_maven() - Copying local Maven repo contents ==="
   cp -a $HOME/.m2/repository/* ./
+  echo "=== LOG: publish_to_maven() - About to execute publish-snapshot.sh ==="
   ./publish-snapshot.sh ./
 
+  echo "=== LOG: publish_to_maven() - Completed ==="
   echo "Maven publishing completed"
-}
-
-# Function to preserve existing commit history before Maven publishing
-preserve_commit_history() {
-  local artifact_id="$1"
-  local snapshot_repo_url="${2:-$SNAPSHOT_REPO_URL}"
-  
-  if [ "$DISABLE_COMMIT_MAPPING" = "true" ]; then
-    return 0
-  fi
-
-  echo "Preserving existing commit history for ${artifact_id}"
-  
-  TEMP_DIR=$(mktemp -d)
-  OLD_METADATA_FILE="${TEMP_DIR}/old-maven-metadata.xml"
-  COMMIT_HISTORY_FILE="${TEMP_DIR}/commit-history.xml"
-  
-  # Download existing root metadata to preserve commit history
-  ROOT_META_URL="${snapshot_repo_url}org/opensearch/${artifact_id}/maven-metadata.xml"
-  HTTP_CODE=$(curl -s -o "${OLD_METADATA_FILE}" -w "%{http_code}" -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" "${ROOT_META_URL}" || echo "000")
-  
-  if [ "$HTTP_CODE" = "200" ] && [ -s "${OLD_METADATA_FILE}" ]; then
-    # Extract existing commit history if it exists
-    if grep -q "<commitHistory>" "${OLD_METADATA_FILE}"; then
-      echo "Extracting existing commit history"
-      sed -n '/<commitHistory>/,/<\/commitHistory>/p' "${OLD_METADATA_FILE}" > "${COMMIT_HISTORY_FILE}"
-      echo "Commit history preserved at: ${COMMIT_HISTORY_FILE}"
-    else
-      echo "No existing commit history found"
-      echo "" > "${COMMIT_HISTORY_FILE}"
-    fi
-  else
-    echo "No existing metadata found, starting fresh"
-    echo "" > "${COMMIT_HISTORY_FILE}"
-  fi
-  
-  # Export the file path for use by restore function
-  export PRESERVED_COMMIT_HISTORY_FILE="${COMMIT_HISTORY_FILE}"
-  export PRESERVED_TEMP_DIR="${TEMP_DIR}"
-}
-
-# Function to update root maven-metadata.xml with commit history
-update_root_metadata_with_commit_history() {
-  local artifact_id="$1"
-  local version="$2"
-  local commit_id="$3"
-  local artifact_version="$4"
-  local snapshot_repo_url="${5:-$SNAPSHOT_REPO_URL}"
-
-  if [ "$DISABLE_COMMIT_MAPPING" = "true" ]; then
-    echo "Skipping commit history update (commit mapping disabled)"
-    return 0
-  fi
-
-  echo "Updating root maven-metadata.xml with commit history for ${artifact_id}"
-
-  TEMP_DIR=$(mktemp -d)
-  METADATA_FILE="${TEMP_DIR}/maven-metadata.xml"
-
-  # Download the fresh metadata that Maven just created
-  ROOT_META_URL="${snapshot_repo_url}org/opensearch/${artifact_id}/maven-metadata.xml"
-  echo "Downloading fresh metadata from ${ROOT_META_URL}"
-
-  HTTP_CODE=$(curl -s -o "${METADATA_FILE}" -w "%{http_code}" -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" "${ROOT_META_URL}" || echo "000")
-  
-  if [ "$HTTP_CODE" != "200" ]; then
-    echo "Failed to download root metadata (HTTP ${HTTP_CODE}), creating new one"
-    # Create a basic metadata structure if it doesn't exist
-    cat > "${METADATA_FILE}" << EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<metadata modelVersion="1.1.0">
-  <groupId>org.opensearch</groupId>
-  <artifactId>${artifact_id}</artifactId>
-  <versioning>
-    <versions>
-      <version>${version}</version>
-    </versions>
-    <lastUpdated>$(date +%Y%m%d%H%M%S)</lastUpdated>
-  </versioning>
-  <version>${version}</version>
-</metadata>
-EOF
-  fi
-
-  # Restore preserved commit history and add new entry
-  if [ -n "$PRESERVED_COMMIT_HISTORY_FILE" ] && [ -s "$PRESERVED_COMMIT_HISTORY_FILE" ]; then
-    echo "Restoring preserved commit history"
-    # Remove existing commitHistory if it exists (shouldn't, but just in case)
-    sed -i.bak '/<commitHistory>/,/<\/commitHistory>/d' "${METADATA_FILE}"
-    # Add preserved commit history before closing </metadata> tag
-    sed -i.bak2 '/<\/metadata>/i\
-  <commitHistory>\
-  </commitHistory>' "${METADATA_FILE}"
-    # Replace empty commitHistory with preserved content
-    PRESERVED_CONTENT=$(sed '1d;$d' "$PRESERVED_COMMIT_HISTORY_FILE") # Remove first and last line (<commitHistory> tags)
-    sed -i.bak3 "/<commitHistory>/a\\
-$PRESERVED_CONTENT" "${METADATA_FILE}"
-  else
-    echo "No preserved history, adding new commitHistory section"
-    # Add commitHistory section before closing </metadata> tag
-    sed -i.bak '/<\/metadata>/i\
-  <commitHistory>\
-  </commitHistory>' "${METADATA_FILE}"
-  fi
-
-  # Get current timestamp
-  TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-
-  # Create a new mapping entry (properly formatted for sed)
-  NEW_MAPPING="    <mapping>\\
-      <commitId>${commit_id}<\/commitId>\\
-      <timestamp>${TIMESTAMP}<\/timestamp>\\
-      <baseVersion>${version}<\/baseVersion>\\
-      <artifactVersion>${artifact_version}<\/artifactVersion>\\
-    <\/mapping>"
-
-  # Check if this commit already exists in the history
-  if grep -q "<commitId>${commit_id}</commitId>" "${METADATA_FILE}"; then
-    echo "Commit ${commit_id} already exists in history, updating it"
-    # Update existing entry (remove old and add new)
-    sed -i.bak "/<commitId>${commit_id}<\/commitId>/,/<\/mapping>/d" "${METADATA_FILE}"
-  fi
-
-  # Insert the new mapping at the beginning of commitHistory section
-  sed -i.bak "/<commitHistory>/a\\
-${NEW_MAPPING}" "${METADATA_FILE}"
-
-  # Keep only the last 100 mappings to prevent file from growing too large
-  MAPPING_COUNT=$(grep -c "<mapping>" "${METADATA_FILE}" || echo 0)
-  if [ "$MAPPING_COUNT" -gt 100 ]; then
-    echo "Trimming commit history to last 100 entries"
-    # Use awk to trim old entries
-    awk '
-      BEGIN { mapping_count = 0; in_history = 0; skip = 0 }
-      /<commitHistory>/ { in_history = 1; print; next }
-      /<\/commitHistory>/ { in_history = 0; print; next }
-      in_history && /<mapping>/ { 
-        mapping_count++
-        if (mapping_count > 100) skip = 1
-        else skip = 0
-      }
-      in_history && /<\/mapping>/ && skip { skip = 0; next }
-      !skip { print }
-    ' "${METADATA_FILE}" > "${METADATA_FILE}.trimmed"
-    mv "${METADATA_FILE}.trimmed" "${METADATA_FILE}"
-  fi
-
-  echo "Modified metadata content:"
-  cat "${METADATA_FILE}"
-
-  # Upload modified metadata
-  echo "Uploading modified root metadata to ${ROOT_META_URL}"
-  curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "${METADATA_FILE}" "${ROOT_META_URL}"
-  
-  # Generate and upload checksums
-  cd "${TEMP_DIR}"
-  sha256sum "maven-metadata.xml" | awk '{print $1}' > "maven-metadata.xml.sha256"
-  sha512sum "maven-metadata.xml" | awk '{print $1}' > "maven-metadata.xml.sha512"
-
-  curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "maven-metadata.xml.sha256" "${ROOT_META_URL}.sha256"
-  curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "maven-metadata.xml.sha512" "${ROOT_META_URL}.sha512"
-
-  # Clean up
-  rm -rf "${TEMP_DIR}"
-  
-  # Clean up preserved history files
-  if [ -n "$PRESERVED_TEMP_DIR" ]; then
-    rm -rf "$PRESERVED_TEMP_DIR"
-    unset PRESERVED_COMMIT_HISTORY_FILE
-    unset PRESERVED_TEMP_DIR
-  fi
-
-  echo "Root metadata with commit history updated successfully"
-  return 0
 }
 
 # Function to update version metadata with commit ID
@@ -289,11 +121,17 @@ update_version_metadata() {
   local commit_id="$3"
   local snapshot_repo_url="${4:-$SNAPSHOT_REPO_URL}"
 
+  echo "=== LOG: update_version_metadata() - Starting for ${artifact_id} version ${version} ==="
+  echo "=== LOG: update_version_metadata() - Commit ID: ${commit_id} ==="
+  echo "=== LOG: update_version_metadata() - DISABLE_COMMIT_MAPPING: ${DISABLE_COMMIT_MAPPING} ==="
+
   if [ "$DISABLE_COMMIT_MAPPING" = "true" ]; then
+    echo "=== LOG: update_version_metadata() - Skipping (disabled) ==="
     echo "Skipping version metadata update (commit mapping disabled)"
     return 0
   fi
 
+  echo "=== LOG: update_version_metadata() - Proceeding with update ==="
   echo "Updating version metadata for ${artifact_id} version ${version} with commit ID ${commit_id}"
 
   TEMP_DIR=$(mktemp -d)
@@ -301,6 +139,7 @@ update_version_metadata() {
 
   # Download existing metadata
   META_URL="${snapshot_repo_url}org/opensearch/${artifact_id}/${version}/maven-metadata.xml"
+  echo "=== LOG: update_version_metadata() - Download URL: ${META_URL} ==="
   echo "Downloading metadata from ${META_URL}"
 
   if curl -s -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" -o "${METADATA_FILE}" "${META_URL}"; then
@@ -387,11 +226,20 @@ update_commit_mapping() {
   local commit_map_filename="${5:-$COMMIT_MAP_FILENAME}"
   local snapshot_repo_url="${6:-$SNAPSHOT_REPO_URL}"
 
+  echo "=== LOG: update_commit_mapping() - Starting for ${artifact_id} ==="
+  echo "=== LOG: update_commit_mapping() - Commit ID: ${commit_id} ==="
+  echo "=== LOG: update_commit_mapping() - Version: ${version} ==="
+  echo "=== LOG: update_commit_mapping() - Extension: ${extension} ==="
+  echo "=== LOG: update_commit_mapping() - Map filename: ${commit_map_filename} ==="
+  echo "=== LOG: update_commit_mapping() - DISABLE_COMMIT_MAPPING: ${DISABLE_COMMIT_MAPPING} ==="
+
   if [ "$DISABLE_COMMIT_MAPPING" = "true" ]; then
+    echo "=== LOG: update_commit_mapping() - Skipping (disabled) ==="
     echo "Skipping commit-version mapping update (commit mapping disabled)"
     return 0
   fi
 
+  echo "=== LOG: update_commit_mapping() - Proceeding with mapping update ==="
   echo "Updating commit-version mapping for ${artifact_id}"
 
   # Create temp directory for work
@@ -502,13 +350,19 @@ publish_grammar_files() {
   local version="$1"
   local commit_id="$2"
 
+  echo "=== LOG: publish_grammar_files() - Starting workflow ==="
+  echo "=== LOG: publish_grammar_files() - Version: ${version} ==="
+  echo "=== LOG: publish_grammar_files() - Commit ID: ${commit_id} ==="
   echo "Starting grammar files publishing workflow"
 
   # Define constants
   ARTIFACT_ID="language-grammar"
   GROUP_ID="org.opensearch"
+  echo "=== LOG: publish_grammar_files() - Artifact ID: ${ARTIFACT_ID} ==="
+  echo "=== LOG: publish_grammar_files() - Group ID: ${GROUP_ID} ==="
 
   # Package grammar files
+  echo "=== LOG: publish_grammar_files() - Starting packaging ==="
   echo "Packaging grammar files..."
   mkdir -p grammar_files
   find ./language-grammar/src/main/antlr4 -name "*.g4" -type f -exec cp {} grammar_files/ \;
@@ -536,26 +390,22 @@ publish_grammar_files() {
   echo "Grammar files prepared for Maven publishing as version ${version}"
 
   # Generate checksums
+  echo "=== LOG: publish_grammar_files() - About to generate checksums ==="
   generate_checksums
-  
-  # IMPORTANT: Preserve existing commit history BEFORE Maven publishing overwrites metadata
-  preserve_commit_history "$ARTIFACT_ID"
 
-  # Publish to Maven (this will overwrite maven-metadata.xml)
+  # Publish to Maven
+  echo "=== LOG: publish_grammar_files() - About to publish to Maven ==="
   publish_to_maven
 
-  # Extract the actual artifact version from metadata for commit history
-  ARTIFACT_VERSION=$(extract_artifact_version "$ARTIFACT_ID" "$version" "zip")
-
-  # Update version metadata with commit ID (adds commitId to version-specific metadata)
+  # Update metadata with commit ID
+  echo "=== LOG: publish_grammar_files() - About to update version metadata ==="
   update_version_metadata "$ARTIFACT_ID" "$version" "$commit_id"
 
-  # Update root metadata with commit history (adds to root-level commit history)
-  update_root_metadata_with_commit_history "$ARTIFACT_ID" "$version" "$commit_id" "$ARTIFACT_VERSION"
+  # Update commit mapping
+  echo "=== LOG: publish_grammar_files() - About to update commit mapping ==="
+  update_commit_mapping "$commit_id" "$version" "$ARTIFACT_ID" "zip"
 
-  # Deprecated: JSON mapping approach is no longer used
-  # update_commit_mapping "$commit_id" "$version" "$ARTIFACT_ID" "zip"
-
+  echo "=== LOG: publish_grammar_files() - Workflow completed ==="
   echo "Grammar files publishing workflow completed"
 }
 
@@ -564,13 +414,19 @@ publish_async_query_core() {
   local version="$1"
   local commit_id="$2"
 
+  echo "=== LOG: publish_async_query_core() - Starting workflow ==="
+  echo "=== LOG: publish_async_query_core() - Version: ${version} ==="
+  echo "=== LOG: publish_async_query_core() - Commit ID: ${commit_id} ==="
   echo "Starting async-query-core publishing workflow"
 
   # Define constants
   ARTIFACT_ID="async-query-core"
   GROUP_ID="org.opensearch"
+  echo "=== LOG: publish_async_query_core() - Artifact ID: ${ARTIFACT_ID} ==="
+  echo "=== LOG: publish_async_query_core() - Group ID: ${GROUP_ID} ==="
 
   # Build the shadow JAR
+  echo "=== LOG: publish_async_query_core() - Building shadow JAR ==="
   echo "Building shadow JAR..."
   ./gradlew :async-query-core:shadowJar
 
@@ -595,25 +451,21 @@ publish_async_query_core() {
   echo "Shadow JAR and POM published to local Maven repository for version ${version}"
 
   # Generate checksums
+  echo "=== LOG: publish_async_query_core() - About to generate checksums ==="
   generate_checksums
-  
-  # IMPORTANT: Preserve existing commit history BEFORE Maven publishing overwrites metadata
-  preserve_commit_history "$ARTIFACT_ID"
 
-  # Publish to Maven (this will overwrite maven-metadata.xml)
+  # Publish to Maven
+  echo "=== LOG: publish_async_query_core() - About to publish to Maven ==="
   publish_to_maven
 
-  # Extract the actual artifact version from metadata for commit history
-  ARTIFACT_VERSION=$(extract_artifact_version "$ARTIFACT_ID" "$version" "jar")
-
-  # Update version metadata with commit ID (adds commitId to version-specific metadata)
+  # Update metadata with commit ID
+  echo "=== LOG: publish_async_query_core() - About to update version metadata ==="
   update_version_metadata "$ARTIFACT_ID" "$version" "$commit_id"
 
-  # Update root metadata with commit history (adds to root-level commit history)
-  update_root_metadata_with_commit_history "$ARTIFACT_ID" "$version" "$commit_id" "$ARTIFACT_VERSION"
+  # Update commit mapping
+  echo "=== LOG: publish_async_query_core() - About to update commit mapping ==="
+  update_commit_mapping "$commit_id" "$version" "$ARTIFACT_ID" "jar"
 
-  # Deprecated: JSON mapping approach is no longer used
-  # update_commit_mapping "$commit_id" "$version" "$ARTIFACT_ID" "jar"
-
+  echo "=== LOG: publish_async_query_core() - Workflow completed ==="
   echo "Async-query-core publishing workflow completed"
 }
