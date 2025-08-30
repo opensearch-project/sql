@@ -108,6 +108,8 @@ The query start with search command and then flowing a set of command delimited 
 
   - `reverse command <cmd/reverse.rst>`_
 
+  - `timechart command <cmd/timechart.rst>`_
+
   - `top command <cmd/top.rst>`_
 
   - `trendline command <cmd/trendline.rst>`_

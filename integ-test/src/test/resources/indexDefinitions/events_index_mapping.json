@@ -1,0 +1,18 @@
+{
+  "mappings": {
+    "properties": {
+      "@timestamp": {
+        "type": "date"
+      },
+      "host": {
+        "type": "text"
+      },
+      "cpu_usage": {
+        "type": "double"
+      },
+      "region": {
+        "type": "keyword"
+      }
+    }
+  }
+}
