@@ -117,29 +117,23 @@ Example 5: Case-sensitive matching
 
 The example demonstrates that regex matching is case-sensitive by default.
 
-PPL query (case-sensitive - no match)::
+PPL query::
 
-    source=accounts | regex state="virginia" | fields account_number, state;
-    
-Expected result::
-
+    os> source=accounts | regex state="va" | fields account_number, state;
     fetched rows / total rows = 0/0
     +----------------+-------+
     | account_number | state |
     |----------------+-------|
     +----------------+-------+
 
-PPL query (case-sensitive - with match)::
+PPL query::
 
-    source=accounts | regex state="Virginia" | fields account_number, state;
-    
-Expected result::
-
+    os> source=accounts | regex state="VA" | fields account_number, state;
     fetched rows / total rows = 1/1
     +----------------+-------+
     | account_number | state |
     |----------------+-------|
-    | 1              | VA    |
+    | 13             | VA    |
     +----------------+-------+
 
 
