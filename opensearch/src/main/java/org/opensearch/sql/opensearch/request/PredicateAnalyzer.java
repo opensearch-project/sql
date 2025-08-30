@@ -294,6 +294,7 @@ public class PredicateAnalyzer {
           return true;
         case POSTFIX:
           switch (call.getKind()) {
+            case IS_TRUE:
             case IS_NOT_NULL:
             case IS_NULL:
               return true;
@@ -559,7 +560,10 @@ public class PredicateAnalyzer {
     }
 
     private QueryExpression postfix(RexCall call) {
-      checkArgument(call.getKind() == SqlKind.IS_NULL || call.getKind() == SqlKind.IS_NOT_NULL);
+      checkArgument(
+          call.getKind() == SqlKind.IS_TRUE
+              || call.getKind() == SqlKind.IS_NULL
+              || call.getKind() == SqlKind.IS_NOT_NULL);
       if (call.getOperands().size() != 1) {
         String message = format(Locale.ROOT, "Unsupported operator: [%s]", call);
         throw new PredicateAnalyzerException(message);
@@ -569,6 +573,10 @@ public class PredicateAnalyzer {
       checkForNestedFieldOperands(call);
 
       Expression a = call.getOperands().get(0).accept(this);
+      if (call.getKind() == SqlKind.IS_TRUE) {
+        return (QueryExpression) a;
+      }
+
       // OpenSearch does not want is null/is not null (exists query)
       // for _id and _index, although it supports for all other metadata column
       isColumn(a, call, OpenSearchConstants.METADATA_FIELD_ID, true);

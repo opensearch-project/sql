@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -351,7 +352,10 @@ class AggregateAnalyzerTest {
                         b.aggregateCall(
                             SqlStdOperatorTable.COUNT,
                             false,
-                            b.call(SqlStdOperatorTable.GREATER_THAN, b.field("a"), b.literal(0)),
+                            b.call(
+                                SqlStdOperatorTable.IS_TRUE,
+                                b.call(
+                                    SqlStdOperatorTable.GREATER_THAN, b.field("a"), b.literal(0))),
                             "cnt_filtered")));
 
     assertEquals(
@@ -411,7 +415,15 @@ class AggregateAnalyzerTest {
             return rowType;
           }
         });
-    RelBuilder b = RelBuilder.create(Frameworks.newConfigBuilder().defaultSchema(root).build());
+    RelBuilder b =
+        RelBuilder.create(
+            Frameworks.newConfigBuilder()
+                .context(
+                    Contexts.of(
+                        RelBuilder.Config.DEFAULT.withSimplify(
+                            false))) // otherwise RelBuilder will simplify istrue
+                .defaultSchema(root)
+                .build());
 
     // Create test RelNode plan
     RelNode rel = planBuilder.apply(b).build();

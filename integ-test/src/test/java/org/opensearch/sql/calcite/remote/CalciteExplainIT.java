@@ -431,7 +431,6 @@ public class CalciteExplainIT extends ExplainIT {
     assertJsonEqualsIgnoreId(expected, result);
   }
 
-  @Ignore("Case statement is pushed down as script")
   @Test
   public void testExplainAggWithFilter() throws IOException {
     String query =
