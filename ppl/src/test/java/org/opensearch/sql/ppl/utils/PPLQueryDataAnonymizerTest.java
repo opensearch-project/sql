@@ -535,6 +535,15 @@ public class PPLQueryDataAnonymizerTest {
                 + " variable_count_threshold=5"));
   }
 
+  @Test
+  public void testRegex() {
+    assertEquals("source=t | regex field=***", anonymize("source=t | regex field='pattern'"));
+    assertEquals("source=t | regex field!=***", anonymize("source=t | regex field!='pattern'"));
+    assertEquals(
+        "source=t | regex email=*** | fields + email",
+        anonymize("source=t | regex email='.*@domain.com' | fields email"));
+  }
+
   private String anonymize(String query) {
     AstBuilder astBuilder = new AstBuilder(query, settings);
     return anonymize(astBuilder.visit(parser.parse(query)));

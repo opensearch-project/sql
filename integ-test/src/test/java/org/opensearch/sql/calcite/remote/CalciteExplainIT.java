@@ -366,6 +366,23 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testRegexExplain() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | regex lastname='^[A-Z][a-z]+$' | head 5";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_regex.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testRegexNegatedExplain() throws IOException {
+    String query = "source=opensearch-sql_test_index_account | regex lastname!='.*son$' | head 5";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_regex_negated.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
   public void testExplainAppendCommand() throws IOException {
     String expected = loadExpectedPlan("explain_append_command.json");
     assertJsonEqualsIgnoreId(

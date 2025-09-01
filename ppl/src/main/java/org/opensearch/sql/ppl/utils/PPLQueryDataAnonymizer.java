@@ -74,6 +74,7 @@ import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RangeBin;
 import org.opensearch.sql.ast.tree.RareTopN;
+import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Reverse;
@@ -445,6 +446,16 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   }
 
   @Override
+  public String visitRegex(Regex node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    String operator = node.isNegated() ? Regex.NOT_EQUALS_OPERATOR : Regex.EQUALS_OPERATOR;
+    String pattern = MASK_LITERAL;
+
+    String field = visitExpression(node.getField());
+    return StringUtils.format("%s | regex %s%s%s", child, field, operator, pattern);
+  }
+
+  @Override
   public String visitFlatten(Flatten node, String context) {
     String child = node.getChild().getFirst().accept(this, context);
     String field = visitExpression(node.getField());
@@ -749,6 +760,12 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     public String visitCast(Cast node, String context) {
       String expr = analyze(node.getExpression(), context);
       return StringUtils.format("cast(%s as %s)", expr, node.getConvertedType().toString());
+    }
+
+    @Override
+    public String visitQualifiedName(
+        org.opensearch.sql.ast.expression.QualifiedName node, String context) {
+      return String.join(".", node.getParts());
     }
   }
 }

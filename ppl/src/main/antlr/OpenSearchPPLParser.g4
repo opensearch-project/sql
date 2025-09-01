@@ -74,6 +74,7 @@ commands
    | expandCommand
    | flattenCommand
    | reverseCommand
+   | regexCommand
    ;
 
 commandName
@@ -107,6 +108,7 @@ commandName
    | TRENDLINE
    | EXPLAIN
    | REVERSE
+   | REGEX
    | APPEND
    ;
 
@@ -243,6 +245,13 @@ pathElement
 pathArrayAccess
    : LT_CURLY (INTEGER_LITERAL)? RT_CURLY
    ;
+regexCommand
+    : REGEX regexExpr
+    ;
+
+regexExpr
+    : field=qualifiedName operator=(EQUAL | NOT_EQUAL) pattern=stringLiteral
+    ;
 
 patternsMethod
    : PUNCT
@@ -489,7 +498,7 @@ statsAggTerm
 statsFunction
    : statsFunctionName LT_PRTHS valueExpression RT_PRTHS        # statsFunctionCall
    | (COUNT | C) LT_PRTHS evalExpression RT_PRTHS               # countEvalFunctionCall
-   | (COUNT | C) LT_PRTHS RT_PRTHS                              # countAllFunctionCall
+   | (COUNT | C) (LT_PRTHS RT_PRTHS)?                           # countAllFunctionCall
    | PERCENTILE_SHORTCUT LT_PRTHS valueExpression RT_PRTHS      # percentileShortcutFunctionCall
    | (DISTINCT_COUNT | DC | DISTINCT_COUNT_APPROX) LT_PRTHS valueExpression RT_PRTHS    # distinctCountFunctionCall
    | takeAggFunction                                            # takeAggFunctionCall
