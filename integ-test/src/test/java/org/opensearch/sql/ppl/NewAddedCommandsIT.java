@@ -157,9 +157,9 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
       result =
           executeQuery(
               String.format(
-                  "search source=%s | stats count() by span(age, 10) | append [ stats"
-                      + " avg(balance) by span(age, 10) ]",
-                  TEST_INDEX_BANK));
+                  "search source=%s | stats count() by span(age, 10) | append [ search source=%s |"
+                      + " stats avg(balance) by span(age, 10) ]",
+                  TEST_INDEX_BANK, TEST_INDEX_BANK));
     } catch (ResponseException e) {
       result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
     }

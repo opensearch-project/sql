@@ -373,7 +373,8 @@ public class CalciteExplainIT extends ExplainIT {
         explainQueryToString(
             String.format(
                 Locale.ROOT,
-                "source=%s | stats count(balance) as cnt by gender | append [ source=%s | stats count() as cnt ]",
+                "source=%s | stats count(balance) as cnt by gender | append [ source=%s | stats"
+                    + " count() as cnt ]",
                 TEST_INDEX_BANK,
                 TEST_INDEX_BANK)));
   }
