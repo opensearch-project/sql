@@ -101,7 +101,6 @@ public class SPath extends UnresolvedPlan {
     String pathField = computePathField(context.relBuilder);
     String reducedPath = this.fullPath().substring(pathField.length());
 
-    // Since pathField must be on a segment line, there's a leftover leading dot.
     String[] pathFieldParts = unescape(pathField).split("\\.");
 
     if (reducedPath.isEmpty()) {
@@ -111,6 +110,7 @@ public class SPath extends UnresolvedPlan {
           this.child,
           AstDSL.let(AstDSL.field(outField), AstDSL.field(AstDSL.qualifiedName(pathFieldParts))));
     }
+    // Since pathField must be on a segment line, there's a leftover leading dot if we didn't match the whole path.
     reducedPath = reducedPath.substring(1);
 
     return AstDSL.eval(
