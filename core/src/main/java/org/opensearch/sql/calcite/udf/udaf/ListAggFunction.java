@@ -10,8 +10,20 @@ import java.util.List;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 
 /**
- * List aggregation function that collects values into an array preserving duplicates and order.
- * Behavior: preserves insertion order, limits to 100 values, filters nulls.
+ * List aggregation function that collects values into an array preserving duplicates.
+ *
+ * <p>Behavior:
+ *
+ * <ul>
+ *   <li>Collects up to 100 values (additional values are ignored)
+ *   <li>Filters out null values
+ *   <li>Preserves duplicate values
+ *   <li>Order of values in the result is non-deterministic
+ * </ul>
+ *
+ * <p>Note: Similar to the TAKE function, LIST does not guarantee any specific order of values in
+ * the result array. The order may vary between executions and depends on the underlying query
+ * execution plan and optimizations.
  */
 public class ListAggFunction implements UserDefinedAggFunction<ListAggFunction.ListAccumulator> {
 

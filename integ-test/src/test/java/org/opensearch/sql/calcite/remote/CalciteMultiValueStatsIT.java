@@ -218,49 +218,6 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testListFunctionWithOrderBy() throws IOException {
-    // Test LIST function with sorting
-    JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | sort int3 | stats list(int3) as sorted_list", TEST_INDEX_CALCS));
-    verifySchema(response, schema("sorted_list", "array"));
-
-    // // Verify we get a list with values
-    // assert response.has("datarows");
-    // var datarows = response.getJSONArray("datarows");
-    // assert datarows.length() == 1;
-    // var row = datarows.getJSONArray(0);
-    // var listValues = row.getJSONArray(0);
-    // // Should have 17 non-null values from int3 column
-    // assert listValues.length() == 17;
-
-    // // Check if LIST maintains sort order
-    // boolean isSorted = true;
-    // for (int i = 1; i < listValues.length(); i++) {
-    //   int prev = Integer.parseInt(listValues.getString(i - 1));
-    //   int curr = Integer.parseInt(listValues.getString(i));
-    //   if (prev > curr) {
-    //     isSorted = false;
-    //     break;
-    //   }
-    // }
-
-    // // When pushdown is enabled, LIST maintains sort order
-    // // When pushdown is disabled, it also maintains sort order (both preserve input order)
-    // // So we expect sorted values in both cases when input is sorted
-    // assert isSorted : "LIST should preserve input order from sorted query";
-
-    // Verify the actual values are what we expect
-    verifyDataRows(
-        response,
-        rows(
-            List.of(
-                "0", "2", "2", "2", "3", "5", "7", "8", "9", "11", "11", "11", "13", "17", "18",
-                "18", "18")));
-  }
-
-  @Test
   public void testListFunctionWithComplexGroupBy() throws IOException {
     // Test list aggregation with multiple grouping fields
     JSONObject response =
