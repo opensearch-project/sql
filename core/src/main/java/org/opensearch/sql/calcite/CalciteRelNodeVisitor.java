@@ -131,7 +131,7 @@ import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
-import org.opensearch.sql.expression.parse.RegexExpression;
+import org.opensearch.sql.expression.parse.RegexCommonUtils;
 import org.opensearch.sql.utils.ParseUtils;
 
 public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalcitePlanContext> {
@@ -216,7 +216,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RexNode fieldRex = rexVisitor.analyze(node.getField(), context);
     String patternStr = (String) node.getPattern().getValue();
 
-    List<String> namedGroups = RegexExpression.getNamedGroupCandidates(patternStr);
+    List<String> namedGroups = RegexCommonUtils.getNamedGroupCandidates(patternStr);
 
     if (namedGroups.isEmpty()) {
       throw new IllegalArgumentException(
