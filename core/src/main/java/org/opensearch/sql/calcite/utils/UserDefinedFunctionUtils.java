@@ -103,7 +103,7 @@ public class UserDefinedFunctionUtils {
         Objects.requireNonNull(AggregateFunctionImpl.create(udafClass)),
         false,
         false,
-        Optionality.OPTIONAL);
+        Optionality.FORBIDDEN);
   }
 
   /**
