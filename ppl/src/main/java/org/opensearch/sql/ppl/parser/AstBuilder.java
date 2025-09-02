@@ -42,7 +42,6 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.commons.lang3.tuple.Pair;
-import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
@@ -924,14 +923,13 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     UnresolvedPlan searchCommandInSubSearch =
         ctx.searchCommand() != null
             ? visit(ctx.searchCommand())
-            : Append.EMPTY_VALUES_INPUT; // Allows 0 row * 0 col empty input
+            : new Values(Collections.emptyList()); // Represents 0 row * 0 col empty input syntax
     UnresolvedPlan subsearch =
         ctx.commands().stream()
             .map(this::visit)
             .reduce(searchCommandInSubSearch, (r, e) -> e.attach(r));
 
-    Boolean containsEmptyValuesInput = subsearch.accept(new TerminalEmptyValuesPlanFinder(), null);
-    return new Append(subsearch, containsEmptyValuesInput);
+    return new Append(subsearch);
   }
 
   /** Get original text in query. */
@@ -1063,18 +1061,5 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       }
     }
     return false;
-  }
-
-  // TODO: Add more terminal nodes here
-  private static class TerminalEmptyValuesPlanFinder extends AbstractNodeVisitor<Boolean, Void> {
-    @Override
-    public Boolean visitRelation(Relation node, Void ctx) {
-      return false;
-    }
-
-    @Override
-    public Boolean visitValues(Values node, Void ctx) {
-      return node.getValues() == null || node.getValues().isEmpty();
-    }
   }
 }

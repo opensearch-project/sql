@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.ppl.calcite;
 
+import static org.junit.Assert.assertThrows;
+
 import java.util.Arrays;
 import java.util.List;
 import org.apache.calcite.rel.RelNode;
@@ -41,26 +43,16 @@ public class CalcitePPLAppendTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testAppendEmptySearchCommand() {
-    List<String> testPPLs =
-        Arrays.asList("source=EMP | append [ | where DEPTNO = 20 ]", "source=EMP | append [ ]");
-    for (String ppl : testPPLs) {
-      RelNode root = getRelNode(ppl);
-      String expectedLogical =
-          "LogicalUnion(all=[true])\n"
-              + "  LogicalTableScan(table=[[scott, EMP]])\n"
-              + "  LogicalValues(tuples=[[]])\n";
-      verifyLogical(root, expectedLogical);
-      verifyResultCount(root, 14); // 14 original table rows
+    // Empty input aka empty searchCommand has no specified schema.
+    // Since we don't support typed null for non-existent field from input,
+    // it will error out while building RelNode in case of field not found.
+    List<String> illegalEmptySubsearchPPLs =
+        Arrays.asList(
+            "source=EMP | append [ | where DEPTNO = 20 ]",
+            "source=EMP | append [ | stats count() ]");
 
-      String expectedSparkSql =
-          "SELECT *\n"
-              + "FROM `scott`.`EMP`\n"
-              + "UNION ALL\n"
-              + "SELECT *\n"
-              + "FROM (VALUES (NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)) `t` (`EMPNO`,"
-              + " `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`)\n"
-              + "WHERE 1 = 0";
-      verifyPPLToSparkSQL(root, expectedSparkSql);
+    for (String illegalPPL : illegalEmptySubsearchPPLs) {
+      assertThrows(IllegalArgumentException.class, () -> getRelNode(illegalPPL));
     }
   }
 

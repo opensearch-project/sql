@@ -1219,11 +1219,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     visitChildren(node, context);
 
     // 2. Resolve subsearch plan
-    if (node.getContainsEmptyValuesInput()) {
-      Append.EMPTY_VALUES_INPUT.accept(this, context);
-    } else {
-      node.getSubSearch().accept(this, context);
-    }
+    node.getSubSearch().accept(this, context);
 
     // 3. Merge two query schemas
     RelNode subsearchNode = context.relBuilder.build();
@@ -1592,11 +1588,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitValues(Values values, CalcitePlanContext context) {
     if (values.getValues() == null || values.getValues().isEmpty()) {
-      context.relBuilder.push(
-          LogicalValues.createEmpty(
-              context.relBuilder.getCluster(),
-              context.rexBuilder.getTypeFactory().builder().build()));
-      return context.relBuilder.peek();
+      throw new IllegalArgumentException("Empty values input is not supported");
     } else {
       throw new CalciteUnsupportedException("Explicit values node is unsupported in Calcite");
     }
