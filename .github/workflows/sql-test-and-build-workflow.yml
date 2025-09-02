@@ -51,7 +51,7 @@ jobs:
         run: |
           chown -R 1000:1000 `pwd`
           if [ "${{ matrix.test-type }}" = "unit" ]; then
-            su `id -un 1000` -c "./gradlew --continue build -x integTest -x doctest"
+            su `id -un 1000` -c "./gradlew --parallel --continue build -x integTest -x doctest"
           elif [ "${{ matrix.test-type }}" = "integration" ]; then
             su `id -un 1000` -c "./gradlew --continue integTest"
           else
