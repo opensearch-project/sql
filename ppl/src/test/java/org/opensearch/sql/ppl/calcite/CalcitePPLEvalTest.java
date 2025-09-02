@@ -451,4 +451,22 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
     String expectedSparkSql = "SELECT `LIST`(`DEPTNO`) `list(DEPTNO)`\n" + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  @Test
+  public void testListAggregationWithGroupBy() {
+    String ppl = "source=EMP | stats list(ENAME) by DEPTNO";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(list(ENAME)=[$1], DEPTNO=[$0])\n"
+            + "  LogicalAggregate(group=[{0}], list(ENAME)=[LIST($1)])\n"
+            + "    LogicalProject(DEPTNO=[$7], ENAME=[$1])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `LIST`(`ENAME`) `list(ENAME)`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "GROUP BY `DEPTNO`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
 }
