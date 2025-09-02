@@ -94,17 +94,17 @@ COUNT
 Description
 >>>>>>>>>>>
 
-Usage: Returns a count of the number of expr in the rows retrieved. The ``C()`` function can be used as an abbreviation for ``COUNT()``. To perform a filtered counting, wrap the condition to satisfy in an `eval` expression.
+Usage: Returns a count of the number of expr in the rows retrieved. The ``C()`` function, ``c``, and ``count`` can be used as abbreviations for ``COUNT()``. To perform a filtered counting, wrap the condition to satisfy in an `eval` expression.
 
 Example::
 
-    os> source=accounts | stats count(), c();
+    os> source=accounts | stats count(), c(), count, c;
     fetched rows / total rows = 1/1
-    +---------+-----+
-    | count() | c() |
-    |---------+-----|
-    | 4       | 4   |
-    +---------+-----+
+    +---------+-----+-------+---+
+    | count() | c() | count | c |
+    |---------+-----+-------+---|
+    | 4       | 4   | 4     | 4 |
+    +---------+-----+-------+---+
 
 Example of filtered counting::
 
