@@ -1,3 +1,0 @@
-source = big5
-| eval result = coalesce('', `metrics.size`)
-| head 10
