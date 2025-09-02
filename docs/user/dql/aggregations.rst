@@ -419,6 +419,26 @@ Example::
     | 32      |
     +---------+
 
+MEDIAN
+------
+
+Description
+>>>>>>>>>>>
+
+Usage: MEDIAN(expr). Returns the median (50th percentile) value of `expr`. This is equivalent to ``PERCENTILE(expr, 50)``.
+
+Note: This function is only available when Calcite is enabled.
+
+Example::
+
+    ppl> source=accounts | stats median(age);
+    fetched rows / total rows = 1/1
+    +-------------+
+    | median(age) |
+    |-------------|
+    | 32          |
+    +-------------+
+
 HAVING Clause
 =============
 

@@ -123,6 +123,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_P
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_PHRASE_PREFIX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MD5;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MEDIAN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MICROSECOND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE;
@@ -253,6 +254,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
@@ -1115,6 +1117,24 @@ public class PPLFuncImpTable {
               extractTypeCheckerFromUDF(PPLBuiltinOperators.PERCENTILE_APPROX),
               PERCENTILE_APPROX.name(),
               false));
+
+      // Register MEDIAN as alias for PERCENTILE_APPROX with 50th percentile
+      register(
+          MEDIAN,
+          (distinct, field, argList, ctx) -> {
+            List<RexNode> medianArgList = new ArrayList<>();
+            medianArgList.add(
+                ctx.rexBuilder.makeExactLiteral(
+                    BigDecimal.valueOf(50.0))); // hardcoded 50th percentile
+            medianArgList.add(ctx.rexBuilder.makeFlag(field.getType().getSqlTypeName()));
+            return UserDefinedFunctionUtils.makeAggregateCall(
+                PPLBuiltinOperators.PERCENTILE_APPROX,
+                List.of(field),
+                medianArgList,
+                ctx.relBuilder);
+          },
+          wrapSqlOperandTypeChecker(
+              PPLOperandTypes.NUMERIC.getInnerTypeChecker(), MEDIAN.name(), false));
 
       register(
           EARLIEST,
