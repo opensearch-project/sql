@@ -215,6 +215,7 @@ public enum BuiltinFunctionName {
   LTRIM(FunctionName.of("ltrim")),
   POSITION(FunctionName.of("position")),
   REGEXP(FunctionName.of("regexp")),
+  REGEX_MATCH(FunctionName.of("regex_match")),
   REPLACE(FunctionName.of("replace")),
   REVERSE(FunctionName.of("reverse")),
   RIGHT(FunctionName.of("right")),
@@ -343,8 +344,8 @@ public enum BuiltinFunctionName {
           .put("take", BuiltinFunctionName.TAKE)
           .put("percentile", BuiltinFunctionName.PERCENTILE_APPROX)
           .put("percentile_approx", BuiltinFunctionName.PERCENTILE_APPROX)
-          // .put("earliest", BuiltinFunctionName.EARLIEST)
-          // .put("latest", BuiltinFunctionName.LATEST)
+          .put("earliest", BuiltinFunctionName.EARLIEST)
+          .put("latest", BuiltinFunctionName.LATEST)
           .put("distinct_count_approx", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
           .put("pattern", BuiltinFunctionName.INTERNAL_PATTERN)
           .build();

@@ -56,10 +56,12 @@ commands
    | sortCommand
    | evalCommand
    | headCommand
+   | binCommand
    | topCommand
    | rareCommand
    | grokCommand
    | parseCommand
+   | spathCommand
    | patternsCommand
    | lookupCommand
    | kmeansCommand
@@ -71,6 +73,7 @@ commands
    | expandCommand
    | flattenCommand
    | reverseCommand
+   | regexCommand
    ;
 
 commandName
@@ -88,6 +91,7 @@ commandName
    | SORT
    | EVAL
    | HEAD
+   | BIN
    | TOP
    | RARE
    | GROK
@@ -103,6 +107,7 @@ commandName
    | TRENDLINE
    | EXPLAIN
    | REVERSE
+   | REGEX
    ;
 
 searchCommand
@@ -171,6 +176,36 @@ headCommand
    : HEAD (number = integerLiteral)? (FROM from = integerLiteral)?
    ;
 
+binCommand
+   : BIN fieldExpression binOption* (AS alias = qualifiedName)?
+   ;
+
+binOption
+   : SPAN EQUAL span = spanValue
+   | BINS EQUAL bins = integerLiteral
+   | MINSPAN EQUAL minspan = literalValue (minspanUnit = timespanUnit)?
+   | ALIGNTIME EQUAL aligntime = aligntimeValue
+   | START EQUAL start = numericLiteral
+   | END EQUAL end = numericLiteral
+   ;
+
+aligntimeValue
+   : EARLIEST
+   | LATEST
+   | literalValue
+   ;
+
+spanValue
+   : literalValue (timespanUnit)?           # numericSpanValue
+   | logSpanValue                           # logBasedSpanValue
+   | ident timespanUnit                     # extendedTimeSpanValue
+   | ident                                  # identifierSpanValue
+   ;
+
+logSpanValue
+   : LOG_WITH_BASE                                                   # logWithBaseSpan
+   ;
+
 topCommand
    : TOP (number = integerLiteral)? (COUNTFIELD EQUAL countfield = stringLiteral)? (SHOWCOUNT EQUAL showcount = booleanLiteral)? fieldList (byClause)?
    ;
@@ -186,6 +221,35 @@ grokCommand
 parseCommand
    : PARSE (source_field = expression) (pattern = stringLiteral)
    ;
+
+spathCommand
+   : SPATH spathParameter*
+   ;
+
+spathParameter
+   : (INPUT EQUAL input = expression)
+   | (OUTPUT EQUAL output = expression)
+   | ((PATH EQUAL)? path = indexablePath)
+   ;
+
+indexablePath
+   : pathElement (DOT pathElement)*
+   ;
+
+pathElement
+   : ident pathArrayAccess?
+   ;
+
+pathArrayAccess
+   : LT_CURLY (INTEGER_LITERAL)? RT_CURLY
+   ;
+regexCommand
+    : REGEX regexExpr
+    ;
+
+regexExpr
+    : field=qualifiedName operator=(EQUAL | NOT_EQUAL) pattern=stringLiteral
+    ;
 
 patternsMethod
    : PUNCT
@@ -427,10 +491,13 @@ statsAggTerm
 // aggregation functions
 statsFunction
    : statsFunctionName LT_PRTHS valueExpression RT_PRTHS        # statsFunctionCall
-   | COUNT LT_PRTHS RT_PRTHS                                    # countAllFunctionCall
+   | (COUNT | C) LT_PRTHS evalExpression RT_PRTHS               # countEvalFunctionCall
+   | (COUNT | C) (LT_PRTHS RT_PRTHS)?                           # countAllFunctionCall
+   | PERCENTILE_SHORTCUT LT_PRTHS valueExpression RT_PRTHS      # percentileShortcutFunctionCall
    | (DISTINCT_COUNT | DC | DISTINCT_COUNT_APPROX) LT_PRTHS valueExpression RT_PRTHS    # distinctCountFunctionCall
    | takeAggFunction                                            # takeAggFunctionCall
    | percentileApproxFunction                                   # percentileApproxFunctionCall
+   | earliestLatestFunction                                     # earliestLatestFunctionCall
    ;
 
 statsFunctionName
@@ -445,9 +512,13 @@ statsFunctionName
    | STDDEV_POP
    | PERCENTILE
    | PERCENTILE_APPROX
-   | EARLIEST
-   | LATEST
    ;
+
+earliestLatestFunction
+   : (EARLIEST | LATEST) LT_PRTHS valueExpression (COMMA timeField = valueExpression)? RT_PRTHS
+   ;
+
+
 
 takeAggFunction
    : TAKE LT_PRTHS fieldExpression (COMMA size = integerLiteral)? RT_PRTHS
@@ -495,6 +566,10 @@ valueExpression
    | fieldExpression                                                                                            # fieldExpr
    | LT_PRTHS logicalExpression RT_PRTHS                                                                        # nestedValueExpr
    ;
+
+evalExpression
+    : EVAL LT_PRTHS logicalExpression RT_PRTHS
+    ;
 
 functionCall
    : evalFunctionCall
@@ -718,8 +793,7 @@ mathematicalFunctionName
    | FLOOR
    | LN
    | LOG
-   | LOG10
-   | LOG2
+   | LOG_WITH_BASE
    | MOD
    | MODULUS
    | PI
@@ -915,6 +989,7 @@ conditionFunctionName
    | ISNULL
    | ISNOTNULL
    | CIDRMATCH
+   | REGEX_MATCH
    | JSON_VALID
    | ISPRESENT
    | ISEMPTY
@@ -962,12 +1037,14 @@ positionFunctionName
 // operators
  comparisonOperator
    : EQUAL
+   | DOUBLE_EQUAL
    | NOT_EQUAL
    | LESS
    | NOT_LESS
    | GREATER
    | NOT_GREATER
    | REGEXP
+   | LIKE
    ;
 
 singleFieldRelevanceFunctionName
@@ -1085,6 +1162,20 @@ timespanUnit
    | MONTH
    | QUARTER
    | YEAR
+   | SEC
+   | SECS  
+   | SECONDS
+   | MINS
+   | MINUTES
+   | HR
+   | HRS
+   | HOURS
+   | DAYS
+   | MON
+   | MONTHS
+   | US
+   | CS
+   | DS
    ;
 
 valueList
@@ -1199,6 +1290,10 @@ keywordsCanBeId
    | ANOMALY_SCORE_THRESHOLD
    | COUNTFIELD
    | SHOWCOUNT
+   | PATH
+   | INPUT
+   | OUTPUT
+
    // AGGREGATIONS AND WINDOW
    | statsFunctionName
    | windowFunctionName
@@ -1237,4 +1332,5 @@ keywordsCanBeId
    | ANTI
    | LEFT_HINT
    | RIGHT_HINT
+   | PERCENTILE_SHORTCUT
    ;

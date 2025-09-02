@@ -59,6 +59,7 @@ import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.AppendCol;
+import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
@@ -78,6 +79,7 @@ import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
+import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
@@ -670,6 +672,12 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   @Override
+  public LogicalPlan visitBin(Bin node, AnalysisContext context) {
+    throw new UnsupportedOperationException(
+        "Bin command is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+  }
+
+  @Override
   public LogicalPlan visitExpand(Expand expand, AnalysisContext context) {
     throw new UnsupportedOperationException(
         "Expand is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
@@ -734,6 +742,12 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   public LogicalPlan visitReverse(Reverse node, AnalysisContext context) {
     throw new UnsupportedOperationException(
         "REVERSE is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+  }
+
+  @Override
+  public LogicalPlan visitRegex(Regex node, AnalysisContext context) {
+    throw new UnsupportedOperationException(
+        "REGEX is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
   }
 
   @Override
