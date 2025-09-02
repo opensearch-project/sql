@@ -202,11 +202,32 @@ public class Protocol {
 
   private String rawEntry(Row row, Schema schema) {
     // TODO String separator is being kept to "|" for the time being as using "\t" will require
-    // formatting since
-    // TODO tabs are occurring in multiple of 4 (one option is Guava's Strings.padEnd() method)
+    // formatting since tabs are occurring in multiple of 4 (one option is Guava's Strings.padEnd()
+    // method)
     return StreamSupport.stream(schema.spliterator(), false)
         .map(column -> row.getDataOrDefault(column.getName(), "NULL").toString())
         .collect(Collectors.joining("|"));
+  }
+
+  /**
+   * Apply the V2 type mapping described in docs/user/general/datatypes.rst#data-types-mapping. The
+   * legacy engine works directly on OpenSearch types internally (trying to map on reading the OS
+   * schema fails when other parts call Type.valueOf(...)), so we need to apply this mapping at the
+   * serialization stage.
+   *
+   * @param column The column to fetch the type for
+   * @return The type mapped to the appropriate OpenSearch SQL type
+   */
+  private String v2MappedType(Column column) {
+    String type = column.getType();
+
+    return switch (type) {
+      case "date", "date_nanos" -> "timestamp";
+      case "half_float", "scaled_float" -> "float";
+      case "nested" -> "array";
+      case "object" -> "struct";
+      default -> type;
+    };
   }
 
   private JSONArray getSchemaAsJson() {
@@ -214,7 +235,7 @@ public class Protocol {
     JSONArray schemaJson = new JSONArray();
 
     for (Column column : schema) {
-      schemaJson.put(schemaEntry(column.getName(), column.getAlias(), column.getType()));
+      schemaJson.put(schemaEntry(column.getName(), column.getAlias(), v2MappedType(column)));
     }
 
     return schemaJson;
