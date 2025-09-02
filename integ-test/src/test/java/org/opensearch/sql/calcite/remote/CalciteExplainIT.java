@@ -373,7 +373,7 @@ public class CalciteExplainIT extends ExplainIT {
         explainQueryToString(
             "source=opensearch-sql_test_index_account | stats list(age) as age_list"));
   }
-  
+
   @Test
   public void testRegexExplain() throws IOException {
     String query =
