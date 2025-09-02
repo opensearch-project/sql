@@ -430,11 +430,9 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
           "pattern",
           ReturnTypes.explicit(UserDefinedFunctionUtils.nullablePatternAggList),
           null);
-  public static final SqlAggFunction LIST = createUserDefinedAggFunction(
-          ListAggFunction.class,
-          "LIST",
-          PPLReturnTypes.STRING_ARRAY,
-          PPLOperandTypes.ANY_SCALAR);  
+  public static final SqlAggFunction LIST =
+      createUserDefinedAggFunction(
+          ListAggFunction.class, "LIST", PPLReturnTypes.STRING_ARRAY, PPLOperandTypes.ANY_SCALAR);
 
   public static final SqlOperator ENHANCED_COALESCE =
       new EnhancedCoalesceFunction().toUDF("COALESCE");

@@ -59,7 +59,8 @@ public final class PPLReturnTypes {
       opBinding -> {
         RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
         // Always return array of strings since multivalue functions convert everything to strings
-        RelDataType stringType = typeFactory.createSqlType(org.apache.calcite.sql.type.SqlTypeName.VARCHAR);
+        RelDataType stringType =
+            typeFactory.createSqlType(org.apache.calcite.sql.type.SqlTypeName.VARCHAR);
         return SqlTypeUtil.createArrayType(typeFactory, stringType, true);
       };
 }

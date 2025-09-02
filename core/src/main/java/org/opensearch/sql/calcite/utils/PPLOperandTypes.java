@@ -171,9 +171,9 @@ public class PPLOperandTypes {
                           SqlTypeFamily.CHARACTER)));
 
   /**
-   * Operand type checker that accepts any scalar type.
-   * This includes numeric types, strings, booleans, datetime types, and special scalar types like IP and BINARY.
-   * Excludes complex types like arrays, structs, and maps.
+   * Operand type checker that accepts any scalar type. This includes numeric types, strings,
+   * booleans, datetime types, and special scalar types like IP and BINARY. Excludes complex types
+   * like arrays, structs, and maps.
    */
   public static final UDFOperandMetadata ANY_SCALAR =
       UDFOperandMetadata.wrapUDT(
@@ -195,7 +195,5 @@ public class PPLOperandTypes {
               java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP),
               // Special scalar types
               java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.IP),
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.BINARY)
-          )
-      );
+              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.BINARY)));
 }

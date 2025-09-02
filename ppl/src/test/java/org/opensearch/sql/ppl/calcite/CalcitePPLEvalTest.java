@@ -448,9 +448,7 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
-    String expectedSparkSql =
-        "SELECT `LIST`(`DEPTNO`) `list(DEPTNO)`\n"
-            + "FROM `scott`.`EMP`";
+    String expectedSparkSql = "SELECT `LIST`(`DEPTNO`) `list(DEPTNO)`\n" + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }

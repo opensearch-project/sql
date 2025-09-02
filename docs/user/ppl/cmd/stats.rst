@@ -419,7 +419,7 @@ Description
 =======
 Version: 3.3.0 (Calcite engine only)
 
-Usage: LIST(expr). Returns an array containing all values of the specified field from the result set, preserving both duplicates and the original order of appearance.
+Usage: LIST(expr). Returns an array containing all values of the specified field from the result set.
 All values are converted to strings for consistent handling across different data types. The results are always limited to first 100.
 
 * expr: The field expression to collect values from.

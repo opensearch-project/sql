@@ -101,9 +101,9 @@ public class UserDefinedFunctionUtils {
         null,
         operandMetadata,
         Objects.requireNonNull(AggregateFunctionImpl.create(udafClass)),
-        false,
-        false,
-        Optionality.FORBIDDEN);
+        true,
+        true,
+        Optionality.MANDATORY);
   }
 
   /**
