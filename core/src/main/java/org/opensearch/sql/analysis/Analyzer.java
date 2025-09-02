@@ -79,6 +79,7 @@ import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
+import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
@@ -748,6 +749,12 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   public LogicalPlan visitTimechart(Timechart node, AnalysisContext context) {
     throw new UnsupportedOperationException(
         "TIMECHART is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+  }
+  
+  @Override
+  public LogicalPlan visitRegex(Regex node, AnalysisContext context) {
+    throw new UnsupportedOperationException(
+        "REGEX is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
   }
 
   @Override

@@ -94,6 +94,8 @@ The query start with search command and then flowing a set of command delimited 
 
   - `rename command <cmd/rename.rst>`_
 
+  - `regex command <cmd/regex.rst>`_
+
   - `search command <cmd/search.rst>`_
 
   - `show datasources command <cmd/showdatasources.rst>`_
