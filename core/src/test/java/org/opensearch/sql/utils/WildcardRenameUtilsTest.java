@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.LinkedHashSet;
+import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -28,9 +28,12 @@ class WildcardRenameUtilsTest {
   @Test
   void testIsFullWildcardPattern() {
     assertTrue(WildcardRenameUtils.isFullWildcardPattern("*"));
+    assertTrue(WildcardRenameUtils.isFullWildcardPattern("**"));
+    assertTrue(WildcardRenameUtils.isFullWildcardPattern("***"));
     assertFalse(WildcardRenameUtils.isFullWildcardPattern("*name"));
     assertFalse(WildcardRenameUtils.isFullWildcardPattern("prefix*"));
     assertFalse(WildcardRenameUtils.isFullWildcardPattern("name"));
+    assertFalse(WildcardRenameUtils.isFullWildcardPattern("*_*"));
   }
 
   @Test
@@ -43,30 +46,32 @@ class WildcardRenameUtilsTest {
 
   @Test
   void testMatchFieldNames() {
-    LinkedHashSet<String> fields = new LinkedHashSet<>();
-    fields.add("firstname");
-    fields.add("lastname");
-    fields.add("age");
-    fields.add("address");
-    fields.add("fullname");
+    ImmutableSet<String> availableFields =
+        ImmutableSet.of("firstname", "lastname", "age", "address", "fullname");
 
-    List<String> nameFields = WildcardRenameUtils.matchFieldNames("*name", fields);
+    List<String> nameFields = WildcardRenameUtils.matchFieldNames("*name", availableFields);
     assertEquals(List.of("firstname", "lastname", "fullname"), nameFields);
-    List<String> firstFields = WildcardRenameUtils.matchFieldNames("first*", fields);
+    List<String> firstFields = WildcardRenameUtils.matchFieldNames("first*", availableFields);
     assertEquals(List.of("firstname"), firstFields);
-
-    // Test full wildcard - matches all fields
-    List<String> allFields = WildcardRenameUtils.matchFieldNames("*", fields);
+    List<String> allFields = WildcardRenameUtils.matchFieldNames("*", availableFields);
     assertEquals(List.of("firstname", "lastname", "age", "address", "fullname"), allFields);
+  }
 
-    // Test no matches
-    List<String> noMatch = WildcardRenameUtils.matchFieldNames("*xyz", fields);
+  @Test
+  void testMatchFieldNamesNoMatches() {
+    ImmutableSet<String> availableFields =
+        ImmutableSet.of("firstname", "lastname", "age", "address", "fullname");
+    List<String> noMatch = WildcardRenameUtils.matchFieldNames("*xyz", availableFields);
     assertTrue(noMatch.isEmpty());
+  }
 
-    // Test exact match (no wildcards)
-    List<String> exactMatch = WildcardRenameUtils.matchFieldNames("age", fields);
+  @Test
+  void testMatchFieldNamesNoWildcards() {
+    ImmutableSet<String> availableFields =
+        ImmutableSet.of("firstname", "lastname", "age", "address", "fullname");
+    List<String> exactMatch = WildcardRenameUtils.matchFieldNames("age", availableFields);
     assertEquals(List.of("age"), exactMatch);
-    List<String> exactNoMatch = WildcardRenameUtils.matchFieldNames("xyz", fields);
+    List<String> exactNoMatch = WildcardRenameUtils.matchFieldNames("xyz", availableFields);
     assertTrue(exactNoMatch.isEmpty());
   }
 
@@ -84,8 +89,10 @@ class WildcardRenameUtilsTest {
     assertEquals(
         "prefixfirst",
         WildcardRenameUtils.applyWildcardTransformation("*name", "prefix*", "firstname"));
+  }
 
-    // Test full wildcard transformations
+  @Test
+  void testFullWildcardTransformation() {
     assertEquals(
         "firstname", WildcardRenameUtils.applyWildcardTransformation("*", "*", "firstname"));
     assertEquals(
@@ -93,16 +100,17 @@ class WildcardRenameUtilsTest {
         WildcardRenameUtils.applyWildcardTransformation("*", "new_*", "firstname"));
     assertEquals(
         "first", WildcardRenameUtils.applyWildcardTransformation("*name", "*", "firstname"));
+  }
 
-    // Test partial match
+  @Test
+  void testPartialMatchWildcardTransformation() {
     assertEquals(
         "FiRsTname",
         WildcardRenameUtils.applyWildcardTransformation("f*r*tname", "F*R*Tname", "firstname"));
   }
 
   @Test
-  void testApplyWildcardTransformationErrors() {
-    // Test pattern mismatch - field doesn't match source pattern
+  void testApplyWildcardTransformationPatternMismatch() {
     assertThrows(
         IllegalArgumentException.class,
         () -> WildcardRenameUtils.applyWildcardTransformation("*name", "*NAME", "age"));
@@ -110,20 +118,80 @@ class WildcardRenameUtilsTest {
 
   @Test
   void testValidatePatternCompatibility() {
-    // Valid patterns
     assertTrue(WildcardRenameUtils.validatePatternCompatibility("*name", "*NAME"));
     assertTrue(WildcardRenameUtils.validatePatternCompatibility("*_*", "*_*"));
     assertTrue(WildcardRenameUtils.validatePatternCompatibility("prefix*suffix", "PREFIX*SUFFIX"));
     assertTrue(WildcardRenameUtils.validatePatternCompatibility("name", "NAME"));
+  }
 
-    // Valid full wildcard patterns
+  @Test
+  void testValidatePatternCompatibilityFullWildcard() {
     assertTrue(WildcardRenameUtils.validatePatternCompatibility("*", "*"));
     assertTrue(WildcardRenameUtils.validatePatternCompatibility("*", "new_*"));
     assertTrue(WildcardRenameUtils.validatePatternCompatibility("*", "*_old"));
     assertTrue(WildcardRenameUtils.validatePatternCompatibility("old_*", "*"));
+  }
 
-    // Invalid patterns - mismatched wildcard counts
+  @Test
+  void testValidatePatternCompatibilityInvalidPattern() {
     assertFalse(WildcardRenameUtils.validatePatternCompatibility("*name", "*_*"));
     assertFalse(WildcardRenameUtils.validatePatternCompatibility("*_*", "*"));
+  }
+
+  @Test
+  void testFullWildcardPatternTransformation() {
+    assertEquals(
+        "firstname", WildcardRenameUtils.applyWildcardTransformation("*", "*", "firstname"));
+    assertEquals(
+        "firstname", WildcardRenameUtils.applyWildcardTransformation("**", "**", "firstname"));
+    assertEquals(
+        "firstname", WildcardRenameUtils.applyWildcardTransformation("***", "***", "firstname"));
+  }
+
+  @Test
+  void testSingleWildcardFullPatternTransformation() {
+    assertEquals(
+        "firstname_suffix",
+        WildcardRenameUtils.applyWildcardTransformation("*", "*_suffix", "firstname"));
+    assertEquals(
+        "prefix_firstname",
+        WildcardRenameUtils.applyWildcardTransformation("*", "prefix_*", "firstname"));
+    assertEquals(
+        "prefix_firstname_suffix",
+        WildcardRenameUtils.applyWildcardTransformation("*", "prefix_*_suffix", "firstname"));
+  }
+
+  @Test
+  void testMultipleWildcardSourcePatternError() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> WildcardRenameUtils.applyWildcardTransformation("**", "**_suffix", "firstname"));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> WildcardRenameUtils.applyWildcardTransformation("***", "prefix_***", "firstname"));
+  }
+
+  @Test
+  void testValidatePatternCompatibilityMultipleWildcards() {
+    assertTrue(WildcardRenameUtils.validatePatternCompatibility("**", "**"));
+    assertTrue(WildcardRenameUtils.validatePatternCompatibility("***", "***"));
+    assertFalse(WildcardRenameUtils.validatePatternCompatibility("**", "*"));
+    assertFalse(WildcardRenameUtils.validatePatternCompatibility("*", "**"));
+  }
+
+  @Test
+  void testConsecutiveWildcardsError() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> WildcardRenameUtils.applyWildcardTransformation("*n**me", "*N**ME", "firstname"));
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            WildcardRenameUtils.applyWildcardTransformation("**name", "**something", "firstname"));
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            WildcardRenameUtils.applyWildcardTransformation(
+                "**name**", "**something**", "firstname"));
   }
 }

@@ -426,7 +426,7 @@ hintPair
    ;
 
 renameClasue
-   : orignalField = wcFieldExpression AS renamedField = wcFieldExpression
+   : orignalField = renameFieldExpression AS renamedField = renameFieldExpression
    ;
 
 byClause
@@ -640,6 +640,11 @@ wcFieldExpression
    ;
 
 selectFieldExpression
+   : wcQualifiedName
+   | STAR
+   ;
+
+renameFieldExpression
    : wcQualifiedName
    | STAR
    ;
@@ -1212,7 +1217,6 @@ tableIdent
 
 wildcard
    : ident (MODULE ident)* (MODULE)?
-   | STAR
    | SINGLE_QUOTE wildcard SINGLE_QUOTE
    | DOUBLE_QUOTE wildcard DOUBLE_QUOTE
    | BACKTICK wildcard BACKTICK

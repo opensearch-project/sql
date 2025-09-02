@@ -7,8 +7,8 @@ package org.opensearch.sql.utils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -27,13 +27,13 @@ public class WildcardRenameUtils {
   }
 
   /**
-   * Check if pattern is a single wildcard that matches all fields.
+   * Check if pattern is only wildcards that matches all fields.
    *
    * @param pattern the pattern to check
-   * @return true if pattern is exactly "*"
+   * @return true if pattern is only made up of wildcards "*"
    */
   public static boolean isFullWildcardPattern(String pattern) {
-    return "*".equals(pattern);
+    return pattern.matches("\\*+");
   }
 
   /**
@@ -51,10 +51,11 @@ public class WildcardRenameUtils {
    * Match field names against wildcard pattern.
    *
    * @param wildcardPattern the pattern to match against
-   * @param availableFields set of available field names
+   * @param availableFields collection of available field names
    * @return list of matching field names
    */
-  public static List<String> matchFieldNames(String wildcardPattern, Set<String> availableFields) {
+  public static List<String> matchFieldNames(
+      String wildcardPattern, Collection<String> availableFields) {
     // Single wildcard matches all available fields
     if (isFullWildcardPattern(wildcardPattern)) {
       return new ArrayList<>(availableFields);
@@ -80,19 +81,18 @@ public class WildcardRenameUtils {
   public static String applyWildcardTransformation(
       String sourcePattern, String targetPattern, String actualFieldName) {
 
-    // Both are full wildcards
-    if (isFullWildcardPattern(sourcePattern) && isFullWildcardPattern(targetPattern)) {
+    if (sourcePattern.equals(targetPattern)) {
       return actualFieldName;
     }
 
-    if (isFullWildcardPattern(sourcePattern)) {
-      // Replace * in target with the actual field name
-      return targetPattern.replace("*", actualFieldName);
+    if (!isFullWildcardPattern(sourcePattern) || !isFullWildcardPattern(targetPattern)) {
+      if (sourcePattern.matches(".*\\*{2,}.*") || targetPattern.matches(".*\\*{2,}.*")) {
+        throw new IllegalArgumentException("Consecutive wildcards in pattern are not supported");
+      }
     }
 
     String sourceRegex = "^" + wildcardToRegex(sourcePattern) + "$";
-    Pattern sourceP = Pattern.compile(sourceRegex);
-    Matcher matcher = sourceP.matcher(actualFieldName);
+    Matcher matcher = Pattern.compile(sourceRegex).matcher(actualFieldName);
 
     if (!matcher.matches()) {
       throw new IllegalArgumentException(
@@ -107,6 +107,9 @@ public class WildcardRenameUtils {
       int index = result.indexOf("*");
       if (index >= 0) {
         result = result.substring(0, index) + capturedValue + result.substring(index + 1);
+      } else {
+        throw new IllegalArgumentException(
+            "Target pattern has fewer wildcards than source pattern");
       }
     }
 

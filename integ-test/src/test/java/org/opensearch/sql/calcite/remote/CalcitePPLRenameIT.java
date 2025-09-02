@@ -40,12 +40,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
         schema("country", "string"),
         schema("year", "int"),
         schema("month", "int"));
-    verifyDataRows(
-        result,
-        rows("Jake", "USA", "California", 4, 2023, 70),
-        rows("Hello", "USA", "New York", 4, 2023, 30),
-        rows("John", "Canada", "Ontario", 4, 2023, 25),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20));
+    verifyStandardDataRows(result);
   }
 
   @Test
@@ -85,12 +80,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
         schema("country", "string"),
         schema("year", "int"),
         schema("month", "int"));
-    verifyDataRows(
-        result,
-        rows("Jake", "USA", "California", 4, 2023, 70),
-        rows("Hello", "USA", "New York", 4, 2023, 30),
-        rows("John", "Canada", "Ontario", 4, 2023, 25),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20));
+    verifyStandardDataRows(result);
   }
 
   @Test
@@ -169,12 +159,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
         schema("country", "string"),
         schema("year", "int"),
         schema("month", "int"));
-    verifyDataRows(
-        result,
-        rows("Jake", "USA", "California", 4, 2023, 70),
-        rows("Hello", "USA", "New York", 4, 2023, 30),
-        rows("John", "Canada", "Ontario", 4, 2023, 25),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20));
+    verifyStandardDataRows(result);
   }
 
   @Test
@@ -189,12 +174,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
         schema("couNTry", "string"),
         schema("year", "int"),
         schema("moNTh", "int"));
-    verifyDataRows(
-        result,
-        rows("Jake", "USA", "California", 4, 2023, 70),
-        rows("Hello", "USA", "New York", 4, 2023, 30),
-        rows("John", "Canada", "Ontario", 4, 2023, 25),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20));
+    verifyStandardDataRows(result);
   }
 
   @Test
@@ -209,12 +189,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
         schema("country", "string"),
         schema("year", "int"),
         schema("month", "int"));
-    verifyDataRows(
-        result,
-        rows("Jake", "USA", "California", 4, 2023, 70),
-        rows("Hello", "USA", "New York", 4, 2023, 30),
-        rows("John", "Canada", "Ontario", 4, 2023, 25),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20));
+    verifyStandardDataRows(result);
   }
 
   @Test
@@ -240,12 +215,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
         schema("country", "string"),
         schema("year", "int"),
         schema("MoNtH", "int"));
-    verifyDataRows(
-        result,
-        rows("Jake", "USA", "California", 4, 2023, 70),
-        rows("Hello", "USA", "New York", 4, 2023, 30),
-        rows("John", "Canada", "Ontario", 4, 2023, 25),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20));
+    verifyStandardDataRows(result);
   }
 
   @Test
@@ -315,12 +285,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
         schema("country", "string"),
         schema("year", "int"),
         schema("month", "int"));
-    verifyDataRows(
-        result,
-        rows("Jake", "USA", "California", 4, 2023, 70),
-        rows("Hello", "USA", "New York", 4, 2023, 30),
-        rows("John", "Canada", "Ontario", 4, 2023, 25),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20));
+    verifyStandardDataRows(result);
   }
 
   @Test
@@ -365,6 +330,46 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
         schema("country", "string"),
         schema("year", "int"),
         schema("month", "int"));
+    verifyStandardDataRows(result);
+  }
+
+  @Test
+  public void testMultipleRenameWithoutComma() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | rename name as user_name age as user_age country as location",
+                TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        result,
+        schema("user_name", "string"),
+        schema("user_age", "int"),
+        schema("state", "string"),
+        schema("location", "string"),
+        schema("year", "int"),
+        schema("month", "int"));
+    verifyStandardDataRows(result);
+  }
+
+  @Test
+  public void testRenameMixedCommaAndSpace() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | rename name as user_name, age as user_age country as location",
+                TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        result,
+        schema("user_name", "string"),
+        schema("user_age", "int"),
+        schema("state", "string"),
+        schema("location", "string"),
+        schema("year", "int"),
+        schema("month", "int"));
+    verifyStandardDataRows(result);
+  }
+
+  private void verifyStandardDataRows(JSONObject result) {
     verifyDataRows(
         result,
         rows("Jake", "USA", "California", 4, 2023, 70),

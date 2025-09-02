@@ -82,7 +82,7 @@ The example shows renaming multiple fields using wildcard patterns. (Requires Ca
 
 PPL query::
 
-    PPL> source=accounts | rename *name as *_name | fields first_name, last_name;
+    os> source=accounts | rename *name as *_name | fields first_name, last_name;
     fetched rows / total rows = 4/4
     +------------+-----------+
     | first_name | last_name |
@@ -101,7 +101,7 @@ The example shows renaming multiple fields using multiple wildcard patterns. (Re
 
 PPL query::
 
-    PPL> source=accounts | rename *name as *_name, *_number as *number | fields first_name, last_name, accountnumber;
+    os> source=accounts | rename *name as *_name, *_number as *number | fields first_name, last_name, accountnumber;
     fetched rows / total rows = 4/4
     +------------+-----------+---------------+
     | first_name | last_name | accountnumber |
@@ -120,7 +120,7 @@ The example shows renaming an existing field to an existing field. The target fi
 
 PPL query::
 
-    PPL> source=accounts | rename firstname as age | fields age;
+    os> source=accounts | rename firstname as age | fields age;
     fetched rows / total rows = 4/4
     +---------+
     | age     |

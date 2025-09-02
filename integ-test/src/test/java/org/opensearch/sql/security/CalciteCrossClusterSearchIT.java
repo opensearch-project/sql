@@ -266,4 +266,30 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
         rows("Amber JOHnny"),
         rows("Nanette"));
   }
+
+  @Test
+  public void testCrossClusterRenameWildcardPattern() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("search source=%s | rename *ame as *AME", TEST_INDEX_DOG_REMOTE));
+    verifyColumn(result, columnName("dog_nAME"), columnName("holdersNAME"), columnName("age"));
+    verifySchema(
+        result,
+        schema("dog_nAME", "string"),
+        schema("holdersNAME", "string"),
+        schema("age", "bigint"));
+  }
+
+  @Test
+  public void testCrossClusterRenameFullWildcard() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("search source=%s | rename * as old_*", TEST_INDEX_DOG_REMOTE));
+    verifyColumn(
+        result, columnName("old_dog_name"), columnName("old_holdersName"), columnName("old_age"));
+    verifySchema(
+        result,
+        schema("old_dog_name", "string"),
+        schema("old_holdersName", "string"),
+        schema("old_age", "bigint"));
+  }
 }

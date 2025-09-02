@@ -430,37 +430,34 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             "Source and target patterns have different wildcard counts");
       }
 
-      Set<String> availableFields = new HashSet<>(newNames);
-      List<String> matchingFields =
-          WildcardRenameUtils.matchFieldNames(sourcePattern, availableFields);
+      List<String> matchingFields = WildcardRenameUtils.matchFieldNames(sourcePattern, newNames);
 
       for (String fieldName : matchingFields) {
-        String newName;
-        newName =
+        String newName =
             WildcardRenameUtils.applyWildcardTransformation(
                 sourcePattern, targetPattern, fieldName);
-
-        // If target field already exists, remove field before renaming source
-        int existingFieldIndex = newNames.indexOf(newName);
-        if (existingFieldIndex != -1 && !fieldName.equals(newName)) {
-          newNames.remove(newName);
-          context.relBuilder.projectExcept(context.relBuilder.field(newName));
+        if (newNames.contains(newName) && !newName.equals(fieldName)) {
+          removeFieldIfExists(newName, newNames, context);
         }
-
         int fieldIndex = newNames.indexOf(fieldName);
         if (fieldIndex != -1) {
           newNames.set(fieldIndex, newName);
         }
-        context.relBuilder.rename(newNames);
       }
-      // if source field doesn't exist but target does, remove target field from results
+
       if (matchingFields.isEmpty() && newNames.contains(targetPattern)) {
-        newNames.remove(targetPattern);
-        context.relBuilder.projectExcept(context.relBuilder.field(targetPattern));
+        removeFieldIfExists(targetPattern, newNames, context);
         context.relBuilder.rename(newNames);
       }
     }
+    context.relBuilder.rename(newNames);
     return context.relBuilder.peek();
+  }
+
+  private void removeFieldIfExists(
+      String fieldName, List<String> newNames, CalcitePlanContext context) {
+    newNames.remove(fieldName);
+    context.relBuilder.projectExcept(context.relBuilder.field(fieldName));
   }
 
   @Override
