@@ -22,7 +22,7 @@ Syntax
 ============
 append <sub-search>
 
-* sub-search: mandatory. Executes PPL commands as a secondary search. The sub-search uses the same data specified in the source clause of the main search results as its input.
+* sub-search: mandatory. Executes PPL commands as a secondary search.
 
 Example 1: Append rows from a count aggregation to existing search result
 ===============================================================
@@ -31,18 +31,17 @@ This example appends rows from "count by gender" to "sum by gender, state".
 
 PPL query::
 
-    PPL> source=accounts | stats sum(age) by gender, state | sort -`sum(age)` | head 5 | append [ stats count(age) by gender ];
-    fetched rows / total rows = 7/7
+    os> source=accounts | stats sum(age) by gender, state | sort -`sum(age)` | head 5 | append [ source=accounts | stats count(age) by gender ];
+    fetched rows / total rows = 6/6
     +----------+--------+-------+------------+
     | sum(age) | gender | state | count(age) |
     |----------+--------+-------+------------|
-    | 580      | M      | MD    | NULL       |
-    | 547      | M      | ID    | NULL       |
-    | 485      | F      | TX    | NULL       |
-    | 472      | M      | OK    | NULL       |
-    | 452      | M      | ME    | NULL       |
-    | NULL     | F      | NULL  | 493        |
-    | NULL     | M      | NULL  | 507        |
+    | 36       | M      | TN    | null       |
+    | 33       | M      | MD    | null       |
+    | 32       | M      | IL    | null       |
+    | 28       | F      | VA    | null       |
+    | null     | F      | null  | 1          |
+    | null     | M      | null  | 3          |
     +----------+--------+-------+------------+
 
 Example 2: Append rows with merged column names
@@ -52,19 +51,18 @@ This example appends rows from "sum by gender" to "sum by gender, state" with me
 
 PPL query::
 
-    PPL> source=accounts | stats sum(age) as sum by gender, state | sort -sum | head 5 | append [ stats sum(age) as sum by gender ];
-    fetched rows / total rows = 7/7
-    +--------+--------+-------+
-    | sum    | gender | state |
-    |--------+--------+-------+
-    | 580    | M      | MD    |
-    | 547    | M      | ID    |
-    | 485    | F      | TX    |
-    | 472    | M      | OK    |
-    | 452    | M      | ME    |
-    | 14947  | F      | NULL  |
-    | 15224  | M      | NULL  |
-    +--------+--------+-------+
+    os> source=accounts | stats sum(age) as sum by gender, state | sort -sum | head 5 | append [ source=accounts | stats sum(age) as sum by gender ];
+    fetched rows / total rows = 6/6
+    +-----+--------+-------+
+    | sum | gender | state |
+    |-----+--------+-------|
+    | 36  | M      | TN    |
+    | 33  | M      | MD    |
+    | 32  | M      | IL    |
+    | 28  | F      | VA    |
+    | 28  | F      | null  |
+    | 101 | M      | null  |
+    +-----+--------+-------+
 
 Example 3: Append rows with column type conflict
 =============================================
@@ -73,17 +71,20 @@ This example shows how column type conflicts are handled when appending results.
 
 PPL query::
 
-    PPL> source=accounts | stats sum(age) as sum by gender, state | sort -sum | head 5 | append [ stats sum(age) as sum by gender | eval sum = cast(sum as double) ];
-    fetched rows / total rows = 7/7
+    os> source=accounts | stats sum(age) as sum by gender, state | sort -sum | head 5 | append [ source=accounts | stats sum(age) as sum by gender | eval sum = cast(sum as double) ];
+    fetched rows / total rows = 6/6
     +------+--------+-------+-------+
     | sum  | gender | state | sum0  |
-    |------+--------+-------+-------+
-    | 580  | M      | MD    | NULL  |
-    | 547  | M      | ID    | NULL  |
-    | 485  | F      | TX    | NULL  |
-    | 472  | M      | OK    | NULL  |
-    | 452  | M      | ME    | NULL  |
-    | NULL | F      | NULL  | 14947 |
-    | NULL | M      | NULL  | 15224 |
+    |------+--------+-------+-------|
+    | 36   | M      | TN    | null  |
+    | 33   | M      | MD    | null  |
+    | 32   | M      | IL    | null  |
+    | 28   | F      | VA    | null  |
+    | null | F      | null  | 28.0  |
+    | null | M      | null  | 101.0 |
     +------+--------+-------+-------+
+
+Limitation
+==========
+Append command doesn't support appending the subsearch starting with empty search. Start either with search command or other data generating commands.
 
