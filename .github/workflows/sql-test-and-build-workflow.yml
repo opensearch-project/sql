@@ -129,7 +129,7 @@ jobs:
       - name: Build and Test
         run: |
           if [ "${{ matrix.test-type }}" = "unit" ]; then
-            ./gradlew --continue build -x integTest -x doctest ${{ matrix.entry.os_build_args }}
+            ./gradlew --parallel --continue build -x integTest -x doctest ${{ matrix.entry.os_build_args }}
           elif [ "${{ matrix.test-type }}" = "integration" ]; then
             ./gradlew --continue integTest ${{ matrix.entry.os_build_args }}
           else
