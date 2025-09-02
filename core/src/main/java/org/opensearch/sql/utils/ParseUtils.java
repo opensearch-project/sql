@@ -16,6 +16,7 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.parse.GrokExpression;
 import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.expression.parse.PatternsExpression;
+import org.opensearch.sql.expression.parse.RegexCommonUtils;
 import org.opensearch.sql.expression.parse.RegexExpression;
 
 /** Utils for {@link ParseExpression}. */
@@ -57,7 +58,7 @@ public class ParseUtils {
       ParseMethod parseMethod, String pattern, Map<String, Literal> arguments) {
     switch (parseMethod) {
       case REGEX:
-        return RegexExpression.getNamedGroupCandidates(pattern);
+        return RegexCommonUtils.getNamedGroupCandidates(pattern);
       case GROK:
         return GrokExpression.getNamedGroupCandidates(pattern);
       default:
