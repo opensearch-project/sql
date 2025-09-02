@@ -162,7 +162,7 @@ dedupCommand
    ;
 
 sortCommand
-   : SORT (count = integerLiteral)? sortbyClause (DESC | D)?
+   : SORT (count = integerLiteral)? sortbyClause (ASC | A | DESC | D)?
    ;
 
 reverseCommand
@@ -1243,6 +1243,8 @@ keywordsCanBeId
    | EXISTS
    | SOURCE
    | INDEX
+   | A
+   | ASC
    | DESC
    | DATASOURCES
    | FROM
