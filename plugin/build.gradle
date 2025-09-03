@@ -155,6 +155,7 @@ dependencies {
 }
 
 test {
+    maxParallelForks = Runtime.runtime.availableProcessors()
     include '**/*Test.class'
     testLogging {
         events "passed", "skipped", "failed"
