@@ -1507,12 +1507,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       RelNode completeResults, int limit, CalcitePlanContext context) {
     context.relBuilder.push(completeResults);
 
-    // Get totals for all categories - field positions: 0=@timestamp, 1=byField, 2=value
+    // Filter out null values when determining top categories - null should not count towards limit
+    context.relBuilder.filter(context.relBuilder.isNotNull(context.relBuilder.field(1)));
+
+    // Get totals for non-null categories - field positions: 0=@timestamp, 1=byField, 2=value
     context.relBuilder.aggregate(
         context.relBuilder.groupKey(context.relBuilder.field(1)),
         context.relBuilder.sum(context.relBuilder.field(2)).as("grand_total"));
 
-    // Apply sorting and limit to all categories
+    // Apply sorting and limit to non-null categories only
     context.relBuilder.sort(context.relBuilder.desc(context.relBuilder.field("grand_total")));
     if (limit > 0) {
       context.relBuilder.limit(0, limit);
