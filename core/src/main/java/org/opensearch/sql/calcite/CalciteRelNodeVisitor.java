@@ -1508,7 +1508,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
   }
 
-  /** Build top categories query - NULL always included, limit applies only to non-null */
+  /** Build top categories query - simpler approach that works better with OTHER handling */
   private RelNode buildTopCategoriesQuery(
       RelNode completeResults, int limit, CalcitePlanContext context) {
     context.relBuilder.push(completeResults);
@@ -1517,28 +1517,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     context.relBuilder.aggregate(
         context.relBuilder.groupKey(context.relBuilder.field(1)),
         context.relBuilder.sum(context.relBuilder.field(2)).as("grand_total"));
-    RelNode allCategoryTotals = context.relBuilder.build();
-
+    
+    // Apply sorting and limit to all categories
+    context.relBuilder.sort(context.relBuilder.desc(context.relBuilder.field("grand_total")));
     if (limit > 0) {
-      // Split into NULL and non-NULL, apply limit only to non-NULL
-      context.relBuilder.push(allCategoryTotals);
-      context.relBuilder.filter(context.relBuilder.isNull(context.relBuilder.field(0)));
-      RelNode nullCategories = context.relBuilder.build();
-
-      context.relBuilder.push(allCategoryTotals);
-      context.relBuilder.filter(context.relBuilder.isNotNull(context.relBuilder.field(0)));
-      context.relBuilder.sort(context.relBuilder.desc(context.relBuilder.field("grand_total")));
       context.relBuilder.limit(0, limit);
-      RelNode topNonNullCategories = context.relBuilder.build();
-
-      // Union NULL with top non-NULL categories
-      context.relBuilder.push(topNonNullCategories);
-      context.relBuilder.push(nullCategories);
-      context.relBuilder.union(false);
-      return context.relBuilder.build();
-    } else {
-      return allCategoryTotals;
     }
+    
+    return context.relBuilder.build();
   }
 
   /** Build final result with OTHER category using efficient single-pass approach */
@@ -1640,18 +1626,28 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         context.relBuilder.groupKey(context.relBuilder.field(0)));
     RelNode allTimestamps = context.relBuilder.build();
 
-    // Build categories for zero-filling (EXCLUDING nulls for zero-fill, but including in final result)
+    // Get all categories for zero-filling - apply OTHER logic here too
+    context.relBuilder.push(completeResults);
     context.relBuilder.push(topCategories);
-    context.relBuilder.project(context.relBuilder.field(0));
-    context.relBuilder.filter(context.relBuilder.isNotNull(context.relBuilder.field(0)));
-    RelNode nonNullCategories = context.relBuilder.build();
+    context.relBuilder.join(
+        org.apache.calcite.rel.core.JoinRelType.LEFT,
+        context.relBuilder.call(
+            org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
+            context.relBuilder.field(2, 0, 1), context.relBuilder.field(2, 1, 0)));
 
-    // Cross join timestamps with NON-NULL categories only for zero-filling
+    int topCategoryFieldIndex = completeResults.getRowType().getFieldCount();
+    RexNode categoryExpr = createOtherCaseExpression(topCategoryFieldIndex, 1, context);
+    
+    context.relBuilder.project(categoryExpr);
+    context.relBuilder.aggregate(context.relBuilder.groupKey(context.relBuilder.field(0)));
+    RelNode allCategories = context.relBuilder.build();
+
+    // Cross join timestamps with ALL categories (including OTHER) for zero-filling
     context.relBuilder.push(allTimestamps);
-    context.relBuilder.push(nonNullCategories);
+    context.relBuilder.push(allCategories);
     context.relBuilder.join(org.apache.calcite.rel.core.JoinRelType.INNER, context.relBuilder.literal(true));
 
-    // Create zero-filled combinations with count=0 (only for non-null categories)
+    // Create zero-filled combinations with count=0
     context.relBuilder.project(
         context.relBuilder.alias(
             context.relBuilder.cast(context.relBuilder.field(0), SqlTypeName.TIMESTAMP), "@timestamp"),
@@ -1669,13 +1665,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
             context.relBuilder.field(2, 0, 1), context.relBuilder.field(2, 1, 0)));
 
-    int topCategoryFieldIndex = completeResults.getRowType().getFieldCount();
-    RexNode categoryExpr = createOtherCaseExpression(topCategoryFieldIndex, 1, context);
+    int actualTopCategoryFieldIndex = completeResults.getRowType().getFieldCount();
+    RexNode actualCategoryExpr = createOtherCaseExpression(actualTopCategoryFieldIndex, 1, context);
 
     context.relBuilder.project(
         context.relBuilder.alias(
             context.relBuilder.cast(context.relBuilder.field(0), SqlTypeName.TIMESTAMP), "@timestamp"),
-        context.relBuilder.alias(categoryExpr, byFieldName),
+        context.relBuilder.alias(actualCategoryExpr, byFieldName),
         context.relBuilder.alias(context.relBuilder.field(2), valueFunctionName));
 
     context.relBuilder.aggregate(
@@ -1683,7 +1679,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         context.relBuilder.sum(context.relBuilder.field(2)).as("actual_count"));
     RelNode actualResults = context.relBuilder.build();
 
-    // UNION zero-filled with actual results (simpler than complex joins)
+    // UNION zero-filled with actual results
     context.relBuilder.push(actualResults);
     context.relBuilder.push(zeroFilledCombinations);
     context.relBuilder.union(false);
