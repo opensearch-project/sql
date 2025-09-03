@@ -90,20 +90,14 @@ Firstly you need to add the following configuration to the JVM used by your IDE.
 License Header
 --------------
 
-Because our code is licensed under Apache 2, you need to add the following license header to all new source code files. To automate this whenever creating new file, you can follow instructions for your IDE::
+Because our code is licensed under Apache 2, you need to add the following license header to all new source code files. To automate this whenever creating new file, you can follow instructions for your IDE.
 
-   /*
-    * Licensed under the Apache License, Version 2.0 (the "License").
-    * You may not use this file except in compliance with the License.
-    * A copy of the License is located at
-    * 
-    *    http://www.apache.org/licenses/LICENSE-2.0
-    * 
-    * or in the "license" file accompanying this file. This file is distributed 
-    * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either 
-    * express or implied. See the License for the specific language governing 
-    * permissions and limitations under the License.
-    */
+.. code:: java
+
+  /*
+   * Copyright OpenSearch Contributors
+   * SPDX-License-Identifier: Apache-2.0
+   */
 
 For example, `here are the instructions for adding copyright profiles in IntelliJ IDEA <https://www.jetbrains.com/help/idea/copyright.html>`__.
 
@@ -210,6 +204,14 @@ Java files are formatted using `Spotless <https://github.com/diffplug/spotless>`
    * - Javadocs should be properly formatted in accordance to `Javadoc guidelines <https://www.oracle.com/ca-en/technical-resources/articles/java/javadoc-tool.html>`_
    * - Javadoc format can be maintained by wrapping javadoc with `<pre></pre>` HTML tags
    * - Strings can be formatted on multiple lines with a `+` with the correct indentation for the string.
+
+Development Guidelines
+----------------------
+
+For detailed development documentation, please refer to the `development documentation <docs/dev/index.md>`_. For specific guidance on implementing PPL components, see the following resources:
+
+- `PPL Commands <docs/dev/ppl-commands.md>`_: Guidelines for adding new commands to PPL
+- `PPL Functions <docs/dev/ppl-functions.md>`_: Instructions for implementing and integrating custom functions
 
 Building and Running Tests
 ==========================
