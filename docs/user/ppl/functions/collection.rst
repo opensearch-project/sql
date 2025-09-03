@@ -223,22 +223,6 @@ Example::
     |----------------------------------|
     | a,b,c                            |
     +----------------------------------+
-
-    PPL> source=people | eval result = mvjoin(array('1', '2', '3'), ' | ') | fields result | head 1
-    fetched rows / total rows = 1/1
-    +----------------------------------+
-    | result                           |
-    |----------------------------------|
-    | 1 | 2 | 3                        |
-    +----------------------------------+
-
-    PPL> source=people | eval result = mvjoin(array('a', null, 'c'), ',') | fields result | head 1
-    fetched rows / total rows = 1/1
-    +----------------------------------+
-    | result                           |
-    |----------------------------------|
-    | a,c                              |
-    +----------------------------------+
     
     PPL> source=people | eval result = mvjoin('hello', ',') | fields result | head 1
     fetched rows / total rows = 1/1
