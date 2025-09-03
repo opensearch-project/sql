@@ -32,6 +32,7 @@ import static org.opensearch.sql.legacy.TestUtils.getHobbiesIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getJoinTypeIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getJsonTestIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getLocationIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getLogsIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getMappingFile;
 import static org.opensearch.sql.legacy.TestUtils.getNestedSimpleIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getNestedTypeIndexMapping;
@@ -906,6 +907,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "hdfs_logs",
         getHdfsLogsIndexMapping(),
         "src/test/resources/hdfs_logs.json"),
+    LOGS(
+        TestsConstants.TEST_INDEX_LOGS,
+        "logs",
+        getLogsIndexMapping(),
+        "src/test/resources/logs.json"),
     TIME_TEST_DATA(
         "opensearch-sql_test_index_time_data",
         "time_data",
