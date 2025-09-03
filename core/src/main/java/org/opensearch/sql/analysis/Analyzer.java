@@ -740,8 +740,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   @Override
   public LogicalPlan visitRegex(Regex node, AnalysisContext context) {
-    throw new UnsupportedOperationException(
-        "REGEX is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+    throw getOnlyForCalciteException("Regex");
   }
 
   @Override
