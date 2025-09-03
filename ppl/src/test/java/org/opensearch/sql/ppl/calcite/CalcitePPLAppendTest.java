@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.ppl.calcite;
 
-import static org.junit.Assert.assertThrows;
-
 import java.util.Arrays;
 import java.util.List;
 import org.apache.calcite.rel.RelNode;
@@ -43,17 +41,67 @@ public class CalcitePPLAppendTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testAppendEmptySearchCommand() {
-    // Empty input aka empty searchCommand has no specified schema.
-    // Since we don't support typed null for non-existent field from input,
-    // it will error out while building RelNode in case of field not found.
-    List<String> illegalEmptySubsearchPPLs =
+    List<String> emptySourcePPLs =
         Arrays.asList(
             "source=EMP | append [ | where DEPTNO = 20 ]",
-            "source=EMP | append [ | stats count() ]");
+            "source=EMP | append [ ]",
+            "source=EMP | append [ | where DEPTNO = 20 | append [ ] ]");
 
-    for (String illegalPPL : illegalEmptySubsearchPPLs) {
-      assertThrows(IllegalArgumentException.class, () -> getRelNode(illegalPPL));
+    for (String ppl : emptySourcePPLs) {
+      RelNode root = getRelNode(ppl);
+      String expectedLogical =
+          "LogicalUnion(all=[true])\n"
+              + "  LogicalTableScan(table=[[scott, EMP]])\n"
+              + "  LogicalValues(tuples=[[]])\n";
+      verifyLogical(root, expectedLogical);
+
+      String expectedSparkSql =
+          "SELECT *\n"
+              + "FROM `scott`.`EMP`\n"
+              + "UNION ALL\n"
+              + "SELECT *\n"
+              + "FROM (VALUES (NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)) `t` (`EMPNO`,"
+              + " `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`)\n"
+              + "WHERE 1 = 0";
+      verifyPPLToSparkSQL(root, expectedSparkSql);
     }
+  }
+
+  @Test
+  public void testAppendNested() {
+    String ppl =
+        "source=EMP | append [ | where DEPTNO = 10 | append [ source=EMP | where DEPTNO = 20 ] ]";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalUnion(all=[true])\n"
+            + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], EMPNO0=[null:SMALLINT])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "  LogicalProject(EMPNO=[null:SMALLINT], ENAME=[$1], JOB=[$2], MGR=[$3],"
+            + " HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], EMPNO0=[$0])\n"
+            + "    LogicalUnion(all=[true])\n"
+            + "      LogicalValues(tuples=[[]])\n"
+            + "      LogicalFilter(condition=[=($7, 20)])\n"
+            + "        LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 19); // 14 original table rows + 5 filtered subquery rows
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, CAST(NULL AS"
+            + " SMALLINT) `EMPNO0`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "UNION ALL\n"
+            + "SELECT CAST(NULL AS SMALLINT) `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`,"
+            + " `COMM`, `DEPTNO`, `EMPNO` `EMPNO0`\n"
+            + "FROM (SELECT *\n"
+            + "FROM (VALUES (NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)) `t` (`EMPNO`,"
+            + " `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`)\n"
+            + "WHERE 1 = 0\n"
+            + "UNION ALL\n"
+            + "SELECT *\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE `DEPTNO` = 20) `t2`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test

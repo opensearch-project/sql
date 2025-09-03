@@ -1588,7 +1588,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitValues(Values values, CalcitePlanContext context) {
     if (values.getValues() == null || values.getValues().isEmpty()) {
-      throw new IllegalArgumentException("Empty values input is not supported");
+      context.relBuilder.values(context.relBuilder.getTypeFactory().builder().build());
+      return context.relBuilder.peek();
     } else {
       throw new CalciteUnsupportedException("Explicit values node is unsupported in Calcite");
     }

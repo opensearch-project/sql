@@ -84,7 +84,3 @@ PPL query::
     | null | M      | null  | 101.0 |
     +------+--------+-------+-------+
 
-Limitation
-==========
-Append command doesn't support appending the subsearch starting with empty search. Start either with search command or other data generating commands.
-

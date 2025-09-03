@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Test;
-import org.opensearch.client.ResponseException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalcitePPLAppendCommandIT extends PPLIntegTestCase {
@@ -58,10 +57,7 @@ public class CalcitePPLAppendCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testAppendEmptySearchCommand() throws IOException {
-    // Empty input aka empty searchCommand has no specified schema.
-    // Since we don't support typed null for non-existent field from input,
-    // it will error out while building RelNode in case of field not found.
-    List<String> illegalEmptySubsearchPPLs =
+    List<String> emptySourcePPLs =
         Arrays.asList(
             String.format(
                 Locale.ROOT,
@@ -71,10 +67,18 @@ public class CalcitePPLAppendCommandIT extends PPLIntegTestCase {
             String.format(
                 Locale.ROOT,
                 "source=%s | stats sum(age) as sum_age_by_gender by gender | append [ ]",
+                TEST_INDEX_ACCOUNT),
+            String.format(
+                Locale.ROOT,
+                "source=%s | stats sum(age) as sum_age_by_gender by gender | append [ | where age >"
+                    + " 10 | append [ ] ]",
                 TEST_INDEX_ACCOUNT));
 
-    for (String illegalPPL : illegalEmptySubsearchPPLs) {
-      assertThrows(ResponseException.class, () -> executeQuery(illegalPPL));
+    for (String ppl : emptySourcePPLs) {
+      JSONObject actual = executeQuery(ppl);
+      verifySchemaInOrder(
+          actual, schema("sum_age_by_gender", "bigint"), schema("gender", "string"));
+      verifyDataRows(actual, rows(14947, "F"), rows(15224, "M"));
     }
   }
 
