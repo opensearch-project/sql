@@ -5,7 +5,11 @@
 
 package org.opensearch.sql.calcite.remote;
 
+<<<<<<< HEAD
 import static org.opensearch.sql.legacy.TestUtils.*;
+=======
+import static org.junit.Assert.assertTrue;
+>>>>>>> 9af7e9ae0 (mvjoin support in PPL Caclite)
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
@@ -429,6 +433,16 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_simple_sort_expr_single_expr_output_push.json");
     assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testMvjoinExplain() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | eval result = mvjoin(array('a', 'b', 'c'), ',')"
+            + " | fields result | head 1";
+    var result = explainQueryToString(query);
+    assertTrue(result.contains("ARRAY_JOIN"));
+    assertTrue(result.contains("ARRAY"));
   }
 
   /**
