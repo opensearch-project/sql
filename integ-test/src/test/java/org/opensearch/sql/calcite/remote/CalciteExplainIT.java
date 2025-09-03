@@ -378,6 +378,15 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testListAggregationExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_list_aggregation.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats list(age) as age_list"));
+  }
+
+  @Test
   public void testRegexExplain() throws IOException {
     String query =
         "source=opensearch-sql_test_index_account | regex lastname='^[A-Z][a-z]+$' | head 5";

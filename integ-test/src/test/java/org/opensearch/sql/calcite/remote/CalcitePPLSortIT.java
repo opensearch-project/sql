@@ -234,4 +234,100 @@ public class CalcitePPLSortIT extends PPLIntegTestCase {
         rows("Virginia", "2018-08-19 00:00:00"),
         rows("Dale", "2018-11-13 23:33:20"));
   }
+
+  @Test
+  public void testSortWithAscKeyword() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | sort account_number asc | fields account_number, firstname",
+                TEST_INDEX_BANK));
+    verifySchema(result, schema("account_number", "bigint"), schema("firstname", "string"));
+    verifyDataRowsInOrder(
+        result,
+        rows(1, "Amber JOHnny"),
+        rows(6, "Hattie"),
+        rows(13, "Nanette"),
+        rows(18, "Dale"),
+        rows(20, "Elinor"),
+        rows(25, "Virginia"),
+        rows(32, "Dillard"));
+  }
+
+  @Test
+  public void testSortWithAKeyword() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | sort account_number a | fields account_number, firstname",
+                TEST_INDEX_BANK));
+    verifySchema(result, schema("account_number", "bigint"), schema("firstname", "string"));
+    verifyDataRowsInOrder(
+        result,
+        rows(1, "Amber JOHnny"),
+        rows(6, "Hattie"),
+        rows(13, "Nanette"),
+        rows(18, "Dale"),
+        rows(20, "Elinor"),
+        rows(25, "Virginia"),
+        rows(32, "Dillard"));
+  }
+
+  @Test
+  public void testSortWithDescKeyword() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | sort account_number desc | fields account_number, firstname",
+                TEST_INDEX_BANK));
+    verifySchema(result, schema("account_number", "bigint"), schema("firstname", "string"));
+    verifyDataRowsInOrder(
+        result,
+        rows(32, "Dillard"),
+        rows(25, "Virginia"),
+        rows(20, "Elinor"),
+        rows(18, "Dale"),
+        rows(13, "Nanette"),
+        rows(6, "Hattie"),
+        rows(1, "Amber JOHnny"));
+  }
+
+  @Test
+  public void testSortWithCount() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | sort 3 account_number | fields account_number, firstname",
+                TEST_INDEX_BANK));
+    verifySchema(result, schema("account_number", "bigint"), schema("firstname", "string"));
+    verifyDataRowsInOrder(result, rows(1, "Amber JOHnny"), rows(6, "Hattie"), rows(13, "Nanette"));
+  }
+
+  @Test
+  public void testSortWithStrCast() throws IOException {
+
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | sort STR(account_number) | fields account_number", TEST_INDEX_BANK));
+    verifyDataRowsInOrder(
+        result, rows(1), rows(13), rows(18), rows(20), rows(25), rows(32), rows(6));
+  }
+
+  @Test
+  public void testSortWithAutoCast() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | sort AUTO(age) | fields firstname, age", TEST_INDEX_BANK));
+    verifySchema(result, schema("firstname", "string"), schema("age", "int"));
+    verifyDataRowsInOrder(
+        result,
+        rows("Nanette", 28),
+        rows("Amber JOHnny", 32),
+        rows("Dale", 33),
+        rows("Dillard", 34),
+        rows("Hattie", 36),
+        rows("Elinor", 36),
+        rows("Virginia", 39));
+  }
 }

@@ -72,6 +72,8 @@ AS:                                 'AS';
 BY:                                 'BY';
 SOURCE:                             'SOURCE';
 INDEX:                              'INDEX';
+A:                                  'A';
+ASC:                                'ASC';
 D:                                  'D';
 DESC:                               'DESC';
 DATASOURCES:                        'DATASOURCES';
