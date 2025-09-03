@@ -79,6 +79,7 @@ import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
+import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
@@ -735,6 +736,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitReverse(Reverse node, AnalysisContext context) {
     throw getOnlyForCalciteException("Reverse");
+  }
+
+  @Override
+  public LogicalPlan visitRegex(Regex node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Regex");
   }
 
   @Override

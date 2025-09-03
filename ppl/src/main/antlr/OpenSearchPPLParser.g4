@@ -72,6 +72,7 @@ commands
    | expandCommand
    | flattenCommand
    | reverseCommand
+   | regexCommand
    ;
 
 commandName
@@ -109,6 +110,7 @@ commandName
    | patternsCommand
    | EXPLAIN
    | REVERSE
+   | REGEX
    ;
 
 searchCommand
@@ -222,6 +224,14 @@ grokCommand
 parseCommand
    : PARSE (source_field = expression) (pattern = stringLiteral)
    ;
+
+regexCommand
+    : REGEX regexExpr
+    ;
+
+regexExpr
+    : field=qualifiedName operator=(EQUAL | NOT_EQUAL) pattern=stringLiteral
+    ;
 
 patternsMethod
    : PUNCT

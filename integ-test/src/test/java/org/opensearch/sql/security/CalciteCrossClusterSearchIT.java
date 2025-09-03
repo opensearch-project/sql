@@ -239,4 +239,31 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
         rows("2025-07-28 01:00:00", 7623),
         rows("2025-07-28 02:00:00", 9187));
   }
+
+  @Test
+  public void testCrossClusterRegexBasic() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | regex firstname='.*att.*' | fields firstname",
+                TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(result, rows("Hattie"));
+  }
+
+  @Test
+  public void testCrossClusterRegexWithNegation() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | regex firstname!='.*att.*' | fields firstname",
+                TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(
+        result,
+        rows("Virginia"),
+        rows("Elinor"),
+        rows("Dillard"),
+        rows("Dale"),
+        rows("Amber JOHnny"),
+        rows("Nanette"));
+  }
 }
