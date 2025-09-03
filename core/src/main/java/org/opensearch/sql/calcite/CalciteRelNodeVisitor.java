@@ -58,6 +58,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.EmptySourcePropagateVisitor;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AggregateFunction;
@@ -1219,7 +1220,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     visitChildren(node, context);
 
     // 2. Resolve subsearch plan
-    node.getSubSearch().accept(this, context);
+    UnresolvedPlan prunedSubSearch =
+        node.getSubSearch().accept(new EmptySourcePropagateVisitor(), null);
+    prunedSubSearch.accept(this, context);
 
     // 3. Merge two query schemas
     RelNode subsearchNode = context.relBuilder.build();

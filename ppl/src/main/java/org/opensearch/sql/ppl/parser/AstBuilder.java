@@ -42,8 +42,7 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.commons.lang3.tuple.Pair;
-import org.opensearch.sql.ast.AbstractNodeVisitor;
-import org.opensearch.sql.ast.Node;
+import org.opensearch.sql.ast.EmptySourcePropagateVisitor;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
@@ -98,7 +97,6 @@ import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
-import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
@@ -121,8 +119,6 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   private final AstExpressionBuilder expressionBuilder;
 
   private final Settings settings;
-
-  private static final UnresolvedPlan EMPTY_SOURCE = new Values(Collections.emptyList());
 
   /**
    * PPL query to get original token text. This is necessary because token.getText() returns text
@@ -927,13 +923,13 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     UnresolvedPlan searchCommandInSubSearch =
         ctx.searchCommand() != null
             ? visit(ctx.searchCommand())
-            : EMPTY_SOURCE; // Represents 0 row * 0 col empty input syntax
+            : EmptySourcePropagateVisitor
+                .EMPTY_SOURCE; // Represents 0 row * 0 col empty input syntax
     UnresolvedPlan subsearch =
         ctx.commands().stream()
             .map(this::visit)
             .reduce(searchCommandInSubSearch, (r, e) -> e.attach(r));
 
-    subsearch = subsearch.accept(new EmptySourcePropagateVisitor(), null);
     return new Append(subsearch);
   }
 
@@ -1066,107 +1062,5 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       }
     }
     return false;
-  }
-
-  private static class EmptySourcePropagateVisitor
-      extends AbstractNodeVisitor<UnresolvedPlan, Void> {
-
-    @Override
-    public UnresolvedPlan visitValues(Values node, Void context) {
-      return node;
-    }
-
-    @Override
-    public UnresolvedPlan visitRelation(Relation node, Void context) {
-      return node;
-    }
-
-    // Assume future table functions like inputLookup, makeresult command will use this unresolved
-    // plan
-    @Override
-    public UnresolvedPlan visitTableFunction(TableFunction node, Void context) {
-      return node;
-    }
-
-    @Override
-    public UnresolvedPlan visitChildren(Node node, Void context) {
-      assert node instanceof UnresolvedPlan;
-      UnresolvedPlan unresolvedPlan = (UnresolvedPlan) node;
-
-      if (unresolvedPlan.getChild().size() == 1) {
-        return isEmptySource(((List<UnresolvedPlan>) unresolvedPlan.getChild()).get(0))
-            ? EMPTY_SOURCE
-            : unresolvedPlan;
-      }
-      return super.visitChildren(node, context);
-    }
-
-    @Override
-    public UnresolvedPlan visitAppend(Append node, Void context) {
-      UnresolvedPlan subSearch = node.getSubSearch().accept(this, context);
-      UnresolvedPlan child = node.getChild().get(0).accept(this, context);
-      return new Append(subSearch).attach(child);
-    }
-
-    @Override
-    public UnresolvedPlan visitAppendCol(AppendCol node, Void context) {
-      UnresolvedPlan subSearch = node.getSubSearch().accept(this, context);
-      UnresolvedPlan child = node.getChild().get(0).accept(this, context);
-      return new AppendCol(node.isOverride(), subSearch).attach(child);
-    }
-
-    // TODO: Revisit lookup logic here but for now we don't see use case yet
-    @Override
-    public UnresolvedPlan visitLookup(Lookup node, Void context) {
-      UnresolvedPlan lookupRelation = node.getLookupRelation().accept(this, context);
-      UnresolvedPlan child = node.getChild().get(0).accept(this, context);
-      // Lookup is a LEFT join.
-      // If left child is expected to be 0 row, it outputs 0 row
-      // If right child is expected to be 0 row, the output is the left child;
-      if (isEmptySource(child)) {
-        return EMPTY_SOURCE;
-      }
-      return isEmptySource(lookupRelation) ? child : node;
-    }
-
-    // Not see use case yet
-    @Override
-    public UnresolvedPlan visitJoin(Join node, Void context) {
-      UnresolvedPlan left = node.getLeft().accept(this, context);
-      UnresolvedPlan right = node.getRight().accept(this, context);
-
-      boolean leftEmpty = isEmptySource(left);
-      boolean rightEmpty = isEmptySource(right);
-
-      switch (node.getJoinType()) {
-        case INNER:
-        case CROSS:
-          return leftEmpty || rightEmpty ? EMPTY_SOURCE : node;
-        case LEFT:
-        case SEMI:
-        case ANTI:
-          if (leftEmpty) {
-            return EMPTY_SOURCE;
-          }
-          return rightEmpty ? left : node;
-        case RIGHT:
-          if (rightEmpty) {
-            return EMPTY_SOURCE;
-          }
-          return leftEmpty ? right : node;
-        case FULL:
-          if (leftEmpty) {
-            return right;
-          }
-          return rightEmpty ? left : node;
-        default:
-          return node;
-      }
-    }
-
-    private boolean isEmptySource(UnresolvedPlan plan) {
-      return plan instanceof Values
-          && (((Values) plan).getValues() == null || ((Values) plan).getValues().isEmpty());
-    }
   }
 }
