@@ -105,6 +105,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.LEFT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LENGTH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LESS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LIKE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LIST;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOCALTIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOCALTIMESTAMP;
@@ -1081,6 +1082,7 @@ public class PPLFuncImpTable {
       registerOperator(STDDEV_POP, PPLBuiltinOperators.STDDEV_POP_NULLABLE);
       registerOperator(TAKE, PPLBuiltinOperators.TAKE);
       registerOperator(INTERNAL_PATTERN, PPLBuiltinOperators.INTERNAL_PATTERN);
+      registerOperator(LIST, PPLBuiltinOperators.LIST);
 
       register(
           AVG,
