@@ -1460,38 +1460,43 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       // Step 1: Initial aggregation - IMPORTANT: order is [spanExpr, byField]
       groupExprList = Arrays.asList(spanExpr, byField);
       aggregateWithTrimming(groupExprList, List.of(node.getAggregateFunction()), context);
+      
+      // First rename the timestamp field (2nd to last) to @timestamp
+      List<String> fieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+      List<String> renamedFields = new ArrayList<>(fieldNames);
+      renamedFields.set(fieldNames.size() - 2, "@timestamp");
+      context.relBuilder.rename(renamedFields);
 
-      // Handle no limit case - just sort and return with correct field order
+      // Then reorder: @timestamp first, then byField, then value function
+      List<RexNode> outputFields = context.relBuilder.fields();
+      List<RexNode> reordered = new ArrayList<>();
+      reordered.add(context.relBuilder.field("@timestamp")); // timestamp first
+      reordered.add(context.relBuilder.field(byFieldName)); // byField second
+      reordered.add(outputFields.get(outputFields.size() - 1)); // value function last
+      context.relBuilder.project(reordered);
+
+      // Handle no limit case - just sort and return with proper field aliases
       if (limit == 0) {
-        // Detect field indices first
-        FieldIndices indices =
-            detectFieldIndices(context.relBuilder.peek().getRowType().getFieldNames(), byFieldName);
-
-        // Project to ensure correct field order: [@timestamp, host, value]
+        // Add final projection with proper aliases: [@timestamp, byField, valueFunctionName]
         context.relBuilder.project(
-            context.relBuilder.alias(context.relBuilder.field(indices.timeIndex), "@timestamp"),
-            context.relBuilder.alias(context.relBuilder.field(indices.byIndex), byFieldName),
-            context.relBuilder.alias(
-                context.relBuilder.field(indices.valueIndex), valueFunctionName));
-
+            context.relBuilder.alias(context.relBuilder.field(0), "@timestamp"),
+            context.relBuilder.alias(context.relBuilder.field(1), byFieldName),
+            context.relBuilder.alias(context.relBuilder.field(2), valueFunctionName));
         context.relBuilder.sort(context.relBuilder.field(0), context.relBuilder.field(1));
         return context.relBuilder.peek();
       }
 
-      // Detect field indices efficiently
-      FieldIndices indices =
-          detectFieldIndices(context.relBuilder.peek().getRowType().getFieldNames(), byFieldName);
+      // Use known field positions after reordering: 0=@timestamp, 1=byField, 2=value
       RelNode completeResults = context.relBuilder.build();
 
       // Step 2: Find top N categories using window function approach (more efficient than separate
       // aggregation)
-      RelNode topCategories = buildTopCategoriesQuery(completeResults, indices, limit, context);
+      RelNode topCategories = buildTopCategoriesQuery(completeResults, limit, context);
 
       // Step 3: Apply OTHER logic with single pass
       return buildFinalResultWithOther(
           completeResults,
           topCategories,
-          indices,
           byFieldName,
           valueFunctionName,
           useOther,
@@ -1503,58 +1508,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
   }
 
-  /** Efficiently detect field indices in a single pass */
-  private static class FieldIndices {
-    final int timeIndex;
-    final int byIndex;
-    final int valueIndex;
-
-    FieldIndices(int timeIndex, int byIndex, int valueIndex) {
-      this.timeIndex = timeIndex;
-      this.byIndex = byIndex;
-      this.valueIndex = valueIndex;
-    }
-  }
-
-  private FieldIndices detectFieldIndices(List<String> fieldNames, String byFieldName) {
-    int timeIndex = -1, byIndex = -1, valueIndex = -1;
-
-    for (int i = 0; i < fieldNames.size(); i++) {
-      String fieldName = fieldNames.get(i);
-
-      if (fieldName.equals(byFieldName)) {
-        byIndex = i;
-      } else if (fieldName.startsWith("$f") && timeIndex == -1) {
-        // First $f field we encounter should be the time field
-        timeIndex = i;
-      } else if (fieldName.startsWith("$f") && timeIndex != -1) {
-        // Second $f field should be the value field
-        valueIndex = i;
-      }
-    }
-
-    // Fallback logic - if we didn't find value field, it's the remaining one
-    if (valueIndex == -1) {
-      for (int i = 0; i < fieldNames.size(); i++) {
-        if (i != timeIndex && i != byIndex) {
-          valueIndex = i;
-          break;
-        }
-      }
-    }
-
-    return new FieldIndices(timeIndex, byIndex, valueIndex);
-  }
-
   /** Build top categories query - NULL always included, limit applies only to non-null */
   private RelNode buildTopCategoriesQuery(
-      RelNode completeResults, FieldIndices indices, int limit, CalcitePlanContext context) {
+      RelNode completeResults, int limit, CalcitePlanContext context) {
     context.relBuilder.push(completeResults);
 
-    // Get totals for all categories
+    // Get totals for all categories - field positions: 0=@timestamp, 1=byField, 2=value
     context.relBuilder.aggregate(
-        context.relBuilder.groupKey(context.relBuilder.field(indices.byIndex)),
-        context.relBuilder.sum(context.relBuilder.field(indices.valueIndex)).as("grand_total"));
+        context.relBuilder.groupKey(context.relBuilder.field(1)),
+        context.relBuilder.sum(context.relBuilder.field(2)).as("grand_total"));
     RelNode allCategoryTotals = context.relBuilder.build();
 
     if (limit > 0) {
@@ -1583,7 +1545,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   private RelNode buildFinalResultWithOther(
       RelNode completeResults,
       RelNode topCategories,
-      FieldIndices indices,
       String byFieldName,
       String valueFunctionName,
       boolean useOther,
@@ -1593,10 +1554,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Use zero-filling for count aggregations, standard result for others
     if (valueFunctionName.equals("count")) {
       return buildZeroFilledResult(
-          completeResults, topCategories, indices, byFieldName, valueFunctionName, useOther, limit, context);
+          completeResults, topCategories, byFieldName, valueFunctionName, useOther, limit, context);
     } else {
       return buildStandardResult(
-          completeResults, topCategories, indices, byFieldName, valueFunctionName, useOther, context);
+          completeResults, topCategories, byFieldName, valueFunctionName, useOther, context);
     }
   }
 
@@ -1604,7 +1565,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   private RelNode buildStandardResult(
       RelNode completeResults,
       RelNode topCategories,
-      FieldIndices indices,
       String byFieldName,
       String valueFunctionName,
       boolean useOther,
@@ -1613,24 +1573,24 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     context.relBuilder.push(completeResults);
     context.relBuilder.push(topCategories);
 
-    // LEFT JOIN to identify top categories
+    // LEFT JOIN to identify top categories - field positions: 0=@timestamp, 1=byField, 2=value
     context.relBuilder.join(
         org.apache.calcite.rel.core.JoinRelType.LEFT,
         context.relBuilder.equals(
-            context.relBuilder.field(2, 0, indices.byIndex), context.relBuilder.field(2, 1, 0)));
+            context.relBuilder.field(2, 0, 1), context.relBuilder.field(2, 1, 0)));
 
     // Calculate field position after join
     int topCategoryFieldIndex = completeResults.getRowType().getFieldCount();
 
     // Create CASE expression for OTHER logic
     RexNode categoryExpr =
-        createOtherCaseExpression(topCategoryFieldIndex, indices.byIndex, context);
+        createOtherCaseExpression(topCategoryFieldIndex, 1, context);
 
     // Project and aggregate
     context.relBuilder.project(
-        context.relBuilder.alias(context.relBuilder.field(indices.timeIndex), "@timestamp"),
+        context.relBuilder.alias(context.relBuilder.field(0), "@timestamp"),
         context.relBuilder.alias(categoryExpr, byFieldName),
-        context.relBuilder.alias(context.relBuilder.field(indices.valueIndex), valueFunctionName));
+        context.relBuilder.alias(context.relBuilder.field(2), valueFunctionName));
 
     context.relBuilder.aggregate(
         context.relBuilder.groupKey(context.relBuilder.field(0), context.relBuilder.field(1)),
@@ -1668,17 +1628,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   private RelNode buildZeroFilledResult(
       RelNode completeResults,
       RelNode topCategories,
-      FieldIndices indices,
       String byFieldName,
       String valueFunctionName,
       boolean useOther,
       int limit,
       CalcitePlanContext context) {
 
-    // Get all unique timestamps
+    // Get all unique timestamps - field positions: 0=@timestamp, 1=byField, 2=value
     context.relBuilder.push(completeResults);
     context.relBuilder.aggregate(
-        context.relBuilder.groupKey(context.relBuilder.field(indices.timeIndex)));
+        context.relBuilder.groupKey(context.relBuilder.field(0)));
     RelNode allTimestamps = context.relBuilder.build();
 
     // Build categories for zero-filling (EXCLUDING nulls for zero-fill, but including in final result)
@@ -1708,16 +1667,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         // Use IS NOT DISTINCT FROM for proper null handling in join
         context.relBuilder.call(
             org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
-            context.relBuilder.field(2, 0, indices.byIndex), context.relBuilder.field(2, 1, 0)));
+            context.relBuilder.field(2, 0, 1), context.relBuilder.field(2, 1, 0)));
 
     int topCategoryFieldIndex = completeResults.getRowType().getFieldCount();
-    RexNode categoryExpr = createOtherCaseExpression(topCategoryFieldIndex, indices.byIndex, context);
+    RexNode categoryExpr = createOtherCaseExpression(topCategoryFieldIndex, 1, context);
 
     context.relBuilder.project(
         context.relBuilder.alias(
-            context.relBuilder.cast(context.relBuilder.field(indices.timeIndex), SqlTypeName.TIMESTAMP), "@timestamp"),
+            context.relBuilder.cast(context.relBuilder.field(0), SqlTypeName.TIMESTAMP), "@timestamp"),
         context.relBuilder.alias(categoryExpr, byFieldName),
-        context.relBuilder.alias(context.relBuilder.field(indices.valueIndex), valueFunctionName));
+        context.relBuilder.alias(context.relBuilder.field(2), valueFunctionName));
 
     context.relBuilder.aggregate(
         context.relBuilder.groupKey(context.relBuilder.field(0), context.relBuilder.field(1)),
