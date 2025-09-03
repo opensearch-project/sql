@@ -64,10 +64,6 @@ public class OpenSearchAggregateIndexScanRule
             .withOperandSupplier(
                 b0 ->
                     b0.operand(LogicalAggregate.class)
-                        .predicate(
-                            agg ->
-                                // Allow push down of aggregation with inner filter
-                                true)
                         .oneInput(
                             b1 ->
                                 b1.operand(LogicalProject.class)

@@ -25,7 +25,6 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.hint.RelHint;
-import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -106,8 +105,6 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       for (RelOptRule rule : OpenSearchIndexRules.OPEN_SEARCH_INDEX_SCAN_RULES) {
         planner.addRule(rule);
       }
-      // TODO: investigate why and where is best to do this
-      planner.addRule(CoreRules.AGGREGATE_CASE_TO_FILTER);
     }
   }
 

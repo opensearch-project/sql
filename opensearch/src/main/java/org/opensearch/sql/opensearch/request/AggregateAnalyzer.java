@@ -406,8 +406,7 @@ public class AggregateAnalyzer {
       return result;
     }
 
-    // Convert filter condition to OpenSearch DSL query. Assume there must be a Project with filter
-    // condition corresponded
+    // Convert filter condition to OpenSearch DSL query.
     RexNode filterCondition = project.getProjects().get(aggCall.filterArg);
     PredicateAnalyzer.QueryExpression queryExpression =
         PredicateAnalyzer.analyzeExpression(
@@ -417,7 +416,7 @@ public class AggregateAnalyzer {
             helper.rowType,
             helper.cluster);
 
-    // Wrap original aggregation and parser with filter's
+    // Wrap original aggregation and parser with filter's.
     AggregationBuilder filterAgg =
         AggregationBuilders.filter(aggFieldName, queryExpression.builder())
             .subAggregation(result.getLeft());
