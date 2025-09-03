@@ -40,54 +40,6 @@ Example::
     | ["1", "demo"]                    |
     +----------------------------------+
 
-MVJOIN
-------
-
-Description
->>>>>>>>>>>
-
-Version: 3.2.0
-
-Usage: mvjoin(array, delimiter) joins string array elements into a single string, separated by the specified delimiter. NULL elements are excluded from the output. Only string arrays are supported. When given a single string value instead of an array, the function returns it unchanged (the delimiter parameter is ignored).
-
-Argument type: array: ARRAY of STRING or STRING, delimiter: STRING
-
-Return type: STRING
-
-Example::
-
-    PPL> source=people | eval result = mvjoin(array('a', 'b', 'c'), ',') | fields result | head 1
-    fetched rows / total rows = 1/1
-    +----------------------------------+
-    | result                           |
-    |----------------------------------|
-    | a,b,c                            |
-    +----------------------------------+
-
-    PPL> source=people | eval result = mvjoin(array('1', '2', '3'), ' | ') | fields result | head 1
-    fetched rows / total rows = 1/1
-    +----------------------------------+
-    | result                           |
-    |----------------------------------|
-    | 1 | 2 | 3                        |
-    +----------------------------------+
-
-    PPL> source=people | eval result = mvjoin(array('a', null, 'c'), ',') | fields result | head 1
-    fetched rows / total rows = 1/1
-    +----------------------------------+
-    | result                           |
-    |----------------------------------|
-    | a,c                              |
-    +----------------------------------+
-    
-    PPL> source=people | eval result = mvjoin('hello', ',') | fields result | head 1
-    fetched rows / total rows = 1/1
-    +----------------------------------+
-    | result                           |
-    |----------------------------------|
-    | hello                            |
-    +----------------------------------+
-
 ARRAY_LENGTH
 ------------
 
@@ -247,3 +199,51 @@ Example::
     |------------|
     | 80         |
     +------------+ 
+
+MVJOIN
+------
+
+Description
+>>>>>>>>>>>
+
+Version: 3.3.0
+
+Usage: mvjoin(array, delimiter) joins string array elements into a single string, separated by the specified delimiter. NULL elements are excluded from the output. Only string arrays are supported. When given a single string value instead of an array, the function returns it unchanged (the delimiter parameter is ignored).
+
+Argument type: array: ARRAY of STRING or STRING, delimiter: STRING
+
+Return type: STRING
+
+Example::
+
+    PPL> source=people | eval result = mvjoin(array('a', 'b', 'c'), ',') | fields result | head 1
+    fetched rows / total rows = 1/1
+    +----------------------------------+
+    | result                           |
+    |----------------------------------|
+    | a,b,c                            |
+    +----------------------------------+
+
+    PPL> source=people | eval result = mvjoin(array('1', '2', '3'), ' | ') | fields result | head 1
+    fetched rows / total rows = 1/1
+    +----------------------------------+
+    | result                           |
+    |----------------------------------|
+    | 1 | 2 | 3                        |
+    +----------------------------------+
+
+    PPL> source=people | eval result = mvjoin(array('a', null, 'c'), ',') | fields result | head 1
+    fetched rows / total rows = 1/1
+    +----------------------------------+
+    | result                           |
+    |----------------------------------|
+    | a,c                              |
+    +----------------------------------+
+    
+    PPL> source=people | eval result = mvjoin('hello', ',') | fields result | head 1
+    fetched rows / total rows = 1/1
+    +----------------------------------+
+    | result                           |
+    |----------------------------------|
+    | hello                            |
+    +----------------------------------+
