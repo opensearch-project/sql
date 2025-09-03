@@ -101,7 +101,8 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedSparkSql =
         "SELECT `@timestamp`, `host`, SUM(`actual_count`) `count`\n"
-            + "FROM (SELECT `t1`.`@timestamp`, CASE WHEN `t8`.`host` IS NOT NULL THEN `t1`.`host` ELSE 'OTHER' END `host`, SUM(`t1`.`$f2_0`) `actual_count`\n"
+            + "FROM (SELECT `t1`.`@timestamp`, CASE WHEN `t8`.`host` IS NOT NULL THEN `t1`.`host`"
+            + " ELSE 'OTHER' END `host`, SUM(`t1`.`$f2_0`) `actual_count`\n"
             + "FROM (SELECT `SPAN`(`@timestamp`, 1, 'm') `@timestamp`, `host`, COUNT(*) `$f2_0`\n"
             + "FROM `scott`.`events`\n"
             + "GROUP BY `host`, `SPAN`(`@timestamp`, 1, 'm')) `t1`\n"
@@ -116,7 +117,8 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
             + "SELECT *\n"
             + "FROM (VALUES (NULL, NULL)) `t` (`host`, `grand_total`)\n"
             + "WHERE 1 = 0) `t8` ON `t1`.`host` IS NOT DISTINCT FROM `t8`.`host`\n"
-            + "GROUP BY `t1`.`@timestamp`, CASE WHEN `t8`.`host` IS NOT NULL THEN `t1`.`host` ELSE 'OTHER' END\n"
+            + "GROUP BY `t1`.`@timestamp`, CASE WHEN `t8`.`host` IS NOT NULL THEN `t1`.`host` ELSE"
+            + " 'OTHER' END\n"
             + "UNION\n"
             + "SELECT `t14`.`@timestamp`, `t22`.`host`, 0 `count`\n"
             + "FROM (SELECT `@timestamp`\n"
@@ -148,7 +150,8 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedSparkSql =
         "SELECT `@timestamp`, `host`, SUM(`actual_count`) `count`\n"
-            + "FROM (SELECT `t1`.`@timestamp`, CASE WHEN `t8`.`host` IS NOT NULL THEN `t1`.`host` ELSE 'OTHER' END `host`, SUM(`t1`.`$f2_0`) `actual_count`\n"
+            + "FROM (SELECT `t1`.`@timestamp`, CASE WHEN `t8`.`host` IS NOT NULL THEN `t1`.`host`"
+            + " ELSE 'OTHER' END `host`, SUM(`t1`.`$f2_0`) `actual_count`\n"
             + "FROM (SELECT `SPAN`(`@timestamp`, 1, 'm') `@timestamp`, `host`, COUNT(*) `$f2_0`\n"
             + "FROM `scott`.`events`\n"
             + "GROUP BY `host`, `SPAN`(`@timestamp`, 1, 'm')) `t1`\n"
@@ -163,7 +166,8 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
             + "SELECT *\n"
             + "FROM (VALUES (NULL, NULL)) `t` (`host`, `grand_total`)\n"
             + "WHERE 1 = 0) `t8` ON `t1`.`host` IS NOT DISTINCT FROM `t8`.`host`\n"
-            + "GROUP BY `t1`.`@timestamp`, CASE WHEN `t8`.`host` IS NOT NULL THEN `t1`.`host` ELSE 'OTHER' END\n"
+            + "GROUP BY `t1`.`@timestamp`, CASE WHEN `t8`.`host` IS NOT NULL THEN `t1`.`host` ELSE"
+            + " 'OTHER' END\n"
             + "UNION\n"
             + "SELECT `t14`.`@timestamp`, `t22`.`host`, 0 `count`\n"
             + "FROM (SELECT `@timestamp`\n"
@@ -194,7 +198,8 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedSparkSql =
         "SELECT `@timestamp`, `host`, SUM(`actual_count`) `count`\n"
-            + "FROM (SELECT `t1`.`@timestamp`, CASE WHEN `t8`.`host` IS NOT NULL THEN `t1`.`host` ELSE 'OTHER' END `host`, SUM(`t1`.`$f2_0`) `actual_count`\n"
+            + "FROM (SELECT `t1`.`@timestamp`, CASE WHEN `t8`.`host` IS NOT NULL THEN `t1`.`host`"
+            + " ELSE 'OTHER' END `host`, SUM(`t1`.`$f2_0`) `actual_count`\n"
             + "FROM (SELECT `SPAN`(`@timestamp`, 1, 'h') `@timestamp`, `host`, COUNT(*) `$f2_0`\n"
             + "FROM `scott`.`events`\n"
             + "GROUP BY `host`, `SPAN`(`@timestamp`, 1, 'h')) `t1`\n"
@@ -209,7 +214,8 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
             + "SELECT *\n"
             + "FROM (VALUES (NULL, NULL)) `t` (`host`, `grand_total`)\n"
             + "WHERE 1 = 0) `t8` ON `t1`.`host` IS NOT DISTINCT FROM `t8`.`host`\n"
-            + "GROUP BY `t1`.`@timestamp`, CASE WHEN `t8`.`host` IS NOT NULL THEN `t1`.`host` ELSE 'OTHER' END\n"
+            + "GROUP BY `t1`.`@timestamp`, CASE WHEN `t8`.`host` IS NOT NULL THEN `t1`.`host` ELSE"
+            + " 'OTHER' END\n"
             + "UNION\n"
             + "SELECT `t14`.`@timestamp`, `t22`.`host`, 0 `count`\n"
             + "FROM (SELECT `@timestamp`\n"
@@ -239,8 +245,10 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
     String ppl = "source=events | timechart span=1m avg(cpu_usage) by region";
     RelNode root = getRelNode(ppl);
     String expectedSparkSql =
-        "SELECT `t1`.`@timestamp`, CASE WHEN `t8`.`region` IS NOT NULL THEN `t1`.`region` ELSE 'OTHER' END `region`, SUM(`t1`.`$f2`) `avg(cpu_usage)`\n"
-            + "FROM (SELECT `SPAN`(`@timestamp`, 1, 'm') `@timestamp`, `region`, AVG(`cpu_usage`) `$f2`\n"
+        "SELECT `t1`.`@timestamp`, CASE WHEN `t8`.`region` IS NOT NULL THEN `t1`.`region` ELSE"
+            + " 'OTHER' END `region`, SUM(`t1`.`$f2`) `avg(cpu_usage)`\n"
+            + "FROM (SELECT `SPAN`(`@timestamp`, 1, 'm') `@timestamp`, `region`, AVG(`cpu_usage`)"
+            + " `$f2`\n"
             + "FROM `scott`.`events`\n"
             + "GROUP BY `region`, `SPAN`(`@timestamp`, 1, 'm')) `t1`\n"
             + "LEFT JOIN ((SELECT `region`, SUM(`$f2`) `grand_total`\n"
@@ -254,7 +262,8 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
             + "SELECT *\n"
             + "FROM (VALUES (NULL, NULL)) `t` (`region`, `grand_total`)\n"
             + "WHERE 1 = 0) `t8` ON `t1`.`region` = `t8`.`region`\n"
-            + "GROUP BY `t1`.`@timestamp`, CASE WHEN `t8`.`region` IS NOT NULL THEN `t1`.`region` ELSE 'OTHER' END\n"
+            + "GROUP BY `t1`.`@timestamp`, CASE WHEN `t8`.`region` IS NOT NULL THEN `t1`.`region`"
+            + " ELSE 'OTHER' END\n"
             + "ORDER BY `t1`.`@timestamp` NULLS LAST, 2 NULLS LAST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -274,8 +283,10 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
 
     RelNode root = getRelNode(ppl);
     String expectedSparkSql =
-        "SELECT `t1`.`@timestamp`, CASE WHEN `t8`.`host` IS NOT NULL THEN `t1`.`host` ELSE 'OTHER' END `host`, SUM(`t1`.`$f2`) `avg(cpu_usage)`\n"
-            + "FROM (SELECT `SPAN`(`@timestamp`, 1, 'h') `@timestamp`, `host`, AVG(`cpu_usage`) `$f2`\n"
+        "SELECT `t1`.`@timestamp`, CASE WHEN `t8`.`host` IS NOT NULL THEN `t1`.`host` ELSE 'OTHER'"
+            + " END `host`, SUM(`t1`.`$f2`) `avg(cpu_usage)`\n"
+            + "FROM (SELECT `SPAN`(`@timestamp`, 1, 'h') `@timestamp`, `host`, AVG(`cpu_usage`)"
+            + " `$f2`\n"
             + "FROM `scott`.`events`\n"
             + "GROUP BY `host`, `SPAN`(`@timestamp`, 1, 'h')) `t1`\n"
             + "LEFT JOIN ((SELECT `host`, SUM(`$f2`) `grand_total`\n"
@@ -289,8 +300,10 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
             + "SELECT *\n"
             + "FROM (VALUES (NULL, NULL)) `t` (`host`, `grand_total`)\n"
             + "WHERE 1 = 0) `t8` ON `t1`.`host` = `t8`.`host`\n"
-            + "GROUP BY `t1`.`@timestamp`, CASE WHEN `t8`.`host` IS NOT NULL THEN `t1`.`host` ELSE 'OTHER' END\n"
-            + "HAVING CASE WHEN `t8`.`host` IS NOT NULL THEN `t1`.`host` ELSE 'OTHER' END <> 'OTHER'\n"
+            + "GROUP BY `t1`.`@timestamp`, CASE WHEN `t8`.`host` IS NOT NULL THEN `t1`.`host` ELSE"
+            + " 'OTHER' END\n"
+            + "HAVING CASE WHEN `t8`.`host` IS NOT NULL THEN `t1`.`host` ELSE 'OTHER' END <>"
+            + " 'OTHER'\n"
             + "ORDER BY `t1`.`@timestamp` NULLS LAST, 2 NULLS LAST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }

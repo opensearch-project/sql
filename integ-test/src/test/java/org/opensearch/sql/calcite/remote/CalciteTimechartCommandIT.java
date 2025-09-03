@@ -404,22 +404,22 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
   @Test
   public void testTimechartWithMissingHostValues() throws IOException {
     createEventsNullIndex();
-    
+
     JSONObject result = executeQuery("source=events_null | timechart span=1d count() by host");
-    
+
     verifySchema(
         result,
         schema("@timestamp", "timestamp"),
         schema("host", "string"),
         schema("count", "bigint"));
-    
+
     verifyDataRows(
         result,
         rows("2024-07-01 00:00:00", "db-01", 1),
         rows("2024-07-01 00:00:00", "web-01", 2),
         rows("2024-07-01 00:00:00", "web-02", 2),
         rows("2024-07-01 00:00:00", null, 1));
-    
+
     assertEquals(4, result.getInt("total"));
   }
 
@@ -427,20 +427,21 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
   public void testTimechartWithNullAndOther() throws IOException {
     createEventsNullIndex();
 
-    JSONObject result = executeQuery("source=events_null | timechart span=1d limit=2 count() by host");
+    JSONObject result =
+        executeQuery("source=events_null | timechart span=1d limit=2 count() by host");
 
     verifySchema(
-            result,
-            schema("@timestamp", "timestamp"),
-            schema("host", "string"),
-            schema("count", "bigint"));
+        result,
+        schema("@timestamp", "timestamp"),
+        schema("host", "string"),
+        schema("count", "bigint"));
 
     verifyDataRows(
-            result,
-            rows("2024-07-01 00:00:00", "OTHER", 1),
-            rows("2024-07-01 00:00:00", "web-01", 2),
-            rows("2024-07-01 00:00:00", "web-02", 2),
-            rows("2024-07-01 00:00:00", null, 1));
+        result,
+        rows("2024-07-01 00:00:00", "OTHER", 1),
+        rows("2024-07-01 00:00:00", "web-01", 2),
+        rows("2024-07-01 00:00:00", "web-02", 2),
+        rows("2024-07-01 00:00:00", null, 1));
 
     assertEquals(4, result.getInt("total"));
   }
@@ -464,8 +465,7 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
         "{\"mappings\":{\"properties\":{\"@timestamp\":{\"type\":\"date\"},\"host\":{\"type\":\"text\"},\"cpu_usage\":{\"type\":\"double\"},\"region\":{\"type\":\"keyword\"}}}}";
     if (!isIndexExist(client(), "events_null")) {
       createIndexByRestClient(client(), "events_null", eventsMapping);
-      loadDataByRestClient(
-          client(), "events_null", "src/test/resources/events_null.json");
+      loadDataByRestClient(client(), "events_null", "src/test/resources/events_null.json");
     }
   }
 }

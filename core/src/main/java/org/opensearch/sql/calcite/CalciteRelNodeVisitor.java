@@ -1460,7 +1460,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       // Step 1: Initial aggregation - IMPORTANT: order is [spanExpr, byField]
       groupExprList = Arrays.asList(spanExpr, byField);
       aggregateWithTrimming(groupExprList, List.of(node.getAggregateFunction()), context);
-      
+
       // First rename the timestamp field (2nd to last) to @timestamp
       List<String> fieldNames = context.relBuilder.peek().getRowType().getFieldNames();
       List<String> renamedFields = new ArrayList<>(fieldNames);
@@ -1495,13 +1495,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
       // Step 3: Apply OTHER logic with single pass
       return buildFinalResultWithOther(
-          completeResults,
-          topCategories,
-          byFieldName,
-          valueFunctionName,
-          useOther,
-          limit,
-          context);
+          completeResults, topCategories, byFieldName, valueFunctionName, useOther, limit, context);
 
     } catch (Exception e) {
       throw new RuntimeException("Error in visitTimechart: " + e.getMessage(), e);
@@ -1517,13 +1511,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     context.relBuilder.aggregate(
         context.relBuilder.groupKey(context.relBuilder.field(1)),
         context.relBuilder.sum(context.relBuilder.field(2)).as("grand_total"));
-    
+
     // Apply sorting and limit to all categories
     context.relBuilder.sort(context.relBuilder.desc(context.relBuilder.field("grand_total")));
     if (limit > 0) {
       context.relBuilder.limit(0, limit);
     }
-    
+
     return context.relBuilder.build();
   }
 
@@ -1569,8 +1563,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     int topCategoryFieldIndex = completeResults.getRowType().getFieldCount();
 
     // Create CASE expression for OTHER logic
-    RexNode categoryExpr =
-        createOtherCaseExpression(topCategoryFieldIndex, 1, context);
+    RexNode categoryExpr = createOtherCaseExpression(topCategoryFieldIndex, 1, context);
 
     // Project and aggregate
     context.relBuilder.project(
@@ -1622,8 +1615,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // Get all unique timestamps - field positions: 0=@timestamp, 1=byField, 2=value
     context.relBuilder.push(completeResults);
-    context.relBuilder.aggregate(
-        context.relBuilder.groupKey(context.relBuilder.field(0)));
+    context.relBuilder.aggregate(context.relBuilder.groupKey(context.relBuilder.field(0)));
     RelNode allTimestamps = context.relBuilder.build();
 
     // Get all categories for zero-filling - apply OTHER logic here too
@@ -1633,11 +1625,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         org.apache.calcite.rel.core.JoinRelType.LEFT,
         context.relBuilder.call(
             org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
-            context.relBuilder.field(2, 0, 1), context.relBuilder.field(2, 1, 0)));
+            context.relBuilder.field(2, 0, 1),
+            context.relBuilder.field(2, 1, 0)));
 
     int topCategoryFieldIndex = completeResults.getRowType().getFieldCount();
     RexNode categoryExpr = createOtherCaseExpression(topCategoryFieldIndex, 1, context);
-    
+
     context.relBuilder.project(categoryExpr);
     context.relBuilder.aggregate(context.relBuilder.groupKey(context.relBuilder.field(0)));
     RelNode allCategories = context.relBuilder.build();
@@ -1645,12 +1638,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Cross join timestamps with ALL categories (including OTHER) for zero-filling
     context.relBuilder.push(allTimestamps);
     context.relBuilder.push(allCategories);
-    context.relBuilder.join(org.apache.calcite.rel.core.JoinRelType.INNER, context.relBuilder.literal(true));
+    context.relBuilder.join(
+        org.apache.calcite.rel.core.JoinRelType.INNER, context.relBuilder.literal(true));
 
     // Create zero-filled combinations with count=0
     context.relBuilder.project(
         context.relBuilder.alias(
-            context.relBuilder.cast(context.relBuilder.field(0), SqlTypeName.TIMESTAMP), "@timestamp"),
+            context.relBuilder.cast(context.relBuilder.field(0), SqlTypeName.TIMESTAMP),
+            "@timestamp"),
         context.relBuilder.alias(context.relBuilder.field(1), byFieldName),
         context.relBuilder.alias(context.relBuilder.literal(0), valueFunctionName));
     RelNode zeroFilledCombinations = context.relBuilder.build();
@@ -1663,14 +1658,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         // Use IS NOT DISTINCT FROM for proper null handling in join
         context.relBuilder.call(
             org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
-            context.relBuilder.field(2, 0, 1), context.relBuilder.field(2, 1, 0)));
+            context.relBuilder.field(2, 0, 1),
+            context.relBuilder.field(2, 1, 0)));
 
     int actualTopCategoryFieldIndex = completeResults.getRowType().getFieldCount();
     RexNode actualCategoryExpr = createOtherCaseExpression(actualTopCategoryFieldIndex, 1, context);
 
     context.relBuilder.project(
         context.relBuilder.alias(
-            context.relBuilder.cast(context.relBuilder.field(0), SqlTypeName.TIMESTAMP), "@timestamp"),
+            context.relBuilder.cast(context.relBuilder.field(0), SqlTypeName.TIMESTAMP),
+            "@timestamp"),
         context.relBuilder.alias(actualCategoryExpr, byFieldName),
         context.relBuilder.alias(context.relBuilder.field(2), valueFunctionName));
 
@@ -1683,7 +1680,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     context.relBuilder.push(actualResults);
     context.relBuilder.push(zeroFilledCombinations);
     context.relBuilder.union(false);
-    
+
     // Aggregate to combine actual and zero-filled data
     context.relBuilder.aggregate(
         context.relBuilder.groupKey(context.relBuilder.field(0), context.relBuilder.field(1)),
