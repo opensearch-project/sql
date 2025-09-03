@@ -113,7 +113,7 @@ commandName
    ;
 
 searchCommand
-   : (SEARCH)? (logicalExpression)* fromClause (logicalExpression)*     # searchFrom
+   : (SEARCH)? (timeRangeExpression | logicalExpression)* fromClause (timeRangeExpression | logicalExpression)*     # searchFrom
    ;
 
 describeCommand
@@ -624,6 +624,15 @@ singleFieldRelevanceFunction
 // Field is a list of columns
 multiFieldRelevanceFunction
    : multiFieldRelevanceFunctionName LT_PRTHS (LT_SQR_PRTHS field = relevanceFieldAndWeight (COMMA field = relevanceFieldAndWeight)* RT_SQR_PRTHS COMMA)? query = relevanceQuery (COMMA relevanceArg)* RT_PRTHS
+   ;
+
+timeRangeExpression
+   : (EARLIEST | LATEST) EQUAL timeRangeValue
+   ;
+
+timeRangeValue
+   : NOW
+   | stringLiteral
    ;
 
 // tables

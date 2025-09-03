@@ -39,6 +39,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -156,14 +157,15 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   /** Search command. */
   @Override
   public UnresolvedPlan visitSearchFrom(SearchFromContext ctx) {
-    if (ctx.logicalExpression().isEmpty()) {
+    if (ctx.logicalExpression().isEmpty() && ctx.timeRangeExpression().isEmpty()) {
       return visitFromClause(ctx.fromClause());
     } else {
+      Stream<UnresolvedExpression> logicalExpressions =
+          ctx.logicalExpression().stream().map(this::internalVisitExpression);
+      Stream<UnresolvedExpression> timeRangeExpressions =
+          ctx.timeRangeExpression().stream().map(this::internalVisitExpression);
       return new Filter(
-              ctx.logicalExpression().stream()
-                  .map(this::internalVisitExpression)
-                  .reduce(And::new)
-                  .get())
+              Stream.concat(logicalExpressions, timeRangeExpressions).reduce(And::new).get())
           .attach(visit(ctx.fromClause()));
     }
   }

@@ -253,6 +253,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -1061,7 +1062,10 @@ public class PPLFuncImpTable {
       if (argList.isEmpty()) {
         // Try to find @timestamp field
         var timestampField =
-            ctx.relBuilder.peek().getRowType().getField("@timestamp", false, false);
+            ctx.relBuilder
+                .peek()
+                .getRowType()
+                .getField(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP, false, false);
         if (timestampField == null) {
           throw new IllegalArgumentException(
               "Default @timestamp field not found. Please specify a time field explicitly.");
