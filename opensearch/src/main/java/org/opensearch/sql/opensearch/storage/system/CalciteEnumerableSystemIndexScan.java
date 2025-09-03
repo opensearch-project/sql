@@ -71,7 +71,9 @@ public class CalciteEnumerableSystemIndexScan extends AbstractCalciteSystemIndex
       @Override
       public Enumerator<Object> enumerator() {
         return new OpenSearchSystemIndexEnumerator(
-            getFieldPath(), sysIndex.getSystemIndexBundle().getRight());
+            getFieldPath(),
+            sysIndex.getSystemIndexBundle().getRight(),
+            sysIndex.createOpenSearchResourceMonitor());
       }
     };
   }

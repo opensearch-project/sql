@@ -241,6 +241,30 @@ public class AstBuilderTest {
   }
 
   @Test
+  public void testStatsCommandWithCountAbbreviation() {
+    assertEqual(
+        "source=t | stats c()",
+        agg(
+            relation("t"),
+            exprList(alias("c()", aggregate("count", AstDSL.allFields()))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+  }
+
+  @Test
+  public void testStatsCommandWithCountAlias() {
+    assertEqual(
+        "source=t | stats count",
+        agg(
+            relation("t"),
+            exprList(alias("count", aggregate("count", AstDSL.allFields()))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+  }
+
+  @Test
   public void testStatsCommandWithByClause() {
     assertEqual(
         "source=t | stats count(a) by b DEDUP_SPLITVALUES=false",
@@ -486,6 +510,42 @@ public class AstBuilderTest {
             field(
                 "f1",
                 exprList(argument("asc", booleanLiteral(false)), argument("type", nullLiteral()))),
+            field(
+                "f2",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral())))));
+  }
+
+  @Test
+  public void testSortCommandWithAsc() {
+    assertEqual(
+        "source=t | sort f1 asc",
+        sort(
+            relation("t"),
+            field(
+                "f1",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral())))));
+  }
+
+  @Test
+  public void testSortCommandWithA() {
+    assertEqual(
+        "source=t | sort f1 a",
+        sort(
+            relation("t"),
+            field(
+                "f1",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral())))));
+  }
+
+  @Test
+  public void testSortCommandWithMultipleFieldsAndAsc() {
+    assertEqual(
+        "source=t | sort f1, f2 asc",
+        sort(
+            relation("t"),
+            field(
+                "f1",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral()))),
             field(
                 "f2",
                 exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral())))));
@@ -966,5 +1026,11 @@ public class AstBuilderTest {
 
   private String mappingTable(String indexName) {
     return SystemIndexUtils.mappingTable(indexName, PPL_SPEC);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testBinCommandDuplicateParameter() {
+    // Test that duplicate parameters throw an exception
+    plan("search source=test | bin field span=10 span=20");
   }
 }
