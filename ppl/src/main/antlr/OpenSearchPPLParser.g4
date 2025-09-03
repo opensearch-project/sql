@@ -73,6 +73,7 @@ commands
    | expandCommand
    | flattenCommand
    | reverseCommand
+   | regexCommand
    ;
 
 commandName
@@ -106,6 +107,7 @@ commandName
    | TRENDLINE
    | EXPLAIN
    | REVERSE
+   | REGEX
    ;
 
 searchCommand
@@ -159,7 +161,7 @@ dedupCommand
    ;
 
 sortCommand
-   : SORT (count = integerLiteral)? sortbyClause (DESC | D)?
+   : SORT (count = integerLiteral)? sortbyClause (ASC | A | DESC | D)?
    ;
 
 reverseCommand
@@ -241,6 +243,13 @@ pathElement
 pathArrayAccess
    : LT_CURLY (INTEGER_LITERAL)? RT_CURLY
    ;
+regexCommand
+    : REGEX regexExpr
+    ;
+
+regexExpr
+    : field=qualifiedName operator=(EQUAL | NOT_EQUAL) pattern=stringLiteral
+    ;
 
 patternsMethod
    : PUNCT
@@ -503,6 +512,7 @@ statsFunctionName
    | STDDEV_POP
    | PERCENTILE
    | PERCENTILE_APPROX
+   | LIST
    ;
 
 earliestLatestFunction
@@ -1232,6 +1242,8 @@ keywordsCanBeId
    | EXISTS
    | SOURCE
    | INDEX
+   | A
+   | ASC
    | DESC
    | DATASOURCES
    | FROM

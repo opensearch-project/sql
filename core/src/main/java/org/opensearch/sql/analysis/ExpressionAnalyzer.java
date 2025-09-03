@@ -7,7 +7,7 @@ package org.opensearch.sql.analysis;
 
 import static org.opensearch.sql.ast.dsl.AstDSL.and;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
-import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_ENGINE_ENABLED;
+import static org.opensearch.sql.calcite.utils.CalciteUtils.getOnlyForCalciteException;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -435,20 +435,17 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
 
   @Override
   public Expression visitScalarSubquery(ScalarSubquery node, AnalysisContext context) {
-    throw new UnsupportedOperationException(
-        "Subsearch is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+    throw getOnlyForCalciteException("Subsearch");
   }
 
   @Override
   public Expression visitExistsSubquery(ExistsSubquery node, AnalysisContext context) {
-    throw new UnsupportedOperationException(
-        "Subsearch is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+    throw getOnlyForCalciteException("Subsearch");
   }
 
   @Override
   public Expression visitInSubquery(InSubquery node, AnalysisContext context) {
-    throw new UnsupportedOperationException(
-        "Subsearch is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+    throw getOnlyForCalciteException("Subsearch");
   }
 
   /**

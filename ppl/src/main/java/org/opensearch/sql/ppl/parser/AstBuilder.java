@@ -9,6 +9,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
+import static org.opensearch.sql.calcite.utils.CalciteUtils.getOnlyForCalciteException;
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BinCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
@@ -84,6 +85,7 @@ import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RangeBin;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
+import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Reverse;
@@ -295,10 +297,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
                   : new Argument("exclude", new Literal(false, DataType.BOOLEAN)));
       return buildProjectCommand(ctx.fieldsCommandBody(), arguments);
     }
-    throw new UnsupportedOperationException(
-        "Table command is supported only when "
-            + Key.CALCITE_ENGINE_ENABLED.getKeyValue()
-            + "=true");
+    throw getOnlyForCalciteException("Table command");
   }
 
   private UnresolvedPlan buildProjectCommand(
@@ -309,10 +308,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     if (settings != null
         && Boolean.FALSE.equals(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED))) {
       if (hasEnhancedFieldFeatures(bodyCtx, fields)) {
-        throw new UnsupportedOperationException(
-            "Enhanced fields features are supported only when "
-                + Key.CALCITE_ENGINE_ENABLED.getKeyValue()
-                + "=true");
+        throw getOnlyForCalciteException("Enhanced fields feature");
       }
     }
 
@@ -904,6 +900,15 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       throw new SemanticCheckException("subsearch should not be empty");
     }
     return new AppendCol(override, subsearch.get());
+  }
+
+  @Override
+  public UnresolvedPlan visitRegexCommand(OpenSearchPPLParser.RegexCommandContext ctx) {
+    UnresolvedExpression field = internalVisitExpression(ctx.regexExpr().field);
+    boolean negated = ctx.regexExpr().operator.getType() == OpenSearchPPLParser.NOT_EQUAL;
+    Literal pattern = (Literal) internalVisitExpression(ctx.regexExpr().pattern);
+
+    return new Regex(field, negated, pattern);
   }
 
   /** Get original text in query. */
