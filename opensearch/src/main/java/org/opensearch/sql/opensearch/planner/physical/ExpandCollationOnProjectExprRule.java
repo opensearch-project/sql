@@ -46,7 +46,7 @@ public class ExpandCollationOnProjectExprRule
     final Project project = call.rel(1);
     final RelTraitSet toTraits = converter.getTraitSet();
     final RelCollation toCollation = toTraits.getTrait(RelCollationTraitDef.INSTANCE);
-    final RelTrait fromTrait = project.getTraitSet().getTrait(RelCollationTraitDef.INSTANCE);
+    final RelTrait fromTrait = project.getInput().getTraitSet().getTrait(RelCollationTraitDef.INSTANCE);
     // In case of fromTrait is an instance of RelCompositeTrait, it most likely finds equivalence by
     // default.
     // Let it go through default ExpandConversionRule to determine trait satisfaction.

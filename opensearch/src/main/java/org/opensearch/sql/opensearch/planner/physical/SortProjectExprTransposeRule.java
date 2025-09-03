@@ -45,10 +45,6 @@ public class SortProjectExprTransposeRule extends RelRule<SortProjectExprTranspo
     final Sort sort = call.rel(0);
     final Project project = call.rel(1);
 
-    if (sort.getConvention() != project.getConvention()) {
-      return;
-    }
-
     List<RelFieldCollation> pushable = new ArrayList<>();
     boolean allPushable = true;
     for (RelFieldCollation fieldCollation : sort.getCollation().getFieldCollations()) {
