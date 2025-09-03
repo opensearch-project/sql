@@ -219,12 +219,22 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testExplainWithTimechart() throws IOException {
+  public void testExplainWithTimechartAvg() throws IOException {
     var result = explainQueryToString("source=events | timechart span=1m avg(cpu_usage) by host");
     String expected =
         isPushdownEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_timechart.json")
             : loadFromFile("expectedOutput/calcite/explain_timechart_no_pushdown.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testExplainWithTimechartCount() throws IOException {
+    var result = explainQueryToString("source=events | timechart span=1m count() by host");
+    String expected =
+        isPushdownEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_timechart_count.json")
+            : loadFromFile("expectedOutput/calcite/explain_timechart_count_no_pushdown.json");
     assertJsonEqualsIgnoreId(expected, result);
   }
 

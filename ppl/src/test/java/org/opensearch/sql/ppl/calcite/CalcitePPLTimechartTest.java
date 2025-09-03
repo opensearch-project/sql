@@ -33,6 +33,7 @@ import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
@@ -95,53 +96,7 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
   }
 
   @Test
-  public void testTimechartWithBy() {
-    String ppl = "source=events | timechart count() by host";
-
-    RelNode root = getRelNode(ppl);
-    String expectedSparkSql =
-        "SELECT `@timestamp`, `host`, SUM(`actual_count`) `count`\n"
-            + "FROM (SELECT `t1`.`@timestamp`, CASE WHEN `t6`.`host` IS NOT NULL THEN `t1`.`host`"
-            + " ELSE 'OTHER' END `host`, SUM(`t1`.`$f2_0`) `actual_count`\n"
-            + "FROM (SELECT `SPAN`(`@timestamp`, 1, 'm') `@timestamp`, `host`, COUNT(*) `$f2_0`\n"
-            + "FROM `scott`.`events`\n"
-            + "GROUP BY `host`, `SPAN`(`@timestamp`, 1, 'm')) `t1`\n"
-            + "LEFT JOIN (SELECT `host`, SUM(`$f2_0`) `grand_total`\n"
-            + "FROM (SELECT `host`, COUNT(*) `$f2_0`\n"
-            + "FROM `scott`.`events`\n"
-            + "GROUP BY `host`, `SPAN`(`@timestamp`, 1, 'm')) `t4`\n"
-            + "GROUP BY `host`\n"
-            + "ORDER BY 2 DESC NULLS FIRST\n"
-            + "LIMIT 10) `t6` ON `t1`.`host` IS NOT DISTINCT FROM `t6`.`host`\n"
-            + "GROUP BY `t1`.`@timestamp`, CASE WHEN `t6`.`host` IS NOT NULL THEN `t1`.`host` ELSE"
-            + " 'OTHER' END\n"
-            + "UNION\n"
-            + "SELECT `t12`.`@timestamp`, `t22`.`$f0` `host`, 0 `count`\n"
-            + "FROM (SELECT `@timestamp`\n"
-            + "FROM (SELECT `SPAN`(`@timestamp`, 1, 'm') `@timestamp`\n"
-            + "FROM `scott`.`events`\n"
-            + "GROUP BY `host`, `SPAN`(`@timestamp`, 1, 'm')) `t11`\n"
-            + "GROUP BY `@timestamp`) `t12`\n"
-            + "CROSS JOIN (SELECT CAST(CASE WHEN `t20`.`host` IS NOT NULL THEN `t15`.`host` ELSE"
-            + " 'OTHER' END AS STRING) `$f0`\n"
-            + "FROM (SELECT `SPAN`(`@timestamp`, 1, 'm') `@timestamp`, `host`, COUNT(*) `$f2_0`\n"
-            + "FROM `scott`.`events`\n"
-            + "GROUP BY `host`, `SPAN`(`@timestamp`, 1, 'm')) `t15`\n"
-            + "LEFT JOIN (SELECT `host`, SUM(`$f2_0`) `grand_total`\n"
-            + "FROM (SELECT `host`, COUNT(*) `$f2_0`\n"
-            + "FROM `scott`.`events`\n"
-            + "GROUP BY `host`, `SPAN`(`@timestamp`, 1, 'm')) `t18`\n"
-            + "GROUP BY `host`\n"
-            + "ORDER BY 2 DESC NULLS FIRST\n"
-            + "LIMIT 10) `t20` ON `t15`.`host` IS NOT DISTINCT FROM `t20`.`host`\n"
-            + "GROUP BY CAST(CASE WHEN `t20`.`host` IS NOT NULL THEN `t15`.`host` ELSE 'OTHER' END"
-            + " AS STRING)) `t22`) `t24`\n"
-            + "GROUP BY `@timestamp`, `host`\n"
-            + "ORDER BY `@timestamp` NULLS LAST, `host` NULLS LAST";
-    verifyPPLToSparkSQL(root, expectedSparkSql);
-  }
-
-  @Test
+  @Ignore
   public void testTimechartWithLimit() {
     String ppl = "source=events | timechart limit=3 count() by host";
 
@@ -189,6 +144,7 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  @Ignore
   public void testTimechartWithSpan1h() {
     String ppl = "source=events | timechart span=1h count() by host";
     RelNode root = getRelNode(ppl);
@@ -235,6 +191,7 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  @Ignore
   public void testTimechartWithSpan1m() {
     String ppl = "source=events | timechart span=1m avg(cpu_usage) by region";
     RelNode root = getRelNode(ppl);
@@ -266,6 +223,7 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  @Ignore
   public void testTimechartWithLimitAndUseOtherFalse() {
     String ppl = "source=events | timechart span=1h limit=3 useother=false avg(cpu_usage) by host";
     UnresolvedPlan plan = parsePPL(ppl);

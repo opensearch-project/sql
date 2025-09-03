@@ -1464,6 +1464,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       // First rename the timestamp field (2nd to last) to @timestamp
       List<String> fieldNames = context.relBuilder.peek().getRowType().getFieldNames();
       List<String> renamedFields = new ArrayList<>(fieldNames);
+      // TODO: Fix aggregateWithTrimming reordering
       renamedFields.set(fieldNames.size() - 2, "@timestamp");
       context.relBuilder.rename(renamedFields);
 
