@@ -56,9 +56,6 @@ public class CalcitePlanContext {
 
   @Getter public Map<String, RexLambdaRef> rexLambdaRefMap;
 
-  /** Store original field names for timechart queries to preserve aggregation function names */
-  @Getter @Setter private Map<Integer, String> originalFieldNames = new HashMap<>();
-
   private CalcitePlanContext(FrameworkConfig config, Integer querySizeLimit, QueryType queryType) {
     this.config = config;
     this.querySizeLimit = querySizeLimit;

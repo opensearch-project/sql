@@ -54,14 +54,6 @@ public interface PlanUtils {
   String ROW_NUMBER_COLUMN_NAME_MAIN = "_row_number_main_";
   String ROW_NUMBER_COLUMN_NAME_SUBSEARCH = "_row_number_subsearch_";
 
-  // Timechart constants
-  String TIMECHART_TIME_FIELD = "timeField";
-  String TIMECHART_BY_FIELD = "byField";
-  String TIMECHART_VALUE_FIELD = "valueField";
-  String TIMECHART_LIMIT = "limit";
-  String TIMECHART_USE_OTHER = "useOther";
-  String TIMECHART_OTHER_CATEGORY = "OTHER";
-
   static SpanUnit intervalUnitToSpanUnit(IntervalUnit unit) {
     return switch (unit) {
       case MICROSECOND -> SpanUnit.MILLISECOND;
