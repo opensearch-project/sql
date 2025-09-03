@@ -199,8 +199,7 @@ public class OpenSearchRelOptUtilTest {
     srcInput = rexBuilder.makeInputRef(srcType, 1);
     dstType = typeFactory.createSqlType(SqlTypeName.TIMESTAMP);
     cast = rexBuilder.makeCast(dstType, srcInput);
-    result =
-        OpenSearchRelOptUtil.getOrderEquivalentInputInfo(cast);
+    result = OpenSearchRelOptUtil.getOrderEquivalentInputInfo(cast);
     assertExpectedInputInfo(result, 1, false);
 
     // Cast from integer to double
@@ -208,8 +207,7 @@ public class OpenSearchRelOptUtilTest {
     srcInput = rexBuilder.makeInputRef(srcType, 1);
     dstType = typeFactory.createSqlType(SqlTypeName.DOUBLE);
     cast = rexBuilder.makeCast(dstType, srcInput);
-    result =
-        OpenSearchRelOptUtil.getOrderEquivalentInputInfo(cast);
+    result = OpenSearchRelOptUtil.getOrderEquivalentInputInfo(cast);
     assertExpectedInputInfo(result, 1, false);
 
     // Cast from integer to float
@@ -217,17 +215,17 @@ public class OpenSearchRelOptUtilTest {
     srcInput = rexBuilder.makeInputRef(srcType, 1);
     dstType = typeFactory.createSqlType(SqlTypeName.FLOAT);
     cast = rexBuilder.makeCast(dstType, srcInput);
-    result =
-        OpenSearchRelOptUtil.getOrderEquivalentInputInfo(cast);
+    result = OpenSearchRelOptUtil.getOrderEquivalentInputInfo(cast);
     assertFalse(result.isPresent());
 
     // Cast from low precision to high precision
     srcType = typeFactory.createSqlType(SqlTypeName.DECIMAL);
     srcInput = rexBuilder.makeInputRef(srcType, 1);
-    dstType = typeFactory.createSqlType(SqlTypeName.DECIMAL, srcType.getPrecision() + 4,  srcType.getScale() + 4);
+    dstType =
+        typeFactory.createSqlType(
+            SqlTypeName.DECIMAL, srcType.getPrecision() + 4, srcType.getScale() + 4);
     cast = rexBuilder.makeCast(dstType, srcInput);
-    result =
-        OpenSearchRelOptUtil.getOrderEquivalentInputInfo(cast);
+    result = OpenSearchRelOptUtil.getOrderEquivalentInputInfo(cast);
     assertExpectedInputInfo(result, 1, false);
   }
 
