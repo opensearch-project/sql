@@ -191,6 +191,7 @@ PIPE:                               '|';
 COMMA:                              ',';
 DOT:                                '.';
 EQUAL:                              '=';
+DOUBLE_EQUAL:                       '==';
 GREATER:                            '>';
 LESS:                               '<';
 NOT_GREATER:                        '<' '=';

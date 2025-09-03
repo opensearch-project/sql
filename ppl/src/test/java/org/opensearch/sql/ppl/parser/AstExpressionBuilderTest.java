@@ -150,8 +150,41 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   @Test
   public void testLogicalLikeExpr() {
     assertEqual(
-        "source=t like(a, '_a%b%c_d_')",
+        "source=t | where like(a, '_a%b%c_d_')",
         filter(relation("t"), function("like", field("a"), stringLiteral("_a%b%c_d_"))));
+  }
+
+  @Test
+  public void testLikeOperatorExpr() {
+    // Test LIKE operator syntax
+    assertEqual(
+        "source=t | where a LIKE '_a%b%c_d_'",
+        filter(relation("t"), compare("like", field("a"), stringLiteral("_a%b%c_d_"))));
+
+    // Test with fields on both sides
+    assertEqual(
+        "source=t | where a LIKE b",
+        filter(relation("t"), compare("like", field("a"), field("b"))));
+  }
+
+  @Test
+  public void testLikeOperatorCaseInsensitive() {
+    // Test LIKE operator with different cases - all should map to lowercase "like"
+    assertEqual(
+        "source=t | where a LIKE 'pattern'",
+        filter(relation("t"), compare("like", field("a"), stringLiteral("pattern"))));
+
+    assertEqual(
+        "source=t | where a like 'pattern'",
+        filter(relation("t"), compare("like", field("a"), stringLiteral("pattern"))));
+
+    assertEqual(
+        "source=t | where a Like 'pattern'",
+        filter(relation("t"), compare("like", field("a"), stringLiteral("pattern"))));
+
+    assertEqual(
+        "source=t | where a LiKe 'pattern'",
+        filter(relation("t"), compare("like", field("a"), stringLiteral("pattern"))));
   }
 
   @Test
@@ -361,6 +394,31 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   @Test
   public void testCompareFieldsExpr() {
     assertEqual("source=t a>b", filter(relation("t"), compare(">", field("a"), field("b"))));
+  }
+
+  @Test
+  public void testDoubleEqualCompareExpr() {
+    // Test that == is correctly mapped to = operator internally
+    assertEqual("source=t a==1", filter(relation("t"), compare("=", field("a"), intLiteral(1))));
+    assertEqual(
+        "source=t a=='hello'",
+        filter(relation("t"), compare("=", field("a"), stringLiteral("hello"))));
+    assertEqual("source=t a==b", filter(relation("t"), compare("=", field("a"), field("b"))));
+  }
+
+  @Test
+  public void testMixedEqualOperators() {
+    // Test that both = and == can be used in the same expression
+    assertEqual(
+        "source=t a=1 and b==2",
+        filter(
+            relation("t"),
+            and(compare("=", field("a"), intLiteral(1)), compare("=", field("b"), intLiteral(2)))));
+    assertEqual(
+        "source=t a==1 or b=2",
+        filter(
+            relation("t"),
+            or(compare("=", field("a"), intLiteral(1)), compare("=", field("b"), intLiteral(2)))));
   }
 
   @Test
