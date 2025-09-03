@@ -122,7 +122,8 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`events`\n"
             + "GROUP BY `host`, `SPAN`(`@timestamp`, 1, 'm')) `t11`\n"
             + "GROUP BY `@timestamp`) `t12`\n"
-            + "CROSS JOIN (SELECT CAST(CASE WHEN `t20`.`host` IS NOT NULL THEN `t15`.`host` ELSE 'OTHER' END AS STRING) `$f0`\n"
+            + "CROSS JOIN (SELECT CAST(CASE WHEN `t20`.`host` IS NOT NULL THEN `t15`.`host` ELSE"
+            + " 'OTHER' END AS STRING) `$f0`\n"
             + "FROM (SELECT `SPAN`(`@timestamp`, 1, 'm') `@timestamp`, `host`, COUNT(*) `$f2_0`\n"
             + "FROM `scott`.`events`\n"
             + "GROUP BY `host`, `SPAN`(`@timestamp`, 1, 'm')) `t15`\n"
@@ -133,7 +134,8 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
             + "GROUP BY `host`\n"
             + "ORDER BY 2 DESC NULLS FIRST\n"
             + "LIMIT 10) `t20` ON `t15`.`host` IS NOT DISTINCT FROM `t20`.`host`\n"
-            + "GROUP BY CAST(CASE WHEN `t20`.`host` IS NOT NULL THEN `t15`.`host` ELSE 'OTHER' END AS STRING)) `t22`) `t24`\n"
+            + "GROUP BY CAST(CASE WHEN `t20`.`host` IS NOT NULL THEN `t15`.`host` ELSE 'OTHER' END"
+            + " AS STRING)) `t22`) `t24`\n"
             + "GROUP BY `@timestamp`, `host`\n"
             + "ORDER BY `@timestamp` NULLS LAST, `host` NULLS LAST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -167,7 +169,8 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`events`\n"
             + "GROUP BY `host`, `SPAN`(`@timestamp`, 1, 'm')) `t11`\n"
             + "GROUP BY `@timestamp`) `t12`\n"
-            + "CROSS JOIN (SELECT CAST(CASE WHEN `t20`.`host` IS NOT NULL THEN `t15`.`host` ELSE 'OTHER' END AS STRING) `$f0`\n"
+            + "CROSS JOIN (SELECT CAST(CASE WHEN `t20`.`host` IS NOT NULL THEN `t15`.`host` ELSE"
+            + " 'OTHER' END AS STRING) `$f0`\n"
             + "FROM (SELECT `SPAN`(`@timestamp`, 1, 'm') `@timestamp`, `host`, COUNT(*) `$f2_0`\n"
             + "FROM `scott`.`events`\n"
             + "GROUP BY `host`, `SPAN`(`@timestamp`, 1, 'm')) `t15`\n"
@@ -178,7 +181,8 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
             + "GROUP BY `host`\n"
             + "ORDER BY 2 DESC NULLS FIRST\n"
             + "LIMIT 3) `t20` ON `t15`.`host` IS NOT DISTINCT FROM `t20`.`host`\n"
-            + "GROUP BY CAST(CASE WHEN `t20`.`host` IS NOT NULL THEN `t15`.`host` ELSE 'OTHER' END AS STRING)) `t22`) `t24`\n"
+            + "GROUP BY CAST(CASE WHEN `t20`.`host` IS NOT NULL THEN `t15`.`host` ELSE 'OTHER' END"
+            + " AS STRING)) `t22`) `t24`\n"
             + "GROUP BY `@timestamp`, `host`\n"
             + "ORDER BY `@timestamp` NULLS LAST, `host` NULLS LAST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -211,7 +215,8 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`events`\n"
             + "GROUP BY `host`, `SPAN`(`@timestamp`, 1, 'h')) `t11`\n"
             + "GROUP BY `@timestamp`) `t12`\n"
-            + "CROSS JOIN (SELECT CAST(CASE WHEN `t20`.`host` IS NOT NULL THEN `t15`.`host` ELSE 'OTHER' END AS STRING) `$f0`\n"
+            + "CROSS JOIN (SELECT CAST(CASE WHEN `t20`.`host` IS NOT NULL THEN `t15`.`host` ELSE"
+            + " 'OTHER' END AS STRING) `$f0`\n"
             + "FROM (SELECT `SPAN`(`@timestamp`, 1, 'h') `@timestamp`, `host`, COUNT(*) `$f2_0`\n"
             + "FROM `scott`.`events`\n"
             + "GROUP BY `host`, `SPAN`(`@timestamp`, 1, 'h')) `t15`\n"
@@ -222,7 +227,8 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
             + "GROUP BY `host`\n"
             + "ORDER BY 2 DESC NULLS FIRST\n"
             + "LIMIT 10) `t20` ON `t15`.`host` IS NOT DISTINCT FROM `t20`.`host`\n"
-            + "GROUP BY CAST(CASE WHEN `t20`.`host` IS NOT NULL THEN `t15`.`host` ELSE 'OTHER' END AS STRING)) `t22`) `t24`\n"
+            + "GROUP BY CAST(CASE WHEN `t20`.`host` IS NOT NULL THEN `t15`.`host` ELSE 'OTHER' END"
+            + " AS STRING)) `t22`) `t24`\n"
             + "GROUP BY `@timestamp`, `host`\n"
             + "ORDER BY `@timestamp` NULLS LAST, `host` NULLS LAST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
