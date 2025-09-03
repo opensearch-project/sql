@@ -655,4 +655,11 @@ public class PPLQueryDataAnonymizerTest {
     PPLQueryDataAnonymizer anonymize = new PPLQueryDataAnonymizer(settings);
     return anonymize.anonymizeStatement(statement);
   }
+
+  @Test
+  public void testSearchWithAbsoluteTimeRange() {
+    assertEquals(
+        "source=t | where @timestamp >= *** and @timestamp <= NOW()",
+        anonymize("search source=t earliest='2012-12-10 15:00:00' latest=now"));
+  }
 }

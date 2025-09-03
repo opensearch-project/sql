@@ -227,6 +227,7 @@ SINGLE_QUOTE:                       '\'';
 DOUBLE_QUOTE:                       '"';
 BACKTICK:                           '`';
 ARROW:                              '->';
+AT:                                 '@';
 
 // Operators. Bit
 
@@ -514,12 +515,18 @@ HR:                                 'HR';
 HRS:                                'HRS';
 HOURS:                              'HOURS';
 DAYS:                               'DAYS';
+WEEKS:                              'WEEKS';
 MON:                                'MON';
 MONTHS:                             'MONTHS';
+QTR:                                'QTR';
+QTRS:                               'QTRS';
+QUARTERS:                           'QUARTERS';
+YR:                                 'YR';
+YRS:                                'YRS';
+YEARS:                              'YEARS';
 US:                                 'US';
 CS:                                 'CS';
 DS:                                 'DS';
-
 
 // PERCENTILE SHORTCUT FUNCTIONS
 // Must precede ID to avoid conflicts with identifier matching

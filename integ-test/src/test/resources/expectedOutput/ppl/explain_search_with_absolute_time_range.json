@@ -1,0 +1,17 @@
+{
+  "root": {
+    "name": "ProjectOperator",
+    "description": {
+      "fields": "[@timestamp, category, value, timestamp]"
+    },
+    "children": [
+      {
+        "name": "OpenSearchIndexScan",
+        "description": {
+          "request": "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_time_data, sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"query\":{\"bool\":{\"filter\":[{\"range\":{\"@timestamp\":{\"from\":1670677864000,\"to\":null,\"include_lower\":true,\"include_upper\":true,\"boost\":1.0}}},{\"range\":{\"@timestamp\":{\"from\":null,\"to\":1756912200000,\"include_lower\":true,\"include_upper\":true,\"boost\":1.0}}}],\"adjust_pure_negative\":true,\"boost\":1.0}},\"_source\":{\"includes\":[\"@timestamp\",\"category\",\"value\",\"timestamp\"],\"excludes\":[]},\"sort\":[{\"_doc\":{\"order\":\"asc\"}}]}, needClean=true, searchDone=false, pitId=*, cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
+        },
+        "children": []
+      }
+    ]
+  }
+}

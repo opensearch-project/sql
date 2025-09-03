@@ -27,6 +27,7 @@ import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
@@ -67,6 +68,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceContex
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WcFieldExpressionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
+import org.opensearch.sql.utils.DateTimeUtils;
 
 /** Class of building AST Expression nodes. */
 public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedExpression> {
@@ -873,5 +875,35 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     }
     // Default
     return new SearchLiteral(new Literal(ctx.getText(), DataType.STRING), false);
+  }
+
+  /**
+   * Process time range expressions (EARLIEST='value' or LATEST='value') It creates a Comparison
+   * filter like @timestamp >= timeModifierValue
+   */
+  @Override
+  public UnresolvedExpression visitTimeModifierExpression(
+      OpenSearchPPLParser.TimeModifierExpressionContext ctx) {
+    String pplTimeModifierExpression =
+        stripSingleQuote(ctx.timeModifier().timeModifierValue().getText().strip());
+
+    String osDateMathExpression = DateTimeUtils.parseRelativeTime(pplTimeModifierExpression);
+    SearchLiteral osDateMathLiteral =
+        new SearchLiteral(AstDSL.stringLiteral(osDateMathExpression), false);
+
+    Field implicitTimestampField =
+        new Field(new QualifiedName(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP), List.of());
+    var operator =
+        ctx.timeModifier().EARLIEST() != null
+            ? SearchComparison.Operator.GREATER_OR_EQUAL
+            : SearchComparison.Operator.LESS_OR_EQUAL;
+    return new SearchComparison(implicitTimestampField, operator, osDateMathLiteral);
+  }
+
+  private static String stripSingleQuote(String text) {
+    if (text.length() >= 2 && text.startsWith("'") && text.endsWith("'")) {
+      return text.substring(1, text.length() - 1);
+    }
+    return text;
   }
 }
