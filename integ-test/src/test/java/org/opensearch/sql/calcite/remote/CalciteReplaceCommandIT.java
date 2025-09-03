@@ -1,0 +1,250 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.calcite.remote;
+
+import static org.opensearch.sql.legacy.TestsConstants.*;
+import static org.opensearch.sql.util.MatcherUtils.*;
+
+import java.io.IOException;
+import org.json.JSONObject;
+import org.junit.Test;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
+
+public class CalciteReplaceCommandIT extends PPLIntegTestCase {
+
+  public void init() throws Exception {
+    super.init();
+    enableCalcite();
+    disallowCalciteFallback();
+    loadIndex(Index.STATE_COUNTRY);
+  }
+
+  @Test
+  public void testReplaceWithFields() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | replace 'USA' WITH 'United States' IN country | fields name, age,"
+                    + " new_country",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(
+        result, schema("name", "string"), schema("age", "int"), schema("new_country", "string"));
+
+    verifyDataRows(
+        result,
+        rows("Jake", 70, "United States"),
+        rows("Hello", 30, "United States"),
+        rows("John", 25, "Canada"),
+        rows("Jane", 20, "Canada"));
+  }
+
+  @Test
+  public void testMultipleReplace() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | replace 'USA' WITH 'United States' IN country | replace 'Jane' WITH"
+                    + " 'Joseph' IN name",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("age", "int"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("year", "int"),
+        schema("month", "int"),
+        schema("new_name", "string"),
+        schema("new_country", "string"));
+
+    verifyDataRows(
+        result,
+        rows("Jake", "USA", "California", 4, 2023, 70, "United States", "Jake"),
+        rows("Hello", "USA", "New York", 4, 2023, 30, "United States", "Hello"),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, "Canada", "John"),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, "Canada", "Joseph"));
+  }
+
+  @Test
+  public void testReplaceWithSort() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | replace 'US' WITH 'United States' IN country | sort new_country",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("age", "int"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("year", "int"),
+        schema("month", "int"),
+        schema("new_country", "string"));
+  }
+
+  @Test
+  public void testReplaceWithWhereClause() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | where country = 'US' | replace 'US' WITH 'United States' IN country",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("age", "int"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("year", "int"),
+        schema("month", "int"),
+        schema("new_country", "string"));
+  }
+
+  @Test
+  public void testEmptyStringReplacement() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | replace 'USA' WITH '' IN country", TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("age", "int"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("year", "int"),
+        schema("month", "int"),
+        schema("new_country", "string"));
+
+    verifyDataRows(
+        result,
+        rows("Jake", "USA", "California", 4, 2023, 70, ""),
+        rows("Hello", "USA", "New York", 4, 2023, 30, ""),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, "Canada"),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, "Canada"));
+  }
+
+  @Test
+  public void testMultipleFieldsInClause() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | replace 'USA' WITH 'United States' IN country,state",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("age", "int"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("year", "int"),
+        schema("month", "int"),
+        schema("new_state", "string"),
+        schema("new_country", "string"));
+
+    verifyDataRows(
+        result,
+        rows("Jake", "USA", "California", 4, 2023, 70, "United States", "California"),
+        rows("Hello", "USA", "New York", 4, 2023, 30, "United States", "New York"),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, "Canada", "Ontario"),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, "Canada", "Quebec"));
+  }
+
+  @Test
+  public void testReplaceNonExistentField() {
+    Throwable e =
+        assertThrowsWithReplace(
+            IllegalArgumentException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source = %s | replace 'USA' WITH 'United States' IN non_existent_field",
+                        TEST_INDEX_STATE_COUNTRY)));
+    verifyErrorMessageContains(
+        e,
+        "field [non_existent_field] not found; input fields are: [name, country, state, month,"
+            + " year, age, _id, _index, _score, _maxscore, _sort, _routing]");
+  }
+
+  @Test
+  public void testReplaceAfterFieldRemoved() {
+    Throwable e =
+        assertThrowsWithReplace(
+            IllegalArgumentException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source = %s | fields name, age | replace 'USA' WITH 'United States' IN"
+                            + " country",
+                        TEST_INDEX_STATE_COUNTRY)));
+    verifyErrorMessageContains(e, "field [country] not found; input fields are: [name, age]");
+  }
+
+  @Test
+  public void testMissingInClause() {
+    Throwable e =
+        assertThrowsWithReplace(
+            SyntaxCheckException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source = %s | replace 'USA' WITH 'United States'",
+                        TEST_INDEX_STATE_COUNTRY)));
+
+    verifyErrorMessageContains(e, "[<EOF>] is not a valid term at this part of the query");
+    verifyErrorMessageContains(e, "Expecting tokens: 'IN'");
+  }
+
+  @Test
+  public void testDuplicateFieldsInReplace() {
+    Throwable e =
+        assertThrowsWithReplace(
+            IllegalArgumentException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source = %s | replace 'USA' WITH 'United States' IN country, state,"
+                            + " country",
+                        TEST_INDEX_STATE_COUNTRY)));
+    verifyErrorMessageContains(e, "Duplicate fields [country] in Replace command");
+  }
+
+  @Test
+  public void testNonStringLiteralPattern() {
+    Throwable e =
+        assertThrowsWithReplace(
+            SyntaxCheckException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source = %s | replace 23 WITH 'test' IN field1",
+                        TEST_INDEX_STATE_COUNTRY)));
+    verifyErrorMessageContains(e, "is not a valid term at this part of the query");
+    verifyErrorMessageContains(e, "Expecting tokens: DQUOTA_STRING, SQUOTA_STRING");
+  }
+
+  @Test
+  public void testNonStringLiteralReplacement() {
+    Throwable e =
+        assertThrowsWithReplace(
+            SyntaxCheckException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source = %s | replace 'test' WITH 45 IN field1",
+                        TEST_INDEX_STATE_COUNTRY)));
+    verifyErrorMessageContains(e, "is not a valid term at this part of the query");
+    verifyErrorMessageContains(e, "Expecting tokens: DQUOTA_STRING, SQUOTA_STRING");
+  }
+}

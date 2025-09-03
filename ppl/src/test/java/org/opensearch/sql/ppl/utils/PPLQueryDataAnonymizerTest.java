@@ -547,6 +547,13 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testReplaceCommand() {
+    assertEquals(
+        "source=EMP | replace *** WITH *** IN Field(field=fieldname, fieldArgs=[])",
+        anonymize("source=EMP | replace \"value\" WITH \"newvalue\" IN fieldname"));
+  }
+
+  @Test
   public void testPatterns() {
     when(settings.getSettingValue(Key.PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
     when(settings.getSettingValue(Key.PATTERN_MODE)).thenReturn("LABEL");
