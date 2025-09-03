@@ -55,4 +55,12 @@ public final class PPLReturnTypes {
         RelDataType firstArgType = argTypes.get(0);
         return SqlTypeUtil.createArrayType(typeFactory, firstArgType, true);
       };
+  public static final SqlReturnTypeInference STRING_ARRAY =
+      opBinding -> {
+        RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+        // Always return array of strings since multivalue functions convert everything to strings
+        RelDataType stringType =
+            typeFactory.createSqlType(org.apache.calcite.sql.type.SqlTypeName.VARCHAR);
+        return SqlTypeUtil.createArrayType(typeFactory, stringType, true);
+      };
 }

@@ -28,6 +28,8 @@ The following table dataSources the aggregation functions and also indicates how
 +----------+-------------+-------------+
 | MIN      | Ignore      | Ignore      |
 +----------+-------------+-------------+
+| LIST     | Ignore      | Ignore      |
++----------+-------------+-------------+
 
 
 Syntax
@@ -406,6 +408,41 @@ Example with custom time field::
     | inactive                   | users    |
     +----------------------------+----------+
 
+LIST
+----
+
+Description
+>>>>>>>>>>>
+
+=======
+Version: 3.3.0 (Calcite engine only)
+
+Usage: LIST(expr). Collects all values from the specified expression into an array. Values are converted to strings, nulls are filtered, and duplicates are preserved. 
+The function returns up to 100 values with no guaranteed ordering.
+
+* expr: The field expression to collect values from.
+* This aggregation function doesn't support Array, Struct, Object field types.
+
+Example with string fields::
+
+    PPL> source=accounts | stats list(firstname);
+    fetched rows / total rows = 1/1
+    +-------------------------------------+
+    | list(firstname)                     |
+    |-------------------------------------|`
+    | ["Amber","Hattie","Nanette","Dale"] |
+    +-------------------------------------+
+
+Example with result field rename::
+
+    PPL> source=accounts | stats list(firstname) as names;
+    fetched rows / total rows = 1/1
+    +-------------------------------------+
+    | names                               |
+    |-------------------------------------|
+    | ["Amber","Hattie","Nanette","Dale"] |
+    +-------------------------------------+
+
 Example 1: Calculate the count of events
 ========================================
 
@@ -628,3 +665,18 @@ PPL query::
     | 28  | 20       | F      |
     | 36  | 30       | M      |
     +-----+----------+--------+
+
+Example 14: Collect all values in a field using LIST
+=====================================================
+
+The example shows how to collect all firstname values, preserving duplicates and order.
+
+PPL query::
+
+    PPL> source=accounts | stats list(firstname);
+    fetched rows / total rows = 1/1
+    +-------------------------------------+
+    | list(firstname)                     |
+    |-------------------------------------|
+    | ["Amber","Hattie","Nanette","Dale"] |
+    +-------------------------------------+
