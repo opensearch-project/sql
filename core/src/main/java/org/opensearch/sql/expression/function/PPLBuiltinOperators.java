@@ -57,6 +57,7 @@ import org.opensearch.sql.expression.function.udf.GrokFunction;
 import org.opensearch.sql.expression.function.udf.RelevanceQueryFunction;
 import org.opensearch.sql.expression.function.udf.SpanFunction;
 import org.opensearch.sql.expression.function.udf.condition.EarliestFunction;
+import org.opensearch.sql.expression.function.udf.condition.EnhancedCoalesceFunction;
 import org.opensearch.sql.expression.function.udf.condition.LatestFunction;
 import org.opensearch.sql.expression.function.udf.datetime.AddSubDateFunction;
 import org.opensearch.sql.expression.function.udf.datetime.CurrentFunction;
@@ -428,6 +429,9 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
           "pattern",
           ReturnTypes.explicit(UserDefinedFunctionUtils.nullablePatternAggList),
           null);
+
+  public static final SqlOperator ENHANCED_COALESCE =
+      new EnhancedCoalesceFunction().toUDF("COALESCE");
 
   /**
    * Returns the PPL specific operator table, creating it if necessary.

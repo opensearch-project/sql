@@ -215,7 +215,6 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.XOR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.YEAR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.YEARWEEK;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -662,7 +661,7 @@ public class PPLFuncImpTable {
       registerOperator(IFNULL, SqlStdOperatorTable.COALESCE);
       registerOperator(EARLIEST, PPLBuiltinOperators.EARLIEST);
       registerOperator(LATEST, PPLBuiltinOperators.LATEST);
-      registerOperator(COALESCE, SqlStdOperatorTable.COALESCE);
+      registerOperator(COALESCE, PPLBuiltinOperators.ENHANCED_COALESCE);
 
       // Register library operator
       registerOperator(REGEXP, SqlLibraryOperators.REGEXP);
@@ -827,7 +826,8 @@ public class PPLFuncImpTable {
           SqlStdOperatorTable.PLUS,
           PPLTypeChecker.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC));
       // Replace with a custom CompositeOperandTypeChecker to check both operands as
-      // SqlStdOperatorTable.ITEM.getOperandTypeChecker() checks only the first operand instead
+      // SqlStdOperatorTable.ITEM.getOperandTypeChecker() checks only the first
+      // operand instead
       // of all operands.
       registerOperator(
           INTERNAL_ITEM,
@@ -841,14 +841,18 @@ public class PPLFuncImpTable {
           XOR,
           SqlStdOperatorTable.NOT_EQUALS,
           PPLTypeChecker.family(SqlTypeFamily.BOOLEAN, SqlTypeFamily.BOOLEAN));
-      // SqlStdOperatorTable.CASE.getOperandTypeChecker is null. We manually create a type checker
-      // for it. The second and third operands are required to be of the same type. If not,
-      // it will throw an IllegalArgumentException with information Can't find leastRestrictive type
+      // SqlStdOperatorTable.CASE.getOperandTypeChecker is null. We manually create a
+      // type checker
+      // for it. The second and third operands are required to be of the same type. If
+      // not,
+      // it will throw an IllegalArgumentException with information Can't find
+      // leastRestrictive type
       registerOperator(
           IF,
           SqlStdOperatorTable.CASE,
           PPLTypeChecker.family(SqlTypeFamily.BOOLEAN, SqlTypeFamily.ANY, SqlTypeFamily.ANY));
-      // Re-define the type checker for is not null, is present, and is null since their original
+      // Re-define the type checker for is not null, is present, and is null since
+      // their original
       // type checker ANY isn't compatible with struct types.
       registerOperator(
           IS_NOT_NULL,
@@ -901,7 +905,8 @@ public class PPLFuncImpTable {
           (FunctionImp2)
               (builder, arg1, arg2) -> builder.makeCall(SqlLibraryOperators.STRCMP, arg2, arg1),
           PPLTypeChecker.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER));
-      // SqlStdOperatorTable.SUBSTRING.getOperandTypeChecker is null. We manually create a type
+      // SqlStdOperatorTable.SUBSTRING.getOperandTypeChecker is null. We manually
+      // create a type
       // checker for it.
       register(
           SUBSTRING,
@@ -1051,6 +1056,21 @@ public class PPLFuncImpTable {
       register(functionName, handler, typeChecker);
     }
 
+    private static RexNode resolveTimeField(List<RexNode> argList, CalcitePlanContext ctx) {
+      if (argList.isEmpty()) {
+        // Try to find @timestamp field
+        var timestampField =
+            ctx.relBuilder.peek().getRowType().getField("@timestamp", false, false);
+        if (timestampField == null) {
+          throw new IllegalArgumentException(
+              "Default @timestamp field not found. Please specify a time field explicitly.");
+        }
+        return ctx.rexBuilder.makeInputRef(timestampField.getType(), timestampField.getIndex());
+      } else {
+        return PlanUtils.derefMapCall(argList.get(0));
+      }
+    }
+
     void populate() {
       registerOperator(MAX, SqlStdOperatorTable.MAX);
       registerOperator(MIN, SqlStdOperatorTable.MIN);
@@ -1070,9 +1090,15 @@ public class PPLFuncImpTable {
 
       register(
           COUNT,
-          (distinct, field, argList, ctx) ->
-              ctx.relBuilder.count(
-                  distinct, null, field == null ? ImmutableList.of() : ImmutableList.of(field)),
+          (distinct, field, argList, ctx) -> {
+            if (field == null) {
+              // count() without arguments should count all rows
+              return ctx.relBuilder.count(distinct, null);
+            } else {
+              // count(field) should count non-null values of the field
+              return ctx.relBuilder.count(distinct, null, field);
+            }
+          },
           wrapSqlOperandTypeChecker(
               SqlStdOperatorTable.COUNT.getOperandTypeChecker(), COUNT.name(), false));
 
@@ -1089,6 +1115,24 @@ public class PPLFuncImpTable {
               extractTypeCheckerFromUDF(PPLBuiltinOperators.PERCENTILE_APPROX),
               PERCENTILE_APPROX.name(),
               false));
+
+      register(
+          EARLIEST,
+          (distinct, field, argList, ctx) -> {
+            RexNode timeField = resolveTimeField(argList, ctx);
+            return ctx.relBuilder.aggregateCall(SqlStdOperatorTable.ARG_MIN, field, timeField);
+          },
+          wrapSqlOperandTypeChecker(
+              SqlStdOperatorTable.ARG_MIN.getOperandTypeChecker(), EARLIEST.name(), false));
+
+      register(
+          LATEST,
+          (distinct, field, argList, ctx) -> {
+            RexNode timeField = resolveTimeField(argList, ctx);
+            return ctx.relBuilder.aggregateCall(SqlStdOperatorTable.ARG_MAX, field, timeField);
+          },
+          wrapSqlOperandTypeChecker(
+              SqlStdOperatorTable.ARG_MAX.getOperandTypeChecker(), LATEST.name(), false));
     }
   }
 

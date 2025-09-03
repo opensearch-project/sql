@@ -10,6 +10,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -21,7 +22,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import org.json.JSONObject;
-import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
@@ -38,6 +38,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     loadIndex(Index.CALCS);
     loadIndex(Index.DATE_FORMATS);
     loadIndex(Index.DATA_TYPE_NUMERIC);
+    loadIndex(Index.LOGS);
   }
 
   @Test
@@ -63,6 +64,10 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
 
     actual = executeQuery(String.format("source=%s | stats c() as count_emp", TEST_INDEX_BANK));
     verifySchema(actual, schema("count_emp", "bigint"));
+    verifyDataRows(actual, rows(7));
+
+    actual = executeQuery(String.format("source=%s | stats count as count_alias", TEST_INDEX_BANK));
+    verifySchema(actual, schema("count_alias", "bigint"));
     verifyDataRows(actual, rows(7));
   }
 
@@ -560,67 +565,43 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     verifyDataRows(actual, rows(3, "F"), rows(4, "M"));
   }
 
-  @Ignore
   @Test
   public void testEarliestAndLatest() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | stats latest(datetime0), earliest(datetime0)", TEST_INDEX_CALCS));
+            String.format("source=%s | stats latest(server), earliest(server)", TEST_INDEX_LOGS));
 
-    verifySchema(
-        actual,
-        schema("latest(datetime0)", "timestamp"),
-        schema("earliest(datetime0)", "timestamp"));
-    verifyDataRows(actual, rows("2004-08-02 07:59:23", "2004-07-04 22:49:28"));
+    verifySchema(actual, schema("latest(server)", "string"), schema("earliest(server)", "string"));
+    verifyDataRows(actual, rows("server2", "server1"));
   }
 
-  @Ignore
   @Test
   public void testEarliestAndLatestWithAlias() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | stats latest(datetime0) as late, earliest(datetime0) as early",
-                TEST_INDEX_CALCS));
+                "source=%s | stats latest(server) as late, earliest(server) as early",
+                TEST_INDEX_LOGS));
 
-    verifySchema(actual, schema("late", "timestamp"), schema("early", "timestamp"));
-    verifyDataRows(actual, rows("2004-08-02 07:59:23", "2004-07-04 22:49:28"));
+    verifySchema(actual, schema("late", "string"), schema("early", "string"));
+    verifyDataRows(actual, rows("server2", "server1"));
   }
 
-  @Ignore
   @Test
   public void testEarliestAndLatestWithBy() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | stats latest(datetime0) as late, earliest(datetime0) as early by"
-                    + " bool2",
-                TEST_INDEX_CALCS));
+                "source=%s | stats latest(server) as late, earliest(server) as early by" + " level",
+                TEST_INDEX_LOGS));
 
     verifySchema(
-        actual,
-        schema("late", "timestamp"),
-        schema("early", "timestamp"),
-        schema("bool2", "boolean"));
+        actual, schema("late", "string"), schema("early", "string"), schema("level", "string"));
     verifyDataRows(
         actual,
-        rows("2004-07-31 11:57:52", "2004-07-12 17:30:16", true),
-        rows("2004-08-02 07:59:23", "2004-07-04 22:49:28", false));
-  }
-
-  @Ignore
-  @Test
-  public void testEarliestAndLatestWithTimeBy() throws IOException {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | stats latest(time1) as late, earliest(time1) as early by" + " bool2",
-                TEST_INDEX_CALCS));
-
-    verifySchema(
-        actual, schema("late", "time"), schema("early", "time"), schema("bool2", "boolean"));
-    verifyDataRows(actual, rows("19:57:33", "04:40:49", true), rows("22:50:16", "00:05:57", false));
+        rows("server3", "server1", "ERROR"),
+        rows("server2", "server2", "INFO"),
+        rows("server1", "server1", "WARN"));
   }
 
   @Test
@@ -946,5 +927,46 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
 
     verifyDataRows(shortcut, rows(shortcutValue));
     verifyDataRows(standard, rows(standardValue));
+  }
+
+  @Test
+  public void testStatsCountAliasWithMultipleAggregatesAndSort() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats sum(balance), count, avg(balance) by state | sort - `count`",
+                TEST_INDEX_BANK));
+    verifySchema(
+        response,
+        schema("sum(balance)", "bigint"),
+        schema("count", "bigint"),
+        schema("avg(balance)", "double"),
+        schema("state", "string"));
+    verifyDataRows(
+        response,
+        rows(39225, 1, 39225.0, "IL"),
+        rows(48086, 1, 48086.0, "IN"),
+        rows(4180, 1, 4180.0, "MD"),
+        rows(40540, 1, 40540.0, "PA"),
+        rows(5686, 1, 5686.0, "TN"),
+        rows(32838, 1, 32838.0, "VA"),
+        rows(16418, 1, 16418.0, "WA"));
+  }
+
+  @Test
+  public void testStatsCountAliasByGroupWithSort() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format("source=%s | stats count by state | sort - `count`", TEST_INDEX_BANK));
+    verifySchema(response, schema("count", "bigint"), schema("state", "string"));
+    verifyDataRows(
+        response,
+        rows(1, "IL"),
+        rows(1, "IN"),
+        rows(1, "MD"),
+        rows(1, "PA"),
+        rows(1, "TN"),
+        rows(1, "VA"),
+        rows(1, "WA"));
   }
 }

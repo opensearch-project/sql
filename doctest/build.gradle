@@ -81,17 +81,17 @@ task doctest(type: Exec, dependsOn: ['bootstrap']) {
     def docs = project.findProperty('docs')
     def verbose = project.findProperty('verbose')
     def endpoint = project.findProperty('endpoint')
+    def debug = project.findProperty('debug')
+    
+    // Set environment variables for debug mode
+    if (debug == 'true') {
+        environment 'DOCTEST_DEBUG', 'true'
+    }
     
     if (docs) {
-        // Single file or multiple files mode
         def args = ['.venv/bin/python', 'test_docs.py']
         
-        // Handle multiple files (comma-separated)
-        if (docs.contains(',')) {
-            args.addAll(docs.split(',').collect { it.trim() })
-        } else {
-            args.add(docs)
-        }
+        args.addAll(docs.split(',').collect { it.trim() })
         
         if (verbose == 'true') {
             args.add('--verbose')
@@ -109,11 +109,6 @@ task doctest(type: Exec, dependsOn: ['bootstrap']) {
     doLast {
         // remove the cloned sql-cli folder
         file("$projectDir/sql-cli").deleteDir()
-        if (docs) {
-            println("Single file doctest done")
-        } else {
-            println("Full doctest suite done")
-        }
     }
 }
 

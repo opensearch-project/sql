@@ -73,6 +73,7 @@ commands
    | expandCommand
    | flattenCommand
    | reverseCommand
+   | regexCommand
    ;
 
 commandName
@@ -106,6 +107,7 @@ commandName
    | TRENDLINE
    | EXPLAIN
    | REVERSE
+   | REGEX
    ;
 
 searchCommand
@@ -159,7 +161,7 @@ dedupCommand
    ;
 
 sortCommand
-   : SORT (count = integerLiteral)? sortbyClause (DESC | D)?
+   : SORT (count = integerLiteral)? sortbyClause (ASC | A | DESC | D)?
    ;
 
 reverseCommand
@@ -241,6 +243,13 @@ pathElement
 pathArrayAccess
    : LT_CURLY (INTEGER_LITERAL)? RT_CURLY
    ;
+regexCommand
+    : REGEX regexExpr
+    ;
+
+regexExpr
+    : field=qualifiedName operator=(EQUAL | NOT_EQUAL) pattern=stringLiteral
+    ;
 
 patternsMethod
    : PUNCT
@@ -483,11 +492,12 @@ statsAggTerm
 statsFunction
    : statsFunctionName LT_PRTHS valueExpression RT_PRTHS        # statsFunctionCall
    | (COUNT | C) LT_PRTHS evalExpression RT_PRTHS               # countEvalFunctionCall
-   | (COUNT | C) LT_PRTHS RT_PRTHS                              # countAllFunctionCall
+   | (COUNT | C) (LT_PRTHS RT_PRTHS)?                           # countAllFunctionCall
    | PERCENTILE_SHORTCUT LT_PRTHS valueExpression RT_PRTHS      # percentileShortcutFunctionCall
    | (DISTINCT_COUNT | DC | DISTINCT_COUNT_APPROX) LT_PRTHS valueExpression RT_PRTHS    # distinctCountFunctionCall
    | takeAggFunction                                            # takeAggFunctionCall
    | percentileApproxFunction                                   # percentileApproxFunctionCall
+   | earliestLatestFunction                                     # earliestLatestFunctionCall
    ;
 
 statsFunctionName
@@ -502,8 +512,10 @@ statsFunctionName
    | STDDEV_POP
    | PERCENTILE
    | PERCENTILE_APPROX
-   | EARLIEST
-   | LATEST
+   ;
+
+earliestLatestFunction
+   : (EARLIEST | LATEST) LT_PRTHS valueExpression (COMMA timeField = valueExpression)? RT_PRTHS
    ;
 
 
@@ -1229,6 +1241,8 @@ keywordsCanBeId
    | EXISTS
    | SOURCE
    | INDEX
+   | A
+   | ASC
    | DESC
    | DATASOURCES
    | FROM

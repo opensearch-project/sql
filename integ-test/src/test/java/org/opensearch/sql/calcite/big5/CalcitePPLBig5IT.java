@@ -66,4 +66,9 @@ public class CalcitePPLBig5IT extends PPLBig5IT {
     String ppl = sanitize(loadFromFile("big5/queries/bin_start_end.ppl"));
     timing(summary, "bin_start_end", ppl);
   }
+
+  public void coalesce_nonexistent_field_fallback() throws IOException {
+    String ppl = sanitize(loadFromFile("big5/queries/coalesce_nonexistent_field_fallback.ppl"));
+    timing(summary, "coalesce_nonexistent_field_fallback", ppl);
+  }
 }

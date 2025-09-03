@@ -53,13 +53,17 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  public void testCoalesceWithSameType() {
+    String ppl = "source=EMP | eval coalesce_name = coalesce(ENAME, 'Jack') | fields coalesce_name";
+    Assert.assertNotNull(getRelNode(ppl));
+  }
+
+  @Test
   public void testCoalesceWithDifferentType() {
     String ppl =
         "source=EMP | eval coalesce_name = coalesce(EMPNO, 'Jack', ENAME) | fields"
             + " coalesce_name";
-    Throwable t = Assert.assertThrows(ExpressionEvaluationException.class, () -> getRelNode(ppl));
-    verifyErrorMessageContains(
-        t, "COALESCE function expects {[COMPARABLE_TYPE...]}, but got [SHORT,STRING,STRING]");
+    Assert.assertNotNull(getRelNode(ppl));
   }
 
   @Test

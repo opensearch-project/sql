@@ -8,7 +8,8 @@ package org.opensearch.sql.ppl;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_ENGINE_ENABLED;
-import static org.opensearch.sql.legacy.TestsConstants.*;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STRINGS;
 
 import java.io.IOException;
