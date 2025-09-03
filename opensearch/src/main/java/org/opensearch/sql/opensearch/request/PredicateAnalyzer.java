@@ -570,8 +570,8 @@ public class PredicateAnalyzer {
       }
 
       if (call.getKind() == SqlKind.IS_TRUE) {
-        Expression a = call.getOperands().get(0).accept(this);
-        return ((QueryExpression) a).isTrue();
+        Expression qe = call.getOperands().get(0).accept(this);
+        return ((QueryExpression) qe).isTrue();
       }
 
       // OpenSearch DSL does not handle IS_NULL / IS_NOT_NULL on nested fields correctly

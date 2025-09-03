@@ -440,6 +440,16 @@ public class CalciteExplainIT extends ExplainIT {
     assertJsonEqualsIgnoreId(expected, result);
   }
 
+  @Test
+  public void testExplainCountEvalComplex() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_bank | stats count(eval(age > 30 and age < 50)) as"
+            + " mature_count";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_count_eval_complex_push.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
   /**
    * Executes the PPL query and returns the result as a string with windows-style line breaks
    * replaced with Unix-style ones.
