@@ -9,7 +9,6 @@ on:
     paths:
       - 'integ-test/**'
       - '.github/workflows/integ-tests-with-security.yml'
-  merge_group:
 
 jobs:
   Get-CI-Image-Tag:

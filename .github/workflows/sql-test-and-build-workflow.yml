@@ -16,7 +16,6 @@ on:
       - '**/*.jar'
       - '**/*.pom'
       - '.github/workflows/sql-test-and-build-workflow.yml'
-  merge_group:
 
 jobs:
   Get-CI-Image-Tag:
