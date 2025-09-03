@@ -754,8 +754,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   @Override
   public LogicalPlan visitRex(Rex node, AnalysisContext context) {
-    throw new UnsupportedOperationException(
-        "REX is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+    throw getOnlyForCalciteException("Rex");
   }
 
   @Override

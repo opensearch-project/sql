@@ -1954,6 +1954,6 @@ class AnalyzerTest extends AnalyzerTestBase {
                     new org.opensearch.sql.ast.tree.Rex(
                             field("email"), stringLiteral("(?<user>[^@]+)@(?<domain>.+)"))
                         .attach(relation("schema"))));
-    assertEquals("REX is supported only when plugins.calcite.enabled=true", exception.getMessage());
+    assertEquals("Rex is supported only when plugins.calcite.enabled=true", exception.getMessage());
   }
 }
