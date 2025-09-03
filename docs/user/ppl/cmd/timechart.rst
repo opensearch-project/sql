@@ -76,10 +76,13 @@ Notes
 * When using the ``limit`` parameter, values beyond the limit are grouped into an "OTHER" category (unless ``useother=false``).
 * Examples 6 and 7 use different datasets: Example 6 uses the ``events`` dataset with fewer hosts for simplicity, while Example 7 uses the ``events_many_hosts`` dataset with 11 distinct hosts.
 
+* **Null values**: Documents with null values in the "by" field are treated as a separate category and appear as null in the results.
+
 Limitations
 ============
 * Only a single aggregation function is supported per timechart command.
 * The ``bins`` parameter and other bin options are not supported since the ``bin`` command is not implemented yet. Use the ``span`` parameter to control time intervals.
+
 
 Examples
 ========
@@ -329,4 +332,24 @@ Result::
     | 2024-07-01 00:00:00 | web-07 | 48.6             |
     | 2024-07-01 00:00:00 | web-09 | 67.8             |
     +---------------------+--------+------------------+
+
+Example 10: Handling null values in the "by" field
+==================================================
+
+This example shows how null values in the "by" field are treated as a separate category. The dataset events_null has 1 entry that does not have a host field.
+
+PPL query::
+
+    PPL> source=events_null | timechart span=1h count() by host
+
+Result::
+
+    +---------------------+--------+-------+
+    | @timestamp          | host   | count |
+    +---------------------+--------+-------+
+    | 2024-07-01 00:00:00 | db-01  | 1     |
+    | 2024-07-01 00:00:00 | web-01 | 2     |
+    | 2024-07-01 00:00:00 | web-02 | 2     |
+    | 2024-07-01 00:00:00 | null   | 1     |
+    +---------------------+--------+-------+
 
