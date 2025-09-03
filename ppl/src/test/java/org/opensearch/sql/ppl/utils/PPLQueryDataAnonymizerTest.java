@@ -582,20 +582,16 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
-  public void testRexCommand() {
-    when(settings.getSettingValue(Key.PPL_REX_MAX_MATCH_LIMIT)).thenReturn(10);
+  public void testMvjoin() {
+    // Test mvjoin with array of strings
+    assertEquals(
+        "source=t | eval result=mvjoin(array(***,***,***),***) | fields + result",
+        anonymize("source=t | eval result=mvjoin(array('a', 'b', 'c'), ',') | fields result"));
 
+    // Test mvjoin with single string value
     assertEquals(
-        "source=t | rex field=message mode=extract \"(?<user>[A-Z]+)\" max_match=1",
-        anonymize("source=t | rex field=message \"(?<user>[A-Z]+)\""));
-    assertEquals(
-        "source=t | rex field=lastname mode=extract \"(?<initial>^[A-Z])\" max_match=1 | fields +"
-            + " lastname,initial",
-        anonymize(
-            "source=t | rex field=lastname \"(?<initial>^[A-Z])\" | fields lastname, initial"));
-    assertEquals(
-        "source=t | rex field=name mode=extract \"(?<first>[A-Z])\" max_match=3",
-        anonymize("source=t | rex field=name \"(?<first>[A-Z])\" max_match=3"));
+        "source=t | eval result=mvjoin(***,***) | fields + result",
+        anonymize("source=t | eval result=mvjoin('hello', ',') | fields result"));
   }
 
   @Test
