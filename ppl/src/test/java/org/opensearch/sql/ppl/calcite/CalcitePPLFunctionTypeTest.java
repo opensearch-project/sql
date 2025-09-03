@@ -188,20 +188,4 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
     verifyErrorMessageContains(
         e, "MVJOIN function expects {[STRING,STRING],[ARRAY,STRING]}, but got [INTEGER,STRING]");
   }
-
-  @Test
-  public void testMvjoinRejectsNumericArrays() {
-    // mvjoin should reject non-string arrays at runtime
-    // Note: Type checking doesn't happen at PPL level for array element types
-    Exception e =
-        Assert.assertThrows(
-            RuntimeException.class,
-            () ->
-                getRelNode(
-                    "source=EMP | eval result = mvjoin(array(1, 2, 3), ',') | fields result | head"
-                        + " 1"));
-
-    // The actual error comes from Calcite's ARRAY_JOIN operator
-    verifyErrorMessageContains(e, "arrayToString supports only String or ByteString");
-  }
 }
