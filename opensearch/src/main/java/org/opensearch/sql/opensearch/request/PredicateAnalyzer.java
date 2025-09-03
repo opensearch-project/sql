@@ -569,14 +569,15 @@ public class PredicateAnalyzer {
         throw new PredicateAnalyzerException(message);
       }
 
+      if (call.getKind() == SqlKind.IS_TRUE) {
+        Expression a = call.getOperands().get(0).accept(this);
+        return ((QueryExpression) a).isTrue();
+      }
+
       // OpenSearch DSL does not handle IS_NULL / IS_NOT_NULL on nested fields correctly
       checkForNestedFieldOperands(call);
 
       Expression a = call.getOperands().get(0).accept(this);
-      if (call.getKind() == SqlKind.IS_TRUE) {
-        return (QueryExpression) a;
-      }
-
       // OpenSearch does not want is null/is not null (exists query)
       // for _id and _index, although it supports for all other metadata column
       isColumn(a, call, OpenSearchConstants.METADATA_FIELD_ID, true);
@@ -1389,7 +1390,8 @@ public class PredicateAnalyzer {
 
     @Override
     public QueryExpression isTrue() {
-      builder = termQuery(getFieldReferenceForTermQuery(), true);
+      // Ignore istrue if ISTRUE(predicate) and will support ISTRUE(field) later.
+      // builder = termQuery(getFieldReferenceForTermQuery(), true);
       return this;
     }
 
