@@ -11,12 +11,18 @@ import static org.opensearch.sql.legacy.SQLIntegTestCase.Index.DATA_TYPE_NUMERIC
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ALIAS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NONNUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
+import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
+import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 
 import java.io.IOException;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
+import org.opensearch.client.Request;
 
 public class DataTypeIT extends PPLIntegTestCase {
 
@@ -46,18 +52,33 @@ public class DataTypeIT extends PPLIntegTestCase {
   @Test
   public void test_nonnumeric_data_types() throws IOException {
     JSONObject result = executeQuery(String.format("source=%s", TEST_INDEX_DATATYPE_NONNUMERIC));
-    verifySchema(
+    verifySchemaInOrder(
         result,
-        schema("boolean_value", "boolean"),
-        schema("keyword_value", "string"),
         schema("text_value", "string"),
-        schema("binary_value", "binary"),
-        schema("date_value", "timestamp"),
         schema("date_nanos_value", "timestamp"),
+        schema("date_value", "timestamp"),
+        schema("boolean_value", "boolean"),
         schema("ip_value", "ip"),
-        schema("object_value", "struct"),
         schema("nested_value", "array"),
-        schema("geo_point_value", "geo_point"));
+        schema("object_value", "struct"),
+        schema("keyword_value", "string"),
+        schema("geo_point_value", "geo_point"),
+        schema("binary_value", "binary"));
+    verifyDataRowsInOrder(
+        result,
+        rows(
+            "text",
+            "2019-03-24 01:34:46.123456789",
+            "2020-10-13 13:00:00",
+            true,
+            "127.0.0.1",
+            new JSONArray(
+                "[{\"last\": \"Smith\", \"first\": \"John\"}, {\"last\": \"White\", \"first\":"
+                    + " \"Alice\"}]"),
+            new JSONObject("{\"last\": \"Dale\", \"first\": \"Dale\"}"),
+            "keyword",
+            new JSONObject("{\"lon\": 74, \"lat\": 40.71}"),
+            "U29tZSBiaW5hcnkgYmxvYg=="));
   }
 
   @Test
@@ -85,8 +106,67 @@ public class DataTypeIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | where alias_col > 1 " + "| fields original_col, alias_col ",
+                "source=%s | where alias_col > 1 | fields original_col, alias_col ",
                 TEST_INDEX_ALIAS));
     verifySchema(result, schema("original_col", "int"), schema("alias_col", "int"));
+    verifyDataRows(result, rows(2, 2), rows(3, 3));
+  }
+
+  @Test
+  public void testNumericFieldFromString() throws Exception {
+    final int docId = 2;
+    Request insertRequest =
+        new Request(
+            "PUT", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_DATATYPE_NUMERIC, docId));
+    insertRequest.setJsonEntity(
+        "{\"long_number\": \"12345678\",\"integer_number\": \"\",\"short_number\":"
+            + " \"123\",\"byte_number\": \"12\",\"double_number\": \"1234.5678\",\"float_number\":"
+            + " \"\",\"half_float_number\": \"1.23\",\"scaled_float_number\": \"12.34\"}\n");
+    client().performRequest(insertRequest);
+
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where long_number=12345678 | fields long_number, integer_number,"
+                    + " double_number, float_number",
+                TEST_INDEX_DATATYPE_NUMERIC));
+    verifySchema(
+        result,
+        schema("long_number", "bigint"),
+        schema("integer_number", "int"),
+        schema("double_number", "double"),
+        schema("float_number", "float"));
+    verifyDataRows(result, rows(12345678, 0, 1234.5678, 0));
+
+    Request deleteRequest =
+        new Request(
+            "DELETE",
+            String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_DATATYPE_NUMERIC, docId));
+    client().performRequest(deleteRequest);
+  }
+
+  @Test
+  public void testBooleanFieldFromString() throws Exception {
+    final int docId = 2;
+    Request insertRequest =
+        new Request(
+            "PUT",
+            String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_DATATYPE_NONNUMERIC, docId));
+    insertRequest.setJsonEntity("{\"boolean_value\": \"true\", \"keyword_value\": \"test\"}\n");
+    client().performRequest(insertRequest);
+
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where keyword_value='test' | fields boolean_value",
+                TEST_INDEX_DATATYPE_NONNUMERIC));
+    verifySchema(result, schema("boolean_value", "boolean"));
+    verifyDataRows(result, rows(true));
+
+    Request deleteRequest =
+        new Request(
+            "DELETE",
+            String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_DATATYPE_NONNUMERIC, docId));
+    client().performRequest(deleteRequest);
   }
 }

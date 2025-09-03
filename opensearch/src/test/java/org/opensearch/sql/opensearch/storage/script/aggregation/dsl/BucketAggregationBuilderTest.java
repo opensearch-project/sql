@@ -15,6 +15,7 @@ import static org.opensearch.sql.expression.DSL.named;
 import static org.opensearch.sql.expression.DSL.ref;
 
 import java.util.Map;
+import java.util.Optional;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -37,7 +38,7 @@ import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
-import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
+import org.opensearch.sql.opensearch.storage.serde.ExpressionSerializer;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
@@ -86,8 +87,9 @@ class BucketAggregationBuilderTest {
             + "  \"1\" : {\n"
             + "    \"terms\" : {\n"
             + "      \"script\" : {\n"
-            + "        \"source\" : \"mock-serialize\",\n"
-            + "        \"lang\" : \"opensearch_query_expression\"\n"
+            + "        \"source\" :"
+            + " \"{\\\"langType\\\":\\\"v2\\\",\\\"script\\\":\\\"mock-serialize\\\"}\",\n"
+            + "        \"lang\" : \"opensearch_compounded_script\"\n"
             + "      },\n"
             + "      \"size\" : 1000,\n"
             + "      \"min_doc_count\" : 1,\n"
@@ -150,8 +152,9 @@ class BucketAggregationBuilderTest {
             + "  \"name\" : {\n"
             + "    \"terms\" : {\n"
             + "      \"script\" : {\n"
-            + "        \"source\" : \"mock-serialize\",\n"
-            + "        \"lang\" : \"opensearch_query_expression\"\n"
+            + "        \"source\" :"
+            + " \"{\\\"langType\\\":\\\"v2\\\",\\\"script\\\":\\\"mock-serialize\\\"}\",\n"
+            + "        \"lang\" : \"opensearch_compounded_script\"\n"
             + "      },\n"
             + "      \"size\" : 1000,\n"
             + "      \"min_doc_count\" : 1,\n"
@@ -259,7 +262,8 @@ class BucketAggregationBuilderTest {
   private String buildQuery(NamedExpression groupByExpression) {
     XContentBuilder builder = XContentFactory.jsonBuilder().prettyPrint();
     builder.startObject();
-    ValuesSourceAggregationBuilder<?> sourceBuilder = aggregationBuilder.build(groupByExpression);
+    ValuesSourceAggregationBuilder<?> sourceBuilder =
+        aggregationBuilder.build(groupByExpression, Optional.empty());
     sourceBuilder.toXContent(builder, EMPTY_PARAMS);
     builder.endObject();
     return BytesReference.bytes(builder).utf8ToString();

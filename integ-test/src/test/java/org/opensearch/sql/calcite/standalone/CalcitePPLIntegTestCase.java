@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.standalone;
 
 import static org.opensearch.sql.datasource.model.DataSourceMetadata.defaultOpenSearchDataSourceMetadata;
+import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
 import com.google.common.collect.ImmutableMap;
@@ -25,6 +26,7 @@ import org.opensearch.common.inject.Injector;
 import org.opensearch.common.inject.ModulesBuilder;
 import org.opensearch.common.inject.Provides;
 import org.opensearch.common.inject.Singleton;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.analysis.ExpressionAnalyzer;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
@@ -61,6 +63,7 @@ import org.opensearch.sql.ppl.PPLService;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
+import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
 import org.opensearch.sql.sql.SQLService;
 import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
@@ -109,10 +112,15 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
       private final Map<Key, Object> defaultSettings =
           new ImmutableMap.Builder<Key, Object>()
               .put(Key.QUERY_SIZE_LIMIT, 200)
+              .put(Key.SQL_CURSOR_KEEP_ALIVE, TimeValue.timeValueMinutes(1))
               .put(Key.FIELD_TYPE_TOLERANCE, true)
               .put(Key.CALCITE_ENGINE_ENABLED, true)
-              .put(Key.CALCITE_FALLBACK_ALLOWED, false)
               .put(Key.CALCITE_PUSHDOWN_ENABLED, false)
+              .put(Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR, 0.9)
+              .put(Key.PATTERN_METHOD, "SIMPLE_PATTERN")
+              .put(Key.PATTERN_MODE, "LABEL")
+              .put(Key.PATTERN_MAX_SAMPLE_COUNT, 10)
+              .put(Key.PATTERN_BUFFER_LIMIT, 100000)
               .build();
 
       @Override
@@ -133,10 +141,16 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
       private final Map<Key, Object> defaultSettings =
           new ImmutableMap.Builder<Key, Object>()
               .put(Key.QUERY_SIZE_LIMIT, 200)
+              .put(Key.SQL_CURSOR_KEEP_ALIVE, TimeValue.timeValueMinutes(1))
               .put(Key.FIELD_TYPE_TOLERANCE, true)
               .put(Key.CALCITE_ENGINE_ENABLED, true)
               .put(Key.CALCITE_FALLBACK_ALLOWED, false)
               .put(Key.CALCITE_PUSHDOWN_ENABLED, true)
+              .put(Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR, 0.9)
+              .put(Key.PATTERN_METHOD, "SIMPLE_PATTERN")
+              .put(Key.PATTERN_MODE, "LABEL")
+              .put(Key.PATTERN_MAX_SAMPLE_COUNT, 10)
+              .put(Key.PATTERN_BUFFER_LIMIT, 100000)
               .build();
 
       @Override
@@ -172,6 +186,18 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
           public void onFailure(Exception e) {
             throw new IllegalStateException("Exception happened during execution", e);
           }
+        },
+        new ResponseListener<ExecutionEngine.ExplainResponse>() {
+
+          @Override
+          public void onResponse(ExecutionEngine.ExplainResponse response) {
+            actual.set(response.getCalcite().toString());
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            throw new IllegalStateException("Exception happened during execution", e);
+          }
         });
     return actual.get();
   }
@@ -185,7 +211,9 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
 
           @Override
           public void onResponse(ExecutionEngine.QueryResponse response) {
-            QueryResult result = new QueryResult(response.getSchema(), response.getResults());
+            QueryResult result =
+                new QueryResult(
+                    response.getSchema(), response.getResults(), response.getCursor(), PPL_SPEC);
             String json = new SimpleJsonResponseFormatter(PRETTY).format(result);
             actual.set(jsonify(json));
           }
@@ -200,12 +228,53 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
               throw (UnsupportedCursorRequestException) e;
             } else if (e instanceof NoCursorException) {
               throw (NoCursorException) e;
+            } else if (e instanceof UnsupportedOperationException) {
+              throw (UnsupportedOperationException) e;
             } else if (e instanceof IllegalArgumentException) {
               // most exceptions thrown by Calcite when resolve a plan.
               throw (IllegalArgumentException) e;
             } else {
               throw new IllegalStateException("Exception happened during execution", e);
             }
+          }
+        },
+        new ResponseListener<ExecutionEngine.ExplainResponse>() {
+
+          @Override
+          public void onResponse(ExecutionEngine.ExplainResponse response) {
+            assertNotNull(response);
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            fail();
+          }
+        });
+    return actual.get();
+  }
+
+  @Override
+  protected String explainQuery(String query) {
+    AtomicReference<String> actual = new AtomicReference<>();
+    pplService.explain(
+        new PPLQueryRequest(query, null, null),
+        new ResponseListener<ExecutionEngine.ExplainResponse>() {
+
+          @Override
+          public void onResponse(ExecutionEngine.ExplainResponse response) {
+            String responseContent =
+                new JsonResponseFormatter<ExecutionEngine.ExplainResponse>(PRETTY) {
+                  @Override
+                  protected Object buildJsonObject(ExecutionEngine.ExplainResponse response) {
+                    return response;
+                  }
+                }.format(response);
+            actual.set(responseContent.replace("\\r\\n", "\\n"));
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            throw new IllegalStateException("Exception happened during execution", e);
           }
         });
     return actual.get();
@@ -320,5 +389,10 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
           new QueryService(analyzer, executionEngine, planner, dataSourceService, settings);
       return new QueryPlanFactory(queryService);
     }
+  }
+
+  @Override
+  protected boolean isStandaloneTest() {
+    return true;
   }
 }

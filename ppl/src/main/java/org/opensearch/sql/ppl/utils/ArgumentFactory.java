@@ -22,6 +22,14 @@ import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLiteralContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareCommandContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
 
 /** Util class to get all arguments as a list from the PPL command. */
 public class ArgumentFactory {
@@ -34,7 +42,7 @@ public class ArgumentFactory {
    */
   public static List<Argument> getArgumentList(FieldsCommandContext ctx) {
     return Collections.singletonList(
-        ctx.MINUS() != null
+        ctx.fieldsCommandBody().MINUS() != null
             ? new Argument("exclude", new Literal(true, DataType.BOOLEAN))
             : new Argument("exclude", new Literal(false, DataType.BOOLEAN)));
   }
@@ -109,10 +117,16 @@ public class ArgumentFactory {
    * @return the list of arguments fetched from the top command
    */
   public static List<Argument> getArgumentList(TopCommandContext ctx) {
-    return Collections.singletonList(
+    return Arrays.asList(
         ctx.number != null
             ? new Argument("noOfResults", getArgumentValue(ctx.number))
-            : new Argument("noOfResults", new Literal(10, DataType.INTEGER)));
+            : new Argument("noOfResults", new Literal(10, DataType.INTEGER)),
+        ctx.countfield != null
+            ? new Argument("countField", getArgumentValue(ctx.countfield))
+            : new Argument("countField", new Literal("count", DataType.STRING)),
+        ctx.showcount != null
+            ? new Argument("showCount", getArgumentValue(ctx.showcount))
+            : new Argument("showCount", new Literal(true, DataType.BOOLEAN)));
   }
 
   /**
@@ -122,8 +136,16 @@ public class ArgumentFactory {
    * @return the list of argument with default number of results for the rare command
    */
   public static List<Argument> getArgumentList(RareCommandContext ctx) {
-    return Collections.singletonList(
-        new Argument("noOfResults", new Literal(10, DataType.INTEGER)));
+    return Arrays.asList(
+        ctx.number != null
+            ? new Argument("noOfResults", getArgumentValue(ctx.number))
+            : new Argument("noOfResults", new Literal(10, DataType.INTEGER)),
+        ctx.countfield != null
+            ? new Argument("countField", getArgumentValue(ctx.countfield))
+            : new Argument("countField", new Literal("count", DataType.STRING)),
+        ctx.showcount != null
+            ? new Argument("showCount", getArgumentValue(ctx.showcount))
+            : new Argument("showCount", new Literal(true, DataType.BOOLEAN)));
   }
 
   /**

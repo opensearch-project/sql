@@ -55,7 +55,6 @@ import java.time.temporal.IsoFields;
 import java.time.temporal.TemporalAmount;
 import java.util.Locale;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import lombok.experimental.UtilityClass;
@@ -82,6 +81,7 @@ import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.expression.function.FunctionSignature;
 import org.opensearch.sql.expression.function.SerializableFunction;
 import org.opensearch.sql.expression.function.SerializableTriFunction;
+import org.opensearch.sql.utils.DateTimeFormatters;
 import org.opensearch.sql.utils.DateTimeUtils;
 
 /**
@@ -128,6 +128,8 @@ public class DateTimeFunctions {
           .put("DAY_HOUR", "ddHH")
           .put("YEAR_MONTH", "yyyyMM")
           .put("QUARTER", "Q")
+          .put("DOY", "D")
+          .put("DOW", "e")
           .build();
 
   // Map used to determine format output for the get_format function
@@ -263,11 +265,13 @@ public class DateTimeFunctions {
     return define(
         BuiltinFunctionName.SYSDATE.getName(),
         implWithProperties(
-            functionProperties -> new ExprTimestampValue(formatNow(Clock.systemDefaultZone())),
+            functionProperties ->
+                new ExprTimestampValue(formatNow(functionProperties.getSystemClock())),
             TIMESTAMP),
         FunctionDSL.implWithProperties(
             (functionProperties, v) ->
-                new ExprTimestampValue(formatNow(Clock.systemDefaultZone(), v.integerValue())),
+                new ExprTimestampValue(
+                    formatNow(functionProperties.getSystemClock(), v.integerValue())),
             TIMESTAMP,
             INTEGER));
   }
@@ -491,8 +495,15 @@ public class DateTimeFunctions {
   private FunctionResolver datetime() {
     return define(
         BuiltinFunctionName.DATETIME.getName(),
-        impl(nullMissingHandling(DateTimeFunctions::exprDateTime), TIMESTAMP, STRING, STRING),
-        impl(nullMissingHandling(DateTimeFunctions::exprDateTimeNoTimezone), TIMESTAMP, STRING));
+        implWithProperties(
+            nullMissingHandlingWithProperties(DateTimeFunctions::exprDateTime),
+            TIMESTAMP,
+            STRING,
+            STRING),
+        implWithProperties(
+            nullMissingHandlingWithProperties(DateTimeFunctions::exprDateTimeNoTimezone),
+            TIMESTAMP,
+            STRING));
   }
 
   private DefaultFunctionResolver date_add() {
@@ -979,8 +990,8 @@ public class DateTimeFunctions {
             functionProperties ->
                 DateTimeFunctions.unixTimeStamp(functionProperties.getQueryStartClock()),
             LONG),
-        impl(nullMissingHandling(DateTimeFunctions::unixTimeStampOf), DOUBLE, DATE),
         impl(nullMissingHandling(DateTimeFunctions::unixTimeStampOf), DOUBLE, TIMESTAMP),
+        impl(nullMissingHandling(DateTimeFunctions::unixTimeStampOf), DOUBLE, DATE),
         impl(nullMissingHandling(DateTimeFunctions::unixTimeStampOf), DOUBLE, DOUBLE));
   }
 
@@ -1002,7 +1013,7 @@ public class DateTimeFunctions {
   private DefaultFunctionResolver utc_timestamp() {
     return define(
         BuiltinFunctionName.UTC_TIMESTAMP.getName(),
-        implWithProperties(functionProperties -> exprUtcTimeStamp(functionProperties), TIMESTAMP));
+        implWithProperties(functionProperties -> exprUtcTimestamp(functionProperties), TIMESTAMP));
   }
 
   /** WEEK(DATE[,mode]). return the week number for date. */
@@ -1209,7 +1220,7 @@ public class DateTimeFunctions {
    * @param isAdd A flag: true to add, false to subtract.
    * @return Timestamp calculated.
    */
-  private ExprValue exprDateApplyDays(
+  public static ExprValue exprDateApplyDays(
       FunctionProperties functionProperties, ExprValue datetime, Long days, Boolean isAdd) {
     if (datetime.type() == DATE) {
       return new ExprDateValue(
@@ -1229,7 +1240,7 @@ public class DateTimeFunctions {
    * @param isAdd A flag: true to add, false to subtract.
    * @return A value calculated.
    */
-  private ExprValue exprApplyTime(
+  public static ExprValue exprApplyTime(
       FunctionProperties functionProperties,
       ExprValue temporal,
       ExprValue temporalDelta,
@@ -1269,7 +1280,16 @@ public class DateTimeFunctions {
   public static ExprValue exprConvertTZ(
       ExprValue startingDateTime, ExprValue fromTz, ExprValue toTz) {
     if (startingDateTime.type() == ExprCoreType.STRING) {
-      startingDateTime = exprDateTimeNoTimezone(startingDateTime);
+      try {
+        // CONVERT_TZ only expects a timestamp in the format "yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]".
+        startingDateTime =
+            new ExprTimestampValue(
+                LocalDateTime.parse(
+                    startingDateTime.stringValue(),
+                    DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS));
+      } catch (DateTimeParseException e) {
+        return ExprNullValue.of();
+      }
     }
     try {
       ZoneId convertedFromTz = ZoneId.of(fromTz.stringValue());
@@ -1331,8 +1351,10 @@ public class DateTimeFunctions {
    * @param timeZone ExprValue of String type (or null).
    * @return ExprValue of date type.
    */
-  public static ExprValue exprDateTime(ExprValue timestamp, ExprValue timeZone) {
-    String defaultTimeZone = TimeZone.getDefault().toZoneId().toString();
+  public static ExprValue exprDateTime(
+      FunctionProperties properties, ExprValue timestamp, ExprValue timeZone) {
+    // Get default time zone from function properties instead of ZoneId.systemDefault()
+    String defaultTimeZone = properties.getCurrentZoneId().toString();
 
     try {
       LocalDateTime ldtFormatted =
@@ -1372,8 +1394,9 @@ public class DateTimeFunctions {
    * @param dateTime ExprValue of String type.
    * @return ExprValue of date type.
    */
-  public static ExprValue exprDateTimeNoTimezone(ExprValue dateTime) {
-    return exprDateTime(dateTime, ExprNullValue.of());
+  public static ExprValue exprDateTimeNoTimezone(
+      FunctionProperties properties, ExprValue dateTime) {
+    return exprDateTime(properties, dateTime, ExprNullValue.of());
   }
 
   /**
@@ -1510,10 +1533,12 @@ public class DateTimeFunctions {
    */
   public static ExprValue exprGetFormat(ExprValue type, ExprValue format) {
     if (formats.contains(
-        type.stringValue().toLowerCase(), format.stringValue().toLowerCase(Locale.ROOT))) {
+        type.stringValue().toLowerCase(Locale.ROOT),
+        format.stringValue().toLowerCase(Locale.ROOT))) {
       return new ExprStringValue(
           formats.get(
-              type.stringValue().toLowerCase(), format.stringValue().toLowerCase(Locale.ROOT)));
+              type.stringValue().toLowerCase(Locale.ROOT),
+              format.stringValue().toLowerCase(Locale.ROOT)));
     }
 
     return ExprNullValue.of();
@@ -1967,7 +1992,7 @@ public class DateTimeFunctions {
    * @return ExprValue.
    */
   public static ExprValue exprUtcDate(FunctionProperties functionProperties) {
-    return new ExprDateValue(exprUtcTimeStamp(functionProperties).dateValue());
+    return new ExprDateValue(exprUtcTimestamp(functionProperties).dateValue());
   }
 
   /**
@@ -1977,7 +2002,7 @@ public class DateTimeFunctions {
    * @return ExprValue.
    */
   public static ExprValue exprUtcTime(FunctionProperties functionProperties) {
-    return new ExprTimeValue(exprUtcTimeStamp(functionProperties).timeValue());
+    return new ExprTimeValue(exprUtcTimestamp(functionProperties).timeValue());
   }
 
   /**
@@ -1986,11 +2011,9 @@ public class DateTimeFunctions {
    * @param functionProperties FunctionProperties.
    * @return ExprValue.
    */
-  public static ExprValue exprUtcTimeStamp(FunctionProperties functionProperties) {
-    var zdt =
-        ZonedDateTime.now(functionProperties.getQueryStartClock())
-            .withZoneSameInstant(ZoneOffset.UTC);
-    return new ExprTimestampValue(zdt.toLocalDateTime());
+  public static ExprValue exprUtcTimestamp(FunctionProperties functionProperties) {
+    var dt = formatNow(functionProperties.getQueryStartClock());
+    return new ExprTimestampValue(dt);
   }
 
   /**
@@ -2121,7 +2144,8 @@ public class DateTimeFunctions {
   }
 
   public static Double transferUnixTimeStampFromDoubleInput(Double value) {
-    var format = new DecimalFormat("0.#");
+    var format = (DecimalFormat) DecimalFormat.getNumberInstance(Locale.ROOT);
+    format.applyPattern("0.#");
     format.setMinimumFractionDigits(0);
     format.setMaximumFractionDigits(6);
     String input = format.format(value);
@@ -2182,7 +2206,7 @@ public class DateTimeFunctions {
    * @param date ExprValue of Date/Timestamp/String type.
    * @return ExprValue.
    */
-  private ExprValue exprWeekWithoutMode(ExprValue date) {
+  public static ExprValue exprWeekWithoutMode(ExprValue date) {
     return exprWeek(date, DEFAULT_WEEK_OF_YEAR_MODE);
   }
 

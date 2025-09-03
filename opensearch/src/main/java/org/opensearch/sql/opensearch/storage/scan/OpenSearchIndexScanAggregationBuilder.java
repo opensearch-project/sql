@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
@@ -19,7 +20,7 @@ import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.script.aggregation.AggregationQueryBuilder;
-import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
+import org.opensearch.sql.opensearch.storage.serde.DefaultExpressionSerializer;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalSort;
@@ -40,6 +41,9 @@ class OpenSearchIndexScanAggregationBuilder implements PushDownQueryBuilder {
   /** Sorting items pushed down. */
   private List<Pair<Sort.SortOption, Expression>> sortList;
 
+  /** Fill null value for missing fields. */
+  private final Optional<Object> fillNull = Optional.empty(); // TODO
+
   OpenSearchIndexScanAggregationBuilder(
       OpenSearchRequestBuilder requestBuilder, LogicalAggregation aggregation) {
     this.requestBuilder = requestBuilder;
@@ -52,7 +56,7 @@ class OpenSearchIndexScanAggregationBuilder implements PushDownQueryBuilder {
     AggregationQueryBuilder builder =
         new AggregationQueryBuilder(new DefaultExpressionSerializer());
     Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder =
-        builder.buildAggregationBuilder(aggregatorList, groupByList, sortList);
+        builder.buildAggregationBuilder(aggregatorList, groupByList, sortList, fillNull);
     requestBuilder.pushDownAggregation(aggregationBuilder);
     requestBuilder.pushTypeMapping(builder.buildTypeMapping(aggregatorList, groupByList));
     return requestBuilder;

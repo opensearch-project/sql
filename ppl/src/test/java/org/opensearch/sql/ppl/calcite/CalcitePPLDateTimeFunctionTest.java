@@ -5,10 +5,8 @@
 
 package org.opensearch.sql.ppl.calcite;
 
-import java.time.LocalDate;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class CalcitePPLDateTimeFunctionTest extends CalcitePPLAbstractTest {
@@ -17,41 +15,27 @@ public class CalcitePPLDateTimeFunctionTest extends CalcitePPLAbstractTest {
     super(CalciteAssert.SchemaSpec.SCOTT_WITH_TEMPORAL);
   }
 
-  @Ignore("Ignore since we don't have this data source in real environment")
   @Test
   public void testDateAndCurrentTimestamp() {
-    String ppl = "source=EMP | eval added = DATE(CURRENT_TIMESTAMP()) | fields added | head 1";
+    String ppl = "source=EMP | eval added = DATE(CURRENT_TIMESTAMP()) | fields added";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalSort(fetch=[1])\n"
-            + "  LogicalProject(added=[POSTPROCESS(DATE(PREPROCESS(POSTPROCESS(CURRENT_TIMESTAMP,"
-            + " FLAG(TIMESTAMP)), FLAG(TIMESTAMP))), FLAG(DATE))])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(added=[DATE(NOW())])\n" + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "added=" + LocalDate.now() + "\n";
-    verifyResult(root, expectedResult);
 
-    String expectedSparkSql =
-        "" + "SELECT DATE(CURRENT_TIMESTAMP) `added`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+    String expectedSparkSql = "SELECT `DATE`(`NOW`()) `added`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
-  @Ignore("Ignore since we don't have this data source in real environment")
   @Test
   public void testCurrentDate() {
-    String ppl = "source=EMP | eval added = CURRENT_DATE() | fields added | head 1";
+    String ppl = "source=EMP | eval added = CURRENT_DATE() | fields added";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        ""
-            + "LogicalSort(fetch=[1])\n"
-            + "  LogicalProject(added=[POSTPROCESS(CURRENT_DATE, FLAG(DATE))])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(added=[CURRENT_DATE()])\n" + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "added=" + LocalDate.now() + "\n";
-    verifyResult(root, expectedResult);
 
-    String expectedSparkSql =
-        "" + "SELECT CURRENT_DATE `added`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+    String expectedSparkSql = "SELECT CURRENT_DATE() `added`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }

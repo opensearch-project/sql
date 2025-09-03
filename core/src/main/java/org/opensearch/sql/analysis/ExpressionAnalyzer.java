@@ -7,6 +7,7 @@ package org.opensearch.sql.analysis;
 
 import static org.opensearch.sql.ast.dsl.AstDSL.and;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
+import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_ENGINE_ENABLED;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -49,6 +50,9 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.When;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
+import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
+import org.opensearch.sql.ast.expression.subquery.InSubquery;
+import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -288,15 +292,38 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
 
   private Expression visitIn(
       UnresolvedExpression field, List<UnresolvedExpression> valueList, AnalysisContext context) {
-    if (valueList.size() == 1) {
-      return visitCompare(new Compare("=", field, valueList.get(0)), context);
-    } else if (valueList.size() > 1) {
-      return DSL.or(
-          visitCompare(new Compare("=", field, valueList.get(0)), context),
-          visitIn(field, valueList.subList(1, valueList.size()), context));
-    } else {
+    if (valueList.isEmpty()) {
       throw new SemanticCheckException("Values in In clause should not be empty");
     }
+
+    Expression[] expressions = new Expression[valueList.size()];
+
+    for (int i = 0; i < expressions.length; i++) {
+      expressions[i] = visitCompare(new Compare("=", field, valueList.get(i)), context);
+    }
+
+    return buildOrTree(expressions, 0, expressions.length);
+  }
+
+  /**
+   * `DSL.or` can only take two arguments. To represent large lists without massive recursion, we
+   * want to represent the expression as a balanced tree. This builds that tree from a node list.
+   *
+   * @param children The list of expressions to merge.
+   * @param start The starting position (inclusive) for the current combination step.
+   * @param end The ending position (exclusive) for the current combination step. If <= start,
+   *     children[start] is returned.
+   * @return The final `DSL.or` expression.
+   */
+  private Expression buildOrTree(Expression[] children, int start, int end) {
+    if (end - start <= 1) {
+      return children[start];
+    }
+    if (end - start == 2) {
+      return DSL.or(children[start], children[end - 1]);
+    }
+    int split = start + (end - start) / 2;
+    return DSL.or(buildOrTree(children, start, split), buildOrTree(children, split, end));
   }
 
   @Override
@@ -336,7 +363,7 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
     }
 
     Expression defaultResult =
-        (node.getElseClause() == null) ? null : analyze(node.getElseClause(), context);
+        node.getElseClause().map(elseClause -> analyze(elseClause, context)).orElse(null);
     CaseClause caseClause = new CaseClause(whens, defaultResult);
 
     // To make this simple, require all result type same regardless of implicit convert
@@ -404,6 +431,24 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
   @Override
   public Expression visitArgument(Argument node, AnalysisContext context) {
     return new NamedArgumentExpression(node.getArgName(), node.getValue().accept(this, context));
+  }
+
+  @Override
+  public Expression visitScalarSubquery(ScalarSubquery node, AnalysisContext context) {
+    throw new UnsupportedOperationException(
+        "Subsearch is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+  }
+
+  @Override
+  public Expression visitExistsSubquery(ExistsSubquery node, AnalysisContext context) {
+    throw new UnsupportedOperationException(
+        "Subsearch is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+  }
+
+  @Override
+  public Expression visitInSubquery(InSubquery node, AnalysisContext context) {
+    throw new UnsupportedOperationException(
+        "Subsearch is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
   }
 
   /**

@@ -10,23 +10,24 @@ join
 
 
 Description
-============
+===========
 | (Experimental)
-| Using ``join`` command to combines two datasets together. The left side could be an index or results from a piped commands, the right side could be either an index or a subquery.
+| (From 3.0.0)
+| Using ``join`` command to combines two datasets together. The left side could be an index or results from a piped commands, the right side could be either an index or a subsearch.
 
 Version
 =======
-3.0.0-beta+
+3.0.0
 
 Syntax
 ======
-[joinType] JOIN [leftAlias] [rightAlias] ON <joinCriteria> <right-dataset>
+[joinType] join [leftAlias] [rightAlias] on <joinCriteria> <right-dataset>
 
 * joinType: optional. The type of join to perform. The default is ``INNER`` if not specified. Other option is ``LEFT [OUTER]``, ``RIGHT [OUTER]``, ``FULL [OUTER]``, ``CROSS``, ``[LEFT] SEMI``, ``[LEFT] ANTI``.
-* leftAlias: optional. The subquery alias to use with the left join side, to avoid ambiguous naming. Fixed pattern: ``left = <leftAlias>``
-* rightAlias: optional. The subquery alias to use with the right join side, to avoid ambiguous naming. Fixed pattern: ``right = <rightAlias>``
+* leftAlias: optional. The subsearch alias to use with the left join side, to avoid ambiguous naming. Fixed pattern: ``left = <leftAlias>``
+* rightAlias: optional. The subsearch alias to use with the right join side, to avoid ambiguous naming. Fixed pattern: ``right = <rightAlias>``
 * joinCriteria: mandatory. It could be any comparison expression.
-* right-dataset: mandatory. Right dataset could be either an index or a subquery with/without alias.
+* right-dataset: mandatory. Right dataset could be either an index or a subsearch with/without alias.
 
 Configuration
 =============
@@ -79,117 +80,61 @@ Example 1: Two indices join
 
 PPL query::
 
-	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_ppl -d '{
-	  "query" : """
-	  source = state_country
-	  | inner join left=a right=b ON a.name = b.name occupation
-	  | stats avg(salary) by span(age, 10) as age_span, b.country
-	  """
-	}'
-
-Result set::
-
-    {
-      "schema": [
-        {
-          "name": "avg(salary)",
-          "type": "double"
-        },
-        {
-          "name": "age_span",
-          "type": "integer"
-        },
-        {
-          "name": "b.country",
-          "type": "string"
-        }
-      ],
-      "datarows": [
-        [
-          120000.0,
-          40,
-          "USA"
-        ],
-        [
-          105000.0,
-          20,
-          "Canada"
-        ],
-        [
-          0.0,
-          40,
-          "Canada"
-        ],
-        [
-          70000.0,
-          30,
-          "USA"
-        ],
-        [
-          100000.0,
-          70,
-          "England"
-        ]
-      ],
-      "total": 5,
-      "size": 5
-    }
+    PPL> source = state_country | inner join left=a right=b ON a.name = b.name occupation | stats avg(salary) by span(age, 10) as age_span, b.country;
+    fetched rows / total rows = 5/5
+    +-------------+----------+-----------+
+    | avg(salary) | age_span | b.country |
+    |-------------+----------+-----------|
+    | 120000.0    | 40       | USA       |
+    | 105000.0    | 20       | Canada    |
+    |  0.0        | 40       | Canada    |
+    | 70000.0     | 30       | USA       |
+    | 100000.0    | 70       | England   |
+    +-------------+----------+-----------+
 
 Example 2: Join with subsearch
 ==============================
 
 PPL query::
 
-	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_ppl -d '{
-	  "query" : """
-          source = state_country as a
-          | where country = 'USA' OR country = 'England'
-          | left join ON a.name = b.name [
-              source = occupation
-              | where salary > 0
-              | fields name, country, salary
-              | sort salary
-              | head 3
-            ] as b
-          | stats avg(salary) by span(age, 10) as age_span, b.country
-	  """
-	}'
+    PPL> source = state_country as a
+         | where country = 'USA' OR country = 'England'
+         | left join ON a.name = b.name [
+             source = occupation
+             | where salary > 0
+             | fields name, country, salary
+             | sort salary
+             | head 3
+           ] as b
+         | stats avg(salary) by span(age, 10) as age_span, b.country;
+    fetched rows / total rows = 5/5
+    +-------------+----------+-----------+
+    | avg(salary) | age_span | b.country |
+    |-------------+----------+-----------|
+    | null        | 40       | null      |
+    | 70000.0     | 30       | USA       |
+    | 100000.0    | 70       | England   |
+    +-------------+----------+-----------+
 
-Result set::
+Limitation
+==========
+If fields in the left outputs and right outputs have the same name. Typically, in the join criteria
+``ON t1.id = t2.id``, the names ``id`` in output are ambiguous. To avoid ambiguous, the ambiguous
+fields in output rename to ``<alias>.id``, or else ``<tableName>.id`` if no alias existing.
 
-    {
-      "schema": [
-        {
-          "name": "avg(salary)",
-          "type": "double"
-        },
-        {
-          "name": "age_span",
-          "type": "integer"
-        },
-        {
-          "name": "b.country",
-          "type": "string"
-        }
-      ],
-      "datarows": [
-        [
-          null,
-          40,
-          null
-        ],
-        [
-          70000.0,
-          30,
-          "USA"
-        ],
-        [
-          100000.0,
-          70,
-          "England"
-        ]
-      ],
-      "total": 3,
-      "size": 3
-    }
+Assume table1 and table2 only contain field ``id``, following PPL queries and their outputs are:
 
+.. list-table::
+   :widths: 75 25
+   :header-rows: 1
+
+   * - Query
+     - Output
+   * - source=table1 | join left=t1 right=t2 on t1.id=t2.id table2 | eval a = 1
+     - t1.id, t2.id, a
+   * - source=table1 | join on table1.id=table2.id table2 | eval a = 1
+     - table1.id, table2.id, a
+   * - source=table1 | join on table1.id=t2.id table2 as t2 | eval a = 1
+     - table1.id, t2.id, a
+   * - source=table1 | join right=tt on table1.id=t2.id [ source=table2 as t2 | eval b = id ] | eval a = 1
+     - table1.id, tt.id, tt.b, a

@@ -9,18 +9,27 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 
 /** Represent the assign operation. e.g. velocity = distance/speed. */
 @Getter
 @ToString
 @EqualsAndHashCode(callSuper = false)
-@RequiredArgsConstructor
 public class Let extends UnresolvedExpression {
   private final Field var;
   private final UnresolvedExpression expression;
+
+  public Let(Field var, UnresolvedExpression expression) {
+    String varName = var.getField().toString();
+    if (OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(varName)) {
+      throw new IllegalArgumentException(
+          String.format("Cannot use metadata field [%s] as the eval field.", varName));
+    }
+    this.var = var;
+    this.expression = expression;
+  }
 
   @Override
   public List<UnresolvedExpression> getChild() {

@@ -17,15 +17,15 @@ Prerequisites
 JDK
 ---
 
-OpenSearch builds using Java 11 at a minimum and supports JDK 11, 14 and 17. This means you must have a JDK of supported version installed with the environment variable `JAVA_HOME` referencing the path to Java home for your JDK installation::
+OpenSearch SQL plugin requires Java 21 for development and runtime. This means you must have JDK 21 installed with the environment variable `JAVA_HOME` referencing the path to Java home for your JDK installation::
 
    $ echo $JAVA_HOME
-   /Library/Java/JavaVirtualMachines/adoptopenjdk-11.jdk/Contents/Home
+   /Library/Java/JavaVirtualMachines/jdk-21.jdk/Contents/Home
 
    $ java -version
-    openjdk version "11.0.1" 2018-10-16
-    OpenJDK Runtime Environment 18.9 (build 11.0.1+13)
-    OpenJDK 64-Bit Server VM 18.9 (build 11.0.1+13, mixed mode)
+   openjdk version "21.0.8" 2024-07-16 LTS
+   OpenJDK Runtime Environment (build 21.0.8+13-LTS)
+   OpenJDK 64-Bit Server VM (build 21.0.8+13-LTS, mixed mode, sharing)
 
 Here are the official instructions on how to set ``JAVA_HOME`` for different platforms: https://docs.oracle.com/cd/E19182-01/820-7851/inst_cli_jdk_javahome_t/. 
 
@@ -78,32 +78,36 @@ You can develop the plugin in your favorite IDEs such as Eclipse and IntelliJ ID
 Java Language Level
 -------------------
 
-Although later version of JDK is required to build the plugin, the Java language level needs to be Java 8 for compatibility. Only in this case your plugin works with OpenSearch running against JDK 8. Otherwise it will raise runtime exception when executing new API from new JDK. In case your IDE doesn’t set it right, you may want to double check your project setting after import.
+The plugin requires Java 21 for both development and runtime. Make sure your IDE is configured to use Java 21 as the project SDK and language level. In case your IDE doesn't set it right, you may want to double check your project setting after import.
 
 Remote Debugging
 ----------------
 
-Firstly you need to add the following configuration to the JVM used by your IDE. For Intellij IDEA, it should be added to ``<OpenSearch installation>/config/jvm.options`` file. After configuring this, an agent in JVM will listen on the port when your OpenSearch bootstraps and wait for IDE debugger to connect. So you should be able to debug by setting up a “Remote Run/Debug Configuration”::
+Firstly you need to add the following configuration to the JVM used by your IDE. For Intellij IDEA, it should be added to ``<OpenSearch installation>/config/jvm.options`` file. After configuring this, an agent in JVM will listen on the port when your OpenSearch bootstraps and wait for IDE debugger to connect. So you should be able to debug by setting up a "Remote Run/Debug Configuration"::
 
    -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005
+
+This is automatically applied if you pass the ``debugJVM`` flag when
+running.
+
+::
+
+   ./gradlew opensearch-sql:run -DdebugJVM
+
+To connect to the cluster with the debugger in an IDE, you'll need to
+connect to that port. For IntelliJ, see `attaching to a remote process <https://www.jetbrains.com/help/idea/attach-to-process.html#attach-to-remote>`_.
 
 License Header
 --------------
 
-Because our code is licensed under Apache 2, you need to add the following license header to all new source code files. To automate this whenever creating new file, you can follow instructions for your IDE::
+Because our code is licensed under Apache 2, you need to add the following license header to all new source code files. To automate this whenever creating new file, you can follow instructions for your IDE.
 
-   /*
-    * Licensed under the Apache License, Version 2.0 (the "License").
-    * You may not use this file except in compliance with the License.
-    * A copy of the License is located at
-    * 
-    *    http://www.apache.org/licenses/LICENSE-2.0
-    * 
-    * or in the "license" file accompanying this file. This file is distributed 
-    * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either 
-    * express or implied. See the License for the specific language governing 
-    * permissions and limitations under the License.
-    */
+.. code:: java
+
+  /*
+   * Copyright OpenSearch Contributors
+   * SPDX-License-Identifier: Apache-2.0
+   */
 
 For example, `here are the instructions for adding copyright profiles in IntelliJ IDEA <https://www.jetbrains.com/help/idea/copyright.html>`__.
 
@@ -128,10 +132,10 @@ The plugin codebase is in standard layout of Gradle project::
    ├── build.gradle
    ├── config
    ├── docs
-   │   ├── attributions.md
-   │   ├── category.json
-   │   ├── dev
-   │   └── user
+   │   ├── attributions.md
+   │   ├── category.json
+   │   ├── dev
+   │   └── user
    ├── gradle.properties
    ├── gradlew
    ├── gradlew.bat
@@ -207,13 +211,21 @@ Java files are formatted using `Spotless <https://github.com/diffplug/spotless>`
    * - Javadoc format can be maintained by wrapping javadoc with `<pre></pre>` HTML tags
    * - Strings can be formatted on multiple lines with a `+` with the correct indentation for the string.
 
+Development Guidelines
+----------------------
+
+For detailed development documentation, please refer to the `development documentation <docs/dev/index.md>`_. For specific guidance on implementing PPL components, see the following resources:
+
+- `PPL Commands <docs/dev/ppl-commands.md>`_: Guidelines for adding new commands to PPL
+- `PPL Functions <docs/dev/ppl-functions.md>`_: Instructions for implementing and integrating custom functions
+
 Building and Running Tests
 ==========================
 
 Gradle Build
 ------------
 
-Most of the time you just need to run ./gradlew build which will make sure you pass all checks and testing. While you’re developing, you may want to run specific Gradle task only. In this case, you can run ./gradlew with task name which only triggers the task along with those it depends on. Here is a list for common tasks:
+Most of the time you just need to run ./gradlew build which will make sure you pass all checks and testing. While you're developing, you may want to run specific Gradle task only. In this case, you can run ./gradlew with task name which only triggers the task along with those it depends on. Here is a list for common tasks:
 
 .. list-table::
    :widths: 30 50
@@ -231,8 +243,10 @@ Most of the time you just need to run ./gradlew build which will make sure you p
      - Run all unit tests.
    * - ./gradlew :integ-test:integTest
      - Run all integration test (this takes time).
+   * - ./gradlew :integ-test:yamlRestTest
+     - Run rest integration test.
    * - ./gradlew :doctest:doctest
-     - Run doctests
+     - Run doctests in docs folder. You can use ``-Pdocs=file1,file2`` to run specific file(s). See more info in `Documentation <#documentation>`_ section.
    * - ./gradlew build
      - Build plugin by run all tasks above (this takes time).
    * - ./gradlew pitest
@@ -242,7 +256,7 @@ Most of the time you just need to run ./gradlew build which will make sure you p
    * - ./gradlew spotlessApply
      - Automatically apply spotless code style changes.
 
-For integration test, you can use ``-Dtests.class`` “UT full path” to run a task individually. For example ``./gradlew :integ-test:integTest -Dtests.class="*QueryIT"``.
+For integration test, you can use ``-Dtests.class`` "UT full path" to run a task individually. For example ``./gradlew :integ-test:integTest -Dtests.class="*QueryIT"``.
 
 To run the task above for specific module, you can do ``./gradlew :<module_name>:task``. For example, only build core module by ``./gradlew :core:build``.
 
@@ -404,6 +418,18 @@ Doctest
 
 Python doctest library makes our document executable which keeps it up-to-date to source code. The doc generator aforementioned served as scaffolding and generated many docs in short time. Now the examples inside is changed to doctest gradually. For more details please read `testing-doctest <./docs/dev/testing-doctest.md>`_.
 
+.. code-block:: bash
+   # Test all docs
+   ./gradlew :doctest:doctest
+
+   # Test single file using main doctest task
+   ./gradlew :doctest:doctest -Pdocs=search
+   
+   # Test multiple files at once
+   ./gradlew :doctest:doctest -Pdocs=search,fields,basics
+   
+   # With verbose output
+   ./gradlew :doctest:doctest -Pdocs=stats -Pverbose=true
 
 Backports
 >>>>>>>>>

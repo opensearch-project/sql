@@ -8,6 +8,7 @@ package org.opensearch.sql.ast;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFields;
+import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.AttributeList;
@@ -21,6 +22,7 @@ import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.In;
 import org.opensearch.sql.ast.expression.Interval;
+import org.opensearch.sql.ast.expression.LambdaFunction;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
@@ -44,12 +46,16 @@ import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.AppendCol;
+import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
+import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
+import org.opensearch.sql.ast.tree.Flatten;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -58,11 +64,15 @@ import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
+import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
+import org.opensearch.sql.ast.tree.Reverse;
+import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
@@ -110,11 +120,19 @@ public abstract class AbstractNodeVisitor<T, C> {
     return visitChildren(node, context);
   }
 
+  public T visitExpand(Expand expand, C context) {
+    return visitChildren(expand, context);
+  }
+
   public T visitTableFunction(TableFunction node, C context) {
     return visitChildren(node, context);
   }
 
   public T visitFilter(Filter node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitFlatten(Flatten node, C context) {
     return visitChildren(node, context);
   }
 
@@ -198,6 +216,10 @@ public abstract class AbstractNodeVisitor<T, C> {
     return visitChildren(node, context);
   }
 
+  public T visitBin(Bin node, C context) {
+    return visitChildren(node, context);
+  }
+
   public T visitArgument(Argument node, C context) {
     return visitChildren(node, context);
   }
@@ -222,11 +244,27 @@ public abstract class AbstractNodeVisitor<T, C> {
     return visitChildren(node, context);
   }
 
+  public T visitSpath(SPath node, C context) {
+    return visitChildren(node, context);
+  }
+
   public T visitLet(Let node, C context) {
     return visitChildren(node, context);
   }
 
   public T visitSort(Sort node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitReverse(Reverse node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitRegex(Regex node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitLambdaFunction(LambdaFunction node, C context) {
     return visitChildren(node, context);
   }
 
@@ -251,6 +289,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitAllFields(AllFields node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitAllFieldsExcludeMeta(AllFieldsExcludeMeta node, C context) {
     return visitChildren(node, context);
   }
 
@@ -338,6 +380,10 @@ public abstract class AbstractNodeVisitor<T, C> {
     return visitChildren(fillNull, context);
   }
 
+  public T visitPatterns(Patterns patterns, C context) {
+    return visitChildren(patterns, context);
+  }
+
   public T visitWindow(Window window, C context) {
     return visitChildren(window, context);
   }
@@ -359,6 +405,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitExistsSubquery(ExistsSubquery node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitAppendCol(AppendCol node, C context) {
     return visitChildren(node, context);
   }
 }

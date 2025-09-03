@@ -13,6 +13,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
@@ -37,7 +38,7 @@ import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseP
 import org.opensearch.sql.opensearch.storage.script.aggregation.dsl.BucketAggregationBuilder;
 import org.opensearch.sql.opensearch.storage.script.aggregation.dsl.CompositeAggregationBuilder;
 import org.opensearch.sql.opensearch.storage.script.aggregation.dsl.MetricAggregationBuilder;
-import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
+import org.opensearch.sql.opensearch.storage.serde.ExpressionSerializer;
 
 /**
  * Build the AggregationBuilder from the list of {@link NamedAggregator} and list of {@link
@@ -70,7 +71,8 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
       buildAggregationBuilder(
           List<NamedAggregator> namedAggregatorList,
           List<NamedExpression> groupByList,
-          List<Pair<Sort.SortOption, Expression>> sortList) {
+          List<Pair<Sort.SortOption, Expression>> sortList,
+          Optional<Object> fillNull) {
 
     final Pair<AggregatorFactories.Builder, List<MetricParser>> metrics =
         metricBuilder.build(namedAggregatorList);
@@ -84,7 +86,9 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
       // one bucket, use values source bucket builder for getting better performance
       return Pair.of(
           Collections.singletonList(
-              bucketBuilder.build(groupByList.getFirst()).subAggregations(metrics.getLeft())),
+              bucketBuilder
+                  .build(groupByList.getFirst(), fillNull)
+                  .subAggregations(metrics.getLeft())),
           new BucketAggregationParser(metrics.getRight()));
     } else {
       // multiple bucket, use composite builder

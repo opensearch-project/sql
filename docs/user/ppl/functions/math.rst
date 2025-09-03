@@ -15,7 +15,7 @@ ABS
 Description
 >>>>>>>>>>>
 
-Usage: abs(x) calculate the abs x.
+Usage: abs(x) calculates the abs x.
 
 Argument type: INTEGER/LONG/FLOAT/DOUBLE
 
@@ -32,13 +32,191 @@ Example::
     +---------+
 
 
+ADD
+---
+
+Description
+>>>>>>>>>>>
+
+Usage: add(x, y) calculates x plus y.
+
+Argument type: INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: Wider number between x and y
+
+Synonyms: Addition Symbol (+)
+
+Example::
+
+    os> source=people | eval `ADD(2, 1)` = ADD(2, 1) | fields `ADD(2, 1)`
+    fetched rows / total rows = 1/1
+    +-----------+
+    | ADD(2, 1) |
+    |-----------|
+    | 3         |
+    +-----------+
+
+
+SUBTRACT
+--------
+
+Description
+>>>>>>>>>>>
+
+Usage: subtract(x, y) calculates x minus y.
+
+Argument type: INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: Wider number between x and y
+
+Synonyms: Subtraction Symbol (-)
+
+Example::
+
+    os> source=people | eval `SUBTRACT(2, 1)` = SUBTRACT(2, 1) | fields `SUBTRACT(2, 1)`
+    fetched rows / total rows = 1/1
+    +----------------+
+    | SUBTRACT(2, 1) |
+    |----------------|
+    | 1              |
+    +----------------+
+
+
+MULTIPLY
+--------
+
+Description
+>>>>>>>>>>>
+
+Usage: multiply(x, y) calculates the multiplication of x and y.
+
+Argument type: INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: Wider number between x and y. If y equals to 0, then returns NULL.
+
+Synonyms: Multiplication Symbol (\*)
+
+Example::
+
+    os> source=people | eval `MULTIPLY(2, 1)` = MULTIPLY(2, 1) | fields `MULTIPLY(2, 1)`
+    fetched rows / total rows = 1/1
+    +----------------+
+    | MULTIPLY(2, 1) |
+    |----------------|
+    | 2              |
+    +----------------+
+
+
+DIVIDE
+------
+
+Description
+>>>>>>>>>>>
+
+Usage: divide(x, y) calculates x divided by y.
+
+Argument type: INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: Wider number between x and y
+
+Synonyms: Division Symbol (/)
+
+Example::
+
+    os> source=people | eval `DIVIDE(2, 1)` = DIVIDE(2, 1) | fields `DIVIDE(2, 1)`
+    fetched rows / total rows = 1/1
+    +--------------+
+    | DIVIDE(2, 1) |
+    |--------------|
+    | 2            |
+    +--------------+
+
+
+SUM
+---
+
+Description
+>>>>>>>>>>>
+
+Usage: sum(x, y, ...) calculates the sum of all provided arguments. This function accepts a variable number of arguments.
+
+Note: This function is only available in the eval command context and is rewritten to arithmetic addition while query parsing.
+
+Argument type: Variable number of INTEGER/LONG/FLOAT/DOUBLE arguments
+
+Return type: Wider number type among all arguments
+
+Example::
+
+    os> source=accounts | eval `SUM(1, 2, 3)` = SUM(1, 2, 3) | fields `SUM(1, 2, 3)`
+    fetched rows / total rows = 4/4
+    +--------------+
+    | SUM(1, 2, 3) |
+    |--------------|
+    | 6            |
+    | 6            |
+    | 6            |
+    | 6            |
+    +--------------+
+
+    os> source=accounts | eval total = SUM(age, 10, 5) | fields age, total
+    fetched rows / total rows = 4/4
+    +-----+-------+
+    | age | total |
+    |-----+-------|
+    | 32  | 47    |
+    | 36  | 51    |
+    | 28  | 43    |
+    | 33  | 48    |
+    +-----+-------+
+
+
+AVG
+---
+
+Description
+>>>>>>>>>>>
+
+Usage: avg(x, y, ...) calculates the average (arithmetic mean) of all provided arguments. This function accepts a variable number of arguments.
+
+Note: This function is only available in the eval command context and is rewritten to arithmetic expression (sum / count) at query parsing time.
+
+Argument type: Variable number of INTEGER/LONG/FLOAT/DOUBLE arguments
+
+Return type: DOUBLE
+
+Example::
+
+    os> source=accounts | eval `AVG(1, 2, 3)` = AVG(1, 2, 3) | fields `AVG(1, 2, 3)`
+    fetched rows / total rows = 4/4
+    +--------------+
+    | AVG(1, 2, 3) |
+    |--------------|
+    | 2.0          |
+    | 2.0          |
+    | 2.0          |
+    | 2.0          |
+    +--------------+
+
+    os> source=accounts | eval average = AVG(age, 30) | fields age, average
+    fetched rows / total rows = 4/4
+    +-----+---------+
+    | age | average |
+    |-----+---------|
+    | 32  | 31.0    |
+    | 36  | 33.0    |
+    | 28  | 29.0    |
+    | 33  | 31.5    |
+    +-----+---------+
+
+
 ACOS
 ----
 
 Description
 >>>>>>>>>>>
 
-Usage: acos(x) calculate the arc cosine of x. Returns NULL if x is not in the range -1 to 1.
+Usage: acos(x) calculates the arc cosine of x. Returns NULL if x is not in the range -1 to 1.
 
 Argument type: INTEGER/LONG/FLOAT/DOUBLE
 
@@ -109,7 +287,7 @@ Description
 
 Usage: atan2(y, x) calculates the arc tangent of y / x, except that the signs of both arguments are used to determine the quadrant of the result.
 
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
+Argument type: INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE
 
 Return type: DOUBLE
 
@@ -194,7 +372,7 @@ COS
 Description
 >>>>>>>>>>>
 
-Usage: cos(x) calculate the cosine of x, where x is given in radians.
+Usage: cos(x) calculates the cosine of x, where x is given in radians.
 
 Argument type: INTEGER/LONG/FLOAT/DOUBLE
 
@@ -211,13 +389,36 @@ Example::
     +--------+
 
 
+COSH
+----
+
+Description
+>>>>>>>>>>>
+
+Usage: cosh(x) calculates the hyperbolic cosine of x, defined as (((e^x) + (e^(-x))) / 2).
+
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: DOUBLE
+
+Example::
+
+    os> source=people | eval `COSH(2)` = COSH(2) | fields `COSH(2)`
+    fetched rows / total rows = 1/1
+    +--------------------+
+    | COSH(2)            |
+    |--------------------|
+    | 3.7621956910836314 |
+    +--------------------+
+
+
 COT
 ---
 
 Description
 >>>>>>>>>>>
 
-Usage: cot(x) calculate the cotangent of x. Returns out-of-range error if x equals to 0.
+Usage: cot(x) calculates the cotangent of x. Returns out-of-range error if x equals to 0.
 
 Argument type: INTEGER/LONG/FLOAT/DOUBLE
 
@@ -322,6 +523,29 @@ Example::
     |------------------|
     | 7.38905609893065 |
     +------------------+
+
+
+EXPM1
+-----
+
+Description
+>>>>>>>>>>>
+
+Usage: expm1(NUMBER T) returns the exponential of T, minus 1.
+
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: DOUBLE
+
+Example::
+
+    os> source=people | eval `EXPM1(1)` = EXPM1(1) | fields `EXPM1(1)`
+    fetched rows / total rows = 1/1
+    +-------------------+
+    | EXPM1(1)          |
+    |-------------------|
+    | 1.718281828459045 |
+    +-------------------+
 
 
 FLOOR
@@ -471,7 +695,7 @@ Description
 
 Usage: MOD(n, m) calculates the remainder of the number n divided by m.
 
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
+Argument type: INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE
 
 Return type: Wider type between types of n and m if m is nonzero value. If m equals to 0, then returns NULL.
 
@@ -484,6 +708,29 @@ Example::
     |-----------+-------------|
     | 1         | 1.1         |
     +-----------+-------------+
+
+
+MODULUS
+-------
+
+Description
+>>>>>>>>>>>
+
+Usage: MODULUS(n, m) calculates the remainder of the number n divided by m.
+
+Argument type: INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: Wider type between types of n and m if m is nonzero value. If m equals to 0, then returns NULL.
+
+Example::
+
+    os> source=people | eval `MODULUS(3, 2)` = MODULUS(3, 2), `MODULUS(3.1, 2)` = MODULUS(3.1, 2) | fields `MODULUS(3, 2)`, `MODULUS(3.1, 2)`
+    fetched rows / total rows = 1/1
+    +---------------+-----------------+
+    | MODULUS(3, 2) | MODULUS(3.1, 2) |
+    |---------------+-----------------|
+    | 1             | 1.1             |
+    +---------------+-----------------+
 
 
 PI
@@ -515,7 +762,7 @@ Description
 
 Usage: POW(x, y) calculates the value of x raised to the power of y. Bad inputs return NULL result.
 
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
+Argument type: INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE
 
 Return type: DOUBLE
 
@@ -540,7 +787,7 @@ Description
 
 Usage: POWER(x, y) calculates the value of x raised to the power of y. Bad inputs return NULL result.
 
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
+Argument type: INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE
 
 Return type: DOUBLE
 
@@ -652,13 +899,38 @@ Example::
     +---------+---------+------------+
 
 
+SIGNUM
+------
+
+Description
+>>>>>>>>>>>
+
+Usage: Returns the sign of the argument as -1, 0, or 1, depending on whether the number is negative, zero, or positive
+
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: INTEGER
+
+Synonyms: `SIGN`
+
+Example::
+
+    os> source=people | eval `SIGNUM(1)` = SIGNUM(1), `SIGNUM(0)` = SIGNUM(0), `SIGNUM(-1.1)` = SIGNUM(-1.1) | fields `SIGNUM(1)`, `SIGNUM(0)`, `SIGNUM(-1.1)`
+    fetched rows / total rows = 1/1
+    +-----------+-----------+--------------+
+    | SIGNUM(1) | SIGNUM(0) | SIGNUM(-1.1) |
+    |-----------+-----------+--------------|
+    | 1         | 0         | -1           |
+    +-----------+-----------+--------------+
+
+
 SIN
 ---
 
 Description
 >>>>>>>>>>>
 
-Usage: sin(x) calculate the sine of x, where x is given in radians.
+Usage: sin(x) calculates the sine of x, where x is given in radians.
 
 Argument type: INTEGER/LONG/FLOAT/DOUBLE
 
@@ -673,6 +945,29 @@ Example::
     |--------|
     | 0.0    |
     +--------+
+
+
+SINH
+----
+
+Description
+>>>>>>>>>>>
+
+Usage: sinh(x) calculates the hyperbolic sine of x, defined as (((e^x) - (e^(-x))) / 2).
+
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: DOUBLE
+
+Example::
+
+    os> source=people | eval `SINH(2)` = SINH(2) | fields `SINH(2)`
+    fetched rows / total rows = 1/1
+    +-------------------+
+    | SINH(2)           |
+    |-------------------|
+    | 3.626860407847019 |
+    +-------------------+
 
 
 SQRT
@@ -725,3 +1020,26 @@ Example::
     | 2.0     | 2.1         | -3.0      |
     | 2.0     | 2.1         | -3.0      |
     +---------+-------------+-----------+
+
+
+RINT
+----
+
+Description
+>>>>>>>>>>>
+
+Usage: rint(NUMBER T) returns T rounded to the closest whole integer number.
+
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: DOUBLE
+
+Example::
+
+    os> source=people | eval `RINT(1.7)` = RINT(1.7) | fields `RINT(1.7)`
+    fetched rows / total rows = 1/1
+    +-----------+
+    | RINT(1.7) |
+    |-----------|
+    | 2.0       |
+    +-----------+

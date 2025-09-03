@@ -8,3 +8,5 @@
 {"name":"Jane","age":20,"state":"Quebec","country":"Canada","year":2023,"month":4}
 {"index":{"_id":"5"}}
 {"name":null,"age":10,"state":null,"country":"Canada","year":2023,"month":4}
+{"index":{"_id":"6"}}
+{"name":"Kevin","year":2023,"month":4}

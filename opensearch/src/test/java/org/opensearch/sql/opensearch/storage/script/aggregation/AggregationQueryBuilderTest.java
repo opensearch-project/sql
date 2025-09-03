@@ -33,6 +33,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.tuple.Pair;
@@ -54,7 +55,7 @@ import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
-import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
+import org.opensearch.sql.opensearch.storage.serde.ExpressionSerializer;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
@@ -154,7 +155,8 @@ class AggregationQueryBuilderTest {
             Arrays.asList(
                 named("avg(age)", new AvgAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER))),
             Arrays.asList(named("name", ref("name", STRING)), named("date", ref("date", DATE))),
-            sort(ref("name", STRING), Sort.SortOption.DEFAULT_DESC)));
+            sort(ref("name", STRING), Sort.SortOption.DEFAULT_DESC),
+            Optional.empty()));
   }
 
   @Test
@@ -283,48 +285,22 @@ class AggregationQueryBuilderTest {
         .serialize(any());
     assertEquals(
         format(
-            "{%n"
-                + "  \"composite_buckets\" : {%n"
-                + "    \"composite\" : {%n"
-                + "      \"size\" : 1000,%n"
-                + "      \"sources\" : [ {%n"
-                + "        \"age\" : {%n"
-                + "          \"terms\" : {%n"
-                + "            \"script\" : {%n"
-                + "              \"source\" : \"asin(age)\",%n"
-                + "              \"lang\" : \"opensearch_query_expression\"%n"
-                + "            },%n"
-                + "            \"missing_bucket\" : true,%n"
-                + "            \"missing_order\" : \"first\",%n"
-                + "            \"order\" : \"asc\"%n"
-                + "          }%n"
-                + "        }%n"
-                + "      }, {%n"
-                + "        \"date\" : {%n"
-                + "          \"terms\" : {%n"
-                + "            \"script\" : {%n"
-                + "              \"source\" : \"dayname(date)\",%n"
-                + "              \"lang\" : \"opensearch_query_expression\"%n"
-                + "            },%n"
-                + "            \"missing_bucket\" : true,%n"
-                + "            \"missing_order\" : \"first\",%n"
-                + "            \"order\" : \"asc\"%n"
-                + "          }%n"
-                + "        }%n"
-                + "      } ]%n"
-                + "    },%n"
-                + "    \"aggregations\" : {%n"
-                + "      \"avg(balance)\" : {%n"
-                + "        \"avg\" : {%n"
-                + "          \"script\" : {%n"
-                + "            \"source\" : \"abs(balance)\",%n"
-                + "            \"lang\" : \"opensearch_query_expression\"%n"
-                + "          }%n"
-                + "        }%n"
-                + "      }%n"
-                + "    }%n"
-                + "  }%n"
-                + "}"),
+            "{%n  \"composite_buckets\" : {%n    \"composite\" : {%n      \"size\" : 1000,%n     "
+                + " \"sources\" : [ {%n        \"age\" : {%n          \"terms\" : {%n           "
+                + " \"script\" : {%n             "
+                + " \"{\\\"langType\\\":\\\"v2\\\",\\\"script\\\":\\\"asin(age)\\\"}\",%n          "
+                + "    \"lang\" : \"opensearch_compounded_script\"%n            },%n           "
+                + " \"missing_bucket\" : true,%n            \"missing_order\" : \"first\",%n       "
+                + "     \"order\" : \"asc\"%n          }%n        }%n      }, {%n        \"date\" :"
+                + " {%n          \"terms\" : {%n            \"script\" : {%n             "
+                + " \"source\" : \"dayname(date)\",%n              \"lang\" :"
+                + " \"opensearch_query_expression\"%n            },%n            \"missing_bucket\""
+                + " : true,%n            \"missing_order\" : \"first\",%n            \"order\" :"
+                + " \"asc\"%n          }%n        }%n      } ]%n    },%n    \"aggregations\" : {%n "
+                + "     \"avg(balance)\" : {%n        \"avg\" : {%n          \"script\" : {%n      "
+                + "      \"{\\\"langType\\\":\\\"v2\\\",\\\"script\\\":\\\"abs(balance)\\\"}\",%n  "
+                + "          \"lang\" : \"opensearch_compounded_script\"%n          }%n        }%n "
+                + "     }%n    }%n  }%n}"),
         buildQuery(
             Arrays.asList(
                 named(
@@ -379,7 +355,8 @@ class AggregationQueryBuilderTest {
                 ref("name", STRING),
                 Sort.SortOption.DEFAULT_DESC,
                 ref("age", INTEGER),
-                Sort.SortOption.DEFAULT_ASC)));
+                Sort.SortOption.DEFAULT_ASC),
+            Optional.empty()));
   }
 
   @Test
@@ -690,19 +667,20 @@ class AggregationQueryBuilderTest {
   @SneakyThrows
   private String buildQuery(
       List<NamedAggregator> namedAggregatorList, List<NamedExpression> groupByList) {
-    return buildQuery(namedAggregatorList, groupByList, null);
+    return buildQuery(namedAggregatorList, groupByList, null, Optional.empty());
   }
 
   @SneakyThrows
   private String buildQuery(
       List<NamedAggregator> namedAggregatorList,
       List<NamedExpression> groupByList,
-      List<Pair<Sort.SortOption, Expression>> sortList) {
+      List<Pair<Sort.SortOption, Expression>> sortList,
+      Optional<Object> fillNull) {
     ObjectMapper objectMapper = new ObjectMapper();
     return objectMapper
         .readTree(
             queryBuilder
-                .buildAggregationBuilder(namedAggregatorList, groupByList, sortList)
+                .buildAggregationBuilder(namedAggregatorList, groupByList, sortList, fillNull)
                 .getLeft()
                 .get(0)
                 .toString())

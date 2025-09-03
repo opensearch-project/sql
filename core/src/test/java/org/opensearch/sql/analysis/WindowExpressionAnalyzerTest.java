@@ -50,6 +50,7 @@ class WindowExpressionAnalyzerTest extends AnalyzerTestBase {
         LogicalPlanDSL.window(
             LogicalPlanDSL.sort(
                 LogicalPlanDSL.relation("test", table),
+                0,
                 ImmutablePair.of(DEFAULT_ASC, DSL.ref("string_value", STRING)),
                 ImmutablePair.of(DEFAULT_DESC, DSL.ref("integer_value", INTEGER))),
             DSL.named("row_number", DSL.rowNumber()),

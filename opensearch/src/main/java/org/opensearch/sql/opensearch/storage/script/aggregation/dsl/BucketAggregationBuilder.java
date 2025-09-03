@@ -11,6 +11,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.opensearch.storage.script.aggregation.AggregationQueryBuilder.AGGREGATION_BUCKET_SIZE;
 
 import java.util.List;
+import java.util.Optional;
 import org.opensearch.search.aggregations.bucket.histogram.DateHistogramAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.histogram.DateHistogramInterval;
 import org.opensearch.search.aggregations.bucket.histogram.HistogramAggregationBuilder;
@@ -21,7 +22,7 @@ import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
-import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
+import org.opensearch.sql.opensearch.storage.serde.ExpressionSerializer;
 
 /** Bucket Aggregation Builder. */
 public class BucketAggregationBuilder {
@@ -33,14 +34,15 @@ public class BucketAggregationBuilder {
   }
 
   /** Build the list of ValuesSourceAggregationBuilder. */
-  public ValuesSourceAggregationBuilder<?> build(NamedExpression expr) {
+  public ValuesSourceAggregationBuilder<?> build(NamedExpression expr, Optional<Object> fillNull) {
     if (expr.getDelegated() instanceof SpanExpression) {
       SpanExpression spanExpr = (SpanExpression) expr.getDelegated();
       return buildHistogram(
           expr.getName(),
           spanExpr.getField().toString(),
           spanExpr.getValue().valueOf().doubleValue(),
-          spanExpr.getUnit());
+          spanExpr.getUnit(),
+          fillNull);
     } else {
       TermsAggregationBuilder sourceBuilder = new TermsAggregationBuilder(expr.getName());
       sourceBuilder.size(AGGREGATION_BUCKET_SIZE);
@@ -55,21 +57,27 @@ public class BucketAggregationBuilder {
     }
   }
 
-  private ValuesSourceAggregationBuilder<?> buildHistogram(
-      String name, String field, Double value, SpanUnit unit) {
+  public static ValuesSourceAggregationBuilder<?> buildHistogram(
+      String name, String field, Double value, SpanUnit unit, Optional<Object> fillNull) {
     switch (unit) {
       case NONE:
-        return new HistogramAggregationBuilder(name).field(field).interval(value);
+        HistogramAggregationBuilder builder = new HistogramAggregationBuilder(name);
+        builder.field(field).interval(value);
+        fillNull.ifPresent(builder::missing);
+        return builder;
       case UNKNOWN:
         throw new IllegalStateException("Invalid span unit");
       default:
-        return buildDateHistogram(name, field, value.intValue(), unit);
+        return buildDateHistogram(name, field, value.intValue(), unit, fillNull);
     }
   }
 
-  private ValuesSourceAggregationBuilder<?> buildDateHistogram(
-      String name, String field, Integer value, SpanUnit unit) {
+  public static ValuesSourceAggregationBuilder<?> buildDateHistogram(
+      String name, String field, Integer value, SpanUnit unit, Optional<Object> fillNull) {
     String spanValue = value + unit.getName();
+    DateHistogramAggregationBuilder builder = new DateHistogramAggregationBuilder(name);
+    builder.field(field);
+    fillNull.ifPresent(builder::missing);
     switch (unit) {
       case MILLISECOND:
       case MS:
@@ -81,14 +89,11 @@ public class BucketAggregationBuilder {
       case H:
       case DAY:
       case D:
-        return new DateHistogramAggregationBuilder(name)
-            .field(field)
-            .fixedInterval(
-                new DateHistogramInterval(spanValue)); // TODO extracted from span expression
+        builder.fixedInterval(new DateHistogramInterval(spanValue));
+        break;
       default:
-        return new DateHistogramAggregationBuilder(name)
-            .field(field)
-            .calendarInterval(new DateHistogramInterval(spanValue));
+        builder.calendarInterval(new DateHistogramInterval(spanValue));
     }
+    return builder;
   }
 }

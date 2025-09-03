@@ -62,6 +62,7 @@ public class TestsConstants {
   public static final String TEST_INDEX_GEOPOINT = TEST_INDEX + "_geopoint";
   public static final String TEST_INDEX_JSON_TEST = TEST_INDEX + "_json_test";
   public static final String TEST_INDEX_ALIAS = TEST_INDEX + "_alias";
+  public static final String TEST_INDEX_FLATTENED_VALUE = TEST_INDEX + "_flattened_value";
   public static final String TEST_INDEX_GEOIP = TEST_INDEX + "_geoip";
   public static final String DATASOURCES = ".ql-datasources";
   public static final String TEST_INDEX_STATE_COUNTRY = TEST_INDEX + "_state_country";
@@ -73,6 +74,12 @@ public class TestsConstants {
   public static final String TEST_INDEX_WORKER = TEST_INDEX + "_worker";
   public static final String TEST_INDEX_WORK_INFORMATION = TEST_INDEX + "_work_information";
   public static final String TEST_INDEX_DUPLICATION_NULLABLE = TEST_INDEX + "_duplication_nullable";
+  public static final String TEST_INDEX_MERGE_TEST_1 = TEST_INDEX + "_merge_test_1";
+  public static final String TEST_INDEX_MERGE_TEST_2 = TEST_INDEX + "_merge_test_2";
+  public static final String TEST_INDEX_MERGE_TEST_WILDCARD = TEST_INDEX + "_merge_test_*";
+  public static final String TEST_INDEX_ARRAY = TEST_INDEX + "_array";
+  public static final String TEST_INDEX_HDFS_LOGS = TEST_INDEX + "_hdfs_logs";
+  public static final String TEST_INDEX_LOGS = TEST_INDEX + "_logs";
 
   public static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
   public static final String TS_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";

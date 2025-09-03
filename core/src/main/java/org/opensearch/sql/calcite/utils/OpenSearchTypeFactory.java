@@ -5,7 +5,11 @@
 
 package org.opensearch.sql.calcite.utils;
 
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_DATE;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIME;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIMESTAMP;
 import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
+import static org.opensearch.sql.data.type.ExprCoreType.BINARY;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
@@ -29,6 +33,7 @@ import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import java.lang.reflect.Type;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -41,6 +46,7 @@ import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
+import org.opensearch.sql.calcite.type.ExprBinaryType;
 import org.opensearch.sql.calcite.type.ExprDateType;
 import org.opensearch.sql.calcite.type.ExprIPType;
 import org.opensearch.sql.calcite.type.ExprTimeStampType;
@@ -67,6 +73,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     EXPR_DATE(DATE),
     EXPR_TIME(TIME),
     EXPR_TIMESTAMP(TIMESTAMP),
+    EXPR_BINARY(BINARY),
     EXPR_IP(IP);
 
     // Associated `ExprCoreType`
@@ -120,6 +127,8 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
             yield new ExprTimeType(this);
           case EXPR_TIMESTAMP:
             yield new ExprTimeStampType(this);
+          case EXPR_BINARY:
+            yield new ExprBinaryType(this);
           case EXPR_IP:
             yield new ExprIPType(this);
         };
@@ -180,7 +189,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
       }
     } else {
       if (fieldType.legacyTypeName().equalsIgnoreCase("binary")) {
-        return TYPE_FACTORY.createSqlType(SqlTypeName.BINARY, nullable);
+        return TYPE_FACTORY.createUDT(ExprUDT.EXPR_BINARY, nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("timestamp")) {
         return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("date")) {
@@ -214,7 +223,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
       case INTEGER -> INTEGER;
       case BIGINT -> LONG;
       case FLOAT, REAL -> FLOAT;
-      case DOUBLE -> DOUBLE;
+      case DOUBLE, DECIMAL -> DOUBLE; // TODO the decimal is only used for literal
       case CHAR, VARCHAR -> STRING;
       case BOOLEAN -> BOOLEAN;
       case DATE -> DATE;
@@ -236,32 +245,22 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
       case ARRAY -> ARRAY;
       case MAP -> STRUCT;
       case GEOMETRY -> GEO_POINT;
-      case NULL -> UNDEFINED;
+      case NULL, ANY, OTHER -> UNDEFINED;
       default -> UNKNOWN;
     };
   }
 
   /** Get legacy name for a RelDataType. */
   public static String getLegacyTypeName(RelDataType relDataType, QueryType queryType) {
-    if (relDataType instanceof AbstractExprRelDataType<?> udt) {
-      return udt.getExprType().legacyTypeName();
-    }
-    switch (relDataType.getSqlTypeName()) {
-      case BINARY:
-      case VARBINARY:
-        return "BINARY";
-      case GEOMETRY:
-        return "GEO_POINT";
-      default:
-        ExprType type = convertSqlTypeNameToExprType(relDataType.getSqlTypeName());
-        return (queryType == PPL ? PPL_SPEC.typeName(type) : type.legacyTypeName())
-            .toUpperCase(Locale.ROOT);
-    }
+    ExprType type = convertRelDataTypeToExprType(relDataType);
+    return (queryType == PPL ? PPL_SPEC.typeName(type) : type.legacyTypeName())
+        .toUpperCase(Locale.ROOT);
   }
 
   /** Converts a Calcite data type to OpenSearch ExprCoreType. */
   public static ExprType convertRelDataTypeToExprType(RelDataType type) {
-    if (type instanceof AbstractExprRelDataType<?> udt) {
+    if (isUserDefinedType(type)) {
+      AbstractExprRelDataType<?> udt = (AbstractExprRelDataType<?>) type;
       return udt.getExprType();
     }
     ExprType exprType = convertSqlTypeNameToExprType(type.getSqlTypeName());
@@ -311,7 +310,9 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
   public static RelDataType convertSchema(Table table) {
     List<String> fieldNameList = new ArrayList<>();
     List<RelDataType> typeList = new ArrayList<>();
-    for (Entry<String, ExprType> entry : table.getFieldTypes().entrySet()) {
+    Map<String, ExprType> fieldTypes = new LinkedHashMap<>(table.getFieldTypes());
+    fieldTypes.putAll(table.getReservedFieldTypes());
+    for (Entry<String, ExprType> entry : fieldTypes.entrySet()) {
       fieldNameList.add(entry.getKey());
       typeList.add(OpenSearchTypeFactory.convertExprTypeToRelDataType(entry.getValue()));
     }
@@ -325,5 +326,15 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
       return exprRelDataType.getJavaType();
     }
     return super.getJavaClass(type);
+  }
+
+  /**
+   * Whether a given RelDataType is a user-defined type (UDT)
+   *
+   * @param type the RelDataType to check
+   * @return true if the type is a user-defined type, false otherwise
+   */
+  public static boolean isUserDefinedType(RelDataType type) {
+    return type instanceof AbstractExprRelDataType<?>;
   }
 }

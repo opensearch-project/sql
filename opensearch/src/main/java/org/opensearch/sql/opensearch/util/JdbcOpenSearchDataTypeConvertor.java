@@ -91,15 +91,14 @@ public class JdbcOpenSearchDataTypeConvertor {
         case Types.BIGINT:
           return ExprValueUtils.fromObjectValue(rs.getLong(i));
 
+        case Types.FLOAT:
+        case Types.REAL:
+          return ExprValueUtils.fromObjectValue(rs.getFloat(i));
+
         case Types.DECIMAL:
         case Types.NUMERIC:
-          return ExprValueUtils.fromObjectValue(rs.getBigDecimal(i));
-
         case Types.DOUBLE:
           return ExprValueUtils.fromObjectValue(rs.getDouble(i));
-
-        case Types.FLOAT:
-          return ExprValueUtils.fromObjectValue(rs.getFloat(i));
 
         case Types.DATE:
           String dateStr = rs.getString(i);
@@ -125,7 +124,7 @@ public class JdbcOpenSearchDataTypeConvertor {
           return ExprValueUtils.fromObjectValue(array);
 
         default:
-          LOG.warn(
+          LOG.debug(
               "Unchecked sql type: {}, return Object type {}",
               sqlType,
               value.getClass().getTypeName());

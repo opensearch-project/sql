@@ -71,6 +71,18 @@ stats <aggregation>... [by-clause]
 | year (y)                   |
 +----------------------------+
 
+Configuration
+=============
+Some aggregation functions require Calcite to be enabled for proper functionality. To enable Calcite, use the following command:
+
+Enable Calcite::
+
+    >> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
+      "persistent" : {
+        "plugins.calcite.enabled" : true
+      }
+    }'
+
 Aggregation Functions
 =====================
 
@@ -80,17 +92,37 @@ COUNT
 Description
 >>>>>>>>>>>
 
-Usage: Returns a count of the number of expr in the rows retrieved by a SELECT statement.
+Usage: Returns a count of the number of expr in the rows retrieved. The ``C()`` function, ``c``, and ``count`` can be used as abbreviations for ``COUNT()``. To perform a filtered counting, wrap the condition to satisfy in an `eval` expression.
 
 Example::
 
-    os> source=accounts | stats count();
+    os> source=accounts | stats count(), c(), count, c;
     fetched rows / total rows = 1/1
-    +---------+
-    | count() |
-    |---------|
-    | 4       |
-    +---------+
+    +---------+-----+-------+---+
+    | count() | c() | count | c |
+    |---------+-----+-------+---|
+    | 4       | 4   | 4     | 4 |
+    +---------+-----+-------+---+
+
+Example of filtered counting::
+
+    os> source=accounts | stats count(eval(age > 30)) as mature_users;
+    fetched rows / total rows = 1/1
+    +--------------+
+    | mature_users |
+    |--------------|
+    | 3            |
+    +--------------+
+
+Example of filtered counting with complex conditions::
+
+    os> source=accounts | stats count(eval(age > 30 and balance > 25000)) as high_value_users;
+    fetched rows / total rows = 1/1
+    +------------------+
+    | high_value_users |
+    |------------------|
+    | 1                |
+    +------------------+
 
 SUM
 ---
@@ -238,8 +270,28 @@ Example::
     | 2.8613807855648994 |
     +--------------------+
 
-TAKE
+DISTINCT_COUNT_APPROX
 ----------
+
+Description
+>>>>>>>>>>>
+
+Version: 3.1.0
+
+Usage: DISTINCT_COUNT_APPROX(expr). Return the approximate distinct count value of the expr, using the hyperloglog++ algorithm.
+
+Example::
+
+    PPL> source=accounts | stats distinct_count_approx(gender);
+    fetched rows / total rows = 1/1
+    +-------------------------------+
+    | distinct_count_approx(gender) |
+    |-------------------------------|
+    | 2                             |
+    +-------------------------------+
+
+TAKE
+----
 
 Description
 >>>>>>>>>>>
@@ -269,6 +321,8 @@ Usage: PERCENTILE(expr, percent) or PERCENTILE_APPROX(expr, percent). Return the
 
 * percent: The number must be a constant between 0 and 100.
 
+Note: From 3.1.0, the percentile implementation is switched to MergingDigest from AVLTreeDigest. Ref `issue link <https://github.com/opensearch-project/OpenSearch/issues/18122>`_.
+
 Example::
 
     os> source=accounts | stats percentile(age, 90) by gender;
@@ -279,6 +333,80 @@ Example::
     | 28                  | F      |
     | 36                  | M      |
     +---------------------+--------+
+
+EARLIEST
+--------
+
+Description
+>>>>>>>>>>>
+
+Version: 3.3.0
+
+Usage: EARLIEST(field [, time_field]). Return the earliest value of a field based on timestamp ordering.
+
+* field: mandatory. The field to return the earliest value for.
+* time_field: optional. The field to use for time-based ordering. Defaults to @timestamp if not specified.
+
+Note: This function requires Calcite to be enabled (see `Configuration`_ section above).
+
+Example::
+
+    os> source=events | stats earliest(message) by host | sort host;
+    fetched rows / total rows = 2/2
+    +-------------------+---------+
+    | earliest(message) | host    |
+    |-------------------+---------|
+    | Starting up       | server1 |
+    | Initializing      | server2 |
+    +-------------------+---------+
+
+Example with custom time field::
+
+    os> source=events | stats earliest(status, event_time) by category | sort category;
+    fetched rows / total rows = 2/2
+    +------------------------------+----------+
+    | earliest(status, event_time) | category |
+    |------------------------------+----------|
+    | pending                      | orders   |
+    | active                       | users    |
+    +------------------------------+----------+
+
+LATEST
+------
+
+Description
+>>>>>>>>>>>
+
+Version: 3.3.0
+
+Usage: LATEST(field [, time_field]). Return the latest value of a field based on timestamp ordering.
+
+* field: mandatory. The field to return the latest value for.
+* time_field: optional. The field to use for time-based ordering. Defaults to @timestamp if not specified.
+
+Note: This function requires Calcite to be enabled (see `Configuration`_ section above).
+
+Example::
+
+    os> source=events | stats latest(message) by host | sort host;
+    fetched rows / total rows = 2/2
+    +------------------+---------+
+    | latest(message)  | host    |
+    |------------------+---------|
+    | Shutting down    | server1 |
+    | Maintenance mode | server2 |
+    +------------------+---------+
+
+Example with custom time field::
+
+    os> source=events | stats latest(status, event_time) by category | sort category;
+    fetched rows / total rows = 2/2
+    +----------------------------+----------+
+    | latest(status, event_time) | category |
+    |----------------------------+----------|
+    | cancelled                  | orders   |
+    | inactive                   | users    |
+    +----------------------------+----------+
 
 Example 1: Calculate the count of events
 ========================================
@@ -502,4 +630,3 @@ PPL query::
     | 28  | 20       | F      |
     | 36  | 30       | M      |
     +-----+----------+--------+
-

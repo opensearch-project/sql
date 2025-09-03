@@ -20,7 +20,8 @@ public enum Format {
   // format of explain response
   SIMPLE("simple"),
   STANDARD("standard"),
-  EXTENDED("extended");
+  EXTENDED("extended"),
+  COST("cost");
 
   @Getter private final String formatName;
 
@@ -40,6 +41,7 @@ public enum Format {
     builder.put(SIMPLE.formatName, SIMPLE);
     builder.put(STANDARD.formatName, STANDARD);
     builder.put(EXTENDED.formatName, EXTENDED);
+    builder.put(COST.formatName, COST);
     EXPLAIN_FORMATS = builder.build();
   }
 

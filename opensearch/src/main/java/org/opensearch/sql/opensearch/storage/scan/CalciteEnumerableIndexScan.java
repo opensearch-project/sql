@@ -6,7 +6,6 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import java.util.List;
-import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.PhysType;
@@ -21,6 +20,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
@@ -28,11 +28,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.calcite.plan.OpenSearchRules;
+import org.opensearch.sql.calcite.plan.Scannable;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 
-/** Relational expression representing a scan of an OpenSearchIndex type. */
-public class CalciteEnumerableIndexScan extends CalciteIndexScan implements EnumerableRel {
+/** The physical relational operator representing a scan of an OpenSearchIndex type. */
+public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
+    implements Scannable, EnumerableRel {
   private static final Logger LOG = LogManager.getLogger(CalciteEnumerableIndexScan.class);
 
   /**
@@ -44,19 +46,26 @@ public class CalciteEnumerableIndexScan extends CalciteIndexScan implements Enum
    */
   public CalciteEnumerableIndexScan(
       RelOptCluster cluster,
+      RelTraitSet traitSet,
       List<RelHint> hints,
       RelOptTable table,
       OpenSearchIndex osIndex,
       RelDataType schema,
       PushDownContext pushDownContext) {
-    super(
-        cluster,
-        cluster.traitSetOf(EnumerableConvention.INSTANCE),
-        hints,
-        table,
-        osIndex,
-        schema,
-        pushDownContext);
+    super(cluster, traitSet, hints, table, osIndex, schema, pushDownContext);
+  }
+
+  @Override
+  protected AbstractCalciteIndexScan buildScan(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      List<RelHint> hints,
+      RelOptTable table,
+      OpenSearchIndex osIndex,
+      RelDataType schema,
+      PushDownContext pushDownContext) {
+    return new CalciteEnumerableIndexScan(
+        cluster, traitSet, hints, table, osIndex, schema, pushDownContext);
   }
 
   @Override
@@ -86,18 +95,31 @@ public class CalciteEnumerableIndexScan extends CalciteIndexScan implements Enum
     return implementor.result(physType, Blocks.toBlock(Expressions.call(scanOperator, "scan")));
   }
 
+  /**
+   * This Enumerator may be iterated for multiple times, so we need to create opensearch request for
+   * each time to avoid reusing source builder. That's because the source builder has stats like PIT
+   * or SearchAfter recorded during previous search.
+   */
+  @Override
   public Enumerable<@Nullable Object> scan() {
-    OpenSearchRequestBuilder requestBuilder = osIndex.createRequestBuilder();
-    pushDownContext.forEach(action -> action.apply(requestBuilder));
     return new AbstractEnumerable<>() {
       @Override
       public Enumerator<Object> enumerator() {
+        OpenSearchRequestBuilder requestBuilder = osIndex.createRequestBuilder();
+        pushDownContext.forEach(action -> action.apply(requestBuilder));
         return new OpenSearchIndexEnumerator(
             osIndex.getClient(),
-            List.copyOf(getRowType().getFieldNames()),
+            getFieldPath(),
             requestBuilder.getMaxResponseSize(),
-            osIndex.buildRequest(requestBuilder));
+            osIndex.buildRequest(requestBuilder),
+            osIndex.createOpenSearchResourceMonitor());
       }
     };
+  }
+
+  private List<String> getFieldPath() {
+    return getRowType().getFieldNames().stream()
+        .map(f -> osIndex.getAliasMapping().getOrDefault(f, f))
+        .toList();
   }
 }

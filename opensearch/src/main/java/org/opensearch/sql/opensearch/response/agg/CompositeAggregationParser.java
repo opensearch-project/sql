@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import org.opensearch.search.aggregations.Aggregations;
 import org.opensearch.search.aggregations.bucket.composite.CompositeAggregation;
 
@@ -27,6 +28,7 @@ import org.opensearch.search.aggregations.bucket.composite.CompositeAggregation;
  * for the aggregation with multiple group-by keys. Use {@link BucketAggregationParser} when there
  * is only one group-by key.
  */
+@Getter
 @EqualsAndHashCode
 public class CompositeAggregationParser implements OpenSearchAggregationResponseParser {
 
