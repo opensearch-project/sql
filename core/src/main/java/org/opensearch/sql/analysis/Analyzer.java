@@ -84,6 +84,7 @@ import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
+import org.opensearch.sql.ast.tree.Replace;
 import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.Search;
@@ -786,6 +787,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitCloseCursor(CloseCursor closeCursor, AnalysisContext context) {
     return new LogicalCloseCursor(closeCursor.getChild().get(0).accept(this, context));
+  }
+
+  @Override
+  public LogicalPlan visitReplace(Replace node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Replace");
   }
 
   @Override

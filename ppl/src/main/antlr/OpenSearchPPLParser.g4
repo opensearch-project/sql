@@ -78,6 +78,7 @@ commands
    | regexCommand
    | timechartCommand
    | rexCommand
+   | replaceCommand
    ;
 
 commandName
@@ -115,6 +116,7 @@ commandName
    | REGEX
    | APPEND
    | REX
+   | REPLACE
    ;
 
 searchCommand
@@ -198,6 +200,10 @@ wcFieldList
 
 renameCommand
    : RENAME renameClasue (COMMA? renameClasue)*
+   ;
+
+replaceCommand
+   : REPLACE pattern=stringLiteral WITH replacement=stringLiteral IN fieldList
    ;
 
 statsCommand
