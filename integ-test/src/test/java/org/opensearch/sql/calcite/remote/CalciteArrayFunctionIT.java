@@ -241,4 +241,96 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
 
     verifyDataRows(actual, rows(60));
   }
+
+  @Test
+  public void testMvjoinWithStringArray() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval result = mvjoin(array('a', 'b', 'c'), ',') | fields result | head"
+                    + " 1",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "string"));
+    verifyDataRows(actual, rows("a,b,c"));
+  }
+
+  @Test
+  public void testMvjoinWithStringifiedNumbers() throws IOException {
+    // Note: mvjoin only supports string arrays
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval result = mvjoin(array('1', '2', '3'), ' | ') | fields result |"
+                    + " head 1",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "string"));
+    verifyDataRows(actual, rows("1 | 2 | 3"));
+  }
+
+  @Test
+  public void testMvjoinWithMixedStringValues() throws IOException {
+    // mvjoin only supports string arrays
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval result = mvjoin(array('1', 'text', '2.5'), ';') | fields result |"
+                    + " head 1",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "string"));
+    verifyDataRows(actual, rows("1;text;2.5"));
+  }
+
+  @Test
+  public void testMvjoinWithEmptyArray() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval result = mvjoin(array(), '-') | fields result | head 1",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "string"));
+    verifyDataRows(actual, rows(""));
+  }
+
+  @Test
+  public void testMvjoinWithSingleStringValue() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval result = mvjoin('hello', ',') | fields result | head 1",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "string"));
+    verifyDataRows(actual, rows("hello"));
+  }
+
+  @Test
+  public void testMvjoinWithStringBooleans() throws IOException {
+    // mvjoin only supports string arrays
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval result = mvjoin(array('true', 'false', 'true'), '|') | fields"
+                    + " result | head 1",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "string"));
+    verifyDataRows(actual, rows("true|false|true"));
+  }
+
+  @Test
+  public void testMvjoinWithSpecialDelimiters() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval result = mvjoin(array('apple', 'banana', 'cherry'), ' AND ') |"
+                    + " fields result | head 1",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "string"));
+    verifyDataRows(actual, rows("apple AND banana AND cherry"));
+  }
 }
