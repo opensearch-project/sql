@@ -268,36 +268,46 @@ public class AggregateAnalyzer {
       String aggFieldName,
       AggregateBuilderHelper helper) {
 
-    return switch (aggCall.getAggregation().kind) {
-      case AVG -> Pair.of(
-          helper.build(args.getFirst(), AggregationBuilders.avg(aggFieldName)),
-          new SingleValueParser(aggFieldName));
-      case SUM -> Pair.of(
-          helper.build(args.getFirst(), AggregationBuilders.sum(aggFieldName)),
-          new SingleValueParser(aggFieldName));
-      case COUNT -> Pair.of(
-          helper.build(
-              !args.isEmpty() ? args.getFirst() : null, AggregationBuilders.count(aggFieldName)),
-          new SingleValueParser(aggFieldName));
-      case MIN -> Pair.of(
-          helper.build(args.getFirst(), AggregationBuilders.min(aggFieldName)),
-          new SingleValueParser(aggFieldName));
-      case MAX -> Pair.of(
-          helper.build(args.getFirst(), AggregationBuilders.max(aggFieldName)),
-          new SingleValueParser(aggFieldName));
-      case VAR_SAMP -> Pair.of(
-          helper.build(args.getFirst(), AggregationBuilders.extendedStats(aggFieldName)),
-          new StatsParser(ExtendedStats::getVarianceSampling, aggFieldName));
-      case VAR_POP -> Pair.of(
-          helper.build(args.getFirst(), AggregationBuilders.extendedStats(aggFieldName)),
-          new StatsParser(ExtendedStats::getVariancePopulation, aggFieldName));
-      case STDDEV_SAMP -> Pair.of(
-          helper.build(args.getFirst(), AggregationBuilders.extendedStats(aggFieldName)),
-          new StatsParser(ExtendedStats::getStdDeviationSampling, aggFieldName));
-      case STDDEV_POP -> Pair.of(
-          helper.build(args.getFirst(), AggregationBuilders.extendedStats(aggFieldName)),
-          new StatsParser(ExtendedStats::getStdDeviationPopulation, aggFieldName));
-      case ARG_MAX -> Pair.of(
+    switch (aggCall.getAggregation().kind) {
+      case AVG:
+        return Pair.of(
+            helper.build(args.get(0), AggregationBuilders.avg(aggFieldName)),
+            new SingleValueParser(aggFieldName));
+      case SUM:
+        return Pair.of(
+            helper.build(args.get(0), AggregationBuilders.sum(aggFieldName)),
+            new SingleValueParser(aggFieldName));
+      case COUNT:
+        return Pair.of(
+            helper.build(
+                !args.isEmpty() ? args.get(0) : null, AggregationBuilders.count(aggFieldName)),
+            new SingleValueParser(aggFieldName));
+      case MIN:
+        return Pair.of(
+            helper.build(args.get(0), AggregationBuilders.min(aggFieldName)),
+            new SingleValueParser(aggFieldName));
+      case MAX:
+        return Pair.of(
+            helper.build(args.get(0), AggregationBuilders.max(aggFieldName)),
+            new SingleValueParser(aggFieldName));
+      case VAR_SAMP:
+        return Pair.of(
+            helper.build(args.get(0), AggregationBuilders.extendedStats(aggFieldName)),
+            new StatsParser(ExtendedStats::getVarianceSampling, aggFieldName));
+      case VAR_POP:
+        return Pair.of(
+            helper.build(args.get(0), AggregationBuilders.extendedStats(aggFieldName)),
+            new StatsParser(ExtendedStats::getVariancePopulation, aggFieldName));
+      case STDDEV_SAMP:
+        return Pair.of(
+            helper.build(args.get(0), AggregationBuilders.extendedStats(aggFieldName)),
+            new StatsParser(ExtendedStats::getStdDeviationSampling, aggFieldName));
+      case STDDEV_POP:
+        return Pair.of(
+            helper.build(args.get(0), AggregationBuilders.extendedStats(aggFieldName)),
+            new StatsParser(ExtendedStats::getStdDeviationPopulation, aggFieldName));
+      case ARG_MAX:
+        return Pair.of(
           AggregationBuilders.topHits(aggFieldName)
               .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)
               .size(1)
@@ -306,7 +316,8 @@ public class AggregateAnalyzer {
                   helper.inferNamedField(args.get(1)).getRootName(),
                   org.opensearch.search.sort.SortOrder.DESC),
           new ArgMaxMinParser(aggFieldName));
-      case ARG_MIN -> Pair.of(
+      case ARG_MIN:
+        return Pair.of(
           AggregationBuilders.topHits(aggFieldName)
               .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)
               .size(1)
@@ -315,7 +326,7 @@ public class AggregateAnalyzer {
                   helper.inferNamedField(args.get(1)).getRootName(),
                   org.opensearch.search.sort.SortOrder.ASC),
           new ArgMaxMinParser(aggFieldName));
-      case OTHER_FUNCTION -> {
+      case OTHER_FUNCTION:
         BuiltinFunctionName functionName =
             BuiltinFunctionName.ofAggregation(aggCall.getAggregation().getName()).get();
         switch (functionName) {
