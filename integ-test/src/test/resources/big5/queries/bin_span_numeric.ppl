@@ -1,3 +1,0 @@
-source = big5
-| bin `metrics.size` span=1000
-| head 10

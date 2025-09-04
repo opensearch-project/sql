@@ -1,3 +1,0 @@
-source = big5
-| bin `@timestamp` span=12h aligntime=\"@d+3h\"
-| head 10

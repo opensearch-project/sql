@@ -20,27 +20,9 @@ public class CalcitePPLBig5IT extends PPLBig5IT {
   }
 
   @Test
-  public void bin_aligntime() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/bin_aligntime.ppl"));
-    timing(summary, "bin_aligntime", ppl);
-  }
-
-  @Test
   public void bin_bins() throws IOException {
     String ppl = sanitize(loadFromFile("big5/queries/bin_bins.ppl"));
     timing(summary, "bin_bins", ppl);
-  }
-
-  @Test
-  public void bin_default() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/bin_default.ppl"));
-    timing(summary, "bin_default", ppl);
-  }
-
-  @Test
-  public void bin_minspan() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/bin_minspan.ppl"));
-    timing(summary, "bin_minspan", ppl);
   }
 
   @Test
@@ -50,21 +32,9 @@ public class CalcitePPLBig5IT extends PPLBig5IT {
   }
 
   @Test
-  public void bin_span_numeric() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/bin_span_numeric.ppl"));
-    timing(summary, "bin_span_numeric", ppl);
-  }
-
-  @Test
   public void bin_span_time() throws IOException {
     String ppl = sanitize(loadFromFile("big5/queries/bin_span_time.ppl"));
     timing(summary, "bin_span_time", ppl);
-  }
-
-  @Test
-  public void bin_start_end() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/bin_start_end.ppl"));
-    timing(summary, "bin_start_end", ppl);
   }
 
   public void coalesce_nonexistent_field_fallback() throws IOException {

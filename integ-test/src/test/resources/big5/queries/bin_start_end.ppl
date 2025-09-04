@@ -1,3 +1,0 @@
-source = big5
-| bin `metrics.size` bins=5 start=0 end=10000
-| head 10

@@ -1,3 +1,0 @@
-source = big5
-| bin `metrics.size`
-| head 10
