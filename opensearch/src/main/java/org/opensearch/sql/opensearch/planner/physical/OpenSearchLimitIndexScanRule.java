@@ -8,6 +8,7 @@ package org.opensearch.sql.opensearch.planner.physical;
 import java.util.Objects;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
@@ -33,9 +34,9 @@ public class OpenSearchLimitIndexScanRule extends RelRule<OpenSearchLimitIndexSc
     Integer limitValue = extractLimitValue(sort.fetch);
     Integer offsetValue = extractOffsetValue(sort.offset);
     if (limitValue != null && offsetValue != null) {
-      CalciteLogicalIndexScan newScan = scan.pushDownLimit(limitValue, offsetValue);
-      if (newScan != null) {
-        call.transformTo(newScan);
+      AbstractRelNode newOperator = scan.pushDownLimit(sort, limitValue, offsetValue);
+      if (newOperator != null) {
+        call.transformTo(newOperator);
       }
     }
   }
@@ -81,11 +82,7 @@ public class OpenSearchLimitIndexScanRule extends RelRule<OpenSearchLimitIndexSc
                 b0 ->
                     b0.operand(LogicalSort.class)
                         .predicate(OpenSearchIndexScanRule::isLogicalSortLimit)
-                        .oneInput(
-                            b1 ->
-                                b1.operand(CalciteLogicalIndexScan.class)
-                                    .predicate(OpenSearchIndexScanRule::noAggregatePushed)
-                                    .noInputs()));
+                        .oneInput(b1 -> b1.operand(CalciteLogicalIndexScan.class).noInputs()));
 
     @Override
     default OpenSearchLimitIndexScanRule toRule() {

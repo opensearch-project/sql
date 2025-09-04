@@ -257,6 +257,31 @@ public class StatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testStatsWithLimit() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats avg(balance) as a by age | head 5",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(response, schema("a", null, "double"), schema("age", null, "int"));
+    verifyDataRows(
+        response,
+        rows(null, null),
+        rows(32838D, 28),
+        rows(39225D, 32),
+        rows(4180D, 33),
+        rows(48086D, 34));
+
+    response =
+        executeQuery(
+            String.format(
+                "source=%s | stats avg(balance) as a by age | head 5 | head 2 from 1",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(response, schema("a", null, "double"), schema("age", null, "int"));
+    verifyDataRows(response, rows(32838D, 28), rows(39225D, 32));
+  }
+
+  @Test
   public void testStddevSampGroupByNullValue() throws IOException {
     JSONObject response =
         executeQuery(
