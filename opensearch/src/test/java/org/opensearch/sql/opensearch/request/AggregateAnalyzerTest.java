@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -340,156 +341,141 @@ class AggregateAnalyzerTest {
 
   @Test
   void analyze_aggCall_simpleFilter() throws ExpressionNotAnalyzableException {
-    Pair<String, OpenSearchAggregationResponseParser> result =
-        analyzeAggregate(
-            List.of("cnt_filtered"),
+    buildAggregation("filter_cnt")
+        .withAggCall(
             b ->
-                b.aggregate(
-                    b.groupKey(),
-                    b.aggregateCall(
-                        SqlStdOperatorTable.COUNT,
-                        false,
-                        b.call(
-                            SqlStdOperatorTable.IS_TRUE,
-                            b.call(SqlStdOperatorTable.GREATER_THAN, b.field("a"), b.literal(0))),
-                        "cnt_filtered")));
-
-    assertEquals(
-        "[{\"cnt_filtered\":{\"filter\":{\"range\":{\"a\":{"
-            + "\"from\":0,"
-            + "\"to\":null,"
-            + "\"include_lower\":false,"
-            + "\"include_upper\":true,"
-            + "\"boost\":1.0}}},"
-            + "\"aggregations\":{\"cnt_filtered\":{\"value_count\":{\"field\":\"_index\"}}}}}]",
-        result.getLeft());
-
-    assertInstanceOf(NoBucketAggregationParser.class, result.getRight());
-    assertEquals(
-        new MetricParserHelper(
-            List.of(
-                FilterParser.builder()
-                    .name("cnt_filtered")
-                    .metricsParser(new SingleValueParser("cnt_filtered"))
-                    .build())),
-        ((NoBucketAggregationParser) result.getRight()).getMetricsParser());
+                b.aggregateCall(
+                    SqlStdOperatorTable.COUNT,
+                    false,
+                    b.call(
+                        SqlStdOperatorTable.IS_TRUE,
+                        b.call(SqlStdOperatorTable.GREATER_THAN, b.field("a"), b.literal(0))),
+                    "filter_cnt"))
+        .expectDslQuery(
+            "[{\"filter_cnt\":{\"filter\":{\"range\":{\"a\":{"
+                + "\"from\":0,"
+                + "\"to\":null,"
+                + "\"include_lower\":false,"
+                + "\"include_upper\":true,"
+                + "\"boost\":1.0}}},"
+                + "\"aggregations\":{\"filter_cnt\":{\"value_count\":{\"field\":\"_index\"}}}}}]")
+        .expectResponseParser(
+            new MetricParserHelper(
+                List.of(
+                    FilterParser.builder()
+                        .name("filter_cnt")
+                        .metricsParser(new SingleValueParser("filter_cnt"))
+                        .build())))
+        .verify();
   }
 
   @Test
-  void analyze_multipleAggCallsWithFilters() throws ExpressionNotAnalyzableException {
-    Pair<String, OpenSearchAggregationResponseParser> result =
-        analyzeAggregate(
-            List.of("avg_filtered", "sum_filtered", "min_filtered", "max_filtered"),
+  void analyze_aggCall_simpleFilter_multiple() throws ExpressionNotAnalyzableException {
+    buildAggregation("filter_avg", "filter_sum", "filter_min", "filter_max")
+        .withAggCall(
             b ->
-                b.aggregate(
-                    b.groupKey(),
-                    b.aggregateCall(
-                        SqlStdOperatorTable.AVG,
-                        false,
-                        b.call(
-                            SqlStdOperatorTable.IS_TRUE,
-                            b.call(SqlStdOperatorTable.EQUALS, b.field("a"), b.literal(10))),
-                        "avg_filtered",
-                        b.field("a")),
-                    b.aggregateCall(
-                        SqlStdOperatorTable.SUM,
-                        false,
-                        b.call(
-                            SqlStdOperatorTable.IS_TRUE,
-                            b.call(SqlStdOperatorTable.EQUALS, b.field("a"), b.literal(20))),
-                        "sum_filtered",
-                        b.field("a")),
-                    b.aggregateCall(
-                        SqlStdOperatorTable.MIN,
-                        false,
-                        b.call(
-                            SqlStdOperatorTable.IS_TRUE,
-                            b.call(SqlStdOperatorTable.EQUALS, b.field("b"), b.literal("test1"))),
-                        "min_filtered",
-                        b.field("a")),
-                    b.aggregateCall(
-                        SqlStdOperatorTable.MAX,
-                        false,
-                        b.call(
-                            SqlStdOperatorTable.IS_TRUE,
-                            b.call(SqlStdOperatorTable.EQUALS, b.field("b"), b.literal("test2"))),
-                        "max_filtered",
-                        b.field("a"))));
-
-    assertEquals(
-        "[{\"avg_filtered\":{\"filter\":{\"term\":{\"a\":{\"value\":10,\"boost\":1.0}}},"
-            + "\"aggregations\":{\"avg_filtered\":{\"avg\":{\"field\":\"a\"}}}}},"
-            + " {\"sum_filtered\":{\"filter\":{\"term\":{\"a\":{\"value\":20,\"boost\":1.0}}},"
-            + "\"aggregations\":{\"sum_filtered\":{\"sum\":{\"field\":\"a\"}}}}},"
-            + " {\"min_filtered\":{\"filter\":{\"term\":{\"b.keyword\":{\"value\":\"test1\",\"boost\":1.0}}},"
-            + "\"aggregations\":{\"min_filtered\":{\"min\":{\"field\":\"a\"}}}}},"
-            + " {\"max_filtered\":{\"filter\":{\"term\":{\"b.keyword\":{\"value\":\"test2\",\"boost\":1.0}}},"
-            + "\"aggregations\":{\"max_filtered\":{\"max\":{\"field\":\"a\"}}}}}]",
-        result.getLeft());
-
-    assertInstanceOf(NoBucketAggregationParser.class, result.getRight());
-    assertEquals(
-        new MetricParserHelper(
-            List.of(
-                FilterParser.builder()
-                    .name("avg_filtered")
-                    .metricsParser(new SingleValueParser("avg_filtered"))
-                    .build(),
-                FilterParser.builder()
-                    .name("sum_filtered")
-                    .metricsParser(new SingleValueParser("sum_filtered"))
-                    .build(),
-                FilterParser.builder()
-                    .name("min_filtered")
-                    .metricsParser(new SingleValueParser("min_filtered"))
-                    .build(),
-                FilterParser.builder()
-                    .name("max_filtered")
-                    .metricsParser(new SingleValueParser("max_filtered"))
-                    .build())),
-        ((NoBucketAggregationParser) result.getRight()).getMetricsParser());
+                b.aggregateCall(
+                    SqlStdOperatorTable.AVG,
+                    false,
+                    b.call(
+                        SqlStdOperatorTable.IS_TRUE,
+                        b.call(SqlStdOperatorTable.EQUALS, b.field("a"), b.literal(10))),
+                    "filter_avg",
+                    b.field("a")))
+        .withAggCall(
+            b ->
+                b.aggregateCall(
+                    SqlStdOperatorTable.SUM,
+                    false,
+                    b.call(
+                        SqlStdOperatorTable.IS_TRUE,
+                        b.call(SqlStdOperatorTable.EQUALS, b.field("a"), b.literal(20))),
+                    "filter_sum",
+                    b.field("a")))
+        .withAggCall(
+            b ->
+                b.aggregateCall(
+                    SqlStdOperatorTable.MIN,
+                    false,
+                    b.call(
+                        SqlStdOperatorTable.IS_TRUE,
+                        b.call(SqlStdOperatorTable.EQUALS, b.field("b"), b.literal("test1"))),
+                    "filter_min",
+                    b.field("a")))
+        .withAggCall(
+            b ->
+                b.aggregateCall(
+                    SqlStdOperatorTable.MAX,
+                    false,
+                    b.call(
+                        SqlStdOperatorTable.IS_TRUE,
+                        b.call(SqlStdOperatorTable.EQUALS, b.field("b"), b.literal("test2"))),
+                    "filter_max",
+                    b.field("a")))
+        .expectDslQuery(
+            "[{\"filter_avg\":{\"filter\":{\"term\":{\"a\":{\"value\":10,\"boost\":1.0}}},"
+                + "\"aggregations\":{\"filter_avg\":{\"avg\":{\"field\":\"a\"}}}}},"
+                + " {\"filter_sum\":{\"filter\":{\"term\":{\"a\":{\"value\":20,\"boost\":1.0}}},"
+                + "\"aggregations\":{\"filter_sum\":{\"sum\":{\"field\":\"a\"}}}}},"
+                + " {\"filter_min\":{\"filter\":{\"term\":{\"b.keyword\":{\"value\":\"test1\",\"boost\":1.0}}},"
+                + "\"aggregations\":{\"filter_min\":{\"min\":{\"field\":\"a\"}}}}},"
+                + " {\"filter_max\":{\"filter\":{\"term\":{\"b.keyword\":{\"value\":\"test2\",\"boost\":1.0}}},"
+                + "\"aggregations\":{\"filter_max\":{\"max\":{\"field\":\"a\"}}}}}]")
+        .expectResponseParser(
+            new MetricParserHelper(
+                List.of(
+                    FilterParser.builder()
+                        .name("filter_avg")
+                        .metricsParser(new SingleValueParser("filter_avg"))
+                        .build(),
+                    FilterParser.builder()
+                        .name("filter_sum")
+                        .metricsParser(new SingleValueParser("filter_sum"))
+                        .build(),
+                    FilterParser.builder()
+                        .name("filter_min")
+                        .metricsParser(new SingleValueParser("filter_min"))
+                        .build(),
+                    FilterParser.builder()
+                        .name("filter_max")
+                        .metricsParser(new SingleValueParser("filter_max"))
+                        .build())))
+        .verify();
   }
 
   @Test
-  void analyze_aggCallWithComplexFilter() throws ExpressionNotAnalyzableException {
-    Pair<String, OpenSearchAggregationResponseParser> result =
-        analyzeAggregate(
-            List.of("count_range_filter"),
+  void analyze_aggCall_complexFilter() throws ExpressionNotAnalyzableException {
+    buildAggregation("filter_count_range")
+        .withAggCall(
             b ->
-                b.aggregate(
-                    b.groupKey(),
-                    b.aggregateCall(
-                        SqlStdOperatorTable.COUNT,
-                        false,
+                b.aggregateCall(
+                    SqlStdOperatorTable.COUNT,
+                    false,
+                    b.call(
+                        SqlStdOperatorTable.IS_TRUE,
                         b.call(
-                            SqlStdOperatorTable.IS_TRUE,
+                            SqlStdOperatorTable.AND,
                             b.call(
-                                SqlStdOperatorTable.AND,
-                                b.call(
-                                    SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
-                                    b.field("a"),
-                                    b.literal(30)),
-                                b.call(
-                                    SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
-                                    b.field("a"),
-                                    b.literal(50)))),
-                        "count_range_filter")));
-
-    assertEquals(
-        "[{\"count_range_filter\":{\"filter\":{\"range\":{\"a\":{\"from\":30.0,\"to\":50.0,"
-            + "\"include_lower\":true,\"include_upper\":true,\"boost\":1.0}}},"
-            + "\"aggregations\":{\"count_range_filter\":{\"value_count\":{\"field\":\"_index\"}}}}}]",
-        result.getLeft());
-
-    assertInstanceOf(NoBucketAggregationParser.class, result.getRight());
-    assertEquals(
-        new MetricParserHelper(
-            List.of(
-                FilterParser.builder()
-                    .name("count_range_filter")
-                    .metricsParser(new SingleValueParser("count_range_filter"))
-                    .build())),
-        ((NoBucketAggregationParser) result.getRight()).getMetricsParser());
+                                SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
+                                b.field("a"),
+                                b.literal(30)),
+                            b.call(
+                                SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
+                                b.field("a"),
+                                b.literal(50)))),
+                    "filter_count_range"))
+        .expectDslQuery(
+            "[{\"filter_count_range\":{\"filter\":{\"range\":{\"a\":{\"from\":30.0,\"to\":50.0,"
+                + "\"include_lower\":true,\"include_upper\":true,\"boost\":1.0}}},"
+                + "\"aggregations\":{\"filter_count_range\":{\"value_count\":{\"field\":\"_index\"}}}}}]")
+        .expectResponseParser(
+            new MetricParserHelper(
+                List.of(
+                    FilterParser.builder()
+                        .name("filter_count_range")
+                        .metricsParser(new SingleValueParser("filter_count_range"))
+                        .build())))
+        .verify();
   }
 
   private Aggregate createMockAggregate(List<AggregateCall> calls, ImmutableBitSet groups) {
@@ -513,31 +499,76 @@ class AggregateAnalyzerTest {
     return project;
   }
 
-  private Pair<String, OpenSearchAggregationResponseParser> analyzeAggregate(
-      List<String> outputFields, java.util.function.UnaryOperator<RelBuilder> planBuilder)
-      throws AggregateAnalyzer.ExpressionNotAnalyzableException {
-    // Create RelBuilder with test schema
-    String tableName = "test";
-    SchemaPlus root = Frameworks.createRootSchema(true);
-    root.add(
-        tableName,
-        new AbstractTable() {
-          @Override
-          public RelDataType getRowType(RelDataTypeFactory tf) {
-            return rowType;
-          }
-        });
-    RelBuilder b = RelBuilder.create(Frameworks.newConfigBuilder().defaultSchema(root).build());
+  private AggregationTestBuilder buildAggregation(String... outputFields) {
+    return new AggregationTestBuilder(List.of(outputFields));
+  }
 
-    // Create test RelNode plan
-    RelNode rel = planBuilder.apply(b.scan(tableName)).build();
+  /** Fluent API builder for creating aggregate filter tests */
+  private class AggregationTestBuilder {
+    private final List<String> outputFields;
+    private final List<RelBuilder.AggCall> aggCalls = new ArrayList<>();
+    private final RelBuilder relBuilder;
+    private String expectedDsl;
+    private MetricParserHelper expectedParser;
 
-    // Run analyzer
-    Aggregate agg = (Aggregate) rel;
-    Project project = (Project) agg.getInput(0);
-    Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
-        AggregateAnalyzer.analyze(
-            agg, project, rowType, fieldTypes, outputFields, agg.getCluster());
-    return Pair.of(result.getLeft().toString(), result.getRight());
+    AggregationTestBuilder(List<String> outputFields) {
+      this.outputFields = new ArrayList<>(outputFields);
+      this.relBuilder = createRelBuilder();
+    }
+
+    private RelBuilder createRelBuilder() {
+      String tableName = "test";
+      SchemaPlus root = Frameworks.createRootSchema(true);
+      root.add(
+          tableName,
+          new AbstractTable() {
+            @Override
+            public RelDataType getRowType(RelDataTypeFactory tf) {
+              return rowType;
+            }
+          });
+      return RelBuilder.create(Frameworks.newConfigBuilder().defaultSchema(root).build())
+          .scan(tableName);
+    }
+
+    AggregationTestBuilder withAggCall(Function<RelBuilder, RelBuilder.AggCall> aggCallBuilder) {
+      aggCalls.add(aggCallBuilder.apply(relBuilder));
+      return this;
+    }
+
+    AggregationTestBuilder expectDslQuery(String expectedDsl) {
+      this.expectedDsl = expectedDsl;
+      return this;
+    }
+
+    AggregationTestBuilder expectResponseParser(MetricParserHelper expectedParser) {
+      this.expectedParser = expectedParser;
+      return this;
+    }
+
+    void verify() throws ExpressionNotAnalyzableException {
+      // Create test RelNode plan
+      RelNode rel =
+          relBuilder
+              .aggregate(relBuilder.groupKey(), aggCalls.toArray(new RelBuilder.AggCall[0]))
+              .build();
+
+      // Run analyzer
+      Aggregate agg = (Aggregate) rel;
+      Project project = (Project) agg.getInput(0);
+      Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
+          AggregateAnalyzer.analyze(
+              agg, project, rowType, fieldTypes, outputFields, agg.getCluster());
+
+      if (expectedDsl != null) {
+        assertEquals(expectedDsl, result.getLeft().toString());
+      }
+
+      if (expectedParser != null) {
+        assertInstanceOf(NoBucketAggregationParser.class, result.getRight());
+        assertEquals(
+            expectedParser, ((NoBucketAggregationParser) result.getRight()).getMetricsParser());
+      }
+    }
   }
 }
