@@ -780,8 +780,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   @Override
   public LogicalPlan visitAppend(Append node, AnalysisContext context) {
-    throw new UnsupportedOperationException(
-        "Append is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+    throw getOnlyForCalciteException("Append");
   }
 
   private LogicalSort buildSort(
