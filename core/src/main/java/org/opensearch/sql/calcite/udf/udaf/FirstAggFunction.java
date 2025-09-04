@@ -7,7 +7,10 @@ package org.opensearch.sql.calcite.udf.udaf;
 
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 
-/** FIRST aggregation function - returns the first non-null value in document order. */
+/**
+ * FIRST aggregation function - returns the first value in natural document order. Returns NULL if
+ * no records exist, or if the field is NULL in the first record of the bucket.
+ */
 public class FirstAggFunction implements UserDefinedAggFunction<FirstAggFunction.FirstAccumulator> {
 
   @Override
@@ -23,7 +26,9 @@ public class FirstAggFunction implements UserDefinedAggFunction<FirstAggFunction
   @Override
   public FirstAccumulator add(FirstAccumulator acc, Object... values) {
     Object candidateValue = values[0];
-    if (candidateValue != null && !acc.hasValue()) {
+    // Accept the first value encountered, including NULL values
+    // This ensures we return NULL if the first record has a NULL field value
+    if (!acc.hasValue()) {
       acc.setValue(candidateValue);
     }
     return acc;

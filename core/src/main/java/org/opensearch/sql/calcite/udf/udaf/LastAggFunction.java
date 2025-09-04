@@ -7,7 +7,10 @@ package org.opensearch.sql.calcite.udf.udaf;
 
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 
-/** LAST aggregation function - returns the last non-null value in document order. */
+/**
+ * LAST aggregation function - returns the last value in natural document order. Returns NULL if no
+ * records exist, or if the field is NULL in the last record of the bucket.
+ */
 public class LastAggFunction implements UserDefinedAggFunction<LastAggFunction.LastAccumulator> {
 
   @Override
@@ -23,9 +26,9 @@ public class LastAggFunction implements UserDefinedAggFunction<LastAggFunction.L
   @Override
   public LastAccumulator add(LastAccumulator acc, Object... values) {
     Object candidateValue = values[0];
-    if (candidateValue != null) {
-      acc.setValue(candidateValue);
-    }
+    // Always update with the latest value, including NULL values
+    // This ensures we return NULL if the last record has a NULL field value
+    acc.setValue(candidateValue);
     return acc;
   }
 

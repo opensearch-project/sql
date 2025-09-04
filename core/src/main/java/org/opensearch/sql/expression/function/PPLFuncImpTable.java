@@ -1138,7 +1138,7 @@ public class PPLFuncImpTable {
           wrapSqlOperandTypeChecker(
               SqlStdOperatorTable.ARG_MAX.getOperandTypeChecker(), LATEST.name(), false));
 
-      // Register FIRST function - uses document order (no time field)
+      // Register FIRST function - uses document order
       register(
           FIRST,
           (distinct, field, argList, ctx) -> {
@@ -1148,7 +1148,7 @@ public class PPLFuncImpTable {
           wrapSqlOperandTypeChecker(
               PPLBuiltinOperators.FIRST.getOperandTypeChecker(), FIRST.name(), false));
 
-      // Register LAST function - uses document order (no time field)
+      // Register LAST function - uses document order
       register(
           LAST,
           (distinct, field, argList, ctx) -> {
