@@ -375,6 +375,123 @@ class AggregateAnalyzerTest {
         ((NoBucketAggregationParser) result.getRight()).getMetricsParser());
   }
 
+  @Test
+  void analyze_multipleAggCallsWithFilters() throws ExpressionNotAnalyzableException {
+    Pair<String, OpenSearchAggregationResponseParser> result =
+        analyzeAggregate(
+            List.of("avg_filtered", "sum_filtered", "min_filtered", "max_filtered"),
+            b ->
+                b.aggregate(
+                    b.groupKey(),
+                    b.aggregateCall(
+                        SqlStdOperatorTable.AVG,
+                        false,
+                        b.call(
+                            SqlStdOperatorTable.IS_TRUE,
+                            b.call(SqlStdOperatorTable.EQUALS, b.field("a"), b.literal(10))),
+                        "avg_filtered",
+                        b.field("a")),
+                    b.aggregateCall(
+                        SqlStdOperatorTable.SUM,
+                        false,
+                        b.call(
+                            SqlStdOperatorTable.IS_TRUE,
+                            b.call(SqlStdOperatorTable.EQUALS, b.field("a"), b.literal(20))),
+                        "sum_filtered",
+                        b.field("a")),
+                    b.aggregateCall(
+                        SqlStdOperatorTable.MIN,
+                        false,
+                        b.call(
+                            SqlStdOperatorTable.IS_TRUE,
+                            b.call(SqlStdOperatorTable.EQUALS, b.field("b"), b.literal("test1"))),
+                        "min_filtered",
+                        b.field("a")),
+                    b.aggregateCall(
+                        SqlStdOperatorTable.MAX,
+                        false,
+                        b.call(
+                            SqlStdOperatorTable.IS_TRUE,
+                            b.call(SqlStdOperatorTable.EQUALS, b.field("b"), b.literal("test2"))),
+                        "max_filtered",
+                        b.field("a"))));
+
+    assertEquals(
+        "[{\"avg_filtered\":{\"filter\":{\"term\":{\"a\":{\"value\":10,\"boost\":1.0}}},"
+            + "\"aggregations\":{\"avg_filtered\":{\"avg\":{\"field\":\"a\"}}}}},"
+            + " {\"sum_filtered\":{\"filter\":{\"term\":{\"a\":{\"value\":20,\"boost\":1.0}}},"
+            + "\"aggregations\":{\"sum_filtered\":{\"sum\":{\"field\":\"a\"}}}}},"
+            + " {\"min_filtered\":{\"filter\":{\"term\":{\"b.keyword\":{\"value\":\"test1\",\"boost\":1.0}}},"
+            + "\"aggregations\":{\"min_filtered\":{\"min\":{\"field\":\"a\"}}}}},"
+            + " {\"max_filtered\":{\"filter\":{\"term\":{\"b.keyword\":{\"value\":\"test2\",\"boost\":1.0}}},"
+            + "\"aggregations\":{\"max_filtered\":{\"max\":{\"field\":\"a\"}}}}}]",
+        result.getLeft());
+
+    assertInstanceOf(NoBucketAggregationParser.class, result.getRight());
+    assertEquals(
+        new MetricParserHelper(
+            List.of(
+                FilterParser.builder()
+                    .name("avg_filtered")
+                    .metricsParser(new SingleValueParser("avg_filtered"))
+                    .build(),
+                FilterParser.builder()
+                    .name("sum_filtered")
+                    .metricsParser(new SingleValueParser("sum_filtered"))
+                    .build(),
+                FilterParser.builder()
+                    .name("min_filtered")
+                    .metricsParser(new SingleValueParser("min_filtered"))
+                    .build(),
+                FilterParser.builder()
+                    .name("max_filtered")
+                    .metricsParser(new SingleValueParser("max_filtered"))
+                    .build())),
+        ((NoBucketAggregationParser) result.getRight()).getMetricsParser());
+  }
+
+  @Test
+  void analyze_aggCallWithComplexFilter() throws ExpressionNotAnalyzableException {
+    Pair<String, OpenSearchAggregationResponseParser> result =
+        analyzeAggregate(
+            List.of("count_range_filter"),
+            b ->
+                b.aggregate(
+                    b.groupKey(),
+                    b.aggregateCall(
+                        SqlStdOperatorTable.COUNT,
+                        false,
+                        b.call(
+                            SqlStdOperatorTable.IS_TRUE,
+                            b.call(
+                                SqlStdOperatorTable.AND,
+                                b.call(
+                                    SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
+                                    b.field("a"),
+                                    b.literal(30)),
+                                b.call(
+                                    SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
+                                    b.field("a"),
+                                    b.literal(50)))),
+                        "count_range_filter")));
+
+    assertEquals(
+        "[{\"count_range_filter\":{\"filter\":{\"range\":{\"a\":{\"from\":30.0,\"to\":50.0,"
+            + "\"include_lower\":true,\"include_upper\":true,\"boost\":1.0}}},"
+            + "\"aggregations\":{\"count_range_filter\":{\"value_count\":{\"field\":\"_index\"}}}}}]",
+        result.getLeft());
+
+    assertInstanceOf(NoBucketAggregationParser.class, result.getRight());
+    assertEquals(
+        new MetricParserHelper(
+            List.of(
+                FilterParser.builder()
+                    .name("count_range_filter")
+                    .metricsParser(new SingleValueParser("count_range_filter"))
+                    .build())),
+        ((NoBucketAggregationParser) result.getRight()).getMetricsParser());
+  }
+
   private Aggregate createMockAggregate(List<AggregateCall> calls, ImmutableBitSet groups) {
     Aggregate agg = mock(Aggregate.class);
     when(agg.getGroupSet()).thenReturn(groups);
