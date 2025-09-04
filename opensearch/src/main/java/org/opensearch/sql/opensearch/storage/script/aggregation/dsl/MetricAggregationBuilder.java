@@ -167,6 +167,24 @@ public class MetricAggregationBuilder
             condition,
             name,
             new SinglePercentileParser(name));
+      case "first":
+        TopHitsAggregationBuilder firstBuilder = AggregationBuilders.topHits(name).size(1).from(0);
+        if (expression instanceof ReferenceExpression) {
+          String fieldName = ((ReferenceExpression) expression).getAttr();
+          firstBuilder.fetchSource(fieldName, null);
+        }
+        return makeTopHits(firstBuilder, condition, name, new FirstLastParser(name));
+      case "last":
+        TopHitsAggregationBuilder lastBuilder =
+            AggregationBuilders.topHits(name)
+                .size(1)
+                .from(0)
+                .sort("_doc", org.opensearch.search.sort.SortOrder.DESC);
+        if (expression instanceof ReferenceExpression) {
+          String fieldName = ((ReferenceExpression) expression).getAttr();
+          lastBuilder.fetchSource(fieldName, null);
+        }
+        return makeTopHits(lastBuilder, condition, name, new FirstLastParser(name));
       default:
         throw new IllegalStateException(
             String.format("unsupported aggregator %s", node.getFunctionName().getFunctionName()));
@@ -246,6 +264,17 @@ public class MetricAggregationBuilder
           FilterParser.builder().name(name).metricsParser(parser).build());
     }
     return Pair.of(aggregationBuilder, parser);
+  }
+
+  /** Helper method to create TopHits aggregation with filter if needed. */
+  private Pair<AggregationBuilder, MetricParser> makeTopHits(
+      TopHitsAggregationBuilder builder, Expression condition, String name, MetricParser parser) {
+    if (condition != null) {
+      return Pair.of(
+          makeFilterAggregation(builder, condition, name),
+          FilterParser.builder().name(name).metricsParser(parser).build());
+    }
+    return Pair.of(builder, parser);
   }
 
   /**
