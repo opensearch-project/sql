@@ -463,6 +463,77 @@ Example with custom time field::
     | inactive                   | users    |
     +----------------------------+----------+
 
+FIRST
+-----
+
+Description
+>>>>>>>>>>>
+
+Version: 3.3.0
+
+Usage: FIRST(field). Return the first non-null value of a field based on natural document order.
+
+* field: mandatory. The field to return the first value for.
+
+Note: This function requires Calcite to be enabled (see `Configuration`_ section above).
+
+Example::
+
+    os> source=accounts | stats first(firstname) by gender;
+    fetched rows / total rows = 2/2
+    +-------------------+--------+
+    | first(firstname)  | gender |
+    |-------------------+--------|
+    | Amber JOHnny      | M      |
+    | Nanette           | F      |
+    +-------------------+--------+
+
+Example with multiple aggregations::
+
+    os> source=accounts | stats first(firstname), last(firstname), count() by gender;
+    fetched rows / total rows = 2/2
+    +-------------------+------------------+---------+--------+
+    | first(firstname)  | last(firstname)  | count() | gender |
+    |-------------------+------------------+---------+--------|
+    | Amber JOHnny      | Elinor           | 4       | M      |
+    | Nanette           | Dillard          | 3       | F      |
+    +-------------------+------------------+---------+--------+
+
+LAST
+----
+
+Description
+>>>>>>>>>>>
+
+Version: 3.3.0
+
+Usage: LAST(field). Return the last non-null value of a field based on natural document order.
+
+* field: mandatory. The field to return the last value for.
+
+Note: This function requires Calcite to be enabled (see `Configuration`_ section above).
+
+Example::
+
+    os> source=accounts | stats last(firstname) by gender;
+    fetched rows / total rows = 2/2
+    +------------------+--------+
+    | last(firstname)  | gender |
+    |------------------+--------|
+    | Elinor           | M      |
+    | Dillard          | F      |
+    +------------------+--------+
+
+Example with different fields::
+
+    os> source=accounts | stats first(account_number), last(balance), first(age);
+    fetched rows / total rows = 1/1
+    +---------------------+--------------+-------------+
+    | first(account_number) | last(balance) | first(age) |
+    |---------------------+---------------+-------------|
+    | 1                   | 48086         | 32          |
+    +---------------------+--------------+-------------+
+
 LIST
 ----
 

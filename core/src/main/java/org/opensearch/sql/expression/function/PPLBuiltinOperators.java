@@ -29,6 +29,8 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
+import org.opensearch.sql.calcite.udf.udaf.FirstAggFunction;
+import org.opensearch.sql.calcite.udf.udaf.LastAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.ListAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.LogPatternAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.NullableSqlAvgAggFunction;
@@ -423,6 +425,12 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
           "TAKE",
           PPLReturnTypes.ARG0_ARRAY,
           PPLOperandTypes.ANY_OPTIONAL_INTEGER);
+  public static final SqlAggFunction FIRST =
+      createUserDefinedAggFunction(
+          FirstAggFunction.class, "FIRST", ReturnTypes.ARG0, PPLOperandTypes.ANY_OPTIONAL_INTEGER);
+  public static final SqlAggFunction LAST =
+      createUserDefinedAggFunction(
+          LastAggFunction.class, "LAST", ReturnTypes.ARG0, PPLOperandTypes.ANY_OPTIONAL_INTEGER);
   public static final SqlAggFunction PERCENTILE_APPROX =
       createUserDefinedAggFunction(
           PercentileApproxFunction.class,

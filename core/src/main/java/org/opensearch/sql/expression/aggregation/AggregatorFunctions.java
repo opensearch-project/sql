@@ -58,6 +58,8 @@ public class AggregatorFunctions {
     repository.register(stddevPop());
     repository.register(take());
     repository.register(percentileApprox());
+    repository.register(first());
+    repository.register(last());
   }
 
   private static DefaultFunctionResolver avg() {
@@ -277,5 +279,37 @@ public class AggregatorFunctions {
                         PercentileApproximateAggregator.percentileApprox(arguments, DOUBLE))
                 .build());
     return functionResolver;
+  }
+
+  private static DefaultFunctionResolver first() {
+    FunctionName functionName = BuiltinFunctionName.FIRST.getName();
+    DefaultFunctionResolver.DefaultFunctionResolverBuilder builder =
+        DefaultFunctionResolver.builder();
+    builder.functionName(functionName);
+
+    // Support all core data types like COUNT does
+    ExprCoreType.coreTypes()
+        .forEach(
+            type ->
+                builder.functionBundle(
+                    new FunctionSignature(functionName, Collections.singletonList(type)),
+                    (functionProperties, arguments) -> new FirstAggregator(arguments, type)));
+    return builder.build();
+  }
+
+  private static DefaultFunctionResolver last() {
+    FunctionName functionName = BuiltinFunctionName.LAST.getName();
+    DefaultFunctionResolver.DefaultFunctionResolverBuilder builder =
+        DefaultFunctionResolver.builder();
+    builder.functionName(functionName);
+
+    // Support all core data types like COUNT does
+    ExprCoreType.coreTypes()
+        .forEach(
+            type ->
+                builder.functionBundle(
+                    new FunctionSignature(functionName, Collections.singletonList(type)),
+                    (functionProperties, arguments) -> new LastAggregator(arguments, type)));
+    return builder.build();
   }
 }
