@@ -544,7 +544,6 @@ LIST
 Description
 >>>>>>>>>>>
 
-=======
 Version: 3.3.0 (Calcite engine only)
 
 Usage: LIST(expr). Collects all values from the specified expression into an array. Values are converted to strings, nulls are filtered, and duplicates are preserved. 
