@@ -15,6 +15,7 @@ import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 import org.opensearch.common.collect.MapBuilder;
+import org.opensearch.sql.opensearch.monitor.GCedMemoryUsage;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 @FixMethodOrder(MethodSorters.JVM)
@@ -55,12 +56,15 @@ public class PPLClickBenchIT extends PPLIntegTestCase {
     System.out.println();
   }
 
-  /**
-   * Ignore queries that are not supported by Calcite. Ignore q30 because of too much script push
-   * down, which will cause ResourceMonitor restriction.
-   */
+  /** Ignore queries that are not supported by Calcite. */
   protected Set<Integer> ignored() {
-    return Set.of(29);
+    if (GCedMemoryUsage.initialized()) {
+      return Set.of(29);
+    } else {
+      // Ignore q30 when use RuntimeMemoryUsage,
+      // because of too much script push down, which will cause ResourceMonitor restriction.
+      return Set.of(29);
+    }
   }
 
   @Test

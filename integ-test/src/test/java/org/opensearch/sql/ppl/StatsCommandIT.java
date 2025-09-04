@@ -45,6 +45,28 @@ public class StatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testStatsSumWithEnhancement() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats sum(balance), sum(balance + 100), sum(balance - 100),"
+                    + " sum(balance * 100), sum(balance / 100) by gender",
+                TEST_INDEX_ACCOUNT));
+    verifySchema(
+        response,
+        schema("sum(balance)", null, "bigint"),
+        schema("sum(balance + 100)", null, "bigint"),
+        schema("sum(balance - 100)", null, "bigint"),
+        schema("sum(balance * 100)", null, "bigint"),
+        schema("sum(balance / 100)", null, "bigint"),
+        schema("gender", null, "string"));
+    verifyDataRows(
+        response,
+        rows(12632310, 12681610, 12583010, 1263231000, 126080, "F"),
+        rows(13082527, 13133227, 13031827, 1308252700, 130570, "M"));
+  }
+
+  @Test
   public void testStatsCount() throws IOException {
     JSONObject response =
         executeQuery(String.format("source=%s | stats count(account_number)", TEST_INDEX_ACCOUNT));
@@ -66,6 +88,42 @@ public class StatsCommandIT extends PPLIntegTestCase {
       verifySchema(response, schema("count()", null, "int"));
     }
     verifyDataRows(response, rows(1000));
+
+    response = executeQuery(String.format("source=%s | stats c()", TEST_INDEX_ACCOUNT));
+    if (isCalciteEnabled()) {
+      verifySchema(response, schema("c()", null, "bigint"));
+    } else {
+      verifySchema(response, schema("c()", null, "int"));
+    }
+    verifyDataRows(response, rows(1000));
+
+    response = executeQuery(String.format("source=%s | stats count", TEST_INDEX_ACCOUNT));
+    if (isCalciteEnabled()) {
+      verifySchema(response, schema("count", null, "bigint"));
+    } else {
+      verifySchema(response, schema("count", null, "int"));
+    }
+    verifyDataRows(response, rows(1000));
+
+    response = executeQuery(String.format("source=%s | stats c", TEST_INDEX_ACCOUNT));
+    if (isCalciteEnabled()) {
+      verifySchema(response, schema("c", null, "bigint"));
+    } else {
+      verifySchema(response, schema("c", null, "int"));
+    }
+    verifyDataRows(response, rows(1000));
+  }
+
+  @Test
+  public void testStatsCBy() throws IOException {
+    JSONObject response =
+        executeQuery(String.format("source=%s | stats c by gender", TEST_INDEX_ACCOUNT));
+    if (isCalciteEnabled()) {
+      verifySchema(response, schema("c", null, "bigint"), schema("gender", null, "string"));
+    } else {
+      verifySchema(response, schema("c", null, "int"), schema("gender", null, "string"));
+    }
+    verifyDataRows(response, rows(493, "F"), rows(507, "M"));
   }
 
   @Test

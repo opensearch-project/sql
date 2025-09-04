@@ -89,6 +89,62 @@ public class WhereCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testLikeFunctionNoHit() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where like(firstname, 'Duk_') | fields lastname",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    assertEquals(0, result.getInt("total"));
+  }
+
+  @Test
+  public void testLikeOperator() throws IOException {
+    // Test LIKE operator syntax
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | fields firstname | where firstname LIKE 'Ambe_' | fields firstname",
+                TEST_INDEX_ACCOUNT));
+    verifyDataRows(result, rows("Amber"));
+
+    // Test with wildcard %
+    result =
+        executeQuery(
+            String.format(
+                "source=%s | where firstname LIKE 'A%%' | fields firstname", TEST_INDEX_ACCOUNT));
+    assertTrue(result.getInt("total") > 0);
+  }
+
+  @Test
+  public void testLikeOperatorCaseInsensitive() throws IOException {
+    // Test LIKE operator with different cases - all should work the same
+
+    // Uppercase LIKE
+    JSONObject result1 =
+        executeQuery(
+            String.format(
+                "source=%s | where firstname LIKE 'Ambe_' | fields firstname", TEST_INDEX_ACCOUNT));
+
+    // Lowercase like
+    JSONObject result2 =
+        executeQuery(
+            String.format(
+                "source=%s | where firstname like 'Ambe_' | fields firstname", TEST_INDEX_ACCOUNT));
+
+    // Mixed case Like
+    JSONObject result3 =
+        executeQuery(
+            String.format(
+                "source=%s | where firstname Like 'Ambe_' | fields firstname", TEST_INDEX_ACCOUNT));
+
+    // All should return the same result
+    verifyDataRows(result1, rows("Amber"));
+    verifyDataRows(result2, rows("Amber"));
+    verifyDataRows(result3, rows("Amber"));
+  }
+
+  @Test
   public void testIsNullFunction() throws IOException {
     JSONObject result =
         executeQuery(
@@ -254,5 +310,203 @@ public class WhereCommandIT extends PPLIntegTestCase {
                 TEST_INDEX_ACCOUNT));
     verifySchema(actual, schema("firstname", "string"));
     verifyDataRows(actual, rows("Amalia"), rows("Amanda"));
+  }
+
+  // ===================== DOUBLE EQUAL (==) OPERATOR TESTS =====================
+
+  @Test
+  public void testDoubleEqualOperatorBasic() throws IOException {
+    // Test == operator works same as = operator
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where age == 32 | fields firstname, age | head 3",
+                TEST_INDEX_ACCOUNT));
+    verifySchema(result, schema("firstname", "string"), schema("age", "bigint"));
+    assertEquals(3, result.getJSONArray("datarows").length());
+    // Verify all returned records have age 32
+    for (int i = 0; i < 3; i++) {
+      assertEquals(32, result.getJSONArray("datarows").getJSONArray(i).getLong(1));
+    }
+  }
+
+  @Test
+  public void testDoubleEqualWithStringComparison() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where firstname == 'Amber' | fields firstname, lastname",
+                TEST_INDEX_ACCOUNT));
+    verifyDataRows(result, rows("Amber", "Duke"));
+  }
+
+  @Test
+  public void testDoubleEqualProducesSameResultsAsSingleEqual() throws IOException {
+    // Verify = and == produce identical results
+    JSONObject resultSingleEqual =
+        executeQuery(
+            String.format(
+                "source=%s | where age = 32 AND gender = 'M' | stats count() as total",
+                TEST_INDEX_ACCOUNT));
+
+    JSONObject resultDoubleEqual =
+        executeQuery(
+            String.format(
+                "source=%s | where age == 32 AND gender == 'M' | stats count() as total",
+                TEST_INDEX_ACCOUNT));
+
+    // Both queries should return the same count
+    assertEquals(
+        resultSingleEqual.getJSONArray("datarows").getJSONArray(0).getLong(0),
+        resultDoubleEqual.getJSONArray("datarows").getJSONArray(0).getLong(0));
+  }
+
+  @Test
+  public void testMixedEqualOperators() throws IOException {
+    // Test mixing = and == in the same query
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where age = 32 AND state == 'TN' | fields firstname, age, state",
+                TEST_INDEX_ACCOUNT));
+    verifySchema(
+        result, schema("firstname", "string"), schema("age", "bigint"), schema("state", "string"));
+    verifyDataRows(result, rows("Norma", 32, "TN"));
+
+    // Test with operators reversed
+    JSONObject result2 =
+        executeQuery(
+            String.format(
+                "source=%s | where age == 32 AND state = 'TN' | fields firstname, age, state",
+                TEST_INDEX_ACCOUNT));
+    assertEquals(
+        result.getJSONArray("datarows").toString(), result2.getJSONArray("datarows").toString());
+  }
+
+  @Test
+  public void testDoubleEqualWithMultipleConditions() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where age == 32 AND gender == 'M' | fields firstname, age, gender |"
+                    + " head 3",
+                TEST_INDEX_ACCOUNT));
+    verifySchema(
+        result, schema("firstname", "string"), schema("age", "bigint"), schema("gender", "string"));
+    // Verify all returned records match the conditions
+    for (int i = 0; i < result.getJSONArray("datarows").length(); i++) {
+      assertEquals(32, result.getJSONArray("datarows").getJSONArray(i).getLong(1));
+      assertEquals("M", result.getJSONArray("datarows").getJSONArray(i).getString(2));
+    }
+  }
+
+  @Test
+  public void testDoubleEqualWithOrCondition() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where age == 28 OR age == 32 | stats count() as total",
+                TEST_INDEX_ACCOUNT));
+    // Should count accounts with age 28 or 32
+    assertTrue(result.getJSONArray("datarows").getJSONArray(0).getLong(0) > 0);
+  }
+
+  @Test
+  public void testDoubleEqualInEvalCommand() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval is_thirty_two = (age == 32) | where is_thirty_two == true |"
+                    + " fields firstname, age, is_thirty_two | head 2",
+                TEST_INDEX_ACCOUNT));
+    verifySchema(
+        result,
+        schema("firstname", "string"),
+        schema("age", "bigint"),
+        schema("is_thirty_two", "boolean"));
+    // All results should have age 32 and is_thirty_two = true
+    for (int i = 0; i < result.getJSONArray("datarows").length(); i++) {
+      assertEquals(32, result.getJSONArray("datarows").getJSONArray(i).getLong(1));
+      assertTrue(result.getJSONArray("datarows").getJSONArray(i).getBoolean(2));
+    }
+  }
+
+  @Test
+  public void testDoubleEqualWithComplexExpression() throws IOException {
+    // Test == in complex expression with parentheses
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where (age == 32 OR age == 28) AND (state == 'ID' OR state == 'WY') |"
+                    + " fields firstname, age, state",
+                TEST_INDEX_ACCOUNT));
+    verifySchema(
+        result, schema("firstname", "string"), schema("age", "bigint"), schema("state", "string"));
+    // Verify all results match the complex condition
+    for (int i = 0; i < result.getJSONArray("datarows").length(); i++) {
+      long age = result.getJSONArray("datarows").getJSONArray(i).getLong(1);
+      String state = result.getJSONArray("datarows").getJSONArray(i).getString(2);
+      assertTrue((age == 32 || age == 28) && (state.equals("ID") || state.equals("WY")));
+    }
+  }
+
+  @Test
+  public void testDoubleEqualChainedWhereCommands() throws IOException {
+    // Test multiple where commands with ==
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where age == 32 | where gender == 'M' | where state == 'TN' | fields"
+                    + " firstname, age, gender, state",
+                TEST_INDEX_ACCOUNT));
+    verifyDataRows(result, rows("Norma", 32, "M", "TN"));
+  }
+
+  @Test
+  public void testDoubleEqualCaseSensitiveStringComparison() throws IOException {
+    // Test case sensitivity in string comparison
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where firstname == 'amber' | fields firstname", TEST_INDEX_ACCOUNT));
+    // Should return no results as 'amber' != 'Amber' (case sensitive)
+    assertEquals(0, result.getJSONArray("datarows").length());
+
+    // Correct case should work
+    JSONObject result2 =
+        executeQuery(
+            String.format(
+                "source=%s | where firstname == 'Amber' | fields firstname", TEST_INDEX_ACCOUNT));
+    verifyDataRows(result2, rows("Amber"));
+  }
+
+  @Test
+  public void testDoubleEqualWithSpecialCharacters() throws IOException {
+    // Test == with strings containing special characters
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where email == 'amberduke@pyrami.com' | fields firstname, email",
+                TEST_INDEX_ACCOUNT));
+    verifyDataRows(result, rows("Amber", "amberduke@pyrami.com"));
+  }
+
+  @Test
+  public void testDoubleEqualWithoutSpaces() throws IOException {
+    // Test that == works without spaces
+    JSONObject result1 =
+        executeQuery(
+            String.format(
+                "source=%s | where age==32 | stats count() as total", TEST_INDEX_ACCOUNT));
+
+    JSONObject result2 =
+        executeQuery(
+            String.format(
+                "source=%s | where age == 32 | stats count() as total", TEST_INDEX_ACCOUNT));
+
+    // Both should return same count
+    assertEquals(
+        result1.getJSONArray("datarows").getJSONArray(0).getLong(0),
+        result2.getJSONArray("datarows").getJSONArray(0).getLong(0));
   }
 }

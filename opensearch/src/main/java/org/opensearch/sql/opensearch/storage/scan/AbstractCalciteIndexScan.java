@@ -7,6 +7,7 @@ package org.opensearch.sql.opensearch.storage.scan;
 
 import static java.util.Objects.requireNonNull;
 import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR;
+import static org.opensearch.sql.opensearch.request.AggregateAnalyzer.AGGREGATION_BUCKET_SIZE;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -27,6 +28,8 @@ import org.apache.calcite.rel.RelFieldCollation.Direction;
 import org.apache.calcite.rel.RelFieldCollation.NullDirection;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
@@ -44,6 +47,7 @@ import org.opensearch.search.aggregations.AggregatorFactories.Builder;
 import org.opensearch.search.aggregations.bucket.composite.CompositeAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.composite.CompositeValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
+import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
 import org.opensearch.search.sort.ScoreSortBuilder;
 import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.search.sort.SortBuilders;
@@ -119,8 +123,11 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
             osIndex.getMaxResultWindow().doubleValue(),
             (rowCount, action) ->
                 switch (action.type) {
-                      case AGGREGATION -> mq.getRowCount((RelNode) action.digest);
+                      case AGGREGATION -> mq.getRowCount((RelNode) action.digest)
+                          * getAggMultiplier(action);
                       case PROJECT, SCRIPT_PROJECT, SORT -> rowCount;
+                        // Refer the org.apache.calcite.rel.core.Aggregate.estimateRowCount
+                      case COLLAPSE -> rowCount * (1.0 - Math.pow(.5, 1));
                       case FILTER -> NumberUtil.multiply(
                           rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest));
                       case SCRIPT -> NumberUtil.multiply(
@@ -130,6 +137,28 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                     }
                     * estimateRowCountFactor,
             (a, b) -> null);
+  }
+
+  /** See source in {@link org.apache.calcite.rel.core.Aggregate::computeSelfCost} */
+  private static float getAggMultiplier(PushDownAction action) {
+    // START CALCITE
+    List<AggregateCall> aggCalls = ((Aggregate) action.digest).getAggCallList();
+    float multiplier = 1f + (float) aggCalls.size() * 0.125f;
+    for (AggregateCall aggCall : aggCalls) {
+      if (aggCall.getAggregation().getName().equals("SUM")) {
+        // Pretend that SUM costs a little bit more than $SUM0,
+        // to make things deterministic.
+        multiplier += 0.0125f;
+      }
+    }
+    // END CALCITE
+
+    // For script aggregation, we need to multiply the multiplier by 2.2 to make up the cost. As we
+    // prefer to have non-script agg push down after optimized by {@link PPLAggregateConvertRule}
+    if (((AggPushDownAction) action.action).isScriptPushed) {
+      multiplier *= 2.2f;
+    }
+    return multiplier;
   }
 
   // TODO: should we consider equivalent among PushDownContexts with different push down sequence?
@@ -301,8 +330,6 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Cannot pushdown the sort {}", getCollationNames(collations), e);
-      } else {
-        LOG.info("Cannot pushdown the sort {}, ", getCollationNames(collations));
       }
     }
     return null;
@@ -315,7 +342,8 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     AGGREGATION,
     SORT,
     LIMIT,
-    SCRIPT
+    SCRIPT,
+    COLLAPSE
     // HIGHLIGHT,
     // NESTED
   }
@@ -349,12 +377,20 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
 
     private Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder;
     private final Map<String, OpenSearchDataType> extendedTypeMapping;
+    @Getter private final boolean isScriptPushed;
 
     public AggPushDownAction(
         Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder,
         Map<String, OpenSearchDataType> extendedTypeMapping) {
       this.aggregationBuilder = aggregationBuilder;
       this.extendedTypeMapping = extendedTypeMapping;
+      this.isScriptPushed =
+          aggregationBuilder.getLeft().stream().anyMatch(this::isScriptAggBuilder);
+    }
+
+    private boolean isScriptAggBuilder(AggregationBuilder aggBuilder) {
+      return aggBuilder instanceof ValuesSourceAggregationBuilder<?> valueSourceAgg
+          && valueSourceAgg.script() != null;
     }
 
     @Override
@@ -398,7 +434,8 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
           Pair.of(
               Collections.singletonList(
                   AggregationBuilders.composite("composite_buckets", newBuckets)
-                      .subAggregations(newAggBuilder)),
+                      .subAggregations(newAggBuilder)
+                      .size(AGGREGATION_BUCKET_SIZE)),
               aggregationBuilder.getRight());
     }
   }

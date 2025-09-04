@@ -306,6 +306,39 @@ public class PPLSyntaxParserTest {
   }
 
   @Test
+  public void testMultiFieldRelevanceFunctionsWithoutFields() {
+    // Test multi_match without fields parameter
+    assertNotEquals(
+        null, new PPLSyntaxParser().parse("SOURCE=test | WHERE multi_match('query text')"));
+
+    // Test multi_match without fields but with optional parameters
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE multi_match('query text', analyzer='keyword')"));
+
+    // Test simple_query_string without fields parameter
+    assertNotEquals(
+        null, new PPLSyntaxParser().parse("SOURCE=test | WHERE simple_query_string('query text')"));
+
+    // Test simple_query_string without fields but with optional parameters
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE simple_query_string('query text', flags='ALL')"));
+
+    // Test query_string without fields parameter
+    assertNotEquals(
+        null, new PPLSyntaxParser().parse("SOURCE=test | WHERE query_string('query text')"));
+
+    // Test query_string without fields but with optional parameters
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE query_string('query text', default_operator='AND')"));
+  }
+
+  @Test
   public void testDescribeCommandShouldPass() {
     ParseTree tree = new PPLSyntaxParser().parse("describe t");
     assertNotEquals(null, tree);
@@ -492,6 +525,20 @@ public class PPLSyntaxParserTest {
         null,
         new PPLSyntaxParser()
             .parse("SOURCE=test | WHERE (day_of_week_i < 2) OR (day_of_week_i > 5)"));
+  }
+
+  @Test
+  public void testWhereCommandWithDoubleEqual() {
+    // Test that == operator is supported in WHERE clause
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x == 1"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x == y"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE name == 'John'"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE (x == 1) AND (y == 2)"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x == 1 OR y == 2"));
+    // Test mixing = and == operators
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x == 1 AND y = 2"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x = 1 OR y == 2"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE (x < 1) == (y > 1)"));
     assertNotEquals(
         null,
         new PPLSyntaxParser()

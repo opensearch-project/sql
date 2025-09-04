@@ -6,10 +6,14 @@
 package org.opensearch.sql.ppl;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 
 import java.io.IOException;
+import java.util.Locale;
+import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
@@ -23,6 +27,7 @@ public class ExplainIT extends PPLIntegTestCase {
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK);
     loadIndex(Index.DATE_FORMATS);
+    loadIndex(Index.WEBLOG);
   }
 
   @Test
@@ -99,6 +104,47 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testFilterByCompareIPCoercion() throws IOException {
+    // Should automatically cast the string literal to IP and pushdown it as a range query
+    assertJsonEqualsIgnoreId(
+        loadExpectedPlan("explain_filter_compare_ip.json"),
+        explainQueryToString(
+            String.format(
+                Locale.ROOT,
+                "source=%s | where host > '1.1.1.1' | fields host",
+                TEST_INDEX_WEBLOGS)));
+  }
+
+  @Test
+  public void testFilterByCompareIpv6Swapped() throws IOException {
+    // Ignored in v2: the serialized string is unstable because of function properties
+    Assume.assumeTrue(isCalciteEnabled());
+    // Test swapping ip and string. In v2, this is pushed down as script;
+    // with Calcite, it will still be pushed down as a range query
+    assertJsonEqualsIgnoreId(
+        loadExpectedPlan("explain_filter_compare_ipv6_swapped.json"),
+        explainQueryToString(
+            String.format(
+                Locale.ROOT,
+                "source=%s | where '::ffff:1234' <= host | fields host",
+                TEST_INDEX_WEBLOGS)));
+  }
+
+  @Test
+  public void testWeekArgumentCoercion() throws IOException {
+    String expected = loadExpectedPlan("explain_week_argument_coercion.json");
+    // Week accepts WEEK(timestamp/date/time, [optional int]), it should cast the string
+    // argument to timestamp with Calcite. In v2, it accepts string, so there is no cast.
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                Locale.ROOT,
+                "source=%s |  eval w = week('2024-12-10') | fields w",
+                TEST_INDEX_ACCOUNT)));
+  }
+
+  @Test
   public void testFilterAndAggPushDownExplain() throws IOException {
     String expected = loadExpectedPlan("explain_filter_agg_push.json");
     assertJsonEqualsIgnoreId(
@@ -127,6 +173,33 @@ public class ExplainIT extends PPLIntegTestCase {
                 + "| sort age "
                 + "| where age > 30"
                 + "| fields age"));
+  }
+
+  @Test
+  public void testSortWithCountPushDownExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_sort_count_push.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString("source=opensearch-sql_test_index_account | sort 5 age | fields age"));
+  }
+
+  @Test
+  public void testSortWithDescPushDownExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_sort_desc_push.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | sort age, - firstname desc | fields age,"
+                + " firstname"));
+  }
+
+  @Test
+  public void testSortWithTypePushDownExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_sort_type_push.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | sort num(age) | fields age"));
   }
 
   @Test
@@ -407,6 +480,36 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testDedupPushdown() throws IOException {
+    String expected = loadExpectedPlan("explain_dedup_push.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | fields account_number, gender, age"
+                + " | dedup 1 gender"));
+  }
+
+  @Test
+  public void testDedupKeepEmptyTruePushdown() throws IOException {
+    String expected = loadExpectedPlan("explain_dedup_keepempty_true_push.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | fields account_number, gender, age"
+                + " | dedup gender KEEPEMPTY=true"));
+  }
+
+  @Test
+  public void testDedupKeepEmptyFalsePushdown() throws IOException {
+    String expected = loadExpectedPlan("explain_dedup_keepempty_false_push.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | fields account_number, gender, age"
+                + " | dedup gender KEEPEMPTY=false"));
+  }
+
+  @Test
   public void testSingleFieldRelevanceQueryFunctionExplain() throws IOException {
     // This test is only applicable if pushdown is enabled
     if (!isPushdownEnabled()) {
@@ -443,6 +546,24 @@ public class ExplainIT extends PPLIntegTestCase {
             "source=opensearch-sql_test_index_account"
                 + "| where simple_query_string(['email', name 4.0], 'gmail',"
                 + " default_operator='or', analyzer=english)"));
+  }
+
+  @Test
+  public void testKeywordLikeFunctionExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_keyword_like_function.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | where like(firstname, '%mbe%')"));
+  }
+
+  @Test
+  public void testTextLikeFunctionExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_text_like_function.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | where like(address, '%Holmes%')"));
   }
 
   @Ignore("The serialized string is unstable because of function properties")

@@ -9,6 +9,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -200,6 +201,9 @@ public enum BuiltinFunctionName {
   EARLIEST(FunctionName.of("earliest")),
   LATEST(FunctionName.of("latest")),
   DISTINCT_COUNT_APPROX(FunctionName.of("distinct_count_approx")),
+
+  // Multivalue aggregation function
+  LIST(FunctionName.of("list")),
   // Not always an aggregation query
   NESTED(FunctionName.of("nested")),
 
@@ -214,6 +218,7 @@ public enum BuiltinFunctionName {
   LTRIM(FunctionName.of("ltrim")),
   POSITION(FunctionName.of("position")),
   REGEXP(FunctionName.of("regexp")),
+  REGEX_MATCH(FunctionName.of("regex_match")),
   REPLACE(FunctionName.of("replace")),
   REVERSE(FunctionName.of("reverse")),
   RIGHT(FunctionName.of("right")),
@@ -342,9 +347,10 @@ public enum BuiltinFunctionName {
           .put("take", BuiltinFunctionName.TAKE)
           .put("percentile", BuiltinFunctionName.PERCENTILE_APPROX)
           .put("percentile_approx", BuiltinFunctionName.PERCENTILE_APPROX)
-          // .put("earliest", BuiltinFunctionName.EARLIEST)
-          // .put("latest", BuiltinFunctionName.LATEST)
+          .put("earliest", BuiltinFunctionName.EARLIEST)
+          .put("latest", BuiltinFunctionName.LATEST)
           .put("distinct_count_approx", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
+          .put("list", BuiltinFunctionName.LIST)
           .put("pattern", BuiltinFunctionName.INTERNAL_PATTERN)
           .build();
 
@@ -364,6 +370,9 @@ public enum BuiltinFunctionName {
           .put("stddev_samp", BuiltinFunctionName.STDDEV_SAMP)
           // .put("earliest", BuiltinFunctionName.EARLIEST)
           // .put("latest", BuiltinFunctionName.LATEST)
+          .put("distinct_count_approx", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
+          .put("dc", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
+          .put("distinct_count", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
           .put("pattern", BuiltinFunctionName.INTERNAL_PATTERN)
           .build();
 
@@ -380,4 +389,13 @@ public enum BuiltinFunctionName {
     return Optional.ofNullable(
         WINDOW_FUNC_MAPPING.getOrDefault(functionName.toLowerCase(Locale.ROOT), null));
   }
+
+  public static final Set<BuiltinFunctionName> COMPARATORS =
+      Set.of(
+          BuiltinFunctionName.EQUAL,
+          BuiltinFunctionName.NOTEQUAL,
+          BuiltinFunctionName.LESS,
+          BuiltinFunctionName.LTE,
+          BuiltinFunctionName.GREATER,
+          BuiltinFunctionName.GTE);
 }

@@ -8,12 +8,12 @@
   ],
   "ppl_cli": [
     "user/ppl/cmd/ad.rst",
+    "user/ppl/cmd/bin.rst",
     "user/ppl/cmd/dedup.rst",
     "user/ppl/cmd/describe.rst",
     "user/ppl/cmd/showdatasources.rst",
     "user/ppl/cmd/information_schema.rst",
     "user/ppl/cmd/eval.rst",
-    "user/ppl/cmd/fields.rst",
     "user/ppl/cmd/fillnull.rst",
     "user/ppl/cmd/grok.rst",
     "user/ppl/cmd/head.rst",
@@ -23,7 +23,6 @@
     "user/ppl/cmd/rename.rst",
     "user/ppl/cmd/search.rst",
     "user/ppl/cmd/sort.rst",
-    "user/ppl/cmd/stats.rst",
     "user/ppl/cmd/syntax.rst",
     "user/ppl/cmd/trendline.rst",
     "user/ppl/cmd/top.rst",
@@ -55,5 +54,12 @@
     "user/dql/aggregations.rst",
     "user/dql/complex.rst",
     "user/dql/metadata.rst"
+  ],
+  "ppl_cli_calcite": [
+    "user/ppl/cmd/stats.rst",
+    "user/ppl/cmd/fields.rst",
+    "user/ppl/cmd/regex.rst",
+    "user/ppl/cmd/stats.rst",
+    "user/ppl/cmd/timechart.rst"
   ]
 }

@@ -36,8 +36,12 @@ public class CalcitePlanContext {
   public final QueryType queryType;
   public final Integer querySizeLimit;
 
+  /** This thread local variable is only used to skip script encoding in script pushdown. */
+  public static final ThreadLocal<Boolean> skipEncoding = ThreadLocal.withInitial(() -> false);
+
   @Getter @Setter private boolean isResolvingJoinCondition = false;
   @Getter @Setter private boolean isResolvingSubquery = false;
+  @Getter @Setter private boolean inCoalesceFunction = false;
 
   /**
    * The flag used to determine whether we do metadata field projection for user 1. If a project is

@@ -40,6 +40,11 @@ configurations {
     compile {
         extendsFrom = extendsFrom.findAll { it != configurations.antlr }
     }
+    configureEach {
+        resolutionStrategy {
+            exclude group: 'commons-lang', module: 'commons-lang'
+        }
+    }
 }
 
 dependencies {
@@ -81,6 +86,7 @@ spotless {
 }
 
 test {
+    maxParallelForks = Runtime.runtime.availableProcessors()
     testLogging {
         events "passed", "skipped", "failed"
         exceptionFormat "full"

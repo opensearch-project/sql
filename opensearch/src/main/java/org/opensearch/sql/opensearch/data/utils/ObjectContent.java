@@ -105,6 +105,16 @@ public class ObjectContent implements Content {
   }
 
   @Override
+  public boolean isShort() {
+    return value instanceof Short;
+  }
+
+  @Override
+  public boolean isByte() {
+    return value instanceof Byte;
+  }
+
+  @Override
   public boolean isInt() {
     return value instanceof Integer;
   }

@@ -35,11 +35,7 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
     getRelNode(timePpl);
     Throwable t = Assert.assertThrows(Exception.class, () -> getRelNode(wrongPpl));
     verifyErrorMessageContains(
-        t,
-        "TIMEDIFF function expects"
-            + " {[STRING,STRING],[DATE,DATE],[DATE,TIME],[DATE,TIMESTAMP],[TIME,DATE],[TIME,TIME],[TIME,TIMESTAMP],"
-            + "[TIMESTAMP,DATE],[TIMESTAMP,TIME],[TIMESTAMP,TIMESTAMP],[DATE,STRING],[TIME,STRING],[TIMESTAMP,STRING],[STRING,DATE],[STRING,TIME],[STRING,TIMESTAMP]},"
-            + " but got [INTEGER,STRING]");
+        t, "TIMEDIFF function expects {[TIME,TIME]}, but got [INTEGER,STRING]");
   }
 
   @Test
@@ -50,7 +46,16 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
     Throwable t = Assert.assertThrows(ExpressionEvaluationException.class, () -> getRelNode(ppl));
     verifyErrorMessageContains(
         t,
-        "LESS function expects {[COMPARABLE_TYPE,COMPARABLE_TYPE]}," + " but got [STRING,INTEGER]");
+        // Temporary fix for the error message as LESS function has two variants. Will remove
+        // [IP,IP] when merging the two variants.
+        "LESS function expects {[IP,IP],[COMPARABLE_TYPE,COMPARABLE_TYPE]},"
+            + " but got [STRING,INTEGER]");
+  }
+
+  @Test
+  public void testCoalesceWithSameType() {
+    String ppl = "source=EMP | eval coalesce_name = coalesce(ENAME, 'Jack') | fields coalesce_name";
+    Assert.assertNotNull(getRelNode(ppl));
   }
 
   @Test
@@ -58,9 +63,7 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
     String ppl =
         "source=EMP | eval coalesce_name = coalesce(EMPNO, 'Jack', ENAME) | fields"
             + " coalesce_name";
-    Throwable t = Assert.assertThrows(ExpressionEvaluationException.class, () -> getRelNode(ppl));
-    verifyErrorMessageContains(
-        t, "COALESCE function expects {[COMPARABLE_TYPE...]}, but got [SHORT,STRING,STRING]");
+    Assert.assertNotNull(getRelNode(ppl));
   }
 
   @Test
@@ -104,10 +107,10 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
     Throwable t = Assert.assertThrows(ExpressionEvaluationException.class, () -> getRelNode(ppl));
     verifyErrorMessageContains(
         t,
-        "TIMESTAMP function expects"
-            + " {[STRING],[DATE],[TIME],[TIMESTAMP],[STRING,STRING],[DATE,DATE],[DATE,TIME],[DATE,TIMESTAMP],"
-            + "[TIME,DATE],[TIME,TIME],[TIME,TIMESTAMP],[TIMESTAMP,DATE],[TIMESTAMP,TIME],[TIMESTAMP,TIMESTAMP]"
-            + ",[STRING,DATE],[STRING,TIME],[STRING,TIMESTAMP],[DATE,STRING],[TIME,STRING],[TIMESTAMP,STRING]},"
+        "TIMESTAMP function expects {"
+            + "[STRING],[TIMESTAMP],[DATE],[TIME],[STRING,STRING],[TIMESTAMP,TIMESTAMP],[TIMESTAMP,DATE],"
+            + "[TIMESTAMP,TIME],[DATE,TIMESTAMP],[DATE,DATE],[DATE,TIME],[TIME,TIMESTAMP],[TIME,DATE],"
+            + "[TIME,TIME],[STRING,TIMESTAMP],[STRING,DATE],[STRING,TIME],[TIMESTAMP,STRING],[DATE,STRING],[TIME,STRING]},"
             + " but got [STRING,INTEGER]");
   }
 
@@ -221,5 +224,88 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
             () -> getRelNode("source=EMP | eval log2 = log2(ENAME, JOB) | fields log2"));
     verifyErrorMessageContains(
         wrongArgException, "LOG2 function expects {[INTEGER],[DOUBLE]}, but got [STRING,STRING]");
+  }
+
+  @Test
+  public void testAvgWithWrongArgType() {
+    Exception e =
+        Assert.assertThrows(
+            ExpressionEvaluationException.class,
+            () -> getRelNode("source=EMP | stats avg(ENAME) as avg_name"));
+    verifyErrorMessageContains(
+        e, "Aggregation function AVG expects field type {[INTEGER],[DOUBLE]}, but got [STRING]");
+  }
+
+  @Test
+  public void testVarsampWithWrongArgType() {
+    Exception e =
+        Assert.assertThrows(
+            ExpressionEvaluationException.class,
+            () -> getRelNode("source=EMP | stats var_samp(ENAME) as varsamp_name"));
+    verifyErrorMessageContains(
+        e,
+        "Aggregation function VARSAMP expects field type {[INTEGER],[DOUBLE]}, but got [STRING]");
+  }
+
+  @Test
+  public void testVarpopWithWrongArgType() {
+    Exception e =
+        Assert.assertThrows(
+            ExpressionEvaluationException.class,
+            () -> getRelNode("source=EMP | stats var_pop(ENAME) as varpop_name"));
+    verifyErrorMessageContains(
+        e, "Aggregation function VARPOP expects field type {[INTEGER],[DOUBLE]}, but got [STRING]");
+  }
+
+  @Test
+  public void testStddevSampWithWrongArgType() {
+    Exception e =
+        Assert.assertThrows(
+            ExpressionEvaluationException.class,
+            () -> getRelNode("source=EMP | stats stddev_samp(ENAME) as stddev_name"));
+    verifyErrorMessageContains(
+        e,
+        "Aggregation function STDDEV_SAMP expects field type {[INTEGER],[DOUBLE]}, but got"
+            + " [STRING]");
+  }
+
+  @Test
+  public void testStddevPopWithWrongArgType() {
+    Exception e =
+        Assert.assertThrows(
+            ExpressionEvaluationException.class,
+            () -> getRelNode("source=EMP | stats stddev_pop(ENAME) as stddev_name"));
+    verifyErrorMessageContains(
+        e,
+        "Aggregation function STDDEV_POP expects field type {[INTEGER],[DOUBLE]}, but got"
+            + " [STRING]");
+  }
+
+  @Test
+  public void testPercentileApproxWithWrongArgType() {
+    // First argument should be numeric
+    Exception e1 =
+        Assert.assertThrows(
+            ExpressionEvaluationException.class,
+            () -> getRelNode("source=EMP | stats percentile_approx(ENAME, 50) as percentile"));
+    verifyErrorMessageContains(
+        e1,
+        "Aggregation function PERCENTILE_APPROX expects field type and additional arguments"
+            + " {[INTEGER,INTEGER],[INTEGER,DOUBLE],[DOUBLE,INTEGER],[DOUBLE,DOUBLE],[INTEGER,INTEGER,INTEGER],[INTEGER,INTEGER,DOUBLE],[INTEGER,DOUBLE,INTEGER],[INTEGER,DOUBLE,DOUBLE],[DOUBLE,INTEGER,INTEGER],[DOUBLE,INTEGER,DOUBLE],[DOUBLE,DOUBLE,INTEGER],[DOUBLE,DOUBLE,DOUBLE]},"
+            + " but got [STRING,INTEGER]");
+  }
+
+  @Test
+  public void testListFunctionWithArrayArgType() {
+    // Test LIST function with array expression (which is not a supported scalar type)
+    Exception e =
+        Assert.assertThrows(
+            ExpressionEvaluationException.class,
+            () -> getRelNode("source=EMP | stats list(array(ENAME, JOB)) as name_list"));
+    verifyErrorMessageContains(
+        e,
+        "Aggregation function LIST expects field type"
+            + " {[BYTE],[SHORT],[INTEGER],[LONG],[FLOAT],[DOUBLE],[STRING],[BOOLEAN],[DATE],[TIME],[TIMESTAMP],[IP],[BINARY]},"
+            + " but got [ARRAY]");
   }
 }

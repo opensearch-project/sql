@@ -27,7 +27,9 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
@@ -45,6 +47,9 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
 public interface PlanUtils {
+
+  /** this is only for dedup command, do not reuse it in other command */
+  String ROW_NUMBER_COLUMN_FOR_DEDUP = "_row_number_dedup_";
 
   String ROW_NUMBER_COLUMN_NAME = "_row_number_";
   String ROW_NUMBER_COLUMN_NAME_MAIN = "_row_number_main_";
@@ -349,6 +354,43 @@ public interface PlanUtils {
       }
     }
     return rexNode;
+  }
+
+  /** Check if contains RexOver */
+  static boolean containsRowNumberDedup(LogicalProject project) {
+    return project.getProjects().stream()
+        .anyMatch(p -> p instanceof RexOver && p.getKind() == SqlKind.ROW_NUMBER);
+  }
+
+  /** Get all RexWindow list from LogicalProject */
+  static List<RexWindow> getRexWindowFromProject(LogicalProject project) {
+    final List<RexWindow> res = new ArrayList<>();
+    final RexVisitorImpl<Void> visitor =
+        new RexVisitorImpl<>(true) {
+          @Override
+          public Void visitOver(RexOver over) {
+            res.add(over.getWindow());
+            return null;
+          }
+        };
+    visitor.visitEach(project.getProjects());
+    return res;
+  }
+
+  static List<Integer> getSelectColumns(List<RexNode> rexNodes) {
+    final List<Integer> selectedColumns = new ArrayList<>();
+    final RexVisitorImpl<Void> visitor =
+        new RexVisitorImpl<Void>(true) {
+          @Override
+          public Void visitInputRef(RexInputRef inputRef) {
+            if (!selectedColumns.contains(inputRef.getIndex())) {
+              selectedColumns.add(inputRef.getIndex());
+            }
+            return null;
+          }
+        };
+    visitor.visitEach(rexNodes);
+    return selectedColumns;
   }
 
   static boolean containsRexLiteral(LogicalProject project) {

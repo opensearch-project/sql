@@ -77,7 +77,6 @@ import org.apache.calcite.runtime.Bindable;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.server.CalciteServerStatement;
-import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql2rel.SqlRexConvertletTable;
@@ -88,8 +87,9 @@ import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Util;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.plan.OpenSearchRules;
 import org.opensearch.sql.calcite.plan.Scannable;
-import org.opensearch.sql.calcite.udf.udaf.NullableSqlAvgAggFunction;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
 /**
  * Calcite Tools Helper. This class is used to create customized: 1. Connection 2. JavaTypeFactory
@@ -185,7 +185,7 @@ public class CalciteToolsHelper {
     public AggCall avg(boolean distinct, String alias, RexNode operand) {
       return aggregateCall(
           SqlParserPos.ZERO,
-          AVG_NULLABLE,
+          PPLBuiltinOperators.AVG_NULLABLE,
           distinct,
           false,
           false,
@@ -197,16 +197,6 @@ public class CalciteToolsHelper {
           ImmutableList.of(operand));
     }
   }
-
-  public static final SqlAggFunction AVG_NULLABLE = new NullableSqlAvgAggFunction(SqlKind.AVG);
-  public static final SqlAggFunction STDDEV_POP_NULLABLE =
-      new NullableSqlAvgAggFunction(SqlKind.STDDEV_POP);
-  public static final SqlAggFunction STDDEV_SAMP_NULLABLE =
-      new NullableSqlAvgAggFunction(SqlKind.STDDEV_SAMP);
-  public static final SqlAggFunction VAR_POP_NULLABLE =
-      new NullableSqlAvgAggFunction(SqlKind.VAR_POP);
-  public static final SqlAggFunction VAR_SAMP_NULLABLE =
-      new NullableSqlAvgAggFunction(SqlKind.VAR_SAMP);
 
   public static class OpenSearchPrepareImpl extends CalcitePrepareImpl {
     /**
@@ -231,8 +221,13 @@ public class CalciteToolsHelper {
       final RelOptPlanner planner =
           createPlanner(
               prepareContext, Contexts.of(prepareContext.config()), config.getCostFactory());
+      registerCustomizedRules(planner);
       final RelOptCluster cluster = createCluster(planner, rexBuilder);
       return action.apply(cluster, catalogReader, prepareContext.getRootSchema().plus(), statement);
+    }
+
+    private void registerCustomizedRules(RelOptPlanner planner) {
+      OpenSearchRules.OPEN_SEARCH_OPT_RULES.forEach(planner::addRule);
     }
 
     /**
@@ -302,7 +297,7 @@ public class CalciteToolsHelper {
       RelDataType resultType = root.rel.getRowType();
       boolean isDml = root.kind.belongsTo(SqlKind.DML);
       if (root.rel instanceof Scannable scannable) {
-        final Bindable bindable = dataContext -> scannable.scanWithLimit();
+        final Bindable bindable = dataContext -> scannable.scan();
 
         return new PreparedResultImpl(
             resultType,

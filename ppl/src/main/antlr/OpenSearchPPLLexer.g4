@@ -17,6 +17,7 @@ EXPLAIN:                            'EXPLAIN';
 FROM:                               'FROM';
 WHERE:                              'WHERE';
 FIELDS:                             'FIELDS';
+TABLE:                              'TABLE';  // Alias for FIELDS command
 RENAME:                             'RENAME';
 STATS:                              'STATS';
 EVENTSTATS:                         'EVENTSTATS';
@@ -24,9 +25,11 @@ DEDUP:                              'DEDUP';
 SORT:                               'SORT';
 EVAL:                               'EVAL';
 HEAD:                               'HEAD';
+BIN:                                'BIN';
 TOP:                                'TOP';
 RARE:                               'RARE';
 PARSE:                              'PARSE';
+SPATH:                              'SPATH';
 REGEX:                              'REGEX';
 PUNCT:                              'PUNCT';
 GROK:                               'GROK';
@@ -39,6 +42,7 @@ ML:                                 'ML';
 FILLNULL:                           'FILLNULL';
 FLATTEN:                            'FLATTEN';
 TRENDLINE:                          'TRENDLINE';
+TIMECHART:                          'TIMECHART';
 APPENDCOL:                          'APPENDCOL';
 EXPAND:                             'EXPAND';
 SIMPLE_PATTERN:                     'SIMPLE_PATTERN';
@@ -68,6 +72,8 @@ AS:                                 'AS';
 BY:                                 'BY';
 SOURCE:                             'SOURCE';
 INDEX:                              'INDEX';
+A:                                  'A';
+ASC:                                'ASC';
 D:                                  'D';
 DESC:                               'DESC';
 DATASOURCES:                        'DATASOURCES';
@@ -113,6 +119,11 @@ ANOMALY_SCORE_THRESHOLD:            'ANOMALY_SCORE_THRESHOLD';
 APPEND:                             'APPEND';
 COUNTFIELD:                         'COUNTFIELD';
 SHOWCOUNT:                          'SHOWCOUNT';
+LIMIT:                              'LIMIT';
+USEOTHER:                           'USEOTHER';
+INPUT:                              'INPUT';
+OUTPUT:                             'OUTPUT';
+PATH:                               'PATH';
 
 // COMPARISON FUNCTION KEYWORDS
 CASE:                               'CASE';
@@ -131,6 +142,7 @@ XOR:                                'XOR';
 TRUE:                               'TRUE';
 FALSE:                              'FALSE';
 REGEXP:                             'REGEXP';
+REGEX_MATCH:                        'REGEX_MATCH';
 
 // DATETIME, INTERVAL AND UNIT KEYWORDS
 CONVERT_TZ:                         'CONVERT_TZ';
@@ -185,6 +197,7 @@ PIPE:                               '|';
 COMMA:                              ',';
 DOT:                                '.';
 EQUAL:                              '=';
+DOUBLE_EQUAL:                       '==';
 GREATER:                            '>';
 LESS:                               '<';
 NOT_GREATER:                        '<' '=';
@@ -201,6 +214,8 @@ LT_PRTHS:                           '(';
 RT_PRTHS:                           ')';
 LT_SQR_PRTHS:                       '[';
 RT_SQR_PRTHS:                       ']';
+LT_CURLY:                           '{';
+RT_CURLY:                           '}';
 SINGLE_QUOTE:                       '\'';
 DOUBLE_QUOTE:                       '"';
 BACKTICK:                           '`';
@@ -233,6 +248,7 @@ VAR_SAMP:                           'VAR_SAMP';
 VAR_POP:                            'VAR_POP';
 STDDEV_SAMP:                        'STDDEV_SAMP';
 STDDEV_POP:                         'STDDEV_POP';
+PERC:                               'PERC';
 PERCENTILE:                         'PERCENTILE';
 PERCENTILE_APPROX:                  'PERCENTILE_APPROX';
 EARLIEST:                           'EARLIEST';
@@ -261,6 +277,10 @@ NTH:                                'NTH';
 NTILE:                              'NTILE';
 
 // BASIC FUNCTIONS
+PLUS_FUCTION:                       'ADD';
+MINUS_FUCTION:                      'SUBTRACT';
+STAR_FUNCTION:                      'MULTIPLY';
+DIVIDE_FUNCTION:                    'DIVIDE';
 ABS:                                'ABS';
 CBRT:                               'CBRT';
 CEIL:                               'CEIL';
@@ -269,12 +289,13 @@ CONV:                               'CONV';
 CRC32:                              'CRC32';
 E:                                  'E';
 EXP:                                'EXP';
+EXPM1:                              'EXPM1';
 FLOOR:                              'FLOOR';
 LN:                                 'LN';
 LOG:                                'LOG';
-LOG10:                              'LOG10';
-LOG2:                               'LOG2';
+LOG_WITH_BASE:                      ([0-9]+ ('.' [0-9]+)?)? ('LOG' | 'log') [0-9]+ ('.' [0-9]+)?;
 MOD:                                'MOD';
+MODULUS:                            'MODULUS';
 PI:                                 'PI';
 POSITION:                           'POSITION';
 POW:                                'POW';
@@ -284,6 +305,8 @@ ROUND:                              'ROUND';
 SIGN:                               'SIGN';
 SQRT:                               'SQRT';
 TRUNCATE:                           'TRUNCATE';
+RINT:                               'RINT';
+SIGNUM:                             'SIGNUM';
 
 // TRIGONOMETRIC FUNCTIONS
 ACOS:                               'ACOS';
@@ -291,10 +314,12 @@ ASIN:                               'ASIN';
 ATAN:                               'ATAN';
 ATAN2:                              'ATAN2';
 COS:                                'COS';
+COSH:                               'COSH';
 COT:                                'COT';
 DEGREES:                            'DEGREES';
 RADIANS:                            'RADIANS';
 SIN:                                'SIN';
+SINH:                               'SINH';
 TAN:                                'TAN';
 
 // CRYPTOGRAPHIC FUNCTIONS
@@ -457,6 +482,11 @@ ZERO_TERMS_QUERY:                   'ZERO_TERMS_QUERY';
 
 // SPAN KEYWORDS
 SPAN:                               'SPAN';
+BINS:                               'BINS';
+MINSPAN:                            'MINSPAN';
+START:                              'START';
+END:                                'END';
+ALIGNTIME:                          'ALIGNTIME';
 MS:                                 'MS';
 S:                                  'S';
 M:                                  'M';
@@ -465,6 +495,26 @@ W:                                  'W';
 Q:                                  'Q';
 Y:                                  'Y';
 
+// Extended timescale units
+SEC:                                'SEC';
+SECS:                               'SECS';
+SECONDS:                            'SECONDS';
+MINS:                               'MINS';
+MINUTES:                            'MINUTES';
+HR:                                 'HR';
+HRS:                                'HRS';
+HOURS:                              'HOURS';
+DAYS:                               'DAYS';
+MON:                                'MON';
+MONTHS:                             'MONTHS';
+US:                                 'US';
+CS:                                 'CS';
+DS:                                 'DS';
+
+
+// PERCENTILE SHORTCUT FUNCTIONS
+// Must precede ID to avoid conflicts with identifier matching
+PERCENTILE_SHORTCUT:                PERC(INTEGER_LITERAL | DECIMAL_LITERAL) | 'P'(INTEGER_LITERAL | DECIMAL_LITERAL);
 
 // LITERALS AND VALUES
 //STRING_LITERAL:                     DQUOTA_STRING | SQUOTA_STRING | BQUOTA_STRING;

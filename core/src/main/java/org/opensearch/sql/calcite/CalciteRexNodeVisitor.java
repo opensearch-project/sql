@@ -11,8 +11,6 @@ import static org.apache.commons.lang3.StringUtils.substringAfterLast;
 import static org.opensearch.sql.ast.expression.SpanUnit.NONE;
 import static org.opensearch.sql.ast.expression.SpanUnit.UNKNOWN;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
-import static org.opensearch.sql.utils.DateTimeUtils.findCastType;
-import static org.opensearch.sql.utils.DateTimeUtils.transferCompareForDateRelated;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -30,7 +28,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexLambda;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
@@ -215,11 +212,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
 
   @Override
   public RexNode visitCompare(Compare node, CalcitePlanContext context) {
-    RexNode leftCandidate = analyze(node.getLeft(), context);
-    RexNode rightCandidate = analyze(node.getRight(), context);
-    SqlTypeName castTarget = findCastType(leftCandidate, rightCandidate);
-    final RexNode left = transferCompareForDateRelated(leftCandidate, context, castTarget);
-    final RexNode right = transferCompareForDateRelated(rightCandidate, context, castTarget);
+    RexNode left = analyze(node.getLeft(), context);
+    RexNode right = analyze(node.getRight(), context);
     return PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, node.getOperator(), left, right);
   }
 
@@ -295,6 +289,12 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       return context.getRexLambdaRefMap().get(qualifiedName);
     }
     List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
+
+    if (!currentFields.contains(qualifiedName) && context.isInCoalesceFunction()) {
+      return context.rexBuilder.makeNullLiteral(
+          context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR));
+    }
+
     if (currentFields.contains(qualifiedName)) {
       // 2.1 resolve QualifiedName from stack top
       // Note: QualifiedName with multiple parts also could be applied in step 2.1,
@@ -468,46 +468,43 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     }
   }
 
-  private List<RexNode> castArgument(
-      List<RexNode> originalArguments, String functionName, ExtendedRexBuilder rexBuilder) {
-    switch (functionName.toUpperCase(Locale.ROOT)) {
-      case "REDUCE":
-        RexLambda call = (RexLambda) originalArguments.get(2);
-        originalArguments.set(
-            1, rexBuilder.makeCast(call.getType(), originalArguments.get(1), true, true));
-        return originalArguments;
-      default:
-        return originalArguments;
-    }
-  }
-
   @Override
   public RexNode visitFunction(Function node, CalcitePlanContext context) {
     List<UnresolvedExpression> args = node.getFuncArgs();
     List<RexNode> arguments = new ArrayList<>();
-    for (UnresolvedExpression arg : args) {
-      if (arg instanceof LambdaFunction) {
-        CalcitePlanContext lambdaContext =
-            prepareLambdaContext(
-                context, (LambdaFunction) arg, arguments, node.getFuncName(), null);
-        RexNode lambdaNode = analyze(arg, lambdaContext);
-        if (node.getFuncName().equalsIgnoreCase("reduce")) { // analyze again with calculate type
-          lambdaContext =
-              prepareLambdaContext(
-                  context,
-                  (LambdaFunction) arg,
-                  arguments,
-                  node.getFuncName(),
-                  lambdaNode.getType());
-          lambdaNode = analyze(arg, lambdaContext);
-        }
-        arguments.add(lambdaNode);
-      } else {
-        arguments.add(analyze(arg, context));
-      }
+
+    boolean isCoalesce = "coalesce".equalsIgnoreCase(node.getFuncName());
+    if (isCoalesce) {
+      context.setInCoalesceFunction(true);
     }
 
-    arguments = castArgument(arguments, node.getFuncName(), context.rexBuilder);
+    try {
+      for (UnresolvedExpression arg : args) {
+        if (arg instanceof LambdaFunction) {
+          CalcitePlanContext lambdaContext =
+              prepareLambdaContext(
+                  context, (LambdaFunction) arg, arguments, node.getFuncName(), null);
+          RexNode lambdaNode = analyze(arg, lambdaContext);
+          if (node.getFuncName().equalsIgnoreCase("reduce")) {
+            lambdaContext =
+                prepareLambdaContext(
+                    context,
+                    (LambdaFunction) arg,
+                    arguments,
+                    node.getFuncName(),
+                    lambdaNode.getType());
+            lambdaNode = analyze(arg, lambdaContext);
+          }
+          arguments.add(lambdaNode);
+        } else {
+          arguments.add(analyze(arg, context));
+        }
+      }
+    } finally {
+      if (isCoalesce) {
+        context.setInCoalesceFunction(false);
+      }
+    }
 
     RexNode resolvedNode =
         PPLFuncImpTable.INSTANCE.resolve(
@@ -560,23 +557,22 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     List<RexNode> nodes = node.getChild().stream().map(child -> analyze(child, context)).toList();
     UnresolvedPlan subquery = node.getQuery();
     RelNode subqueryRel = resolveSubqueryPlan(subquery, context);
-    try {
-      return context.relBuilder.in(subqueryRel, nodes);
-      // TODO
-      // The {@link org.apache.calcite.tools.RelBuilder#in(RexNode,java.util.function.Function)}
-      // only support one expression. Change to follow code after calcite fixed.
-      //    return context.relBuilder.in(
-      //        nodes.getFirst(),
-      //        b -> {
-      //          RelNode subqueryRel = subquery.accept(planVisitor, context);
-      //          b.build();
-      //          return subqueryRel;
-      //        });
-    } catch (AssertionError e) {
+    if (subqueryRel.getRowType().getFieldCount() != nodes.size()) {
       throw new SemanticCheckException(
           "The number of columns in the left hand side of an IN subquery does not match the number"
               + " of columns in the output of subquery");
     }
+    // TODO
+    //  The {@link org.apache.calcite.tools.RelBuilder#in(RexNode,java.util.function.Function)}
+    //  only support one expression. Change to follow code after calcite fixed.
+    //    return context.relBuilder.in(
+    //        nodes.getFirst(),
+    //        b -> {
+    //          RelNode subqueryRel = subquery.accept(planVisitor, context);
+    //          b.build();
+    //          return subqueryRel;
+    //        });
+    return context.relBuilder.in(subqueryRel, nodes);
   }
 
   @Override

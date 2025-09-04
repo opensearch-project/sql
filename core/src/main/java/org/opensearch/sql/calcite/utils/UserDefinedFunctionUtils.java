@@ -17,6 +17,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nullable;
 import org.apache.calcite.DataContext;
@@ -26,10 +27,10 @@ import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.impl.AggregateFunctionImpl;
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -40,6 +41,7 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Optionality;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.executor.QueryType;
@@ -54,6 +56,7 @@ public class UserDefinedFunctionUtils {
       TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, true);
   public static final RelDataType NULLABLE_STRING =
       TYPE_FACTORY.createTypeWithNullability(TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR), true);
+  public static final RelDataType NULLABLE_IP_UDT = TYPE_FACTORY.createUDT(EXPR_IP, true);
 
   public static RelDataType nullablePatternAggList =
       createArrayType(
@@ -76,43 +79,50 @@ public class UserDefinedFunctionUtils {
       ImmutableSet.of("match", "match_phrase", "match_bool_prefix", "match_phrase_prefix");
   public static Set<String> MULTI_FIELDS_RELEVANCE_FUNCTION_SET =
       ImmutableSet.of("simple_query_string", "query_string", "multi_match");
+  public static String IP_FUNCTION_NAME = "IP";
 
-  public static RelBuilder.AggCall TransferUserDefinedAggFunction(
-      Class<? extends UserDefinedAggFunction> UDAF,
+  /**
+   * Creates a SqlUserDefinedAggFunction that wraps a Java class implementing an aggregate function.
+   *
+   * @param udafClass The Java class that implements the UserDefinedAggFunction interface
+   * @param functionName The name of the function to be used in SQL statements
+   * @param returnType A SqlReturnTypeInference that determines the return type of the function
+   * @return A SqlUserDefinedAggFunction that can be used in SQL queries
+   */
+  public static SqlUserDefinedAggFunction createUserDefinedAggFunction(
+      Class<? extends UserDefinedAggFunction<?>> udafClass,
       String functionName,
       SqlReturnTypeInference returnType,
+      @Nullable UDFOperandMetadata operandMetadata) {
+    return new SqlUserDefinedAggFunction(
+        new SqlIdentifier(functionName, SqlParserPos.ZERO),
+        SqlKind.OTHER_FUNCTION,
+        returnType,
+        null,
+        operandMetadata,
+        Objects.requireNonNull(AggregateFunctionImpl.create(udafClass)),
+        false,
+        false,
+        Optionality.FORBIDDEN);
+  }
+
+  /**
+   * Creates an aggregate call using the provided SqlAggFunction and arguments.
+   *
+   * @param aggFunction The aggregate function to call
+   * @param fields The primary fields to aggregate
+   * @param argList Additional arguments for the aggregate function
+   * @param relBuilder The RelBuilder instance used for building relational expressions
+   * @return An AggCall object representing the aggregate function call
+   */
+  public static RelBuilder.AggCall makeAggregateCall(
+      SqlAggFunction aggFunction,
       List<RexNode> fields,
       List<RexNode> argList,
       RelBuilder relBuilder) {
-    SqlUserDefinedAggFunction sqlUDAF =
-        new SqlUserDefinedAggFunction(
-            new SqlIdentifier(functionName, SqlParserPos.ZERO),
-            SqlKind.OTHER_FUNCTION,
-            returnType,
-            null,
-            null,
-            AggregateFunctionImpl.create(UDAF),
-            false,
-            false,
-            Optionality.FORBIDDEN);
     List<RexNode> addArgList = new ArrayList<>(fields);
     addArgList.addAll(argList);
-    return relBuilder.aggregateCall(sqlUDAF, addArgList);
-  }
-
-  public static SqlReturnTypeInference getReturnTypeInferenceForArray() {
-    return opBinding -> {
-      RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-
-      // Get argument types
-      List<RelDataType> argTypes = opBinding.collectOperandTypes();
-
-      if (argTypes.isEmpty()) {
-        throw new IllegalArgumentException("Function requires at least one argument.");
-      }
-      RelDataType firstArgType = argTypes.getFirst();
-      return createArrayType(typeFactory, firstArgType, true);
-    };
+    return relBuilder.aggregateCall(aggFunction, addArgList);
   }
 
   public static SqlTypeName convertRelDataTypeToSqlTypeName(RelDataType type) {
@@ -219,16 +229,10 @@ public class UserDefinedFunctionUtils {
     };
   }
 
-  public static List<Expression> prependFunctionProperties(
-      List<Expression> operands, RexToLixTranslator translator) {
-    List<Expression> operandsWithProperties = new ArrayList<>(operands);
-    Expression properties =
-        Expressions.call(
-            UserDefinedFunctionUtils.class, "restoreFunctionProperties", translator.getRoot());
-    operandsWithProperties.addFirst(properties);
-    return Collections.unmodifiableList(operandsWithProperties);
-  }
-
+  /**
+   * Adapts a method from the v2 implementation whose parameters include a {@link
+   * FunctionProperties} at the beginning to a Calcite-compatible UserDefinedFunctionBuilder.
+   */
   public static ImplementorUDF adaptExprMethodWithPropertiesToUDF(
       java.lang.reflect.Type type,
       String methodName,
@@ -255,5 +259,56 @@ public class UserDefinedFunctionUtils {
         return operandMetadata;
       }
     };
+  }
+
+  /**
+   * Adapt a static math function (e.g., Math.expm1, Math.rint) to a UserDefinedFunctionBuilder.
+   * This method generates a Calcite-compatible UDF by boxing the operand, converting it to a
+   * double, and then calling the corresponding method in {@link Math}.
+   *
+   * <p>It assumes the math method has the signature: {@code double method(double)}. This utility is
+   * specifically designed for single-operand Math methods.
+   *
+   * @param methodName the name of the static method in {@link Math} to be invoked
+   * @param returnTypeInference the return type inference of the UDF
+   * @param nullPolicy the null policy of the UDF
+   * @param operandMetadata type checker
+   * @return an adapted ImplementorUDF with the math method, which is a UserDefinedFunctionBuilder
+   */
+  public static ImplementorUDF adaptMathFunctionToUDF(
+      String methodName,
+      SqlReturnTypeInference returnTypeInference,
+      NullPolicy nullPolicy,
+      UDFOperandMetadata operandMetadata) {
+
+    NotNullImplementor implementor =
+        (translator, call, translatedOperands) -> {
+          Expression operand = translatedOperands.get(0);
+          operand = Expressions.box(operand);
+          operand = Expressions.call(operand, "doubleValue");
+          return Expressions.call(Math.class, methodName, operand);
+        };
+
+    return new ImplementorUDF(implementor, nullPolicy) {
+      @Override
+      public SqlReturnTypeInference getReturnTypeInference() {
+        return returnTypeInference;
+      }
+
+      @Override
+      public UDFOperandMetadata getOperandMetadata() {
+        return operandMetadata;
+      }
+    };
+  }
+
+  public static List<Expression> prependFunctionProperties(
+      List<Expression> operands, RexToLixTranslator translator) {
+    List<Expression> operandsWithProperties = new ArrayList<>(operands);
+    Expression properties =
+        Expressions.call(
+            UserDefinedFunctionUtils.class, "restoreFunctionProperties", translator.getRoot());
+    operandsWithProperties.addFirst(properties);
+    return Collections.unmodifiableList(operandsWithProperties);
   }
 }

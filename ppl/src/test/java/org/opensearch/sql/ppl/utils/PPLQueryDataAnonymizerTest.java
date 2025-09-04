@@ -55,6 +55,7 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals("source=t | where a = ***", anonymize("search source=t | where a=1"));
   }
 
+  // Fields and Table Command Tests
   @Test
   public void testFieldsCommandWithoutArguments() {
     assertEquals("source=t | fields + f,g", anonymize("source=t | fields f,g"));
@@ -68,6 +69,47 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testFieldsCommandWithExcludeArguments() {
     assertEquals("source=t | fields - f,g", anonymize("source=t | fields - f,g"));
+  }
+
+  @Test
+  public void testFieldsCommandWithWildcards() {
+    when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(true);
+    assertEquals("source=t | fields + account*", anonymize("source=t | fields account*"));
+    assertEquals("source=t | fields + *name", anonymize("source=t | fields *name"));
+    assertEquals("source=t | fields + *a*", anonymize("source=t | fields *a*"));
+    assertEquals("source=t | fields - account*", anonymize("source=t | fields - account*"));
+  }
+
+  @Test
+  public void testFieldsCommandWithDelimiters() {
+    when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(true);
+    assertEquals(
+        "source=t | fields + firstname,lastname,age",
+        anonymize("source=t | fields firstname lastname age"));
+    assertEquals(
+        "source=t | fields + firstname,lastname,balance",
+        anonymize("source=t | fields firstname lastname, balance"));
+    assertEquals(
+        "source=t | fields + account*,*name", anonymize("source=t | fields account*, *name"));
+  }
+
+  @Test
+  public void testTableCommand() {
+    when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(true);
+    assertEquals("source=t | fields + f,g", anonymize("source=t | table f,g"));
+    assertEquals("source=t | fields + f,g", anonymize("source=t | table + f,g"));
+    assertEquals("source=t | fields - f,g", anonymize("source=t | table - f,g"));
+    assertEquals("source=t | fields + account*", anonymize("source=t | table account*"));
+    assertEquals(
+        "source=t | fields + firstname,lastname,age",
+        anonymize("source=t | table firstname lastname age"));
+  }
+
+  @Test
+  public void anonymizeFieldsNoArg() {
+    assertEquals(
+        "source=t | fields + f",
+        anonymize(projectWithArg(relation("t"), Collections.emptyList(), field("f"))));
   }
 
   @Test
@@ -113,6 +155,32 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testBinCommandBasic() {
+    assertEquals("source=t | bin f span=***", anonymize("source=t | bin f span=10"));
+  }
+
+  @Test
+  public void testBinCommandWithAllParameters() {
+    assertEquals(
+        "source=t | bin f span=*** aligntime=*** as alias",
+        anonymize("source=t | bin f span=10 aligntime=earliest as alias"));
+  }
+
+  @Test
+  public void testBinCommandWithCountParameters() {
+    assertEquals(
+        "source=t | bin f bins=*** start=*** end=*** as alias",
+        anonymize("source=t | bin f bins=10 start=0 end=100 as alias"));
+  }
+
+  @Test
+  public void testBinCommandWithMinspanParameters() {
+    assertEquals(
+        "source=t | bin f minspan=*** start=*** end=*** as alias",
+        anonymize("source=t | bin f minspan=5 start=0 end=100 as alias"));
+  }
+
+  @Test
   public void testDedupCommand() {
     assertEquals(
         "source=t | dedup f1,f2 1 keepempty=false consecutive=false",
@@ -131,10 +199,32 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals("source=t | head 3", anonymize("source=t | head 3"));
   }
 
+  @Test
+  public void testReverseCommand() {
+    assertEquals("source=t | reverse", anonymize("source=t | reverse"));
+  }
+
+  @Test
+  public void testTimechartCommand() {
+    assertEquals(
+        "source=t | timechart span=span(@timestamp, *** m) limit=10 useother=true count() by host",
+        anonymize("source=t | timechart count() by host"));
+  }
+
   // todo, sort order is ignored, it doesn't impact the log analysis.
   @Test
   public void testSortCommandWithOptions() {
     assertEquals("source=t | sort f1,f2", anonymize("source=t | sort - f1, + f2"));
+  }
+
+  @Test
+  public void testSortCommandWithCount() {
+    assertEquals("source=t | sort 5 f1", anonymize("source=t | sort 5 f1"));
+  }
+
+  @Test
+  public void testSortCommandWithDesc() {
+    assertEquals("source=t | sort f1", anonymize("source=t | sort f1 desc"));
   }
 
   @Test
@@ -250,13 +340,6 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testQuery() {
     assertEquals("source=t | fields + a", anonymizeStatement("source=t | fields a", false));
-  }
-
-  @Test
-  public void anonymizeFieldsNoArg() {
-    assertEquals(
-        "source=t | fields + f",
-        anonymize(projectWithArg(relation("t"), Collections.emptyList(), field("f"))));
   }
 
   @Test
@@ -433,6 +516,15 @@ public class PPLQueryDataAnonymizerTest {
         anonymize(
             "source=t | patterns email method=BRAIN mode=AGGREGATION"
                 + " variable_count_threshold=5"));
+  }
+
+  @Test
+  public void testRegex() {
+    assertEquals("source=t | regex field=***", anonymize("source=t | regex field='pattern'"));
+    assertEquals("source=t | regex field!=***", anonymize("source=t | regex field!='pattern'"));
+    assertEquals(
+        "source=t | regex email=*** | fields + email",
+        anonymize("source=t | regex email='.*@domain.com' | fields email"));
   }
 
   private String anonymize(String query) {

@@ -21,6 +21,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
   CalciteArrayFunctionIT.class,
+  CalciteBinCommandIT.class,
   CalciteConvertTZFunctionIT.class,
   CalciteCsvFormatIT.class,
   CalciteDataTypeIT.class,
@@ -45,6 +46,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalciteLegacyAPICompatibilityIT.class,
   CalciteLikeQueryIT.class,
   CalciteMathematicalFunctionIT.class,
+  CalciteMultiValueStatsIT.class,
   CalciteNewAddedCommandsIT.class,
   CalciteNowLikeFunctionIT.class,
   CalciteObjectFieldOperateIT.class,
@@ -82,6 +84,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalcitePrometheusDataSourceCommandsIT.class,
   CalciteQueryAnalysisIT.class,
   CalciteRareCommandIT.class,
+  CalciteRegexCommandIT.class,
   CalciteRenameCommandIT.class,
   CalciteResourceMonitorIT.class,
   CalciteSearchCommandIT.class,

@@ -16,7 +16,6 @@ public class CalciteRelevanceFunctionIT extends RelevanceFunctionIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 
   // For Calcite, this PPL won't throw exception since it supports partial pushdown and has
