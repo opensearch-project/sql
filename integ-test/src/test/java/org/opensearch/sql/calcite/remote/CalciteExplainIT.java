@@ -565,8 +565,8 @@ public class CalciteExplainIT extends ExplainIT {
         "source=opensearch-sql_test_index_account | eval result = mvjoin(array('a', 'b', 'c'), ',')"
             + " | fields result | head 1";
     var result = explainQueryToString(query);
-    assertTrue(result.contains("ARRAY_JOIN"));
-    assertTrue(result.contains("ARRAY"));
+    String expected = loadExpectedPlan("explain_mvjoin.json");
+    assertJsonEqualsIgnoreId(expected, result);
   }
 
   @Test
