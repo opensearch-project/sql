@@ -485,23 +485,23 @@ Example::
 
     os> source=accounts | stats first(firstname) by gender;
     fetched rows / total rows = 2/2
-    +-------------------+--------+
-    | first(firstname)  | gender |
-    |-------------------+--------|
-    | Amber JOHnny      | M      |
-    | Nanette           | F      |
-    +-------------------+--------+
+    +------------------+--------+
+    | first(firstname) | gender |
+    |------------------+--------|
+    | Nanette          | F      |
+    | Amber            | M      |
+    +------------------+--------+
 
 Example with multiple aggregations::
 
     os> source=accounts | stats first(firstname), last(firstname), count() by gender;
     fetched rows / total rows = 2/2
-    +-------------------+------------------+---------+--------+
-    | first(firstname)  | last(firstname)  | count() | gender |
-    |-------------------+------------------+---------+--------|
-    | Amber JOHnny      | Elinor           | 4       | M      |
-    | Nanette           | Dillard          | 3       | F      |
-    +-------------------+------------------+---------+--------+
+    +------------------+-----------------+---------+--------+
+    | first(firstname) | last(firstname) | count() | gender |
+    |------------------+-----------------+---------+--------|
+    | Nanette          | Nanette         | 1       | F      |
+    | Amber            | Dale            | 3       | M      |
+    +------------------+-----------------+---------+--------+
 
 LAST
 ----
@@ -521,22 +521,22 @@ Example::
 
     os> source=accounts | stats last(firstname) by gender;
     fetched rows / total rows = 2/2
-    +------------------+--------+
-    | last(firstname)  | gender |
-    |------------------+--------|
-    | Elinor           | M      |
-    | Dillard          | F      |
-    +------------------+--------+
+    +-----------------+--------+
+    | last(firstname) | gender |
+    |-----------------+--------|
+    | Nanette         | F      |
+    | Dale            | M      |
+    +-----------------+--------+
 
 Example with different fields::
 
     os> source=accounts | stats first(account_number), last(balance), first(age);
     fetched rows / total rows = 1/1
-    +---------------------+--------------+-------------+
+    +-----------------------+---------------+------------+
     | first(account_number) | last(balance) | first(age) |
-    |---------------------+---------------+-------------|
-    | 1                   | 48086         | 32          |
-    +---------------------+--------------+-------------+
+    |-----------------------+---------------+------------|
+    | 1                     | 4180          | 32         |
+    +-----------------------+---------------+------------+
 
 LIST
 ----
