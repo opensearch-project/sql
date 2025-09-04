@@ -262,26 +262,6 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testEventstatsDistinctCountExplain() throws IOException {
-    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
-    String query =
-        "source=opensearch-sql_test_index_account | eventstats dc(state) as distinct_states";
-    var result = explainQueryToString(query);
-    String expected = loadFromFile("expectedOutput/calcite/explain_eventstats_dc.json");
-    assertJsonEqualsIgnoreId(expected, result);
-  }
-
-  @Test
-  public void testEventstatsDistinctCountFunctionExplain() throws IOException {
-    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
-    String query =
-            "source=opensearch-sql_test_index_account | eventstats distinct_count(state) as"
-                    + " distinct_states by gender";
-    var result = explainQueryToString(query);
-    String expected = loadFromFile("expectedOutput/calcite/explain_eventstats_distinct_count.json");
-    assertJsonEqualsIgnoreId(expected, result);
-  }
-
   public void testExplainBinWithBins() throws IOException {
     String expected = loadExpectedPlan("explain_bin_bins.json");
     assertJsonEqualsIgnoreId(
@@ -326,6 +306,26 @@ public class CalciteExplainIT extends ExplainIT {
                 + " head 5"));
   }
 
+  public void testEventstatsDistinctCountExplain() throws IOException {
+    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    String query =
+        "source=opensearch-sql_test_index_account | eventstats dc(state) as distinct_states";
+    var result = explainQueryToString(query);
+    String expected = loadFromFile("expectedOutput/calcite/explain_eventstats_dc.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testEventstatsDistinctCountFunctionExplain() throws IOException {
+    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    String query =
+        "source=opensearch-sql_test_index_account | eventstats distinct_count(state) as"
+            + " distinct_states by gender";
+    var result = explainQueryToString(query);
+    String expected = loadFromFile("expectedOutput/calcite/explain_eventstats_distinct_count.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
   // Only for Calcite, as v2 gets unstable serialized string for function
   @Test
   public void testExplainOnAggregationWithSumEnhancement() throws IOException {
@@ -358,23 +358,6 @@ public class CalciteExplainIT extends ExplainIT {
             TEST_INDEX_STRINGS);
     var result = explainQueryToString(query);
     String expected = loadFromFile("expectedOutput/calcite/explain_regex_match_in_eval.json");
-    assertJsonEqualsIgnoreId(expected, result);
-  }
-
-  @Test
-  public void testRegexExplain() throws IOException {
-    String query =
-        "source=opensearch-sql_test_index_account | regex lastname='^[A-Z][a-z]+$' | head 5";
-    var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_regex.json");
-    assertJsonEqualsIgnoreId(expected, result);
-  }
-
-  @Test
-  public void testRegexNegatedExplain() throws IOException {
-    String query = "source=opensearch-sql_test_index_account | regex lastname!='.*son$' | head 5";
-    var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_regex_negated.json");
     assertJsonEqualsIgnoreId(expected, result);
   }
 
@@ -411,6 +394,41 @@ public class CalciteExplainIT extends ExplainIT {
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account | stats list(age) as age_list"));
+  }
+
+  @Test
+  public void testRegexExplain() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | regex lastname='^[A-Z][a-z]+$' | head 5";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_regex.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testRegexNegatedExplain() throws IOException {
+    String query = "source=opensearch-sql_test_index_account | regex lastname!='.*son$' | head 5";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_regex_negated.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testSimpleSortExpressionPushDownExplain() throws Exception {
+    String query =
+        "source=opensearch-sql_test_index_bank| eval age2 = age + 2 | sort age2 | fields age, age2";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_simple_sort_expr_push.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testSimpleSortExpressionPushDownWithOnlyExprProjected() throws Exception {
+    String query =
+        "source=opensearch-sql_test_index_bank| eval b = balance + 1 | sort b | fields b";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_simple_sort_expr_single_expr_output_push.json");
+    assertJsonEqualsIgnoreId(expected, result);
   }
 
   /**
