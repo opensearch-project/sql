@@ -427,7 +427,7 @@ public class CalciteExplainIT extends ExplainIT {
         "source=opensearch-sql_test_index_bank| eval b = balance + 1 | sort b | fields b";
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_simple_sort_expr_single_expr_output_push.json");
-        assertJsonEqualsIgnoreId(expected, result);
+    assertJsonEqualsIgnoreId(expected, result);
   }
 
   @Test
