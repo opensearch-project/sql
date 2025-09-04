@@ -527,6 +527,19 @@ public class PPLQueryDataAnonymizerTest {
         anonymize("source=t | regex email='.*@domain.com' | fields email"));
   }
 
+  @Test
+  public void testMvjoin() {
+    // Test mvjoin with array of strings
+    assertEquals(
+        "source=t | eval result=mvjoin(array(***,***,***),***) | fields + result",
+        anonymize("source=t | eval result=mvjoin(array('a', 'b', 'c'), ',') | fields result"));
+
+    // Test mvjoin with single string value
+    assertEquals(
+        "source=t | eval result=mvjoin(***,***) | fields + result",
+        anonymize("source=t | eval result=mvjoin('hello', ',') | fields result"));
+  }
+
   private String anonymize(String query) {
     AstBuilder astBuilder = new AstBuilder(query, settings);
     return anonymize(astBuilder.visit(parser.parse(query)));
