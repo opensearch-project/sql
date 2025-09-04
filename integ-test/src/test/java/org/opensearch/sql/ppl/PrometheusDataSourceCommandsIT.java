@@ -16,11 +16,7 @@ import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.io.Resources;
 import java.io.IOException;
-import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
@@ -267,7 +263,7 @@ public class PrometheusDataSourceCommandsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void explainQueryRange() throws Exception {
+  public void explainQueryRange() throws IOException {
     String expected = loadFromFile("expectedOutput/ppl/explain_query_range.json");
     assertJsonEquals(
         expected,
@@ -277,7 +273,7 @@ public class PrometheusDataSourceCommandsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testExplainForQueryExemplars() throws Exception {
+  public void testExplainForQueryExemplars() throws IOException {
     String expected = loadFromFile("expectedOutput/ppl/explain_query_exemplars.json");
     assertJsonEquals(
         expected,
@@ -316,10 +312,5 @@ public class PrometheusDataSourceCommandsIT extends PPLIntegTestCase {
     Request deleteRequest = getDeleteDataSourceRequest("disabled_prometheus");
     Response deleteResponse = client().performRequest(deleteRequest);
     Assert.assertEquals(204, deleteResponse.getStatusLine().getStatusCode());
-  }
-
-  String loadFromFile(String filename) throws Exception {
-    URI uri = Resources.getResource(filename).toURI();
-    return new String(Files.readAllBytes(Paths.get(uri)));
   }
 }

@@ -306,6 +306,39 @@ public class PPLSyntaxParserTest {
   }
 
   @Test
+  public void testMultiFieldRelevanceFunctionsWithoutFields() {
+    // Test multi_match without fields parameter
+    assertNotEquals(
+        null, new PPLSyntaxParser().parse("SOURCE=test | WHERE multi_match('query text')"));
+
+    // Test multi_match without fields but with optional parameters
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE multi_match('query text', analyzer='keyword')"));
+
+    // Test simple_query_string without fields parameter
+    assertNotEquals(
+        null, new PPLSyntaxParser().parse("SOURCE=test | WHERE simple_query_string('query text')"));
+
+    // Test simple_query_string without fields but with optional parameters
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE simple_query_string('query text', flags='ALL')"));
+
+    // Test query_string without fields parameter
+    assertNotEquals(
+        null, new PPLSyntaxParser().parse("SOURCE=test | WHERE query_string('query text')"));
+
+    // Test query_string without fields but with optional parameters
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE query_string('query text', default_operator='AND')"));
+  }
+
+  @Test
   public void testDescribeCommandShouldPass() {
     ParseTree tree = new PPLSyntaxParser().parse("describe t");
     assertNotEquals(null, tree);
@@ -333,17 +366,6 @@ public class PPLSyntaxParserTest {
   public void testDescribeFieldsCommandShouldPass() {
     ParseTree tree = new PPLSyntaxParser().parse("describe t | fields a,b");
     assertNotEquals(null, tree);
-  }
-
-  @Test
-  public void testDescribeCommandWithSourceShouldFail() {
-    exceptionRule.expect(RuntimeException.class);
-    exceptionRule.expectMessage(
-        StringContainsInOrder.stringContainsInOrder(
-            "[=] is not a valid term at this part of the query: 'describe source=' <-- HERE.",
-            "Expecting tokens:"));
-
-    new PPLSyntaxParser().parse("describe source=t");
   }
 
   @Test
@@ -446,5 +468,98 @@ public class PPLSyntaxParserTest {
   public void testCanParseFillNullVariousValues() {
     assertNotNull(new PPLSyntaxParser().parse("SOURCE=test | fillnull using a = 0"));
     assertNotNull(new PPLSyntaxParser().parse("SOURCE=test | fillnull using a = 0, b = 1"));
+  }
+
+  @Test
+  public void testLineCommentShouldPass() {
+    assertNotNull(new PPLSyntaxParser().parse("search source=t a=1 b=2 //this is a comment"));
+    assertNotNull(new PPLSyntaxParser().parse("search source=t a=1 b=2 // this is a comment "));
+    assertNotNull(
+        new PPLSyntaxParser()
+            .parse(
+                """
+                    // test is a new line comment \
+                    search source=t a=1 b=2 // test is a line comment at the end of ppl command \
+                    | fields a,b // this is line comment inner ppl command\
+                    ////this is a new line comment
+                    """));
+  }
+
+  @Test
+  public void testBlockCommentShouldPass() {
+    assertNotNull(new PPLSyntaxParser().parse("search source=t a=1 b=2 /*block comment*/"));
+    assertNotNull(new PPLSyntaxParser().parse("search source=t a=1 b=2 /* block comment */"));
+    assertNotNull(
+        new PPLSyntaxParser()
+            .parse(
+                """
+                    /*
+                    This is a\
+                        multiple\
+                    line\
+                    block\
+                        comment */\
+                    search /* block comment */ source=t /* block comment */ a=1 b=2
+                    |/*
+                        This is a\
+                            multiple\
+                        line\
+                        block\
+                            comment */ fields a,b /* block comment */ \
+                    """));
+  }
+
+  @Test
+  public void testWhereCommand() {
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x = 1"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x = y"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x OR y"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE true"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE (1 >= 0)"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE (x >= 0)"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE (x < 1) = (y > 1)"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x = (1 + 2) * 3"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x = 1 + 2 * 3"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE (day_of_week_i < 2) OR (day_of_week_i > 5)"));
+  }
+
+  @Test
+  public void testWhereCommandWithDoubleEqual() {
+    // Test that == operator is supported in WHERE clause
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x == 1"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x == y"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE name == 'John'"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE (x == 1) AND (y == 2)"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x == 1 OR y == 2"));
+    // Test mixing = and == operators
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x == 1 AND y = 2"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x = 1 OR y == 2"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE (x < 1) == (y > 1)"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE match('message', 'test query', analyzer='keyword')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse(
+                "SOURCE=test | WHERE multi_match(['field1', 'field2' ^ 3.2], 'test query',"
+                    + " analyzer='keyword')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse(
+                "SOURCE=test | WHERE simple_query_string(['field1', 'field2' ^ 3.2], 'test query',"
+                    + " analyzer='keyword')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse(
+                "SOURCE=test | WHERE query_string(['field1', 'field2' ^ 3.2], 'test query',"
+                    + " analyzer='keyword')"));
   }
 }

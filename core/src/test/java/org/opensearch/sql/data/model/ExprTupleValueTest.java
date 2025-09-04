@@ -55,4 +55,21 @@ class ExprTupleValueTest {
         assertThrows(ExpressionEvaluationException.class, () -> compare(tupleValue, tupleValue));
     assertEquals("ExprTupleValue instances are not comparable", exception.getMessage());
   }
+
+  @Test
+  public void testMergeTo() {
+    ExprValue tupleValue1 =
+        ExprValueUtils.tupleValue(
+            ImmutableMap.of("v1", 1, "inner_tuple", ImmutableMap.of("inner_v1", 1)));
+    ExprValue tupleValue2 =
+        ExprValueUtils.tupleValue(
+            ImmutableMap.of("v2", 2, "inner_tuple", ImmutableMap.of("inner_v2", 2)));
+    ExprValue expectedMergedValue =
+        ExprValueUtils.tupleValue(
+            ImmutableMap.of(
+                "v1", 1,
+                "inner_tuple", ImmutableMap.of("inner_v1", 1, "inner_v2", 2),
+                "v2", 2));
+    assertEquals(expectedMergedValue, tupleValue1.mergeTo(tupleValue2));
+  }
 }

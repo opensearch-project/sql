@@ -109,13 +109,6 @@ public class DateTimeFormatters {
   public static final DateTimeFormatter SQL_LITERAL_DATE_TIME_FORMAT =
       DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-  public static final DateTimeFormatter DATE_TIME_FORMATTER =
-      new DateTimeFormatterBuilder()
-          .appendOptional(SQL_LITERAL_DATE_TIME_FORMAT)
-          .appendOptional(STRICT_DATE_OPTIONAL_TIME_FORMATTER)
-          .appendOptional(STRICT_HOUR_MINUTE_SECOND_FORMATTER)
-          .toFormatter();
-
   /** todo. only support timestamp in format yyyy-MM-dd HH:mm:ss. */
   public static final DateTimeFormatter DATE_TIME_FORMATTER_WITHOUT_NANO =
       SQL_LITERAL_DATE_TIME_FORMAT;
@@ -133,6 +126,26 @@ public class DateTimeFormatters {
           .appendPattern("[uuuu-MM-dd HH:mm:ss][uuuu-MM-dd HH:mm][HH:mm:ss][HH:mm][uuuu-MM-dd]")
           .appendFraction(
               ChronoField.NANO_OF_SECOND, MIN_FRACTION_SECONDS, MAX_FRACTION_SECONDS, true)
+          .toFormatter(Locale.ROOT)
+          .withResolverStyle(ResolverStyle.STRICT);
+
+  public static final DateTimeFormatter DATE_TIMESTAMP_FORMATTER =
+      new DateTimeFormatterBuilder()
+          .appendPattern("[uuuu-MM-dd HH:mm:ss][uuuu-MM-dd HH:mm][uuuu-MM-dd]")
+          .appendFraction(
+              ChronoField.NANO_OF_SECOND, MIN_FRACTION_SECONDS, MAX_FRACTION_SECONDS, true)
+          .parseDefaulting(HOUR_OF_DAY, 0)
+          .parseDefaulting(MINUTE_OF_HOUR, 0)
+          .parseDefaulting(SECOND_OF_MINUTE, 0)
+          .toFormatter(Locale.ROOT)
+          .withResolverStyle(ResolverStyle.STRICT);
+
+  public static final DateTimeFormatter TIME_TIMESTAMP_FORMATTER =
+      new DateTimeFormatterBuilder()
+          .appendPattern("[uuuu-MM-dd HH:mm:ss][uuuu-MM-dd HH:mm][HH:mm:ss][HH:mm]")
+          .appendFraction(
+              ChronoField.NANO_OF_SECOND, MIN_FRACTION_SECONDS, MAX_FRACTION_SECONDS, true)
+          .parseDefaulting(SECOND_OF_MINUTE, 0)
           .toFormatter(Locale.ROOT)
           .withResolverStyle(ResolverStyle.STRICT);
 

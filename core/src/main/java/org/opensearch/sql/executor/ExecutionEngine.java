@@ -7,10 +7,13 @@ package org.opensearch.sql.executor;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import lombok.ToString;
 import org.apache.calcite.rel.RelNode;
+import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.model.ExprValue;
@@ -48,6 +51,12 @@ public interface ExecutionEngine {
   default void execute(
       RelNode plan, CalcitePlanContext context, ResponseListener<QueryResponse> listener) {}
 
+  default void explain(
+      RelNode plan,
+      Explain.ExplainFormat format,
+      CalcitePlanContext context,
+      ResponseListener<ExplainResponse> listener) {}
+
   /** Data class that encapsulates ExprValue. */
   @Data
   class QueryResponse {
@@ -75,6 +84,31 @@ public interface ExecutionEngine {
   @Data
   class ExplainResponse {
     private final ExplainResponseNode root;
+    // used in Calcite plan explain
+    private final ExplainResponseNodeV2 calcite;
+
+    public ExplainResponse(ExplainResponseNode root) {
+      this.root = root;
+      this.calcite = null;
+    }
+
+    public ExplainResponse(ExplainResponseNodeV2 calcite) {
+      this.root = null;
+      this.calcite = calcite;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+      ExplainResponse that = (ExplainResponse) o;
+      return Objects.equals(root, that.root) || Objects.equals(calcite, that.calcite);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(root, calcite);
+    }
   }
 
   @AllArgsConstructor
@@ -84,5 +118,14 @@ public interface ExecutionEngine {
     private final String name;
     private Map<String, Object> description;
     private List<ExplainResponseNode> children;
+  }
+
+  @RequiredArgsConstructor
+  @Data
+  @ToString
+  class ExplainResponseNodeV2 {
+    private final String logical;
+    private final String physical;
+    private final String extended;
   }
 }

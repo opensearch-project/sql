@@ -96,6 +96,17 @@ public class PPLPluginIT extends PPLIntegTestCase {
     updateClusterSettings(new ClusterSetting(PERSISTENT, "plugins.ppl.enabled", null));
   }
 
+  @Test
+  public void testQueryEndpointShouldFailWithInvalidPayload() throws IOException {
+    exceptionRule.expect(ResponseException.class);
+    exceptionRule.expect(hasProperty("response", statusCode(400)));
+
+    Request post = new Request("POST", "/_plugins/_ppl");
+    post.setJsonEntity("{ \"query\": [\"search source=test\"] }");
+
+    client().performRequest(post);
+  }
+
   protected Request makePPLRequest(String query) {
     Request post = new Request("POST", "/_plugins/_ppl");
     post.setJsonEntity(String.format(Locale.ROOT, "{\n" + "  \"query\": \"%s\"\n" + "}", query));

@@ -6,159 +6,309 @@
 package org.opensearch.sql.calcite.utils;
 
 import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
+import static org.apache.calcite.sql.type.SqlTypeUtil.createMapType;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.*;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.*;
 
+import com.google.common.collect.ImmutableSet;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import org.apache.calcite.linq4j.tree.Types;
+import java.util.Objects;
+import java.util.Set;
+import javax.annotation.Nullable;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.enumerable.NotNullImplementor;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.schema.ScalarFunction;
 import org.apache.calcite.schema.impl.AggregateFunctionImpl;
-import org.apache.calcite.schema.impl.ScalarFunctionImpl;
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
-import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Optionality;
+import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
-import org.opensearch.sql.calcite.udf.UserDefinedFunction;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.expression.function.FunctionProperties;
+import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 public class UserDefinedFunctionUtils {
-  public static RelBuilder.AggCall TransferUserDefinedAggFunction(
-      Class<? extends UserDefinedAggFunction> UDAF,
+  public static final RelDataType NULLABLE_DATE_UDT = TYPE_FACTORY.createUDT(EXPR_DATE, true);
+  public static final RelDataType NULLABLE_TIME_UDT = TYPE_FACTORY.createUDT(EXPR_TIME, true);
+  public static final RelDataType NULLABLE_TIMESTAMP_UDT =
+      TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, true);
+  public static final RelDataType NULLABLE_STRING =
+      TYPE_FACTORY.createTypeWithNullability(TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR), true);
+  public static final RelDataType NULLABLE_IP_UDT = TYPE_FACTORY.createUDT(EXPR_IP, true);
+
+  public static RelDataType nullablePatternAggList =
+      createArrayType(
+          TYPE_FACTORY,
+          TYPE_FACTORY.createMapType(
+              TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),
+              TYPE_FACTORY.createSqlType(SqlTypeName.ANY)),
+          true);
+  public static RelDataType patternStruct =
+      createMapType(
+          TYPE_FACTORY,
+          TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),
+          TYPE_FACTORY.createSqlType(SqlTypeName.ANY),
+          false);
+  public static RelDataType tokensMap =
+      TYPE_FACTORY.createMapType(
+          TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),
+          createArrayType(TYPE_FACTORY, TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR), false));
+  public static Set<String> SINGLE_FIELD_RELEVANCE_FUNCTION_SET =
+      ImmutableSet.of("match", "match_phrase", "match_bool_prefix", "match_phrase_prefix");
+  public static Set<String> MULTI_FIELDS_RELEVANCE_FUNCTION_SET =
+      ImmutableSet.of("simple_query_string", "query_string", "multi_match");
+  public static String IP_FUNCTION_NAME = "IP";
+
+  /**
+   * Creates a SqlUserDefinedAggFunction that wraps a Java class implementing an aggregate function.
+   *
+   * @param udafClass The Java class that implements the UserDefinedAggFunction interface
+   * @param functionName The name of the function to be used in SQL statements
+   * @param returnType A SqlReturnTypeInference that determines the return type of the function
+   * @return A SqlUserDefinedAggFunction that can be used in SQL queries
+   */
+  public static SqlUserDefinedAggFunction createUserDefinedAggFunction(
+      Class<? extends UserDefinedAggFunction<?>> udafClass,
       String functionName,
       SqlReturnTypeInference returnType,
+      @Nullable UDFOperandMetadata operandMetadata) {
+    return new SqlUserDefinedAggFunction(
+        new SqlIdentifier(functionName, SqlParserPos.ZERO),
+        SqlKind.OTHER_FUNCTION,
+        returnType,
+        null,
+        operandMetadata,
+        Objects.requireNonNull(AggregateFunctionImpl.create(udafClass)),
+        false,
+        false,
+        Optionality.FORBIDDEN);
+  }
+
+  /**
+   * Creates an aggregate call using the provided SqlAggFunction and arguments.
+   *
+   * @param aggFunction The aggregate function to call
+   * @param fields The primary fields to aggregate
+   * @param argList Additional arguments for the aggregate function
+   * @param relBuilder The RelBuilder instance used for building relational expressions
+   * @return An AggCall object representing the aggregate function call
+   */
+  public static RelBuilder.AggCall makeAggregateCall(
+      SqlAggFunction aggFunction,
       List<RexNode> fields,
       List<RexNode> argList,
       RelBuilder relBuilder) {
-    SqlUserDefinedAggFunction sqlUDAF =
-        new SqlUserDefinedAggFunction(
-            new SqlIdentifier(functionName, SqlParserPos.ZERO),
-            SqlKind.OTHER_FUNCTION,
-            returnType,
-            null,
-            null,
-            AggregateFunctionImpl.create(UDAF),
-            false,
-            false,
-            Optionality.FORBIDDEN);
     List<RexNode> addArgList = new ArrayList<>(fields);
     addArgList.addAll(argList);
-    return relBuilder.aggregateCall(sqlUDAF, addArgList);
+    return relBuilder.aggregateCall(aggFunction, addArgList);
   }
 
-  public static SqlOperator TransferUserDefinedFunction(
-      Class<? extends UserDefinedFunction> UDF,
-      String functionName,
-      SqlReturnTypeInference returnType) {
-    final ScalarFunction udfFunction =
-        ScalarFunctionImpl.create(Types.lookupMethod(UDF, "eval", Object[].class));
-    SqlIdentifier udfLtrimIdentifier =
-        new SqlIdentifier(Collections.singletonList(functionName), null, SqlParserPos.ZERO, null);
-    return new SqlUserDefinedFunction(
-        udfLtrimIdentifier,
-        SqlKind.OTHER_FUNCTION,
-        returnType,
-        InferTypes.ANY_NULLABLE,
-        null,
-        udfFunction);
+  public static SqlTypeName convertRelDataTypeToSqlTypeName(RelDataType type) {
+    if (type instanceof AbstractExprRelDataType<?> exprType) {
+      return switch (exprType.getUdt()) {
+        case EXPR_DATE -> SqlTypeName.DATE;
+        case EXPR_TIME -> SqlTypeName.TIME;
+        case EXPR_TIMESTAMP -> SqlTypeName.TIMESTAMP;
+          // EXPR_IP is mapped to SqlTypeName.OTHER since there is no
+          // corresponding SqlTypeName in Calcite.
+        case EXPR_IP -> SqlTypeName.OTHER;
+        case EXPR_BINARY -> SqlTypeName.VARBINARY;
+        default -> type.getSqlTypeName();
+      };
+    }
+    return type.getSqlTypeName();
   }
 
-  public static SqlReturnTypeInference getReturnTypeInferenceForArray() {
-    return opBinding -> {
-      RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+  public static FunctionProperties restoreFunctionProperties(DataContext dataContext) {
+    long currentTimeInNanos = DataContext.Variable.UTC_TIMESTAMP.get(dataContext);
+    Instant instant =
+        Instant.ofEpochSecond(
+            currentTimeInNanos / 1_000_000_000, currentTimeInNanos % 1_000_000_000);
+    ZoneId zoneId = ZoneOffset.UTC;
+    return new FunctionProperties(instant, zoneId, QueryType.PPL);
+  }
 
-      // Get argument types
-      List<RelDataType> argTypes = opBinding.collectOperandTypes();
+  /**
+   * Convert java objects to ExprValue, so that the parameters fit the expr function signature. It
+   * invokes ExprValueUtils.fromObjectValue to convert the java objects to ExprValue. Note that
+   * date/time/timestamp strings will be converted to strings instead of ExprDateValue, etc.
+   *
+   * @param operands the operands to convert
+   * @param rexCall the RexCall object containing the operands
+   * @return the converted operands
+   */
+  public static List<Expression> convertToExprValues(List<Expression> operands, RexCall rexCall) {
+    List<RelDataType> types = rexCall.getOperands().stream().map(RexNode::getType).toList();
+    return convertToExprValues(operands, types);
+  }
 
-      if (argTypes.isEmpty()) {
-        throw new IllegalArgumentException("Function requires at least one argument.");
+  /**
+   * Convert java objects to ExprValue, so that the parameters fit the expr function signature. It
+   * invokes ExprValueUtils.fromObjectValue to convert the java objects to ExprValue. Note that
+   * date/time/timestamp strings will be converted to strings instead of ExprDateValue, etc.
+   *
+   * @param operands the operands to convert
+   * @return the converted operands
+   */
+  public static List<Expression> convertToExprValues(
+      List<Expression> operands, List<RelDataType> types) {
+    List<ExprType> exprTypes =
+        types.stream().map(OpenSearchTypeFactory::convertRelDataTypeToExprType).toList();
+    List<Expression> exprValues = new ArrayList<>();
+    for (int i = 0; i < operands.size(); i++) {
+      Expression operand = Expressions.convert_(operands.get(i), Object.class);
+      exprValues.add(
+          i,
+          Expressions.call(
+              ExprValueUtils.class,
+              "fromObjectValue",
+              operand,
+              Expressions.constant(exprTypes.get(i))));
+    }
+    return exprValues;
+  }
+
+  /**
+   * Adapt a static expr method to a UserDefinedFunctionBuilder. It first converts the operands to
+   * ExprValue, then calls the method, and finally converts the result to values recognizable by
+   * Calcite by calling exprValue.valueForCalcite.
+   *
+   * @param type the class containing the static method
+   * @param methodName the name of the method
+   * @param returnTypeInference the return type inference of the UDF
+   * @param nullPolicy the null policy of the UDF
+   * @param operandMetadata type checker
+   * @return an adapted ImplementorUDF with the expr method, which is a UserDefinedFunctionBuilder
+   */
+  public static ImplementorUDF adaptExprMethodToUDF(
+      java.lang.reflect.Type type,
+      String methodName,
+      SqlReturnTypeInference returnTypeInference,
+      NullPolicy nullPolicy,
+      @Nullable UDFOperandMetadata operandMetadata) {
+    NotNullImplementor implementor =
+        (translator, call, translatedOperands) -> {
+          List<Expression> operands =
+              convertToExprValues(
+                  translatedOperands, call.getOperands().stream().map(RexNode::getType).toList());
+          Expression exprResult = Expressions.call(type, methodName, operands);
+          return Expressions.call(exprResult, "valueForCalcite");
+        };
+    return new ImplementorUDF(implementor, nullPolicy) {
+      @Override
+      public SqlReturnTypeInference getReturnTypeInference() {
+        return returnTypeInference;
       }
-      RelDataType firstArgType = argTypes.getFirst();
-      return createArrayType(typeFactory, firstArgType, true);
+
+      @Override
+      public UDFOperandMetadata getOperandMetadata() {
+        return operandMetadata;
+      }
     };
   }
 
   /**
-   * Infer return argument type as the widest return type among arguments as specified positions.
-   * E.g. (Integer, Long) -> Long; (Double, Float, SHORT) -> Double
-   *
-   * @param positions positions where the return type should be inferred from
-   * @param nullable whether the returned value is nullable
-   * @return The type inference
+   * Adapts a method from the v2 implementation whose parameters include a {@link
+   * FunctionProperties} at the beginning to a Calcite-compatible UserDefinedFunctionBuilder.
    */
-  public static SqlReturnTypeInference getLeastRestrictiveReturnTypeAmongArgsAt(
-      List<Integer> positions, boolean nullable) {
-    return opBinding -> {
-      RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-      List<RelDataType> types = new ArrayList<>();
-
-      for (int position : positions) {
-        if (position < 0 || position >= opBinding.getOperandCount()) {
-          throw new IllegalArgumentException("Invalid argument position: " + position);
-        }
-        types.add(opBinding.getOperandType(position));
+  public static ImplementorUDF adaptExprMethodWithPropertiesToUDF(
+      java.lang.reflect.Type type,
+      String methodName,
+      SqlReturnTypeInference returnTypeInference,
+      NullPolicy nullPolicy,
+      UDFOperandMetadata operandMetadata) {
+    NotNullImplementor implementor =
+        (translator, call, translatedOperands) -> {
+          List<Expression> operands =
+              convertToExprValues(
+                  translatedOperands, call.getOperands().stream().map(RexNode::getType).toList());
+          List<Expression> operandsWithProperties = prependFunctionProperties(operands, translator);
+          Expression exprResult = Expressions.call(type, methodName, operandsWithProperties);
+          return Expressions.call(exprResult, "valueForCalcite");
+        };
+    return new ImplementorUDF(implementor, nullPolicy) {
+      @Override
+      public SqlReturnTypeInference getReturnTypeInference() {
+        return returnTypeInference;
       }
 
-      RelDataType widerType = typeFactory.leastRestrictive(types);
-      if (widerType == null) {
-        throw new IllegalArgumentException(
-            "Cannot determine a common type for the given positions.");
+      @Override
+      public UDFOperandMetadata getOperandMetadata() {
+        return operandMetadata;
       }
-
-      return typeFactory.createTypeWithNullability(widerType, nullable);
     };
   }
 
   /**
-   * For some udf/udaf, when giving a list of arguments, we need to infer the return type from the
-   * arguments.
+   * Adapt a static math function (e.g., Math.expm1, Math.rint) to a UserDefinedFunctionBuilder.
+   * This method generates a Calcite-compatible UDF by boxing the operand, converting it to a
+   * double, and then calling the corresponding method in {@link Math}.
    *
-   * @param targetPosition
-   * @return a inference function
+   * <p>It assumes the math method has the signature: {@code double method(double)}. This utility is
+   * specifically designed for single-operand Math methods.
+   *
+   * @param methodName the name of the static method in {@link Math} to be invoked
+   * @param returnTypeInference the return type inference of the UDF
+   * @param nullPolicy the null policy of the UDF
+   * @param operandMetadata type checker
+   * @return an adapted ImplementorUDF with the math method, which is a UserDefinedFunctionBuilder
    */
-  public static SqlReturnTypeInference getReturnTypeInference(int targetPosition) {
-    return opBinding -> {
-      RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+  public static ImplementorUDF adaptMathFunctionToUDF(
+      String methodName,
+      SqlReturnTypeInference returnTypeInference,
+      NullPolicy nullPolicy,
+      UDFOperandMetadata operandMetadata) {
 
-      // Get argument types
-      List<RelDataType> argTypes = opBinding.collectOperandTypes();
+    NotNullImplementor implementor =
+        (translator, call, translatedOperands) -> {
+          Expression operand = translatedOperands.get(0);
+          operand = Expressions.box(operand);
+          operand = Expressions.call(operand, "doubleValue");
+          return Expressions.call(Math.class, methodName, operand);
+        };
 
-      if (argTypes.isEmpty()) {
-        throw new IllegalArgumentException("Function requires at least one argument.");
+    return new ImplementorUDF(implementor, nullPolicy) {
+      @Override
+      public SqlReturnTypeInference getReturnTypeInference() {
+        return returnTypeInference;
       }
-      RelDataType firstArgType = argTypes.get(targetPosition);
-      return typeFactory.createTypeWithNullability(
-          typeFactory.createSqlType(firstArgType.getSqlTypeName()), true);
+
+      @Override
+      public UDFOperandMetadata getOperandMetadata() {
+        return operandMetadata;
+      }
     };
   }
 
-  /**
-   * For some udf/udaf, We need to create nullable types arguments.
-   *
-   * @param typeName
-   * @return a inference function
-   */
-  public static SqlReturnTypeInference getNullableReturnTypeInferenceForFixedType(
-      SqlTypeName typeName) {
-    return opBinding -> {
-      RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-
-      // Get argument types
-      List<RelDataType> argTypes = opBinding.collectOperandTypes();
-
-      if (argTypes.isEmpty()) {
-        throw new IllegalArgumentException("Function requires at least one argument.");
-      }
-      return typeFactory.createTypeWithNullability(typeFactory.createSqlType(typeName), true);
-    };
+  public static List<Expression> prependFunctionProperties(
+      List<Expression> operands, RexToLixTranslator translator) {
+    List<Expression> operandsWithProperties = new ArrayList<>(operands);
+    Expression properties =
+        Expressions.call(
+            UserDefinedFunctionUtils.class, "restoreFunctionProperties", translator.getRoot());
+    operandsWithProperties.addFirst(properties);
+    return Collections.unmodifiableList(operandsWithProperties);
   }
 }

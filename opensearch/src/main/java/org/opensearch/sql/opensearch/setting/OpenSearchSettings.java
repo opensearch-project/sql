@@ -71,8 +71,31 @@ public class OpenSearchSettings extends Settings {
 
   public static final Setting<?> DEFAULT_PATTERN_METHOD_SETTING =
       Setting.simpleString(
-          Key.DEFAULT_PATTERN_METHOD.getKeyValue(),
+          Key.PATTERN_METHOD.getKeyValue(),
           "SIMPLE_PATTERN",
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<?> DEFAULT_PATTERN_MODE_SETTING =
+      Setting.simpleString(
+          Key.PATTERN_MODE.getKeyValue(),
+          "LABEL",
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<?> DEFAULT_PATTERN_MAX_SAMPLE_COUNT_SETTING =
+      Setting.intSetting(
+          Key.PATTERN_MAX_SAMPLE_COUNT.getKeyValue(),
+          10,
+          0,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<?> DEFAULT_PATTERN_BUFFER_LIMIT_SETTING =
+      Setting.intSetting(
+          Key.PATTERN_BUFFER_LIMIT.getKeyValue(),
+          100000,
+          50000,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
@@ -86,7 +109,7 @@ public class OpenSearchSettings extends Settings {
   public static final Setting<?> CALCITE_FALLBACK_ALLOWED_SETTING =
       Setting.boolSetting(
           Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(),
-          true,
+          false,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
@@ -94,6 +117,13 @@ public class OpenSearchSettings extends Settings {
       Setting.boolSetting(
           Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(),
           true,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<Double> CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR_SETTING =
+      Setting.doubleSetting(
+          Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR.getKeyValue(),
+          0.9,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
@@ -276,9 +306,27 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
-        Key.DEFAULT_PATTERN_METHOD,
+        Key.PATTERN_METHOD,
         DEFAULT_PATTERN_METHOD_SETTING,
-        new Updater(Key.DEFAULT_PATTERN_METHOD));
+        new Updater(Key.PATTERN_METHOD));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.PATTERN_MODE,
+        DEFAULT_PATTERN_MODE_SETTING,
+        new Updater(Key.PATTERN_MODE));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.PATTERN_MAX_SAMPLE_COUNT,
+        DEFAULT_PATTERN_MAX_SAMPLE_COUNT_SETTING,
+        new Updater(Key.PATTERN_MAX_SAMPLE_COUNT));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.PATTERN_BUFFER_LIMIT,
+        DEFAULT_PATTERN_BUFFER_LIMIT_SETTING,
+        new Updater(Key.PATTERN_BUFFER_LIMIT));
     register(
         settingBuilder,
         clusterSettings,
@@ -297,6 +345,12 @@ public class OpenSearchSettings extends Settings {
         Key.CALCITE_PUSHDOWN_ENABLED,
         CALCITE_PUSHDOWN_ENABLED_SETTING,
         new Updater(Key.CALCITE_PUSHDOWN_ENABLED));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR,
+        CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR_SETTING,
+        new Updater(Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR));
     register(
         settingBuilder,
         clusterSettings,
@@ -472,7 +526,11 @@ public class OpenSearchSettings extends Settings {
         .add(CALCITE_ENGINE_ENABLED_SETTING)
         .add(CALCITE_FALLBACK_ALLOWED_SETTING)
         .add(CALCITE_PUSHDOWN_ENABLED_SETTING)
+        .add(CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR_SETTING)
         .add(DEFAULT_PATTERN_METHOD_SETTING)
+        .add(DEFAULT_PATTERN_MODE_SETTING)
+        .add(DEFAULT_PATTERN_MAX_SAMPLE_COUNT_SETTING)
+        .add(DEFAULT_PATTERN_BUFFER_LIMIT_SETTING)
         .add(QUERY_MEMORY_LIMIT_SETTING)
         .add(QUERY_SIZE_LIMIT_SETTING)
         .add(METRICS_ROLLING_WINDOW_SETTING)

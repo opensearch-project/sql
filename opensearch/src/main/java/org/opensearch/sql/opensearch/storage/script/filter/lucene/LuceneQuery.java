@@ -88,7 +88,7 @@ public abstract class LuceneQuery {
   /**
    * Check if the second argument of the function is a literal expression wrapped by cast function.
    */
-  private boolean literalExpressionWrappedByCast(FunctionExpression func) {
+  protected boolean literalExpressionWrappedByCast(FunctionExpression func) {
     if (func.getArguments().get(1) instanceof FunctionExpression) {
       FunctionExpression expr = (FunctionExpression) func.getArguments().get(1);
       return castMap.containsKey(expr.getFunctionName())
@@ -109,7 +109,7 @@ public abstract class LuceneQuery {
     Expression expr = func.getArguments().get(1);
     ExprValue literalValue =
         expr instanceof LiteralExpression ? expr.valueOf() : cast((FunctionExpression) expr, ref);
-    return doBuild(ref.getAttr(), ref.type(), literalValue);
+    return doBuild(ref.getRawPath(), ref.type(), literalValue);
   }
 
   private ExprValue cast(FunctionExpression castFunction, ReferenceExpression ref) {

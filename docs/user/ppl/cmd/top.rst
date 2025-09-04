@@ -18,9 +18,14 @@ Syntax
 ============
 top [N] <field-list> [by-clause]
 
+top [N] <field-list> [top-options] [by-clause] ``(available from 3.1.0+)``
+
 * N: number of results to return. **Default**: 10
 * field-list: mandatory. comma-delimited list of field names.
 * by-clause: optional. one or more fields to group the results by.
+* top-options: optional. options for the top command. Supported syntax is [countfield=<string>] [showcount=<bool>].
+* showcount=<bool>: optional. whether to create a field in output that represent a count of the tuple of values. Default value is ``true``.
+* countfield=<string>: optional. the name of the field that contains count. Default value is ``'count'``.
 
 
 Example 1: Find the most common values in a field
@@ -68,6 +73,39 @@ PPL query::
     |--------+-----|
     | F      | 28  |
     | M      | 32  |
+    +--------+-----+
+
+Example 3: Top command with Calcite enabled
+===========================================
+
+The example finds most common gender of all the accounts when ``plugins.calcite.enabled`` is true.
+
+PPL query::
+
+    PPL> source=accounts | top gender;
+    fetched row
+    +--------+-------+
+    | gender | count |
+    |--------+-------|
+    | M      | 3     |
+    | F      | 1     |
+    +--------+-------+
+
+
+Example 4: Specify the count field option
+=========================================
+
+The example specifies the count field when ``plugins.calcite.enabled`` is true.
+
+PPL query::
+
+    PPL> source=accounts | top countfield='cnt' gender;
+    fetched row
+    +--------+-----+
+    | gender | cnt |
+    |--------+-----|
+    | M      | 3   |
+    | F      | 1   |
     +--------+-----+
 
 Limitation

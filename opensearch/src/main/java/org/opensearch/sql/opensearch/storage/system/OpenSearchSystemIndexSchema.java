@@ -5,9 +5,10 @@
 
 package org.opensearch.sql.opensearch.storage.system;
 
+import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.SHORT;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
-import com.google.common.collect.ImmutableMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.Getter;
@@ -34,32 +35,33 @@ public enum OpenSearchSystemIndexSchema {
         }
       }),
   SYS_TABLE_MAPPINGS(
-      new ImmutableMap.Builder<String, ExprType>()
-          .put("TABLE_CAT", STRING)
-          .put("TABLE_SCHEM", STRING)
-          .put("TABLE_NAME", STRING)
-          .put("COLUMN_NAME", STRING)
-          .put("DATA_TYPE", STRING)
-          .put("TYPE_NAME", STRING)
-          .put("COLUMN_SIZE", STRING)
-          .put("BUFFER_LENGTH", STRING)
-          .put("DECIMAL_DIGITS", STRING)
-          .put("NUM_PREC_RADIX", STRING)
-          .put("NULLABLE", STRING)
-          .put("REMARKS", STRING)
-          .put("COLUMN_DEF", STRING)
-          .put("SQL_DATA_TYPE", STRING)
-          .put("SQL_DATETIME_SUB", STRING)
-          .put("CHAR_OCTET_LENGTH", STRING)
-          .put("ORDINAL_POSITION", STRING)
-          .put("IS_NULLABLE", STRING)
-          .put("SCOPE_CATALOG", STRING)
-          .put("SCOPE_SCHEMA", STRING)
-          .put("SCOPE_TABLE", STRING)
-          .put("SOURCE_DATA_TYPE", STRING)
-          .put("IS_AUTOINCREMENT", STRING)
-          .put("IS_GENERATEDCOLUMN", STRING)
-          .build());
-
+      new LinkedHashMap<String, ExprType>() {
+        {
+          put("TABLE_CAT", STRING);
+          put("TABLE_SCHEM", STRING);
+          put("TABLE_NAME", STRING);
+          put("COLUMN_NAME", STRING);
+          put("DATA_TYPE", INTEGER);
+          put("TYPE_NAME", STRING);
+          put("COLUMN_SIZE", INTEGER);
+          put("BUFFER_LENGTH", INTEGER);
+          put("DECIMAL_DIGITS", INTEGER);
+          put("NUM_PREC_RADIX", INTEGER);
+          put("NULLABLE", INTEGER);
+          put("REMARKS", STRING);
+          put("COLUMN_DEF", STRING);
+          put("SQL_DATA_TYPE", INTEGER);
+          put("SQL_DATETIME_SUB", INTEGER);
+          put("CHAR_OCTET_LENGTH", INTEGER);
+          put("ORDINAL_POSITION", INTEGER);
+          put("IS_NULLABLE", STRING);
+          put("SCOPE_CATALOG", STRING);
+          put("SCOPE_SCHEMA", STRING);
+          put("SCOPE_TABLE", STRING);
+          put("SOURCE_DATA_TYPE", SHORT);
+          put("IS_AUTOINCREMENT", STRING);
+          put("IS_GENERATEDCOLUMN", STRING);
+        }
+      });
   private final Map<String, ExprType> mapping;
 }

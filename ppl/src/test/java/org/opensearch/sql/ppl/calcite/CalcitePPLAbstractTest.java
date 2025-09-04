@@ -12,6 +12,8 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.opensearch.sql.executor.QueryType.PPL;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
@@ -24,18 +26,19 @@ import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
 import org.apache.calcite.rel.rel2sql.SqlImplementor;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.dialect.SparkSqlDialect;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelRunners;
+import org.apache.commons.lang3.StringUtils;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.parser.AstBuilder;
 import org.opensearch.sql.ppl.parser.AstStatementBuilder;
@@ -44,12 +47,12 @@ public class CalcitePPLAbstractTest {
   @Getter private final Frameworks.ConfigBuilder config;
   private final CalciteRelNodeVisitor planTransformer;
   private final RelToSqlConverter converter;
-  private final Settings settings;
+  protected final Settings settings;
 
   public CalcitePPLAbstractTest(CalciteAssert.SchemaSpec... schemaSpecs) {
     this.config = config(schemaSpecs);
     this.planTransformer = new CalciteRelNodeVisitor();
-    this.converter = new RelToSqlConverter(SparkSqlDialect.DEFAULT);
+    this.converter = new RelToSqlConverter(OpenSearchSparkSqlDialect.DEFAULT);
     this.settings = mock(Settings.class);
   }
 
@@ -73,7 +76,8 @@ public class CalcitePPLAbstractTest {
   /** Creates a CalcitePlanContext with transformed config. */
   private CalcitePlanContext createBuilderContext(UnaryOperator<RelBuilder.Config> transform) {
     config.context(Contexts.of(transform.apply(RelBuilder.Config.DEFAULT)));
-    return CalcitePlanContext.create(config.build(), PPL);
+    return CalcitePlanContext.create(
+        config.build(), settings.getSettingValue(Key.QUERY_SIZE_LIMIT), PPL);
   }
 
   /** Get the root RelNode of the given PPL query */
@@ -93,6 +97,37 @@ public class CalcitePPLAbstractTest {
             new AstBuilder(query, settings),
             AstStatementBuilder.StatementBuilderContext.builder().build());
     return builder.visit(parser.parse(query));
+  }
+
+  /**
+   * Fluent API for building count(eval) test cases. Provides a clean and readable way to define PPL
+   * queries and their expected outcomes.
+   */
+  protected PPLQueryTestBuilder withPPLQuery(String ppl) {
+    return new PPLQueryTestBuilder(ppl);
+  }
+
+  protected class PPLQueryTestBuilder {
+    private final RelNode relNode;
+
+    public PPLQueryTestBuilder(String ppl) {
+      this.relNode = getRelNode(ppl);
+    }
+
+    public PPLQueryTestBuilder expectLogical(String expectedLogical) {
+      verifyLogical(relNode, expectedLogical);
+      return this;
+    }
+
+    public PPLQueryTestBuilder expectResult(String expectedResult) {
+      verifyResult(relNode, expectedResult);
+      return this;
+    }
+
+    public PPLQueryTestBuilder expectSparkSQL(String expectedSparkSql) {
+      verifyPPLToSparkSQL(relNode, expectedSparkSql);
+      return this;
+    }
   }
 
   /** Verify the logical plan of the given RelNode */
@@ -124,7 +159,21 @@ public class CalcitePPLAbstractTest {
     String normalized = expected.replace("\n", System.lineSeparator());
     SqlImplementor.Result result = converter.visitRoot(rel);
     final SqlNode sqlNode = result.asStatement();
-    final String sql = sqlNode.toSqlString(SparkSqlDialect.DEFAULT).getSql();
+    final String sql = sqlNode.toSqlString(OpenSearchSparkSqlDialect.DEFAULT).getSql();
     assertThat(sql, is(normalized));
+  }
+
+  private static String getStackTrace(final Throwable throwable) {
+    if (throwable == null) {
+      return StringUtils.EMPTY;
+    }
+    final StringWriter sw = new StringWriter();
+    throwable.printStackTrace(new PrintWriter(sw, true));
+    return sw.toString();
+  }
+
+  public void verifyErrorMessageContains(Throwable t, String msg) {
+    String stackTrace = getStackTrace(t);
+    assertThat(String.format("Actual stack trace was:\n%s", stackTrace), stackTrace.contains(msg));
   }
 }

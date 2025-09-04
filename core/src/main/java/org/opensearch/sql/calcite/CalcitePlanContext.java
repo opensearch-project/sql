@@ -8,18 +8,23 @@ package org.opensearch.sql.calcite;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 
 import java.sql.Connection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Stack;
 import java.util.function.BiFunction;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.RelBuilder;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
 import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.expression.function.FunctionProperties;
 
 public class CalcitePlanContext {
 
@@ -27,18 +32,39 @@ public class CalcitePlanContext {
   public final Connection connection;
   public final RelBuilder relBuilder;
   public final ExtendedRexBuilder rexBuilder;
+  public final FunctionProperties functionProperties;
   public final QueryType queryType;
+  public final Integer querySizeLimit;
+
+  /** This thread local variable is only used to skip script encoding in script pushdown. */
+  public static final ThreadLocal<Boolean> skipEncoding = ThreadLocal.withInitial(() -> false);
 
   @Getter @Setter private boolean isResolvingJoinCondition = false;
-  @Getter @Setter private boolean isResolvingExistsSubquery = false;
-  private final Stack<RexCorrelVariable> correlVar = new Stack<>();
+  @Getter @Setter private boolean isResolvingSubquery = false;
+  @Getter @Setter private boolean inCoalesceFunction = false;
 
-  private CalcitePlanContext(FrameworkConfig config, QueryType queryType) {
+  /**
+   * The flag used to determine whether we do metadata field projection for user 1. If a project is
+   * never visited, we will do metadata field projection for user 2. Else not because user may
+   * intend to show the metadata field themselves. // TODO: use stack here if we want to do similar
+   * projection for subquery.
+   */
+  @Getter @Setter private boolean isProjectVisited = false;
+
+  private final Stack<RexCorrelVariable> correlVar = new Stack<>();
+  private final Stack<List<RexNode>> windowPartitions = new Stack<>();
+
+  @Getter public Map<String, RexLambdaRef> rexLambdaRefMap;
+
+  private CalcitePlanContext(FrameworkConfig config, Integer querySizeLimit, QueryType queryType) {
     this.config = config;
+    this.querySizeLimit = querySizeLimit;
     this.queryType = queryType;
     this.connection = CalciteToolsHelper.connect(config, TYPE_FACTORY);
     this.relBuilder = CalciteToolsHelper.create(config, TYPE_FACTORY, connection);
     this.rexBuilder = new ExtendedRexBuilder(relBuilder.getRexBuilder());
+    this.functionProperties = new FunctionProperties(QueryType.PPL);
+    this.rexLambdaRefMap = new HashMap<>();
   }
 
   public RexNode resolveJoinCondition(
@@ -70,7 +96,16 @@ public class CalcitePlanContext {
     }
   }
 
-  public static CalcitePlanContext create(FrameworkConfig config, QueryType queryType) {
-    return new CalcitePlanContext(config, queryType);
+  public CalcitePlanContext clone() {
+    return new CalcitePlanContext(config, querySizeLimit, queryType);
+  }
+
+  public static CalcitePlanContext create(
+      FrameworkConfig config, Integer querySizeLimit, QueryType queryType) {
+    return new CalcitePlanContext(config, querySizeLimit, queryType);
+  }
+
+  public void putRexLambdaRefMap(Map<String, RexLambdaRef> candidateMap) {
+    this.rexLambdaRefMap.putAll(candidateMap);
   }
 }

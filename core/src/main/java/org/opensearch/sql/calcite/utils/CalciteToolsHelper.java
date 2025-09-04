@@ -27,26 +27,35 @@
 
 package org.opensearch.sql.calcite.utils;
 
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
+import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
+import java.lang.reflect.Type;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.util.Properties;
+import java.util.function.Consumer;
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.avatica.AvaticaFactory;
+import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.UnregisteredDriver;
 import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.interpreter.BindableConvention;
 import org.apache.calcite.interpreter.Bindables;
 import org.apache.calcite.jdbc.CalciteFactory;
 import org.apache.calcite.jdbc.CalciteJdbc41Factory;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.Driver;
+import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptSchema;
@@ -55,29 +64,36 @@ import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.Bindable;
+import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.server.CalciteServerStatement;
-import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql2rel.SqlRexConvertletTable;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelRunner;
+import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Util;
 import org.opensearch.sql.calcite.CalcitePlanContext;
-import org.opensearch.sql.calcite.udf.udaf.NullableSqlAvgAggFunction;
-import org.opensearch.sql.calcite.udf.udaf.NullableSqlSumAggFunction;
+import org.opensearch.sql.calcite.plan.OpenSearchRules;
+import org.opensearch.sql.calcite.plan.Scannable;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
 /**
  * Calcite Tools Helper. This class is used to create customized: 1. Connection 2. JavaTypeFactory
- * 3. RelBuilder 4. RelRunner TODO delete it in future if possible.
+ * 3. RelBuilder 4. RelRunner 5. CalcitePreparingStmt. TODO delete it in future if possible.
  */
 public class CalciteToolsHelper {
 
@@ -142,11 +158,20 @@ public class CalciteToolsHelper {
     public Connection connect(
         String url, Properties info, CalciteSchema rootSchema, JavaTypeFactory typeFactory)
         throws SQLException {
+      // Add current timestamp in nanos as hook
+      Instant now = Instant.now();
+      long nanosSinceEpoch = now.getEpochSecond() * 1_000_000_000L + now.getNano();
+      Hook.CURRENT_TIME.addThread((Consumer<Holder<Long>>) h -> h.set(nanosSinceEpoch));
       CalciteJdbc41Factory factory = new CalciteJdbc41Factory();
       AvaticaConnection connection =
           factory.newConnection((Driver) this, factory, url, info, rootSchema, typeFactory);
       this.handler.onConnectionInit(connection);
       return connection;
+    }
+
+    @Override
+    protected Function0<CalcitePrepare> createPrepareFactory() {
+      return OpenSearchPrepareImpl::new;
     }
   }
 
@@ -157,25 +182,10 @@ public class CalciteToolsHelper {
     }
 
     @Override
-    public AggCall sum(boolean distinct, String alias, RexNode operand) {
-      return aggregateCall(
-          SUM_NULLABLE,
-          distinct,
-          false,
-          false,
-          null,
-          null,
-          ImmutableList.of(),
-          alias,
-          ImmutableList.of(),
-          ImmutableList.of(operand));
-    }
-
-    @Override
     public AggCall avg(boolean distinct, String alias, RexNode operand) {
       return aggregateCall(
           SqlParserPos.ZERO,
-          AVG_NULLABLE,
+          PPLBuiltinOperators.AVG_NULLABLE,
           distinct,
           false,
           false,
@@ -187,18 +197,6 @@ public class CalciteToolsHelper {
           ImmutableList.of(operand));
     }
   }
-
-  public static final SqlAggFunction SUM_NULLABLE =
-      new NullableSqlSumAggFunction(castNonNull(null));
-  public static final SqlAggFunction AVG_NULLABLE = new NullableSqlAvgAggFunction(SqlKind.AVG);
-  public static final SqlAggFunction STDDEV_POP_NULLABLE =
-      new NullableSqlAvgAggFunction(SqlKind.STDDEV_POP);
-  public static final SqlAggFunction STDDEV_SAMP_NULLABLE =
-      new NullableSqlAvgAggFunction(SqlKind.STDDEV_SAMP);
-  public static final SqlAggFunction VAR_POP_NULLABLE =
-      new NullableSqlAvgAggFunction(SqlKind.VAR_POP);
-  public static final SqlAggFunction VAR_SAMP_NULLABLE =
-      new NullableSqlAvgAggFunction(SqlKind.VAR_SAMP);
 
   public static class OpenSearchPrepareImpl extends CalcitePrepareImpl {
     /**
@@ -223,8 +221,111 @@ public class CalciteToolsHelper {
       final RelOptPlanner planner =
           createPlanner(
               prepareContext, Contexts.of(prepareContext.config()), config.getCostFactory());
+      registerCustomizedRules(planner);
       final RelOptCluster cluster = createCluster(planner, rexBuilder);
       return action.apply(cluster, catalogReader, prepareContext.getRootSchema().plus(), statement);
+    }
+
+    private void registerCustomizedRules(RelOptPlanner planner) {
+      OpenSearchRules.OPEN_SEARCH_OPT_RULES.forEach(planner::addRule);
+    }
+
+    /**
+     * Customize CalcitePreparingStmt. Override {@link CalcitePrepareImpl#getPreparingStmt} and
+     * return {@link OpenSearchCalcitePreparingStmt}
+     */
+    @Override
+    protected CalcitePrepareImpl.CalcitePreparingStmt getPreparingStmt(
+        CalcitePrepare.Context context,
+        Type elementType,
+        CalciteCatalogReader catalogReader,
+        RelOptPlanner planner) {
+      final JavaTypeFactory typeFactory = context.getTypeFactory();
+      final EnumerableRel.Prefer prefer;
+      if (elementType == Object[].class) {
+        prefer = EnumerableRel.Prefer.ARRAY;
+      } else {
+        prefer = EnumerableRel.Prefer.CUSTOM;
+      }
+      final Convention resultConvention =
+          enableBindable ? BindableConvention.INSTANCE : EnumerableConvention.INSTANCE;
+      return new OpenSearchCalcitePreparingStmt(
+          this,
+          context,
+          catalogReader,
+          typeFactory,
+          context.getRootSchema(),
+          prefer,
+          createCluster(planner, new RexBuilder(typeFactory)),
+          resultConvention,
+          createConvertletTable());
+    }
+  }
+
+  /**
+   * Similar to {@link CalcitePrepareImpl.CalcitePreparingStmt}. Customize the logic to convert an
+   * EnumerableTableScan to BindableTableScan.
+   */
+  public static class OpenSearchCalcitePreparingStmt
+      extends CalcitePrepareImpl.CalcitePreparingStmt {
+
+    public OpenSearchCalcitePreparingStmt(
+        CalcitePrepareImpl prepare,
+        CalcitePrepare.Context context,
+        CatalogReader catalogReader,
+        RelDataTypeFactory typeFactory,
+        CalciteSchema schema,
+        EnumerableRel.Prefer prefer,
+        RelOptCluster cluster,
+        Convention resultConvention,
+        SqlRexConvertletTable convertletTable) {
+      super(
+          prepare,
+          context,
+          catalogReader,
+          typeFactory,
+          schema,
+          prefer,
+          cluster,
+          resultConvention,
+          convertletTable);
+    }
+
+    @Override
+    protected PreparedResult implement(RelRoot root) {
+      Hook.PLAN_BEFORE_IMPLEMENTATION.run(root);
+      RelDataType resultType = root.rel.getRowType();
+      boolean isDml = root.kind.belongsTo(SqlKind.DML);
+      if (root.rel instanceof Scannable scannable) {
+        final Bindable bindable = dataContext -> scannable.scan();
+
+        return new PreparedResultImpl(
+            resultType,
+            requireNonNull(parameterRowType, "parameterRowType"),
+            requireNonNull(fieldOrigins, "fieldOrigins"),
+            root.collation.getFieldCollations().isEmpty()
+                ? ImmutableList.of()
+                : ImmutableList.of(root.collation),
+            root.rel,
+            mapTableModOp(isDml, root.kind),
+            isDml) {
+          @Override
+          public String getCode() {
+            throw new UnsupportedOperationException();
+          }
+
+          @Override
+          public Bindable getBindable(Meta.CursorFactory cursorFactory) {
+            return bindable;
+          }
+
+          @Override
+          public Type getElementType() {
+            return resultType.getFieldList().size() == 1 ? Object.class : Object[].class;
+          }
+        };
+      }
+      return super.implement(root);
     }
   }
 

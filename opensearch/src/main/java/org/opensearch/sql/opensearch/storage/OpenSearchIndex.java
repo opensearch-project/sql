@@ -8,25 +8,25 @@ package org.opensearch.sql.opensearch.storage;
 import com.google.common.annotations.VisibleForTesting;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.apache.calcite.linq4j.AbstractEnumerable;
-import org.apache.calcite.linq4j.Enumerable;
-import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.opensearch.common.unit.TimeValue;
-import org.opensearch.sql.calcite.plan.OpenSearchTable;
+import org.opensearch.sql.calcite.plan.AbstractOpenSearchTable;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
+import org.opensearch.sql.opensearch.monitor.OpenSearchMemoryHealthy;
+import org.opensearch.sql.opensearch.monitor.OpenSearchResourceMonitor;
 import org.opensearch.sql.opensearch.planner.physical.ADOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLOperator;
@@ -35,7 +35,6 @@ import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.request.system.OpenSearchDescribeIndexRequest;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
-import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexEnumerator;
 import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScanBuilder;
 import org.opensearch.sql.planner.DefaultImplementor;
@@ -48,7 +47,7 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.read.TableScanBuilder;
 
 /** OpenSearch table (index) implementation. */
-public class OpenSearchIndex extends OpenSearchTable {
+public class OpenSearchIndex extends AbstractOpenSearchTable {
 
   public static final String METADATA_FIELD_ID = "_id";
   public static final String METADATA_FIELD_INDEX = "_index";
@@ -59,13 +58,16 @@ public class OpenSearchIndex extends OpenSearchTable {
   public static final String METADATA_FIELD_ROUTING = "_routing";
 
   public static final java.util.Map<String, ExprType> METADATAFIELD_TYPE_MAP =
-      Map.of(
-          METADATA_FIELD_ID, ExprCoreType.STRING,
-          METADATA_FIELD_INDEX, ExprCoreType.STRING,
-          METADATA_FIELD_SCORE, ExprCoreType.FLOAT,
-          METADATA_FIELD_MAXSCORE, ExprCoreType.FLOAT,
-          METADATA_FIELD_SORT, ExprCoreType.LONG,
-          METADATA_FIELD_ROUTING, ExprCoreType.STRING);
+      new LinkedHashMap<>() {
+        {
+          put(METADATA_FIELD_ID, ExprCoreType.STRING);
+          put(METADATA_FIELD_INDEX, ExprCoreType.STRING);
+          put(METADATA_FIELD_SCORE, ExprCoreType.FLOAT);
+          put(METADATA_FIELD_MAXSCORE, ExprCoreType.FLOAT);
+          put(METADATA_FIELD_SORT, ExprCoreType.LONG);
+          put(METADATA_FIELD_ROUTING, ExprCoreType.STRING);
+        }
+      };
 
   /** OpenSearch client connection. */
   @Getter private final OpenSearchClient client;
@@ -81,12 +83,14 @@ public class OpenSearchIndex extends OpenSearchTable {
   /** The cached ExprType of fields. */
   private Map<String, ExprType> cachedFieldTypes = null;
 
+  /** The cached mapping of alias type field to its original path. */
+  private Map<String, String> aliasMapping = null;
+
   /** The cached max result window setting of index. */
   private Integer cachedMaxResultWindow = null;
 
   /** Constructor. */
   public OpenSearchIndex(OpenSearchClient client, Settings settings, String indexName) {
-    super(null);
     this.client = client;
     this.settings = settings;
     this.indexName = new OpenSearchRequest.IndexName(indexName);
@@ -148,6 +152,22 @@ public class OpenSearchIndex extends OpenSearchTable {
     return METADATAFIELD_TYPE_MAP;
   }
 
+  public Map<String, String> getAliasMapping() {
+    if (cachedFieldOpenSearchTypes == null) {
+      cachedFieldOpenSearchTypes =
+          new OpenSearchDescribeIndexRequest(client, indexName).getFieldTypes();
+    }
+    if (aliasMapping == null) {
+      aliasMapping =
+          cachedFieldOpenSearchTypes.entrySet().stream()
+              .filter(entry -> entry.getValue().getOriginalPath().isPresent())
+              .collect(
+                  Collectors.toUnmodifiableMap(
+                      Entry::getKey, entry -> entry.getValue().getOriginalPath().get()));
+    }
+    return aliasMapping;
+  }
+
   /**
    * Get parsed mapping info.
    *
@@ -179,16 +199,15 @@ public class OpenSearchIndex extends OpenSearchTable {
 
   @Override
   public TableScanBuilder createScanBuilder() {
-    final int querySizeLimit = settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT);
-
     final TimeValue cursorKeepAlive = settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
-    var builder = new OpenSearchRequestBuilder(querySizeLimit, createExprValueFactory(), settings);
+    var builder = createRequestBuilder();
     Function<OpenSearchRequestBuilder, OpenSearchIndexScan> createScanOperator =
         requestBuilder ->
             new OpenSearchIndexScan(
                 client,
                 requestBuilder.getMaxResponseSize(),
-                requestBuilder.build(indexName, getMaxResultWindow(), cursorKeepAlive, client));
+                requestBuilder.build(
+                    indexName, cursorKeepAlive, client, cachedFieldOpenSearchTypes.isEmpty()));
     return new OpenSearchIndexScanBuilder(builder, createScanOperator);
   }
 
@@ -236,35 +255,17 @@ public class OpenSearchIndex extends OpenSearchTable {
     }
   }
 
-  @Override
-  public Enumerable<Object> search() {
-    return new AbstractEnumerable<>() {
-      @Override
-      public Enumerator<Object> enumerator() {
-        final int querySizeLimit = settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT);
-
-        final TimeValue cursorKeepAlive =
-            settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
-        var builder =
-            new OpenSearchRequestBuilder(querySizeLimit, createExprValueFactory(), settings);
-        return new OpenSearchIndexEnumerator(
-            client,
-            List.copyOf(getFieldTypes().keySet()),
-            builder.getMaxResponseSize(),
-            builder.build(indexName, getMaxResultWindow(), cursorKeepAlive, client));
-      }
-    };
+  public OpenSearchRequestBuilder createRequestBuilder() {
+    return new OpenSearchRequestBuilder(createExprValueFactory(), getMaxResultWindow(), settings);
   }
 
-  public OpenSearchRequestBuilder createRequestBuilder() {
-    return new OpenSearchRequestBuilder(
-        settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT),
-        this.createExprValueFactory(),
-        settings);
+  public OpenSearchResourceMonitor createOpenSearchResourceMonitor() {
+    return new OpenSearchResourceMonitor(getSettings(), new OpenSearchMemoryHealthy(settings));
   }
 
   public OpenSearchRequest buildRequest(OpenSearchRequestBuilder requestBuilder) {
     final TimeValue cursorKeepAlive = settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
-    return requestBuilder.build(indexName, getMaxResultWindow(), cursorKeepAlive, client);
+    return requestBuilder.build(
+        indexName, cursorKeepAlive, client, cachedFieldOpenSearchTypes.isEmpty());
   }
 }

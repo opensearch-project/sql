@@ -5,9 +5,11 @@
 
 package org.opensearch.sql.data.model;
 
+import static org.opensearch.sql.data.type.ExprCoreType.*;
 import static org.opensearch.sql.utils.ExpressionUtils.PATH_SEP;
 
 import inet.ipaddr.IPAddress;
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -23,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 
 /** The definition of {@link ExprValue} factory. */
@@ -132,6 +135,10 @@ public class ExprValueUtils {
         return LITERAL_NULL;
       }
       return doubleValue(d);
+    } else if (o instanceof BigDecimal d) {
+      // TODO fallback decimal to double in v2
+      // until https://github.com/opensearch-project/sql/issues/3619 fixed.
+      return new ExprDoubleValue(d);
     } else if (o instanceof String) {
       return stringValue((String) o);
     } else if (o instanceof Float f) {
@@ -161,7 +168,7 @@ public class ExprValueUtils {
   }
 
   /** Construct ExprValue from Object with ExprCoreType. */
-  public static ExprValue fromObjectValue(Object o, ExprCoreType type) {
+  public static ExprValue fromObjectValue(Object o, ExprType type) {
     switch (type) {
       case TIMESTAMP:
         return new ExprTimestampValue((String) o);

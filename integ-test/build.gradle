@@ -40,6 +40,7 @@ plugins {
 
 apply plugin: 'opensearch.build'
 apply plugin: 'opensearch.rest-test'
+apply plugin: 'opensearch.yaml-rest-test'
 apply plugin: 'java'
 apply plugin: 'io.freefair.lombok'
 apply plugin: 'com.wiredforcode.spawn'
@@ -47,7 +48,7 @@ apply plugin: 'com.wiredforcode.spawn'
 // The next major version is only API compat w/ the last minor of the previous major.
 // baseVersion need to roll-froward accordingly, as new 2.x of OpenSearch being released.
 // See: https://github.com/opensearch-project/OpenSearch/issues/3615
-String baseVersion = "2.20.0"
+String baseVersion = "3.1.0"
 String bwcVersion = baseVersion + ".0";
 String baseName = "sqlBwcCluster"
 String bwcFilePath = "src/test/resources/bwc/"
@@ -69,7 +70,7 @@ ext {
     noticeFile = rootProject.file('NOTICE')
 
     getSecurityPluginDownloadLink = { ->
-        var repo = "https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/plugin/" +
+        var repo = "https://central.sonatype.com/repository/maven-snapshots/org/opensearch/plugin/" +
                    "opensearch-security/$opensearch_build_snapshot/"
         var metadataFile = Paths.get(projectDir.toString(), "build", "maven-metadata.xml").toAbsolutePath().toFile()
         download.run {
@@ -258,6 +259,13 @@ testClusters {
         plugin ":opensearch-sql-plugin"
         setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
     }
+    yamlRestTest {
+        testDistribution = 'archive'
+        plugin(getJobSchedulerPlugin())
+        plugin(getGeoSpatialPlugin())
+        plugin ":opensearch-sql-plugin"
+        setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
+    }
     remoteCluster {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
@@ -280,12 +288,15 @@ task startPrometheus(type: SpawnProcessTask) {
     mustRunAfter ':doctest:doctest'
 
     doFirst {
-        download.run {
-            src getPrometheusBinaryLocation()
-            dest new File("$projectDir/bin", 'prometheus.tar.gz')
+        File prometheusFilePath = Paths.get("$projectDir/bin", "prometheus-${prometheus_binary_version}.tar.gz").toFile()
+        if (!prometheusFilePath.exists()) {
+            download.run {
+                src getPrometheusBinaryLocation()
+                dest prometheusFilePath
+            }
         }
         copy {
-            from tarTree("$projectDir/bin/prometheus.tar.gz")
+            from tarTree("$projectDir/bin/prometheus-${prometheus_binary_version}.tar.gz")
             into "$projectDir/bin"
         }
         file("$projectDir/bin").eachDir {
@@ -302,7 +313,6 @@ task startPrometheus(type: SpawnProcessTask) {
 task stopPrometheus(type: KillProcessTask) {
     doLast {
         file("$projectDir/bin/prometheus").deleteDir()
-        file("$projectDir/bin/prometheus.tar.gz").delete()
     }
 }
 
@@ -408,7 +418,12 @@ task integTestWithSecurity(type: RestIntegTestTask) {
     // https://github.com/opensearch-project/sql/issues/1974
     filter {
         includeTestsMatching 'org.opensearch.sql.security.CrossClusterSearchIT'
+        includeTestsMatching 'org.opensearch.sql.security.PPLPermissionsIT'
     }
+}
+
+yamlRestTest {
+    systemProperty 'tests.security.manager', 'false'
 }
 
 // Run PPL ITs and new, legacy and comparison SQL ITs with new SQL engine enabled

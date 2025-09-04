@@ -29,7 +29,7 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
-            + "  LogicalSort(sort0=[$0], dir0=[DESC])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
             + "    LogicalFilter(condition=[EXISTS({\n"
             + "LogicalFilter(condition=[=($cor0.SAL, $2)])\n"
             + "  LogicalTableScan(table=[[scott, SALGRADE]])\n"
@@ -44,7 +44,7 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
             + "WHERE EXISTS (SELECT *\n"
             + "FROM `scott`.`SALGRADE`\n"
             + "WHERE `EMP`.`SAL` = `HISAL`)\n"
-            + "ORDER BY `EMPNO` DESC NULLS FIRST";
+            + "ORDER BY `EMPNO` DESC";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -63,7 +63,7 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
-            + "  LogicalSort(sort0=[$0], dir0=[DESC])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
             + "    LogicalFilter(condition=[EXISTS({\n"
             + "LogicalFilter(condition=[=($cor0.SAL, $2)])\n"
             + "  LogicalTableScan(table=[[scott, SALGRADE]])\n"
@@ -78,7 +78,7 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
             + "WHERE EXISTS (SELECT *\n"
             + "FROM `scott`.`SALGRADE`\n"
             + "WHERE `EMP`.`SAL` = `HISAL`)\n"
-            + "ORDER BY `EMPNO` DESC NULLS FIRST";
+            + "ORDER BY `EMPNO` DESC";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -97,9 +97,9 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
-            + "  LogicalSort(sort0=[$0], dir0=[DESC])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
             + "    LogicalFilter(condition=[EXISTS({\n"
-            + "LogicalFilter(condition=[=($1, 'Accounting')])\n"
+            + "LogicalFilter(condition=[=($1, 'Accounting':VARCHAR)])\n"
             + "  LogicalTableScan(table=[[scott, DEPT]])\n"
             + "})], variablesSet=[[$cor0]])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
@@ -112,7 +112,7 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
             + "WHERE EXISTS (SELECT *\n"
             + "FROM `scott`.`DEPT`\n"
             + "WHERE `DNAME` = 'Accounting')\n"
-            + "ORDER BY `EMPNO` DESC NULLS FIRST";
+            + "ORDER BY `EMPNO` DESC";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -131,7 +131,7 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
-            + "  LogicalSort(sort0=[$0], dir0=[DESC])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
             + "    LogicalFilter(condition=[NOT(EXISTS({\n"
             + "LogicalFilter(condition=[=($cor0.SAL, $2)])\n"
             + "  LogicalTableScan(table=[[scott, SALGRADE]])\n"
@@ -146,7 +146,7 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
             + "WHERE NOT EXISTS (SELECT *\n"
             + "FROM `scott`.`SALGRADE`\n"
             + "WHERE `EMP`.`SAL` = `HISAL`)\n"
-            + "ORDER BY `EMPNO` DESC NULLS FIRST";
+            + "ORDER BY `EMPNO` DESC";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -165,7 +165,7 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
-            + "  LogicalSort(sort0=[$0], dir0=[DESC])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
             + "    LogicalFilter(condition=[NOT(EXISTS({\n"
             + "LogicalFilter(condition=[=($cor0.SAL, $2)])\n"
             + "  LogicalTableScan(table=[[scott, SALGRADE]])\n"
@@ -180,7 +180,7 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
             + "WHERE NOT EXISTS (SELECT *\n"
             + "FROM `scott`.`SALGRADE`\n"
             + "WHERE `EMP`.`SAL` = `HISAL`)\n"
-            + "ORDER BY `EMPNO` DESC NULLS FIRST";
+            + "ORDER BY `EMPNO` DESC";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -199,9 +199,9 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
-            + "  LogicalSort(sort0=[$0], dir0=[DESC])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
             + "    LogicalFilter(condition=[NOT(EXISTS({\n"
-            + "LogicalFilter(condition=[=($1, 'Accounting')])\n"
+            + "LogicalFilter(condition=[=($1, 'Accounting':VARCHAR)])\n"
             + "  LogicalTableScan(table=[[scott, DEPT]])\n"
             + "}))], variablesSet=[[$cor0]])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
@@ -214,7 +214,7 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
             + "WHERE NOT EXISTS (SELECT *\n"
             + "FROM `scott`.`DEPT`\n"
             + "WHERE `DNAME` = 'Accounting')\n"
-            + "ORDER BY `EMPNO` DESC NULLS FIRST";
+            + "ORDER BY `EMPNO` DESC";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -232,7 +232,7 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
-            + "  LogicalSort(sort0=[$0], dir0=[DESC])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
             + "    LogicalFilter(condition=[EXISTS({\n"
             + "LogicalFilter(condition=[=($cor0.SAL, $2)])\n"
             + "  LogicalTableScan(table=[[scott, SALGRADE]])\n"
@@ -247,7 +247,7 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
             + "WHERE EXISTS (SELECT *\n"
             + "FROM `scott`.`SALGRADE`\n"
             + "WHERE `EMP`.`SAL` = `HISAL`)\n"
-            + "ORDER BY `EMPNO` DESC NULLS FIRST";
+            + "ORDER BY `EMPNO` DESC";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -265,7 +265,7 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
-            + "  LogicalSort(sort0=[$0], dir0=[DESC])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
             + "    LogicalFilter(condition=[NOT(EXISTS({\n"
             + "LogicalFilter(condition=[=($cor0.SAL, $2)])\n"
             + "  LogicalTableScan(table=[[scott, SALGRADE]])\n"
@@ -280,7 +280,7 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
             + "WHERE NOT EXISTS (SELECT *\n"
             + "FROM `scott`.`SALGRADE`\n"
             + "WHERE `EMP`.`SAL` = `HISAL`)\n"
-            + "ORDER BY `EMPNO` DESC NULLS FIRST";
+            + "ORDER BY `EMPNO` DESC";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -303,7 +303,7 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
-            + "  LogicalSort(sort0=[$0], dir0=[DESC])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
             + "    LogicalFilter(condition=[EXISTS({\n"
             + "LogicalFilter(condition=[=($cor0.SAL, $2)])\n"
             + "  LogicalFilter(condition=[EXISTS({\n"
@@ -326,7 +326,7 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`\n"
             + "WHERE `SAL` = `SALGRADE`.`HISAL`)) `t0`\n"
             + "WHERE `EMP`.`SAL` = `HISAL`)\n"
-            + "ORDER BY `EMPNO` DESC NULLS FIRST";
+            + "ORDER BY `EMPNO` DESC";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -349,11 +349,11 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
-            + "  LogicalSort(sort0=[$0], dir0=[DESC])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
             + "    LogicalFilter(condition=[EXISTS({\n"
-            + "LogicalFilter(condition=[>($2, 1000.0E0:DOUBLE)])\n"
+            + "LogicalFilter(condition=[>($2, 1000.0:DECIMAL(5, 1))])\n"
             + "  LogicalFilter(condition=[EXISTS({\n"
-            + "LogicalFilter(condition=[>($5, 1000.0E0:DOUBLE)])\n"
+            + "LogicalFilter(condition=[>($5, 1000.0:DECIMAL(5, 1))])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n"
             + "})], variablesSet=[[$cor1]])\n"
             + "    LogicalTableScan(table=[[scott, SALGRADE]])\n"
@@ -370,9 +370,9 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`SALGRADE`\n"
             + "WHERE EXISTS (SELECT *\n"
             + "FROM `scott`.`EMP`\n"
-            + "WHERE `SAL` > 1.0000E3)) `t0`\n"
-            + "WHERE `HISAL` > 1.0000E3)\n"
-            + "ORDER BY `EMPNO` DESC NULLS FIRST";
+            + "WHERE `SAL` > 1000.0)) `t0`\n"
+            + "WHERE `HISAL` > 1000.0)\n"
+            + "ORDER BY `EMPNO` DESC";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -403,13 +403,13 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
-            + "  LogicalSort(sort0=[$0], dir0=[DESC])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
             + "    LogicalFilter(condition=[EXISTS({\n"
-            + "LogicalFilter(condition=[>($cor0.SAL, 1000.0E0:DOUBLE)])\n"
+            + "LogicalFilter(condition=[>($cor0.SAL, 1000.0:DECIMAL(5, 1))])\n"
             + "  LogicalFilter(condition=[EXISTS({\n"
             + "LogicalFilter(condition=[=($5, $cor1.HISAL)])\n"
             + "  LogicalFilter(condition=[EXISTS({\n"
-            + "LogicalFilter(condition=[>($cor2.SAL, 1000.0E0:DOUBLE)])\n"
+            + "LogicalFilter(condition=[>($cor2.SAL, 1000.0:DECIMAL(5, 1))])\n"
             + "  LogicalFilter(condition=[EXISTS({\n"
             + "LogicalFilter(condition=[=($5, $cor3.HISAL)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n"
@@ -439,10 +439,10 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
             + "WHERE EXISTS (SELECT *\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE `SAL` = `SALGRADE0`.`HISAL`)) `t0`\n"
-            + "WHERE `EMP0`.`SAL` > 1.0000E3)) `t2`\n"
+            + "WHERE `EMP0`.`SAL` > 1000.0)) `t2`\n"
             + "WHERE `SAL` = `SALGRADE`.`HISAL`)) `t4`\n"
-            + "WHERE `EMP`.`SAL` > 1.0000E3)\n"
-            + "ORDER BY `EMPNO` DESC NULLS FIRST";
+            + "WHERE `EMP`.`SAL` > 1000.0)\n"
+            + "ORDER BY `EMPNO` DESC";
     verifyPPLToSparkSQL(plan1, expectedSparkSql);
 
     String pplWithoutAlias =

@@ -5,6 +5,9 @@
 
 package org.opensearch.sql.ppl.utils;
 
+import static org.opensearch.sql.calcite.utils.PlanUtils.getRelation;
+import static org.opensearch.sql.calcite.utils.PlanUtils.transformPlanToAttachChild;
+
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -16,11 +19,16 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
+import org.opensearch.sql.ast.expression.AllFields;
+import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.Argument.ArgumentMap;
 import org.opensearch.sql.ast.expression.Between;
+import org.opensearch.sql.ast.expression.Case;
 import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.Field;
@@ -32,8 +40,11 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
+import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.expression.When;
+import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
@@ -42,23 +53,39 @@ import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.AppendCol;
+import org.opensearch.sql.ast.tree.Bin;
+import org.opensearch.sql.ast.tree.CountBin;
 import org.opensearch.sql.ast.tree.Dedupe;
+import org.opensearch.sql.ast.tree.DefaultBin;
+import org.opensearch.sql.ast.tree.DescribeRelation;
 import org.opensearch.sql.ast.tree.Eval;
+import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
+import org.opensearch.sql.ast.tree.Flatten;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Lookup;
+import org.opensearch.sql.ast.tree.MinSpanBin;
 import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
+import org.opensearch.sql.ast.tree.RangeBin;
 import org.opensearch.sql.ast.tree.RareTopN;
+import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
+import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Timechart;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalDedupe;
@@ -75,9 +102,11 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   private static final String MASK_LITERAL = "***";
 
   private final AnonymizerExpressionAnalyzer expressionAnalyzer;
+  private final Settings settings;
 
-  public PPLQueryDataAnonymizer() {
+  public PPLQueryDataAnonymizer(Settings settings) {
     this.expressionAnalyzer = new AnonymizerExpressionAnalyzer(this);
+    this.settings = settings;
   }
 
   /**
@@ -102,11 +131,19 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   @Override
   public String visitExplain(Explain node, String context) {
-    return node.getStatement().accept(this, null);
+    return StringUtils.format(
+        "explain %s %s",
+        node.getFormat().name().toLowerCase(Locale.ROOT), node.getStatement().accept(this, null));
   }
 
   @Override
   public String visitRelation(Relation node, String context) {
+    if (node instanceof DescribeRelation) {
+      // remove the system table suffix
+      String systemTable = node.getTableQualifiedName().toString();
+      return StringUtils.format(
+          "describe %s", systemTable.substring(0, systemTable.lastIndexOf('.')));
+    }
     return StringUtils.format("source=%s", node.getTableQualifiedName().toString());
   }
 
@@ -153,13 +190,15 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   @Override
   public String visitSubqueryAlias(SubqueryAlias node, String context) {
-    String child = node.getChild().get(0).accept(this, context);
-    if (node.getChild().get(0).getChild().isEmpty()) {
-      return StringUtils.format("%s as %s", child, node.getAlias());
-    } else {
-      // add "[]" only if its child is not a root
-      return StringUtils.format("[ %s ] as %s", child, node.getAlias());
+    Node childNode = node.getChild().get(0);
+    String child = childNode.accept(this, context);
+    if (childNode instanceof Project project
+        && project.getProjectList().get(0) instanceof AllFields) {
+      childNode = childNode.getChild().get(0);
     }
+    // add "[]" only if its child is not a root
+    String format = childNode.getChild().isEmpty() ? "%s as %s" : "[ %s ] as %s";
+    return StringUtils.format(format, child, node.getAlias());
   }
 
   @Override
@@ -213,19 +252,84 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
         child, String.join(" ", visitExpressionList(node.getAggExprList()), groupBy(group)).trim());
   }
 
+  @Override
+  public String visitBin(Bin node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    StringBuilder binCommand = new StringBuilder();
+    binCommand.append(" | bin ").append(visitExpression(node.getField()));
+
+    // Use instanceof for type-safe dispatch to access subclass-specific properties
+    if (node instanceof SpanBin) {
+      SpanBin spanBin = (SpanBin) node;
+      binCommand.append(" span=").append(visitExpression(spanBin.getSpan()));
+      if (spanBin.getAligntime() != null) {
+        binCommand.append(" aligntime=").append(visitExpression(spanBin.getAligntime()));
+      }
+    } else if (node instanceof MinSpanBin) {
+      MinSpanBin minSpanBin = (MinSpanBin) node;
+      binCommand.append(" minspan=").append(visitExpression(minSpanBin.getMinspan()));
+      if (minSpanBin.getStart() != null) {
+        binCommand.append(" start=").append(visitExpression(minSpanBin.getStart()));
+      }
+      if (minSpanBin.getEnd() != null) {
+        binCommand.append(" end=").append(visitExpression(minSpanBin.getEnd()));
+      }
+    } else if (node instanceof CountBin) {
+      CountBin countBin = (CountBin) node;
+      binCommand.append(" bins=").append(MASK_LITERAL);
+      if (countBin.getStart() != null) {
+        binCommand.append(" start=").append(visitExpression(countBin.getStart()));
+      }
+      if (countBin.getEnd() != null) {
+        binCommand.append(" end=").append(visitExpression(countBin.getEnd()));
+      }
+    } else if (node instanceof RangeBin) {
+      RangeBin rangeBin = (RangeBin) node;
+      if (rangeBin.getStart() != null) {
+        binCommand.append(" start=").append(visitExpression(rangeBin.getStart()));
+      }
+      if (rangeBin.getEnd() != null) {
+        binCommand.append(" end=").append(visitExpression(rangeBin.getEnd()));
+      }
+    } else if (node instanceof DefaultBin) {
+      // DefaultBin has no additional parameters
+    }
+
+    if (node.getAlias() != null) {
+      binCommand.append(" as ").append(node.getAlias());
+    }
+
+    return StringUtils.format("%s%s", child, binCommand.toString());
+  }
+
+  @Override
+  public String visitWindow(Window node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    return StringUtils.format(
+        "%s | eventstats %s",
+        child, String.join(" ", visitExpressionList(node.getWindowFunctionList())).trim());
+  }
+
   /** Build {@link LogicalRareTopN}. */
   @Override
   public String visitRareTopN(RareTopN node, String context) {
     final String child = node.getChild().get(0).accept(this, context);
-    List<Argument> options = node.getNoOfResults();
-    Integer noOfResults = (Integer) options.get(0).getValue().getValue();
+    ArgumentMap arguments = ArgumentMap.of(node.getArguments());
+    Integer noOfResults = (Integer) arguments.get("noOfResults").getValue();
+    String countField = (String) arguments.get("countField").getValue();
+    Boolean showCount = (Boolean) arguments.get("showCount").getValue();
     String fields = visitFieldList(node.getFields());
     String group = visitExpressionList(node.getGroupExprList());
+    String options =
+        isCalciteEnabled(settings)
+            ? StringUtils.format("countield='%s' showcount=%s ", countField, showCount)
+            : "";
     return StringUtils.format(
-        "%s | %s %d %s",
+        "%s | %s %d %s%s",
         child,
         node.getCommandType().name().toLowerCase(),
         noOfResults,
+        options,
         String.join(" ", fields, groupBy(group)).trim());
   }
 
@@ -235,6 +339,10 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String child = node.getChild().get(0).accept(this, context);
     String arg = "+";
     String fields = visitExpressionList(node.getProjectList());
+
+    if (Strings.isNullOrEmpty(fields)) {
+      return child;
+    }
 
     if (node.hasArgument()) {
       Argument argument = node.getArgExprList().get(0);
@@ -263,13 +371,26 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     return StringUtils.format("%s | eval %s", child, expressions);
   }
 
+  @Override
+  public String visitExpand(Expand node, String context) {
+    String child = node.getChild().getFirst().accept(this, context);
+    String field = visitExpression(node.getField());
+
+    return StringUtils.format("%s | expand %s", child, field);
+  }
+
   /** Build {@link LogicalSort}. */
   @Override
   public String visitSort(Sort node, String context) {
     String child = node.getChild().get(0).accept(this, context);
     // the first options is {"count": "integer"}
+    Integer count = node.getCount();
     String sortList = visitFieldList(node.getSortList());
-    return StringUtils.format("%s | sort %s", child, sortList);
+    if (count != 0) {
+      return StringUtils.format("%s | sort %d %s", child, count, sortList);
+    } else {
+      return StringUtils.format("%s | sort %s", child, sortList);
+    }
   }
 
   /** Build {@link LogicalDedupe}. */
@@ -295,11 +416,81 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   }
 
   @Override
+  public String visitReverse(Reverse node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    return StringUtils.format("%s | reverse", child);
+  }
+
+  @Override
+  public String visitTimechart(Timechart node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    StringBuilder timechartCommand = new StringBuilder();
+    timechartCommand.append(" | timechart");
+
+    // Add span if present
+    if (node.getBinExpression() != null) {
+      timechartCommand.append(" span=").append(visitExpression(node.getBinExpression()));
+    }
+
+    // Add limit if present
+    if (node.getLimit() != null) {
+      timechartCommand.append(" limit=").append(node.getLimit());
+    }
+
+    // Add useother if present
+    if (node.getUseOther() != null) {
+      timechartCommand.append(" useother=").append(node.getUseOther());
+    }
+
+    // Add aggregation function
+    timechartCommand.append(" ").append(visitExpression(node.getAggregateFunction()));
+
+    // Add by clause if present
+    if (node.getByField() != null) {
+      timechartCommand.append(" by ").append(visitExpression(node.getByField()));
+    }
+
+    return StringUtils.format("%s%s", child, timechartCommand.toString());
+  }
+
+  @Override
   public String visitParse(Parse node, String context) {
     String child = node.getChild().get(0).accept(this, context);
     String source = visitExpression(node.getSourceField());
-    String regrex = node.getPattern().toString();
-    return StringUtils.format("%s | parse %s '%s'", child, source, regrex);
+    String regex = node.getPattern().toString();
+    String commandName;
+
+    switch (node.getParseMethod()) {
+      case ParseMethod.PATTERNS:
+        commandName = "patterns";
+        break;
+      case ParseMethod.GROK:
+        commandName = "grok";
+        break;
+      default:
+        commandName = "parse";
+        break;
+    }
+    return ParseMethod.PATTERNS.equals(node.getParseMethod()) && regex.isEmpty()
+        ? StringUtils.format("%s | %s %s", child, commandName, source)
+        : StringUtils.format("%s | %s %s '%s'", child, commandName, source, regex);
+  }
+
+  @Override
+  public String visitRegex(Regex node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    String operator = node.isNegated() ? Regex.NOT_EQUALS_OPERATOR : Regex.EQUALS_OPERATOR;
+    String pattern = MASK_LITERAL;
+
+    String field = visitExpression(node.getField());
+    return StringUtils.format("%s | regex %s%s%s", child, field, operator, pattern);
+  }
+
+  @Override
+  public String visitFlatten(Flatten node, String context) {
+    String child = node.getChild().getFirst().accept(this, context);
+    String field = visitExpression(node.getField());
+    return StringUtils.format("%s | flatten %s", child, field);
   }
 
   @Override
@@ -307,6 +498,17 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String child = node.getChild().get(0).accept(this, context);
     String computations = visitExpressionList(node.getComputations(), " ");
     return StringUtils.format("%s | trendline %s", child, computations);
+  }
+
+  @Override
+  public String visitAppendCol(AppendCol node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    UnresolvedPlan relation = getRelation(node);
+    transformPlanToAttachChild(node.getSubSearch(), relation);
+    String subsearch = anonymizeData(node.getSubSearch());
+    String subsearchWithoutRelation = subsearch.substring(subsearch.indexOf("|") + 1);
+    return StringUtils.format(
+        "%s | appendcol override=%s [%s ]", child, node.isOverride(), subsearchWithoutRelation);
   }
 
   private String visitFieldList(List<Field> fieldList) {
@@ -331,32 +533,65 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   @Override
   public String visitFillNull(FillNull node, String context) {
     String child = node.getChild().get(0).accept(this, context);
-    List<FillNull.NullableFieldFill> fieldFills = node.getNullableFieldFills();
-    final UnresolvedExpression firstReplacement = fieldFills.getFirst().getReplaceNullWithMe();
-    if (fieldFills.stream().allMatch(n -> firstReplacement == n.getReplaceNullWithMe())) {
+    List<Pair<Field, UnresolvedExpression>> fieldFills = node.getReplacementPairs();
+    if (fieldFills.isEmpty()) {
+      return StringUtils.format("%s | fillnull with %s", child, MASK_LITERAL);
+    }
+    final UnresolvedExpression firstReplacement = fieldFills.getFirst().getRight();
+    if (fieldFills.stream().allMatch(n -> firstReplacement == n.getRight())) {
       return StringUtils.format(
           "%s | fillnull with %s in %s",
           child,
-          firstReplacement,
-          node.getNullableFieldFills().stream()
-              .map(n -> visitExpression(n.getNullableFieldReference()))
+          MASK_LITERAL,
+          node.getReplacementPairs().stream()
+              .map(n -> visitExpression(n.getLeft()))
               .collect(Collectors.joining(", ")));
     } else {
       return StringUtils.format(
           "%s | fillnull using %s",
           child,
-          node.getNullableFieldFills().stream()
-              .map(
-                  n ->
-                      StringUtils.format(
-                          "%s = %s",
-                          visitExpression(n.getNullableFieldReference()), n.getReplaceNullWithMe()))
+          node.getReplacementPairs().stream()
+              .map(n -> StringUtils.format("%s = %s", visitExpression(n.getLeft()), MASK_LITERAL))
               .collect(Collectors.joining(", ")));
     }
   }
 
+  @Override
+  public String visitPatterns(Patterns node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    String sourceField = visitExpression(node.getSourceField());
+    StringBuilder builder = new StringBuilder();
+    builder.append(child).append(" | patterns ").append(sourceField);
+    if (!node.getPartitionByList().isEmpty()) {
+      String partitionByList = visitExpressionList(node.getPartitionByList());
+      builder.append(" by ").append(partitionByList);
+    }
+    builder.append(" method=").append(node.getPatternMethod().toString());
+    builder.append(" mode=").append(node.getPatternMode().toString());
+    builder.append(" max_sample_count=").append(visitExpression(node.getPatternMaxSampleCount()));
+    builder.append(" buffer_limit=").append(visitExpression(node.getPatternBufferLimit()));
+    builder.append(" new_field=").append(node.getAlias());
+    if (!node.getArguments().isEmpty()) {
+      for (java.util.Map.Entry<String, Literal> entry : node.getArguments().entrySet()) {
+        builder.append(
+            String.format(
+                Locale.ROOT, " %s=%s", entry.getKey(), visitExpression(entry.getValue())));
+      }
+    }
+
+    return builder.toString();
+  }
+
   private String groupBy(String groupBy) {
     return Strings.isNullOrEmpty(groupBy) ? "" : StringUtils.format("by %s", groupBy);
+  }
+
+  private boolean isCalciteEnabled(Settings settings) {
+    if (settings != null) {
+      return settings.getSettingValue(Settings.Key.CALCITE_ENGINE_ENABLED);
+    } else {
+      return false;
+    }
   }
 
   /** Expression Anonymizer. */
@@ -433,6 +668,20 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     }
 
     @Override
+    public String visitWindowFunction(WindowFunction node, String context) {
+      String function = analyze(node.getFunction(), context);
+      String partitions =
+          node.getPartitionByList().stream()
+              .map(p -> analyze(p, context))
+              .collect(Collectors.joining(","));
+      if (partitions.isEmpty()) {
+        return StringUtils.format("%s", function);
+      } else {
+        return StringUtils.format("%s by %s", function, partitions);
+      }
+    }
+
+    @Override
     public String visitCompare(Compare node, String context) {
       String left = analyze(node.getLeft(), context);
       String right = analyze(node.getRight(), context);
@@ -456,6 +705,16 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     @Override
     public String visitField(Field node, String context) {
       return node.getField().toString();
+    }
+
+    @Override
+    public String visitAllFields(AllFields node, String context) {
+      return "";
+    }
+
+    @Override
+    public String visitAllFieldsExcludeMeta(AllFieldsExcludeMeta node, String context) {
+      return "";
     }
 
     @Override
@@ -494,9 +753,36 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     }
 
     @Override
+    public String visitCase(Case node, String context) {
+      StringBuilder builder = new StringBuilder();
+      builder.append("cast(");
+      for (When when : node.getWhenClauses()) {
+        builder.append(analyze(when.getCondition(), context));
+        builder.append(",");
+        builder.append(analyze(when.getResult(), context));
+        builder.append(",");
+      }
+      builder.deleteCharAt(builder.lastIndexOf(","));
+      node.getElseClause()
+          .ifPresent(
+              elseClause -> {
+                builder.append(" else ");
+                builder.append(analyze(elseClause, context));
+              });
+      builder.append(")");
+      return builder.toString();
+    }
+
+    @Override
     public String visitCast(Cast node, String context) {
       String expr = analyze(node.getExpression(), context);
       return StringUtils.format("cast(%s as %s)", expr, node.getConvertedType().toString());
+    }
+
+    @Override
+    public String visitQualifiedName(
+        org.opensearch.sql.ast.expression.QualifiedName node, String context) {
+      return String.join(".", node.getParts());
     }
   }
 }

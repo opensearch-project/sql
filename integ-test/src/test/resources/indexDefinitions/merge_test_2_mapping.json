@@ -1,0 +1,41 @@
+{
+  "mappings": {
+    "properties": {
+      "machine": {
+        "properties": {
+          "os2": {
+            "type": "text"
+          },
+          "ram2": {
+            "type": "long"
+          }
+        }
+      },
+      "machine_deep": {
+        "properties": {
+          "attr2": {
+            "type": "long"
+          },
+          "layer": {
+            "properties": {
+              "os2": {
+                "type": "text"
+              }
+            }
+          }
+        }
+      },
+      "machine_array": {
+        "type": "nested",
+        "properties": {
+          "os2": {
+            "type": "text"
+          },
+          "ram2": {
+            "type": "long"
+          }
+        }
+      }
+    }
+  }
+}

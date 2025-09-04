@@ -13,10 +13,19 @@ import lombok.ToString;
 import org.apache.calcite.linq4j.Enumerator;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.exception.NonFallbackCalciteException;
+import org.opensearch.sql.monitor.ResourceMonitor;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 
+/**
+ * Supports a simple iteration over a collection for OpenSearch index
+ *
+ * <p>Analogous to LINQ's System.Collections.Enumerator. Unlike LINQ, if the underlying collection
+ * has been modified it is only optional that an implementation of the Enumerator interface detects
+ * it and throws a {@link java.util.ConcurrentModificationException}.
+ */
 public class OpenSearchIndexEnumerator implements Enumerator<Object> {
 
   /** OpenSearch client. */
@@ -30,6 +39,12 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
   /** Largest number of rows allowed in the response. */
   @EqualsAndHashCode.Include @ToString.Include private final int maxResponseSize;
 
+  /** How many moveNext() calls to perform resource check once. */
+  private static final long NUMBER_OF_NEXT_CALL_TO_CHECK = 1000;
+
+  /** ResourceMonitor. */
+  private final ResourceMonitor monitor;
+
   /** Number of rows returned. */
   private Integer queryCount;
 
@@ -42,13 +57,18 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
       OpenSearchClient client,
       List<String> fields,
       int maxResponseSize,
-      OpenSearchRequest request) {
+      OpenSearchRequest request,
+      ResourceMonitor monitor) {
     this.client = client;
     this.fields = fields;
-    this.maxResponseSize = maxResponseSize;
     this.request = request;
+    this.maxResponseSize = maxResponseSize;
+    this.monitor = monitor;
     this.queryCount = 0;
     this.current = null;
+    if (!this.monitor.isHealthy()) {
+      throw new NonFallbackCalciteException("insufficient resources to run the query, quit.");
+    }
   }
 
   private void fetchNextBatch() {
@@ -78,9 +98,15 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
   @Override
   public boolean moveNext() {
     if (queryCount >= maxResponseSize) {
-      iterator = Collections.emptyIterator();
       return false;
-    } else if (iterator == null || !iterator.hasNext()) {
+    }
+
+    boolean shouldCheck = (queryCount % NUMBER_OF_NEXT_CALL_TO_CHECK == 0);
+    if (shouldCheck && !this.monitor.isHealthy()) {
+      throw new NonFallbackCalciteException("insufficient resources to load next row, quit.");
+    }
+
+    if (iterator == null || !iterator.hasNext()) {
       fetchNextBatch();
     }
     if (iterator.hasNext()) {
@@ -94,13 +120,19 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
 
   @Override
   public void reset() {
-    iterator = Collections.emptyIterator();
+    OpenSearchResponse response = client.search(request);
+    if (!response.isEmpty()) {
+      iterator = response.iterator();
+    } else {
+      iterator = Collections.emptyIterator();
+    }
     queryCount = 0;
   }
 
   @Override
   public void close() {
-    reset();
+    iterator = Collections.emptyIterator();
+    queryCount = 0;
     client.cleanup(request);
   }
 }

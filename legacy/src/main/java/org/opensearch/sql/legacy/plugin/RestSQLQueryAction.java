@@ -112,6 +112,10 @@ public class RestSQLQueryAction extends BaseRestHandler {
               fallBackListener(
                   channel,
                   createQueryResponseListener(channel, request, executionErrorHandler),
+                  fallbackHandler),
+              fallBackListener(
+                  channel,
+                  createExplainResponseListener(channel, executionErrorHandler),
                   fallbackHandler));
     }
   }

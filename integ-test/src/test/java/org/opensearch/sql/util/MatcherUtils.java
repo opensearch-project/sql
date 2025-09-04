@@ -292,16 +292,21 @@ public class MatcherUtils {
     };
   }
 
-  public static TypeSafeMatcher<JSONArray> closeTo(Number... values) {
+  public static TypeSafeMatcher<JSONArray> closeTo(Object... values) {
     final double error = 1e-10;
     return new TypeSafeMatcher<JSONArray>() {
       @Override
       protected boolean matchesSafely(JSONArray item) {
-        List<Number> expectedValues = new ArrayList<>(Arrays.asList(values));
-        List<Number> actualValues = new ArrayList<>();
-        item.iterator().forEachRemaining(v -> actualValues.add((Number) v));
+        List<Object> expectedValues = new ArrayList<>(Arrays.asList(values));
+        List<Object> actualValues = new ArrayList<>();
+        item.iterator().forEachRemaining(v -> actualValues.add((Object) v));
         return actualValues.stream()
-            .allMatch(v -> valuesAreClose(v, expectedValues.get(actualValues.indexOf(v))));
+            .allMatch(
+                v ->
+                    v instanceof Number
+                        ? valuesAreClose(
+                            (Number) v, (Number) expectedValues.get(actualValues.indexOf(v)))
+                        : v.equals(expectedValues.get(actualValues.indexOf(v))));
       }
 
       @Override
@@ -392,6 +397,29 @@ public class MatcherUtils {
    * @param actual actual JSON string.
    */
   public static void assertJsonEquals(String expected, String actual) {
-    assertEquals(JsonParser.parseString(expected), JsonParser.parseString(actual));
+    assertEquals(
+        JsonParser.parseString(eliminatePid(expected)),
+        JsonParser.parseString(eliminatePid(actual)));
+  }
+
+  /** Compare two JSON string are equals with ignoring the RelNode id in the Calcite plan. */
+  public static void assertJsonEqualsIgnoreId(String expected, String actual) {
+    assertJsonEquals(cleanUpId(expected), cleanUpId(actual));
+  }
+
+  private static String cleanUpId(String s) {
+    return eliminateTimeStamp(eliminatePid(eliminateRelId(s)));
+  }
+
+  private static String eliminateTimeStamp(String s) {
+    return s.replaceAll("\\\\\"utcTimestamp\\\\\":\\d+", "\\\\\"utcTimestamp\\\\\":*");
+  }
+
+  private static String eliminateRelId(String s) {
+    return s.replaceAll("rel#\\d+", "rel#").replaceAll("RelSubset#\\d+", "RelSubset#");
+  }
+
+  private static String eliminatePid(String s) {
+    return s.replaceAll("pitId=[^,]+,", "pitId=*,");
   }
 }
