@@ -404,6 +404,39 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testFirstLastWithNullValues() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(balance) as first_bal, last(balance) as last_bal",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(actual, schema("first_bal", "bigint"), schema("last_bal", "bigint"));
+    // Note: Current implementation skips nulls, so we expect first and last non-null values
+    // This test verifies current behavior - may need to change based on requirements
+    verifyDataRows(actual, rows(39225L, 48086L));
+  }
+
+  @Test
+  public void testFirstLastWithNullValuesByGroup() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(balance) as first_bal, last(balance) as last_bal by age",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(
+        actual, schema("first_bal", "bigint"), schema("last_bal", "bigint"), schema("age", "int"));
+    // Testing behavior when some groups have null values
+    verifyDataRows(
+        actual,
+        rows(null, null, null), // age is null, no balance values
+        rows(32838L, 32838L, 28),
+        rows(39225L, 39225L, 32),
+        rows(4180L, 4180L, 33),
+        rows(48086L, 48086L, 34),
+        rows(null, null, 36)); // balance is null for age 36
+  }
+
+  @Test
   public void testAvgBySpanAndFields() throws IOException {
     JSONObject actual =
         executeQuery(

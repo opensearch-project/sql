@@ -46,9 +46,7 @@ public class LastAggregator extends Aggregator<LastAggregator.LastState> {
     private ExprValue last = null;
 
     public void setLast(ExprValue value) {
-      if (!value.isNull() && !value.isMissing()) {
-        last = value;
-      }
+      last = value;
     }
 
     @Override
