@@ -862,7 +862,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     groupBys.forEach(
         group ->
             newEnv.define(new Symbol(Namespace.FIELD_NAME, group.getNameOrAlias()), group.type()));
-    return new LogicalAggregation(child, aggregators, groupBys);
+
+    Argument.ArgumentMap statsArgs = Argument.ArgumentMap.of(node.getArgExprList());
+    boolean nullableBucket =
+        (Boolean) statsArgs.getOrDefault("nullable_bucket", Literal.TRUE).getValue();
+    return new LogicalAggregation(child, aggregators, groupBys, nullableBucket);
   }
 
   private Aggregation analyzePatternsAgg(Patterns node) {

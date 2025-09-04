@@ -51,6 +51,7 @@ public class ArgumentFactoryTest extends AstBuilderTest {
                 argument("partitions", intLiteral(1)),
                 argument("allnum", booleanLiteral(false)),
                 argument("delim", stringLiteral(",")),
+                argument("nullable_bucket", booleanLiteral(true)),
                 argument("dedupsplit", booleanLiteral(true)))));
   }
 

@@ -37,7 +37,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.plan.RelOptCluster;
@@ -173,7 +172,7 @@ public class AggregateAnalyzer {
       Map<String, ExprType> fieldTypes,
       List<String> outputFields,
       RelOptCluster cluster,
-      Optional<Object> fillNull)
+      boolean nullableBucket)
       throws ExpressionNotAnalyzableException {
     requireNonNull(aggregate, "aggregate");
     try {
@@ -190,9 +189,9 @@ public class AggregateAnalyzer {
         return Pair.of(
             ImmutableList.copyOf(metricBuilder.getAggregatorFactories()),
             new NoBucketAggregationParser(metricParserList));
-      } else if (aggregate.getGroupSet().length() == 1) {
+      } else if (aggregate.getGroupSet().length() == 1 && !nullableBucket) {
         ValuesSourceAggregationBuilder<?> bucketBuilder =
-            createBucketAggregation(groupList.getFirst(), project, helper, fillNull);
+            createBucketAggregation(groupList.getFirst(), project, helper);
         return Pair.of(
             Collections.singletonList(bucketBuilder.subAggregations(metricBuilder)),
             new BucketAggregationParser(metricParserList));
@@ -352,11 +351,8 @@ public class AggregateAnalyzer {
   }
 
   private static ValuesSourceAggregationBuilder<?> createBucketAggregation(
-      Integer group,
-      Project project,
-      AggregateAnalyzer.AggregateBuilderHelper helper,
-      Optional<Object> fillNull) {
-    return createBucket(group, project, helper, fillNull);
+      Integer group, Project project, AggregateAnalyzer.AggregateBuilderHelper helper) {
+    return createBucket(group, project, helper);
   }
 
   private static List<CompositeValuesSourceBuilder<?>> createCompositeBuckets(
@@ -368,10 +364,7 @@ public class AggregateAnalyzer {
   }
 
   private static ValuesSourceAggregationBuilder<?> createBucket(
-      Integer groupIndex,
-      Project project,
-      AggregateBuilderHelper helper,
-      Optional<Object> fillNull) {
+      Integer groupIndex, Project project, AggregateBuilderHelper helper) {
     RexNode rex = project.getProjects().get(groupIndex);
     String bucketName = project.getRowType().getFieldList().get(groupIndex).getName();
     if (rex instanceof RexCall rexCall
@@ -385,8 +378,7 @@ public class AggregateAnalyzer {
           bucketName,
           helper.inferNamedField(rexInputRef).getRootName(),
           valueLiteral.getValueAs(Double.class),
-          SpanUnit.of(unitLiteral.getValueAs(String.class)),
-          fillNull);
+          SpanUnit.of(unitLiteral.getValueAs(String.class)));
     } else {
       return createTermsAggregationBuilder(bucketName, rex, helper);
     }

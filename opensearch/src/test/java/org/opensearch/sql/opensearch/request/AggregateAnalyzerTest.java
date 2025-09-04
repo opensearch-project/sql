@@ -16,7 +16,6 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -140,7 +139,7 @@ class AggregateAnalyzerTest {
     Project project = createMockProject(List.of(0));
     Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
         AggregateAnalyzer.analyze(
-            aggregate, project, rowType, fieldTypes, outputFields, null, Optional.empty());
+            aggregate, project, rowType, fieldTypes, outputFields, null, true);
     assertEquals(
         "[{\"cnt\":{\"value_count\":{\"field\":\"_index\"}}},"
             + " {\"avg\":{\"avg\":{\"field\":\"a\"}}},"
@@ -222,7 +221,7 @@ class AggregateAnalyzerTest {
     Project project = createMockProject(List.of(0));
     Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
         AggregateAnalyzer.analyze(
-            aggregate, project, rowType, fieldTypes, outputFields, null, Optional.empty());
+            aggregate, project, rowType, fieldTypes, outputFields, null, true);
     assertEquals(
         "[{\"var_samp\":{\"extended_stats\":{\"field\":\"a\",\"sigma\":2.0}}},"
             + " {\"var_pop\":{\"extended_stats\":{\"field\":\"a\",\"sigma\":2.0}}},"
@@ -262,7 +261,7 @@ class AggregateAnalyzerTest {
     Project project = createMockProject(List.of(0, 1));
     Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
         AggregateAnalyzer.analyze(
-            aggregate, project, rowType, fieldTypes, outputFields, null, Optional.empty());
+            aggregate, project, rowType, fieldTypes, outputFields, null, true);
 
     assertEquals(
         "[{\"composite_buckets\":{\"composite\":{\"size\":1000,\"sources\":["
@@ -305,13 +304,7 @@ class AggregateAnalyzerTest {
             ExpressionNotAnalyzableException.class,
             () ->
                 AggregateAnalyzer.analyze(
-                    aggregate,
-                    project,
-                    rowType,
-                    fieldTypes,
-                    List.of("sum"),
-                    null,
-                    Optional.empty()));
+                    aggregate, project, rowType, fieldTypes, List.of("sum"), null, true));
     assertEquals("[field] must not be null: [sum]", exception.getCause().getMessage());
   }
 
@@ -338,7 +331,7 @@ class AggregateAnalyzerTest {
             ExpressionNotAnalyzableException.class,
             () ->
                 AggregateAnalyzer.analyze(
-                    aggregate, project, rowType, fieldTypes, outputFields, null, Optional.empty()));
+                    aggregate, project, rowType, fieldTypes, outputFields, null, true));
     assertEquals("[field] must not be null", exception.getCause().getMessage());
   }
 

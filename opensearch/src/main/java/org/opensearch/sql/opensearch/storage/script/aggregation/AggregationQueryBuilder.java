@@ -13,7 +13,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
@@ -72,7 +71,7 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
           List<NamedAggregator> namedAggregatorList,
           List<NamedExpression> groupByList,
           List<Pair<Sort.SortOption, Expression>> sortList,
-          Optional<Object> fillNull) {
+          boolean nullableBucket) {
 
     final Pair<AggregatorFactories.Builder, List<MetricParser>> metrics =
         metricBuilder.build(namedAggregatorList);
@@ -82,13 +81,11 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
       return Pair.of(
           ImmutableList.copyOf(metrics.getLeft().getAggregatorFactories()),
           new NoBucketAggregationParser(metrics.getRight()));
-    } else if (groupByList.size() == 1) {
+    } else if (groupByList.size() == 1 && !nullableBucket) {
       // one bucket, use values source bucket builder for getting better performance
       return Pair.of(
           Collections.singletonList(
-              bucketBuilder
-                  .build(groupByList.getFirst(), fillNull)
-                  .subAggregations(metrics.getLeft())),
+              bucketBuilder.build(groupByList.getFirst()).subAggregations(metrics.getLeft())),
           new BucketAggregationParser(metrics.getRight()));
     } else {
       // multiple bucket, use composite builder

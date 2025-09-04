@@ -9,7 +9,6 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import org.apache.calcite.plan.Convention;
@@ -277,7 +276,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               fieldTypes,
               outputFields,
               getCluster(),
-              Optional.empty()); // TODO
+              true); // TODO
       Map<String, OpenSearchDataType> extendedTypeMapping =
           aggregate.getRowType().getFieldList().stream()
               .collect(

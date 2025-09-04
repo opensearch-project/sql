@@ -57,5 +57,9 @@ public class Argument extends UnresolvedExpression {
     public Literal get(String name) {
       return map.get(name);
     }
+
+    public Literal getOrDefault(String name, Literal literal) {
+      return map.getOrDefault(name, literal);
+    }
   }
 }

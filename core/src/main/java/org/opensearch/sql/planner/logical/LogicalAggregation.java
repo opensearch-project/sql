@@ -22,12 +22,18 @@ public class LogicalAggregation extends LogicalPlan {
 
   @Getter private final List<NamedExpression> groupByList;
 
+  @Getter private final boolean nullableBucket;
+
   /** Constructor of LogicalAggregation. */
   public LogicalAggregation(
-      LogicalPlan child, List<NamedAggregator> aggregatorList, List<NamedExpression> groupByList) {
+      LogicalPlan child,
+      List<NamedAggregator> aggregatorList,
+      List<NamedExpression> groupByList,
+      boolean nullableBucket) {
     super(Collections.singletonList(child));
     this.aggregatorList = aggregatorList;
     this.groupByList = groupByList;
+    this.nullableBucket = nullableBucket;
   }
 
   @Override

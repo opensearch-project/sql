@@ -33,7 +33,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.tuple.Pair;
@@ -156,7 +155,7 @@ class AggregationQueryBuilderTest {
                 named("avg(age)", new AvgAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER))),
             Arrays.asList(named("name", ref("name", STRING)), named("date", ref("date", DATE))),
             sort(ref("name", STRING), Sort.SortOption.DEFAULT_DESC),
-            Optional.empty()));
+            true));
   }
 
   @Test
@@ -356,7 +355,7 @@ class AggregationQueryBuilderTest {
                 Sort.SortOption.DEFAULT_DESC,
                 ref("age", INTEGER),
                 Sort.SortOption.DEFAULT_ASC),
-            Optional.empty()));
+            true));
   }
 
   @Test
@@ -667,7 +666,7 @@ class AggregationQueryBuilderTest {
   @SneakyThrows
   private String buildQuery(
       List<NamedAggregator> namedAggregatorList, List<NamedExpression> groupByList) {
-    return buildQuery(namedAggregatorList, groupByList, null, Optional.empty());
+    return buildQuery(namedAggregatorList, groupByList, null, true);
   }
 
   @SneakyThrows
@@ -675,12 +674,12 @@ class AggregationQueryBuilderTest {
       List<NamedAggregator> namedAggregatorList,
       List<NamedExpression> groupByList,
       List<Pair<Sort.SortOption, Expression>> sortList,
-      Optional<Object> fillNull) {
+      boolean nullableBucket) {
     ObjectMapper objectMapper = new ObjectMapper();
     return objectMapper
         .readTree(
             queryBuilder
-                .buildAggregationBuilder(namedAggregatorList, groupByList, sortList, fillNull)
+                .buildAggregationBuilder(namedAggregatorList, groupByList, sortList, nullableBucket)
                 .getLeft()
                 .get(0)
                 .toString())

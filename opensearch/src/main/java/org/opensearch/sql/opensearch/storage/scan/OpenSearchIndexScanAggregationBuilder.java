@@ -6,7 +6,6 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
@@ -41,8 +40,8 @@ class OpenSearchIndexScanAggregationBuilder implements PushDownQueryBuilder {
   /** Sorting items pushed down. */
   private List<Pair<Sort.SortOption, Expression>> sortList;
 
-  /** Fill null value for missing fields. */
-  private final Optional<Object> fillNull = Optional.empty(); // TODO
+  /** When false, ignore aggregation values for null bucket. */
+  private final boolean nullableBucket = true; // TODO
 
   OpenSearchIndexScanAggregationBuilder(
       OpenSearchRequestBuilder requestBuilder, LogicalAggregation aggregation) {
@@ -56,7 +55,7 @@ class OpenSearchIndexScanAggregationBuilder implements PushDownQueryBuilder {
     AggregationQueryBuilder builder =
         new AggregationQueryBuilder(new DefaultExpressionSerializer());
     Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder =
-        builder.buildAggregationBuilder(aggregatorList, groupByList, sortList, fillNull);
+        builder.buildAggregationBuilder(aggregatorList, groupByList, sortList, nullableBucket);
     requestBuilder.pushDownAggregation(aggregationBuilder);
     requestBuilder.pushTypeMapping(builder.buildTypeMapping(aggregatorList, groupByList));
     return requestBuilder;

@@ -11,7 +11,6 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.opensearch.storage.script.aggregation.AggregationQueryBuilder.AGGREGATION_BUCKET_SIZE;
 
 import java.util.List;
-import java.util.Optional;
 import org.opensearch.search.aggregations.bucket.histogram.DateHistogramAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.histogram.DateHistogramInterval;
 import org.opensearch.search.aggregations.bucket.histogram.HistogramAggregationBuilder;
@@ -34,15 +33,14 @@ public class BucketAggregationBuilder {
   }
 
   /** Build the list of ValuesSourceAggregationBuilder. */
-  public ValuesSourceAggregationBuilder<?> build(NamedExpression expr, Optional<Object> fillNull) {
+  public ValuesSourceAggregationBuilder<?> build(NamedExpression expr) {
     if (expr.getDelegated() instanceof SpanExpression) {
       SpanExpression spanExpr = (SpanExpression) expr.getDelegated();
       return buildHistogram(
           expr.getName(),
           spanExpr.getField().toString(),
           spanExpr.getValue().valueOf().doubleValue(),
-          spanExpr.getUnit(),
-          fillNull);
+          spanExpr.getUnit());
     } else {
       TermsAggregationBuilder sourceBuilder = new TermsAggregationBuilder(expr.getName());
       sourceBuilder.size(AGGREGATION_BUCKET_SIZE);
@@ -58,26 +56,24 @@ public class BucketAggregationBuilder {
   }
 
   public static ValuesSourceAggregationBuilder<?> buildHistogram(
-      String name, String field, Double value, SpanUnit unit, Optional<Object> fillNull) {
+      String name, String field, Double value, SpanUnit unit) {
     switch (unit) {
       case NONE:
         HistogramAggregationBuilder builder = new HistogramAggregationBuilder(name);
         builder.field(field).interval(value);
-        fillNull.ifPresent(builder::missing);
         return builder;
       case UNKNOWN:
         throw new IllegalStateException("Invalid span unit");
       default:
-        return buildDateHistogram(name, field, value.intValue(), unit, fillNull);
+        return buildDateHistogram(name, field, value.intValue(), unit);
     }
   }
 
   public static ValuesSourceAggregationBuilder<?> buildDateHistogram(
-      String name, String field, Integer value, SpanUnit unit, Optional<Object> fillNull) {
+      String name, String field, Integer value, SpanUnit unit) {
     String spanValue = value + unit.getName();
     DateHistogramAggregationBuilder builder = new DateHistogramAggregationBuilder(name);
     builder.field(field);
-    fillNull.ifPresent(builder::missing);
     switch (unit) {
       case MILLISECOND:
       case MS:

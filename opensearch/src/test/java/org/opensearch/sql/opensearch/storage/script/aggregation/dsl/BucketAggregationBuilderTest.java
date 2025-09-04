@@ -15,7 +15,6 @@ import static org.opensearch.sql.expression.DSL.named;
 import static org.opensearch.sql.expression.DSL.ref;
 
 import java.util.Map;
-import java.util.Optional;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -262,8 +261,7 @@ class BucketAggregationBuilderTest {
   private String buildQuery(NamedExpression groupByExpression) {
     XContentBuilder builder = XContentFactory.jsonBuilder().prettyPrint();
     builder.startObject();
-    ValuesSourceAggregationBuilder<?> sourceBuilder =
-        aggregationBuilder.build(groupByExpression, Optional.empty());
+    ValuesSourceAggregationBuilder<?> sourceBuilder = aggregationBuilder.build(groupByExpression);
     sourceBuilder.toXContent(builder, EMPTY_PARAMS);
     builder.endObject();
     return BytesReference.bytes(builder).utf8ToString();

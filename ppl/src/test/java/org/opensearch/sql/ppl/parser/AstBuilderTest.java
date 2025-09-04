@@ -56,6 +56,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.tuple.Pair;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -86,6 +87,11 @@ public class AstBuilderTest {
   private final PPLSyntaxParser parser = new PPLSyntaxParser();
 
   private final Settings settings = Mockito.mock(Settings.class);
+
+  @Before
+  public void setup() {
+    when(settings.getSettingValue(Key.PPL_SYNTAX_LEGACY_PREFERRED)).thenReturn(true);
+  }
 
   @Test
   public void testSearchCommand() {

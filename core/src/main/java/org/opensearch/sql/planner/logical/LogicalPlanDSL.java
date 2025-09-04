@@ -40,7 +40,15 @@ public class LogicalPlanDSL {
 
   public static LogicalPlan aggregation(
       LogicalPlan input, List<NamedAggregator> aggregatorList, List<NamedExpression> groupByList) {
-    return new LogicalAggregation(input, aggregatorList, groupByList);
+    return new LogicalAggregation(input, aggregatorList, groupByList, true);
+  }
+
+  public static LogicalPlan aggregation(
+      LogicalPlan input,
+      List<NamedAggregator> aggregatorList,
+      List<NamedExpression> groupByList,
+      boolean nullableBucket) {
+    return new LogicalAggregation(input, aggregatorList, groupByList, nullableBucket);
   }
 
   public static LogicalPlan filter(LogicalPlan input, Expression expression) {
