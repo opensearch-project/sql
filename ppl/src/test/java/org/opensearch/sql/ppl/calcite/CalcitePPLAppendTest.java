@@ -45,7 +45,8 @@ public class CalcitePPLAppendTest extends CalcitePPLAbstractTest {
         Arrays.asList(
             "source=EMP | append [ | where DEPTNO = 20 ]",
             "source=EMP | append [ ]",
-            "source=EMP | append [ | where DEPTNO = 20 | append [ ] ]");
+            "source=EMP | append [ | where DEPTNO = 20 | append [ ] ]",
+            "source=EMP | append [ | where DEPTNO = 10 | lookup DEPT DEPTNO append LOC as JOB ]");
 
     for (String ppl : emptySourcePPLs) {
       RelNode root = getRelNode(ppl);
@@ -102,6 +103,70 @@ public class CalcitePPLAppendTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`\n"
             + "WHERE `DEPTNO` = 20) `t2`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testAppendEmptySourceWithJoin() {
+    List<String> emptySourceWithEmptySourceJoinPPLs =
+        Arrays.asList(
+            "source=EMP | append [ | where DEPTNO = 10 | join on ENAME = DNAME DEPT ]",
+            "source=EMP | append [ | where DEPTNO = 10 | cross join on ENAME = DNAME DEPT ]",
+            "source=EMP | append [ | where DEPTNO = 10 | left join on ENAME = DNAME DEPT ]",
+            "source=EMP | append [ | where DEPTNO = 10 | semi join on ENAME = DNAME DEPT ]",
+            "source=EMP | append [ | where DEPTNO = 10 | anti join on ENAME = DNAME DEPT ]");
+
+    for (String ppl : emptySourceWithEmptySourceJoinPPLs) {
+      RelNode root = getRelNode(ppl);
+      String expectedLogical =
+          "LogicalUnion(all=[true])\n"
+              + "  LogicalTableScan(table=[[scott, EMP]])\n"
+              + "  LogicalValues(tuples=[[]])\n";
+      verifyLogical(root, expectedLogical);
+      verifyResultCount(root, 14);
+
+      String expectedSparkSql =
+          "SELECT *\n"
+              + "FROM `scott`.`EMP`\n"
+              + "UNION ALL\n"
+              + "SELECT *\n"
+              + "FROM (VALUES (NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)) `t` (`EMPNO`,"
+              + " `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`)\n"
+              + "WHERE 1 = 0";
+      verifyPPLToSparkSQL(root, expectedSparkSql);
+    }
+
+    List<String> emptySourceWithRightOrFullJoinPPLs =
+        Arrays.asList(
+            "source=EMP | append [ | where DEPTNO = 10 | right join on ENAME = DNAME DEPT ]",
+            "source=EMP | append [ | where DEPTNO = 10 | full join on ENAME = DNAME DEPT ]");
+
+    for (String ppl : emptySourceWithRightOrFullJoinPPLs) {
+      RelNode root = getRelNode(ppl);
+      String expectedLogical =
+          "LogicalUnion(all=[true])\n"
+              + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+              + " SAL=[$5], COMM=[$6], DEPTNO=[$7], DEPTNO0=[null:TINYINT],"
+              + " DNAME=[null:VARCHAR(14)], LOC=[null:VARCHAR(13)])\n"
+              + "    LogicalTableScan(table=[[scott, EMP]])\n"
+              + "  LogicalProject(EMPNO=[null:SMALLINT], ENAME=[null:VARCHAR(10)],"
+              + " JOB=[null:VARCHAR(9)], MGR=[null:SMALLINT], HIREDATE=[null:DATE],"
+              + " SAL=[null:DECIMAL(7, 2)], COMM=[null:DECIMAL(7, 2)], DEPTNO=[null:TINYINT],"
+              + " DEPTNO0=[$0], DNAME=[$1], LOC=[$2])\n"
+              + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+      verifyLogical(root, expectedLogical);
+
+      String expectedSparkSql =
+          "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, CAST(NULL AS"
+              + " TINYINT) `DEPTNO0`, CAST(NULL AS STRING) `DNAME`, CAST(NULL AS STRING) `LOC`\n"
+              + "FROM `scott`.`EMP`\n"
+              + "UNION ALL\n"
+              + "SELECT CAST(NULL AS SMALLINT) `EMPNO`, CAST(NULL AS STRING) `ENAME`, CAST(NULL AS"
+              + " STRING) `JOB`, CAST(NULL AS SMALLINT) `MGR`, CAST(NULL AS DATE) `HIREDATE`,"
+              + " CAST(NULL AS DECIMAL(7, 2)) `SAL`, CAST(NULL AS DECIMAL(7, 2)) `COMM`, CAST(NULL"
+              + " AS TINYINT) `DEPTNO`, `DEPTNO` `DEPTNO0`, `DNAME`, `LOC`\n"
+              + "FROM `scott`.`DEPT`";
+      verifyPPLToSparkSQL(root, expectedSparkSql);
+    }
   }
 
   @Test
