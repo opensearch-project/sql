@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.legacy.TestUtils.*;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
@@ -26,6 +27,7 @@ public class CalciteExplainIT extends ExplainIT {
     loadIndex(Index.BANK_WITH_STRING_VALUES);
     loadIndex(Index.NESTED_SIMPLE);
     loadIndex(Index.TIME_TEST_DATA);
+    loadIndex(Index.EVENTS);
     loadIndex(Index.LOGS);
   }
 
@@ -217,6 +219,26 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testExplainWithTimechartAvg() throws IOException {
+    var result = explainQueryToString("source=events | timechart span=1m avg(cpu_usage) by host");
+    String expected =
+        isPushdownEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_timechart.json")
+            : loadFromFile("expectedOutput/calcite/explain_timechart_no_pushdown.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testExplainWithTimechartCount() throws IOException {
+    var result = explainQueryToString("source=events | timechart span=1m count() by host");
+    String expected =
+        isPushdownEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_timechart_count.json")
+            : loadFromFile("expectedOutput/calcite/explain_timechart_count_no_pushdown.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
   public void noPushDownForAggOnWindow() throws IOException {
     Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
     String query =
@@ -366,6 +388,15 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testListAggregationExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_list_aggregation.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats list(age) as age_list"));
+  }
+
+  @Test
   public void testRegexExplain() throws IOException {
     String query =
         "source=opensearch-sql_test_index_account | regex lastname='^[A-Z][a-z]+$' | head 5";
@@ -379,6 +410,24 @@ public class CalciteExplainIT extends ExplainIT {
     String query = "source=opensearch-sql_test_index_account | regex lastname!='.*son$' | head 5";
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_regex_negated.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testSimpleSortExpressionPushDownExplain() throws Exception {
+    String query =
+        "source=opensearch-sql_test_index_bank| eval age2 = age + 2 | sort age2 | fields age, age2";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_simple_sort_expr_push.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testSimpleSortExpressionPushDownWithOnlyExprProjected() throws Exception {
+    String query =
+        "source=opensearch-sql_test_index_bank| eval b = balance + 1 | sort b | fields b";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_simple_sort_expr_single_expr_output_push.json");
     assertJsonEqualsIgnoreId(expected, result);
   }
 

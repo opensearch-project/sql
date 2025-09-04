@@ -74,6 +74,7 @@ commands
    | flattenCommand
    | reverseCommand
    | regexCommand
+   | timechartCommand
    ;
 
 commandName
@@ -105,6 +106,7 @@ commandName
    | EXPAND
    | FLATTEN
    | TRENDLINE
+   | TIMECHART
    | EXPLAIN
    | REVERSE
    | REGEX
@@ -166,6 +168,25 @@ sortCommand
 
 reverseCommand
    : REVERSE
+   ;
+
+timechartCommand
+   : TIMECHART timechartParameter* statsFunction (BY fieldExpression)?
+   ;
+
+timechartParameter
+   : (spanClause | SPAN EQUAL spanLiteral)
+   | timechartArg
+   ;
+
+timechartArg
+   : LIMIT EQUAL integerLiteral
+   | USEOTHER EQUAL (booleanLiteral | ident)
+   ;
+
+spanLiteral
+   : integerLiteral timespanUnit
+   | stringLiteral
    ;
 
 evalCommand
@@ -512,6 +533,7 @@ statsFunctionName
    | STDDEV_POP
    | PERCENTILE
    | PERCENTILE_APPROX
+   | LIST
    ;
 
 earliestLatestFunction

@@ -1941,6 +1941,6 @@ class AnalyzerTest extends AnalyzerTestBase {
                             field("lastname"), false, stringLiteral("^[A-Z][a-z]+$"))
                         .attach(relation("schema"))));
     assertEquals(
-        "REGEX is supported only when plugins.calcite.enabled=true", exception.getMessage());
+        "Regex is supported only when plugins.calcite.enabled=true", exception.getMessage());
   }
 }

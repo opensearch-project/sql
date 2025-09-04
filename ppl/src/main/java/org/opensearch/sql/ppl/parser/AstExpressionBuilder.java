@@ -664,6 +664,27 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return new Span(visit(ctx.fieldExpression()), visit(ctx.value), SpanUnit.of(unit));
   }
 
+  // Handle new syntax: span=1h
+  @Override
+  public UnresolvedExpression visitSpanLiteral(OpenSearchPPLParser.SpanLiteralContext ctx) {
+    if (ctx.integerLiteral() != null && ctx.timespanUnit() != null) {
+      return new Span(
+          AstDSL.field("@timestamp"),
+          new Literal(Integer.parseInt(ctx.integerLiteral().getText()), DataType.INTEGER),
+          SpanUnit.of(ctx.timespanUnit().getText()));
+    }
+
+    if (ctx.integerLiteral() != null) {
+      return new Span(
+          AstDSL.field("@timestamp"),
+          new Literal(Integer.parseInt(ctx.integerLiteral().getText()), DataType.INTEGER),
+          SpanUnit.of(""));
+    }
+
+    return new Span(
+        AstDSL.field("@timestamp"), new Literal(ctx.getText(), DataType.STRING), SpanUnit.of(""));
+  }
+
   @Override
   public UnresolvedExpression visitLeftHint(OpenSearchPPLParser.LeftHintContext ctx) {
     return new EqualTo(
