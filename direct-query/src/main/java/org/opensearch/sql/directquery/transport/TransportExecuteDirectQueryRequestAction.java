@@ -19,6 +19,9 @@ import org.opensearch.sql.directquery.transport.model.ExecuteDirectQueryActionRe
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
+/*
+ * @opensearch.experimental
+ */
 public class TransportExecuteDirectQueryRequestAction
     extends HandledTransportAction<
         ExecuteDirectQueryActionRequest, ExecuteDirectQueryActionResponse> {
