@@ -370,7 +370,68 @@ class AggregateAnalyzerTest {
   }
 
   @Test
-  void analyze_aggCall_simpleFilter_multiple() throws ExpressionNotAnalyzableException {
+  void analyze_aggCall_simpleFilter_distinct() throws ExpressionNotAnalyzableException {
+    buildAggregation("filter_distinct_cnt")
+        .withAggCall(
+            b ->
+                b.aggregateCall(
+                    SqlStdOperatorTable.COUNT,
+                    true, // distinct = true
+                    b.call(
+                        SqlStdOperatorTable.IS_TRUE,
+                        b.call(SqlStdOperatorTable.EQUALS, b.field("a"), b.literal(10))),
+                    "filter_distinct_cnt",
+                    b.field("a")))
+        .expectDslQuery(
+            "[{\"filter_distinct_cnt\":{\"filter\":{\"term\":{\"a\":{\"value\":10,\"boost\":1.0}}},"
+                + "\"aggregations\":{\"filter_distinct_cnt\":{\"cardinality\":{\"field\":\"a\"}}}}}]")
+        .expectResponseParser(
+            new MetricParserHelper(
+                List.of(
+                    FilterParser.builder()
+                        .name("filter_distinct_cnt")
+                        .metricsParser(new SingleValueParser("filter_distinct_cnt"))
+                        .build())))
+        .verify();
+  }
+
+  @Test
+  void analyze_aggCall_complexFilter() throws ExpressionNotAnalyzableException {
+    buildAggregation("filter_count_range")
+        .withAggCall(
+            b ->
+                b.aggregateCall(
+                    SqlStdOperatorTable.COUNT,
+                    false,
+                    b.call(
+                        SqlStdOperatorTable.IS_TRUE,
+                        b.call(
+                            SqlStdOperatorTable.AND,
+                            b.call(
+                                SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
+                                b.field("a"),
+                                b.literal(30)),
+                            b.call(
+                                SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
+                                b.field("a"),
+                                b.literal(50)))),
+                    "filter_count_range"))
+        .expectDslQuery(
+            "[{\"filter_count_range\":{\"filter\":{\"range\":{\"a\":{\"from\":30.0,\"to\":50.0,"
+                + "\"include_lower\":true,\"include_upper\":true,\"boost\":1.0}}},"
+                + "\"aggregations\":{\"filter_count_range\":{\"value_count\":{\"field\":\"_index\"}}}}}]")
+        .expectResponseParser(
+            new MetricParserHelper(
+                List.of(
+                    FilterParser.builder()
+                        .name("filter_count_range")
+                        .metricsParser(new SingleValueParser("filter_count_range"))
+                        .build())))
+        .verify();
+  }
+
+  @Test
+  void analyze_aggCall_multipleWithFilter() throws ExpressionNotAnalyzableException {
     buildAggregation("filter_avg", "filter_sum", "filter_min", "filter_max")
         .withAggCall(
             b ->
@@ -439,41 +500,6 @@ class AggregateAnalyzerTest {
                     FilterParser.builder()
                         .name("filter_max")
                         .metricsParser(new SingleValueParser("filter_max"))
-                        .build())))
-        .verify();
-  }
-
-  @Test
-  void analyze_aggCall_complexFilter() throws ExpressionNotAnalyzableException {
-    buildAggregation("filter_count_range")
-        .withAggCall(
-            b ->
-                b.aggregateCall(
-                    SqlStdOperatorTable.COUNT,
-                    false,
-                    b.call(
-                        SqlStdOperatorTable.IS_TRUE,
-                        b.call(
-                            SqlStdOperatorTable.AND,
-                            b.call(
-                                SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
-                                b.field("a"),
-                                b.literal(30)),
-                            b.call(
-                                SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
-                                b.field("a"),
-                                b.literal(50)))),
-                    "filter_count_range"))
-        .expectDslQuery(
-            "[{\"filter_count_range\":{\"filter\":{\"range\":{\"a\":{\"from\":30.0,\"to\":50.0,"
-                + "\"include_lower\":true,\"include_upper\":true,\"boost\":1.0}}},"
-                + "\"aggregations\":{\"filter_count_range\":{\"value_count\":{\"field\":\"_index\"}}}}}]")
-        .expectResponseParser(
-            new MetricParserHelper(
-                List.of(
-                    FilterParser.builder()
-                        .name("filter_count_range")
-                        .metricsParser(new SingleValueParser("filter_count_range"))
                         .build())))
         .verify();
   }
