@@ -25,6 +25,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -735,8 +737,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // because that Mapping only works for RexNode, but we need both AggCall and RexNode list.
     Pair<List<RexNode>, List<AggCall>> reResolved =
         resolveAttributesForAggregation(groupExprList, aggExprList, context);
+
     context.relBuilder.aggregate(
         context.relBuilder.groupKey(reResolved.getLeft()), reResolved.getRight());
+
     return Pair.of(reResolved.getLeft(), reResolved.getRight());
   }
 
@@ -1358,6 +1362,331 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .collect(Collectors.toList());
     relBuilder.projectPlus(expandedFields);
     return relBuilder.peek();
+  }
+
+  /** Helper method to get the function name for proper column naming */
+  private String getValueFunctionName(UnresolvedExpression aggregateFunction) {
+    if (!(aggregateFunction instanceof AggregateFunction)) {
+      return "value";
+    }
+
+    AggregateFunction aggFunc = (AggregateFunction) aggregateFunction;
+    String funcName = aggFunc.getFuncName().toLowerCase();
+    List<UnresolvedExpression> args = new ArrayList<>();
+    if (aggFunc.getField() != null) {
+      args.add(aggFunc.getField());
+    }
+    if (aggFunc.getArgList() != null) {
+      args.addAll(aggFunc.getArgList());
+    }
+
+    if (args.isEmpty() || funcName.equals("count")) {
+      // Special case for count() to show as just "count" instead of "count(AllFields())"
+      return "count";
+    }
+
+    // Build the full function call string like "avg(cpu_usage)"
+    StringBuilder sb = new StringBuilder(funcName).append("(");
+    for (int i = 0; i < args.size(); i++) {
+      if (i > 0) sb.append(", ");
+      if (args.get(i) instanceof Field) {
+        sb.append(((Field) args.get(i)).getField().toString());
+      } else {
+        sb.append(args.get(i).toString());
+      }
+    }
+    sb.append(")");
+    return sb.toString();
+  }
+
+  /** Transforms timechart command into SQL-based operations. */
+  @Override
+  public RelNode visitTimechart(
+      org.opensearch.sql.ast.tree.Timechart node, CalcitePlanContext context) {
+    visitChildren(node, context);
+
+    // Extract parameters
+    UnresolvedExpression spanExpr = node.getBinExpression();
+
+    List<UnresolvedExpression> groupExprList = Arrays.asList(spanExpr);
+
+    // Handle no by field case
+    if (node.getByField() == null) {
+      String valueFunctionName = getValueFunctionName(node.getAggregateFunction());
+
+      // Create group expression list with just the timestamp span but use a different alias
+      // to avoid @timestamp naming conflict
+      List<UnresolvedExpression> simpleGroupExprList = new ArrayList<>();
+      simpleGroupExprList.add(new Alias("timestamp", spanExpr));
+      // Create agg expression list with the aggregate function
+      List<UnresolvedExpression> simpleAggExprList =
+          List.of(new Alias(valueFunctionName, node.getAggregateFunction()));
+      // Create an Aggregation object
+      Aggregation aggregation =
+          new Aggregation(
+              simpleAggExprList,
+              Collections.emptyList(),
+              simpleGroupExprList,
+              null,
+              Collections.emptyList());
+      // Use visitAggregation to handle the aggregation and column naming
+      RelNode result = visitAggregation(aggregation, context);
+      // Push the result and add explicit projection to get [@timestamp, count] order
+      context.relBuilder.push(result);
+      // Reorder fields: timestamp first, then count
+      context.relBuilder.project(
+          context.relBuilder.field("timestamp"), context.relBuilder.field(valueFunctionName));
+      // Rename timestamp to @timestamp
+      context.relBuilder.rename(List.of("@timestamp", valueFunctionName));
+
+      context.relBuilder.sort(context.relBuilder.field(0));
+      return context.relBuilder.peek();
+    }
+
+    // Extract parameters for byField case
+    UnresolvedExpression byField = node.getByField();
+    String byFieldName = ((Field) byField).getField().toString();
+    String valueFunctionName = getValueFunctionName(node.getAggregateFunction());
+
+    int limit = Optional.ofNullable(node.getLimit()).orElse(10);
+    boolean useOther = Optional.ofNullable(node.getUseOther()).orElse(true);
+
+    try {
+      // Step 1: Initial aggregation - IMPORTANT: order is [spanExpr, byField]
+      groupExprList = Arrays.asList(spanExpr, byField);
+      aggregateWithTrimming(groupExprList, List.of(node.getAggregateFunction()), context);
+
+      // First rename the timestamp field (2nd to last) to @timestamp
+      List<String> fieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+      List<String> renamedFields = new ArrayList<>(fieldNames);
+      // TODO: Fix aggregateWithTrimming reordering
+      renamedFields.set(fieldNames.size() - 2, "@timestamp");
+      context.relBuilder.rename(renamedFields);
+
+      // Then reorder: @timestamp first, then byField, then value function
+      List<RexNode> outputFields = context.relBuilder.fields();
+      List<RexNode> reordered = new ArrayList<>();
+      reordered.add(context.relBuilder.field("@timestamp")); // timestamp first
+      reordered.add(context.relBuilder.field(byFieldName)); // byField second
+      reordered.add(outputFields.get(outputFields.size() - 1)); // value function last
+      context.relBuilder.project(reordered);
+
+      // Handle no limit case - just sort and return with proper field aliases
+      if (limit == 0) {
+        // Add final projection with proper aliases: [@timestamp, byField, valueFunctionName]
+        context.relBuilder.project(
+            context.relBuilder.alias(context.relBuilder.field(0), "@timestamp"),
+            context.relBuilder.alias(context.relBuilder.field(1), byFieldName),
+            context.relBuilder.alias(context.relBuilder.field(2), valueFunctionName));
+        context.relBuilder.sort(context.relBuilder.field(0), context.relBuilder.field(1));
+        return context.relBuilder.peek();
+      }
+
+      // Use known field positions after reordering: 0=@timestamp, 1=byField, 2=value
+      RelNode completeResults = context.relBuilder.build();
+
+      // Step 2: Find top N categories using window function approach (more efficient than separate
+      // aggregation)
+      RelNode topCategories = buildTopCategoriesQuery(completeResults, limit, context);
+
+      // Step 3: Apply OTHER logic with single pass
+      return buildFinalResultWithOther(
+          completeResults, topCategories, byFieldName, valueFunctionName, useOther, limit, context);
+
+    } catch (Exception e) {
+      throw new RuntimeException("Error in visitTimechart: " + e.getMessage(), e);
+    }
+  }
+
+  /** Build top categories query - simpler approach that works better with OTHER handling */
+  private RelNode buildTopCategoriesQuery(
+      RelNode completeResults, int limit, CalcitePlanContext context) {
+    context.relBuilder.push(completeResults);
+
+    // Filter out null values when determining top categories - null should not count towards limit
+    context.relBuilder.filter(context.relBuilder.isNotNull(context.relBuilder.field(1)));
+
+    // Get totals for non-null categories - field positions: 0=@timestamp, 1=byField, 2=value
+    context.relBuilder.aggregate(
+        context.relBuilder.groupKey(context.relBuilder.field(1)),
+        context.relBuilder.sum(context.relBuilder.field(2)).as("grand_total"));
+
+    // Apply sorting and limit to non-null categories only
+    context.relBuilder.sort(context.relBuilder.desc(context.relBuilder.field("grand_total")));
+    if (limit > 0) {
+      context.relBuilder.limit(0, limit);
+    }
+
+    return context.relBuilder.build();
+  }
+
+  /** Build final result with OTHER category using efficient single-pass approach */
+  private RelNode buildFinalResultWithOther(
+      RelNode completeResults,
+      RelNode topCategories,
+      String byFieldName,
+      String valueFunctionName,
+      boolean useOther,
+      int limit,
+      CalcitePlanContext context) {
+
+    // Use zero-filling for count aggregations, standard result for others
+    if (valueFunctionName.equals("count")) {
+      return buildZeroFilledResult(
+          completeResults, topCategories, byFieldName, valueFunctionName, useOther, limit, context);
+    } else {
+      return buildStandardResult(
+          completeResults, topCategories, byFieldName, valueFunctionName, useOther, context);
+    }
+  }
+
+  /** Build standard result without zero-filling */
+  private RelNode buildStandardResult(
+      RelNode completeResults,
+      RelNode topCategories,
+      String byFieldName,
+      String valueFunctionName,
+      boolean useOther,
+      CalcitePlanContext context) {
+
+    context.relBuilder.push(completeResults);
+    context.relBuilder.push(topCategories);
+
+    // LEFT JOIN to identify top categories - field positions: 0=@timestamp, 1=byField, 2=value
+    context.relBuilder.join(
+        org.apache.calcite.rel.core.JoinRelType.LEFT,
+        context.relBuilder.equals(
+            context.relBuilder.field(2, 0, 1), context.relBuilder.field(2, 1, 0)));
+
+    // Calculate field position after join
+    int topCategoryFieldIndex = completeResults.getRowType().getFieldCount();
+
+    // Create CASE expression for OTHER logic
+    RexNode categoryExpr = createOtherCaseExpression(topCategoryFieldIndex, 1, context);
+
+    // Project and aggregate
+    context.relBuilder.project(
+        context.relBuilder.alias(context.relBuilder.field(0), "@timestamp"),
+        context.relBuilder.alias(categoryExpr, byFieldName),
+        context.relBuilder.alias(context.relBuilder.field(2), valueFunctionName));
+
+    context.relBuilder.aggregate(
+        context.relBuilder.groupKey(context.relBuilder.field(0), context.relBuilder.field(1)),
+        context.relBuilder.sum(context.relBuilder.field(2)).as(valueFunctionName));
+
+    applyFiltersAndSort(useOther, context);
+    return context.relBuilder.peek();
+  }
+
+  /** Helper to create OTHER case expression - preserves NULL as a category */
+  private RexNode createOtherCaseExpression(
+      int topCategoryFieldIndex, int byIndex, CalcitePlanContext context) {
+    return context.relBuilder.call(
+        org.apache.calcite.sql.fun.SqlStdOperatorTable.CASE,
+        context.relBuilder.isNotNull(context.relBuilder.field(topCategoryFieldIndex)),
+        context.relBuilder.field(byIndex), // Keep original value (including NULL)
+        context.relBuilder.call(
+            org.apache.calcite.sql.fun.SqlStdOperatorTable.CASE,
+            context.relBuilder.isNull(context.relBuilder.field(byIndex)),
+            context.relBuilder.literal(null), // Preserve NULL as NULL
+            context.relBuilder.literal("OTHER")));
+  }
+
+  /** Helper to apply filters and sorting */
+  private void applyFiltersAndSort(boolean useOther, CalcitePlanContext context) {
+    if (!useOther) {
+      context.relBuilder.filter(
+          context.relBuilder.notEquals(
+              context.relBuilder.field(1), context.relBuilder.literal("OTHER")));
+    }
+    context.relBuilder.sort(context.relBuilder.field(0), context.relBuilder.field(1));
+  }
+
+  /** Build zero-filled result using fillnull pattern - treat NULL as just another category */
+  private RelNode buildZeroFilledResult(
+      RelNode completeResults,
+      RelNode topCategories,
+      String byFieldName,
+      String valueFunctionName,
+      boolean useOther,
+      int limit,
+      CalcitePlanContext context) {
+
+    // Get all unique timestamps - field positions: 0=@timestamp, 1=byField, 2=value
+    context.relBuilder.push(completeResults);
+    context.relBuilder.aggregate(context.relBuilder.groupKey(context.relBuilder.field(0)));
+    RelNode allTimestamps = context.relBuilder.build();
+
+    // Get all categories for zero-filling - apply OTHER logic here too
+    context.relBuilder.push(completeResults);
+    context.relBuilder.push(topCategories);
+    context.relBuilder.join(
+        org.apache.calcite.rel.core.JoinRelType.LEFT,
+        context.relBuilder.call(
+            org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
+            context.relBuilder.field(2, 0, 1),
+            context.relBuilder.field(2, 1, 0)));
+
+    int topCategoryFieldIndex = completeResults.getRowType().getFieldCount();
+    RexNode categoryExpr = createOtherCaseExpression(topCategoryFieldIndex, 1, context);
+
+    context.relBuilder.project(categoryExpr);
+    context.relBuilder.aggregate(context.relBuilder.groupKey(context.relBuilder.field(0)));
+    RelNode allCategories = context.relBuilder.build();
+
+    // Cross join timestamps with ALL categories (including OTHER) for zero-filling
+    context.relBuilder.push(allTimestamps);
+    context.relBuilder.push(allCategories);
+    context.relBuilder.join(
+        org.apache.calcite.rel.core.JoinRelType.INNER, context.relBuilder.literal(true));
+
+    // Create zero-filled combinations with count=0
+    context.relBuilder.project(
+        context.relBuilder.alias(
+            context.relBuilder.cast(context.relBuilder.field(0), SqlTypeName.TIMESTAMP),
+            "@timestamp"),
+        context.relBuilder.alias(context.relBuilder.field(1), byFieldName),
+        context.relBuilder.alias(context.relBuilder.literal(0), valueFunctionName));
+    RelNode zeroFilledCombinations = context.relBuilder.build();
+
+    // Get actual results with OTHER logic applied
+    context.relBuilder.push(completeResults);
+    context.relBuilder.push(topCategories);
+    context.relBuilder.join(
+        org.apache.calcite.rel.core.JoinRelType.LEFT,
+        // Use IS NOT DISTINCT FROM for proper null handling in join
+        context.relBuilder.call(
+            org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
+            context.relBuilder.field(2, 0, 1),
+            context.relBuilder.field(2, 1, 0)));
+
+    int actualTopCategoryFieldIndex = completeResults.getRowType().getFieldCount();
+    RexNode actualCategoryExpr = createOtherCaseExpression(actualTopCategoryFieldIndex, 1, context);
+
+    context.relBuilder.project(
+        context.relBuilder.alias(
+            context.relBuilder.cast(context.relBuilder.field(0), SqlTypeName.TIMESTAMP),
+            "@timestamp"),
+        context.relBuilder.alias(actualCategoryExpr, byFieldName),
+        context.relBuilder.alias(context.relBuilder.field(2), valueFunctionName));
+
+    context.relBuilder.aggregate(
+        context.relBuilder.groupKey(context.relBuilder.field(0), context.relBuilder.field(1)),
+        context.relBuilder.sum(context.relBuilder.field(2)).as("actual_count"));
+    RelNode actualResults = context.relBuilder.build();
+
+    // UNION zero-filled with actual results
+    context.relBuilder.push(actualResults);
+    context.relBuilder.push(zeroFilledCombinations);
+    context.relBuilder.union(false);
+
+    // Aggregate to combine actual and zero-filled data
+    context.relBuilder.aggregate(
+        context.relBuilder.groupKey(context.relBuilder.field(0), context.relBuilder.field(1)),
+        context.relBuilder.sum(context.relBuilder.field(2)).as(valueFunctionName));
+
+    applyFiltersAndSort(useOther, context);
+    return context.relBuilder.peek();
   }
 
   @Override

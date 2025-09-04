@@ -73,6 +73,7 @@ commands
    | flattenCommand
    | reverseCommand
    | regexCommand
+   | timechartCommand
    ;
 
 commandName
@@ -104,10 +105,7 @@ commandName
    | EXPAND
    | FLATTEN
    | TRENDLINE
-   | kmeansCommand
-   | adCommand
-   | mlCommand
-   | patternsCommand
+   | TIMECHART
    | EXPLAIN
    | REVERSE
    | REGEX
@@ -169,6 +167,25 @@ sortCommand
 
 reverseCommand
    : REVERSE
+   ;
+
+timechartCommand
+   : TIMECHART timechartParameter* statsFunction (BY fieldExpression)?
+   ;
+
+timechartParameter
+   : (spanClause | SPAN EQUAL spanLiteral)
+   | timechartArg
+   ;
+
+timechartArg
+   : LIMIT EQUAL integerLiteral
+   | USEOTHER EQUAL (booleanLiteral | ident)
+   ;
+
+spanLiteral
+   : integerLiteral timespanUnit
+   | stringLiteral
    ;
 
 evalCommand

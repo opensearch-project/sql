@@ -916,7 +916,17 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "opensearch-sql_test_index_time_data",
         "time_data",
         getMappingFile("time_test_data_index_mapping.json"),
-        "src/test/resources/time_test_data.json");
+        "src/test/resources/time_test_data.json"),
+    EVENTS(
+        "events",
+        "events",
+        "{\"mappings\":{\"properties\":{\"@timestamp\":{\"type\":\"date\"},\"host\":{\"type\":\"text\"},\"service\":{\"type\":\"keyword\"},\"response_time\":{\"type\":\"integer\"},\"status_code\":{\"type\":\"integer\"},\"bytes_sent\":{\"type\":\"long\"},\"cpu_usage\":{\"type\":\"double\"},\"memory_usage\":{\"type\":\"double\"},\"region\":{\"type\":\"keyword\"},\"environment\":{\"type\":\"keyword\"}}}}",
+        "src/test/resources/events_test.json"),
+    EVENTS_NULL(
+        "events_null",
+        "events_null",
+        "{\"mappings\":{\"properties\":{\"@timestamp\":{\"type\":\"date\"},\"host\":{\"type\":\"text\"},\"cpu_usage\":{\"type\":\"double\"},\"region\":{\"type\":\"keyword\"}}}}",
+        "src/test/resources/events_null.json");
 
     private final String name;
     private final String type;
