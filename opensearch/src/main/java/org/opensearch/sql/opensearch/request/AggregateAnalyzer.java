@@ -309,7 +309,7 @@ public class AggregateAnalyzer {
       case ARG_MAX:
         return Pair.of(
           AggregationBuilders.topHits(aggFieldName)
-              .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)
+              .fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null)
               .size(1)
               .from(0)
               .sort(
@@ -319,7 +319,7 @@ public class AggregateAnalyzer {
       case ARG_MIN:
         return Pair.of(
           AggregationBuilders.topHits(aggFieldName)
-              .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)
+              .fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null)
               .size(1)
               .from(0)
               .sort(
