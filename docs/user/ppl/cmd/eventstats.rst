@@ -283,7 +283,10 @@ DISTINCT_COUNT, DC(Since 3.3)
 Description
 >>>>>>>>>>>
 
-Usage: DISTINCT_COUNT(expr), DC(expr). Returns the approximate number of distinct values of expr using HyperLogLog++ algorithm. Both ``DISTINCT_COUNT`` and ``DC`` are equivalent and provide the same functionality.
+Usage: DISTINCT_COUNT(expr), DC(expr). Returns the approximate number of distinct values using the HyperLogLog++ algorithm. Both functions are equivalent.
+
+For details on algorithm accuracy and precision control, see the `OpenSearch Cardinality Aggregation documentation <https://docs.opensearch.org/latest/aggregations/metric/cardinality/#controlling-precision>`_.
+
 
 Example::
 
