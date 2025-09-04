@@ -264,13 +264,19 @@ public class StatsCommandIT extends PPLIntegTestCase {
                 "source=%s | stats avg(balance) as a by age | head 5",
                 TEST_INDEX_BANK_WITH_NULL_VALUES));
     verifySchema(response, schema("a", null, "double"), schema("age", null, "int"));
-    verifyDataRows(
-        response,
-        rows(null, null),
-        rows(32838D, 28),
-        rows(39225D, 32),
-        rows(4180D, 33),
-        rows(48086D, 34));
+    // If push down disabled, the final results will no longer be stable. In DSL, the order is
+    // guaranteed because we always sort by bucket field, while we don't add sort in the plan.
+    if (isPushdownEnabled()) {
+      verifyDataRows(
+          response,
+          rows(null, null),
+          rows(32838D, 28),
+          rows(39225D, 32),
+          rows(4180D, 33),
+          rows(48086D, 34));
+    } else {
+      assert ((Integer) response.get("size") == 5);
+    }
 
     response =
         executeQuery(
@@ -278,7 +284,11 @@ public class StatsCommandIT extends PPLIntegTestCase {
                 "source=%s | stats avg(balance) as a by age | head 5 | head 2 from 1",
                 TEST_INDEX_BANK_WITH_NULL_VALUES));
     verifySchema(response, schema("a", null, "double"), schema("age", null, "int"));
-    verifyDataRows(response, rows(32838D, 28), rows(39225D, 32));
+    if (isPushdownEnabled()) {
+      verifyDataRows(response, rows(32838D, 28), rows(39225D, 32));
+    } else {
+      assert ((Integer) response.get("size") == 2);
+    }
   }
 
   @Test
