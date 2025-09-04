@@ -21,6 +21,7 @@ public class PPLQueryRequestFactory {
   private static final String QUERY_PARAMS_FORMAT = "format";
   private static final String QUERY_PARAMS_SANITIZE = "sanitize";
   private static final String DEFAULT_RESPONSE_FORMAT = "jdbc";
+  private static final String DEFAULT_EXPLAIN_FORMAT = "standard";
   private static final String QUERY_PARAMS_PRETTY = "pretty";
 
   /**
@@ -54,42 +55,47 @@ public class PPLQueryRequestFactory {
   private static PPLQueryRequest parsePPLRequestFromPayload(RestRequest restRequest) {
     String content = restRequest.content().utf8ToString();
     JSONObject jsonContent;
-    Format format = getFormat(restRequest.params());
+    Format format = getFormat(restRequest.params(), restRequest.rawPath());
     boolean pretty = getPrettyOption(restRequest.params());
     try {
       jsonContent = new JSONObject(content);
+      PPLQueryRequest pplRequest =
+          new PPLQueryRequest(
+              jsonContent.getString(PPL_FIELD_NAME),
+              jsonContent,
+              restRequest.path(),
+              format.getFormatName());
+      // set sanitize option if csv format
+      if (format.equals(Format.CSV)) {
+        pplRequest.sanitize(getSanitizeOption(restRequest.params()));
+      }
+      // set pretty option
+      if (pretty) {
+        pplRequest.style(JsonResponseFormatter.Style.PRETTY);
+      }
+      return pplRequest;
     } catch (JSONException e) {
       throw new IllegalArgumentException("Failed to parse request payload", e);
     }
-    PPLQueryRequest pplRequest =
-        new PPLQueryRequest(
-            jsonContent.getString(PPL_FIELD_NAME),
-            jsonContent,
-            restRequest.path(),
-            format.getFormatName());
-    // set sanitize option if csv format
-    if (format.equals(Format.CSV)) {
-      pplRequest.sanitize(getSanitizeOption(restRequest.params()));
-    }
-    // set pretty option
-    if (pretty) {
-      pplRequest.style(JsonResponseFormatter.Style.PRETTY);
-    }
-    return pplRequest;
   }
 
-  private static Format getFormat(Map<String, String> requestParams) {
+  private static Format getFormat(Map<String, String> requestParams, String path) {
     String formatName =
         requestParams.containsKey(QUERY_PARAMS_FORMAT)
             ? requestParams.get(QUERY_PARAMS_FORMAT).toLowerCase()
-            : DEFAULT_RESPONSE_FORMAT;
-    Optional<Format> optionalFormat = Format.of(formatName);
+            : isExplainRequest(path) ? DEFAULT_EXPLAIN_FORMAT : DEFAULT_RESPONSE_FORMAT;
+    Optional<Format> optionalFormat =
+        isExplainRequest(path) ? Format.ofExplain(formatName) : Format.of(formatName);
     if (optionalFormat.isPresent()) {
       return optionalFormat.get();
     } else {
       throw new IllegalArgumentException(
           "Failed to create executor due to unknown response format: " + formatName);
     }
+  }
+
+  private static boolean isExplainRequest(String path) {
+    return path != null && path.endsWith("/_explain");
   }
 
   private static boolean getSanitizeOption(Map<String, String> requestParams) {

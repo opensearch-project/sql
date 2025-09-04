@@ -28,7 +28,7 @@ Arithmetic expression is an expression formed by numeric literals and binary ari
 1. ``+``: Add.
 2. ``-``: Subtract.
 3. ``*``: Multiply.
-4. ``/``: Divide. For integers, the result is an integer with fractional part discarded.
+4. ``/``: Divide. For integers, the result is an integer with fractional part discarded. Returns NULL when dividing by zero.
 5. ``%``: Modulo. This can be used with integers only with remainder of the division as result.
 
 Precedence
@@ -82,6 +82,8 @@ Operators
 +----------------+----------------------------------------+
 | =              | Equal operator                         |
 +----------------+----------------------------------------+
+| ==             | Equal operator (alternative syntax)    |
++----------------+----------------------------------------+
 | LIKE           | Simple Pattern matching                |
 +----------------+----------------------------------------+
 | IN             | NULL value test                        |
@@ -113,6 +115,18 @@ Here is an example for comparison operators::
     |-----|
     | 36  |
     +-----+
+
+The ``==`` operator can be used as an alternative to ``=`` for equality comparisons::
+
+    os> source=accounts | where age == 32 | fields age ;
+    fetched rows / total rows = 1/1
+    +-----+
+    | age |
+    |-----|
+    | 32  |
+    +-----+
+
+Note: Both ``=`` and ``==`` perform the same equality comparison. You can use either based on your preference.
 
 
 IN

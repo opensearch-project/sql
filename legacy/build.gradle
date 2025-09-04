@@ -58,7 +58,7 @@ spotless {
     java {
         target fileTree('.') {
             include '**/*.java'
-            exclude '**/build/**', '**/build-*/**'
+            exclude '**/build/**', '**/build-*/**', '**/gen/**'
         }
         importOrder()
 //        licenseHeader("/*\n" +
@@ -84,6 +84,7 @@ compileTestJava {
 
 // TODO: Need to update integration test to use OpenSearch test framework
 test {
+    maxParallelForks = Runtime.runtime.availableProcessors()
     include '**/*Test.class'
     exclude 'org/opensearch/sql/intgtest/**'
     // Gradle runs unit test using a working directory other and project root

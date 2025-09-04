@@ -378,6 +378,8 @@ Description
 
 Usage: PERCENTILE(expr, percent) or PERCENTILE_APPROX(expr, percent). Returns the approximate percentile value of `expr` at the specified percentage. `percent` must be a constant between 0 and 100.
 
+Note: From 3.1.0, the percentile implementation is switched to MergingDigest from AVLTreeDigest. Ref `issue link <https://github.com/opensearch-project/OpenSearch/issues/18122>`_.
+
 Example::
 
     os> SELECT gender, percentile(age, 90) as p90 FROM accounts GROUP BY gender;
@@ -388,6 +390,34 @@ Example::
     | F      | 28  |
     | M      | 36  |
     +--------+-----+
+
+Percentile Shortcut Functions
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+For convenience, OpenSearch PPL provides shortcut functions for common percentiles:
+
+- ``PERC<percent>(expr)`` - Equivalent to ``PERCENTILE(expr, <percent>)``
+- ``P<percent>(expr)`` - Equivalent to ``PERCENTILE(expr, <percent>)``
+
+Both integer and decimal percentiles from 0 to 100 are supported (e.g., ``PERC95``, ``P99.5``).
+
+Example::
+
+    ppl> source=accounts | stats perc99.5(age);
+    fetched rows / total rows = 1/1
+    +---------------+
+    | perc99.5(age) |
+    |---------------|
+    | 36            |
+    +---------------+
+
+    ppl> source=accounts | stats p50(age);
+    fetched rows / total rows = 1/1
+    +---------+
+    | p50(age) |
+    |---------|
+    | 32      |
+    +---------+
 
 HAVING Clause
 =============

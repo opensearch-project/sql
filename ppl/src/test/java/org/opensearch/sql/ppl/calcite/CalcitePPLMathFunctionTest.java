@@ -50,15 +50,15 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
   public void testAtan() {
     RelNode root = getRelNode("source=EMP | eval ATAN = atan(2) | fields ATAN");
     String expectedLogical =
-        "LogicalProject(ATAN=[ATAN2(2, 1:BIGINT)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(ATAN=[ATAN(2)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedSparkSql = "SELECT ATAN2(2, 1) `ATAN`\nFROM `scott`.`EMP`";
+    String expectedSparkSql = "SELECT ATAN(2) `ATAN`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
   public void testAtan2() {
-    RelNode root = getRelNode("source=EMP | eval ATAN2 = atan(2, 3) | fields ATAN2");
+    RelNode root = getRelNode("source=EMP | eval ATAN2 = atan2(2, 3) | fields ATAN2");
     String expectedLogical =
         "LogicalProject(ATAN2=[ATAN2(2, 3)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
@@ -80,9 +80,10 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
   public void testCeiling() {
     RelNode root = getRelNode("source=EMP | eval CEILING = ceiling(4.5) | fields CEILING");
     String expectedLogical =
-        "LogicalProject(CEILING=[CEIL(4.5E0:DOUBLE)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(CEILING=[CEIL(4.5:DECIMAL(2, 1))])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedSparkSql = "SELECT CEIL(4.5E0) `CEILING`\nFROM `scott`.`EMP`";
+    String expectedSparkSql = "SELECT CEIL(4.5) `CEILING`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -120,7 +121,8 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
   public void testCrc32() {
     RelNode root = getRelNode("source=EMP | eval CRC32TEST = crc32('test') | fields CRC32TEST");
     String expectedLogical =
-        "LogicalProject(CRC32TEST=[CRC32('test')])\n  LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(CRC32TEST=[CRC32('test':VARCHAR)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedSparkSql = "SELECT `CRC32`('test') `CRC32TEST`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -130,10 +132,10 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
   public void testDegrees() {
     RelNode root = getRelNode("source=EMP | eval DEGREES = degrees(1.57) | fields DEGREES");
     String expectedLogical =
-        "LogicalProject(DEGREES=[DEGREES(1.57E0:DOUBLE)])\n"
+        "LogicalProject(DEGREES=[DEGREES(1.57:DECIMAL(3, 2))])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedSparkSql = "SELECT DEGREES(1.57E0) `DEGREES`\nFROM `scott`.`EMP`";
+    String expectedSparkSql = "SELECT DEGREES(1.57) `DEGREES`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -161,10 +163,10 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
   public void testFloor() {
     RelNode root = getRelNode("source=EMP | eval FLOOR1 = floor(50.00005) | fields FLOOR1");
     String expectedLogical =
-        "LogicalProject(FLOOR1=[FLOOR(50.00005E0:DOUBLE)])\n"
+        "LogicalProject(FLOOR1=[FLOOR(50.00005:DECIMAL(7, 5))])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedSparkSql = "SELECT FLOOR(5.000005E1) `FLOOR1`\nFROM `scott`.`EMP`";
+    String expectedSparkSql = "SELECT FLOOR(50.00005) `FLOOR1`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -182,10 +184,10 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
   public void testLog() {
     RelNode root = getRelNode("source=EMP | eval LOG = log(2) | fields LOG");
     String expectedLogical =
-        "LogicalProject(LOG=[LOG(2, 2.718281828459045:DOUBLE)])\n"
+        "LogicalProject(LOG=[LOG(2, 2.718281828459045E0:DOUBLE)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedSparkSql = "SELECT LOG(2, 2.718281828459045) `LOG`\nFROM `scott`.`EMP`";
+    String expectedSparkSql = "SELECT LOG(2, 2.718281828459045E0) `LOG`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -267,9 +269,10 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | eval ROUND = round(1.5) | fields ROUND";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(ROUND=[ROUND(1.5E0:DOUBLE)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(ROUND=[ROUND(1.5:DECIMAL(2, 1))])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedSparkSql = "SELECT ROUND(1.5E0) `ROUND`\nFROM `scott`.`EMP`";
+    String expectedSparkSql = "SELECT ROUND(1.5) `ROUND`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -298,9 +301,9 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
   public void testSqrt() {
     RelNode root = getRelNode("source=EMP | eval SQRT = sqrt(4) | fields SQRT");
     String expectedLogical =
-        "LogicalProject(SQRT=[SQRT(4)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(SQRT=[POWER(4, 0.5E0:DOUBLE)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedSparkSql = "SELECT SQRT(4) `SQRT`\nFROM `scott`.`EMP`";
+    String expectedSparkSql = "SELECT POWER(4, 5E-1) `SQRT`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }

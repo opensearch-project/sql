@@ -53,8 +53,8 @@ dependencies {
     testImplementation(platform("org.junit:junit-bom:5.9.3"))
 
     testCompileOnly('org.junit.jupiter:junit-jupiter')
-    testImplementation 'org.mockito:mockito-core:5.7.0'
-    testImplementation 'org.mockito:mockito-junit-jupiter:5.7.0'
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: "${mockito_version}"
+    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: "${mockito_version}"
 
     testCompileOnly('junit:junit:4.13.1') {
         exclude group: 'org.hamcrest', module: 'hamcrest-core'
@@ -85,6 +85,7 @@ spotless {
 }
 
 test {
+    maxParallelForks = Runtime.runtime.availableProcessors()
     useJUnitPlatform()
     testLogging {
         events "skipped", "failed"

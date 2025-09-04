@@ -136,6 +136,42 @@ public class RawResponseFormatterTest {
   }
 
   @Test
+  void quoteIfRequiredCrlf() {
+    ExecutionEngine.Schema schema =
+        new ExecutionEngine.Schema(
+            ImmutableList.of(
+                new ExecutionEngine.Schema.Column("field1", "field1", STRING),
+                new ExecutionEngine.Schema.Column("num", "num", INTEGER)));
+    QueryResult response =
+        new QueryResult(
+            schema,
+            Arrays.asList(
+                tupleValue(ImmutableMap.of("field1", "abc", "num", "5")),
+                tupleValue(ImmutableMap.of("field1", "def\r", "num", "\n6")),
+                tupleValue(ImmutableMap.of("field1", "gh\ri", "num", "7\n")),
+                tupleValue(ImmutableMap.of("field1", "jk\r\nl", "num", "\n\r8")),
+                tupleValue(ImmutableMap.of("field1", "\r\nmno\r\n", "num", "9\n\r0"))));
+    String expected =
+        "field1|num%n"
+            + "abc|5%n"
+            + "\"def\r\"|\"\n6\"%n"
+            + "\"gh\ri\"|\"7\n\"%n"
+            + "\"jk\r\nl\"|\"\n\r8\"%n"
+            + "\"\r\nmno\r\n\"|\"9\n\r0\"";
+    assertEquals(format(expected), getRawFormatter().format(response));
+    // Pretty formatting raw or CSV data with embedded newlines and carriage
+    // returns will still look awful on output.
+    String expectedPretty =
+        "field1   |num   %n"
+            + "abc      |5     %n"
+            + "\"def\r\"   |\"\n6\"  %n"
+            + "\"gh\ri\"   |\"7\n\"  %n"
+            + "\"jk\r\nl\"  |\"\n\r8\" %n"
+            + "\"\r\nmno\r\n\"|\"9\n\r0\"";
+    assertEquals(format(expectedPretty), getRawFormatterPretty().format(response));
+  }
+
+  @Test
   void formatError() {
     Throwable t = new RuntimeException("This is an exception");
     String expected =

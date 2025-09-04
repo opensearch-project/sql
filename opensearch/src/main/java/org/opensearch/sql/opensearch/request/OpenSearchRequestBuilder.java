@@ -35,6 +35,7 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.search.collapse.CollapseBuilder;
 import org.opensearch.search.fetch.subphase.FetchSourceContext;
 import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.opensearch.search.sort.SortBuilder;
@@ -59,7 +60,7 @@ public class OpenSearchRequestBuilder {
   private final SearchSourceBuilder sourceBuilder;
 
   /** Query size of the request -- how many rows will be returned. */
-  private int requestedTotalSize;
+  private int requestedTotalSize = Integer.MAX_VALUE;
 
   /** Size of each page request to return. */
   private Integer pageSize = null;
@@ -68,15 +69,23 @@ public class OpenSearchRequestBuilder {
   @EqualsAndHashCode.Exclude @ToString.Exclude
   private final OpenSearchExprValueFactory exprValueFactory;
 
+  @EqualsAndHashCode.Exclude @ToString.Exclude private final int maxResultWindow;
+
   private int startFrom = 0;
 
-  private final Settings settings;
+  @ToString.Exclude private final Settings settings;
+
+  public static class PushDownUnSupportedException extends RuntimeException {
+    public PushDownUnSupportedException(String message) {
+      super(message);
+    }
+  }
 
   /** Constructor. */
   public OpenSearchRequestBuilder(
-      int requestedTotalSize, OpenSearchExprValueFactory exprValueFactory, Settings settings) {
-    this.requestedTotalSize = requestedTotalSize;
+      OpenSearchExprValueFactory exprValueFactory, int maxResultWindow, Settings settings) {
     this.settings = settings;
+    this.maxResultWindow = maxResultWindow;
     this.sourceBuilder =
         new SearchSourceBuilder()
             .from(startFrom)
@@ -91,18 +100,27 @@ public class OpenSearchRequestBuilder {
    * @return query request with PIT or scroll request
    */
   public OpenSearchRequest build(
+      OpenSearchRequest.IndexName indexName, TimeValue cursorKeepAlive, OpenSearchClient client) {
+    return build(indexName, cursorKeepAlive, client, false);
+  }
+
+  public OpenSearchRequest build(
       OpenSearchRequest.IndexName indexName,
-      int maxResultWindow,
       TimeValue cursorKeepAlive,
-      OpenSearchClient client) {
-    return buildRequestWithPit(indexName, maxResultWindow, cursorKeepAlive, client);
+      OpenSearchClient client,
+      boolean isMappingEmpty) {
+    /* Don't use PIT search:
+     * 1. If the size of source is 0. It means this is an aggregation request and no need to use pit.
+     * 2. If mapping is empty. It means no data in the index. PIT search relies on `_id` fields to do sort, thus it will fail if using PIT search in this case.
+     */
+    if (sourceBuilder.size() == 0 || isMappingEmpty) {
+      return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory, List.of());
+    }
+    return buildRequestWithPit(indexName, cursorKeepAlive, client);
   }
 
   private OpenSearchRequest buildRequestWithPit(
-      OpenSearchRequest.IndexName indexName,
-      int maxResultWindow,
-      TimeValue cursorKeepAlive,
-      OpenSearchClient client) {
+      OpenSearchRequest.IndexName indexName, TimeValue cursorKeepAlive, OpenSearchClient client) {
     int size = requestedTotalSize;
     FetchSourceContext fetchSource = this.sourceBuilder.fetchSource();
     List<String> includes = fetchSource != null ? Arrays.asList(fetchSource.includes()) : List.of();
@@ -116,7 +134,7 @@ public class OpenSearchRequestBuilder {
             indexName, sourceBuilder, exprValueFactory, includes, cursorKeepAlive, pitId);
       } else {
         sourceBuilder.from(startFrom);
-        sourceBuilder.size(requestedTotalSize);
+        sourceBuilder.size(size);
         // Search with non-Pit request
         return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory, includes);
       }
@@ -197,9 +215,28 @@ public class OpenSearchRequestBuilder {
 
   /** Pushdown size (limit) and from (offset) to DSL request. */
   public void pushDownLimit(Integer limit, Integer offset) {
-    requestedTotalSize = limit;
-    startFrom = offset;
-    sourceBuilder.from(offset).size(limit);
+    // If there are multiple limit, we take the minimum among them
+    // E.g. for `source=t | head 10 | head 5`, we take 5
+    // This also ensures that the limit won't exceed the initial default value. (set to
+    // Settings.Key.QUERY_SIZE_LIMIT in OpenSearchIndex)
+    // Besides, there may be cases when the existing requestedTotalSize does not satisfy the
+    // new limit and offset. E.g. for `head 11 | head 10 from 2`, the new requested total size
+    // is 9. We need to adjust it accordingly.
+    int newRequestedTotalSize = Math.min(limit, requestedTotalSize - offset);
+    // If there are multiple offset, we aggregate the offset
+    // E.g. for `head 10 from 1 | head 5 from 2` equals to `head 5 from 3`
+    int newStartFrom = startFrom + offset;
+
+    if (newStartFrom >= maxResultWindow) {
+      throw new PushDownUnSupportedException(
+          String.format(
+              "Requested offset %d should be less than the max result window %d",
+              newStartFrom, maxResultWindow));
+    }
+
+    requestedTotalSize = newRequestedTotalSize;
+    startFrom = newStartFrom;
+    sourceBuilder.from(startFrom).size(requestedTotalSize);
   }
 
   public void pushDownTrackedScore(boolean trackScores) {
@@ -259,6 +296,10 @@ public class OpenSearchRequestBuilder {
 
   public void pushTypeMapping(Map<String, OpenSearchDataType> typeMapping) {
     exprValueFactory.extendTypeMapping(typeMapping);
+  }
+
+  public void pushDownCollapse(String field) {
+    sourceBuilder.collapse(new CollapseBuilder(field));
   }
 
   private boolean isSortByDocOnly() {

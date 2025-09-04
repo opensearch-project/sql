@@ -11,6 +11,11 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoUnit;
+import java.util.Locale;
+import java.util.regex.Pattern;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -18,6 +23,10 @@ import org.opensearch.sql.expression.function.FunctionProperties;
 
 @UtilityClass
 public class DateTimeUtils {
+
+  private static final Pattern OFFSET_PATTERN = Pattern.compile("([+-])(\\d+)([smhdwMy]?)");
+  private static final DateTimeFormatter DIRECT_FORMATTER =
+      DateTimeFormatter.ofPattern("MM/dd/yyyy:HH:mm:ss");
 
   /**
    * Util method to round the date/time with given unit.
@@ -27,7 +36,8 @@ public class DateTimeUtils {
    * @return Rounded date/time value in utc millis
    */
   public static long roundFloor(long utcMillis, long unitMillis) {
-    return utcMillis - utcMillis % unitMillis;
+    long res = utcMillis - utcMillis % unitMillis;
+    return (utcMillis < 0 && res != utcMillis) ? res - unitMillis : res;
   }
 
   /**
@@ -56,7 +66,9 @@ public class DateTimeUtils {
         (zonedDateTime.getYear() - initDateTime.getYear()) * 12L
             + zonedDateTime.getMonthValue()
             - initDateTime.getMonthValue();
-    long monthToAdd = (monthDiff / interval - 1) * interval;
+    long multiplier = monthDiff / interval - 1;
+    if (monthDiff < 0 && monthDiff % interval != 0) --multiplier;
+    long monthToAdd = multiplier * interval;
     return initDateTime.plusMonths(monthToAdd).toInstant().toEpochMilli();
   }
 
@@ -75,7 +87,9 @@ public class DateTimeUtils {
         ((zonedDateTime.getYear() - initDateTime.getYear()) * 12L
             + zonedDateTime.getMonthValue()
             - initDateTime.getMonthValue());
-    long monthToAdd = (monthDiff / (interval * 3L) - 1) * interval * 3;
+    long multiplier = monthDiff / (interval * 3L) - 1;
+    if (monthDiff < 0 && monthDiff % (interval * 3L) != 0) --multiplier;
+    long monthToAdd = multiplier * interval * 3;
     return initDateTime.plusMonths(monthToAdd).toInstant().toEpochMilli();
   }
 
@@ -90,7 +104,9 @@ public class DateTimeUtils {
     ZonedDateTime initDateTime = ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
     ZonedDateTime zonedDateTime = Instant.ofEpochMilli(utcMillis).atZone(ZoneOffset.UTC);
     int yearDiff = zonedDateTime.getYear() - initDateTime.getYear();
-    int yearToAdd = (yearDiff / interval) * interval;
+    int multiplier = yearDiff / interval;
+    if (yearDiff < 0 && yearDiff % interval != 0) --multiplier;
+    int yearToAdd = multiplier * interval;
     return initDateTime.plusYears(yearToAdd).toInstant().toEpochMilli();
   }
 
@@ -150,5 +166,139 @@ public class DateTimeUtils {
     return value instanceof ExprTimeValue
         ? ((ExprTimeValue) value).dateValue(functionProperties)
         : value.dateValue();
+  }
+
+  public static ZonedDateTime getRelativeZonedDateTime(String input, ZonedDateTime baseTime) {
+    try {
+      Instant parsed = LocalDateTime.parse(input, DIRECT_FORMATTER).toInstant(ZoneOffset.UTC);
+      return parsed.atZone(baseTime.getZone());
+    } catch (DateTimeParseException ignored) {
+    }
+
+    if ("now".equalsIgnoreCase(input) || "now()".equalsIgnoreCase(input)) {
+      return baseTime;
+    }
+
+    ZonedDateTime result = baseTime;
+    int i = 0;
+    while (i < input.length()) {
+      char c = input.charAt(i);
+      if (c == '@') {
+        int j = i + 1;
+        while (j < input.length() && Character.isLetterOrDigit(input.charAt(j))) {
+          j++;
+        }
+        String rawUnit = input.substring(i + 1, j);
+        result = applySnap(result, rawUnit);
+        i = j;
+      } else if (c == '+' || c == '-') {
+        int j = i + 1;
+        while (j < input.length() && Character.isDigit(input.charAt(j))) {
+          j++;
+        }
+        String valueStr = input.substring(i + 1, j);
+        int value = valueStr.isEmpty() ? 1 : Integer.parseInt(valueStr);
+
+        int k = j;
+        while (k < input.length() && Character.isLetter(input.charAt(k))) {
+          k++;
+        }
+        String rawUnit = input.substring(j, k);
+        result = applyOffset(result, String.valueOf(c), value, rawUnit);
+        i = k;
+      } else {
+        throw new IllegalArgumentException(
+            "Unexpected character '" + c + "' at position " + i + " in input: " + input);
+      }
+    }
+
+    return result;
+  }
+
+  private static ZonedDateTime applyOffset(
+      ZonedDateTime base, String sign, int value, String rawUnit) {
+    String unit = normalizeUnit(rawUnit);
+    if ("q".equals(unit)) {
+      int months = value * 3;
+      return sign.equals("-") ? base.minusMonths(months) : base.plusMonths(months);
+    }
+
+    ChronoUnit chronoUnit =
+        switch (unit) {
+          case "s" -> ChronoUnit.SECONDS;
+          case "m" -> ChronoUnit.MINUTES;
+          case "h" -> ChronoUnit.HOURS;
+          case "d" -> ChronoUnit.DAYS;
+          case "w" -> ChronoUnit.WEEKS;
+          case "M" -> ChronoUnit.MONTHS;
+          case "y" -> ChronoUnit.YEARS;
+          default -> throw new IllegalArgumentException("Unsupported offset unit: " + rawUnit);
+        };
+
+    return sign.equals("-") ? base.minus(value, chronoUnit) : base.plus(value, chronoUnit);
+  }
+
+  private static ZonedDateTime applySnap(ZonedDateTime base, String rawUnit) {
+    String unit = normalizeUnit(rawUnit);
+
+    return switch (unit) {
+      case "s" -> base.truncatedTo(ChronoUnit.SECONDS);
+      case "m" -> base.truncatedTo(ChronoUnit.MINUTES);
+      case "h" -> base.truncatedTo(ChronoUnit.HOURS);
+      case "d" -> base.truncatedTo(ChronoUnit.DAYS);
+      case "w" -> base.minusDays((base.getDayOfWeek().getValue() % 7)).truncatedTo(ChronoUnit.DAYS);
+      case "M" -> base.withDayOfMonth(1).truncatedTo(ChronoUnit.DAYS);
+      case "y" -> base.withDayOfYear(1).truncatedTo(ChronoUnit.DAYS);
+      case "q" -> {
+        int month = base.getMonthValue();
+        int quarterStart = ((month - 1) / 3) * 3 + 1;
+        yield base.withMonth(quarterStart).withDayOfMonth(1).truncatedTo(ChronoUnit.DAYS);
+      }
+      default -> {
+        if (unit.matches("w[0-7]")) {
+          int targetDay =
+              unit.equals("w0") || unit.equals("w7") ? 7 : Integer.parseInt(unit.substring(1));
+          int diff = (base.getDayOfWeek().getValue() - targetDay + 7) % 7;
+          yield base.minusDays(diff).truncatedTo(ChronoUnit.DAYS);
+        } else {
+          throw new IllegalArgumentException("Unsupported snap unit: " + rawUnit);
+        }
+      }
+    };
+  }
+
+  private static String normalizeUnit(String rawUnit) {
+    // strict minute (m or M)
+    switch (rawUnit.toLowerCase(Locale.ROOT)) {
+      case "m", "min", "mins", "minute", "minutes" -> {
+        return "m";
+      }
+      case "s", "sec", "secs", "second", "seconds" -> {
+        return "s";
+      }
+      case "h", "hr", "hrs", "hour", "hours" -> {
+        return "h";
+      }
+      case "d", "day", "days" -> {
+        return "d";
+      }
+      case "w", "wk", "wks", "week", "weeks" -> {
+        return "w";
+      }
+      case "mon", "month", "months" -> {
+        return "M"; // month
+      }
+      case "y", "yr", "yrs", "year", "years" -> {
+        return "y";
+      }
+      case "q", "qtr", "qtrs", "quarter", "quarters" -> {
+        return "q";
+      }
+      default -> {
+        String lower = rawUnit.toLowerCase();
+        if (lower.matches("w[0-7]")) return lower;
+        throw new IllegalArgumentException("Unsupported unit alias: " + rawUnit);
+      }
+    }
   }
 }

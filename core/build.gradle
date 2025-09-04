@@ -59,10 +59,12 @@ dependencies {
     api "net.minidev:json-smart:${versions.json_smart}"
     api('org.apache.calcite:calcite-core:1.38.0') {
         exclude group: 'net.minidev', module: 'json-smart'
+        exclude group: 'commons-lang', module: 'commons-lang'
     }
     api 'org.apache.calcite:calcite-linq4j:1.38.0'
     api project(':common')
     implementation "com.github.seancfoley:ipaddress:5.4.2"
+    implementation "com.jayway.jsonpath:json-path:2.9.0"
 
     annotationProcessor('org.immutables:value:2.8.8')
     compileOnly('org.immutables:value-annotations:2.8.8')
@@ -92,6 +94,7 @@ spotless {
 }
 
 test {
+    maxParallelForks = Runtime.runtime.availableProcessors()
     useJUnitPlatform()
     testLogging {
         events "skipped", "failed"

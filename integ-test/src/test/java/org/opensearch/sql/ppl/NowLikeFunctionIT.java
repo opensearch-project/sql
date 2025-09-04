@@ -18,6 +18,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.Period;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
@@ -91,7 +92,7 @@ public class NowLikeFunctionIT extends PPLIntegTestCase {
                 false,
                 false,
                 true,
-                (Supplier<Temporal>) LocalDateTime::now,
+                (Supplier<Temporal>) () -> LocalDateTime.now(ZoneOffset.UTC),
                 (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse,
                 "uuuu-MM-dd HH:mm:ss"),
             $(
@@ -99,7 +100,7 @@ public class NowLikeFunctionIT extends PPLIntegTestCase {
                 false,
                 false,
                 true,
-                (Supplier<Temporal>) LocalDateTime::now,
+                (Supplier<Temporal>) () -> LocalDateTime.now(ZoneOffset.UTC),
                 (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse,
                 "uuuu-MM-dd HH:mm:ss"),
             $(
@@ -107,7 +108,7 @@ public class NowLikeFunctionIT extends PPLIntegTestCase {
                 false,
                 false,
                 true,
-                (Supplier<Temporal>) LocalDateTime::now,
+                (Supplier<Temporal>) () -> LocalDateTime.now(ZoneOffset.UTC),
                 (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse,
                 "uuuu-MM-dd HH:mm:ss"),
             $(
@@ -115,7 +116,7 @@ public class NowLikeFunctionIT extends PPLIntegTestCase {
                 false,
                 false,
                 true,
-                (Supplier<Temporal>) LocalDateTime::now,
+                (Supplier<Temporal>) () -> LocalDateTime.now(ZoneOffset.UTC),
                 (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse,
                 "uuuu-MM-dd HH:mm:ss"),
             $(
@@ -123,7 +124,7 @@ public class NowLikeFunctionIT extends PPLIntegTestCase {
                 true,
                 false,
                 false,
-                (Supplier<Temporal>) LocalDateTime::now,
+                (Supplier<Temporal>) () -> LocalDateTime.now(ZoneOffset.UTC),
                 (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse,
                 "uuuu-MM-dd HH:mm:ss"),
             $(
@@ -131,7 +132,7 @@ public class NowLikeFunctionIT extends PPLIntegTestCase {
                 false,
                 false,
                 false,
-                (Supplier<Temporal>) LocalTime::now,
+                (Supplier<Temporal>) () -> LocalTime.now(ZoneOffset.UTC),
                 (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalTime::parse,
                 "HH:mm:ss"),
             $(
@@ -139,7 +140,7 @@ public class NowLikeFunctionIT extends PPLIntegTestCase {
                 false,
                 false,
                 false,
-                (Supplier<Temporal>) LocalTime::now,
+                (Supplier<Temporal>) () -> LocalTime.now(ZoneOffset.UTC),
                 (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalTime::parse,
                 "HH:mm:ss"),
             $(
@@ -147,7 +148,7 @@ public class NowLikeFunctionIT extends PPLIntegTestCase {
                 false,
                 false,
                 false,
-                (Supplier<Temporal>) LocalDate::now,
+                (Supplier<Temporal>) () -> LocalDate.now(ZoneOffset.UTC),
                 (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDate::parse,
                 "uuuu-MM-dd"),
             $(
@@ -155,7 +156,7 @@ public class NowLikeFunctionIT extends PPLIntegTestCase {
                 false,
                 false,
                 false,
-                (Supplier<Temporal>) LocalDate::now,
+                (Supplier<Temporal>) () -> LocalDate.now(ZoneOffset.UTC),
                 (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDate::parse,
                 "uuuu-MM-dd"),
             $(
@@ -223,7 +224,7 @@ public class NowLikeFunctionIT extends PPLIntegTestCase {
         executeQuery(
             "source="
                 + TEST_INDEX_PEOPLE2
-                + " | eval "
+                + "| eval "
                 + calls.stream()
                     .map(c -> String.format("`%s`=%s", c, c))
                     .collect(Collectors.joining(","))

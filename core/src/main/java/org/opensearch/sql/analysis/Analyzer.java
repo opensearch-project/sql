@@ -10,6 +10,7 @@ import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_FIRST;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
+import static org.opensearch.sql.calcite.utils.CalciteUtils.getOnlyForCalciteException;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
@@ -26,51 +27,71 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.dsl.AstDSL;
+import org.opensearch.sql.ast.expression.AggregateFunction;
+import org.opensearch.sql.ast.expression.Alias;
+import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.ParseMethod;
+import org.opensearch.sql.ast.expression.PatternMethod;
+import org.opensearch.sql.ast.expression.PatternMode;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.AppendCol;
+import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
+import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
+import org.opensearch.sql.ast.tree.Flatten;
 import org.opensearch.sql.ast.tree.Head;
+import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
+import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
+import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
+import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Timechart;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
-import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -162,8 +183,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
           STRUCT);
       return child;
     } else {
-      // TODO
-      throw new UnsupportedOperationException("SubqueryAlias is only supported in table alias");
+      throw getOnlyForCalciteException("Subsearch");
     }
   }
 
@@ -267,13 +287,6 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     return new LogicalFilter(child, optimized);
   }
 
-  /**
-   * Ensure NESTED function is not used in GROUP BY, and HAVING clauses. Fallback to legacy engine.
-   * Can remove when support is added for NESTED function in WHERE, GROUP BY, ORDER BY, and HAVING
-   * clauses.
-   *
-   * @param condition : Filter condition
-   */
   private void verifySupportsCondition(Expression condition) {
     if (condition instanceof FunctionExpression) {
       if (((FunctionExpression) condition)
@@ -320,38 +333,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitAggregation(Aggregation node, AnalysisContext context) {
     final LogicalPlan child = node.getChild().get(0).accept(this, context);
-    ImmutableList.Builder<NamedAggregator> aggregatorBuilder = new ImmutableList.Builder<>();
-    for (UnresolvedExpression expr : node.getAggExprList()) {
-      NamedExpression aggExpr = namedExpressionAnalyzer.analyze(expr, context);
-      aggregatorBuilder.add(
-          new NamedAggregator(aggExpr.getNameOrAlias(), (Aggregator) aggExpr.getDelegated()));
-    }
-
-    ImmutableList.Builder<NamedExpression> groupbyBuilder = new ImmutableList.Builder<>();
-    // Span should be first expression if exist.
-    if (node.getSpan() != null) {
-      groupbyBuilder.add(namedExpressionAnalyzer.analyze(node.getSpan(), context));
-    }
-
-    for (UnresolvedExpression expr : node.getGroupExprList()) {
-      NamedExpression resolvedExpr = namedExpressionAnalyzer.analyze(expr, context);
-      verifySupportsCondition(resolvedExpr.getDelegated());
-      groupbyBuilder.add(resolvedExpr);
-    }
-    ImmutableList<NamedExpression> groupBys = groupbyBuilder.build();
-
-    ImmutableList<NamedAggregator> aggregators = aggregatorBuilder.build();
-    // new context
-    context.push();
-    TypeEnvironment newEnv = context.peek();
-    aggregators.forEach(
-        aggregator ->
-            newEnv.define(
-                new Symbol(Namespace.FIELD_NAME, aggregator.getName()), aggregator.type()));
-    groupBys.forEach(
-        group ->
-            newEnv.define(new Symbol(Namespace.FIELD_NAME, group.getNameOrAlias()), group.type()));
-    return new LogicalAggregation(child, aggregators, groupBys);
+    return analyzeAggregation(node, child, context);
   }
 
   /** Build {@link LogicalRareTopN}. */
@@ -379,7 +361,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     fields.forEach(
         field -> newEnv.define(new Symbol(Namespace.FIELD_NAME, field.toString()), field.type()));
 
-    List<Argument> options = node.getNoOfResults();
+    List<Argument> options = node.getArguments();
     Integer noOfResults = (Integer) options.get(0).getValue().getValue();
 
     return new LogicalRareTopN(child, node.getCommandType(), noOfResults, fields, groupBys);
@@ -400,53 +382,106 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   public LogicalPlan visitProject(Project node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
 
-    if (node.hasArgument()) {
-      Argument argument = node.getArgExprList().get(0);
-      Boolean exclude = (Boolean) argument.getValue().getValue();
-      if (exclude) {
-        TypeEnvironment curEnv = context.peek();
-        List<ReferenceExpression> referenceExpressions =
-            node.getProjectList().stream()
-                .map(expr -> (ReferenceExpression) expressionAnalyzer.analyze(expr, context))
-                .collect(Collectors.toList());
-        referenceExpressions.forEach(ref -> curEnv.remove(ref));
-        return new LogicalRemove(child, ImmutableSet.copyOf(referenceExpressions));
-      }
+    if (isExcludeMode(node)) {
+      return buildLogicalRemove(node, child, context);
     }
 
-    // For each unresolved window function, analyze it by "insert" a window and sort operator
-    // between project and its child.
-    for (UnresolvedExpression expr : node.getProjectList()) {
-      WindowExpressionAnalyzer windowAnalyzer =
-          new WindowExpressionAnalyzer(expressionAnalyzer, child);
-      child = windowAnalyzer.analyze(expr, context);
-    }
-
-    for (UnresolvedExpression expr : node.getProjectList()) {
-      HighlightAnalyzer highlightAnalyzer = new HighlightAnalyzer(expressionAnalyzer, child);
-      child = highlightAnalyzer.analyze(expr, context);
-    }
+    child = processWindowExpressions(node.getProjectList(), child, context);
+    child = processHighlightExpressions(node.getProjectList(), child, context);
 
     List<NamedExpression> namedExpressions =
-        selectExpressionAnalyzer.analyze(
-            node.getProjectList(),
-            context,
-            new ExpressionReferenceOptimizer(expressionAnalyzer.getRepository(), child));
+        resolveFieldExpressions(node.getProjectList(), child, context);
 
-    for (UnresolvedExpression expr : node.getProjectList()) {
-      NestedAnalyzer nestedAnalyzer =
-          new NestedAnalyzer(namedExpressions, expressionAnalyzer, child);
-      child = nestedAnalyzer.analyze(expr, context);
-    }
+    child = processNestedAnalysis(node.getProjectList(), namedExpressions, child, context);
 
-    // new context
     context.push();
     TypeEnvironment newEnv = context.peek();
     namedExpressions.forEach(
         expr ->
             newEnv.define(new Symbol(Namespace.FIELD_NAME, expr.getNameOrAlias()), expr.type()));
-    List<NamedExpression> namedParseExpressions = context.getNamedParseExpressions();
-    return new LogicalProject(child, namedExpressions, namedParseExpressions);
+
+    return new LogicalProject(child, namedExpressions, context.getNamedParseExpressions());
+  }
+
+  private boolean isExcludeMode(Project node) {
+    if (!node.hasArgument()) {
+      return false;
+    }
+    try {
+      Argument argument = node.getArgExprList().get(0);
+      Object value = argument.getValue().getValue();
+      return Boolean.TRUE.equals(value);
+    } catch (IndexOutOfBoundsException | NullPointerException e) {
+      return false;
+    }
+  }
+
+  private LogicalRemove buildLogicalRemove(
+      Project node, LogicalPlan child, AnalysisContext context) {
+    TypeEnvironment curEnv = context.peek();
+    List<ReferenceExpression> referenceExpressions =
+        collectExclusionFields(node.getProjectList(), context);
+
+    Set<String> allFields = curEnv.lookupAllFields(Namespace.FIELD_NAME).keySet();
+    Set<String> fieldsToExclude =
+        referenceExpressions.stream().map(ReferenceExpression::getAttr).collect(Collectors.toSet());
+
+    if (allFields.equals(fieldsToExclude)) {
+      throw new IllegalArgumentException(
+          "Invalid field exclusion: operation would exclude all fields from the result set");
+    }
+
+    referenceExpressions.forEach(curEnv::remove);
+    return new LogicalRemove(child, ImmutableSet.copyOf(referenceExpressions));
+  }
+
+  private LogicalPlan processWindowExpressions(
+      List<UnresolvedExpression> projectList, LogicalPlan child, AnalysisContext context) {
+    for (UnresolvedExpression expr : projectList) {
+      child = new WindowExpressionAnalyzer(expressionAnalyzer, child).analyze(expr, context);
+    }
+    return child;
+  }
+
+  private LogicalPlan processHighlightExpressions(
+      List<UnresolvedExpression> projectList, LogicalPlan child, AnalysisContext context) {
+    for (UnresolvedExpression expr : projectList) {
+      child = new HighlightAnalyzer(expressionAnalyzer, child).analyze(expr, context);
+    }
+    return child;
+  }
+
+  private List<NamedExpression> resolveFieldExpressions(
+      List<UnresolvedExpression> projectList, LogicalPlan child, AnalysisContext context) {
+    return selectExpressionAnalyzer.analyze(
+        projectList,
+        context,
+        new ExpressionReferenceOptimizer(expressionAnalyzer.getRepository(), child));
+  }
+
+  private LogicalPlan processNestedAnalysis(
+      List<UnresolvedExpression> projectList,
+      List<NamedExpression> namedExpressions,
+      LogicalPlan child,
+      AnalysisContext context) {
+    for (UnresolvedExpression expr : projectList) {
+      child =
+          new NestedAnalyzer(namedExpressions, expressionAnalyzer, child).analyze(expr, context);
+    }
+    return child;
+  }
+
+  private List<ReferenceExpression> collectExclusionFields(
+      List<UnresolvedExpression> projectList, AnalysisContext context) {
+    List<NamedExpression> namedExpressions =
+        projectList.stream()
+            .map(expr -> expressionAnalyzer.analyze(expr, context))
+            .map(DSL::named)
+            .collect(Collectors.toList());
+
+    return namedExpressions.stream()
+        .map(field -> (ReferenceExpression) field.getDelegated())
+        .collect(Collectors.toList());
   }
 
   /** Build {@link LogicalEval}. */
@@ -470,38 +505,54 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitParse(Parse node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
-    Expression sourceField = expressionAnalyzer.analyze(node.getSourceField(), context);
-    ParseMethod parseMethod = node.getParseMethod();
-    java.util.Map<String, Literal> arguments = node.getArguments();
-    String pattern = (String) node.getPattern().getValue();
-    Expression patternExpression = DSL.literal(pattern);
-
-    TypeEnvironment curEnv = context.peek();
-    ParseUtils.getNamedGroupCandidates(parseMethod, pattern, arguments)
-        .forEach(
-            group -> {
-              ParseExpression expr =
-                  ParseUtils.createParseExpression(
-                      parseMethod, sourceField, patternExpression, DSL.literal(group));
-              curEnv.define(new Symbol(Namespace.FIELD_NAME, group), expr.type());
-              context.getNamedParseExpressions().add(new NamedExpression(group, expr));
-            });
+    analyzeParseNode(node, context);
     return child;
   }
 
+  // TODO: We may need to align output structure with Calcite's output structure
   @Override
-  public LogicalPlan visitWindow(Window node, AnalysisContext context) {
+  public LogicalPlan visitPatterns(Patterns node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
-    WindowExpressionAnalyzer windowAnalyzer =
-        new WindowExpressionAnalyzer(expressionAnalyzer, child);
-    child = windowAnalyzer.analyze(node.getWindowFunction(), context);
+    if (PatternMethod.SIMPLE_PATTERN.equals(node.getPatternMethod())) {
+      Parse parseNode =
+          new Parse(
+              ParseMethod.PATTERNS,
+              node.getSourceField(),
+              node.getArguments().getOrDefault("pattern", AstDSL.stringLiteral("")),
+              node.getArguments());
+      analyzeParseNode(parseNode, context);
+    } else {
+      List<UnresolvedExpression> funcParamList = new ArrayList<>();
+      funcParamList.add(node.getSourceField());
+      funcParamList.addAll(
+          node.getArguments().entrySet().stream()
+              .map(entry -> new Argument(entry.getKey(), entry.getValue()))
+              .sorted(Comparator.comparing(Argument::getArgName))
+              .toList());
+      UnresolvedExpression windowFunction =
+          new Alias(
+              node.getAlias(),
+              new WindowFunction(
+                  new Function(node.getPatternMethod().getName(), funcParamList),
+                  node.getPartitionByList(),
+                  List.of()), // ignore sort by list for now as we haven't seen such requirement
+              node.getAlias());
 
-    TypeEnvironment curEnv = context.peek();
-    LogicalWindow window = (LogicalWindow) child;
-    curEnv.define(
-        new Symbol(Namespace.FIELD_NAME, window.getWindowFunction().getNameOrAlias()),
-        window.getWindowFunction().getDelegated().type());
+      WindowExpressionAnalyzer windowAnalyzer =
+          new WindowExpressionAnalyzer(expressionAnalyzer, child);
+      child = windowAnalyzer.analyze(windowFunction, context);
 
+      TypeEnvironment curEnv = context.peek();
+      LogicalWindow window = (LogicalWindow) child;
+      curEnv.define(
+          new Symbol(Namespace.FIELD_NAME, window.getWindowFunction().getNameOrAlias()),
+          window.getWindowFunction().getDelegated().type());
+    }
+
+    if (PatternMode.AGGREGATION.equals(node.getPatternMode())) {
+      Aggregation aggNode = analyzePatternsAgg(node);
+      return analyzeAggregation(aggNode, child, context);
+    }
     return child;
   }
 
@@ -509,7 +560,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitSort(Sort node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
-    return buildSort(child, context, node.getSortList());
+    return buildSort(child, context, node.getCount(), node.getSortList());
   }
 
   /** Build {@link LogicalDedupe}. */
@@ -590,20 +641,22 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
     ImmutableList.Builder<Pair<ReferenceExpression, Expression>> expressionsBuilder =
         new Builder<>();
-    for (FillNull.NullableFieldFill fieldFill : node.getNullableFieldFills()) {
-      Expression fieldExpr =
-          expressionAnalyzer.analyze(fieldFill.getNullableFieldReference(), context);
+    for (Pair<Field, UnresolvedExpression> fieldFill : node.getReplacementPairs()) {
+      Expression fieldExpr = expressionAnalyzer.analyze(fieldFill.getLeft(), context);
       ReferenceExpression ref =
-          DSL.ref(fieldFill.getNullableFieldReference().getField().toString(), fieldExpr.type());
+          DSL.ref(fieldFill.getLeft().getField().toString(), fieldExpr.type());
       FunctionExpression ifNullFunction =
-          DSL.ifnull(ref, expressionAnalyzer.analyze(fieldFill.getReplaceNullWithMe(), context));
+          DSL.ifnull(ref, expressionAnalyzer.analyze(fieldFill.getRight(), context));
       expressionsBuilder.add(new ImmutablePair<>(ref, ifNullFunction));
       TypeEnvironment typeEnvironment = context.peek();
       // define the new reference in type env.
       typeEnvironment.define(ref);
     }
-
-    return new LogicalEval(child, expressionsBuilder.build());
+    List<Pair<ReferenceExpression, Expression>> expressions = expressionsBuilder.build();
+    if (expressions.isEmpty()) {
+      throw new SemanticCheckException("At least one field is required for fillnull in V2.");
+    }
+    return new LogicalEval(child, expressions);
   }
 
   /** Build {@link LogicalML} for ml command. */
@@ -616,6 +669,16 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
             v -> currentEnv.define(new Symbol(Namespace.FIELD_NAME, v.getKey()), v.getValue()));
 
     return new LogicalML(child, node.getArguments());
+  }
+
+  @Override
+  public LogicalPlan visitBin(Bin node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Bin");
+  }
+
+  @Override
+  public LogicalPlan visitExpand(Expand expand, AnalysisContext context) {
+    throw getOnlyForCalciteException("Expand");
   }
 
   /** Build {@link LogicalTrendline} for Trendline command. */
@@ -663,8 +726,28 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     }
 
     return new LogicalTrendline(
-        buildSort(child, context, Collections.singletonList(node.getSortByField().get())),
+        buildSort(child, context, 0, Collections.singletonList(node.getSortByField().get())),
         computationsAndTypes.build());
+  }
+
+  @Override
+  public LogicalPlan visitFlatten(Flatten node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Flatten");
+  }
+
+  @Override
+  public LogicalPlan visitReverse(Reverse node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Reverse");
+  }
+
+  @Override
+  public LogicalPlan visitTimechart(Timechart node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Timechart");
+  }
+
+  @Override
+  public LogicalPlan visitRegex(Regex node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Regex");
   }
 
   @Override
@@ -685,8 +768,23 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     return new LogicalCloseCursor(closeCursor.getChild().get(0).accept(this, context));
   }
 
+  @Override
+  public LogicalPlan visitJoin(Join node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Join");
+  }
+
+  @Override
+  public LogicalPlan visitLookup(Lookup node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Lookup");
+  }
+
+  @Override
+  public LogicalPlan visitAppendCol(AppendCol node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Appendcol");
+  }
+
   private LogicalSort buildSort(
-      LogicalPlan child, AnalysisContext context, List<Field> sortFields) {
+      LogicalPlan child, AnalysisContext context, Integer count, List<Field> sortFields) {
     ExpressionReferenceOptimizer optimizer =
         new ExpressionReferenceOptimizer(expressionAnalyzer.getRepository(), child);
 
@@ -703,13 +801,9 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
                   return ImmutablePair.of(analyzeSortOption(sortField.getFieldArgs()), expression);
                 })
             .collect(Collectors.toList());
-    return new LogicalSort(child, sortList);
+    return new LogicalSort(child, count, sortList);
   }
 
-  /**
-   * The first argument is always "asc", others are optional. Given nullFirst argument, use its
-   * value. Otherwise just use DEFAULT_ASC/DESC.
-   */
   private SortOption analyzeSortOption(List<Argument> fieldArgs) {
     Boolean asc = (Boolean) fieldArgs.get(0).getValue().getValue();
     Optional<Argument> nullFirst =
@@ -720,5 +814,82 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       return new SortOption((asc ? ASC : DESC), (isNullFirst ? NULL_FIRST : NULL_LAST));
     }
     return asc ? SortOption.DEFAULT_ASC : SortOption.DEFAULT_DESC;
+  }
+
+  private void analyzeParseNode(Parse node, AnalysisContext context) {
+    Expression sourceField = expressionAnalyzer.analyze(node.getSourceField(), context);
+    ParseMethod parseMethod = node.getParseMethod();
+    java.util.Map<String, Literal> arguments = node.getArguments();
+    String pattern = (String) node.getPattern().getValue();
+    Expression patternExpression = DSL.literal(pattern);
+
+    TypeEnvironment curEnv = context.peek();
+    ParseUtils.getNamedGroupCandidates(parseMethod, pattern, arguments)
+        .forEach(
+            group -> {
+              ParseExpression expr =
+                  ParseUtils.createParseExpression(
+                      parseMethod, sourceField, patternExpression, DSL.literal(group));
+              curEnv.define(new Symbol(Namespace.FIELD_NAME, group), expr.type());
+              context.getNamedParseExpressions().add(new NamedExpression(group, expr));
+            });
+  }
+
+  private LogicalAggregation analyzeAggregation(
+      Aggregation node, LogicalPlan child, AnalysisContext context) {
+    ImmutableList.Builder<NamedAggregator> aggregatorBuilder = new ImmutableList.Builder<>();
+    for (UnresolvedExpression expr : node.getAggExprList()) {
+      NamedExpression aggExpr = namedExpressionAnalyzer.analyze(expr, context);
+      aggregatorBuilder.add(
+          new NamedAggregator(aggExpr.getNameOrAlias(), (Aggregator) aggExpr.getDelegated()));
+    }
+
+    ImmutableList.Builder<NamedExpression> groupbyBuilder = new ImmutableList.Builder<>();
+    // Span should be first expression if exist.
+    if (node.getSpan() != null) {
+      groupbyBuilder.add(namedExpressionAnalyzer.analyze(node.getSpan(), context));
+    }
+
+    for (UnresolvedExpression expr : node.getGroupExprList()) {
+      NamedExpression resolvedExpr = namedExpressionAnalyzer.analyze(expr, context);
+      verifySupportsCondition(resolvedExpr.getDelegated());
+      groupbyBuilder.add(resolvedExpr);
+    }
+    ImmutableList<NamedExpression> groupBys = groupbyBuilder.build();
+
+    ImmutableList<NamedAggregator> aggregators = aggregatorBuilder.build();
+    // new context
+    context.push();
+    TypeEnvironment newEnv = context.peek();
+    aggregators.forEach(
+        aggregator ->
+            newEnv.define(
+                new Symbol(Namespace.FIELD_NAME, aggregator.getName()), aggregator.type()));
+    groupBys.forEach(
+        group ->
+            newEnv.define(new Symbol(Namespace.FIELD_NAME, group.getNameOrAlias()), group.type()));
+    return new LogicalAggregation(child, aggregators, groupBys);
+  }
+
+  private Aggregation analyzePatternsAgg(Patterns node) {
+    UnresolvedExpression patternsField =
+        AstDSL.alias(node.getAlias(), AstDSL.field(node.getAlias()));
+    List<UnresolvedExpression> aggExprs =
+        Stream.of(
+                new Alias(
+                    "pattern_count",
+                    new AggregateFunction(BuiltinFunctionName.COUNT.name(), AllFields.of())),
+                new Alias(
+                    "sample_logs",
+                    new AggregateFunction(
+                        BuiltinFunctionName.TAKE.name(),
+                        node.getSourceField(),
+                        ImmutableList.of(node.getPatternMaxSampleCount()))))
+            .map(alias -> (UnresolvedExpression) alias)
+            .toList();
+    List<UnresolvedExpression> groupByList = new ArrayList<>();
+    groupByList.add(patternsField);
+    groupByList.addAll(node.getPartitionByList());
+    return new Aggregation(aggExprs, ImmutableList.of(), groupByList);
   }
 }

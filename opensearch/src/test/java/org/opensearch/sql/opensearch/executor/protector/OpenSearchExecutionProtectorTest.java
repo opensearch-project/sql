@@ -99,7 +99,6 @@ class OpenSearchExecutionProtectorTest {
   void test_protect_indexScan() {
     String indexName = "test";
     final int maxResultWindow = 10000;
-    final int querySizeLimit = 200;
     NamedExpression include = named("age", ref("age", INTEGER));
     ReferenceExpression exclude = ref("name", STRING);
     ReferenceExpression dedupeField = ref("name", STRING);
@@ -120,12 +119,8 @@ class OpenSearchExecutionProtectorTest {
 
     final var name = new OpenSearchRequest.IndexName(indexName);
     final var request =
-        new OpenSearchRequestBuilder(querySizeLimit, exprValueFactory, settings)
-            .build(
-                name,
-                maxResultWindow,
-                settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE),
-                client);
+        new OpenSearchRequestBuilder(exprValueFactory, maxResultWindow, settings)
+            .build(name, settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE), client);
     assertEquals(
         PhysicalPlanDSL.project(
             PhysicalPlanDSL.limit(
@@ -139,8 +134,7 @@ class OpenSearchExecutionProtectorTest {
                                             PhysicalPlanDSL.agg(
                                                 filter(
                                                     resourceMonitor(
-                                                        new OpenSearchIndexScan(
-                                                            client, maxResultWindow, request)),
+                                                        new OpenSearchIndexScan(client, request)),
                                                     filterExpr),
                                                 aggregators,
                                                 groupByExprs),
@@ -166,8 +160,7 @@ class OpenSearchExecutionProtectorTest {
                                         PhysicalPlanDSL.rename(
                                             PhysicalPlanDSL.agg(
                                                 filter(
-                                                    new OpenSearchIndexScan(
-                                                        client, maxResultWindow, request),
+                                                    new OpenSearchIndexScan(client, request),
                                                     filterExpr),
                                                 aggregators,
                                                 groupByExprs),

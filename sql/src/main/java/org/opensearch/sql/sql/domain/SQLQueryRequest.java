@@ -42,7 +42,7 @@ public class SQLQueryRequest {
   private final String path;
 
   /** Request format. */
-  private final String format;
+  @Getter private final String format;
 
   /** Request params. */
   private Map<String, String> params = Collections.emptyMap();
@@ -100,7 +100,9 @@ public class SQLQueryRequest {
 
     return (validCursor || validQuery) // It's a valid cursor or a valid query
         && isOnlySupportedFieldInPayload() // and request must contain supported fields only
-        && isSupportedFormat(); // and request must be a supported format
+        && (isExplainRequest()
+            ? isSupportedExplainFormat()
+            : isSupportedFormat()); // and request must be a supported format
   }
 
   private boolean isCursor() {
@@ -147,8 +149,12 @@ public class SQLQueryRequest {
     return Stream.of("csv", "jdbc", "raw").anyMatch(format::equalsIgnoreCase);
   }
 
+  private boolean isSupportedExplainFormat() {
+    return Stream.of("simple", "standard", "extended", "cost").anyMatch(format::equalsIgnoreCase);
+  }
+
   private String getFormat(Map<String, String> params) {
-    return params.getOrDefault(QUERY_PARAMS_FORMAT, "jdbc");
+    return params.getOrDefault(QUERY_PARAMS_FORMAT, isExplainRequest() ? "standard" : "jdbc");
   }
 
   private boolean shouldSanitize(Map<String, String> params) {

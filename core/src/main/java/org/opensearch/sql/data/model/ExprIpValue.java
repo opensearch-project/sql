@@ -24,6 +24,11 @@ public class ExprIpValue extends AbstractExprValue {
   }
 
   @Override
+  public ExprIpValue valueForCalcite() {
+    return this;
+  }
+
+  @Override
   public ExprType type() {
     return ExprCoreType.IP;
   }
@@ -40,7 +45,8 @@ public class ExprIpValue extends AbstractExprValue {
 
   @Override
   public String toString() {
-    return String.format("IP %s", value());
+    // used for casting to string
+    return value();
   }
 
   @Override

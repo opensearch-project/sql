@@ -29,7 +29,7 @@ public class RelationSubquery extends UnresolvedPlan {
 
   @Override
   public List<UnresolvedPlan> getChild() {
-    return ImmutableList.of(query);
+    return this.query == null ? ImmutableList.of() : ImmutableList.of(this.query);
   }
 
   @Override

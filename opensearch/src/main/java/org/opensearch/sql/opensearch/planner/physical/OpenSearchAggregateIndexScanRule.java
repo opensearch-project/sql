@@ -4,9 +4,13 @@
  */
 package org.opensearch.sql.opensearch.planner.physical;
 
+import java.util.function.Predicate;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.sql.SqlKind;
 import org.immutables.value.Value;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
@@ -22,11 +26,16 @@ public class OpenSearchAggregateIndexScanRule
 
   @Override
   public void onMatch(RelOptRuleCall call) {
-    if (call.rels.length == 2) {
-      // the ordinary variant
+    if (call.rels.length == 3) {
+      final LogicalAggregate aggregate = call.rel(0);
+      final LogicalProject project = call.rel(1);
+      final CalciteLogicalIndexScan scan = call.rel(2);
+      apply(call, aggregate, project, scan);
+    } else if (call.rels.length == 2) {
+      // case of count() without group-by
       final LogicalAggregate aggregate = call.rel(0);
       final CalciteLogicalIndexScan scan = call.rel(1);
-      apply(call, aggregate, scan);
+      apply(call, aggregate, null, scan);
     } else {
       throw new AssertionError(
           String.format(
@@ -36,8 +45,11 @@ public class OpenSearchAggregateIndexScanRule
   }
 
   protected void apply(
-      RelOptRuleCall call, LogicalAggregate aggregate, CalciteLogicalIndexScan scan) {
-    CalciteLogicalIndexScan newScan = scan.pushDownAggregate(aggregate);
+      RelOptRuleCall call,
+      LogicalAggregate aggregate,
+      LogicalProject project,
+      CalciteLogicalIndexScan scan) {
+    CalciteLogicalIndexScan newScan = scan.pushDownAggregate(aggregate, project);
     if (newScan != null) {
       call.transformTo(newScan);
     }
@@ -46,17 +58,56 @@ public class OpenSearchAggregateIndexScanRule
   /** Rule configuration. */
   @Value.Immutable
   public interface Config extends RelRule.Config {
-    /** Config that matches Aggregate on OpenSearchProjectIndexScanRule. */
     Config DEFAULT =
         ImmutableOpenSearchAggregateIndexScanRule.Config.builder()
             .build()
+            .withDescription("Agg-Project-TableScan")
             .withOperandSupplier(
                 b0 ->
                     b0.operand(LogicalAggregate.class)
+                        .predicate(
+                            agg ->
+                                // Cannot push down aggregation with inner filter
+                                agg.getAggCallList().stream().noneMatch(AggregateCall::hasFilter))
+                        .oneInput(
+                            b1 ->
+                                b1.operand(LogicalProject.class)
+                                    .predicate(
+                                        // Don't push down aggregate on window function
+                                        Predicate.not(OpenSearchIndexScanRule::containsRexOver)
+                                            .and(OpenSearchIndexScanRule::distinctProjectList))
+                                    .oneInput(
+                                        b2 ->
+                                            b2.operand(CalciteLogicalIndexScan.class)
+                                                .predicate(
+                                                    Predicate.not(
+                                                            OpenSearchIndexScanRule::isLimitPushed)
+                                                        .and(
+                                                            OpenSearchIndexScanRule
+                                                                ::noAggregatePushed))
+                                                .noInputs())));
+    Config COUNT_STAR =
+        ImmutableOpenSearchAggregateIndexScanRule.Config.builder()
+            .build()
+            .withDescription("Agg[count()]-TableScan")
+            .withOperandSupplier(
+                b0 ->
+                    b0.operand(LogicalAggregate.class)
+                        .predicate(
+                            agg ->
+                                agg.getGroupSet().isEmpty()
+                                    && agg.getAggCallList().stream()
+                                        .allMatch(
+                                            call ->
+                                                call.getAggregation().kind == SqlKind.COUNT
+                                                    && call.getArgList().isEmpty()
+                                                    && !call.hasFilter()))
                         .oneInput(
                             b1 ->
                                 b1.operand(CalciteLogicalIndexScan.class)
-                                    .predicate(OpenSearchIndexScanRule::test)
+                                    .predicate(
+                                        Predicate.not(OpenSearchIndexScanRule::isLimitPushed)
+                                            .and(OpenSearchIndexScanRule::noAggregatePushed))
                                     .noInputs()));
 
     @Override
