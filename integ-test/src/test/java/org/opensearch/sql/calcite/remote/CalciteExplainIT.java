@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.legacy.TestUtils.*;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
@@ -26,6 +27,7 @@ public class CalciteExplainIT extends ExplainIT {
     loadIndex(Index.BANK_WITH_STRING_VALUES);
     loadIndex(Index.NESTED_SIMPLE);
     loadIndex(Index.TIME_TEST_DATA);
+    loadIndex(Index.EVENTS);
     loadIndex(Index.LOGS);
   }
 
@@ -214,6 +216,26 @@ public class CalciteExplainIT extends ExplainIT {
     // Verify that reverse added a ROW_NUMBER and another sort (descending)
     assertTrue(result.contains("ROW_NUMBER()"));
     assertTrue(result.contains("dir0=[DESC]"));
+  }
+
+  @Test
+  public void testExplainWithTimechartAvg() throws IOException {
+    var result = explainQueryToString("source=events | timechart span=1m avg(cpu_usage) by host");
+    String expected =
+        isPushdownEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_timechart.json")
+            : loadFromFile("expectedOutput/calcite/explain_timechart_no_pushdown.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testExplainWithTimechartCount() throws IOException {
+    var result = explainQueryToString("source=events | timechart span=1m count() by host");
+    String expected =
+        isPushdownEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_timechart_count.json")
+            : loadFromFile("expectedOutput/calcite/explain_timechart_count_no_pushdown.json");
+    assertJsonEqualsIgnoreId(expected, result);
   }
 
   @Test

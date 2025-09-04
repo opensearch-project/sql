@@ -81,6 +81,7 @@ import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Timechart;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
@@ -418,6 +419,38 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   public String visitReverse(Reverse node, String context) {
     String child = node.getChild().get(0).accept(this, context);
     return StringUtils.format("%s | reverse", child);
+  }
+
+  @Override
+  public String visitTimechart(Timechart node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    StringBuilder timechartCommand = new StringBuilder();
+    timechartCommand.append(" | timechart");
+
+    // Add span if present
+    if (node.getBinExpression() != null) {
+      timechartCommand.append(" span=").append(visitExpression(node.getBinExpression()));
+    }
+
+    // Add limit if present
+    if (node.getLimit() != null) {
+      timechartCommand.append(" limit=").append(node.getLimit());
+    }
+
+    // Add useother if present
+    if (node.getUseOther() != null) {
+      timechartCommand.append(" useother=").append(node.getUseOther());
+    }
+
+    // Add aggregation function
+    timechartCommand.append(" ").append(visitExpression(node.getAggregateFunction()));
+
+    // Add by clause if present
+    if (node.getByField() != null) {
+      timechartCommand.append(" by ").append(visitExpression(node.getByField()));
+    }
+
+    return StringUtils.format("%s%s", child, timechartCommand.toString());
   }
 
   @Override
