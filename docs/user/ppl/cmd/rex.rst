@@ -32,15 +32,14 @@ Extract username and domain from email addresses using named capture groups. Bot
 
 PPL query::
 
-    os> source=accounts | rex field=email "(?<username>[^@]+)@(?<domain>[^.]+)" | fields email, username, domain | head 3 ;
-    fetched rows / total rows = 3/3
-    +--------------------------+--------------+---------+
-    | email                    | username     | domain  |
-    |--------------------------+--------------+---------|
-    | amberduke@pyrami.com     | amberduke    | pyrami  |
-    | hattiebond@netagy.com    | hattiebond   | netagy  |
-    | nanettebates@quility.com | nanettebates | quility |
-    +--------------------------+--------------+---------+
+    os> source=accounts | rex field=email "(?<username>[^@]+)@(?<domain>[^.]+)" | fields email, username, domain | head 2 ;
+    fetched rows / total rows = 2/2
+    +-----------------------+------------+--------+
+    | email                 | username   | domain |
+    |-----------------------+------------+--------|
+    | amberduke@pyrami.com  | amberduke  | pyrami |
+    | hattiebond@netagy.com | hattiebond | netagy |
+    +-----------------------+------------+--------+
 
 
 Example 2: Handling Non-matching Patterns
@@ -50,17 +49,14 @@ The rex command returns all events, setting extracted fields to null for non-mat
 
 PPL query::
 
-    os> source=accounts | rex field=email "(?<user>[^@]+)@(?<domain>gmail\\.com)" | fields email, user, domain | head 5 ;
-    fetched rows / total rows = 5/5
-    +---------------------------+----------+--------+
-    | email                     | user     | domain |
-    |---------------------------|----------|--------|
-    | amberduke@pyrami.com      | null     | null   |
-    | hattiebond@netagy.com     | null     | null   |
-    | nanettebates@quility.com  | null     | null   |
-    | daleadams@boink.com       | null     | null   |
-    | elinorross@syntac.com     | null     | null   |
-    +---------------------------+----------+--------+
+    os> source=accounts | rex field=email "(?<user>[^@]+)@(?<domain>gmail\\.com)" | fields email, user, domain | head 2 ;
+    fetched rows / total rows = 2/2
+    +-----------------------+------+--------+
+    | email                 | user | domain |
+    |-----------------------+------+--------|
+    | amberduke@pyrami.com  | null | null   |
+    | hattiebond@netagy.com | null | null   |
+    +-----------------------+------+--------+
 
 
 Example 3: Multiple Matches with max_match
@@ -72,13 +68,13 @@ PPL query::
 
     os> source=accounts | rex field=address "(?<words>[A-Za-z]+)" max_match=2 | fields address, words | head 3 ;
     fetched rows / total rows = 3/3
-    +--------------------+-------------------+
-    | address            | words             |
-    |--------------------|-------------------|
-    | 880 Holmes Lane    | [Holmes, Lane]    |
-    | 671 Bristol Street | [Bristol, Street] |
-    | 789 Madison Street | [Madison, Street] |
-    +--------------------+-------------------+
+    +--------------------+------------------+
+    | address            | words            |
+    |--------------------+------------------|
+    | 880 Holmes Lane    | [Holmes,Lane]    |
+    | 671 Bristol Street | [Bristol,Street] |
+    | 789 Madison Street | [Madison,Street] |
+    +--------------------+------------------+
 
 
 Example 4: Complex Email Pattern
@@ -88,15 +84,14 @@ Extract comprehensive email components including top-level domain. All extracted
 
 PPL query::
 
-    os> source=accounts | rex field=email "(?<user>[a-zA-Z0-9._%+-]+)@(?<domain>[a-zA-Z0-9.-]+)\\.(?<tld>[a-zA-Z]{2,})" | fields email, user, domain, tld | head 3 ;
-    fetched rows / total rows = 3/3
-    +--------------------------+--------------+---------+-----+
-    | email                    | user         | domain  | tld |
-    |--------------------------+--------------+---------+-----|
-    | amberduke@pyrami.com     | amberduke    | pyrami  | com |
-    | hattiebond@netagy.com    | hattiebond   | netagy  | com |
-    | nanettebates@quility.com | nanettebates | quility | com |
-    +--------------------------+--------------+---------+-----+
+    os> source=accounts | rex field=email "(?<user>[a-zA-Z0-9._%+-]+)@(?<domain>[a-zA-Z0-9.-]+)\\.(?<tld>[a-zA-Z]{2,})" | fields email, user, domain, tld | head 2 ;
+    fetched rows / total rows = 2/2
+    +-----------------------+------------+--------+-----+
+    | email                 | user       | domain | tld |
+    |-----------------------+------------+--------+-----|
+    | amberduke@pyrami.com  | amberduke  | pyrami | com |
+    | hattiebond@netagy.com | hattiebond | netagy | com |
+    +-----------------------+------------+--------+-----+
 
 
 Example 5: Chaining Multiple rex Commands
@@ -110,7 +105,7 @@ PPL query::
     fetched rows / total rows = 3/3
     +-----------+----------+--------------+-------------+
     | firstname | lastname | firstinitial | lastinitial |
-    |-----------|----------|--------------|-------------|
+    |-----------+----------+--------------+-------------|
     | Amber     | Duke     | A            | D           |
     | Hattie    | Bond     | H            | B           |
     | Nanette   | Bates    | N            | B           |
@@ -125,19 +120,19 @@ Demonstrates naming restrictions for capture groups. Group names cannot contain 
 Invalid PPL query with underscores::
 
     os> source=accounts | rex field=email "(?<user_name>[^@]+)@(?<email_domain>[^.]+)" | fields email, user_name, email_domain ;
-    Error: Rex pattern must contain valid named capture group names. Group names cannot contain underscores.
+    {'reason': 'Invalid Query', 'details': 'Rex pattern must contain at least one named capture group', 'type': 'IllegalArgumentException'}
+    Error: Query returned no data
 
 Correct PPL query without underscores::
 
-    os> source=accounts | rex field=email "(?<username>[^@]+)@(?<emaildomain>[^.]+)" | fields email, username, emaildomain | head 3 ;
-    fetched rows / total rows = 3/3
-    +--------------------------+--------------+-------------+
-    | email                    | username     | emaildomain |
-    |--------------------------+--------------+-------------|
-    | amberduke@pyrami.com     | amberduke    | pyrami      |
-    | hattiebond@netagy.com    | hattiebond   | netagy      |
-    | nanettebates@quility.com | nanettebates | quility     |
-    +--------------------------+--------------+-------------+
+    os> source=accounts | rex field=email "(?<username>[^@]+)@(?<emaildomain>[^.]+)" | fields email, username, emaildomain | head 2 ;
+    fetched rows / total rows = 2/2
+    +-----------------------+------------+-------------+
+    | email                 | username   | emaildomain |
+    |-----------------------+------------+-------------|
+    | amberduke@pyrami.com  | amberduke  | pyrami      |
+    | hattiebond@netagy.com | hattiebond | netagy      |
+    +-----------------------+------------+-------------+
 
 
 Comparison with Related Commands

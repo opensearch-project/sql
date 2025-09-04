@@ -28,7 +28,6 @@
     "user/ppl/cmd/top.rst",
     "user/ppl/cmd/where.rst",
     "user/ppl/cmd/join.rst",
-    "user/ppl/cmd/rex.rst",
     "user/ppl/cmd/lookup.rst",
     "user/ppl/cmd/subquery.rst",
     "user/ppl/general/identifiers.rst",
@@ -60,6 +59,7 @@
     "user/ppl/cmd/append.rst",
     "user/ppl/cmd/fields.rst",
     "user/ppl/cmd/regex.rst",
+    "user/ppl/cmd/rex.rst",
     "user/ppl/cmd/stats.rst",
     "user/ppl/cmd/timechart.rst"
   ]
