@@ -14,6 +14,9 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
 
 @Getter
+/*
+ * @opensearch.experimental
+ */
 public class GetDirectQueryResourcesActionRequest extends ActionRequest {
   private final GetDirectQueryResourcesRequest directQueryRequest;
 

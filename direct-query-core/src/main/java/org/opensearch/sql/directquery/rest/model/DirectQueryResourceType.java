@@ -5,7 +5,11 @@
 
 package org.opensearch.sql.directquery.rest.model;
 
-/** Enum representing the types of resources that can be queried. */
+/**
+ * Enum representing the types of resources that can be queried.
+ *
+ * @opensearch.experimental
+ */
 public enum DirectQueryResourceType {
   UNKNOWN,
   LABELS,

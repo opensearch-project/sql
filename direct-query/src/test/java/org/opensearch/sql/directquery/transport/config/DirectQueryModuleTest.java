@@ -19,6 +19,9 @@ import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.directquery.DirectQueryExecutorService;
 import org.opensearch.transport.client.node.NodeClient;
 
+/*
+ * @opensearch.experimental
+ */
 @ExtendWith(MockitoExtension.class)
 public class DirectQueryModuleTest {
   @Mock private NodeClient nodeClient;

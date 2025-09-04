@@ -27,6 +27,9 @@ import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
 import org.opensearch.sql.prometheus.utils.PrometheusClientUtils;
 
+/*
+ * @opensearch.experimental
+ */
 @RunWith(MockitoJUnitRunner.class)
 public class DataSourceClientFactoryTest {
 

@@ -5,6 +5,9 @@
 
 package org.opensearch.sql.prometheus.constant;
 
+/*
+ * @opensearch.experimental
+ */
 public class TestConstants {
   public static final String QUERY = "test_query";
   public static final Long STARTTIME = 1664767694133L;

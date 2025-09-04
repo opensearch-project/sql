@@ -23,6 +23,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.datasource.client.DataSourceClient;
 
+/*
+ * @opensearch.experimental
+ */
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
 public class QueryHandlerRegistryTest {

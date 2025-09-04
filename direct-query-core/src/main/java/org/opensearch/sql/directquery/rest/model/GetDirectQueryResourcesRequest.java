@@ -9,6 +9,9 @@ import java.util.Map;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/*
+ * @opensearch.experimental
+ */
 @Data
 @NoArgsConstructor
 public class GetDirectQueryResourcesRequest {

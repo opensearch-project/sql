@@ -21,6 +21,9 @@ import org.opensearch.sql.directquery.transport.model.datasource.DataSourceResul
 import org.opensearch.sql.directquery.transport.model.datasource.PrometheusResult;
 
 @RequiredArgsConstructor
+/*
+ * @opensearch.experimental
+ */
 public class ExecuteDirectQueryActionResponse extends ActionResponse {
 
   private static final ObjectMapper OBJECT_MAPPER =

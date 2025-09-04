@@ -40,6 +40,9 @@ import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.node.NodeClient;
 
+/*
+ * @opensearch.experimental
+ */
 public class RestDirectQueryManagementActionTest {
 
   private OpenSearchSettings settings;

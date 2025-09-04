@@ -20,6 +20,9 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.sql.directquery.rest.model.DirectQueryResourceType;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
 
+/*
+ * @opensearch.experimental
+ */
 public class DirectQueryResourcesRequestConverterTest {
 
   private RestRequest request;

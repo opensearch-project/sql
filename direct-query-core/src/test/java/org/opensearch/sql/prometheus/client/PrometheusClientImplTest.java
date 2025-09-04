@@ -35,6 +35,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.prometheus.exception.PrometheusClientException;
 
+/*
+ * @opensearch.experimental
+ */
 public class PrometheusClientImplTest {
 
   private MockWebServer mockWebServer;

@@ -35,6 +35,9 @@ import org.opensearch.sql.prometheus.model.MetricMetadata;
 import org.opensearch.sql.prometheus.model.PrometheusOptions;
 import org.opensearch.sql.prometheus.model.PrometheusQueryType;
 
+/*
+ * @opensearch.experimental
+ */
 @RunWith(MockitoJUnitRunner.class)
 public class PrometheusQueryHandlerTest {
 

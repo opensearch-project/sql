@@ -16,6 +16,9 @@ import org.opensearch.sql.prometheus.model.PrometheusQueryType;
 import org.opensearch.sql.spark.rest.model.LangType;
 
 @UtilityClass
+/*
+ * @opensearch.experimental
+ */
 public class DirectQueryRequestConverter {
 
   public static ExecuteDirectQueryRequest fromXContentParser(XContentParser parser)

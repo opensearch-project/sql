@@ -15,6 +15,9 @@ import org.opensearch.sql.spark.rest.model.LangType;
 
 @Data
 @NoArgsConstructor
+/*
+ * @opensearch.experimental
+ */
 public class ExecuteDirectQueryRequest {
   // Required fields
   private String dataSources; // Required: From URI path parameter or request body

@@ -25,6 +25,9 @@ import org.opensearch.sql.datasources.auth.AuthenticationType;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
 import org.opensearch.sql.prometheus.client.PrometheusClientImpl;
 
+/*
+ * @opensearch.experimental
+ */
 public class PrometheusClientUtils {
   private PrometheusClientUtils() {}
 

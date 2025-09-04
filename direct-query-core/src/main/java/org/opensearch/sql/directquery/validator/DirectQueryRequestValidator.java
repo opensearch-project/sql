@@ -10,6 +10,9 @@ import org.opensearch.sql.prometheus.model.PrometheusOptions;
 import org.opensearch.sql.prometheus.model.PrometheusQueryType;
 import org.opensearch.sql.spark.rest.model.LangType;
 
+/*
+ * @opensearch.experimental
+ */
 public class DirectQueryRequestValidator {
   private DirectQueryRequestValidator() {}
 

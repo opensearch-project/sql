@@ -5,7 +5,11 @@
 
 package org.opensearch.sql.datasource.client.exceptions;
 
-/** Exception thrown when there are issues with data source client operations. */
+/**
+ * Exception thrown when there are issues with data source client operations.
+ *
+ * @opensearch.experimental
+ */
 public class DataSourceClientException extends RuntimeException {
 
   public DataSourceClientException(String message) {

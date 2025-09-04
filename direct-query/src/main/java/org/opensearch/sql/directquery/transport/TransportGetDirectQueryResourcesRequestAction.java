@@ -20,6 +20,9 @@ import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
+/*
+ * @opensearch.experimental
+ */
 public class TransportGetDirectQueryResourcesRequestAction
     extends HandledTransportAction<
         GetDirectQueryResourcesActionRequest, GetDirectQueryResourcesActionResponse> {
