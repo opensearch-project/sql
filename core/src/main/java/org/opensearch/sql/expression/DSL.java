@@ -728,14 +728,6 @@ public class DSL {
     return aggregate(BuiltinFunctionName.TAKE, expressions);
   }
 
-  public static Aggregator first(Expression... expressions) {
-    return aggregate(BuiltinFunctionName.FIRST, expressions);
-  }
-
-  public static Aggregator last(Expression... expressions) {
-    return aggregate(BuiltinFunctionName.LAST, expressions);
-  }
-
   public static RankingWindowFunction rowNumber() {
     return compile(FunctionProperties.None, BuiltinFunctionName.ROW_NUMBER);
   }
