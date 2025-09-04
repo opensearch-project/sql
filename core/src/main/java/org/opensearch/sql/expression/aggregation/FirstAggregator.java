@@ -47,7 +47,7 @@ public class FirstAggregator extends Aggregator<FirstAggregator.FirstState> {
     private boolean hasValue = false;
 
     public void setFirst(ExprValue value) {
-      if (!hasValue && !value.isNull() && !value.isMissing()) {
+      if (!hasValue) {
         first = value;
         hasValue = true;
       }
