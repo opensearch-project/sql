@@ -16,7 +16,6 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -343,20 +342,17 @@ class AggregateAnalyzerTest {
   void analyze_aggCall_simpleFilter() throws ExpressionNotAnalyzableException {
     Pair<String, OpenSearchAggregationResponseParser> result =
         analyzeAggregate(
-            "t",
             List.of("cnt_filtered"),
             b ->
-                b.scan("t")
-                    .aggregate(
-                        b.groupKey(),
-                        b.aggregateCall(
-                            SqlStdOperatorTable.COUNT,
-                            false,
-                            b.call(
-                                SqlStdOperatorTable.IS_TRUE,
-                                b.call(
-                                    SqlStdOperatorTable.GREATER_THAN, b.field("a"), b.literal(0))),
-                            "cnt_filtered")));
+                b.aggregate(
+                    b.groupKey(),
+                    b.aggregateCall(
+                        SqlStdOperatorTable.COUNT,
+                        false,
+                        b.call(
+                            SqlStdOperatorTable.IS_TRUE,
+                            b.call(SqlStdOperatorTable.GREATER_THAN, b.field("a"), b.literal(0))),
+                        "cnt_filtered")));
 
     assertEquals(
         "[{\"cnt_filtered\":{\"filter\":{\"range\":{\"a\":{"
@@ -401,11 +397,10 @@ class AggregateAnalyzerTest {
   }
 
   private Pair<String, OpenSearchAggregationResponseParser> analyzeAggregate(
-      String tableName,
-      List<String> outputFields,
-      java.util.function.UnaryOperator<RelBuilder> planBuilder)
+      List<String> outputFields, java.util.function.UnaryOperator<RelBuilder> planBuilder)
       throws AggregateAnalyzer.ExpressionNotAnalyzableException {
     // Create RelBuilder with test schema
+    String tableName = "test";
     SchemaPlus root = Frameworks.createRootSchema(true);
     root.add(
         tableName,
@@ -415,18 +410,10 @@ class AggregateAnalyzerTest {
             return rowType;
           }
         });
-    RelBuilder b =
-        RelBuilder.create(
-            Frameworks.newConfigBuilder()
-                .context(
-                    Contexts.of(
-                        RelBuilder.Config.DEFAULT.withSimplify(
-                            false))) // otherwise RelBuilder will simplify istrue
-                .defaultSchema(root)
-                .build());
+    RelBuilder b = RelBuilder.create(Frameworks.newConfigBuilder().defaultSchema(root).build());
 
     // Create test RelNode plan
-    RelNode rel = planBuilder.apply(b).build();
+    RelNode rel = planBuilder.apply(b.scan(tableName)).build();
 
     // Run analyzer
     Aggregate agg = (Aggregate) rel;
