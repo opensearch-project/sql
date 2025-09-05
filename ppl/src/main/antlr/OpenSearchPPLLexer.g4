@@ -41,6 +41,7 @@ ML:                                 'ML';
 FILLNULL:                           'FILLNULL';
 FLATTEN:                            'FLATTEN';
 TRENDLINE:                          'TRENDLINE';
+TIMECHART:                          'TIMECHART';
 APPENDCOL:                          'APPENDCOL';
 EXPAND:                             'EXPAND';
 SIMPLE_PATTERN:                     'SIMPLE_PATTERN';
@@ -118,6 +119,11 @@ ANOMALY_SCORE_THRESHOLD:            'ANOMALY_SCORE_THRESHOLD';
 APPEND:                             'APPEND';
 COUNTFIELD:                         'COUNTFIELD';
 SHOWCOUNT:                          'SHOWCOUNT';
+LIMIT:                              'LIMIT';
+USEOTHER:                           'USEOTHER';
+INPUT:                              'INPUT';
+OUTPUT:                             'OUTPUT';
+PATH:                               'PATH';
 
 // COMPARISON FUNCTION KEYWORDS
 CASE:                               'CASE';
