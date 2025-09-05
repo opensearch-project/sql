@@ -55,6 +55,7 @@ import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
 import org.opensearch.search.aggregations.AggregatorFactories;
 import org.opensearch.search.aggregations.AggregatorFactories.Builder;
+import org.opensearch.search.aggregations.BucketOrder;
 import org.opensearch.search.aggregations.bucket.composite.CompositeValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.composite.TermsValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
@@ -197,6 +198,8 @@ public class AggregateAnalyzer {
             ImmutableList.copyOf(metricBuilder.getAggregatorFactories()),
             new NoBucketAggregationParser(metricParserList));
       } else if (aggregate.getGroupSet().length() == 1 && !bucketNullable) {
+        // one bucket, use values source bucket builder for getting better performance
+        // TODO for multiple buckets, use MultiTermsAggregationBuilder
         ValuesSourceAggregationBuilder<?> bucketBuilder =
             createBucketAggregation(groupList.getFirst(), project, helper);
         return Pair.of(
@@ -438,7 +441,11 @@ public class AggregateAnalyzer {
   private static ValuesSourceAggregationBuilder<?> createTermsAggregationBuilder(
       String bucketName, RexNode group, AggregateBuilderHelper helper) {
     TermsAggregationBuilder sourceBuilder =
-        helper.build(group, new TermsAggregationBuilder(bucketName).size(AGGREGATION_BUCKET_SIZE));
+        helper.build(
+            group,
+            new TermsAggregationBuilder(bucketName)
+                .size(AGGREGATION_BUCKET_SIZE)
+                .order(BucketOrder.key(true)));
     // Time types values are converted to LONG in ExpressionAggregationScript::execute
     if (List.of(TIMESTAMP, TIME, DATE)
         .contains(OpenSearchTypeFactory.convertRelDataTypeToExprType(group.getType()))) {
