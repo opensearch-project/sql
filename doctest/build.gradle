@@ -66,6 +66,8 @@ task startPrometheus(type: SpawnProcessTask) {
 
 //evaluationDependsOn(':')
 task startOpenSearch(type: SpawnProcessTask) {
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
+
     if( getOSFamilyType() == "windows") {
         command "${path}\\gradlew.bat -p ${plugin_path} runRestTestCluster"
     }
