@@ -498,7 +498,6 @@ statsFunction
    | takeAggFunction                                            # takeAggFunctionCall
    | percentileApproxFunction                                   # percentileApproxFunctionCall
    | earliestLatestFunction                                     # earliestLatestFunctionCall
-   | firstLastFunction                                          # firstLastFunctionCall
    ;
 
 statsFunctionName
@@ -514,15 +513,14 @@ statsFunctionName
    | PERCENTILE
    | PERCENTILE_APPROX
    | LIST
+   | FIRST
+   | LAST
    ;
 
 earliestLatestFunction
    : (EARLIEST | LATEST) LT_PRTHS valueExpression (COMMA timeField = valueExpression)? RT_PRTHS
    ;
 
-firstLastFunction
-   : (FIRST | LAST) LT_PRTHS valueExpression RT_PRTHS
-   ;
 
 
 

@@ -30,10 +30,6 @@ The following table dataSources the aggregation functions and also indicates how
 +----------+-------------+-------------+
 | LIST     | Ignore      | Ignore      |
 +----------+-------------+-------------+
-| FIRST    | Return NULL | Return NULL |
-+----------+-------------+-------------+
-| LAST     | Return NULL | Return NULL |
-+----------+-------------+-------------+
 
 
 Syntax
