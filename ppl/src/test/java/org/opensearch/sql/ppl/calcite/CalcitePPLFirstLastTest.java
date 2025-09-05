@@ -86,6 +86,68 @@ public class CalcitePPLFirstLastTest extends CalcitePPLAbstractTest {
             });
     schema.add("LOGS", new LogsTable(rows));
 
+    // Add tables for null handling tests
+    ImmutableList<Object[]> nullFirstRows =
+        ImmutableList.of(
+            new Object[] {
+              null, "INFO", null, Date.valueOf("2023-01-01"), Date.valueOf("2023-01-01")
+            },
+            new Object[] {
+              null, "WARN", null, Date.valueOf("2023-01-02"), Date.valueOf("2023-01-02")
+            },
+            new Object[] {
+              "server1",
+              "ERROR",
+              "First real value",
+              Date.valueOf("2023-01-03"),
+              Date.valueOf("2023-01-03")
+            },
+            new Object[] {
+              "server2",
+              "INFO",
+              "Second value",
+              Date.valueOf("2023-01-04"),
+              Date.valueOf("2023-01-04")
+            });
+    schema.add("NULL_FIRST_LOGS", new LogsTable(nullFirstRows));
+
+    ImmutableList<Object[]> nullLastRows =
+        ImmutableList.of(
+            new Object[] {
+              "server1",
+              "ERROR",
+              "First value",
+              Date.valueOf("2023-01-01"),
+              Date.valueOf("2023-01-01")
+            },
+            new Object[] {
+              "server2",
+              "INFO",
+              "Last real value",
+              Date.valueOf("2023-01-02"),
+              Date.valueOf("2023-01-02")
+            },
+            new Object[] {
+              null, "WARN", null, Date.valueOf("2023-01-03"), Date.valueOf("2023-01-03")
+            },
+            new Object[] {
+              null, "INFO", null, Date.valueOf("2023-01-04"), Date.valueOf("2023-01-04")
+            });
+    schema.add("NULL_LAST_LOGS", new LogsTable(nullLastRows));
+
+    ImmutableList<Object[]> allNullRows =
+        ImmutableList.of(
+            new Object[] {
+              "server1", "ERROR", null, Date.valueOf("2023-01-01"), Date.valueOf("2023-01-01")
+            },
+            new Object[] {
+              "server2", "WARN", null, Date.valueOf("2023-01-02"), Date.valueOf("2023-01-02")
+            },
+            new Object[] {
+              "server3", "INFO", null, Date.valueOf("2023-01-03"), Date.valueOf("2023-01-03")
+            });
+    schema.add("ALL_NULL_LOGS", new LogsTable(allNullRows));
+
     return Frameworks.newConfigBuilder()
         .parserConfig(SqlParser.Config.DEFAULT)
         .defaultSchema(schema)
@@ -186,6 +248,42 @@ public class CalcitePPLFirstLastTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedResult = "first_server=server1; last_level=INFO\n";
+    verifyResult(root, expectedResult);
+  }
+
+  @Test
+  public void testFirstWithNullsAtBeginning() {
+    // Test table with nulls at the beginning - first() should skip them
+    String ppl =
+        "source=NULL_FIRST_LOGS | stats first(server) as first_server, first(message) as"
+            + " first_message";
+    RelNode root = getRelNode(ppl);
+
+    String expectedResult = "first_server=server1; first_message=First real value\n";
+    verifyResult(root, expectedResult);
+  }
+
+  @Test
+  public void testLastWithNullsAtEnd() {
+    // Test table with nulls at the end - last() should skip them
+    String ppl =
+        "source=NULL_LAST_LOGS | stats last(server) as last_server, last(message) as last_message";
+    RelNode root = getRelNode(ppl);
+
+    String expectedResult = "last_server=server2; last_message=Last real value\n";
+    verifyResult(root, expectedResult);
+  }
+
+  @Test
+  public void testFirstLastWithAllNulls() {
+    // Test table where specific columns are all null
+    String ppl =
+        "source=ALL_NULL_LOGS | stats first(message) as first_message, last(message) as"
+            + " last_message, first(server) as first_server";
+    RelNode root = getRelNode(ppl);
+
+    // When all values in a column are null, first/last should return null
+    String expectedResult = "first_message=null; last_message=null; first_server=server1\n";
     verifyResult(root, expectedResult);
   }
 
