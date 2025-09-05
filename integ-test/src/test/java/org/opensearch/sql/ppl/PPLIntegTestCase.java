@@ -257,7 +257,7 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   }
 
   /**
-   * Only check pushdown disabled instead enabled because enabled is the default value of pushdown
+   * We check pushdown disabled instead enabled because enabled is the default value of pushdown
    * config whatever calcite is enabled or not.
    */
   public boolean isPushdownDisabled() throws IOException {

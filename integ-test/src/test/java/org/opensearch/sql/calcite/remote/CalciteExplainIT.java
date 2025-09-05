@@ -221,7 +221,7 @@ public class CalciteExplainIT extends ExplainIT {
   public void testExplainWithTimechartAvg() throws IOException {
     var result = explainQueryToString("source=events | timechart span=1m avg(cpu_usage) by host");
     String expected =
-        isPushdownEnabled()
+        !isPushdownDisabled()
             ? loadFromFile("expectedOutput/calcite/explain_timechart.json")
             : loadFromFile("expectedOutput/calcite/explain_timechart_no_pushdown.json");
     assertJsonEqualsIgnoreId(expected, result);
@@ -231,7 +231,7 @@ public class CalciteExplainIT extends ExplainIT {
   public void testExplainWithTimechartCount() throws IOException {
     var result = explainQueryToString("source=events | timechart span=1m count() by host");
     String expected =
-        isPushdownEnabled()
+        !isPushdownDisabled()
             ? loadFromFile("expectedOutput/calcite/explain_timechart_count.json")
             : loadFromFile("expectedOutput/calcite/explain_timechart_count_no_pushdown.json");
     assertJsonEqualsIgnoreId(expected, result);
