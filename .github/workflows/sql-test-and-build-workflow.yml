@@ -114,7 +114,7 @@ jobs:
         exclude:
           # Exclude doctest for Windows
           - test-type: doc
-            entry: { os: windows-latest, java: 11, os_build_args: -PbuildPlatform=window }
+            entry: { os: windows-latest, java: 11, os_build_args: -PbuildPlatform=windows }
           - test-type: doc
             entry: { os: windows-latest, java: 17, os_build_args: -PbuildPlatform=windows }
           - test-type: doc
