@@ -43,6 +43,7 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.ast.EmptySourcePropagateVisitor;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
@@ -64,6 +65,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.CountBin;
 import org.opensearch.sql.ast.tree.Dedupe;
@@ -964,6 +966,21 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     Literal pattern = (Literal) internalVisitExpression(ctx.regexExpr().pattern);
 
     return new Regex(field, negated, pattern);
+  }
+
+  @Override
+  public UnresolvedPlan visitAppendCommand(OpenSearchPPLParser.AppendCommandContext ctx) {
+    UnresolvedPlan searchCommandInSubSearch =
+        ctx.searchCommand() != null
+            ? visit(ctx.searchCommand())
+            : EmptySourcePropagateVisitor
+                .EMPTY_SOURCE; // Represents 0 row * 0 col empty input syntax
+    UnresolvedPlan subsearch =
+        ctx.commands().stream()
+            .map(this::visit)
+            .reduce(searchCommandInSubSearch, (r, e) -> e.attach(r));
+
+    return new Append(subsearch);
   }
 
   /** Get original text in query. */

@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.calcite.remote;
 
-import static org.opensearch.sql.legacy.TestUtils.*;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
@@ -429,6 +428,20 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_simple_sort_expr_single_expr_output_push.json");
     assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testExplainAppendCommand() throws IOException {
+    String expected = loadExpectedPlan("explain_append_command.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                Locale.ROOT,
+                "source=%s | stats count(balance) as cnt by gender | append [ source=%s | stats"
+                    + " count() as cnt ]",
+                TEST_INDEX_BANK,
+                TEST_INDEX_BANK)));
   }
 
   /**

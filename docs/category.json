@@ -56,7 +56,7 @@
     "user/dql/metadata.rst"
   ],
   "ppl_cli_calcite": [
-    "user/ppl/cmd/stats.rst",
+    "user/ppl/cmd/append.rst",
     "user/ppl/cmd/fields.rst",
     "user/ppl/cmd/regex.rst",
     "user/ppl/cmd/stats.rst",
