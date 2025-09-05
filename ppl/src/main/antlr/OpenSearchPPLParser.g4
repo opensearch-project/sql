@@ -105,6 +105,10 @@ commandName
    | EXPAND
    | FLATTEN
    | TRENDLINE
+   | kmeansCommand
+   | adCommand
+   | mlCommand
+   | patternsCommand
    | TIMECHART
    | EXPLAIN
    | REVERSE
