@@ -222,18 +222,23 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
             newSchema,
             pushDownContext.clone());
 
-    Map<String, String> aliasMapping = this.osIndex.getAliasMapping();
-    // For alias types, we need to push down its original path instead of the alias name.
-    List<String> projectedFields =
-        newSchema.getFieldNames().stream()
-            .map(fieldName -> aliasMapping.getOrDefault(fieldName, fieldName))
-            .toList();
-
+    AbstractAction action;
+    if (pushDownContext.isAggregatePushed()) {
+      action = requestBuilder -> {};
+    } else {
+      Map<String, String> aliasMapping = this.osIndex.getAliasMapping();
+      // For alias types, we need to push down its original path instead of the alias name.
+      List<String> projectedFields =
+          newSchema.getFieldNames().stream()
+              .map(fieldName -> aliasMapping.getOrDefault(fieldName, fieldName))
+              .toList();
+      action = requestBuilder -> requestBuilder.pushDownProjectStream(projectedFields.stream());
+    }
     newScan.pushDownContext.add(
         PushDownAction.of(
             PushDownType.PROJECT,
             newSchema.getFieldNames(),
-            requestBuilder -> requestBuilder.pushDownProjectStream(projectedFields.stream())));
+            action));
     return newScan;
   }
 
