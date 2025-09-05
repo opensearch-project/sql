@@ -53,6 +53,7 @@ import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.CountBin;
@@ -84,6 +85,7 @@ import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Timechart;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -511,6 +513,20 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String subsearchWithoutRelation = subsearch.substring(subsearch.indexOf("|") + 1);
     return StringUtils.format(
         "%s | appendcol override=%s [%s ]", child, node.isOverride(), subsearchWithoutRelation);
+  }
+
+  @Override
+  public String visitAppend(Append node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    String subsearch = anonymizeData(node.getSubSearch());
+    return StringUtils.format("%s | append [%s ]", child, subsearch);
+  }
+
+  @Override
+  public String visitValues(Values node, String context) {
+    // In case legacy SQL relies on it, return empty to fail open anyway.
+    // Don't expect it to fail the query execution.
+    return "";
   }
 
   private String visitFieldList(List<Field> fieldList) {
