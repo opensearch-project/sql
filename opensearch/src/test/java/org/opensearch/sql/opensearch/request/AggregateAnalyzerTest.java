@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
@@ -27,6 +28,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -34,6 +36,7 @@ import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
@@ -53,13 +56,14 @@ import org.opensearch.sql.opensearch.response.agg.StatsParser;
 class AggregateAnalyzerTest {
 
   private final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
-  private final List<String> schema = List.of("a", "b", "c");
+  private final List<String> schema = List.of("a", "b", "c", "d");
   private final RelDataType rowType =
       typeFactory.createStructType(
           ImmutableList.of(
               typeFactory.createSqlType(SqlTypeName.INTEGER),
               typeFactory.createSqlType(SqlTypeName.VARCHAR),
-              typeFactory.createSqlType(SqlTypeName.VARCHAR)),
+              typeFactory.createSqlType(SqlTypeName.VARCHAR),
+              typeFactory.createSqlType(SqlTypeName.BOOLEAN)),
           schema);
   final Map<String, ExprType> fieldTypes =
       Map.of(
@@ -69,7 +73,9 @@ class AggregateAnalyzerTest {
           OpenSearchDataType.of(
               MappingType.Text, Map.of("fields", Map.of("keyword", Map.of("type", "keyword")))),
           "c",
-          OpenSearchDataType.of(MappingType.Text)); // Text without keyword cannot be push down
+          OpenSearchDataType.of(MappingType.Text), // Text without keyword cannot be push down
+          "d",
+          OpenSearchDataType.of(MappingType.Boolean)); // Boolean field for script filter test
 
   @Test
   void analyze_aggCall_simple() throws ExpressionNotAnalyzableException {
@@ -431,6 +437,49 @@ class AggregateAnalyzerTest {
   }
 
   @Test
+  void analyze_aggCall_complexScriptFilter() throws ExpressionNotAnalyzableException {
+    buildAggregation("filter_bool_count", "filter_complex_count")
+        .withAggCall(
+            b ->
+                b.aggregateCall(
+                    SqlStdOperatorTable.COUNT,
+                    false,
+                    b.call(SqlStdOperatorTable.IS_TRUE, b.field("d")), // bool field
+                    "filter_bool_count"))
+        .withAggCall(
+            b ->
+                b.aggregateCall(
+                    SqlStdOperatorTable.COUNT,
+                    false,
+                    b.call(
+                        SqlStdOperatorTable.IS_TRUE,
+                        b.call(
+                            SqlStdOperatorTable.OR,
+                            b.call(SqlStdOperatorTable.MOD, b.field("a"), b.literal(3)),
+                            b.call(SqlStdOperatorTable.LIKE, b.field("c"), b.literal("%test%")))),
+                    "filter_complex_count"))
+        .expectDslTemplate(
+            "[{\"filter_bool_count\":{\"filter\":{\"script\":{\"script\":{\"source\":\"{\\\"langType\\\":\\\"calcite\\\",\\\"script\\\":\\\"*\\\"}\","
+                + "\"lang\":\"opensearch_compounded_script\",\"params\":{\"utcTimestamp\":0}},\"boost\":1.0}},"
+                + "\"aggregations\":{\"filter_bool_count\":{\"value_count\":{\"field\":\"_index\"}}}}},"
+                + " {\"filter_complex_count\":{\"filter\":{\"script\":{\"script\":{\"source\":\"{\\\"langType\\\":\\\"calcite\\\",\\\"script\\\":\\\"*\\\"}\","
+                + "\"lang\":\"opensearch_compounded_script\",\"params\":{\"utcTimestamp\":0}},\"boost\":1.0}},"
+                + "\"aggregations\":{\"filter_complex_count\":{\"value_count\":{\"field\":\"_index\"}}}}}]")
+        .expectResponseParser(
+            new MetricParserHelper(
+                List.of(
+                    FilterParser.builder()
+                        .name("filter_bool_count")
+                        .metricsParser(new SingleValueParser("filter_bool_count"))
+                        .build(),
+                    FilterParser.builder()
+                        .name("filter_complex_count")
+                        .metricsParser(new SingleValueParser("filter_complex_count"))
+                        .build())))
+        .verify();
+  }
+
+  @Test
   void analyze_aggCall_multipleWithFilter() throws ExpressionNotAnalyzableException {
     buildAggregation("filter_avg", "filter_sum", "filter_min", "filter_max")
         .withAggCall(
@@ -535,6 +584,7 @@ class AggregateAnalyzerTest {
     private final List<RelBuilder.AggCall> aggCalls = new ArrayList<>();
     private final RelBuilder relBuilder;
     private String expectedDsl;
+    private String expectedDslTemplate;
     private MetricParserHelper expectedParser;
 
     AggregationTestBuilder(List<String> outputFields) {
@@ -567,12 +617,39 @@ class AggregateAnalyzerTest {
       return this;
     }
 
+    AggregationTestBuilder expectDslTemplate(String expectedTemplate) {
+      this.expectedDslTemplate = expectedTemplate;
+      return this;
+    }
+
     AggregationTestBuilder expectResponseParser(MetricParserHelper expectedParser) {
       this.expectedParser = expectedParser;
       return this;
     }
 
+    private boolean matchesTemplate(String actual, String template) {
+      // Split template by * and escape each part separately
+      String[] parts = template.split("\\*", -1);
+      StringBuilder regexBuilder = new StringBuilder();
+
+      for (int i = 0; i < parts.length; i++) {
+        // Quote each literal part
+        regexBuilder.append(java.util.regex.Pattern.quote(parts[i]));
+
+        // Add wildcard regex between parts (except after the last part)
+        if (i < parts.length - 1) {
+          regexBuilder.append(".*?");
+        }
+      }
+
+      String regexPattern = regexBuilder.toString();
+      return actual.matches(regexPattern);
+    }
+
     void verify() throws ExpressionNotAnalyzableException {
+      // Set up time hook for script queries
+      Hook.CURRENT_TIME.addThread((Consumer<Holder<Long>>) h -> h.set(0L));
+
       // Create test RelNode plan
       RelNode rel =
           relBuilder
@@ -588,6 +665,15 @@ class AggregateAnalyzerTest {
 
       if (expectedDsl != null) {
         assertEquals(expectedDsl, result.getLeft().toString());
+      }
+
+      if (expectedDslTemplate != null) {
+        assertTrue(
+            matchesTemplate(result.getLeft().toString(), expectedDslTemplate),
+            "DSL should match template.\nExpected: "
+                + expectedDslTemplate
+                + "\nActual: "
+                + result.getLeft().toString());
       }
 
       if (expectedParser != null) {
