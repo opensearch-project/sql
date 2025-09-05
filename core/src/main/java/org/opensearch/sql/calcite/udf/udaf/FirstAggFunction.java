@@ -28,22 +28,22 @@ public class FirstAggFunction implements UserDefinedAggFunction<FirstAggFunction
     Object candidateValue = values[0];
     // Only accept the first non-null value encountered
     // Skip null values to find the first actual value
-    if (!acc.hasValue() && candidateValue != null) {
+    if (candidateValue != null && !acc.hasValue()) {
       acc.setValue(candidateValue);
     }
     return acc;
   }
 
   public static class FirstAccumulator implements Accumulator {
-    private Object first;
-    private boolean hasValue;
+    private volatile Object first;
+    private volatile boolean hasValue;
 
     public FirstAccumulator() {
       this.first = null;
       this.hasValue = false;
     }
 
-    public void setValue(Object value) {
+    public synchronized void setValue(Object value) {
       if (!hasValue) {
         this.first = value;
         this.hasValue = true;
