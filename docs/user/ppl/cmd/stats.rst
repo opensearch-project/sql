@@ -337,11 +337,43 @@ Example::
     | 36                  | M      |
     +---------------------+--------+
 
+Percentile Shortcut Functions
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+Version: 3.3.0
+
+For convenience, OpenSearch PPL provides shortcut functions for common percentiles:
+
+- ``PERC<percent>(expr)`` - Equivalent to ``PERCENTILE(expr, <percent>)``
+- ``P<percent>(expr)`` - Equivalent to ``PERCENTILE(expr, <percent>)``
+
+Both integer and decimal percentiles from 0 to 100 are supported (e.g., ``PERC95``, ``P99.5``).
+
+Example::
+
+    ppl> source=accounts | stats perc99.5(age);
+    fetched rows / total rows = 1/1
+    +---------------+
+    | perc99.5(age) |
+    |---------------|
+    | 36            |
+    +---------------+
+
+    ppl> source=accounts | stats p50(age);
+    fetched rows / total rows = 1/1
+    +---------+
+    | p50(age) |
+    |---------|
+    | 32      |
+    +---------+
+
 MEDIAN
 ------
 
 Description
 >>>>>>>>>>>
+
+Version: 3.3.0
 
 Usage: MEDIAN(expr). Returns the median (50th percentile) value of `expr`. This is equivalent to ``PERCENTILE(expr, 50)``.
 
