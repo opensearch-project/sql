@@ -242,7 +242,7 @@ Usage: STDDEV_SAMP(expr). Return the sample standard deviation of expr.
 
 Example::
 
-    os> source=accounts | fields account_number, gender, age | eventstats stddev_samp(age);
+    os> source=accounts | fields account_number, gender, age | eventstats stddev_samp(age) | sort account_number;
     fetched rows / total rows = 4/4
     +----------------+--------+-----+-------------------+
     | account_number | gender | age | stddev_samp(age)  |
@@ -264,7 +264,7 @@ Usage: STDDEV_POP(expr). Return the population standard deviation of expr.
 
 Example::
 
-    os> source=accounts | fields account_number, gender, age | eventstats stddev_pop(age);
+    os> source=accounts | fields account_number, gender, age | eventstats stddev_pop(age) | sort account_number;
     fetched rows / total rows = 4/4
     +----------------+--------+-----+--------------------+
     | account_number | gender | age | stddev_pop(age)    |
