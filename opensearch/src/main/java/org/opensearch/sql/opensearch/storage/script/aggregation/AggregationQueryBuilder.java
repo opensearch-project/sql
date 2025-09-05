@@ -71,7 +71,7 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
           List<NamedAggregator> namedAggregatorList,
           List<NamedExpression> groupByList,
           List<Pair<Sort.SortOption, Expression>> sortList,
-          boolean nullableBucket) {
+          boolean bucketNullable) {
 
     final Pair<AggregatorFactories.Builder, List<MetricParser>> metrics =
         metricBuilder.build(namedAggregatorList);
@@ -81,7 +81,7 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
       return Pair.of(
           ImmutableList.copyOf(metrics.getLeft().getAggregatorFactories()),
           new NoBucketAggregationParser(metrics.getRight()));
-    } else if (groupByList.size() == 1 && !nullableBucket) {
+    } else if (groupByList.size() == 1 && !bucketNullable) {
       // one bucket, use values source bucket builder for getting better performance
       return Pair.of(
           Collections.singletonList(

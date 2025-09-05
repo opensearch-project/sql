@@ -92,6 +92,7 @@ public class CalcitePPLAbstractTest {
 
   private Node plan(PPLSyntaxParser parser, String query) {
     doReturn(true).when(settings).getSettingValue(Settings.Key.CALCITE_ENGINE_ENABLED);
+    doReturn(true).when(settings).getSettingValue(Key.PPL_SYNTAX_LEGACY_PREFERRED);
     final AstStatementBuilder builder =
         new AstStatementBuilder(
             new AstBuilder(query, settings),

@@ -38,17 +38,19 @@ public class LogicalPlanDSL {
     return new LogicalWrite(input, table, columns);
   }
 
+  /** Build a logical aggregation with nullable bucket always true. */
   public static LogicalPlan aggregation(
       LogicalPlan input, List<NamedAggregator> aggregatorList, List<NamedExpression> groupByList) {
     return new LogicalAggregation(input, aggregatorList, groupByList, true);
   }
 
+  /** Build a logical aggregation with nullable bucket parameter */
   public static LogicalPlan aggregation(
       LogicalPlan input,
       List<NamedAggregator> aggregatorList,
       List<NamedExpression> groupByList,
-      boolean nullableBucket) {
-    return new LogicalAggregation(input, aggregatorList, groupByList, nullableBucket);
+      boolean bucketNullable) {
+    return new LogicalAggregation(input, aggregatorList, groupByList, bucketNullable);
   }
 
   public static LogicalPlan filter(LogicalPlan input, Expression expression) {

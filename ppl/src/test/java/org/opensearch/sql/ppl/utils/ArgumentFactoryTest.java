@@ -21,6 +21,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.sort;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 
 import org.junit.Test;
+import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ppl.parser.AstBuilderTest;
 
 public class ArgumentFactoryTest extends AstBuilderTest {
@@ -51,7 +52,7 @@ public class ArgumentFactoryTest extends AstBuilderTest {
                 argument("partitions", intLiteral(1)),
                 argument("allnum", booleanLiteral(false)),
                 argument("delim", stringLiteral(",")),
-                argument("nullable_bucket", booleanLiteral(true)),
+                argument(Argument.BUCKET_NULLABLE, booleanLiteral(true)),
                 argument("dedupsplit", booleanLiteral(true)))));
   }
 

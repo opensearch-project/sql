@@ -81,7 +81,7 @@ public class CalciteExplainIT extends ExplainIT {
   @Ignore("We've supported script push down on text field")
   @Test
   public void supportPartialPushDown() throws IOException {
-    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    Assume.assumeTrue("This test is only for push down enabled", !isPushdownDisabled());
     // field `address` is text type without keyword subfield, so we cannot push it down.
     String query =
         "source=opensearch-sql_test_index_account | where (state = 'Seattle' or age < 10) and (age"
@@ -95,7 +95,7 @@ public class CalciteExplainIT extends ExplainIT {
   @Ignore("We've supported script push down on text field")
   @Test
   public void supportPartialPushDown_NoPushIfAllFailed() throws IOException {
-    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    Assume.assumeTrue("This test is only for push down enabled", !isPushdownDisabled());
     // field `address` is text type without keyword subfield, so we cannot push it down.
     String query =
         "source=opensearch-sql_test_index_account | where (address = '671 Bristol Street' or age <"
@@ -153,7 +153,7 @@ public class CalciteExplainIT extends ExplainIT {
   @Ignore("We've supported script push down on text field")
   @Test
   public void supportPartialPushDownScript() throws IOException {
-    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    Assume.assumeTrue("This test is only for push down enabled", !isPushdownDisabled());
     // field `address` is text type without keyword subfield, so we cannot push it down.
     // But the second condition can be translated to script, so the second one is pushed down.
     String query =
@@ -181,7 +181,7 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testSkipScriptEncodingOnExtendedFormat() throws IOException {
-    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    Assume.assumeTrue("This test is only for push down enabled", !isPushdownDisabled());
     String query =
         "source=opensearch-sql_test_index_account | where address = '671 Bristol Street' and age -"
             + " 2 = 30 | fields firstname, age, address";
@@ -218,7 +218,7 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void noPushDownForAggOnWindow() throws IOException {
-    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    Assume.assumeTrue("This test is only for push down enabled", !isPushdownDisabled());
     String query =
         "source=opensearch-sql_test_index_account | patterns address method=BRAIN  | stats count()"
             + " by patterns_field";
@@ -230,7 +230,7 @@ public class CalciteExplainIT extends ExplainIT {
   // Only for Calcite
   @Test
   public void supportPushDownScriptOnTextField() throws IOException {
-    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    Assume.assumeTrue("This test is only for push down enabled", !isPushdownDisabled());
     String result =
         explainQueryToString(
             "explain source=opensearch-sql_test_index_account | where length(address) > 0 | eval"
@@ -285,7 +285,7 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   public void testEventstatsDistinctCountExplain() throws IOException {
-    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    Assume.assumeTrue("This test is only for push down enabled", !isPushdownDisabled());
     String query =
         "source=opensearch-sql_test_index_account | eventstats dc(state) as distinct_states";
     var result = explainQueryToString(query);
@@ -295,7 +295,7 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testEventstatsDistinctCountFunctionExplain() throws IOException {
-    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    Assume.assumeTrue("This test is only for push down enabled", !isPushdownDisabled());
     String query =
         "source=opensearch-sql_test_index_account | eventstats distinct_count(state) as"
             + " distinct_states by gender";
@@ -319,7 +319,7 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testExplainRegexMatchInWhereWithScriptPushdown() throws IOException {
-    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    Assume.assumeTrue("This test is only for push down enabled", !isPushdownDisabled());
     String query =
         String.format("source=%s | where regex_match(name, 'hello')", TEST_INDEX_STRINGS);
     var result = explainQueryToString(query);
@@ -329,7 +329,7 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testExplainRegexMatchInEvalWithOutScriptPushdown() throws IOException {
-    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    Assume.assumeTrue("This test is only for push down enabled", !isPushdownDisabled());
     String query =
         String.format(
             "source=%s |eval has_hello = regex_match(name, 'hello') | fields has_hello",

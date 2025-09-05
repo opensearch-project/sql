@@ -284,22 +284,51 @@ class AggregationQueryBuilderTest {
         .serialize(any());
     assertEquals(
         format(
-            "{%n  \"composite_buckets\" : {%n    \"composite\" : {%n      \"size\" : 1000,%n     "
-                + " \"sources\" : [ {%n        \"age\" : {%n          \"terms\" : {%n           "
-                + " \"script\" : {%n             "
-                + " \"{\\\"langType\\\":\\\"v2\\\",\\\"script\\\":\\\"asin(age)\\\"}\",%n          "
-                + "    \"lang\" : \"opensearch_compounded_script\"%n            },%n           "
-                + " \"missing_bucket\" : true,%n            \"missing_order\" : \"first\",%n       "
-                + "     \"order\" : \"asc\"%n          }%n        }%n      }, {%n        \"date\" :"
-                + " {%n          \"terms\" : {%n            \"script\" : {%n             "
-                + " \"source\" : \"dayname(date)\",%n              \"lang\" :"
-                + " \"opensearch_query_expression\"%n            },%n            \"missing_bucket\""
-                + " : true,%n            \"missing_order\" : \"first\",%n            \"order\" :"
-                + " \"asc\"%n          }%n        }%n      } ]%n    },%n    \"aggregations\" : {%n "
-                + "     \"avg(balance)\" : {%n        \"avg\" : {%n          \"script\" : {%n      "
-                + "      \"{\\\"langType\\\":\\\"v2\\\",\\\"script\\\":\\\"abs(balance)\\\"}\",%n  "
-                + "          \"lang\" : \"opensearch_compounded_script\"%n          }%n        }%n "
-                + "     }%n    }%n  }%n}"),
+            "{\n"
+                + "  \"composite_buckets\" : {\n"
+                + "    \"composite\" : {\n"
+                + "      \"size\" : 1000,\n"
+                + "      \"sources\" : [ {\n"
+                + "        \"age\" : {\n"
+                + "          \"terms\" : {\n"
+                + "            \"script\" : {\n"
+                + "              \"source\" :"
+                + " \"{\\\"langType\\\":\\\"v2\\\",\\\"script\\\":\\\"asin(age)\\\"}\",\n"
+                + "              \"lang\" : \"opensearch_compounded_script\"\n"
+                + "            },\n"
+                + "            \"missing_bucket\" : true,\n"
+                + "            \"missing_order\" : \"first\",\n"
+                + "            \"order\" : \"asc\"\n"
+                + "          }\n"
+                + "        }\n"
+                + "      }, {\n"
+                + "        \"date\" : {\n"
+                + "          \"terms\" : {\n"
+                + "            \"script\" : {\n"
+                + "              \"source\" :"
+                + " \"{\\\"langType\\\":\\\"v2\\\",\\\"script\\\":\\\"dayname(date)\\\"}\",\n"
+                + "              \"lang\" : \"opensearch_compounded_script\"\n"
+                + "            },\n"
+                + "            \"missing_bucket\" : true,\n"
+                + "            \"missing_order\" : \"first\",\n"
+                + "            \"order\" : \"asc\"\n"
+                + "          }\n"
+                + "        }\n"
+                + "      } ]\n"
+                + "    },\n"
+                + "    \"aggregations\" : {\n"
+                + "      \"avg(balance)\" : {\n"
+                + "        \"avg\" : {\n"
+                + "          \"script\" : {\n"
+                + "            \"source\" :"
+                + " \"{\\\"langType\\\":\\\"v2\\\",\\\"script\\\":\\\"abs(balance)\\\"}\",\n"
+                + "            \"lang\" : \"opensearch_compounded_script\"\n"
+                + "          }\n"
+                + "        }\n"
+                + "      }\n"
+                + "    }\n"
+                + "  }\n"
+                + "}"),
         buildQuery(
             Arrays.asList(
                 named(
@@ -474,7 +503,8 @@ class AggregationQueryBuilderTest {
                     "avg(age) filter(where age > 34)",
                     new AvgAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER)
                         .condition(DSL.greater(ref("age", INTEGER), literal(20))))),
-            Arrays.asList(named(ref("gender", OpenSearchDataType.of(STRING))))));
+            Arrays.asList(named(ref("gender", OpenSearchDataType.of(STRING)))),
+            false));
   }
 
   @Test
@@ -517,7 +547,8 @@ class AggregationQueryBuilderTest {
         buildQuery(
             Arrays.asList(
                 named("count(a)", new CountAggregator(Arrays.asList(ref("a", INTEGER)), INTEGER))),
-            Arrays.asList(named(span(ref("age", INTEGER), literal(10), "")))));
+            Arrays.asList(named(span(ref("age", INTEGER), literal(10), ""))),
+            false));
   }
 
   @Test
@@ -554,7 +585,8 @@ class AggregationQueryBuilderTest {
             Arrays.asList(
                 named("count(a)", new CountAggregator(Arrays.asList(ref("a", INTEGER)), INTEGER)),
                 named("avg(b)", new AvgAggregator(Arrays.asList(ref("b", INTEGER)), INTEGER))),
-            Arrays.asList(named(span(ref("age", INTEGER), literal(10), "")))));
+            Arrays.asList(named(span(ref("age", INTEGER), literal(10), ""))),
+            false));
   }
 
   @Test
@@ -585,7 +617,8 @@ class AggregationQueryBuilderTest {
         buildQuery(
             Arrays.asList(
                 named("count(a)", new CountAggregator(Arrays.asList(ref("a", INTEGER)), INTEGER))),
-            Arrays.asList(named(span(ref("timestamp", TIMESTAMP), literal(1), "h")))));
+            Arrays.asList(named(span(ref("timestamp", TIMESTAMP), literal(1), "h"))),
+            false));
   }
 
   @Test
@@ -616,7 +649,8 @@ class AggregationQueryBuilderTest {
         buildQuery(
             Arrays.asList(
                 named("count(a)", new CountAggregator(Arrays.asList(ref("a", INTEGER)), INTEGER))),
-            Arrays.asList(named(span(ref("date", DATE), literal(1), "w")))));
+            Arrays.asList(named(span(ref("date", DATE), literal(1), "w"))),
+            false));
   }
 
   @Test
@@ -647,7 +681,8 @@ class AggregationQueryBuilderTest {
         buildQuery(
             Arrays.asList(
                 named("count(a)", new CountAggregator(Arrays.asList(ref("a", INTEGER)), INTEGER))),
-            Arrays.asList(named(span(ref("age", INTEGER), literal(1), "")))));
+            Arrays.asList(named(span(ref("age", INTEGER), literal(1), ""))),
+            false));
   }
 
   @Test
@@ -666,7 +701,15 @@ class AggregationQueryBuilderTest {
   @SneakyThrows
   private String buildQuery(
       List<NamedAggregator> namedAggregatorList, List<NamedExpression> groupByList) {
-    return buildQuery(namedAggregatorList, groupByList, null, true);
+    return buildQuery(namedAggregatorList, groupByList, true);
+  }
+
+  @SneakyThrows
+  private String buildQuery(
+      List<NamedAggregator> namedAggregatorList,
+      List<NamedExpression> groupByList,
+      boolean bucketNullable) {
+    return buildQuery(namedAggregatorList, groupByList, null, bucketNullable);
   }
 
   @SneakyThrows
@@ -674,12 +717,12 @@ class AggregationQueryBuilderTest {
       List<NamedAggregator> namedAggregatorList,
       List<NamedExpression> groupByList,
       List<Pair<Sort.SortOption, Expression>> sortList,
-      boolean nullableBucket) {
+      boolean bucketNullable) {
     ObjectMapper objectMapper = new ObjectMapper();
     return objectMapper
         .readTree(
             queryBuilder
-                .buildAggregationBuilder(namedAggregatorList, groupByList, sortList, nullableBucket)
+                .buildAggregationBuilder(namedAggregatorList, groupByList, sortList, bucketNullable)
                 .getLeft()
                 .get(0)
                 .toString())

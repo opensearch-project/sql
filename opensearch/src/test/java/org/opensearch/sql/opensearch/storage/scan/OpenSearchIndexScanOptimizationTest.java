@@ -11,6 +11,8 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_FIRST;
+import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -55,6 +57,7 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
+import org.opensearch.search.aggregations.bucket.composite.TermsValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.opensearch.search.sort.NestedSortBuilder;
 import org.opensearch.search.sort.SortBuilder;
@@ -74,8 +77,10 @@ import org.opensearch.sql.expression.function.OpenSearchFunctions;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.response.agg.BucketAggregationParser;
+import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.response.agg.SingleValueParser;
+import org.opensearch.sql.opensearch.storage.script.aggregation.AggregationQueryBuilder;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalNested;
 import org.opensearch.sql.planner.logical.LogicalPlan;
@@ -255,6 +260,31 @@ class OpenSearchIndexScanOptimizationTest {
             DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE))));
   }
 
+  @Test
+  void test_aggregation_push_down_non_bucket_nullable() {
+    assertEqualsAfterOptimization(
+        project(
+            indexScanAggBuilder(
+                false,
+                withAggregationPushedDown(
+                    false,
+                    aggregate("AVG(intV)")
+                        .aggregateBy("intV")
+                        .groupBy("longV")
+                        .resultTypes(
+                            Map.of(
+                                "AVG(intV)", DOUBLE,
+                                "longV", LONG)))),
+            DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE))),
+        project(
+            aggregation(
+                relation("schema", table),
+                ImmutableList.of(DSL.named("AVG(intV)", DSL.avg(DSL.ref("intV", INTEGER)))),
+                ImmutableList.of(DSL.named("longV", DSL.ref("longV", LONG))),
+                false),
+            DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE))));
+  }
+
   /*
   @Disabled("This test should be enabled once https://github.com/opensearch-project/sql/issues/912 is fixed")
   @Test
@@ -383,6 +413,34 @@ class OpenSearchIndexScanOptimizationTest {
             DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE))));
   }
 
+  @Test
+  void test_aggregation_filter_push_down_non_bucket_nullable() {
+    assertEqualsAfterOptimization(
+        project(
+            indexScanAggBuilder(
+                false,
+                withFilterPushedDown(QueryBuilders.termQuery("intV", 1)),
+                withAggregationPushedDown(
+                    false,
+                    aggregate("AVG(intV)")
+                        .aggregateBy("intV")
+                        .groupBy("longV")
+                        .resultTypes(
+                            Map.of(
+                                "AVG(intV)", DOUBLE,
+                                "longV", LONG)))),
+            DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE))),
+        project(
+            aggregation(
+                filter(
+                    relation("schema", table),
+                    DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))),
+                ImmutableList.of(DSL.named("AVG(intV)", DSL.avg(DSL.ref("intV", INTEGER)))),
+                ImmutableList.of(DSL.named("longV", DSL.ref("longV", LONG))),
+                false),
+            DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE))));
+  }
+
   /** Sort - Filter - Relation --> IndexScan. */
   @Test
   void test_sort_filter_push_down() {
@@ -420,6 +478,34 @@ class OpenSearchIndexScanOptimizationTest {
                     relation("schema", table),
                     ImmutableList.of(DSL.named("AVG(intV)", DSL.avg(DSL.ref("intV", INTEGER)))),
                     ImmutableList.of(DSL.named("stringV", DSL.ref("stringV", STRING)))),
+                Pair.of(SortOption.DEFAULT_DESC, DSL.ref("stringV", STRING))),
+            DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE))));
+  }
+
+  @Test
+  void test_sort_aggregation_push_down_non_bucket_nullable() {
+    assertEqualsAfterOptimization(
+        project(
+            indexScanAggBuilder(
+                false,
+                withAggregationPushedDown(
+                    false,
+                    aggregate("AVG(intV)")
+                        .aggregateBy("intV")
+                        .groupBy("stringV")
+                        .sortBy(SortOption.DEFAULT_DESC)
+                        .resultTypes(
+                            Map.of(
+                                "AVG(intV)", DOUBLE,
+                                "stringV", STRING)))),
+            DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE))),
+        project(
+            sort(
+                aggregation(
+                    relation("schema", table),
+                    ImmutableList.of(DSL.named("AVG(intV)", DSL.avg(DSL.ref("intV", INTEGER)))),
+                    ImmutableList.of(DSL.named("stringV", DSL.ref("stringV", STRING))),
+                    false),
                 Pair.of(SortOption.DEFAULT_DESC, DSL.ref("stringV", STRING))),
             DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE))));
   }
@@ -545,6 +631,31 @@ class OpenSearchIndexScanOptimizationTest {
   }
 
   @Test
+  void sort_with_expression_cannot_merge_with_aggregation_non_bucket_nullable() {
+    assertEqualsAfterOptimization(
+        sort(
+            indexScanAggBuilder(
+                false,
+                withAggregationPushedDown(
+                    false,
+                    aggregate("AVG(intV)")
+                        .aggregateBy("intV")
+                        .groupBy("stringV")
+                        .resultTypes(
+                            Map.of(
+                                "AVG(intV)", DOUBLE,
+                                "stringV", STRING)))),
+            Pair.of(SortOption.DEFAULT_ASC, DSL.abs(DSL.ref("intV", INTEGER)))),
+        sort(
+            aggregation(
+                relation("schema", table),
+                ImmutableList.of(DSL.named("AVG(intV)", DSL.avg(DSL.ref("intV", INTEGER)))),
+                ImmutableList.of(DSL.named("stringV", DSL.ref("stringV", STRING))),
+                false),
+            Pair.of(SortOption.DEFAULT_ASC, DSL.abs(DSL.ref("intV", INTEGER)))));
+  }
+
+  @Test
   void aggregation_cant_merge_index_scan_with_limit() {
     assertEqualsAfterOptimization(
         project(
@@ -592,6 +703,35 @@ class OpenSearchIndexScanOptimizationTest {
   }
 
   @Test
+  void sort_refer_to_aggregator_should_not_merge_with_indexAgg_non_bucket_nullable() {
+    assertEqualsAfterOptimization(
+        project(
+            sort(
+                indexScanAggBuilder(
+                    false,
+                    withAggregationPushedDown(
+                        false,
+                        aggregate("AVG(intV)")
+                            .aggregateBy("intV")
+                            .groupBy("stringV")
+                            .resultTypes(
+                                Map.of(
+                                    "AVG(intV)", DOUBLE,
+                                    "stringV", STRING)))),
+                Pair.of(SortOption.DEFAULT_ASC, DSL.ref("AVG(intV)", INTEGER))),
+            DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE))),
+        project(
+            sort(
+                aggregation(
+                    relation("schema", table),
+                    ImmutableList.of(DSL.named("AVG(intV)", DSL.avg(DSL.ref("intV", INTEGER)))),
+                    ImmutableList.of(DSL.named("stringV", DSL.ref("stringV", STRING))),
+                    false),
+                Pair.of(SortOption.DEFAULT_ASC, DSL.ref("AVG(intV)", INTEGER))),
+            DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE))));
+  }
+
+  @Test
   void project_literal_should_not_be_pushed_down() {
     assertEqualsAfterOptimization(
         project(indexScanBuilder(), DSL.named("i", DSL.literal("str"))),
@@ -605,9 +745,15 @@ class OpenSearchIndexScanOptimizationTest {
   }
 
   private OpenSearchIndexScanBuilder indexScanAggBuilder(Runnable... verifyPushDownCalls) {
+    return indexScanAggBuilder(true, verifyPushDownCalls);
+  }
+
+  private OpenSearchIndexScanBuilder indexScanAggBuilder(
+      boolean bucketNullable, Runnable... verifyPushDownCalls) {
     this.verifyPushDownCalls = verifyPushDownCalls;
-    var aggregationBuilder =
-        new OpenSearchIndexScanAggregationBuilder(requestBuilder, mock(LogicalAggregation.class));
+    LogicalAggregation mockAgg = mock(LogicalAggregation.class);
+    when(mockAgg.isBucketNullable()).thenReturn(bucketNullable);
+    var aggregationBuilder = new OpenSearchIndexScanAggregationBuilder(requestBuilder, mockAgg);
     return new OpenSearchIndexScanBuilder(aggregationBuilder, builder -> indexScan);
   }
 
@@ -632,17 +778,42 @@ class OpenSearchIndexScanOptimizationTest {
 
   private Runnable withAggregationPushedDown(
       AggregationAssertHelper.AggregationAssertHelperBuilder aggregation) {
+    return withAggregationPushedDown(true, aggregation);
+  }
+
+  private Runnable withAggregationPushedDown(
+      boolean bucketNullable, AggregationAssertHelper.AggregationAssertHelperBuilder aggregation) {
 
     // Assume single term bucket and AVG metric in all tests in this suite
-    TermsAggregationBuilder aggBuilder =
-        new TermsAggregationBuilder(aggregation.groupBy)
-            .field(aggregation.groupBy)
-            .size(AGGREGATION_BUCKET_SIZE);
-    aggBuilder.subAggregation(
-        AggregationBuilders.avg(aggregation.aggregateName).field(aggregation.aggregateBy));
+    AggregationBuilder aggBuilder;
+    OpenSearchAggregationResponseParser responseParser;
+    if (bucketNullable) {
+      aggBuilder =
+          AggregationBuilders.composite(
+                  "composite_buckets",
+                  Collections.singletonList(
+                      new TermsValuesSourceBuilder(aggregation.groupBy)
+                          .field(aggregation.groupBy)
+                          .order(aggregation.sortBy.getSortOrder() == ASC ? "asc" : "desc")
+                          .missingOrder(
+                              aggregation.sortBy.getNullOrder() == NULL_FIRST ? "first" : "last")
+                          .missingBucket(true)))
+              .subAggregation(
+                  AggregationBuilders.avg(aggregation.aggregateName).field(aggregation.aggregateBy))
+              .size(AggregationQueryBuilder.AGGREGATION_BUCKET_SIZE);
+    } else {
+      aggBuilder =
+          new TermsAggregationBuilder(aggregation.groupBy)
+              .field(aggregation.groupBy)
+              .size(AGGREGATION_BUCKET_SIZE);
+      aggBuilder.subAggregation(
+          AggregationBuilders.avg(aggregation.aggregateName).field(aggregation.aggregateBy));
+    }
     List<AggregationBuilder> aggBuilders = Collections.singletonList(aggBuilder);
-    OpenSearchAggregationResponseParser responseParser =
-        new BucketAggregationParser(new SingleValueParser(aggregation.aggregateName));
+    responseParser =
+        bucketNullable
+            ? new CompositeAggregationParser(new SingleValueParser(aggregation.aggregateName))
+            : new BucketAggregationParser(new SingleValueParser(aggregation.aggregateName));
 
     return () -> {
       verify(requestBuilder, times(1)).pushDownAggregation(Pair.of(aggBuilders, responseParser));

@@ -693,12 +693,12 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     verifySchema(response, schema("a", null, "bigint"), schema("age", null, "int"));
     verifyDataRows(
         response,
-        rows(isPushdownEnabled() ? 0 : null, null),
+        rows(isPushdownDisabled() ? null : 0, null),
         rows(32838, 28),
         rows(39225, 32),
         rows(4180, 33),
         rows(48086, 34),
-        rows(isPushdownEnabled() ? 0 : null, 36));
+        rows(isPushdownDisabled() ? null : 0, 36));
   }
 
   @Test
@@ -762,7 +762,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
             + "  ],\n"
             + "  \"datarows\": [\n"
             + "    [\n"
-            + (isPushdownEnabled() ? "      0\n" : "      null\n")
+            + (isPushdownDisabled() ? "      null\n" : "      0\n")
             + "    ]\n"
             + "  ],\n"
             + "  \"total\": 1,\n"

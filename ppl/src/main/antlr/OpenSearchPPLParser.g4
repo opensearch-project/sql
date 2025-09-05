@@ -153,7 +153,7 @@ statsCommand
    ;
 
 statsArgs
-   : (partitionsArg | allnumArg | delimArg | nullableBucketArg)*
+   : (partitionsArg | allnumArg | delimArg | bucketNullableArg)*
    ;
 
 partitionsArg
@@ -168,8 +168,8 @@ delimArg
    : DELIM EQUAL delim = stringLiteral
    ;
 
-nullableBucketArg
-   : NULLABLE_BUCKET EQUAL nullable_bucket = booleanLiteral
+bucketNullableArg
+   : BUCKET_NULLABLE EQUAL bucket_nullable = booleanLiteral
    ;
 
 dedupSplitArg
@@ -1301,7 +1301,7 @@ keywordsCanBeId
    | PARTITIONS
    | ALLNUM
    | DELIM
-   | NULLABLE_BUCKET
+   | BUCKET_NULLABLE
    | CENTROIDS
    | ITERATIONS
    | DISTANCE_TYPE

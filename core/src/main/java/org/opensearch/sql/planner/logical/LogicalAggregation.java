@@ -14,26 +14,27 @@ import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 
 /** Logical Aggregation. */
+@Getter
 @ToString
 @EqualsAndHashCode(callSuper = true)
 public class LogicalAggregation extends LogicalPlan {
 
-  @Getter private final List<NamedAggregator> aggregatorList;
+  private final List<NamedAggregator> aggregatorList;
 
-  @Getter private final List<NamedExpression> groupByList;
+  private final List<NamedExpression> groupByList;
 
-  @Getter private final boolean nullableBucket;
+  private final boolean bucketNullable;
 
   /** Constructor of LogicalAggregation. */
   public LogicalAggregation(
       LogicalPlan child,
       List<NamedAggregator> aggregatorList,
       List<NamedExpression> groupByList,
-      boolean nullableBucket) {
+      boolean bucketNullable) {
     super(Collections.singletonList(child));
     this.aggregatorList = aggregatorList;
     this.groupByList = groupByList;
-    this.nullableBucket = nullableBucket;
+    this.bucketNullable = bucketNullable;
   }
 
   @Override

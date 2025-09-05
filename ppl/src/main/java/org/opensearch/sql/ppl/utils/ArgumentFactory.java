@@ -63,12 +63,12 @@ public class ArgumentFactory {
                 ctx1.delimArg() != null && !ctx1.delimArg().isEmpty()
                     ? new Argument("delim", getArgumentValue(ctx1.delimArg(0).delim))
                     : new Argument("delim", new Literal(" ", DataType.STRING)),
-                ctx1.nullableBucketArg() != null && !ctx1.nullableBucketArg().isEmpty()
+                ctx1.bucketNullableArg() != null && !ctx1.bucketNullableArg().isEmpty()
                     ? new Argument(
-                        "nullable_bucket",
-                        getArgumentValue(ctx1.nullableBucketArg(0).nullable_bucket))
+                        Argument.BUCKET_NULLABLE,
+                        getArgumentValue(ctx1.bucketNullableArg(0).bucket_nullable))
                     : new Argument(
-                        "nullable_bucket",
+                        Argument.BUCKET_NULLABLE,
                         legacyPreferred(settings) ? Literal.TRUE : Literal.FALSE)));
     if (ctx2 != null) {
       list.add(new Argument("dedupsplit", getArgumentValue(ctx2.dedupsplit)));
@@ -80,6 +80,7 @@ public class ArgumentFactory {
 
   private static boolean legacyPreferred(Settings settings) {
     return settings == null
+        || settings.getSettingValue(Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED) == null
         || Boolean.TRUE.equals(settings.getSettingValue(Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED));
   }
 

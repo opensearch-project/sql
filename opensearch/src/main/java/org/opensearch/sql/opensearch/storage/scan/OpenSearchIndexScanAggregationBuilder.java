@@ -41,13 +41,14 @@ class OpenSearchIndexScanAggregationBuilder implements PushDownQueryBuilder {
   private List<Pair<Sort.SortOption, Expression>> sortList;
 
   /** When false, ignore aggregation values for null bucket. */
-  private final boolean nullableBucket = true; // TODO
+  private final boolean bucketNullable;
 
   OpenSearchIndexScanAggregationBuilder(
       OpenSearchRequestBuilder requestBuilder, LogicalAggregation aggregation) {
     this.requestBuilder = requestBuilder;
     aggregatorList = aggregation.getAggregatorList();
     groupByList = aggregation.getGroupByList();
+    this.bucketNullable = aggregation.isBucketNullable();
   }
 
   @Override
@@ -55,7 +56,7 @@ class OpenSearchIndexScanAggregationBuilder implements PushDownQueryBuilder {
     AggregationQueryBuilder builder =
         new AggregationQueryBuilder(new DefaultExpressionSerializer());
     Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder =
-        builder.buildAggregationBuilder(aggregatorList, groupByList, sortList, nullableBucket);
+        builder.buildAggregationBuilder(aggregatorList, groupByList, sortList, bucketNullable);
     requestBuilder.pushDownAggregation(aggregationBuilder);
     requestBuilder.pushTypeMapping(builder.buildTypeMapping(aggregatorList, groupByList));
     return requestBuilder;

@@ -20,6 +20,8 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 @RequiredArgsConstructor
 @EqualsAndHashCode(callSuper = false)
 public class Argument extends UnresolvedExpression {
+  public static final String BUCKET_NULLABLE = "bucket_nullable";
+
   private final String argName;
   private final Literal value;
 

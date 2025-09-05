@@ -1946,7 +1946,7 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void stats_nullable_bucket_test() {
+  public void stats_non_bucket_nullable_test() {
     assertAnalyzeEqual(
         LogicalPlanDSL.aggregation(
             LogicalPlanDSL.relation("schema", table),
@@ -1965,7 +1965,7 @@ class AnalyzerTest extends AnalyzerTestBase {
                 argument("partitions", intLiteral(1)),
                 argument("allnum", booleanLiteral(false)),
                 argument("delim", stringLiteral(" ")),
-                argument("nullable_bucket", booleanLiteral(false)),
+                argument(Argument.BUCKET_NULLABLE, booleanLiteral(false)),
                 argument("dedupsplit", booleanLiteral(false)))));
   }
 }

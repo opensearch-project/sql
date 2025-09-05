@@ -64,6 +64,7 @@ import org.opensearch.search.aggregations.metrics.PercentilesAggregationBuilder;
 import org.opensearch.search.aggregations.support.ValueType;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
 import org.opensearch.search.sort.SortOrder;
+import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.type.ExprType;
@@ -171,11 +172,17 @@ public class AggregateAnalyzer {
       RelDataType rowType,
       Map<String, ExprType> fieldTypes,
       List<String> outputFields,
-      RelOptCluster cluster,
-      boolean nullableBucket)
+      RelOptCluster cluster)
       throws ExpressionNotAnalyzableException {
     requireNonNull(aggregate, "aggregate");
     try {
+      boolean bucketNullable =
+          Boolean.parseBoolean(
+              aggregate.getHints().stream()
+                  .filter(hits -> hits.hintName.equals("stats_args"))
+                  .map(hint -> hint.kvOptions.getOrDefault(Argument.BUCKET_NULLABLE, "true"))
+                  .findFirst()
+                  .orElseGet(() -> "true"));
       List<Integer> groupList = aggregate.getGroupSet().asList();
       AggregateBuilderHelper helper = new AggregateBuilderHelper(rowType, fieldTypes, cluster);
       List<String> aggFieldNames = outputFields.subList(groupList.size(), outputFields.size());
@@ -189,7 +196,7 @@ public class AggregateAnalyzer {
         return Pair.of(
             ImmutableList.copyOf(metricBuilder.getAggregatorFactories()),
             new NoBucketAggregationParser(metricParserList));
-      } else if (aggregate.getGroupSet().length() == 1 && !nullableBucket) {
+      } else if (aggregate.getGroupSet().length() == 1 && !bucketNullable) {
         ValuesSourceAggregationBuilder<?> bucketBuilder =
             createBucketAggregation(groupList.getFirst(), project, helper);
         return Pair.of(
