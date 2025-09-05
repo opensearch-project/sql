@@ -51,6 +51,7 @@ stats <aggregation>... [by-clause]
  * Description: The unit of the interval expression is the natural unit by default. If the field is a date and time type field, and the interval is in date/time units, you will need to specify the unit in the interval expression. For example, to split the field ``age`` into buckets by 10 years, it looks like ``span(age, 10)``. And here is another example of time span, the span to split a ``timestamp`` field into hourly intervals, it looks like ``span(timestamp, 1h)``.
 
 * Available time unit:
+
 +----------------------------+
 | Span Interval Units        |
 +============================+
@@ -273,7 +274,7 @@ Example::
     +--------------------+
 
 DISTINCT_COUNT_APPROX
-----------
+---------------------
 
 Description
 >>>>>>>>>>>
@@ -335,6 +336,26 @@ Example::
     | 28                  | F      |
     | 36                  | M      |
     +---------------------+--------+
+
+MEDIAN
+------
+
+Description
+>>>>>>>>>>>
+
+Usage: MEDIAN(expr). Returns the median (50th percentile) value of `expr`. This is equivalent to ``PERCENTILE(expr, 50)``.
+
+Note: This function requires Calcite to be enabled (see `Configuration`_ section above).
+
+Example::
+
+    os> source=accounts | stats median(age);
+    fetched rows / total rows = 1/1
+    +-------------+
+    | median(age) |
+    |-------------|
+    | 32          |
+    +-------------+
 
 EARLIEST
 --------
