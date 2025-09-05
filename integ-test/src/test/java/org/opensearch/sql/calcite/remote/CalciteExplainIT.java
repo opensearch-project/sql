@@ -308,7 +308,7 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testExplainCountEval() throws IOException {
     String query =
-            "source=opensearch-sql_test_index_bank | stats count(eval(age > 30)) as mature_count";
+        "source=opensearch-sql_test_index_bank | stats count(eval(age > 30)) as mature_count";
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_count_eval_push.json");
     assertJsonEqualsIgnoreId(expected, result);
@@ -317,8 +317,8 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testExplainCountEvalComplex() throws IOException {
     String query =
-            "source=opensearch-sql_test_index_bank | stats count(eval(age > 30 and age < 50)) as"
-                    + " mature_count";
+        "source=opensearch-sql_test_index_bank | stats count(eval(age > 30 and age < 50)) as"
+            + " mature_count";
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_count_eval_complex_push.json");
     assertJsonEqualsIgnoreId(expected, result);
