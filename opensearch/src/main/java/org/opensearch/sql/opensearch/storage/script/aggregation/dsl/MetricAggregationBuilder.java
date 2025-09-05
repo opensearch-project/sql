@@ -248,17 +248,6 @@ public class MetricAggregationBuilder
     return Pair.of(aggregationBuilder, parser);
   }
 
-  /** Helper method to create TopHits aggregation with filter if needed. */
-  private Pair<AggregationBuilder, MetricParser> makeTopHits(
-      TopHitsAggregationBuilder builder, Expression condition, String name, MetricParser parser) {
-    if (condition != null) {
-      return Pair.of(
-          makeFilterAggregation(builder, condition, name),
-          FilterParser.builder().name(name).metricsParser(parser).build());
-    }
-    return Pair.of(builder, parser);
-  }
-
   /**
    * Replace star or literal with OpenSearch metadata field "_index". Because: 1) Analyzer already
    * converts * to string literal, literal check here can handle both COUNT(*) and COUNT(1). 2)

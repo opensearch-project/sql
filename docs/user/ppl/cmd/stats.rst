@@ -28,6 +28,10 @@ The following table dataSources the aggregation functions and also indicates how
 +----------+-------------+-------------+
 | MIN      | Ignore      | Ignore      |
 +----------+-------------+-------------+
+| FIRST    | Ignore      | Ignore      |
++----------+-------------+-------------+
+| LAST     | Ignore      | Ignore      |
++----------+-------------+-------------+
 | LIST     | Ignore      | Ignore      |
 +----------+-------------+-------------+
 
@@ -471,7 +475,7 @@ Description
 
 Version: 3.3.0
 
-Usage: FIRST(field). Return the first value of a field based on natural document order. Returns NULL if no records exist, or if the field is NULL in the first record of the bucket.
+Usage: FIRST(field). Return the first non-null value of a field based on natural document order. Returns NULL if no records exist, or if all records have NULL values for the field.
 
 * field: mandatory. The field to return the first value for.
 
@@ -507,7 +511,7 @@ Description
 
 Version: 3.3.0
 
-Usage: LAST(field). Return the last value of a field based on natural document order. Returns NULL if no records exist, or if the field is NULL in the last record of the bucket.
+Usage: LAST(field). Return the last non-null value of a field based on natural document order. Returns NULL if no records exist, or if all records have NULL values for the field.
 
 * field: mandatory. The field to return the last value for.
 
