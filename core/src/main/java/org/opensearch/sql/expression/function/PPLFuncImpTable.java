@@ -105,6 +105,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.LEFT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LENGTH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LESS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LIKE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LIST;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOCALTIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOCALTIMESTAMP;
@@ -215,7 +216,6 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.XOR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.YEAR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.YEARWEEK;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -1082,6 +1082,7 @@ public class PPLFuncImpTable {
       registerOperator(STDDEV_POP, PPLBuiltinOperators.STDDEV_POP_NULLABLE);
       registerOperator(TAKE, PPLBuiltinOperators.TAKE);
       registerOperator(INTERNAL_PATTERN, PPLBuiltinOperators.INTERNAL_PATTERN);
+      registerOperator(LIST, PPLBuiltinOperators.LIST);
 
       register(
           AVG,
@@ -1091,9 +1092,15 @@ public class PPLFuncImpTable {
 
       register(
           COUNT,
-          (distinct, field, argList, ctx) ->
-              ctx.relBuilder.count(
-                  distinct, null, field == null ? ImmutableList.of() : ImmutableList.of(field)),
+          (distinct, field, argList, ctx) -> {
+            if (field == null) {
+              // count() without arguments should count all rows
+              return ctx.relBuilder.count(distinct, null);
+            } else {
+              // count(field) should count non-null values of the field
+              return ctx.relBuilder.count(distinct, null, field);
+            }
+          },
           wrapSqlOperandTypeChecker(
               SqlStdOperatorTable.COUNT.getOperandTypeChecker(), COUNT.name(), false));
 

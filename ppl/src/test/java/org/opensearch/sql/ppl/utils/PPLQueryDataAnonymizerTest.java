@@ -204,6 +204,13 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals("source=t | reverse", anonymize("source=t | reverse"));
   }
 
+  @Test
+  public void testTimechartCommand() {
+    assertEquals(
+        "source=t | timechart span=span(@timestamp, *** m) limit=10 useother=true count() by host",
+        anonymize("source=t | timechart count() by host"));
+  }
+
   // todo, sort order is ignored, it doesn't impact the log analysis.
   @Test
   public void testSortCommandWithOptions() {
@@ -509,6 +516,15 @@ public class PPLQueryDataAnonymizerTest {
         anonymize(
             "source=t | patterns email method=BRAIN mode=AGGREGATION"
                 + " variable_count_threshold=5"));
+  }
+
+  @Test
+  public void testRegex() {
+    assertEquals("source=t | regex field=***", anonymize("source=t | regex field='pattern'"));
+    assertEquals("source=t | regex field!=***", anonymize("source=t | regex field!='pattern'"));
+    assertEquals(
+        "source=t | regex email=*** | fields + email",
+        anonymize("source=t | regex email='.*@domain.com' | fields email"));
   }
 
   private String anonymize(String query) {

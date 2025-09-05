@@ -107,7 +107,7 @@ public class CalcitePPLEarliestLatestTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT ARG_MIN(`message`, `@timestamp`) `earliest_message`\n" + "FROM `POST`.`LOGS`";
+        "SELECT MIN_BY (`message`, `@timestamp`) `earliest_message`\n" + "FROM `POST`.`LOGS`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -125,7 +125,7 @@ public class CalcitePPLEarliestLatestTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT ARG_MAX(`message`, `@timestamp`) `latest_message`\n" + "FROM `POST`.`LOGS`";
+        "SELECT MAX_BY (`message`, `@timestamp`) `latest_message`\n" + "FROM `POST`.`LOGS`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -147,7 +147,7 @@ public class CalcitePPLEarliestLatestTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT ARG_MIN(`message`, `@timestamp`) `earliest_message`, `server`\n"
+        "SELECT MIN_BY (`message`, `@timestamp`) `earliest_message`, `server`\n"
             + "FROM `POST`.`LOGS`\n"
             + "GROUP BY `server`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -171,7 +171,7 @@ public class CalcitePPLEarliestLatestTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT ARG_MAX(`message`, `@timestamp`) `latest_message`, `server`\n"
+        "SELECT MAX_BY (`message`, `@timestamp`) `latest_message`, `server`\n"
             + "FROM `POST`.`LOGS`\n"
             + "GROUP BY `server`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -196,7 +196,7 @@ public class CalcitePPLEarliestLatestTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT ARG_MIN(`message`, `@timestamp`) `earliest_message`, "
+        "SELECT MIN_BY (`message`, `@timestamp`) `earliest_message`, "
             + "COUNT(*) `cnt`, `server`\n"
             + "FROM `POST`.`LOGS`\n"
             + "GROUP BY `server`";
@@ -217,7 +217,7 @@ public class CalcitePPLEarliestLatestTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT ARG_MIN(`message`, `created_at`) `earliest_message`\n" + "FROM `POST`.`LOGS`";
+        "SELECT MIN_BY (`message`, `created_at`) `earliest_message`\n" + "FROM `POST`.`LOGS`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -235,7 +235,7 @@ public class CalcitePPLEarliestLatestTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT ARG_MAX(`message`, `created_at`) `latest_message`\n" + "FROM `POST`.`LOGS`";
+        "SELECT MAX_BY (`message`, `created_at`) `latest_message`\n" + "FROM `POST`.`LOGS`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 

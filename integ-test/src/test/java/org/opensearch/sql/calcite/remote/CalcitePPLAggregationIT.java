@@ -69,6 +69,10 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     actual = executeQuery(String.format("source=%s | stats c() as count_emp", TEST_INDEX_BANK));
     verifySchema(actual, schema("count_emp", "bigint"));
     verifyDataRows(actual, rows(7));
+
+    actual = executeQuery(String.format("source=%s | stats count as count_alias", TEST_INDEX_BANK));
+    verifySchema(actual, schema("count_alias", "bigint"));
+    verifyDataRows(actual, rows(7));
   }
 
   @Test
@@ -947,5 +951,46 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
 
     verifyDataRows(shortcut, rows(shortcutValue));
     verifyDataRows(standard, rows(standardValue));
+  }
+
+  @Test
+  public void testStatsCountAliasWithMultipleAggregatesAndSort() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats sum(balance), count, avg(balance) by state | sort - `count`",
+                TEST_INDEX_BANK));
+    verifySchema(
+        response,
+        schema("sum(balance)", "bigint"),
+        schema("count", "bigint"),
+        schema("avg(balance)", "double"),
+        schema("state", "string"));
+    verifyDataRows(
+        response,
+        rows(39225, 1, 39225.0, "IL"),
+        rows(48086, 1, 48086.0, "IN"),
+        rows(4180, 1, 4180.0, "MD"),
+        rows(40540, 1, 40540.0, "PA"),
+        rows(5686, 1, 5686.0, "TN"),
+        rows(32838, 1, 32838.0, "VA"),
+        rows(16418, 1, 16418.0, "WA"));
+  }
+
+  @Test
+  public void testStatsCountAliasByGroupWithSort() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format("source=%s | stats count by state | sort - `count`", TEST_INDEX_BANK));
+    verifySchema(response, schema("count", "bigint"), schema("state", "string"));
+    verifyDataRows(
+        response,
+        rows(1, "IL"),
+        rows(1, "IN"),
+        rows(1, "MD"),
+        rows(1, "PA"),
+        rows(1, "TN"),
+        rows(1, "VA"),
+        rows(1, "WA"));
   }
 }

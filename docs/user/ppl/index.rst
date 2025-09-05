@@ -54,6 +54,8 @@ The query start with search command and then flowing a set of command delimited 
 
   - `appendcol command <cmd/appendcol.rst>`_
 
+  - `bin command <cmd/bin.rst>`_
+
   - `dedup command <cmd/dedup.rst>`_
 
   - `describe command <cmd/describe.rst>`_
@@ -94,6 +96,8 @@ The query start with search command and then flowing a set of command delimited 
 
   - `rename command <cmd/rename.rst>`_
 
+  - `regex command <cmd/regex.rst>`_
+
   - `search command <cmd/search.rst>`_
 
   - `show datasources command <cmd/showdatasources.rst>`_
@@ -107,6 +111,10 @@ The query start with search command and then flowing a set of command delimited 
   - `subquery (aka subsearch) command <cmd/subquery.rst>`_
 
   - `reverse command <cmd/reverse.rst>`_
+
+  - `table command <cmd/table.rst>`_
+  
+  - `timechart command <cmd/timechart.rst>`_
 
   - `top command <cmd/top.rst>`_
 

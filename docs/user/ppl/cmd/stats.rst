@@ -28,6 +28,8 @@ The following table dataSources the aggregation functions and also indicates how
 +----------+-------------+-------------+
 | MIN      | Ignore      | Ignore      |
 +----------+-------------+-------------+
+| LIST     | Ignore      | Ignore      |
++----------+-------------+-------------+
 
 
 Syntax
@@ -92,17 +94,17 @@ COUNT
 Description
 >>>>>>>>>>>
 
-Usage: Returns a count of the number of expr in the rows retrieved. The ``C()`` function can be used as an abbreviation for ``COUNT()``. To perform a filtered counting, wrap the condition to satisfy in an `eval` expression.
+Usage: Returns a count of the number of expr in the rows retrieved. The ``C()`` function, ``c``, and ``count`` can be used as abbreviations for ``COUNT()``. To perform a filtered counting, wrap the condition to satisfy in an `eval` expression.
 
 Example::
 
-    os> source=accounts | stats count(), c();
+    os> source=accounts | stats count(), c(), count, c;
     fetched rows / total rows = 1/1
-    +---------+-----+
-    | count() | c() |
-    |---------+-----|
-    | 4       | 4   |
-    +---------+-----+
+    +---------+-----+-------+---+
+    | count() | c() | count | c |
+    |---------+-----+-------+---|
+    | 4       | 4   | 4     | 4 |
+    +---------+-----+-------+---+
 
 Example of filtered counting::
 
@@ -408,6 +410,41 @@ Example with custom time field::
     | inactive                   | users    |
     +----------------------------+----------+
 
+LIST
+----
+
+Description
+>>>>>>>>>>>
+
+=======
+Version: 3.3.0 (Calcite engine only)
+
+Usage: LIST(expr). Collects all values from the specified expression into an array. Values are converted to strings, nulls are filtered, and duplicates are preserved.
+The function returns up to 100 values with no guaranteed ordering.
+
+* expr: The field expression to collect values from.
+* This aggregation function doesn't support Array, Struct, Object field types.
+
+Example with string fields::
+
+    PPL> source=accounts | stats list(firstname);
+    fetched rows / total rows = 1/1
+    +-------------------------------------+
+    | list(firstname)                     |
+    |-------------------------------------|`
+    | ["Amber","Hattie","Nanette","Dale"] |
+    +-------------------------------------+
+
+Example with result field rename::
+
+    PPL> source=accounts | stats list(firstname) as names;
+    fetched rows / total rows = 1/1
+    +-------------------------------------+
+    | names                               |
+    |-------------------------------------|
+    | ["Amber","Hattie","Nanette","Dale"] |
+    +-------------------------------------+
+
 Example 1: Calculate the count of events
 ========================================
 
@@ -631,7 +668,22 @@ PPL query::
     | 36  | 30       | M      |
     +-----+----------+--------+
 
-Example 14: Calculate the count by the implicit @timestamp field
+Example 14: Collect all values in a field using LIST
+=====================================================
+
+The example shows how to collect all firstname values, preserving duplicates and order.
+
+PPL query::
+
+    PPL> source=accounts | stats list(firstname);
+    fetched rows / total rows = 1/1
+    +-------------------------------------+
+    | list(firstname)                     |
+    |-------------------------------------|
+    | ["Amber","Hattie","Nanette","Dale"] |
+    +-------------------------------------+
+
+Example 15: Calculate the count by the implicit @timestamp field
 ================================================================
 
 This example demonstrates that if you omit the field parameter in the span function, it will automatically use the implicit ``@timestamp`` field.
