@@ -513,20 +513,20 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
   @RequiredArgsConstructor
   public class FlintDatasetMock {
 
-    final String query;
-    final String refreshQuery;
+    public final String query;
+    public final String refreshQuery;
     final FlintIndexType indexType;
-    final String indexName;
+    public final String indexName;
     boolean isLegacy = false;
     boolean isSpecialCharacter = false;
-    String latestId;
+    public String latestId;
 
     public FlintDatasetMock isLegacy(boolean isLegacy) {
       this.isLegacy = isLegacy;
       return this;
     }
 
-    FlintDatasetMock isSpecialCharacter(boolean isSpecialCharacter) {
+    public FlintDatasetMock isSpecialCharacter(boolean isSpecialCharacter) {
       this.isSpecialCharacter = isSpecialCharacter;
       return this;
     }
