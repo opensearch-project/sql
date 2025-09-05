@@ -12,6 +12,7 @@ import static org.opensearch.sql.opensearch.storage.script.aggregation.Aggregati
 
 import java.util.List;
 import java.util.stream.Collectors;
+import org.opensearch.search.aggregations.BucketOrder;
 import org.opensearch.search.aggregations.bucket.histogram.DateHistogramAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.histogram.DateHistogramInterval;
 import org.opensearch.search.aggregations.bucket.histogram.HistogramAggregationBuilder;
@@ -47,6 +48,7 @@ public class BucketAggregationBuilder {
     } else {
       TermsAggregationBuilder sourceBuilder = new TermsAggregationBuilder(expr.getName());
       sourceBuilder.size(AGGREGATION_BUCKET_SIZE);
+      sourceBuilder.order(BucketOrder.key(true));
       // Time types values are converted to LONG in ExpressionAggregationScript::execute
       if ((expr.getDelegated().type() instanceof OpenSearchDateType
               && List.of(TIMESTAMP, TIME, DATE)
