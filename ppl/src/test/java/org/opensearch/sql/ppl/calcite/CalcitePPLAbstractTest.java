@@ -12,8 +12,10 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.opensearch.sql.executor.QueryType.PPL;
 
+import com.google.common.collect.ImmutableList;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
@@ -175,5 +177,61 @@ public class CalcitePPLAbstractTest {
   public void verifyErrorMessageContains(Throwable t, String msg) {
     String stackTrace = getStackTrace(t);
     assertThat(String.format("Actual stack trace was:\n%s", stackTrace), stackTrace.contains(msg));
+  }
+
+  /**
+   * Add a test table with @timestamp and created_at fields with name {@code LOGS}
+   *
+   * <p>Note: @timestamp and created_at have different orderings to test explicit field usage
+   */
+  protected Frameworks.ConfigBuilder configureTimestampLogSchema(
+      CalciteAssert.SchemaSpec... schemaSpecs) {
+    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    final SchemaPlus schema = CalciteAssert.addSchema(rootSchema, schemaSpecs);
+
+    ImmutableList<Object[]> rows =
+        ImmutableList.of(
+            new Object[] {
+              "server1",
+              "ERROR",
+              "Database connection failed",
+              Date.valueOf("2023-01-01"),
+              Date.valueOf("2023-01-05")
+            },
+            new Object[] {
+              "server2",
+              "INFO",
+              "Service started",
+              Date.valueOf("2023-01-02"),
+              Date.valueOf("2023-01-04")
+            },
+            new Object[] {
+              "server1",
+              "WARN",
+              "High memory usage",
+              Date.valueOf("2023-01-03"),
+              Date.valueOf("2023-01-03")
+            },
+            new Object[] {
+              "server3",
+              "ERROR",
+              "Disk space low",
+              Date.valueOf("2023-01-04"),
+              Date.valueOf("2023-01-02")
+            },
+            new Object[] {
+              "server2",
+              "INFO",
+              "Backup completed",
+              Date.valueOf("2023-01-05"),
+              Date.valueOf("2023-01-01")
+            });
+    schema.add("LOGS", new CalcitePPLEarliestLatestTest.LogsTable(rows));
+
+    return Frameworks.newConfigBuilder()
+        .parserConfig(SqlParser.Config.DEFAULT)
+        .defaultSchema(schema)
+        .traitDefs((List<RelTraitDef>) null)
+        .programs(Programs.heuristicJoinOrder(Programs.RULE_SET, true, 2));
   }
 }

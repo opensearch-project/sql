@@ -8,8 +8,11 @@ package org.opensearch.sql.ppl;
 import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
 import static org.opensearch.sql.util.MatcherUtils.rows;
+import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
+import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
 import org.json.JSONObject;
@@ -24,6 +27,7 @@ public class SearchCommandIT extends PPLIntegTestCase {
     super.init();
     loadIndex(Index.BANK);
     loadIndex(Index.DOG);
+    loadIndex(Index.TIME_TEST_DATA);
   }
 
   @Test
@@ -66,5 +70,30 @@ public class SearchCommandIT extends PPLIntegTestCase {
       assertTrue(e.getMessage().contains("RuntimeException"));
       assertTrue(e.getMessage().contains(SYNTAX_EX_MSG_FRAGMENT));
     }
+  }
+
+  @Test
+  public void testSearchWithEarliest() throws IOException {
+    JSONObject result1 =
+        executeQuery(
+            String.format(
+                "search source=%s earliest='2025-08-01 03:47:41' | fields @timestamp",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(result1, schema("@timestamp", "timestamp"));
+    verifyDataRows(result1, rows("2025-08-01 03:47:41"));
+
+    JSONObject result0 =
+        executeQuery(
+            String.format(
+                "search source=%s earliest='2025-08-01 03:47:42' | fields @timestamp",
+                TEST_INDEX_TIME_DATA));
+    verifyNumOfRows(result0, 0);
+
+    JSONObject result2 =
+        executeQuery(
+            String.format(
+                "search source=%s earliest='2025-08-01 02:00:55' | fields @timestamp",
+                TEST_INDEX_TIME_DATA));
+    verifyDataRows(result2, rows("2025-08-01 02:00:56"), rows("2025-08-01 03:47:41"));
   }
 }

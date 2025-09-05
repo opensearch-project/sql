@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.ppl.parser;
 
+import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.*;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BinaryArithmeticContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
@@ -38,6 +39,8 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SpanClause
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StringLiteralContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TimeRangeExpressionContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TimeRangeValueContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WcFieldExpressionContext;
 
 import com.google.common.collect.ImmutableList;
@@ -88,8 +91,10 @@ import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BinaryArithmeticContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
@@ -811,5 +816,34 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitLogWithBaseSpan(OpenSearchPPLParser.LogWithBaseSpanContext ctx) {
     return org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(ctx.getText());
+  }
+
+  /** Process time range value expressions (NOW or string literal) */
+  @Override
+  public UnresolvedExpression visitTimeRangeValue(TimeRangeValueContext ctx) {
+    if (ctx.NOW() != null) {
+      // Convert NOW keyword to function call NOW()
+      return buildFunction(BuiltinFunctionName.NOW.name(), List.of());
+    } else if (ctx.stringLiteral() != null) {
+      return visit(ctx.stringLiteral());
+    } else {
+      throw new IllegalArgumentException("Unknown time range value type");
+    }
+  }
+
+  /**
+   * Process time range expressions (EARLIEST='value' or LATEST='value') It creates a Comparison
+   * filter like @timestamp >= timeRangeValue
+   */
+  @Override
+  public UnresolvedExpression visitTimeRangeExpression(TimeRangeExpressionContext ctx) {
+    // EARLIEST != null --> @timestamp >= timeRangeValue
+    String operator =
+        ctx.EARLIEST() != null
+            ? BuiltinFunctionName.GTE.getName().toString()
+            : BuiltinFunctionName.LTE.getName().toString();
+    UnresolvedExpression timestampField = field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP);
+    UnresolvedExpression timeValue = visit(ctx.timeRangeValue());
+    return new Compare(operator, timestampField, timeValue);
   }
 }
