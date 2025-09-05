@@ -53,13 +53,17 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  public void testCoalesceWithSameType() {
+    String ppl = "source=EMP | eval coalesce_name = coalesce(ENAME, 'Jack') | fields coalesce_name";
+    Assert.assertNotNull(getRelNode(ppl));
+  }
+
+  @Test
   public void testCoalesceWithDifferentType() {
     String ppl =
         "source=EMP | eval coalesce_name = coalesce(EMPNO, 'Jack', ENAME) | fields"
             + " coalesce_name";
-    Throwable t = Assert.assertThrows(ExpressionEvaluationException.class, () -> getRelNode(ppl));
-    verifyErrorMessageContains(
-        t, "COALESCE function expects {[COMPARABLE_TYPE...]}, but got [SHORT,STRING,STRING]");
+    Assert.assertNotNull(getRelNode(ppl));
   }
 
   @Test
@@ -289,5 +293,19 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
         "Aggregation function PERCENTILE_APPROX expects field type and additional arguments"
             + " {[INTEGER,INTEGER],[INTEGER,DOUBLE],[DOUBLE,INTEGER],[DOUBLE,DOUBLE],[INTEGER,INTEGER,INTEGER],[INTEGER,INTEGER,DOUBLE],[INTEGER,DOUBLE,INTEGER],[INTEGER,DOUBLE,DOUBLE],[DOUBLE,INTEGER,INTEGER],[DOUBLE,INTEGER,DOUBLE],[DOUBLE,DOUBLE,INTEGER],[DOUBLE,DOUBLE,DOUBLE]},"
             + " but got [STRING,INTEGER]");
+  }
+
+  @Test
+  public void testListFunctionWithArrayArgType() {
+    // Test LIST function with array expression (which is not a supported scalar type)
+    Exception e =
+        Assert.assertThrows(
+            ExpressionEvaluationException.class,
+            () -> getRelNode("source=EMP | stats list(array(ENAME, JOB)) as name_list"));
+    verifyErrorMessageContains(
+        e,
+        "Aggregation function LIST expects field type"
+            + " {[BYTE],[SHORT],[INTEGER],[LONG],[FLOAT],[DOUBLE],[STRING],[BOOLEAN],[DATE],[TIME],[TIMESTAMP],[IP],[BINARY]},"
+            + " but got [ARRAY]");
   }
 }

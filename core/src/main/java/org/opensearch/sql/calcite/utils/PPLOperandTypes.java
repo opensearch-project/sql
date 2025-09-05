@@ -39,6 +39,10 @@ public class PPLOperandTypes {
               OperandTypes.NUMERIC.or(
                   OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.CHARACTER)));
 
+  public static final UDFOperandMetadata ANY_OPTIONAL_INTEGER =
+      UDFOperandMetadata.wrap(
+          (CompositeOperandTypeChecker)
+              OperandTypes.ANY.or(OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.INTEGER)));
   public static final UDFOperandMetadata INTEGER_INTEGER =
       UDFOperandMetadata.wrap((FamilyOperandTypeChecker) OperandTypes.INTEGER_INTEGER);
   public static final UDFOperandMetadata STRING_STRING =
@@ -48,9 +52,30 @@ public class PPLOperandTypes {
   public static final UDFOperandMetadata STRING_INTEGER =
       UDFOperandMetadata.wrap(OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.INTEGER));
 
+  public static final UDFOperandMetadata NUMERIC_NUMERIC_OPTIONAL_NUMERIC =
+      UDFOperandMetadata.wrap(
+          (CompositeOperandTypeChecker)
+              OperandTypes.NUMERIC_NUMERIC.or(
+                  OperandTypes.family(
+                      SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC)));
   public static final UDFOperandMetadata NUMERIC_NUMERIC_NUMERIC =
       UDFOperandMetadata.wrap(
           OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC));
+  public static final UDFOperandMetadata NUMERIC_NUMERIC_NUMERIC_NUMERIC =
+      UDFOperandMetadata.wrap(
+          OperandTypes.family(
+              SqlTypeFamily.NUMERIC,
+              SqlTypeFamily.NUMERIC,
+              SqlTypeFamily.NUMERIC,
+              SqlTypeFamily.NUMERIC));
+  public static final UDFOperandMetadata NUMERIC_NUMERIC_NUMERIC_NUMERIC_NUMERIC =
+      UDFOperandMetadata.wrap(
+          OperandTypes.family(
+              SqlTypeFamily.NUMERIC,
+              SqlTypeFamily.NUMERIC,
+              SqlTypeFamily.NUMERIC,
+              SqlTypeFamily.NUMERIC,
+              SqlTypeFamily.NUMERIC));
   public static final UDFOperandMetadata STRING_OR_INTEGER_INTEGER_INTEGER =
       UDFOperandMetadata.wrap(
           (CompositeOperandTypeChecker)
@@ -144,4 +169,31 @@ public class PPLOperandTypes {
                           SqlTypeFamily.CHARACTER,
                           SqlTypeFamily.CHARACTER,
                           SqlTypeFamily.CHARACTER)));
+
+  /**
+   * Operand type checker that accepts any scalar type. This includes numeric types, strings,
+   * booleans, datetime types, and special scalar types like IP and BINARY. Excludes complex types
+   * like arrays, structs, and maps.
+   */
+  public static final UDFOperandMetadata ANY_SCALAR =
+      UDFOperandMetadata.wrapUDT(
+          java.util.List.of(
+              // Numeric types
+              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.BYTE),
+              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.SHORT),
+              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.INTEGER),
+              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.LONG),
+              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.FLOAT),
+              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.DOUBLE),
+              // String type
+              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.STRING),
+              // Boolean type
+              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.BOOLEAN),
+              // Temporal types
+              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.DATE),
+              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.TIME),
+              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP),
+              // Special scalar types
+              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.IP),
+              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.BINARY)));
 }

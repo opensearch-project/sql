@@ -26,7 +26,6 @@ import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
 import org.apache.calcite.rel.rel2sql.SqlImplementor;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.dialect.SparkSqlDialect;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.tools.Frameworks;
@@ -56,7 +55,7 @@ public class CalcitePPLAbstractTest {
   public CalcitePPLAbstractTest(CalciteAssert.SchemaSpec... schemaSpecs) {
     this.config = config(schemaSpecs);
     this.planTransformer = new CalciteRelNodeVisitor();
-    this.converter = new RelToSqlConverter(SparkSqlDialect.DEFAULT);
+    this.converter = new RelToSqlConverter(OpenSearchSparkSqlDialect.DEFAULT);
     this.settings = mock(Settings.class);
   }
 
@@ -106,6 +105,37 @@ public class CalcitePPLAbstractTest {
     return builder.visit(parser.parse(query));
   }
 
+  /**
+   * Fluent API for building count(eval) test cases. Provides a clean and readable way to define PPL
+   * queries and their expected outcomes.
+   */
+  protected PPLQueryTestBuilder withPPLQuery(String ppl) {
+    return new PPLQueryTestBuilder(ppl);
+  }
+
+  protected class PPLQueryTestBuilder {
+    private final RelNode relNode;
+
+    public PPLQueryTestBuilder(String ppl) {
+      this.relNode = getRelNode(ppl);
+    }
+
+    public PPLQueryTestBuilder expectLogical(String expectedLogical) {
+      verifyLogical(relNode, expectedLogical);
+      return this;
+    }
+
+    public PPLQueryTestBuilder expectResult(String expectedResult) {
+      verifyResult(relNode, expectedResult);
+      return this;
+    }
+
+    public PPLQueryTestBuilder expectSparkSQL(String expectedSparkSql) {
+      verifyPPLToSparkSQL(relNode, expectedSparkSql);
+      return this;
+    }
+  }
+
   /** Verify the logical plan of the given RelNode */
   public void verifyLogical(RelNode rel, String expectedLogical) {
     assertThat(rel, hasTree(expectedLogical));
@@ -135,7 +165,7 @@ public class CalcitePPLAbstractTest {
     String normalized = expected.replace("\n", System.lineSeparator());
     SqlImplementor.Result result = converter.visitRoot(rel);
     final SqlNode sqlNode = result.asStatement();
-    final String sql = sqlNode.toSqlString(SparkSqlDialect.DEFAULT).getSql();
+    final String sql = sqlNode.toSqlString(OpenSearchSparkSqlDialect.DEFAULT).getSql();
     assertThat(sql, is(normalized));
   }
 

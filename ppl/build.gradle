@@ -86,6 +86,7 @@ spotless {
 }
 
 test {
+    maxParallelForks = Runtime.runtime.availableProcessors()
     testLogging {
         events "passed", "skipped", "failed"
         exceptionFormat "full"

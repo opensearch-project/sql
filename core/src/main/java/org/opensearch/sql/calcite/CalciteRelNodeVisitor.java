@@ -25,6 +25,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -49,7 +51,9 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilder.AggCall;
 import org.apache.calcite.util.Holder;
@@ -57,6 +61,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.EmptySourcePropagateVisitor;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AggregateFunction;
@@ -79,7 +84,9 @@ import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
+import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
@@ -99,8 +106,10 @@ import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
+import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
+import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
@@ -108,8 +117,10 @@ import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.Trendline.TrendlineType;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
+import org.opensearch.sql.calcite.utils.BinUtils;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -169,6 +180,32 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     } else {
       context.relBuilder.filter(condition);
     }
+    return context.relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitRegex(Regex node, CalcitePlanContext context) {
+    visitChildren(node, context);
+
+    RexNode fieldRex = rexVisitor.analyze(node.getField(), context);
+    RexNode patternRex = rexVisitor.analyze(node.getPattern(), context);
+
+    if (!SqlTypeFamily.CHARACTER.contains(fieldRex.getType())) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Regex command requires field of string type, but got %s for field '%s'",
+              fieldRex.getType().getSqlTypeName(), node.getField().toString()));
+    }
+
+    RexNode regexCondition =
+        context.rexBuilder.makeCall(
+            org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_CONTAINS, fieldRex, patternRex);
+
+    if (node.isNegated()) {
+      regexCondition = context.rexBuilder.makeCall(SqlStdOperatorTable.NOT, regexCondition);
+    }
+
+    context.relBuilder.filter(regexCondition);
     return context.relBuilder.peek();
   }
 
@@ -474,10 +511,30 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   @Override
+  public RelNode visitBin(Bin node, CalcitePlanContext context) {
+    visitChildren(node, context);
+
+    RexNode fieldExpr = rexVisitor.analyze(node.getField(), context);
+    String fieldName = BinUtils.extractFieldName(node);
+
+    RexNode binExpression = BinUtils.createBinExpression(node, fieldExpr, context, rexVisitor);
+
+    String alias = node.getAlias() != null ? node.getAlias() : fieldName;
+    projectPlusOverriding(List.of(binExpression), List.of(alias), context);
+
+    return context.relBuilder.peek();
+  }
+
+  @Override
   public RelNode visitParse(Parse node, CalcitePlanContext context) {
     visitChildren(node, context);
     buildParseRelNode(node, context);
     return context.relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitSpath(SPath node, CalcitePlanContext context) {
+    return visitEval(node.rewriteAsEval(), context);
   }
 
   @Override
@@ -690,8 +747,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // because that Mapping only works for RexNode, but we need both AggCall and RexNode list.
     Pair<List<RexNode>, List<AggCall>> reResolved =
         resolveAttributesForAggregation(groupExprList, aggExprList, context);
+
     context.relBuilder.aggregate(
         context.relBuilder.groupKey(reResolved.getLeft()), reResolved.getRight());
+
     return Pair.of(reResolved.getLeft(), reResolved.getRight());
   }
 
@@ -1276,6 +1335,75 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
   }
 
+  @Override
+  public RelNode visitAppend(Append node, CalcitePlanContext context) {
+    // 1. Resolve main plan
+    visitChildren(node, context);
+
+    // 2. Resolve subsearch plan
+    UnresolvedPlan prunedSubSearch =
+        node.getSubSearch().accept(new EmptySourcePropagateVisitor(), null);
+    prunedSubSearch.accept(this, context);
+
+    // 3. Merge two query schemas
+    RelNode subsearchNode = context.relBuilder.build();
+    RelNode mainNode = context.relBuilder.build();
+    List<RelDataTypeField> mainFields = mainNode.getRowType().getFieldList();
+    List<RelDataTypeField> subsearchFields = subsearchNode.getRowType().getFieldList();
+    Map<String, RelDataTypeField> subsearchFieldMap =
+        subsearchFields.stream()
+            .map(typeField -> Pair.of(typeField.getName(), typeField))
+            .collect(Collectors.toMap(Pair::getKey, Pair::getValue));
+    boolean[] isSelected = new boolean[subsearchFields.size()];
+    List<String> names = new ArrayList<>();
+    List<RexNode> mainUnionProjects = new ArrayList<>();
+    List<RexNode> subsearchUnionProjects = new ArrayList<>();
+
+    // 3.1 Start with main query's schema. If subsearch plan doesn't have matched column,
+    // add same type column in place with NULL literal
+    for (int i = 0; i < mainFields.size(); i++) {
+      mainUnionProjects.add(context.rexBuilder.makeInputRef(mainNode, i));
+      RelDataTypeField mainField = mainFields.get(i);
+      RelDataTypeField subsearchField = subsearchFieldMap.get(mainField.getName());
+      names.add(mainField.getName());
+      if (subsearchFieldMap.containsKey(mainField.getName())
+          && subsearchField != null
+          && subsearchField.getType().equals(mainField.getType())) {
+        subsearchUnionProjects.add(
+            context.rexBuilder.makeInputRef(subsearchNode, subsearchField.getIndex()));
+        isSelected[subsearchField.getIndex()] = true;
+      } else {
+        subsearchUnionProjects.add(context.rexBuilder.makeNullLiteral(mainField.getType()));
+      }
+    }
+
+    // 3.2 Add remaining subsearch columns to the merged schema
+    for (int j = 0; j < subsearchFields.size(); j++) {
+      RelDataTypeField subsearchField = subsearchFields.get(j);
+      if (!isSelected[j]) {
+        mainUnionProjects.add(context.rexBuilder.makeNullLiteral(subsearchField.getType()));
+        subsearchUnionProjects.add(context.rexBuilder.makeInputRef(subsearchNode, j));
+        names.add(subsearchField.getName());
+      }
+    }
+
+    // 3.3 Uniquify names in case the merged names have duplicates
+    List<String> uniqNames =
+        SqlValidatorUtil.uniquify(names, SqlValidatorUtil.EXPR_SUGGESTER, true);
+
+    // 4. Apply new schema over two query plans
+    RelNode projectedMainNode =
+        context.relBuilder.push(mainNode).project(mainUnionProjects, uniqNames).build();
+    RelNode projectedSubsearchNode =
+        context.relBuilder.push(subsearchNode).project(subsearchUnionProjects, uniqNames).build();
+
+    // 5. Union all two projected plans
+    context.relBuilder.push(projectedMainNode);
+    context.relBuilder.push(projectedSubsearchNode);
+    context.relBuilder.union(true);
+    return context.relBuilder.peek();
+  }
+
   /*
    * Unsupported Commands of PPL with Calcite for OpenSearch 3.0.0-beta
    */
@@ -1431,6 +1559,331 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return relBuilder.peek();
   }
 
+  /** Helper method to get the function name for proper column naming */
+  private String getValueFunctionName(UnresolvedExpression aggregateFunction) {
+    if (!(aggregateFunction instanceof AggregateFunction)) {
+      return "value";
+    }
+
+    AggregateFunction aggFunc = (AggregateFunction) aggregateFunction;
+    String funcName = aggFunc.getFuncName().toLowerCase();
+    List<UnresolvedExpression> args = new ArrayList<>();
+    if (aggFunc.getField() != null) {
+      args.add(aggFunc.getField());
+    }
+    if (aggFunc.getArgList() != null) {
+      args.addAll(aggFunc.getArgList());
+    }
+
+    if (args.isEmpty() || funcName.equals("count")) {
+      // Special case for count() to show as just "count" instead of "count(AllFields())"
+      return "count";
+    }
+
+    // Build the full function call string like "avg(cpu_usage)"
+    StringBuilder sb = new StringBuilder(funcName).append("(");
+    for (int i = 0; i < args.size(); i++) {
+      if (i > 0) sb.append(", ");
+      if (args.get(i) instanceof Field) {
+        sb.append(((Field) args.get(i)).getField().toString());
+      } else {
+        sb.append(args.get(i).toString());
+      }
+    }
+    sb.append(")");
+    return sb.toString();
+  }
+
+  /** Transforms timechart command into SQL-based operations. */
+  @Override
+  public RelNode visitTimechart(
+      org.opensearch.sql.ast.tree.Timechart node, CalcitePlanContext context) {
+    visitChildren(node, context);
+
+    // Extract parameters
+    UnresolvedExpression spanExpr = node.getBinExpression();
+
+    List<UnresolvedExpression> groupExprList = Arrays.asList(spanExpr);
+
+    // Handle no by field case
+    if (node.getByField() == null) {
+      String valueFunctionName = getValueFunctionName(node.getAggregateFunction());
+
+      // Create group expression list with just the timestamp span but use a different alias
+      // to avoid @timestamp naming conflict
+      List<UnresolvedExpression> simpleGroupExprList = new ArrayList<>();
+      simpleGroupExprList.add(new Alias("timestamp", spanExpr));
+      // Create agg expression list with the aggregate function
+      List<UnresolvedExpression> simpleAggExprList =
+          List.of(new Alias(valueFunctionName, node.getAggregateFunction()));
+      // Create an Aggregation object
+      Aggregation aggregation =
+          new Aggregation(
+              simpleAggExprList,
+              Collections.emptyList(),
+              simpleGroupExprList,
+              null,
+              Collections.emptyList());
+      // Use visitAggregation to handle the aggregation and column naming
+      RelNode result = visitAggregation(aggregation, context);
+      // Push the result and add explicit projection to get [@timestamp, count] order
+      context.relBuilder.push(result);
+      // Reorder fields: timestamp first, then count
+      context.relBuilder.project(
+          context.relBuilder.field("timestamp"), context.relBuilder.field(valueFunctionName));
+      // Rename timestamp to @timestamp
+      context.relBuilder.rename(List.of("@timestamp", valueFunctionName));
+
+      context.relBuilder.sort(context.relBuilder.field(0));
+      return context.relBuilder.peek();
+    }
+
+    // Extract parameters for byField case
+    UnresolvedExpression byField = node.getByField();
+    String byFieldName = ((Field) byField).getField().toString();
+    String valueFunctionName = getValueFunctionName(node.getAggregateFunction());
+
+    int limit = Optional.ofNullable(node.getLimit()).orElse(10);
+    boolean useOther = Optional.ofNullable(node.getUseOther()).orElse(true);
+
+    try {
+      // Step 1: Initial aggregation - IMPORTANT: order is [spanExpr, byField]
+      groupExprList = Arrays.asList(spanExpr, byField);
+      aggregateWithTrimming(groupExprList, List.of(node.getAggregateFunction()), context);
+
+      // First rename the timestamp field (2nd to last) to @timestamp
+      List<String> fieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+      List<String> renamedFields = new ArrayList<>(fieldNames);
+      // TODO: Fix aggregateWithTrimming reordering
+      renamedFields.set(fieldNames.size() - 2, "@timestamp");
+      context.relBuilder.rename(renamedFields);
+
+      // Then reorder: @timestamp first, then byField, then value function
+      List<RexNode> outputFields = context.relBuilder.fields();
+      List<RexNode> reordered = new ArrayList<>();
+      reordered.add(context.relBuilder.field("@timestamp")); // timestamp first
+      reordered.add(context.relBuilder.field(byFieldName)); // byField second
+      reordered.add(outputFields.get(outputFields.size() - 1)); // value function last
+      context.relBuilder.project(reordered);
+
+      // Handle no limit case - just sort and return with proper field aliases
+      if (limit == 0) {
+        // Add final projection with proper aliases: [@timestamp, byField, valueFunctionName]
+        context.relBuilder.project(
+            context.relBuilder.alias(context.relBuilder.field(0), "@timestamp"),
+            context.relBuilder.alias(context.relBuilder.field(1), byFieldName),
+            context.relBuilder.alias(context.relBuilder.field(2), valueFunctionName));
+        context.relBuilder.sort(context.relBuilder.field(0), context.relBuilder.field(1));
+        return context.relBuilder.peek();
+      }
+
+      // Use known field positions after reordering: 0=@timestamp, 1=byField, 2=value
+      RelNode completeResults = context.relBuilder.build();
+
+      // Step 2: Find top N categories using window function approach (more efficient than separate
+      // aggregation)
+      RelNode topCategories = buildTopCategoriesQuery(completeResults, limit, context);
+
+      // Step 3: Apply OTHER logic with single pass
+      return buildFinalResultWithOther(
+          completeResults, topCategories, byFieldName, valueFunctionName, useOther, limit, context);
+
+    } catch (Exception e) {
+      throw new RuntimeException("Error in visitTimechart: " + e.getMessage(), e);
+    }
+  }
+
+  /** Build top categories query - simpler approach that works better with OTHER handling */
+  private RelNode buildTopCategoriesQuery(
+      RelNode completeResults, int limit, CalcitePlanContext context) {
+    context.relBuilder.push(completeResults);
+
+    // Filter out null values when determining top categories - null should not count towards limit
+    context.relBuilder.filter(context.relBuilder.isNotNull(context.relBuilder.field(1)));
+
+    // Get totals for non-null categories - field positions: 0=@timestamp, 1=byField, 2=value
+    context.relBuilder.aggregate(
+        context.relBuilder.groupKey(context.relBuilder.field(1)),
+        context.relBuilder.sum(context.relBuilder.field(2)).as("grand_total"));
+
+    // Apply sorting and limit to non-null categories only
+    context.relBuilder.sort(context.relBuilder.desc(context.relBuilder.field("grand_total")));
+    if (limit > 0) {
+      context.relBuilder.limit(0, limit);
+    }
+
+    return context.relBuilder.build();
+  }
+
+  /** Build final result with OTHER category using efficient single-pass approach */
+  private RelNode buildFinalResultWithOther(
+      RelNode completeResults,
+      RelNode topCategories,
+      String byFieldName,
+      String valueFunctionName,
+      boolean useOther,
+      int limit,
+      CalcitePlanContext context) {
+
+    // Use zero-filling for count aggregations, standard result for others
+    if (valueFunctionName.equals("count")) {
+      return buildZeroFilledResult(
+          completeResults, topCategories, byFieldName, valueFunctionName, useOther, limit, context);
+    } else {
+      return buildStandardResult(
+          completeResults, topCategories, byFieldName, valueFunctionName, useOther, context);
+    }
+  }
+
+  /** Build standard result without zero-filling */
+  private RelNode buildStandardResult(
+      RelNode completeResults,
+      RelNode topCategories,
+      String byFieldName,
+      String valueFunctionName,
+      boolean useOther,
+      CalcitePlanContext context) {
+
+    context.relBuilder.push(completeResults);
+    context.relBuilder.push(topCategories);
+
+    // LEFT JOIN to identify top categories - field positions: 0=@timestamp, 1=byField, 2=value
+    context.relBuilder.join(
+        org.apache.calcite.rel.core.JoinRelType.LEFT,
+        context.relBuilder.equals(
+            context.relBuilder.field(2, 0, 1), context.relBuilder.field(2, 1, 0)));
+
+    // Calculate field position after join
+    int topCategoryFieldIndex = completeResults.getRowType().getFieldCount();
+
+    // Create CASE expression for OTHER logic
+    RexNode categoryExpr = createOtherCaseExpression(topCategoryFieldIndex, 1, context);
+
+    // Project and aggregate
+    context.relBuilder.project(
+        context.relBuilder.alias(context.relBuilder.field(0), "@timestamp"),
+        context.relBuilder.alias(categoryExpr, byFieldName),
+        context.relBuilder.alias(context.relBuilder.field(2), valueFunctionName));
+
+    context.relBuilder.aggregate(
+        context.relBuilder.groupKey(context.relBuilder.field(0), context.relBuilder.field(1)),
+        context.relBuilder.sum(context.relBuilder.field(2)).as(valueFunctionName));
+
+    applyFiltersAndSort(useOther, context);
+    return context.relBuilder.peek();
+  }
+
+  /** Helper to create OTHER case expression - preserves NULL as a category */
+  private RexNode createOtherCaseExpression(
+      int topCategoryFieldIndex, int byIndex, CalcitePlanContext context) {
+    return context.relBuilder.call(
+        org.apache.calcite.sql.fun.SqlStdOperatorTable.CASE,
+        context.relBuilder.isNotNull(context.relBuilder.field(topCategoryFieldIndex)),
+        context.relBuilder.field(byIndex), // Keep original value (including NULL)
+        context.relBuilder.call(
+            org.apache.calcite.sql.fun.SqlStdOperatorTable.CASE,
+            context.relBuilder.isNull(context.relBuilder.field(byIndex)),
+            context.relBuilder.literal(null), // Preserve NULL as NULL
+            context.relBuilder.literal("OTHER")));
+  }
+
+  /** Helper to apply filters and sorting */
+  private void applyFiltersAndSort(boolean useOther, CalcitePlanContext context) {
+    if (!useOther) {
+      context.relBuilder.filter(
+          context.relBuilder.notEquals(
+              context.relBuilder.field(1), context.relBuilder.literal("OTHER")));
+    }
+    context.relBuilder.sort(context.relBuilder.field(0), context.relBuilder.field(1));
+  }
+
+  /** Build zero-filled result using fillnull pattern - treat NULL as just another category */
+  private RelNode buildZeroFilledResult(
+      RelNode completeResults,
+      RelNode topCategories,
+      String byFieldName,
+      String valueFunctionName,
+      boolean useOther,
+      int limit,
+      CalcitePlanContext context) {
+
+    // Get all unique timestamps - field positions: 0=@timestamp, 1=byField, 2=value
+    context.relBuilder.push(completeResults);
+    context.relBuilder.aggregate(context.relBuilder.groupKey(context.relBuilder.field(0)));
+    RelNode allTimestamps = context.relBuilder.build();
+
+    // Get all categories for zero-filling - apply OTHER logic here too
+    context.relBuilder.push(completeResults);
+    context.relBuilder.push(topCategories);
+    context.relBuilder.join(
+        org.apache.calcite.rel.core.JoinRelType.LEFT,
+        context.relBuilder.call(
+            org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
+            context.relBuilder.field(2, 0, 1),
+            context.relBuilder.field(2, 1, 0)));
+
+    int topCategoryFieldIndex = completeResults.getRowType().getFieldCount();
+    RexNode categoryExpr = createOtherCaseExpression(topCategoryFieldIndex, 1, context);
+
+    context.relBuilder.project(categoryExpr);
+    context.relBuilder.aggregate(context.relBuilder.groupKey(context.relBuilder.field(0)));
+    RelNode allCategories = context.relBuilder.build();
+
+    // Cross join timestamps with ALL categories (including OTHER) for zero-filling
+    context.relBuilder.push(allTimestamps);
+    context.relBuilder.push(allCategories);
+    context.relBuilder.join(
+        org.apache.calcite.rel.core.JoinRelType.INNER, context.relBuilder.literal(true));
+
+    // Create zero-filled combinations with count=0
+    context.relBuilder.project(
+        context.relBuilder.alias(
+            context.relBuilder.cast(context.relBuilder.field(0), SqlTypeName.TIMESTAMP),
+            "@timestamp"),
+        context.relBuilder.alias(context.relBuilder.field(1), byFieldName),
+        context.relBuilder.alias(context.relBuilder.literal(0), valueFunctionName));
+    RelNode zeroFilledCombinations = context.relBuilder.build();
+
+    // Get actual results with OTHER logic applied
+    context.relBuilder.push(completeResults);
+    context.relBuilder.push(topCategories);
+    context.relBuilder.join(
+        org.apache.calcite.rel.core.JoinRelType.LEFT,
+        // Use IS NOT DISTINCT FROM for proper null handling in join
+        context.relBuilder.call(
+            org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
+            context.relBuilder.field(2, 0, 1),
+            context.relBuilder.field(2, 1, 0)));
+
+    int actualTopCategoryFieldIndex = completeResults.getRowType().getFieldCount();
+    RexNode actualCategoryExpr = createOtherCaseExpression(actualTopCategoryFieldIndex, 1, context);
+
+    context.relBuilder.project(
+        context.relBuilder.alias(
+            context.relBuilder.cast(context.relBuilder.field(0), SqlTypeName.TIMESTAMP),
+            "@timestamp"),
+        context.relBuilder.alias(actualCategoryExpr, byFieldName),
+        context.relBuilder.alias(context.relBuilder.field(2), valueFunctionName));
+
+    context.relBuilder.aggregate(
+        context.relBuilder.groupKey(context.relBuilder.field(0), context.relBuilder.field(1)),
+        context.relBuilder.sum(context.relBuilder.field(2)).as("actual_count"));
+    RelNode actualResults = context.relBuilder.build();
+
+    // UNION zero-filled with actual results
+    context.relBuilder.push(actualResults);
+    context.relBuilder.push(zeroFilledCombinations);
+    context.relBuilder.union(false);
+
+    // Aggregate to combine actual and zero-filled data
+    context.relBuilder.aggregate(
+        context.relBuilder.groupKey(context.relBuilder.field(0), context.relBuilder.field(1)),
+        context.relBuilder.sum(context.relBuilder.field(2)).as(valueFunctionName));
+
+    applyFiltersAndSort(useOther, context);
+    return context.relBuilder.peek();
+  }
+
   @Override
   public RelNode visitTrendline(Trendline node, CalcitePlanContext context) {
     visitChildren(node, context);
@@ -1579,6 +2032,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     buildExpandRelNode(arrayFieldRex, arrayField.getField().toString(), alias, context);
 
     return context.relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitValues(Values values, CalcitePlanContext context) {
+    if (values.getValues() == null || values.getValues().isEmpty()) {
+      context.relBuilder.values(context.relBuilder.getTypeFactory().builder().build());
+      return context.relBuilder.peek();
+    } else {
+      throw new CalciteUnsupportedException("Explicit values node is unsupported in Calcite");
+    }
   }
 
   private void buildParseRelNode(Parse node, CalcitePlanContext context) {

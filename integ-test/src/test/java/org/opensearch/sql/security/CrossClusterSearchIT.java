@@ -206,6 +206,15 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testCrossClusterPercentileShortcuts() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | stats perc50(balance), p95(balance)", TEST_INDEX_BANK_REMOTE));
+    verifyColumn(result, columnName("perc50(balance)"), columnName("p95(balance)"));
+  }
+
+  @Test
   public void testCrossClusterMultiMatchWithoutFields() throws IOException {
     // Test multi_match without fields parameter on remote cluster
     JSONObject result =
@@ -236,5 +245,21 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
                 "search source=%s | where query_string('Hattie') | fields firstname",
                 TEST_INDEX_BANK_REMOTE));
     verifyDataRows(result, rows("Hattie"));
+  }
+
+  @Test
+  public void testCrossClusterAppend() throws IOException {
+    // TODO: We should enable calcite by default in CrossClusterSearchIT?
+    enableCalcite();
+
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | stats count() as cnt by gender | append [ search source=%s |"
+                    + " stats count() as cnt ]",
+                TEST_INDEX_BANK_REMOTE, TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(result, rows(3, "F"), rows(4, "M"), rows(7, null));
+
+    disableCalcite();
   }
 }

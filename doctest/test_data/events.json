@@ -1,0 +1,8 @@
+{"@timestamp":"2023-01-01T10:00:00Z","event_time":"2023-01-01T09:55:00Z","host":"server1","message":"Starting up","level":"INFO","category":"orders","status":"pending"}
+{"@timestamp":"2023-01-01T10:05:00Z","event_time":"2023-01-01T10:00:00Z","host":"server2","message":"Initializing","level":"INFO","category":"users","status":"active"}
+{"@timestamp":"2023-01-01T10:10:00Z","event_time":"2023-01-01T10:05:00Z","host":"server1","message":"Ready to serve","level":"INFO","category":"orders","status":"processing"}
+{"@timestamp":"2023-01-01T10:15:00Z","event_time":"2023-01-01T10:10:00Z","host":"server2","message":"Ready","level":"INFO","category":"users","status":"inactive"}
+{"@timestamp":"2023-01-01T10:20:00Z","event_time":"2023-01-01T10:15:00Z","host":"server1","message":"Processing requests","level":"INFO","category":"orders","status":"completed"}
+{"@timestamp":"2023-01-01T10:25:00Z","event_time":"2023-01-01T10:20:00Z","host":"server2","message":"Handling connections","level":"INFO","category":"users","status":"pending"}
+{"@timestamp":"2023-01-01T10:30:00Z","event_time":"2023-01-01T10:25:00Z","host":"server1","message":"Shutting down","level":"WARN","category":"orders","status":"cancelled"}
+{"@timestamp":"2023-01-01T10:35:00Z","event_time":"2023-01-01T10:30:00Z","host":"server2","message":"Maintenance mode","level":"WARN","category":"users","status":"inactive"}
