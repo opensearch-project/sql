@@ -31,6 +31,13 @@ public class OpenSearchLimitIndexScanRule extends RelRule<OpenSearchLimitIndexSc
     final LogicalSort sort = call.rel(0);
     final CalciteLogicalIndexScan scan = call.rel(1);
 
+    // If collation mismatch, it means this LogicalSort is actually a combination of sort and limit
+    // Then we cannot operate limit push down directly
+    if (!sort.getCollation().getFieldCollations().isEmpty()
+        && sort.getCollation() != scan.getTraitSet().getCollation()) {
+      return;
+    }
+
     Integer limitValue = extractLimitValue(sort.fetch);
     Integer offsetValue = extractOffsetValue(sort.offset);
     if (limitValue != null && offsetValue != null) {

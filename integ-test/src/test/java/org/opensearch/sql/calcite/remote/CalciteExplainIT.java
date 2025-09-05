@@ -464,6 +464,21 @@ public class CalciteExplainIT extends ExplainIT {
         explainQueryToString(
             "source=opensearch-sql_test_index_account | stats count() by state | head 100 | head 10"
                 + " from 10 "));
+
+    expected = loadExpectedPlan("explain_limit_agg_pushdown4.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats count() by state | sort state | head"
+                + " 100 | head 10 from 10 "));
+
+    // Don't pushdown the combination of limit and sort
+    expected = loadExpectedPlan("explain_limit_agg_pushdown5.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats count() by state | sort `count()` |"
+                + " head 100 | head 10 from 10 "));
   }
 
   /**
