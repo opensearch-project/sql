@@ -57,6 +57,7 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
+import org.opensearch.search.aggregations.BucketOrder;
 import org.opensearch.search.aggregations.bucket.composite.TermsValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.opensearch.search.sort.NestedSortBuilder;
@@ -805,9 +806,11 @@ class OpenSearchIndexScanOptimizationTest {
       aggBuilder =
           new TermsAggregationBuilder(aggregation.groupBy)
               .field(aggregation.groupBy)
-              .size(AGGREGATION_BUCKET_SIZE);
-      aggBuilder.subAggregation(
-          AggregationBuilders.avg(aggregation.aggregateName).field(aggregation.aggregateBy));
+              .size(AGGREGATION_BUCKET_SIZE)
+              .order(BucketOrder.key(true))
+              .subAggregation(
+                  AggregationBuilders.avg(aggregation.aggregateName)
+                      .field(aggregation.aggregateBy));
     }
     List<AggregationBuilder> aggBuilders = Collections.singletonList(aggBuilder);
     responseParser =
