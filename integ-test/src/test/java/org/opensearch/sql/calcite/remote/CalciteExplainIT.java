@@ -450,6 +450,16 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testRexExplain() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | rex field=lastname \\\"(?<initial>^[A-Z])\\\" |"
+            + " head 5";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_rex.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
   public void testExplainAppendCommand() throws IOException {
     String expected = loadExpectedPlan("explain_append_command.json");
     assertJsonEqualsIgnoreId(
