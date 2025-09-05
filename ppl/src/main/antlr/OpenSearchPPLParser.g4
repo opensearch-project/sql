@@ -262,7 +262,7 @@ indexablePath
    ;
 
 pathElement
-   : ident pathArrayAccess?
+   : ident pathArrayAccess*
    ;
 
 pathArrayAccess
