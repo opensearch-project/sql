@@ -52,6 +52,7 @@ import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilder.AggCall;
 import org.apache.calcite.util.Holder;
@@ -59,6 +60,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.EmptySourcePropagateVisitor;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AggregateFunction;
@@ -81,6 +83,7 @@ import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.CloseCursor;
@@ -113,6 +116,7 @@ import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.Trendline.TrendlineType;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.utils.BinUtils;
@@ -1214,6 +1218,75 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
   }
 
+  @Override
+  public RelNode visitAppend(Append node, CalcitePlanContext context) {
+    // 1. Resolve main plan
+    visitChildren(node, context);
+
+    // 2. Resolve subsearch plan
+    UnresolvedPlan prunedSubSearch =
+        node.getSubSearch().accept(new EmptySourcePropagateVisitor(), null);
+    prunedSubSearch.accept(this, context);
+
+    // 3. Merge two query schemas
+    RelNode subsearchNode = context.relBuilder.build();
+    RelNode mainNode = context.relBuilder.build();
+    List<RelDataTypeField> mainFields = mainNode.getRowType().getFieldList();
+    List<RelDataTypeField> subsearchFields = subsearchNode.getRowType().getFieldList();
+    Map<String, RelDataTypeField> subsearchFieldMap =
+        subsearchFields.stream()
+            .map(typeField -> Pair.of(typeField.getName(), typeField))
+            .collect(Collectors.toMap(Pair::getKey, Pair::getValue));
+    boolean[] isSelected = new boolean[subsearchFields.size()];
+    List<String> names = new ArrayList<>();
+    List<RexNode> mainUnionProjects = new ArrayList<>();
+    List<RexNode> subsearchUnionProjects = new ArrayList<>();
+
+    // 3.1 Start with main query's schema. If subsearch plan doesn't have matched column,
+    // add same type column in place with NULL literal
+    for (int i = 0; i < mainFields.size(); i++) {
+      mainUnionProjects.add(context.rexBuilder.makeInputRef(mainNode, i));
+      RelDataTypeField mainField = mainFields.get(i);
+      RelDataTypeField subsearchField = subsearchFieldMap.get(mainField.getName());
+      names.add(mainField.getName());
+      if (subsearchFieldMap.containsKey(mainField.getName())
+          && subsearchField != null
+          && subsearchField.getType().equals(mainField.getType())) {
+        subsearchUnionProjects.add(
+            context.rexBuilder.makeInputRef(subsearchNode, subsearchField.getIndex()));
+        isSelected[subsearchField.getIndex()] = true;
+      } else {
+        subsearchUnionProjects.add(context.rexBuilder.makeNullLiteral(mainField.getType()));
+      }
+    }
+
+    // 3.2 Add remaining subsearch columns to the merged schema
+    for (int j = 0; j < subsearchFields.size(); j++) {
+      RelDataTypeField subsearchField = subsearchFields.get(j);
+      if (!isSelected[j]) {
+        mainUnionProjects.add(context.rexBuilder.makeNullLiteral(subsearchField.getType()));
+        subsearchUnionProjects.add(context.rexBuilder.makeInputRef(subsearchNode, j));
+        names.add(subsearchField.getName());
+      }
+    }
+
+    // 3.3 Uniquify names in case the merged names have duplicates
+    List<String> uniqNames =
+        SqlValidatorUtil.uniquify(names, SqlValidatorUtil.EXPR_SUGGESTER, true);
+
+    // 4. Apply new schema over two query plans
+    RelNode projectedMainNode =
+        context.relBuilder.push(mainNode).project(mainUnionProjects, uniqNames).build();
+    RelNode projectedSubsearchNode =
+        context.relBuilder.push(subsearchNode).project(subsearchUnionProjects, uniqNames).build();
+
+    // 5. Union all two projected plans
+    context.relBuilder.push(projectedMainNode);
+    context.relBuilder.push(projectedSubsearchNode);
+    context.relBuilder.union(true);
+    return context.relBuilder.peek();
+  }
+
   /*
    * Unsupported Commands of PPL with Calcite for OpenSearch 3.0.0-beta
    */
@@ -1842,6 +1915,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     buildExpandRelNode(arrayFieldRex, arrayField.getField().toString(), alias, context);
 
     return context.relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitValues(Values values, CalcitePlanContext context) {
+    if (values.getValues() == null || values.getValues().isEmpty()) {
+      context.relBuilder.values(context.relBuilder.getTypeFactory().builder().build());
+      return context.relBuilder.peek();
+    } else {
+      throw new CalciteUnsupportedException("Explicit values node is unsupported in Calcite");
+    }
   }
 
   private void buildParseRelNode(Parse node, CalcitePlanContext context) {

@@ -70,6 +70,7 @@ commands
    | fillnullCommand
    | trendlineCommand
    | appendcolCommand
+   | appendCommand
    | expandCommand
    | flattenCommand
    | reverseCommand
@@ -110,6 +111,7 @@ commandName
    | EXPLAIN
    | REVERSE
    | REGEX
+   | APPEND
    ;
 
 searchCommand
@@ -358,6 +360,10 @@ flattenCommand
 
 appendcolCommand
    : APPENDCOL (OVERRIDE EQUAL override = booleanLiteral)? LT_SQR_PRTHS commands (PIPE commands)* RT_SQR_PRTHS
+   ;
+
+appendCommand
+   : APPEND LT_SQR_PRTHS searchCommand? (PIPE commands)* RT_SQR_PRTHS
    ;
 
 kmeansCommand
