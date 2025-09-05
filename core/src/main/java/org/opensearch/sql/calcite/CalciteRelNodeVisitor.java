@@ -228,8 +228,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     for (int i = 0; i < namedGroups.size(); i++) {
       RexNode extractCall;
-      if (node.getMaxMatch().isPresent() && node.getMaxMatch().get() != 1) {
-        // Use REX_EXTRACT_MULTI for multiple matches
+      if (node.getMaxMatch().isPresent() && node.getMaxMatch().get() > 1) {
         extractCall =
             PPLFuncImpTable.INSTANCE.resolve(
                 context.rexBuilder,
@@ -239,7 +238,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 context.relBuilder.literal(i + 1),
                 context.relBuilder.literal(node.getMaxMatch().get()));
       } else {
-        // Use REX_EXTRACT for single match (default)
         extractCall =
             PPLFuncImpTable.INSTANCE.resolve(
                 context.rexBuilder,
