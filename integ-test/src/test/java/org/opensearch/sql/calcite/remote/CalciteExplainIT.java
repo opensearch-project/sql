@@ -405,6 +405,32 @@ public class CalciteExplainIT extends ExplainIT {
                 TEST_INDEX_LOGS)));
   }
 
+  // Only for Calcite
+  @Test
+  public void testExplainOnFirstLast() throws IOException {
+    String expected = loadExpectedPlan("explain_first_last.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | stats first(firstname) as first_name, last(firstname) as"
+                    + " last_name by gender",
+                TEST_INDEX_BANK)));
+  }
+
+  // Only for Calcite
+  @Test
+  public void testExplainOnFirstLastDifferentFields() throws IOException {
+    String expected = loadExpectedPlan("explain_first_last_different_fields.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | stats first(account_number) as first_account,"
+                    + " last(balance) as last_balance, first(age) as first_age",
+                TEST_INDEX_BANK)));
+  }
+
   @Test
   public void testListAggregationExplain() throws IOException {
     String expected = loadExpectedPlan("explain_list_aggregation.json");

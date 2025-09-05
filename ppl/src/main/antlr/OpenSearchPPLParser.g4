@@ -554,11 +554,14 @@ statsFunctionName
    | PERCENTILE
    | PERCENTILE_APPROX
    | LIST
+   | FIRST
+   | LAST
    ;
 
 earliestLatestFunction
    : (EARLIEST | LATEST) LT_PRTHS valueExpression (COMMA timeField = valueExpression)? RT_PRTHS
    ;
+
 
 
 
