@@ -120,6 +120,11 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testRenameCommandWithWildcards() {
+    assertEquals("source=t | rename f* as g*", anonymize("source=t | rename f* as g*"));
+  }
+
+  @Test
   public void testStatsCommandWithByClause() {
     assertEquals("source=t | stats count(a) by b", anonymize("source=t | stats count(a) by b"));
   }

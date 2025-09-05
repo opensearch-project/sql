@@ -32,6 +32,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalNot
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalOrContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalXorContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.MultiFieldRelevanceFunctionContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameFieldExpressionContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SingleFieldRelevanceFunctionContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SpanClauseContext;
@@ -265,6 +266,14 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
       OpenSearchPPLParser.SelectFieldExpressionContext ctx) {
     if (ctx.STAR() != null) {
       return AllFields.of();
+    }
+    return new Field((QualifiedName) visit(ctx.wcQualifiedName()));
+  }
+
+  @Override
+  public UnresolvedExpression visitRenameFieldExpression(RenameFieldExpressionContext ctx) {
+    if (ctx.STAR() != null) {
+      return new Field(QualifiedName.of("*"));
     }
     return new Field((QualifiedName) visit(ctx.wcQualifiedName()));
   }
