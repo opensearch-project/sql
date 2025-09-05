@@ -58,6 +58,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.CloseCursor;
@@ -88,6 +89,7 @@ import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Timechart;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
@@ -740,6 +742,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   @Override
+  public LogicalPlan visitTimechart(Timechart node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Timechart");
+  }
+
+  @Override
   public LogicalPlan visitRegex(Regex node, AnalysisContext context) {
     throw getOnlyForCalciteException("Regex");
   }
@@ -775,6 +782,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitAppendCol(AppendCol node, AnalysisContext context) {
     throw getOnlyForCalciteException("Appendcol");
+  }
+
+  @Override
+  public LogicalPlan visitAppend(Append node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Append");
   }
 
   private LogicalSort buildSort(

@@ -46,6 +46,7 @@ import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.CloseCursor;
@@ -76,6 +77,7 @@ import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Timechart;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
@@ -260,6 +262,10 @@ public abstract class AbstractNodeVisitor<T, C> {
     return visitChildren(node, context);
   }
 
+  public T visitTimechart(Timechart node, C context) {
+    return visitChildren(node, context);
+  }
+
   public T visitRegex(Regex node, C context) {
     return visitChildren(node, context);
   }
@@ -409,6 +415,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitAppendCol(AppendCol node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitAppend(Append node, C context) {
     return visitChildren(node, context);
   }
 }

@@ -43,6 +43,7 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.ast.EmptySourcePropagateVisitor;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
@@ -58,11 +59,13 @@ import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.PatternMethod;
 import org.opensearch.sql.ast.expression.PatternMode;
 import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.CountBin;
 import org.opensearch.sql.ast.tree.Dedupe;
@@ -94,6 +97,7 @@ import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Timechart;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
@@ -568,6 +572,59 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return new Reverse();
   }
 
+  /** Timechart command. */
+  @Override
+  public UnresolvedPlan visitTimechartCommand(OpenSearchPPLParser.TimechartCommandContext ctx) {
+    UnresolvedExpression binExpression =
+        AstDSL.span(AstDSL.field("@timestamp"), AstDSL.intLiteral(1), SpanUnit.of("m"));
+    Integer limit = 10;
+    Boolean useOther = true;
+
+    // Process timechart parameters
+    for (OpenSearchPPLParser.TimechartParameterContext paramCtx : ctx.timechartParameter()) {
+      if (paramCtx.spanClause() != null) {
+        binExpression = internalVisitExpression(paramCtx.spanClause());
+      } else if (paramCtx.spanLiteral() != null) {
+        // Convert span=1h to span(@timestamp, 1h)
+        binExpression = internalVisitExpression(paramCtx.spanLiteral());
+      } else if (paramCtx.timechartArg() != null) {
+        OpenSearchPPLParser.TimechartArgContext argCtx = paramCtx.timechartArg();
+        if (argCtx.LIMIT() != null && argCtx.integerLiteral() != null) {
+          limit = Integer.parseInt(argCtx.integerLiteral().getText());
+          if (limit < 0) {
+            throw new IllegalArgumentException("Limit must be a non-negative number");
+          }
+        } else if (argCtx.USEOTHER() != null) {
+          if (argCtx.booleanLiteral() != null) {
+            useOther = Boolean.parseBoolean(argCtx.booleanLiteral().getText());
+          } else if (argCtx.ident() != null) {
+            String useOtherValue = argCtx.ident().getText().toLowerCase();
+            if ("true".equals(useOtherValue) || "t".equals(useOtherValue)) {
+              useOther = true;
+            } else if ("false".equals(useOtherValue) || "f".equals(useOtherValue)) {
+              useOther = false;
+            } else {
+              throw new IllegalArgumentException(
+                  "Invalid useOther value: "
+                      + argCtx.ident().getText()
+                      + ". Expected true/false or t/f");
+            }
+          }
+        }
+      }
+    }
+
+    UnresolvedExpression aggregateFunction = internalVisitExpression(ctx.statsFunction());
+    UnresolvedExpression byField =
+        ctx.fieldExpression() != null ? internalVisitExpression(ctx.fieldExpression()) : null;
+
+    return new Timechart(null, aggregateFunction)
+        .span(binExpression)
+        .by(byField)
+        .limit(limit)
+        .useOther(useOther);
+  }
+
   /** Eval command. */
   @Override
   public UnresolvedPlan visitEvalCommand(EvalCommandContext ctx) {
@@ -909,6 +966,21 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     Literal pattern = (Literal) internalVisitExpression(ctx.regexExpr().pattern);
 
     return new Regex(field, negated, pattern);
+  }
+
+  @Override
+  public UnresolvedPlan visitAppendCommand(OpenSearchPPLParser.AppendCommandContext ctx) {
+    UnresolvedPlan searchCommandInSubSearch =
+        ctx.searchCommand() != null
+            ? visit(ctx.searchCommand())
+            : EmptySourcePropagateVisitor
+                .EMPTY_SOURCE; // Represents 0 row * 0 col empty input syntax
+    UnresolvedPlan subsearch =
+        ctx.commands().stream()
+            .map(this::visit)
+            .reduce(searchCommandInSubSearch, (r, e) -> e.attach(r));
+
+    return new Append(subsearch);
   }
 
   /** Get original text in query. */
