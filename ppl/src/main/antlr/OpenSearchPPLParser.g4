@@ -70,9 +70,12 @@ commands
    | fillnullCommand
    | trendlineCommand
    | appendcolCommand
+   | appendCommand
    | expandCommand
    | flattenCommand
    | reverseCommand
+   | regexCommand
+   | timechartCommand
    ;
 
 commandName
@@ -104,8 +107,11 @@ commandName
    | EXPAND
    | FLATTEN
    | TRENDLINE
+   | TIMECHART
    | EXPLAIN
    | REVERSE
+   | REGEX
+   | APPEND
    ;
 
 searchCommand
@@ -159,11 +165,30 @@ dedupCommand
    ;
 
 sortCommand
-   : SORT (count = integerLiteral)? sortbyClause (DESC | D)?
+   : SORT (count = integerLiteral)? sortbyClause (ASC | A | DESC | D)?
    ;
 
 reverseCommand
    : REVERSE
+   ;
+
+timechartCommand
+   : TIMECHART timechartParameter* statsFunction (BY fieldExpression)?
+   ;
+
+timechartParameter
+   : (spanClause | SPAN EQUAL spanLiteral)
+   | timechartArg
+   ;
+
+timechartArg
+   : LIMIT EQUAL integerLiteral
+   | USEOTHER EQUAL (booleanLiteral | ident)
+   ;
+
+spanLiteral
+   : integerLiteral timespanUnit
+   | stringLiteral
    ;
 
 evalCommand
@@ -241,6 +266,13 @@ pathElement
 pathArrayAccess
    : LT_CURLY (INTEGER_LITERAL)? RT_CURLY
    ;
+regexCommand
+    : REGEX regexExpr
+    ;
+
+regexExpr
+    : field=qualifiedName operator=(EQUAL | NOT_EQUAL) pattern=stringLiteral
+    ;
 
 patternsMethod
    : PUNCT
@@ -328,6 +360,10 @@ flattenCommand
 
 appendcolCommand
    : APPENDCOL (OVERRIDE EQUAL override = booleanLiteral)? LT_SQR_PRTHS commands (PIPE commands)* RT_SQR_PRTHS
+   ;
+
+appendCommand
+   : APPEND LT_SQR_PRTHS searchCommand? (PIPE commands)* RT_SQR_PRTHS
    ;
 
 kmeansCommand
@@ -503,6 +539,7 @@ statsFunctionName
    | STDDEV_POP
    | PERCENTILE
    | PERCENTILE_APPROX
+   | LIST
    ;
 
 earliestLatestFunction
@@ -1232,6 +1269,8 @@ keywordsCanBeId
    | EXISTS
    | SOURCE
    | INDEX
+   | A
+   | ASC
    | DESC
    | DATASOURCES
    | FROM

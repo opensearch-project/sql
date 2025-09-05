@@ -204,6 +204,13 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals("source=t | reverse", anonymize("source=t | reverse"));
   }
 
+  @Test
+  public void testTimechartCommand() {
+    assertEquals(
+        "source=t | timechart span=span(@timestamp, *** m) limit=10 useother=true count() by host",
+        anonymize("source=t | timechart count() by host"));
+  }
+
   // todo, sort order is ignored, it doesn't impact the log analysis.
   @Test
   public void testSortCommandWithOptions() {
@@ -359,6 +366,30 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testAppend() {
+    assertEquals(
+        "source=t | stats count() by b | append [ | stats sum(c) by b ]",
+        anonymize("source=t | stats count() by b | append [ | stats sum(c) by b ]"));
+    assertEquals(
+        "source=t | stats count() by b | append [ | stats sum(c) by b ]",
+        anonymize("source=t | stats count() by b | append [ | stats sum(c) by b ]"));
+    assertEquals(
+        "source=t | append [ | where a = *** ]", anonymize("source=t | append [ | where a = 1 ]"));
+    assertEquals(
+        "source=t | stats count() by b | append [source=a | stats sum(c) by b ]",
+        anonymize("source=t | stats count() by b | append [source=a | stats sum(c) by b ]"));
+    assertEquals(
+        "source=t | append [source=b | where a = *** ]",
+        anonymize("source=t | append [source=b | where a = 1 ]"));
+    assertEquals(
+        "source=t | stats count() by b | append [source=a ]",
+        anonymize("source=t | stats count() by b | append [ source=a ]"));
+    assertEquals(
+        "source=t | stats count() by b | append [ ]",
+        anonymize("source=t | stats count() by b | append [ ]"));
+  }
+
+  @Test
   public void testSubqueryAlias() {
     assertEquals("source=t as t1", anonymize("source=t as t1"));
   }
@@ -509,6 +540,15 @@ public class PPLQueryDataAnonymizerTest {
         anonymize(
             "source=t | patterns email method=BRAIN mode=AGGREGATION"
                 + " variable_count_threshold=5"));
+  }
+
+  @Test
+  public void testRegex() {
+    assertEquals("source=t | regex field=***", anonymize("source=t | regex field='pattern'"));
+    assertEquals("source=t | regex field!=***", anonymize("source=t | regex field!='pattern'"));
+    assertEquals(
+        "source=t | regex email=*** | fields + email",
+        anonymize("source=t | regex email='.*@domain.com' | fields email"));
   }
 
   private String anonymize(String query) {
