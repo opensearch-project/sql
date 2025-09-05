@@ -1120,14 +1120,11 @@ public class PPLFuncImpTable {
               PERCENTILE_APPROX.name(),
               false));
 
-      // Register MEDIAN as alias for PERCENTILE_APPROX with 50th percentile
       register(
           MEDIAN,
           (distinct, field, argList, ctx) -> {
             List<RexNode> medianArgList = new ArrayList<>();
-            medianArgList.add(
-                ctx.rexBuilder.makeExactLiteral(
-                    BigDecimal.valueOf(50.0))); // hardcoded 50th percentile
+            medianArgList.add(ctx.rexBuilder.makeExactLiteral(BigDecimal.valueOf(50.0)));
             medianArgList.add(ctx.rexBuilder.makeFlag(field.getType().getSqlTypeName()));
             return UserDefinedFunctionUtils.makeAggregateCall(
                 PPLBuiltinOperators.PERCENTILE_APPROX,
