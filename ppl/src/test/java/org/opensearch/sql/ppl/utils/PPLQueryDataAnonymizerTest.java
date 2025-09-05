@@ -555,11 +555,13 @@ public class PPLQueryDataAnonymizerTest {
 
   @Test
   public void testRexCommand() {
+    when(settings.getSettingValue(Key.PPL_REX_MAX_MATCH_LIMIT)).thenReturn(10);
+
     assertEquals(
-        "source=t | rex field=message mode=extract \"(?<user>[A-Z]+)\"",
+        "source=t | rex field=message mode=extract \"(?<user>[A-Z]+)\" max_match=1",
         anonymize("source=t | rex field=message \"(?<user>[A-Z]+)\""));
     assertEquals(
-        "source=t | rex field=lastname mode=extract \"(?<initial>^[A-Z])\" | fields +"
+        "source=t | rex field=lastname mode=extract \"(?<initial>^[A-Z])\" max_match=1 | fields +"
             + " lastname,initial",
         anonymize(
             "source=t | rex field=lastname \"(?<initial>^[A-Z])\" | fields lastname, initial"));

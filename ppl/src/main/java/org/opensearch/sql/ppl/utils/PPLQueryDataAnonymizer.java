@@ -462,13 +462,11 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String pattern = "\"" + node.getPattern().toString() + "\"";
     StringBuilder command = new StringBuilder();
 
-    // Build the base command
     command.append(
         String.format(
             "%s | rex field=%s mode=%s %s",
             child, field, node.getMode().toString().toLowerCase(), pattern));
 
-    // Add optional parameters
     if (node.getMaxMatch().isPresent()) {
       command.append(" max_match=").append(node.getMaxMatch().get());
     }
