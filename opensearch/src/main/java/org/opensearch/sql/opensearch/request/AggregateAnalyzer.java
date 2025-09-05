@@ -69,6 +69,7 @@ import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
+import org.opensearch.sql.opensearch.response.agg.ArgMaxMinParser;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParser;
 import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
@@ -305,6 +306,26 @@ public class AggregateAnalyzer {
         return Pair.of(
             helper.build(args.get(0), AggregationBuilders.extendedStats(aggFieldName)),
             new StatsParser(ExtendedStats::getStdDeviationPopulation, aggFieldName));
+      case ARG_MAX:
+        return Pair.of(
+          AggregationBuilders.topHits(aggFieldName)
+              .fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null)
+              .size(1)
+              .from(0)
+              .sort(
+                  helper.inferNamedField(args.get(1)).getRootName(),
+                  org.opensearch.search.sort.SortOrder.DESC),
+          new ArgMaxMinParser(aggFieldName));
+      case ARG_MIN:
+        return Pair.of(
+          AggregationBuilders.topHits(aggFieldName)
+              .fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null)
+              .size(1)
+              .from(0)
+              .sort(
+                  helper.inferNamedField(args.get(1)).getRootName(),
+                  org.opensearch.search.sort.SortOrder.ASC),
+          new ArgMaxMinParser(aggFieldName));
       case OTHER_FUNCTION:
         BuiltinFunctionName functionName =
             BuiltinFunctionName.ofAggregation(aggCall.getAggregation().getName()).get();
