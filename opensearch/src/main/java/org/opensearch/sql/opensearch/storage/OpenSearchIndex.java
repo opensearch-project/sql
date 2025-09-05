@@ -5,9 +5,14 @@
 
 package org.opensearch.sql.opensearch.storage;
 
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
+import static org.opensearch.sql.data.type.ExprCoreType.*;
+
 import com.google.common.annotations.VisibleForTesting;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Function;
@@ -17,8 +22,11 @@ import lombok.RequiredArgsConstructor;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.calcite.plan.AbstractOpenSearchTable;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -148,6 +156,37 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
   }
 
   @Override
+  public RelDataType getRowType(RelDataTypeFactory relDataTypeFactory) {
+    LinkedHashMap<String, OpenSearchDataType> allFields =
+        new LinkedHashMap<>(getFieldOpenSearchTypes());
+    getReservedFieldTypes().forEach((k, v) -> allFields.put(k, OpenSearchDataType.of(v)));
+    return constructStructType(allFields);
+  }
+
+  private RelDataType constructStructType(Map<String, OpenSearchDataType> osTypes) {
+    List<String> fieldNameList = new ArrayList<>();
+    List<RelDataType> typeList = new ArrayList<>();
+    for (Entry<String, OpenSearchDataType> entry : osTypes.entrySet()) {
+      fieldNameList.add(entry.getKey());
+      typeList.add(convertOpenSearchDataTypeToRelDataType(entry.getValue()));
+    }
+    return TYPE_FACTORY.createStructType(typeList, fieldNameList, true);
+  }
+
+  private RelDataType convertOpenSearchDataTypeToRelDataType(
+      OpenSearchDataType openSearchDataType) {
+    // OpenSearchIndex will handle struct type itself to use Calcite's StructType. Then it can
+    // support resolving nested fields without relying on schema flattening.
+    if (openSearchDataType.getExprType().equals(STRUCT)
+        || openSearchDataType.getExprType().equals(ARRAY)) {
+      Map<String, OpenSearchDataType> internalFields = openSearchDataType.getProperties();
+      return constructStructType(internalFields);
+    }
+    return OpenSearchTypeFactory.convertExprTypeToRelDataType(
+        openSearchDataType.getExprType(), true);
+  }
+
+  @Override
   public Map<String, ExprType> getReservedFieldTypes() {
     return METADATAFIELD_TYPE_MAP;
   }
@@ -212,11 +251,8 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
   }
 
   private OpenSearchExprValueFactory createExprValueFactory() {
-    Map<String, OpenSearchDataType> allFields = new HashMap<>();
-    getReservedFieldTypes().forEach((k, v) -> allFields.put(k, OpenSearchDataType.of(v)));
-    allFields.putAll(getFieldOpenSearchTypes());
     return new OpenSearchExprValueFactory(
-        allFields, settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE));
+        getFieldOpenSearchTypes(), settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE));
   }
 
   public boolean isFieldTypeTolerance() {

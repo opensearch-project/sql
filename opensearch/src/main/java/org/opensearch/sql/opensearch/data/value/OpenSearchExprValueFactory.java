@@ -350,12 +350,13 @@ public class OpenSearchExprValueFactory {
    * @return Value parsed from content.
    */
   private ExprValue parseStruct(Content content, String prefix, boolean supportArrays) {
-    ExprTupleValue result = ExprTupleValue.empty();
+    ExprTupleValue result = ExprTupleValue.empty(getFields(prefix));
     content
         .map()
         .forEachRemaining(
             entry ->
                 populateValueRecursive(
+                    prefix,
                     result,
                     new JsonPath(entry.getKey()),
                     parse(
@@ -366,6 +367,12 @@ public class OpenSearchExprValueFactory {
     return result;
   }
 
+  private List<String> getFields(String prefix) {
+    return TOP_PATH.equals(prefix)
+        ? typeMapping.keySet().stream().toList()
+        : typeMapping.get(prefix).getProperties().keySet().stream().toList();
+  }
+
   /**
    * Populate the current ExprTupleValue recursively.
    *
@@ -374,7 +381,8 @@ public class OpenSearchExprValueFactory {
    *
    * <p>If there is existing vale for the JsonPath, we need to merge the new value to the old.
    */
-  static void populateValueRecursive(ExprTupleValue result, JsonPath path, ExprValue value) {
+  void populateValueRecursive(
+      String prefix, ExprTupleValue result, JsonPath path, ExprValue value) {
     if (path.getPaths().size() == 1) {
       // Update the current ExprValue by using mergeTo if exists
       result
@@ -382,9 +390,15 @@ public class OpenSearchExprValueFactory {
           .computeIfPresent(path.getRootPath(), (key, oldValue) -> value.mergeTo(oldValue));
       result.tupleValue().putIfAbsent(path.getRootPath(), value);
     } else {
-      result.tupleValue().putIfAbsent(path.getRootPath(), ExprTupleValue.empty());
+      String newPrefix = prefix + path.getRootPath();
+      result
+          .tupleValue()
+          .putIfAbsent(path.getRootPath(), ExprTupleValue.empty(getFields(newPrefix)));
       populateValueRecursive(
-          (ExprTupleValue) result.tupleValue().get(path.getRootPath()), path.getChildPath(), value);
+          newPrefix,
+          (ExprTupleValue) result.tupleValue().get(path.getRootPath()),
+          path.getChildPath(),
+          value);
     }
   }
 
