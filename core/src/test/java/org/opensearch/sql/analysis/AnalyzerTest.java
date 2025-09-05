@@ -1946,6 +1946,19 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
+  public void rex_command_throws_unsupported_operation_exception_in_legacy_engine() {
+    UnsupportedOperationException exception =
+        assertThrows(
+            UnsupportedOperationException.class,
+            () ->
+                analyze(
+                    new org.opensearch.sql.ast.tree.Rex(
+                            field("email"), stringLiteral("(?<user>[^@]+)@(?<domain>.+)"))
+                        .attach(relation("schema"))));
+    assertEquals("Rex is supported only when plugins.calcite.enabled=true", exception.getMessage());
+  }
+
+  @Test
   public void stats_non_bucket_nullable_test() {
     assertAnalyzeEqual(
         LogicalPlanDSL.aggregation(

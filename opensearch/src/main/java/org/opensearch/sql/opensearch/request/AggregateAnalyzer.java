@@ -121,10 +121,10 @@ public class AggregateAnalyzer {
   private AggregateAnalyzer() {}
 
   @RequiredArgsConstructor
-  private static class AggregateBuilderHelper {
-    private final RelDataType rowType;
-    private final Map<String, ExprType> fieldTypes;
-    private final RelOptCluster cluster;
+  static class AggregateBuilderHelper {
+    final RelDataType rowType;
+    final Map<String, ExprType> fieldTypes;
+    final RelOptCluster cluster;
 
     <T extends ValuesSourceAggregationBuilder<T>> T build(RexNode node, T aggBuilder) {
       return build(node, aggBuilder::field, aggBuilder::script);
@@ -222,9 +222,11 @@ public class AggregateAnalyzer {
       List<String> aggFieldNames,
       List<AggregateCall> aggCalls,
       Project project,
-      AggregateBuilderHelper helper) {
+      AggregateBuilderHelper helper)
+      throws PredicateAnalyzer.ExpressionNotAnalyzableException {
     Builder metricBuilder = new AggregatorFactories.Builder();
     List<MetricParser> metricParserList = new ArrayList<>();
+    AggregateFilterAnalyzer aggFilterAnalyzer = new AggregateFilterAnalyzer(helper, project);
 
     for (int i = 0; i < aggCalls.size(); i++) {
       AggregateCall aggCall = aggCalls.get(i);
@@ -233,6 +235,7 @@ public class AggregateAnalyzer {
 
       Pair<AggregationBuilder, MetricParser> builderAndParser =
           createAggregationBuilderAndParser(aggCall, args, aggFieldName, helper);
+      builderAndParser = aggFilterAnalyzer.analyze(builderAndParser, aggCall, aggFieldName);
       metricBuilder.addAggregator(builderAndParser.getLeft());
       metricParserList.add(builderAndParser.getRight());
     }
