@@ -114,13 +114,13 @@ jobs:
         exclude:
           # Exclude doctest for Windows
           - test-type: doc
-            entry: { os: windows-latest, java: 11, os_build_args: -PbuildPlatform=window
+            entry: { os: windows-latest, java: 11, os_build_args: -PbuildPlatform=window }
           - test-type: doc
             entry: { os: windows-latest, java: 17, os_build_args: -PbuildPlatform=windows }
           - test-type: doc
             entry: { os: windows-latest, java: 21, os_build_args: -PbuildPlatform=windows }
-    runs-on: ${{ matrix.entry.os }}
 
+    runs-on: ${{ matrix.entry.os }}
     steps:
       - uses: actions/checkout@v4
 
