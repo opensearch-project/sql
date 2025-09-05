@@ -1000,7 +1000,31 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       }
     }
 
-    return new Rex(field, pattern, mode, maxMatch);
+    int maxMatchLimit =
+        (settings != null) ? settings.getSettingValue(Settings.Key.PPL_REX_MAX_MATCH_LIMIT) : 10;
+
+    int effectiveMaxMatch;
+    if (maxMatch.isPresent()) {
+      if (maxMatch.get() == 0) {
+        effectiveMaxMatch = maxMatchLimit;
+      } else if (maxMatch.get() > maxMatchLimit) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Rex command max_match value (%d) exceeds the configured limit (%d). "
+                    + "Consider using a smaller max_match value"
+                    + (settings != null
+                        ? " or adjust the plugins.ppl.rex.max_match.limit setting."
+                        : "."),
+                maxMatch.get(),
+                maxMatchLimit));
+      } else {
+        effectiveMaxMatch = maxMatch.get();
+      }
+    } else {
+      effectiveMaxMatch = 1;
+    }
+
+    return new Rex(field, pattern, mode, Optional.of(effectiveMaxMatch));
   }
 
   /** Get original text in query. */

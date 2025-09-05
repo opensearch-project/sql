@@ -10,6 +10,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalciteRexCommandIT extends PPLIntegTestCase {
@@ -146,5 +147,99 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
     assertTrue(count > 0);
     assertFalse(domain.contains("@"));
     assertTrue(domain.matches("[a-z]+"));
+  }
+
+  @Test
+  public void testRexMaxMatchZeroLimitedToDefaultTen() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | rex field=address \\\"(?<digit>\\\\\\\\d*)\\\" max_match=0 | eval"
+                    + " digit_count=array_length(digit) | fields address, digit_count | head 1",
+                TEST_INDEX_ACCOUNT));
+
+    assertEquals(1, result.getJSONArray("datarows").length());
+    // Should be capped at 10 matches
+    assertEquals(10, result.getJSONArray("datarows").getJSONArray(0).get(1));
+  }
+
+  @Test
+  public void testRexMaxMatchExceedsDefaultLimit() throws IOException {
+    try {
+      executeQuery(
+          String.format(
+              "source=%s | rex field=address \\\"(?<digit>\\\\\\\\d+)\\\" max_match=100 | fields"
+                  + " address, digit",
+              TEST_INDEX_ACCOUNT));
+      fail("Should have thrown an exception for max_match exceeding default limit");
+    } catch (Exception e) {
+      assertTrue(e.getMessage().contains("exceeds the configured limit (10)"));
+      assertTrue(e.getMessage().contains("Consider using a smaller max_match value"));
+    }
+  }
+
+  @Test
+  public void testRexMaxMatchWithinDefaultLimit() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | rex field=address \\\"(?<digit>\\\\\\\\d*)\\\" max_match=5 | eval"
+                    + " digit_count=array_length(digit) | fields address, digit_count | head 1",
+                TEST_INDEX_ACCOUNT));
+
+    assertEquals(1, result.getJSONArray("datarows").length());
+    // Should respect the specified limit of 5
+    assertEquals(5, result.getJSONArray("datarows").getJSONArray(0).get(1));
+  }
+
+  @Test
+  public void testRexMaxMatchAtDefaultLimit() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | rex field=address \\\"(?<digit>\\\\\\\\d*)\\\" max_match=10 | eval"
+                    + " digit_count=array_length(digit) | fields address, digit_count | head 1",
+                TEST_INDEX_ACCOUNT));
+
+    assertEquals(1, result.getJSONArray("datarows").length());
+    // Should accept exactly the limit
+    assertEquals(10, result.getJSONArray("datarows").getJSONArray(0).get(1));
+  }
+
+  @Test
+  public void testRexMaxMatchConfigurableLimit() throws IOException {
+    // Set a custom limit of 5
+    updateClusterSettings(
+        new ClusterSetting(PERSISTENT, Settings.Key.PPL_REX_MAX_MATCH_LIMIT.getKeyValue(), "5"));
+
+    try {
+      // Test that max_match=0 is capped to the new limit
+      JSONObject result =
+          executeQuery(
+              String.format(
+                  "source=%s | rex field=address \\\"(?<digit>\\\\\\\\d*)\\\" max_match=0 | eval"
+                      + " digit_count=array_length(digit) | fields address, digit_count | head 1",
+                  TEST_INDEX_ACCOUNT));
+
+      assertEquals(1, result.getJSONArray("datarows").length());
+      // Should be capped at the configured limit of 5
+      assertEquals(5, result.getJSONArray("datarows").getJSONArray(0).get(1));
+
+      // Test that exceeding the custom limit throws an error
+      try {
+        executeQuery(
+            String.format(
+                "source=%s | rex field=address \\\"(?<digit>\\\\\\\\d+)\\\" max_match=10 | fields"
+                    + " address, digit",
+                TEST_INDEX_ACCOUNT));
+        fail("Should have thrown an exception for max_match exceeding custom limit");
+      } catch (Exception e) {
+        assertTrue(e.getMessage().contains("exceeds the configured limit (5)"));
+        assertTrue(e.getMessage().contains("adjust the plugins.ppl.rex.max_match.limit setting"));
+      }
+    } finally {
+      updateClusterSettings(
+          new ClusterSetting(PERSISTENT, Settings.Key.PPL_REX_MAX_MATCH_LIMIT.getKeyValue(), null));
+    }
   }
 }

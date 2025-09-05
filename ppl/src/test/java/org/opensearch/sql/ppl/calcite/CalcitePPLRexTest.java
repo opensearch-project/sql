@@ -5,13 +5,22 @@
 
 package org.opensearch.sql.ppl.calcite;
 
+import static org.mockito.Mockito.doReturn;
+
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
+import org.junit.Before;
 import org.junit.Test;
+import org.opensearch.sql.common.setting.Settings;
 
 public class CalcitePPLRexTest extends CalcitePPLAbstractTest {
   public CalcitePPLRexTest() {
     super(CalciteAssert.SchemaSpec.SCOTT_WITH_TEMPORAL);
+  }
+
+  @Before
+  public void setUp() {
+    doReturn(10).when(settings).getSettingValue(Settings.Key.PPL_REX_MAX_MATCH_LIMIT);
   }
 
   @Test
@@ -157,6 +166,64 @@ public class CalcitePPLRexTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`\n"
             + "ORDER BY 2\n"
             + "LIMIT 5";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testRexWithMaxMatchZero() {
+    // Test that max_match=0 (unlimited) is capped to the configured limit
+    String ppl =
+        "source=EMP | rex field=ENAME '(?<letter>[A-Z])' max_match=0 | fields ENAME, letter";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(ENAME=[$1], letter=[REX_EXTRACT_MULTI($1, '(?<letter>[A-Z])', 1, 10)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `ENAME`, `REX_EXTRACT_MULTI`(`ENAME`, '(?<letter>[A-Z])', 1, 10) `letter`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testRexWithMaxMatchExceedsLimit() {
+    // Test that max_match exceeding the configured limit throws an exception
+    String ppl =
+        "source=EMP | rex field=ENAME '(?<letter>[A-Z])' max_match=100 | fields ENAME, letter";
+    getRelNode(ppl);
+  }
+
+  @Test
+  public void testRexWithMaxMatchWithinLimit() {
+    String ppl =
+        "source=EMP | rex field=ENAME '(?<letter>[A-Z])' max_match=5 | fields ENAME, letter";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(ENAME=[$1], letter=[REX_EXTRACT_MULTI($1, '(?<letter>[A-Z])', 1, 5)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `ENAME`, `REX_EXTRACT_MULTI`(`ENAME`, '(?<letter>[A-Z])', 1, 5) `letter`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testRexWithMaxMatchAtLimit() {
+    // Test that max_match exactly at the limit works
+    String ppl =
+        "source=EMP | rex field=ENAME '(?<letter>[A-Z])' max_match=10 | fields ENAME, letter";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(ENAME=[$1], letter=[REX_EXTRACT_MULTI($1, '(?<letter>[A-Z])', 1, 10)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `ENAME`, `REX_EXTRACT_MULTI`(`ENAME`, '(?<letter>[A-Z])', 1, 10) `letter`\n"
+            + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }

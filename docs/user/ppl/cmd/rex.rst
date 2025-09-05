@@ -23,7 +23,7 @@ rex field=<field> <pattern> [max_match=<int>]
 
 * field: mandatory. The field must be a string field to extract data from.
 * pattern: mandatory string. The regular expression pattern with named capture groups used to extract new fields. Pattern must contain at least one named capture group using ``(?<name>pattern)`` syntax.
-* max_match: optional integer (default=1). Maximum number of matches to extract. If greater than 1, extracted fields become arrays.
+* max_match: optional integer (default=1). Maximum number of matches to extract. If greater than 1, extracted fields become arrays. The value 0 means unlimited matches, but is automatically capped to the configured limit (default: 10, configurable via ``plugins.ppl.rex.max_match.limit``).
 
 Example 1: Basic Field Extraction
 ==================================
@@ -135,6 +135,28 @@ Correct PPL query without underscores::
     +-----------------------+------------+-------------+
 
 
+Example 7: Max Match Limit Protection
+======================================
+
+Demonstrates the max_match limit protection mechanism. When max_match=0 (unlimited) is specified, the system automatically caps it to prevent memory exhaustion.
+
+PPL query with max_match=0 automatically capped to default limit of 10::
+
+    os> source=accounts | rex field=address "(?<digit>\\d*)" max_match=0 | eval digit_count=array_length(digit) | fields address, digit_count | head 1 ;
+    fetched rows / total rows = 1/1
+    +-----------------+-------------+
+    | address         | digit_count |
+    |-----------------+-------------|
+    | 880 Holmes Lane | 10          |
+    +-----------------+-------------+
+
+PPL query exceeding the configured limit results in an error::
+
+    os> source=accounts | rex field=address "(?<digit>\\d*)" max_match=100 | fields address, digit | head 1 ;
+    {'reason': 'Invalid Query', 'details': 'Rex command max_match value (100) exceeds the configured limit (10). Consider using a smaller max_match value or adjust the plugins.ppl.rex.max_match.limit setting.', 'type': 'IllegalArgumentException'}
+    Error: Query returned no data
+
+
 Comparison with Related Commands
 ================================
 
@@ -164,3 +186,10 @@ There are several important limitations with the rex command:
 
 - Pattern must contain at least one named capture group
 - Regular capture groups ``(...)`` without names are not allowed
+
+**Max Match Limit:**
+
+- The ``max_match`` parameter is subject to a configurable system limit to prevent memory exhaustion
+- When ``max_match=0`` (unlimited) is specified, it is automatically capped at the configured limit (default: 10)
+- User-specified values exceeding the configured limit will result in an error
+- Users can adjust the limit via the ``plugins.ppl.rex.max_match.limit`` cluster setting. Setting this limit to a large value is not recommended as it can lead to excessive memory consumption, especially with patterns that match empty strings (e.g., ``\d*``, ``\w*``)
