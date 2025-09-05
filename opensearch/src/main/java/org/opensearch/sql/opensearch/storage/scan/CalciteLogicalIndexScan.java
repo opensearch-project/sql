@@ -295,7 +295,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
   public AbstractRelNode pushDownLimit(LogicalSort sort, Integer limit, Integer offset) {
     try {
       if (pushDownContext.isAggregatePushed()) {
-        // Push down the sort into the aggregation bucket
+        // Push down the limit into the aggregation bucket
         boolean pushed =
             pushDownContext.getAggPushDownAction().pushDownLimitIntoBucketSize(limit + offset);
         if (!pushed && offset > 0) return null;
