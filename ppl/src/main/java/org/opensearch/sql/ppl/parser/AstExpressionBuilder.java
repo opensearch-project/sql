@@ -680,12 +680,9 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitWindowFunction(OpenSearchPPLParser.WindowFunctionContext ctx) {
-    Function f;
-    if (ctx.windowFunctionName() != null) {
-      f = buildFunction(ctx.windowFunctionName().getText(), ctx.functionArgs().functionArg());
-    } else {
-      throw new SyntaxCheckException("Invalid window function");
-    }
+    Function f =
+        buildFunction(ctx.windowFunctionName().getText(), ctx.functionArgs().functionArg());
+
     // In PPL eventstats command, all window functions have the same partition and order spec.
     return new WindowFunction(f);
   }
