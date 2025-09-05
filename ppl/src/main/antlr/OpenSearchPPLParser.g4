@@ -553,6 +553,7 @@ statsFunctionName
    | STDDEV_POP
    | PERCENTILE
    | PERCENTILE_APPROX
+   | MEDIAN
    | LIST
    ;
 
