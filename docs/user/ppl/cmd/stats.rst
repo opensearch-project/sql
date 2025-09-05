@@ -39,7 +39,7 @@ stats [bucket_nullable=bool] <aggregation>... [by-clause]
 
 * aggregation: mandatory. A aggregation function. The argument of aggregation must be field.
 
-* bucket_nullable: optional. Controls whether the stats command includes null buckets in group-by aggregations. When set to ``false``, the aggregation ignores records where the group-by field is null, resulting in faster performance by excluding null bucket. The default value of ``bucket_nullable`` is determined by ``plugins.ppl.syntax.legacy.preferred``:
+* bucket_nullable: optional (since 3.3.0). Controls whether the stats command includes null buckets in group-by aggregations. When set to ``false``, the aggregation ignores records where the group-by field is null, resulting in faster performance by excluding null bucket. The default value of ``bucket_nullable`` is determined by ``plugins.ppl.syntax.legacy.preferred``:
 
  * When ``plugins.ppl.syntax.legacy.preferred=true``, ``bucket_nullable`` defaults to ``true``
  * When ``plugins.ppl.syntax.legacy.preferred=false``, ``bucket_nullable`` defaults to ``false``
@@ -692,9 +692,11 @@ PPL query::
 Example 15: Ignore null bucket
 ==============================
 
+Note: This argument requires version 3.3.0 or above.
+
 PPL query::
 
-    os> source=accounts | stats bucket_nullable=false count() as cnt by email;
+    PPL> source=accounts | stats bucket_nullable=false count() as cnt by email;
     fetched rows / total rows = 3/3
     +-----+-----------------------+
     | cnt | email                 |

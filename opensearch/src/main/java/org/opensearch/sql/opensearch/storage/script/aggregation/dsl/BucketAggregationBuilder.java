@@ -11,10 +11,13 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.opensearch.storage.script.aggregation.AggregationQueryBuilder.AGGREGATION_BUCKET_SIZE;
 
 import java.util.List;
+import java.util.stream.Collectors;
 import org.opensearch.search.aggregations.bucket.histogram.DateHistogramAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.histogram.DateHistogramInterval;
 import org.opensearch.search.aggregations.bucket.histogram.HistogramAggregationBuilder;
+import org.opensearch.search.aggregations.bucket.terms.MultiTermsAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
+import org.opensearch.search.aggregations.support.MultiTermsValuesSourceConfig;
 import org.opensearch.search.aggregations.support.ValueType;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
 import org.opensearch.sql.ast.expression.SpanUnit;
@@ -32,7 +35,7 @@ public class BucketAggregationBuilder {
     this.helper = new AggregationBuilderHelper(serializer);
   }
 
-  /** Build the list of ValuesSourceAggregationBuilder. */
+  /** Build the ValuesSourceAggregationBuilder. */
   public ValuesSourceAggregationBuilder<?> build(NamedExpression expr) {
     if (expr.getDelegated() instanceof SpanExpression) {
       SpanExpression spanExpr = (SpanExpression) expr.getDelegated();
@@ -53,6 +56,34 @@ public class BucketAggregationBuilder {
       }
       return helper.build(expr.getDelegated(), sourceBuilder::field, sourceBuilder::script);
     }
+  }
+
+  /** Build the MultiTermsAggregationBuilder. */
+  public MultiTermsAggregationBuilder buildMultipleTerms(List<NamedExpression> exprs) {
+    MultiTermsAggregationBuilder sourceBuilder =
+        new MultiTermsAggregationBuilder(
+            exprs.stream().map(NamedExpression::getName).collect(Collectors.joining("_")));
+    sourceBuilder.terms(
+        exprs.stream()
+            .map(
+                expr -> {
+                  MultiTermsValuesSourceConfig.Builder config =
+                      new MultiTermsValuesSourceConfig.Builder();
+                  config.setFieldName(expr.getName());
+                  // Time types values are converted to LONG in ExpressionAggregationScript::execute
+                  if ((expr.getDelegated().type() instanceof OpenSearchDateType
+                          && List.of(TIMESTAMP, TIME, DATE)
+                              .contains(
+                                  ((OpenSearchDateType) expr.getDelegated().type())
+                                      .getExprCoreType()))
+                      || List.of(TIMESTAMP, TIME, DATE).contains(expr.getDelegated().type())) {
+                    config.setUserValueTypeHint(ValueType.LONG);
+                  }
+                  return config.build();
+                })
+            .toList());
+    sourceBuilder.size(AGGREGATION_BUCKET_SIZE);
+    return sourceBuilder;
   }
 
   public static ValuesSourceAggregationBuilder<?> buildHistogram(

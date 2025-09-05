@@ -83,6 +83,7 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
           new NoBucketAggregationParser(metrics.getRight()));
     } else if (groupByList.size() == 1 && !bucketNullable) {
       // one bucket, use values source bucket builder for getting better performance
+      // TODO for multiple buckets, use MultiTermsAggregationBuilder
       return Pair.of(
           Collections.singletonList(
               bucketBuilder.build(groupByList.getFirst()).subAggregations(metrics.getLeft())),
