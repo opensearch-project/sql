@@ -740,15 +740,14 @@ public class PredicateAnalyzerTest {
 
     assertInstanceOf(TermQueryBuilder.class, result);
     assertEquals(
-        """
-                {
-                  "term" : {
-                    "b.keyword" : {
-                      "value" : "Hi",
-                      "boost" : 1.0
-                    }
-                  }
-                }""",
+        "{\n" +
+            "  \"term\" : {\n" +
+            "    \"b.keyword\" : {\n" +
+            "      \"value\" : \"Hi\",\n" +
+            "      \"boost\" : 1.0\n" +
+            "    }\n" +
+            "  }\n" +
+            "}",
         result.toString());
   }
 
