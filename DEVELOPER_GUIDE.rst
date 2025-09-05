@@ -227,7 +227,7 @@ Gradle Build
 
 Most of the time you just need to run ``./gradlew build`` which will make sure you pass all checks and testing. While you're developing, you may want to run specific Gradle task only. In this case, you can run ./gradlew with task name which only triggers the task along with those it depends on. Here is a list for common tasks:
 
-For faster local iterations, the build can skip integration and doctests. ``./gradlew build -x integTest -x doctest``.
+For faster local iterations, skip integration tests. ``./gradlew build -x integTest``.
 
 .. list-table::
    :widths: 30 50
