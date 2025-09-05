@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.calcite.remote;
 
-import static org.opensearch.sql.legacy.TestUtils.*;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
@@ -306,6 +305,25 @@ public class CalciteExplainIT extends ExplainIT {
                 + " head 5"));
   }
 
+  @Test
+  public void testExplainCountEval() throws IOException {
+    String query =
+            "source=opensearch-sql_test_index_bank | stats count(eval(age > 30)) as mature_count";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_count_eval_push.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testExplainCountEvalComplex() throws IOException {
+    String query =
+            "source=opensearch-sql_test_index_bank | stats count(eval(age > 30 and age < 50)) as"
+                    + " mature_count";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_count_eval_complex_push.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
   public void testEventstatsDistinctCountExplain() throws IOException {
     Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
     String query =
@@ -432,22 +450,17 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testExplainCountEval() throws IOException {
-    String query =
-        "source=opensearch-sql_test_index_bank | stats count(eval(age > 30)) as mature_count";
-    var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_count_eval_push.json");
-    assertJsonEqualsIgnoreId(expected, result);
-  }
-
-  @Test
-  public void testExplainCountEvalComplex() throws IOException {
-    String query =
-        "source=opensearch-sql_test_index_bank | stats count(eval(age > 30 and age < 50)) as"
-            + " mature_count";
-    var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_count_eval_complex_push.json");
-    assertJsonEqualsIgnoreId(expected, result);
+  public void testExplainAppendCommand() throws IOException {
+    String expected = loadExpectedPlan("explain_append_command.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                Locale.ROOT,
+                "source=%s | stats count(balance) as cnt by gender | append [ source=%s | stats"
+                    + " count() as cnt ]",
+                TEST_INDEX_BANK,
+                TEST_INDEX_BANK)));
   }
 
   /**

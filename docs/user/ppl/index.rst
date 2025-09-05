@@ -52,7 +52,11 @@ The query start with search command and then flowing a set of command delimited 
 
   - `ad command <cmd/ad.rst>`_
 
+  - `append command <cmd/append.rst>`_
+
   - `appendcol command <cmd/appendcol.rst>`_
+
+  - `bin command <cmd/bin.rst>`_
 
   - `dedup command <cmd/dedup.rst>`_
 
