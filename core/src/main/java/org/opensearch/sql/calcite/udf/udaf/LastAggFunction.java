@@ -35,13 +35,13 @@ public class LastAggFunction implements UserDefinedAggFunction<LastAggFunction.L
   }
 
   public static class LastAccumulator implements Accumulator {
-    private Object last;
+    private volatile Object last;
 
     public LastAccumulator() {
       this.last = null;
     }
 
-    public void setValue(Object value) {
+    public synchronized void setValue(Object value) {
       this.last = value;
     }
 
