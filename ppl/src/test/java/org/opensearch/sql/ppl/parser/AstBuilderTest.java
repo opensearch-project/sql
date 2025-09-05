@@ -1031,6 +1031,6 @@ public class AstBuilderTest {
   @Test(expected = IllegalArgumentException.class)
   public void testBinCommandDuplicateParameter() {
     // Test that duplicate parameters throw an exception
-    plan("search source=test | bin field span=10 span=20");
+    plan("search source=test | bin index_field span=10 span=20");
   }
 }
