@@ -167,24 +167,6 @@ public class MetricAggregationBuilder
             condition,
             name,
             new SinglePercentileParser(name));
-      case "first":
-        TopHitsAggregationBuilder firstBuilder = AggregationBuilders.topHits(name).size(1).from(0);
-        if (expression instanceof ReferenceExpression) {
-          String fieldName = ((ReferenceExpression) expression).getAttr();
-          firstBuilder.fetchSource(fieldName, null);
-        }
-        return makeTopHits(firstBuilder, condition, name, new TopHitsParser(name, true));
-      case "last":
-        TopHitsAggregationBuilder lastBuilder =
-            AggregationBuilders.topHits(name)
-                .size(1)
-                .from(0)
-                .sort("_doc", org.opensearch.search.sort.SortOrder.DESC);
-        if (expression instanceof ReferenceExpression) {
-          String fieldName = ((ReferenceExpression) expression).getAttr();
-          lastBuilder.fetchSource(fieldName, null);
-        }
-        return makeTopHits(lastBuilder, condition, name, new TopHitsParser(name, true));
       default:
         throw new IllegalStateException(
             String.format("unsupported aggregator %s", node.getFunctionName().getFunctionName()));
