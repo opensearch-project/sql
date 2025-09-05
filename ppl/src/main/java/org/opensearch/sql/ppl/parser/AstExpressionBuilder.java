@@ -400,20 +400,6 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     }
   }
 
-  @Override
-  public UnresolvedExpression visitFirstLastFunctionCall(
-      OpenSearchPPLParser.FirstLastFunctionCallContext ctx) {
-    return visit(ctx.firstLastFunction());
-  }
-
-  @Override
-  public UnresolvedExpression visitFirstLastFunction(
-      OpenSearchPPLParser.FirstLastFunctionContext ctx) {
-    String functionName = ctx.FIRST() != null ? "first" : "last";
-    UnresolvedExpression valueField = visit(ctx.valueExpression());
-    return new AggregateFunction(functionName, valueField);
-  }
-
   /** Case function. */
   @Override
   public UnresolvedExpression visitCaseFunctionCall(

@@ -173,7 +173,7 @@ public class MetricAggregationBuilder
           String fieldName = ((ReferenceExpression) expression).getAttr();
           firstBuilder.fetchSource(fieldName, null);
         }
-        return makeTopHits(firstBuilder, condition, name, new FirstLastParser(name));
+        return makeTopHits(firstBuilder, condition, name, new TopHitsParser(name, true));
       case "last":
         TopHitsAggregationBuilder lastBuilder =
             AggregationBuilders.topHits(name)
@@ -184,7 +184,7 @@ public class MetricAggregationBuilder
           String fieldName = ((ReferenceExpression) expression).getAttr();
           lastBuilder.fetchSource(fieldName, null);
         }
-        return makeTopHits(lastBuilder, condition, name, new FirstLastParser(name));
+        return makeTopHits(lastBuilder, condition, name, new TopHitsParser(name, true));
       default:
         throw new IllegalStateException(
             String.format("unsupported aggregator %s", node.getFunctionName().getFunctionName()));
