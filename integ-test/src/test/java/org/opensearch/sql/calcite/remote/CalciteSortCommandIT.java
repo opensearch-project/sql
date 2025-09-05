@@ -40,7 +40,7 @@ public class CalciteSortCommandIT extends SortCommandIT {
             "source=%s | eval age2 = age + 2 | sort age2 | fields age | head 2",
             TEST_INDEX_BANK);
     String explained = explainQueryToString(ppl);
-    if (isPushdownEnabled()) {
+    if (!isPushdownDisabled()) {
       assertTrue(
           explained.contains(
               "[SORT->[{\\n"
@@ -63,7 +63,7 @@ public class CalciteSortCommandIT extends SortCommandIT {
             "source=%s | eval age2 = 1 - age | sort age2 | fields age | head 2",
             TEST_INDEX_BANK);
     String explained = explainQueryToString(ppl);
-    if (isPushdownEnabled()) {
+    if (!isPushdownDisabled()) {
       assertTrue(
           explained.contains(
               "[SORT->[{\\n"
@@ -86,7 +86,7 @@ public class CalciteSortCommandIT extends SortCommandIT {
             "source=%s | eval age2 = 5 * age | sort age2 | fields age | head 2",
             TEST_INDEX_BANK);
     String explained = explainQueryToString(ppl);
-    if (isPushdownEnabled()) {
+    if (!isPushdownDisabled()) {
       assertTrue(
           explained.contains(
               "[SORT->[{\\n"
@@ -109,7 +109,7 @@ public class CalciteSortCommandIT extends SortCommandIT {
             "source=%s | eval age2 = 5 * age | sort gender, age2 | fields gender, age | head 2",
             TEST_INDEX_BANK);
     String explained = explainQueryToString(ppl);
-    if (isPushdownEnabled()) {
+    if (!isPushdownDisabled()) {
       assertTrue(
           explained.contains(
               "[SORT->[{\\n"
@@ -137,7 +137,7 @@ public class CalciteSortCommandIT extends SortCommandIT {
             "source=%s | eval age2 = cast(age * 5 as long) | sort age2 | fields age | head 2",
             TEST_INDEX_BANK);
     String explained = explainQueryToString(ppl);
-    if (isPushdownEnabled()) {
+    if (!isPushdownDisabled()) {
       assertTrue(
           explained.contains(
               "[SORT->[{\\n"
@@ -160,7 +160,7 @@ public class CalciteSortCommandIT extends SortCommandIT {
             "source=%s | eval age2 = cast(age as double) | sort age2 | fields age, age2 | head 2",
             TEST_INDEX_BANK);
     String explained = explainQueryToString(ppl);
-    if (isPushdownEnabled()) {
+    if (!isPushdownDisabled()) {
       assertTrue(
           explained.contains(
               "SORT->[{\\n"

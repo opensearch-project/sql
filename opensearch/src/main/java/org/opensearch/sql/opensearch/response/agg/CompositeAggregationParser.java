@@ -23,7 +23,11 @@ import lombok.Getter;
 import org.opensearch.search.aggregations.Aggregations;
 import org.opensearch.search.aggregations.bucket.composite.CompositeAggregation;
 
-/** Composite Aggregation Parser which include composite aggregation and metric parsers. */
+/**
+ * Composite Aggregation Parser which include composite aggregation and metric parsers. This is only
+ * for the aggregation with multiple group-by keys. Use {@link BucketAggregationParser} when there
+ * is only one group-by key.
+ */
 @Getter
 @EqualsAndHashCode
 public class CompositeAggregationParser implements OpenSearchAggregationResponseParser {

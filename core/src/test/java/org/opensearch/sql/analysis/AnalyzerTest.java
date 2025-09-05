@@ -19,6 +19,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.argument;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
 import static org.opensearch.sql.ast.dsl.AstDSL.computation;
+import static org.opensearch.sql.ast.dsl.AstDSL.exprList;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
 import static org.opensearch.sql.ast.dsl.AstDSL.filteredAggregate;
@@ -434,7 +435,7 @@ class AnalyzerTest extends AnalyzerTestBase {
             ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING)))),
         AstDSL.agg(
             AstDSL.relation("schema"),
-            AstDSL.exprList(
+            exprList(
                 AstDSL.alias(
                     "avg(integer_value)", AstDSL.aggregate("avg", field("integer_value")))),
             null,
@@ -486,7 +487,7 @@ class AnalyzerTest extends AnalyzerTestBase {
                     AstDSL.rename(
                         AstDSL.agg(
                             AstDSL.relation("schema"),
-                            AstDSL.exprList(
+                            exprList(
                                 AstDSL.alias(
                                     "avg(integer_value)",
                                     AstDSL.aggregate("avg", field("integer_value")))),
@@ -1955,5 +1956,29 @@ class AnalyzerTest extends AnalyzerTestBase {
                             field("email"), stringLiteral("(?<user>[^@]+)@(?<domain>.+)"))
                         .attach(relation("schema"))));
     assertEquals("Rex is supported only when plugins.calcite.enabled=true", exception.getMessage());
+  }
+
+  @Test
+  public void stats_non_bucket_nullable_test() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.aggregation(
+            LogicalPlanDSL.relation("schema", table),
+            ImmutableList.of(
+                DSL.named("avg(integer_value)", DSL.avg(DSL.ref("integer_value", INTEGER)))),
+            ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING))),
+            false),
+        AstDSL.agg(
+            AstDSL.relation("schema"),
+            exprList(
+                AstDSL.alias(
+                    "avg(integer_value)", AstDSL.aggregate("avg", field("integer_value")))),
+            null,
+            ImmutableList.of(AstDSL.alias("string_value", field("string_value"))),
+            exprList(
+                argument("partitions", intLiteral(1)),
+                argument("allnum", booleanLiteral(false)),
+                argument("delim", stringLiteral(" ")),
+                argument(Argument.BUCKET_NULLABLE, booleanLiteral(false)),
+                argument("dedupsplit", booleanLiteral(false)))));
   }
 }
