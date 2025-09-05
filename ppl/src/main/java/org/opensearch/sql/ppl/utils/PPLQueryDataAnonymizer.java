@@ -78,6 +78,7 @@ import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Reverse;
+import org.opensearch.sql.ast.tree.Search;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
@@ -212,6 +213,18 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
                     this.expressionAnalyzer.analyze(unresolvedExpression, context))
             .collect(Collectors.joining(","));
     return StringUtils.format("source=%s(%s)", node.getFunctionName().toString(), arguments);
+  }
+
+  @Override
+  public String visitSearch(Search node, String context) {
+    String source = node.getChild().get(0).accept(this, context);
+    // The queryString contains the search expression like "age:10 AND status:200"
+    // We need to anonymize the values but keep the structure
+    String queryString = node.getQueryString();
+    // Simple anonymization: replace all literals with ***
+    // This is a simplified approach - a more sophisticated parser could be used
+    String anonymized = queryString.replaceAll(":\\S+", ":" + MASK_LITERAL);
+    return StringUtils.format("%s %s", source, anonymized);
   }
 
   @Override

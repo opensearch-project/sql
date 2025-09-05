@@ -1,0 +1,303 @@
+{
+  "mappings": {
+    "dynamic_templates": [
+      {
+        "long_resource_attributes": {
+          "path_match": "resource.attributes.*",
+          "match_mapping_type": "long",
+          "mapping": {
+            "type": "long"
+          }
+        }
+      },
+      {
+        "double_resource_attributes": {
+          "path_match": "resource.attributes.*",
+          "match_mapping_type": "double",
+          "mapping": {
+            "type": "double"
+          }
+        }
+      },
+      {
+        "string_resource_attributes": {
+          "path_match": "resource.attributes.*",
+          "match_mapping_type": "string",
+          "mapping": {
+            "type": "keyword"
+          }
+        }
+      },
+      {
+        "long_attributes": {
+          "path_match": "attributes.*",
+          "match_mapping_type": "long",
+          "mapping": {
+            "type": "long"
+          }
+        }
+      },
+      {
+        "double_attributes": {
+          "path_match": "attributes.*",
+          "match_mapping_type": "double",
+          "mapping": {
+            "type": "double"
+          }
+        }
+      },
+      {
+        "string_attributes": {
+          "path_match": "attributes.*",
+          "match_mapping_type": "string",
+          "mapping": {
+            "type": "keyword"
+          }
+        }
+      }
+    ],
+    "date_detection": false,
+    "properties": {
+      "@timestamp": {
+        "type": "date_nanos"
+      },
+      "time": {
+        "type": "date_nanos"
+      },
+      "body": {
+        "type": "text"
+      },
+      "severityNumber": {
+        "type": "long"
+      },
+      "severityText": {
+        "type": "keyword"
+      },
+      "traceId": {
+        "type": "keyword"
+      },
+      "spanId": {
+        "type": "keyword"
+      },
+      "flags": {
+        "type": "long"
+      },
+      "droppedAttributesCount": {
+        "type": "integer"
+      },
+      "instrumentationScope": {
+        "properties": {
+          "name": {
+            "type": "keyword"
+          },
+          "version": {
+            "type": "keyword"
+          },
+          "droppedAttributesCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "resource": {
+        "properties": {
+          "attributes": {
+            "properties": {
+              "service.name": {
+                "type": "keyword"
+              },
+              "service.namespace": {
+                "type": "keyword"
+              },
+              "service.version": {
+                "type": "keyword"
+              },
+              "host.name": {
+                "type": "keyword"
+              },
+              "container.id": {
+                "type": "keyword"
+              },
+              "k8s.namespace": {
+                "type": "keyword"
+              },
+              "k8s.pod.name": {
+                "type": "keyword"
+              }
+            }
+          },
+          "droppedAttributesCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "attributes": {
+        "properties": {
+          "user.id": {
+            "type": "keyword"
+          },
+          "user.email": {
+            "type": "keyword"
+          },
+          "product.id": {
+            "type": "keyword"
+          },
+          "order.id": {
+            "type": "keyword"
+          },
+          "error.code": {
+            "type": "keyword"
+          },
+          "error.type": {
+            "type": "keyword"
+          },
+          "error.message": {
+            "type": "text"
+          },
+          "http.method": {
+            "type": "keyword"
+          },
+          "http.status_code": {
+            "type": "long"
+          },
+          "http.url": {
+            "type": "keyword"
+          },
+          "client.ip": {
+            "type": "ip",
+            "fields": {
+              "keyword": {
+                "type": "keyword"
+              }
+            }
+          },
+          "db.statement": {
+            "type": "text"
+          },
+          "db.operation": {
+            "type": "keyword"
+          },
+          "db.table": {
+            "type": "keyword"
+          },
+          "email.to": {
+            "type": "keyword"
+          },
+          "email.subject": {
+            "type": "text"
+          },
+          "query.raw": {
+            "type": "text"
+          },
+          "query.type": {
+            "type": "keyword"
+          },
+          "security.threat": {
+            "type": "keyword"
+          },
+          "payment.amount": {
+            "type": "double"
+          },
+          "quantity": {
+            "type": "long"
+          },
+          "kafka.topic": {
+            "type": "keyword"
+          },
+          "kafka.partition": {
+            "type": "long"
+          },
+          "kafka.offset": {
+            "type": "long"
+          },
+          "redis.command": {
+            "type": "keyword"
+          },
+          "redis.key": {
+            "type": "keyword"
+          },
+          "redis.ttl": {
+            "type": "long"
+          },
+          "jwt.algorithm": {
+            "type": "keyword"
+          },
+          "jwt.issuer": {
+            "type": "keyword"
+          },
+          "rate_limit.current": {
+            "type": "long"
+          },
+          "rate_limit.max": {
+            "type": "long"
+          },
+          "graphql.operation": {
+            "type": "keyword"
+          },
+          "graphql.field": {
+            "type": "keyword"
+          },
+          "webhook.url": {
+            "type": "keyword"
+          },
+          "webhook.status": {
+            "type": "keyword"
+          },
+          "mongodb.collection": {
+            "type": "keyword"
+          },
+          "mongodb.operation": {
+            "type": "keyword"
+          },
+          "mongodb.filter": {
+            "type": "text"
+          },
+          "elasticsearch.query": {
+            "type": "text"
+          },
+          "grpc.method": {
+            "type": "keyword"
+          },
+          "grpc.status_code": {
+            "type": "long"
+          },
+          "ssl.domain": {
+            "type": "keyword"
+          },
+          "ssl.days_until_expiry": {
+            "type": "long"
+          },
+          "memory.usage_percent": {
+            "type": "double"
+          },
+          "memory.total_gb": {
+            "type": "long"
+          },
+          "batch.total_records": {
+            "type": "long"
+          },
+          "batch.matched_records": {
+            "type": "long"
+          },
+          "k8s.pod.name": {
+            "type": "keyword"
+          },
+          "k8s.container.restart_count": {
+            "type": "long"
+          },
+          "health.status": {
+            "type": "keyword"
+          },
+          "cors.origin": {
+            "type": "keyword"
+          },
+          "cors.method": {
+            "type": "keyword"
+          },
+          "duration_ms": {
+            "type": "long"
+          }
+        }
+      }
+    }
+  }
+}
