@@ -9,6 +9,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
+import static org.opensearch.sql.calcite.utils.CalciteUtils.getOnlyForCalciteException;
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BinCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
@@ -57,6 +58,7 @@ import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.PatternMethod;
 import org.opensearch.sql.ast.expression.PatternMode;
 import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFunction;
@@ -93,6 +95,7 @@ import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Timechart;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
@@ -296,10 +299,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
                   : new Argument("exclude", new Literal(false, DataType.BOOLEAN)));
       return buildProjectCommand(ctx.fieldsCommandBody(), arguments);
     }
-    throw new UnsupportedOperationException(
-        "Table command is supported only when "
-            + Key.CALCITE_ENGINE_ENABLED.getKeyValue()
-            + "=true");
+    throw getOnlyForCalciteException("Table command");
   }
 
   private UnresolvedPlan buildProjectCommand(
@@ -310,10 +310,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     if (settings != null
         && Boolean.FALSE.equals(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED))) {
       if (hasEnhancedFieldFeatures(bodyCtx, fields)) {
-        throw new UnsupportedOperationException(
-            "Enhanced fields features are supported only when "
-                + Key.CALCITE_ENGINE_ENABLED.getKeyValue()
-                + "=true");
+        throw getOnlyForCalciteException("Enhanced fields feature");
       }
     }
 
@@ -571,6 +568,59 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitReverseCommand(OpenSearchPPLParser.ReverseCommandContext ctx) {
     return new Reverse();
+  }
+
+  /** Timechart command. */
+  @Override
+  public UnresolvedPlan visitTimechartCommand(OpenSearchPPLParser.TimechartCommandContext ctx) {
+    UnresolvedExpression binExpression =
+        AstDSL.span(AstDSL.field("@timestamp"), AstDSL.intLiteral(1), SpanUnit.of("m"));
+    Integer limit = 10;
+    Boolean useOther = true;
+
+    // Process timechart parameters
+    for (OpenSearchPPLParser.TimechartParameterContext paramCtx : ctx.timechartParameter()) {
+      if (paramCtx.spanClause() != null) {
+        binExpression = internalVisitExpression(paramCtx.spanClause());
+      } else if (paramCtx.spanLiteral() != null) {
+        // Convert span=1h to span(@timestamp, 1h)
+        binExpression = internalVisitExpression(paramCtx.spanLiteral());
+      } else if (paramCtx.timechartArg() != null) {
+        OpenSearchPPLParser.TimechartArgContext argCtx = paramCtx.timechartArg();
+        if (argCtx.LIMIT() != null && argCtx.integerLiteral() != null) {
+          limit = Integer.parseInt(argCtx.integerLiteral().getText());
+          if (limit < 0) {
+            throw new IllegalArgumentException("Limit must be a non-negative number");
+          }
+        } else if (argCtx.USEOTHER() != null) {
+          if (argCtx.booleanLiteral() != null) {
+            useOther = Boolean.parseBoolean(argCtx.booleanLiteral().getText());
+          } else if (argCtx.ident() != null) {
+            String useOtherValue = argCtx.ident().getText().toLowerCase();
+            if ("true".equals(useOtherValue) || "t".equals(useOtherValue)) {
+              useOther = true;
+            } else if ("false".equals(useOtherValue) || "f".equals(useOtherValue)) {
+              useOther = false;
+            } else {
+              throw new IllegalArgumentException(
+                  "Invalid useOther value: "
+                      + argCtx.ident().getText()
+                      + ". Expected true/false or t/f");
+            }
+          }
+        }
+      }
+    }
+
+    UnresolvedExpression aggregateFunction = internalVisitExpression(ctx.statsFunction());
+    UnresolvedExpression byField =
+        ctx.fieldExpression() != null ? internalVisitExpression(ctx.fieldExpression()) : null;
+
+    return new Timechart(null, aggregateFunction)
+        .span(binExpression)
+        .by(byField)
+        .limit(limit)
+        .useOther(useOther);
   }
 
   /** Eval command. */
