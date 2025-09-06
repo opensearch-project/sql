@@ -302,7 +302,7 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            Index.ACCOUNT.ppl(+" | fillnull with -1 in age,balance | fields age, balance")));
+            Index.ACCOUNT.ppl("fillnull with -1 in age,balance | fields age, balance")));
   }
 
   @Test
@@ -322,9 +322,7 @@ public class ExplainIT extends PPLIntegTestCase {
         expected,
         explainQueryToString(
             Index.ACCOUNT.ppl(
-                "head 5 "
-                    + "| trendline sort age sma(2, age) as ageTrend "
-                    + "| fields ageTrend")));
+                "head 5 | trendline sort age sma(2, age) as ageTrend | fields ageTrend")));
   }
 
   @Test
