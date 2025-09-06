@@ -500,10 +500,7 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testSingleFieldRelevanceQueryFunctionExplain() throws IOException {
-    // This test is only applicable if pushdown is enabled
-    if (!isPushdownEnabled()) {
-      return;
-    }
+    enabledOnlyWhenPushdownIsEnabled();
 
     String expected =
         isCalciteEnabled()
@@ -519,10 +516,7 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testMultiFieldsRelevanceQueryFunctionExplain() throws IOException {
-    // This test is only applicable if pushdown is enabled
-    if (!isPushdownEnabled()) {
-      return;
-    }
+    enabledOnlyWhenPushdownIsEnabled();
 
     String expected =
         isCalciteEnabled()
