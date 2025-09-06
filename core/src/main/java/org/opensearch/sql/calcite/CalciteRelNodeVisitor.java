@@ -840,13 +840,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       if (node.getJoinFields().isPresent()) {
         joinCondition =
             node.getJoinFields().get().stream()
-                .map(field -> buildJoinConditionByFieldNames(context, field.getField().toString()))
+                .map(field -> buildJoinConditionByFieldName(context, field.getField().toString()))
                 .reduce(context.rexBuilder::and)
                 .orElse(context.relBuilder.literal(true));
       } else {
         joinCondition =
             duplicatedFieldNames.stream()
-                .map(fieldName -> buildJoinConditionByFieldNames(context, fieldName))
+                .map(fieldName -> buildJoinConditionByFieldName(context, fieldName))
                 .reduce(context.rexBuilder::and)
                 .orElse(context.relBuilder.literal(true));
       }
@@ -974,7 +974,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         .toList();
   }
 
-  private static RexNode buildJoinConditionByFieldNames(
+  private static RexNode buildJoinConditionByFieldName(
       CalcitePlanContext context, String fieldName) {
     RexNode lookupKey = JoinAndLookupUtils.analyzeFieldsForLookUp(fieldName, false, context);
     RexNode sourceKey = JoinAndLookupUtils.analyzeFieldsForLookUp(fieldName, true, context);
