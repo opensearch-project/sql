@@ -66,7 +66,7 @@ public class PPLPluginIT extends PPLIntegTestCase {
 
   @Test
   public void sqlEnableSettingsTest() throws IOException {
-    String query = "search " + withSource(TEST_INDEX_BANK, "firstname='Hattie' | fields firstname");
+    String query = searchWithSource(TEST_INDEX_BANK, "firstname='Hattie' | fields firstname");
     // enable by default
     JSONObject result = executeQuery(query);
     verifyDataRows(result, rows("Hattie"));

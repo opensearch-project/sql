@@ -24,56 +24,56 @@ public class QueryAnalysisIT extends PPLIntegTestCase {
   /** Valid commands should pass both syntax analysis and semantic check. */
   @Test
   public void searchCommandShouldPassSemanticCheck() {
-    String query = "search " + withSource(TEST_INDEX_ACCOUNT, "age=20");
+    String query = searchWithSource(TEST_INDEX_ACCOUNT, "age=20");
     queryShouldPassSyntaxAndSemanticCheck(query);
   }
 
   @Test
   public void whereCommandShouldPassSemanticCheck() {
-    String query = "search " + withSource(TEST_INDEX_ACCOUNT, "where age=20");
+    String query = searchWithSource(TEST_INDEX_ACCOUNT, "where age=20");
     queryShouldPassSyntaxAndSemanticCheck(query);
   }
 
   @Test
   public void fieldsCommandShouldPassSemanticCheck() {
-    String query = "search " + withSource(TEST_INDEX_ACCOUNT, "fields firstname");
+    String query = searchWithSource(TEST_INDEX_ACCOUNT, "fields firstname");
     queryShouldPassSyntaxAndSemanticCheck(query);
   }
 
   @Test
   public void renameCommandShouldPassSemanticCheck() {
-    String query = "search " + withSource(TEST_INDEX_ACCOUNT, "rename firstname as first");
+    String query = searchWithSource(TEST_INDEX_ACCOUNT, "rename firstname as first");
     queryShouldPassSyntaxAndSemanticCheck(query);
   }
 
   @Test
   public void statsCommandShouldPassSemanticCheck() {
-    String query = "search " + withSource(TEST_INDEX_ACCOUNT, "stats avg(age)");
+    String query = searchWithSource(TEST_INDEX_ACCOUNT, "stats avg(age)");
     queryShouldPassSyntaxAndSemanticCheck(query);
   }
 
   @Test
   public void dedupCommandShouldPassSemanticCheck() {
-    String query = "search " + withSource(TEST_INDEX_ACCOUNT, "dedup firstname, lastname");
+    String query = searchWithSource(TEST_INDEX_ACCOUNT, "dedup firstname, lastname");
     queryShouldPassSyntaxAndSemanticCheck(query);
   }
 
   @Test
   public void sortCommandShouldPassSemanticCheck() {
-    String query = "search " + withSource(TEST_INDEX_ACCOUNT, "sort age");
+    String query = searchWithSource(TEST_INDEX_ACCOUNT, "sort age");
     queryShouldPassSyntaxAndSemanticCheck(query);
   }
 
   @Test
   public void evalCommandShouldPassSemanticCheck() {
-    String query = "search " + withSource(TEST_INDEX_ACCOUNT, "eval age=abs(age)");
+    String query = searchWithSource(TEST_INDEX_ACCOUNT, "eval age=abs(age)");
     queryShouldPassSyntaxAndSemanticCheck(query);
     queryShouldPassSyntaxAndSemanticCheck(query);
   }
 
   @Test
   public void queryShouldBeCaseInsensitiveInKeywords() {
-    String query = "SEARCH " + withSource(TEST_INDEX_ACCOUNT, "");
+    String query = searchWithSource(TEST_INDEX_ACCOUNT, "");
     queryShouldPassSyntaxAndSemanticCheck(query);
   }
 
@@ -86,7 +86,7 @@ public class QueryAnalysisIT extends PPLIntegTestCase {
 
   @Test
   public void queryWithIncorrectCommandShouldFailSyntaxCheck() {
-    String query = "search " + withSource(TEST_INDEX_ACCOUNT, "field firstname");
+    String query = searchWithSource(TEST_INDEX_ACCOUNT, "field firstname");
     queryShouldThrowSyntaxException(query, SYNTAX_EX_MSG_FRAGMENT);
   }
 
@@ -98,14 +98,14 @@ public class QueryAnalysisIT extends PPLIntegTestCase {
 
   @Test
   public void unsupportedAggregationFunctionShouldFailSyntaxCheck() {
-    String query = "search " + withSource(TEST_INDEX_ACCOUNT, "stats range(age)");
+    String query = searchWithSource(TEST_INDEX_ACCOUNT, "stats range(age)");
     queryShouldThrowSyntaxException(query, SYNTAX_EX_MSG_FRAGMENT);
   }
 
   /** Commands that fail semantic analysis should throw {@link SemanticCheckException}. */
   @Test
   public void nonexistentFieldShouldFailSemanticCheck() {
-    String query = "search " + withSource(TEST_INDEX_ACCOUNT, "fields name");
+    String query = searchWithSource(TEST_INDEX_ACCOUNT, "fields name");
     queryShouldThrowSemanticException(
         query, "can't resolve Symbol(namespace=FIELD_NAME, name=name) in type env");
   }

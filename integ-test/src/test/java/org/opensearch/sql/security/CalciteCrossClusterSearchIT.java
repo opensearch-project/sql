@@ -69,21 +69,21 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
   @Test
   public void testCrossClusterFieldsSpaceDelimited() throws IOException {
     JSONObject result =
-        executeQuery("search " + withSource(TEST_INDEX_DOG_REMOTE, "fields dog_name age"));
+        executeQuery(searchWithSource(TEST_INDEX_DOG_REMOTE, "fields dog_name age"));
     verifyColumn(result, columnName("dog_name"), columnName("age"));
     verifySchema(result, schema("dog_name", "string"), schema("age", "bigint"));
   }
 
   @Test
   public void testCrossClusterFieldsWildcardPrefix() throws IOException {
-    JSONObject result = executeQuery("search " + withSource(TEST_INDEX_DOG_REMOTE, "fields dog*"));
+    JSONObject result = executeQuery(searchWithSource(TEST_INDEX_DOG_REMOTE, "fields dog*"));
     verifyColumn(result, columnName("dog_name"));
     verifySchema(result, schema("dog_name", "string"));
   }
 
   @Test
   public void testCrossClusterFieldsWildcardSuffix() throws IOException {
-    JSONObject result = executeQuery("search " + withSource(TEST_INDEX_DOG_REMOTE, "fields *Name"));
+    JSONObject result = executeQuery(searchWithSource(TEST_INDEX_DOG_REMOTE, "fields *Name"));
     verifyColumn(result, columnName("dog_name"), columnName("holdersName"));
     verifySchema(result, schema("dog_name", "string"), schema("holdersName", "string"));
   }
@@ -91,8 +91,7 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
   @Test
   public void testCrossClusterFieldsMixedDelimiters() throws IOException {
     JSONObject result =
-        executeQuery(
-            "search " + withSource(TEST_INDEX_DOG_REMOTE, "fields dog_name, age holdersName"));
+        executeQuery(searchWithSource(TEST_INDEX_DOG_REMOTE, "fields dog_name, age holdersName"));
     verifyColumn(result, columnName("dog_name"), columnName("age"), columnName("holdersName"));
     verifySchema(
         result,
@@ -103,15 +102,14 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
 
   @Test
   public void testCrossClusterTableCommand() throws IOException {
-    JSONObject result =
-        executeQuery("search " + withSource(TEST_INDEX_DOG_REMOTE, "table dog_name age"));
+    JSONObject result = executeQuery(searchWithSource(TEST_INDEX_DOG_REMOTE, "table dog_name age"));
     verifyColumn(result, columnName("dog_name"), columnName("age"));
     verifySchema(result, schema("dog_name", "string"), schema("age", "bigint"));
   }
 
   @Test
   public void testCrossClusterFieldsAllWildcard() throws IOException {
-    JSONObject result = executeQuery("search " + withSource(TEST_INDEX_DOG_REMOTE, "fields *"));
+    JSONObject result = executeQuery(searchWithSource(TEST_INDEX_DOG_REMOTE, "fields *"));
     verifyColumn(result, columnName("dog_name"), columnName("holdersName"), columnName("age"));
     verifySchema(
         result,
@@ -122,15 +120,14 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
 
   @Test
   public void testCrossClusterFieldsExclusion() throws IOException {
-    JSONObject result = executeQuery("search " + withSource(TEST_INDEX_DOG_REMOTE, "fields - age"));
+    JSONObject result = executeQuery(searchWithSource(TEST_INDEX_DOG_REMOTE, "fields - age"));
     verifyColumn(result, columnName("dog_name"), columnName("holdersName"));
     verifySchema(result, schema("dog_name", "string"), schema("holdersName", "string"));
   }
 
   @Test
   public void testCrossClusterTableWildcardPrefix() throws IOException {
-    JSONObject result =
-        executeQuery("search " + withSource(TEST_INDEX_BANK_REMOTE, "table first*"));
+    JSONObject result = executeQuery(searchWithSource(TEST_INDEX_BANK_REMOTE, "table first*"));
     verifyColumn(result, columnName("firstname"));
     verifySchema(result, schema("firstname", "string"));
   }
@@ -138,9 +135,9 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
   @Test
   public void testCrossClusterFieldsAndTableEquivalence() throws IOException {
     JSONObject fieldsResult =
-        executeQuery("search " + withSource(TEST_INDEX_DOG_REMOTE, "fields dog_name age"));
+        executeQuery(searchWithSource(TEST_INDEX_DOG_REMOTE, "fields dog_name age"));
     JSONObject tableResult =
-        executeQuery("search " + withSource(TEST_INDEX_DOG_REMOTE, "table dog_name age"));
+        executeQuery(searchWithSource(TEST_INDEX_DOG_REMOTE, "table dog_name age"));
 
     verifyColumn(fieldsResult, columnName("dog_name"), columnName("age"));
     verifyColumn(tableResult, columnName("dog_name"), columnName("age"));

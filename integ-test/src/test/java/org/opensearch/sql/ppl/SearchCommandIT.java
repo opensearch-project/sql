@@ -28,14 +28,14 @@ public class SearchCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testSearchAllFields() throws IOException {
-    JSONObject result = executeQuery("search " + withSource(TEST_INDEX_DOG, ""));
+    JSONObject result = executeQuery(searchWithSource(TEST_INDEX_DOG, ""));
     verifyColumn(result, columnName("dog_name"), columnName("holdersName"), columnName("age"));
   }
 
   @Test
   public void testSearchCommandWithoutSearchKeyword() throws IOException {
     assertEquals(
-        executeQueryToString("search " + withSource(TEST_INDEX_BANK, "")),
+        executeQueryToString(searchWithSource(TEST_INDEX_BANK, "")),
         executeQueryToString(withSource(TEST_INDEX_BANK, "")));
   }
 
@@ -51,8 +51,7 @@ public class SearchCommandIT extends PPLIntegTestCase {
   @Test
   public void testSearchCommandWithLogicalExpression() throws IOException {
     JSONObject result =
-        executeQuery(
-            "search " + withSource(TEST_INDEX_BANK, "firstname='Hattie' | fields firstname"));
+        executeQuery(searchWithSource(TEST_INDEX_BANK, "firstname='Hattie' | fields firstname"));
     verifyDataRows(result, rows("Hattie"));
   }
 

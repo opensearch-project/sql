@@ -25,12 +25,12 @@ public class SettingsIT extends PPLIntegTestCase {
   public void testQuerySizeLimit() throws IOException {
     // Default setting, fetch 200 rows from query
     JSONObject result =
-        executeQuery("search " + withSource(TEST_INDEX_BANK, "age>35 | fields firstname"));
+        executeQuery(searchWithSource(TEST_INDEX_BANK, "age>35 | fields firstname"));
     verifyDataRows(result, rows("Hattie"), rows("Elinor"), rows("Virginia"));
 
     // Fetch 1 rows from query
     setQuerySizeLimit(1);
-    result = executeQuery("search " + withSource(TEST_INDEX_BANK, "age>35 | fields firstname"));
+    result = executeQuery(searchWithSource(TEST_INDEX_BANK, "age>35 | fields firstname"));
     verifyDataRows(result, rows("Hattie"));
   }
 

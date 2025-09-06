@@ -20,7 +20,7 @@ public class CalciteQueryAnalysisIT extends QueryAnalysisIT {
 
   @Override
   public void nonexistentFieldShouldFailSemanticCheck() {
-    String query = "search " + withSource(TEST_INDEX_ACCOUNT, "fields name");
+    String query = searchWithSource(TEST_INDEX_ACCOUNT, "fields name");
     try {
       executeQuery(query);
       fail("Expected to throw Exception, but none was thrown for query: " + query);
