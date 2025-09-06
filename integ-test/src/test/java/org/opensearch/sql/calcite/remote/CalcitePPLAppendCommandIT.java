@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Test;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalcitePPLAppendCommandIT extends PPLIntegTestCase {
@@ -90,71 +91,86 @@ public class CalcitePPLAppendCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testAppendEmptySearchWithJoin() throws IOException {
-    List<String> emptySourceWithJoinPPLs =
-        Arrays.asList(
-            String.format(
-                Locale.ROOT,
-                "source=%s | stats sum(age) as sum_age_by_gender by gender | append [ | "
-                    + " join left=L right=R on L.gender = R.gender %s ]",
-                TEST_INDEX_ACCOUNT,
-                TEST_INDEX_ACCOUNT),
-            String.format(
-                Locale.ROOT,
-                "source=%s | stats sum(age) as sum_age_by_gender by gender | append [ | "
-                    + " cross join left=L right=R on L.gender = R.gender %s ]",
-                TEST_INDEX_ACCOUNT,
-                TEST_INDEX_ACCOUNT),
-            String.format(
-                Locale.ROOT,
-                "source=%s | stats sum(age) as sum_age_by_gender by gender | append [ | "
-                    + " left join left=L right=R on L.gender = R.gender %s ]",
-                TEST_INDEX_ACCOUNT,
-                TEST_INDEX_ACCOUNT),
-            String.format(
-                Locale.ROOT,
-                "source=%s | stats sum(age) as sum_age_by_gender by gender | append [ | "
-                    + " semi join left=L right=R on L.gender = R.gender %s ]",
-                TEST_INDEX_ACCOUNT,
-                TEST_INDEX_ACCOUNT));
+    withSettings(
+        Settings.Key.CALCITE_SUPPORT_ALL_JOIN_TYPES,
+        "true",
+        () -> {
+          List<String> emptySourceWithJoinPPLs =
+              Arrays.asList(
+                  String.format(
+                      Locale.ROOT,
+                      "source=%s | stats sum(age) as sum_age_by_gender by gender | append [ | "
+                          + " join left=L right=R on L.gender = R.gender %s ]",
+                      TEST_INDEX_ACCOUNT,
+                      TEST_INDEX_ACCOUNT),
+                  String.format(
+                      Locale.ROOT,
+                      "source=%s | stats sum(age) as sum_age_by_gender by gender | append [ | "
+                          + " cross join left=L right=R on L.gender = R.gender %s ]",
+                      TEST_INDEX_ACCOUNT,
+                      TEST_INDEX_ACCOUNT),
+                  String.format(
+                      Locale.ROOT,
+                      "source=%s | stats sum(age) as sum_age_by_gender by gender | append [ | "
+                          + " left join left=L right=R on L.gender = R.gender %s ]",
+                      TEST_INDEX_ACCOUNT,
+                      TEST_INDEX_ACCOUNT),
+                  String.format(
+                      Locale.ROOT,
+                      "source=%s | stats sum(age) as sum_age_by_gender by gender | append [ | "
+                          + " semi join left=L right=R on L.gender = R.gender %s ]",
+                      TEST_INDEX_ACCOUNT,
+                      TEST_INDEX_ACCOUNT));
 
-    for (String ppl : emptySourceWithJoinPPLs) {
-      JSONObject actual = executeQuery(ppl);
-      verifySchemaInOrder(
-          actual, schema("sum_age_by_gender", "bigint"), schema("gender", "string"));
-      verifyDataRows(actual, rows(14947, "F"), rows(15224, "M"));
-    }
+          for (String ppl : emptySourceWithJoinPPLs) {
+            JSONObject actual = null;
+            try {
+              actual = executeQuery(ppl);
+            } catch (IOException e) {
+              throw new RuntimeException(e);
+            }
+            verifySchemaInOrder(
+                actual, schema("sum_age_by_gender", "bigint"), schema("gender", "string"));
+            verifyDataRows(actual, rows(14947, "F"), rows(15224, "M"));
+          }
 
-    List<String> emptySourceWithRightOrFullJoinPPLs =
-        Arrays.asList(
-            String.format(
-                Locale.ROOT,
-                "source=%s | stats sum(age) as sum_age_by_gender by gender | append [ | where"
-                    + " gender = 'F' |  right join on gender = gender [source=%s | stats count() as"
-                    + " cnt by gender ] ]",
-                TEST_INDEX_ACCOUNT,
-                TEST_INDEX_ACCOUNT),
-            String.format(
-                Locale.ROOT,
-                "source=%s | stats sum(age) as sum_age_by_gender by gender | append [ | where"
-                    + " gender = 'F' |  full join on gender = gender [source=%s | stats count() as"
-                    + " cnt by gender ] ]",
-                TEST_INDEX_ACCOUNT,
-                TEST_INDEX_ACCOUNT));
+          List<String> emptySourceWithRightOrFullJoinPPLs =
+              Arrays.asList(
+                  String.format(
+                      Locale.ROOT,
+                      "source=%s | stats sum(age) as sum_age_by_gender by gender | append [ | where"
+                          + " gender = 'F' |  right join on gender = gender [source=%s | stats"
+                          + " count() as cnt by gender ] ]",
+                      TEST_INDEX_ACCOUNT,
+                      TEST_INDEX_ACCOUNT),
+                  String.format(
+                      Locale.ROOT,
+                      "source=%s | stats sum(age) as sum_age_by_gender by gender | append [ | where"
+                          + " gender = 'F' |  full join on gender = gender [source=%s | stats"
+                          + " count() as cnt by gender ] ]",
+                      TEST_INDEX_ACCOUNT,
+                      TEST_INDEX_ACCOUNT));
 
-    for (String ppl : emptySourceWithRightOrFullJoinPPLs) {
-      JSONObject actual = executeQuery(ppl);
-      verifySchemaInOrder(
-          actual,
-          schema("sum_age_by_gender", "bigint"),
-          schema("gender", "string"),
-          schema("cnt", "bigint"));
-      verifyDataRows(
-          actual,
-          rows(14947, "F", null),
-          rows(15224, "M", null),
-          rows(null, "F", 493),
-          rows(null, "M", 507));
-    }
+          for (String ppl : emptySourceWithRightOrFullJoinPPLs) {
+            JSONObject actual = null;
+            try {
+              actual = executeQuery(ppl);
+            } catch (IOException e) {
+              throw new RuntimeException(e);
+            }
+            verifySchemaInOrder(
+                actual,
+                schema("sum_age_by_gender", "bigint"),
+                schema("gender", "string"),
+                schema("cnt", "bigint"));
+            verifyDataRows(
+                actual,
+                rows(14947, "F", null),
+                rows(15224, "M", null),
+                rows(null, "F", 493),
+                rows(null, "M", 507));
+          }
+        });
   }
 
   @Test
