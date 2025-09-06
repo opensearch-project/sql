@@ -68,13 +68,13 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
 
   @Test
   public void testCrossClusterSearchAllFields() throws IOException {
-    JSONObject result = executeQuery("search " + withSource(TEST_INDEX_DOG_REMOTE, ""));
+    JSONObject result = executeQuery(searchWithSource(TEST_INDEX_DOG_REMOTE));
     verifyColumn(result, columnName("dog_name"), columnName("holdersName"), columnName("age"));
   }
 
   @Test
   public void testMatchAllCrossClusterSearchAllFields() throws IOException {
-    JSONObject result = executeQuery("search " + withSource(TEST_INDEX_DOG_MATCH_ALL_REMOTE, ""));
+    JSONObject result = executeQuery(searchWithSource(TEST_INDEX_DOG_MATCH_ALL_REMOTE));
     verifyColumn(result, columnName("dog_name"), columnName("holdersName"), columnName("age"));
   }
 
@@ -83,7 +83,7 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
     var exception =
         assertThrows(
             ResponseException.class,
-            () -> executeQuery("search " + withSource(TEST_INDEX_ACCOUNT_REMOTE, "")));
+            () -> executeQuery(searchWithSource(TEST_INDEX_ACCOUNT_REMOTE)));
     assertTrue(exception.getMessage().contains("IndexNotFoundException"));
   }
 
@@ -91,8 +91,7 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
   public void testCrossClusterSearchCommandWithLogicalExpression() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "search source=%s firstname='Hattie' | fields firstname", TEST_INDEX_BANK_REMOTE));
+            searchWithSource_(TEST_INDEX_BANK_REMOTE, " firstname='Hattie' | fields firstname"));
     verifyDataRows(result, rows("Hattie"));
   }
 
@@ -100,9 +99,7 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
   public void testCrossClusterSearchMultiClusters() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "search source=%s,%s firstname='Hattie' | fields firstname",
-                TEST_INDEX_BANK_REMOTE, TEST_INDEX_BANK));
+            searchWithSource_(",%s firstname='Hattie' | fields firstname", TEST_INDEX_BANK));
     verifyDataRows(result, rows("Hattie"), rows("Hattie"));
   }
 
@@ -172,17 +169,14 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
   public void testCrossClusterSortWithCount() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "search source=%s | sort 1 age | fields firstname, age", TEST_INDEX_BANK_REMOTE));
+            searchWithSource(TEST_INDEX_BANK_REMOTE, "sort 1 age | fields firstname, age"));
     verifyDataRows(result, rows("Nanette", 28));
   }
 
   @Test
   public void testCrossClusterSortWithDesc() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | sort age desc | fields firstname", TEST_INDEX_BANK_REMOTE));
+        executeQuery(searchWithSource(TEST_INDEX_BANK_REMOTE, "sort age desc | fields firstname"));
     verifyDataRows(
         result,
         rows("Virginia"),
@@ -198,9 +192,8 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
   public void testCrossClusterSortWithTypeCasting() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "search source=%s | sort num(account_number) | fields account_number",
-                TEST_INDEX_BANK_REMOTE));
+            searchWithSource(
+                TEST_INDEX_BANK_REMOTE, "sort num(account_number) | fields account_number"));
     verifyDataRows(result, rows(1), rows(6), rows(13), rows(18), rows(20), rows(25), rows(32));
   }
 
@@ -208,8 +201,7 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
   public void testCrossClusterPercentileShortcuts() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "search source=%s | stats perc50(balance), p95(balance)", TEST_INDEX_BANK_REMOTE));
+            searchWithSource(TEST_INDEX_BANK_REMOTE, "stats perc50(balance), p95(balance)"));
     verifyColumn(result, columnName("perc50(balance)"), columnName("p95(balance)"));
   }
 
@@ -218,9 +210,8 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
     // Test multi_match without fields parameter on remote cluster
     JSONObject result =
         executeQuery(
-            String.format(
-                "search source=%s | where multi_match('Hattie') | fields firstname",
-                TEST_INDEX_BANK_REMOTE));
+            searchWithSource(
+                TEST_INDEX_BANK_REMOTE, "where multi_match('Hattie') | fields firstname"));
     verifyDataRows(result, rows("Hattie"));
   }
 
@@ -229,9 +220,8 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
     // Test simple_query_string without fields parameter on remote cluster
     JSONObject result =
         executeQuery(
-            String.format(
-                "search source=%s | where simple_query_string('Hattie') | fields firstname",
-                TEST_INDEX_BANK_REMOTE));
+            searchWithSource(
+                TEST_INDEX_BANK_REMOTE, "where simple_query_string('Hattie') | fields firstname"));
     verifyDataRows(result, rows("Hattie"));
   }
 
@@ -240,9 +230,8 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
     // Test query_string without fields parameter on remote cluster
     JSONObject result =
         executeQuery(
-            String.format(
-                "search source=%s | where query_string('Hattie') | fields firstname",
-                TEST_INDEX_BANK_REMOTE));
+            searchWithSource(
+                TEST_INDEX_BANK_REMOTE, "where query_string('Hattie') | fields firstname"));
     verifyDataRows(result, rows("Hattie"));
   }
 

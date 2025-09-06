@@ -986,12 +986,20 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     }
   }
 
+  protected static String withSource(String source) {
+    return withSource_(source, "");
+  }
+
   protected static String withSource(String source, String query) {
     return String.format(Locale.ROOT, "source=%s | %s", source, query);
   }
 
   protected static String withSource_(String source, String query) {
     return String.format(Locale.ROOT, "source=%s %s", source, query);
+  }
+
+  protected static String searchWithSource(String source) {
+    return searchWithSource_(source, "");
   }
 
   protected static String searchWithSource(String source, String query) {
