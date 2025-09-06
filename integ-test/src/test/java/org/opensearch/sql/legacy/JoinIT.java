@@ -104,7 +104,7 @@ public class JoinIT extends SQLIntegTestCase {
     String query =
         String.format(
             Locale.ROOT,
-            "SELECT * FROM %1$s c " + "JOIN %1$s h ON h.hname = c.house ",
+            "SELECT * FROM %1$s c JOIN %1$s h ON h.hname = c.house ",
             TEST_INDEX_GAME_OF_THRONES);
 
     JSONObject result = executeQuery(query);
@@ -597,7 +597,7 @@ public class JoinIT extends SQLIntegTestCase {
     final String query =
         String.format(
             Locale.ROOT,
-            "SELECT%1$s c.name.firstname, d.* " + "FROM %2$s c JOIN %2$s d ON d.hname = c.house",
+            "SELECT%1$s c.name.firstname, d.* FROM %2$s c JOIN %2$s d ON d.hname = c.house",
             hint,
             TEST_INDEX_GAME_OF_THRONES);
 
@@ -618,7 +618,7 @@ public class JoinIT extends SQLIntegTestCase {
     final String query =
         String.format(
             Locale.ROOT,
-            "SELECT%1$s c.name.firstname " + "FROM %2$s d JOIN %2$s c ON c.house = d.hname",
+            "SELECT%1$s c.name.firstname FROM %2$s d JOIN %2$s c ON c.house = d.hname",
             hint,
             TEST_INDEX_GAME_OF_THRONES);
 
@@ -714,7 +714,7 @@ public class JoinIT extends SQLIntegTestCase {
     String query =
         String.format(
             Locale.ROOT,
-            "SELECT%s c.gender,h.hname,h.words " + "FROM %2$s c JOIN %2$s h ON h.hname = c.house",
+            "SELECT%s c.gender,h.hname,h.words FROM %2$s c JOIN %2$s h ON h.hname = c.house",
             hint,
             TEST_INDEX_GAME_OF_THRONES);
 

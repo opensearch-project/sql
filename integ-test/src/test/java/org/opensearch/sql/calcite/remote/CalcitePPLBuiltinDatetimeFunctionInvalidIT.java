@@ -1543,7 +1543,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
             () ->
                 executeQuery(
                     String.format(
-                        "source=%s  |  eval a=TIMESTAMPADD(HOUR, 1, '2025-13-02') | fields" + " a",
+                        "source=%s  |  eval a=TIMESTAMPADD(HOUR, 1, '2025-13-02') | fields a",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e1, "unsupported format");
 
@@ -1553,7 +1553,7 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends PPLIntegTestCase
             () ->
                 executeQuery(
                     String.format(
-                        "source=%s  |  eval a=TIMESTAMPADD(HOUR, 1, '16:00:61') | fields" + " a",
+                        "source=%s  |  eval a=TIMESTAMPADD(HOUR, 1, '16:00:61') | fields a",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     verifyErrorMessageContains(e2, "unsupported format");
 

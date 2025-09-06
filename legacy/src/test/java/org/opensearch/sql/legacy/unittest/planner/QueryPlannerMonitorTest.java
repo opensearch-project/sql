@@ -23,7 +23,7 @@ public class QueryPlannerMonitorTest extends QueryPlannerTest {
 
   /** Configure back off strategy 1s, 1s and 1s - retry 4 times at most */
   private static final String TEST_SQL1 =
-      "SELECT /*! JOIN_BACK_OFF_RETRY_INTERVALS(1, 1, 1) */ " + "  /*! JOIN_CIRCUIT_BREAK_LIMIT(";
+      "SELECT /*! JOIN_BACK_OFF_RETRY_INTERVALS(1, 1, 1) */  /*! JOIN_CIRCUIT_BREAK_LIMIT(";
 
   private static final String TEST_SQL2 =
       ") */ d.name, e.lastname FROM employee e "

@@ -40,7 +40,7 @@ public class MathFunctionsTest {
 
   @Test
   public void lowerCaseInWhere() {
-    String query = "SELECT * " + "FROM bank WHERE sqrt(age) > 5";
+    String query = "SELECT * FROM bank WHERE sqrt(age) > 5";
     ScriptFilter scriptFilter = CheckScriptContents.getScriptFilterFromQuery(query, parser);
     assertTrue(
         CheckScriptContents.scriptContainsString(scriptFilter, "Math.sqrt(doc['age'].value)"));
@@ -49,7 +49,7 @@ public class MathFunctionsTest {
 
   @Test
   public void upperCaseInWhere() {
-    String query = "SELECT * " + "FROM bank WHERE SQRT(age) > 5";
+    String query = "SELECT * FROM bank WHERE SQRT(age) > 5";
     ScriptFilter scriptFilter = CheckScriptContents.getScriptFilterFromQuery(query, parser);
     assertTrue(
         CheckScriptContents.scriptContainsString(scriptFilter, "Math.sqrt(doc['age'].value)"));
@@ -66,7 +66,7 @@ public class MathFunctionsTest {
 
   @Test
   public void eulersNumberInWhere() {
-    String query = "SELECT * " + "FROM bank WHERE E() > 2";
+    String query = "SELECT * FROM bank WHERE E() > 2";
     ScriptFilter scriptFilter = CheckScriptContents.getScriptFilterFromQuery(query, parser);
     assertTrue(CheckScriptContents.scriptContainsString(scriptFilter, "Math.E"));
     assertTrue(CheckScriptContents.scriptHasPattern(scriptFilter, "E_\\d+ > 2"));

@@ -19,7 +19,7 @@ public class FindSubQueryTest {
   public void hasInSubQuery() {
     FindSubQuery findSubQuery = new FindSubQuery();
 
-    parse("SELECT * FROM TbA " + "WHERE a in (SELECT b FROM TbB)").accept(findSubQuery);
+    parse("SELECT * FROM TbA WHERE a in (SELECT b FROM TbB)").accept(findSubQuery);
     assertTrue(findSubQuery.hasSubQuery());
     assertFalse(findSubQuery.getSqlInSubQueryExprs().isEmpty());
     assertEquals(1, findSubQuery.getSqlInSubQueryExprs().size());

@@ -131,7 +131,7 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             Index.ACCOUNT.ppl(
-                "rex field=email \\\"[^@]+@(?<domain>[^.]+)\\\" | stats count() by" + " domain"));
+                "rex field=email \\\"[^@]+@(?<domain>[^.]+)\\\" | stats count() by domain"));
 
     assertTrue(result.getJSONArray("datarows").length() > 0);
     int count = Integer.parseInt(result.getJSONArray("datarows").getJSONArray(0).get(0).toString());

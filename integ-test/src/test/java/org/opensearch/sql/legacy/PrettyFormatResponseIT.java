@@ -252,7 +252,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
         executeQuery(
             String.format(
                 Locale.ROOT,
-                "SELECT balance " + "FROM %s " + "WHERE balance > %d",
+                "SELECT balance FROM %s WHERE balance > %d",
                 TestsConstants.TEST_INDEX_ACCOUNT,
                 balanceToCompare));
 

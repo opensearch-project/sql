@@ -129,7 +129,7 @@ public class ExplainIT extends SQLIntegTestCase {
     String result =
         explainQuery(
             String.format(
-                "SELECT * FROM %s WHERE firstname LIKE 'A%%' " + "AND age > 20 GROUP BY gender",
+                "SELECT * FROM %s WHERE firstname LIKE 'A%%' AND age > 20 GROUP BY gender",
                 TEST_INDEX_ACCOUNT));
     Assert.assertThat(
         result.replaceAll("\\s+", ""), equalTo(expectedOutput.replaceAll("\\s+", "")));

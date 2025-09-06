@@ -37,11 +37,11 @@ public class QueryPlannerBatchTest extends QueryPlannerTest {
           + "  /*! JOIN_SCROLL_PAGE_SIZE(%d) */ "
           + "  e.lastname AS name, d.id AS id, d.name AS dep ";
 
-  private static final String TEST_SQL2_JOIN1 = "FROM department d " + "  %s employee e ";
+  private static final String TEST_SQL2_JOIN1 = "FROM department d  %s employee e ";
 
-  private static final String TEST_SQL2_JOIN2 = "FROM employee e " + "  %s department d ";
+  private static final String TEST_SQL2_JOIN2 = "FROM employee e  %s department d ";
 
-  private static final String TEST_SQL3 = "ON d.id = e.departmentId " + "  WHERE e.age <= 50";
+  private static final String TEST_SQL3 = "ON d.id = e.departmentId  WHERE e.age <= 50";
 
   private final SearchHit[] employees = {
     employee(1, "People 1", "A"),

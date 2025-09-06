@@ -188,8 +188,7 @@ public class SqlParserTest {
   @Test
   public void whereConditionVariableRightVariableEqualTest() throws Exception {
 
-    String query =
-        "SELECT " + " * from " + TEST_INDEX_ACCOUNT + "/account " + " where a = b limit 1000  ";
+    String query = "SELECT * from " + TEST_INDEX_ACCOUNT + "/account where a = b limit 1000  ";
 
     Select select = parser.parseSelect((SQLQueryExpr) queryToExpr(query));
     Where where = select.getWhere();

@@ -50,8 +50,7 @@ public class WhereWithBoolConditionTest {
         removeSpaces(
             query(
                 StringUtils.format(
-                    "SELECT * " + "FROM %s " + "WHERE male = true",
-                    TestsConstants.TEST_INDEX_BANK))),
+                    "SELECT * FROM %s WHERE male = true", TestsConstants.TEST_INDEX_BANK))),
         equalTo(removeSpaces(expectedOutput)));
   }
 

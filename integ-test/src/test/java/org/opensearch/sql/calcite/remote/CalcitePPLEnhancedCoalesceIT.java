@@ -41,7 +41,7 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             Index.STATE_COUNTRY_WITH_NULL.ppl(
-                "eval result = coalesce(name, age, 0) | fields name, age, result |" + " head 3"));
+                "eval result = coalesce(name, age, 0) | fields name, age, result | head 3"));
 
     verifySchema(
         actual, schema("name", "string"), schema("age", "int"), schema("result", "string"));
@@ -208,7 +208,7 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             Index.STATE_COUNTRY_WITH_NULL.ppl(
-                "eval result = coalesce(age, year, 999) | fields age, year, result |" + " head 2"));
+                "eval result = coalesce(age, year, 999) | fields age, year, result | head 2"));
 
     verifySchema(actual, schema("age", "int"), schema("year", "int"), schema("result", "int"));
     verifyDataRows(actual, rows(70, 2023, 70), rows(30, 2023, 30));

@@ -232,7 +232,7 @@ public class NestedFieldRewriterTest {
   @Test
   public void isNotNull() {
     same(
-        query("SELECT e.name " + "FROM employee as e, e.projects as p " + "WHERE p IS NOT MISSING"),
+        query("SELECT e.name FROM employee as e, e.projects as p WHERE p IS NOT MISSING"),
         query(
             "SELECT name "
                 + "FROM employee "

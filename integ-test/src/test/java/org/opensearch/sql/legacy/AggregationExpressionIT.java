@@ -24,8 +24,7 @@ public class AggregationExpressionIT extends SQLIntegTestCase {
   @Test
   public void noGroupKeySingleFuncOverAggWithoutAliasShouldPass() {
     JSONObject response =
-        executeJdbcRequest(
-            String.format("SELECT abs(MAX(age)) " + "FROM %s", Index.ACCOUNT.getName()));
+        executeJdbcRequest(String.format("SELECT abs(MAX(age)) FROM %s", Index.ACCOUNT.getName()));
 
     verifySchema(response, schema("abs(MAX(age))", null, "long"));
     verifyDataRows(response, rows(40));
@@ -36,7 +35,7 @@ public class AggregationExpressionIT extends SQLIntegTestCase {
     JSONObject response =
         executeJdbcRequest(
             String.format(
-                "SELECT MAX(age) + MIN(age) as addValue " + "FROM %s", Index.ACCOUNT.getName()));
+                "SELECT MAX(age) + MIN(age) as addValue FROM %s", Index.ACCOUNT.getName()));
 
     verifySchema(response, schema("MAX(age) + MIN(age)", "addValue", "long"));
     verifyDataRows(response, rows(60));
@@ -46,7 +45,7 @@ public class AggregationExpressionIT extends SQLIntegTestCase {
   public void noGroupKeyMaxAddLiteralShouldPass() {
     JSONObject response =
         executeJdbcRequest(
-            String.format("SELECT MAX(age) + 1 as `add` " + "FROM %s", Index.ACCOUNT.getName()));
+            String.format("SELECT MAX(age) + 1 as `add` FROM %s", Index.ACCOUNT.getName()));
 
     verifySchema(response, schema("MAX(age) + 1", "add", "long"));
     verifyDataRows(response, rows(41));
@@ -55,8 +54,7 @@ public class AggregationExpressionIT extends SQLIntegTestCase {
   @Test
   public void noGroupKeyAvgOnIntegerShouldPass() {
     JSONObject response =
-        executeJdbcRequest(
-            String.format("SELECT AVG(age) as `avg` " + "FROM %s", Index.BANK.getName()));
+        executeJdbcRequest(String.format("SELECT AVG(age) as `avg` FROM %s", Index.BANK.getName()));
 
     verifySchema(response, schema("AVG(age)", "avg", "double"));
     verifyDataRows(response, rows(34D));
@@ -67,8 +65,7 @@ public class AggregationExpressionIT extends SQLIntegTestCase {
     JSONObject response =
         executeJdbcRequest(
             String.format(
-                "SELECT gender, AVG(age) as `avg` " + "FROM %s " + "GROUP BY gender",
-                Index.BANK.getName()));
+                "SELECT gender, AVG(age) as `avg` FROM %s GROUP BY gender", Index.BANK.getName()));
 
     verifySchema(response, schema("gender", null, "text"), schema("AVG(age)", "avg", "double"));
     verifyDataRows(response, rows("M", 34.25), rows("F", 33.666666666666664d));
@@ -79,7 +76,7 @@ public class AggregationExpressionIT extends SQLIntegTestCase {
     JSONObject response =
         executeJdbcRequest(
             String.format(
-                "SELECT gender, MAX(age) + MIN(age) as addValue " + "FROM %s " + "GROUP BY gender",
+                "SELECT gender, MAX(age) + MIN(age) as addValue FROM %s GROUP BY gender",
                 Index.ACCOUNT.getName()));
 
     verifySchema(
@@ -94,7 +91,7 @@ public class AggregationExpressionIT extends SQLIntegTestCase {
     JSONObject response =
         executeJdbcRequest(
             String.format(
-                "SELECT gender, MAX(age) + 1 as `add` " + "FROM %s " + "GROUP BY gender",
+                "SELECT gender, MAX(age) + 1 as `add` FROM %s GROUP BY gender",
                 Index.ACCOUNT.getName()));
 
     verifySchema(response, schema("gender", null, "text"), schema("MAX(age) + 1", "add", "long"));
@@ -106,7 +103,7 @@ public class AggregationExpressionIT extends SQLIntegTestCase {
     JSONObject response =
         executeJdbcRequest(
             String.format(
-                "SELECT Log(MAX(age) + MIN(age)) as `log` " + "FROM %s", Index.ACCOUNT.getName()));
+                "SELECT Log(MAX(age) + MIN(age)) as `log` FROM %s", Index.ACCOUNT.getName()));
 
     verifySchema(response, schema("Log(MAX(age) + MIN(age))", "log", "double"));
     verifyDataRows(response, rows(4.0943445622221d));

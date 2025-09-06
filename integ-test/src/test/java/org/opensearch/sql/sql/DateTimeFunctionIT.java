@@ -909,7 +909,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result =
         executeQuery(
             String.format(
-                "SELECT str_to_date(CAST(birthdate AS STRING)," + " '%%Y %%s') FROM %s LIMIT 2",
+                "SELECT str_to_date(CAST(birthdate AS STRING), '%%Y %%s') FROM %s LIMIT 2",
                 TEST_INDEX_BANK));
     verifyDataRows(result, rows((Object) null), rows((Object) null));
 
@@ -917,7 +917,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result =
         executeQuery(
             String.format(
-                "SELECT str_to_date(firstname," + " '%%Y-%%m-%%d %%h:%%i:%%s') FROM %s LIMIT 2",
+                "SELECT str_to_date(firstname, '%%Y-%%m-%%d %%h:%%i:%%s') FROM %s LIMIT 2",
                 TEST_INDEX_BANK));
     verifyDataRows(result, rows((Object) null), rows((Object) null));
 
@@ -1172,8 +1172,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   @Test
   public void testDateFormat() throws IOException {
     String timestamp = "1998-01-31 13:14:15.012345";
-    String timestampFormat =
-        "%a %b %c %D %d %e %f %H %h %I %i %j %k %l %M " + "%m %p %r %S %s %T %% %P";
+    String timestampFormat = "%a %b %c %D %d %e %f %H %h %I %i %j %k %l %M %m %p %r %S %s %T %% %P";
     String timestampFormatted =
         "Sat Jan 01 31st 31 31 012345 13 01 01 14 031 13 1 "
             + "January 01 PM 01:14:15 PM 15 15 13:14:15 % P";

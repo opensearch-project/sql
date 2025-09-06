@@ -315,7 +315,7 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
     String query =
         String.format(
             Locale.ROOT,
-            "select c.gender , h.hname,h.words from %s c " + "JOIN %s h " + "on h.hname = c.house ",
+            "select c.gender , h.hname,h.words from %s c JOIN %s h on h.hname = c.house ",
             TEST_INDEX_GAME_OF_THRONES,
             TEST_INDEX_GAME_OF_THRONES);
     CSVResult csvResult = executeCsvRequest(query, false);
@@ -718,7 +718,7 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
     final String query =
         String.format(
             Locale.ROOT,
-            "SELECT %s FROM %s " + "WHERE email='amberduke@pyrami.com'",
+            "SELECT %s FROM %s WHERE email='amberduke@pyrami.com'",
             fields,
             TEST_INDEX_ACCOUNT);
 

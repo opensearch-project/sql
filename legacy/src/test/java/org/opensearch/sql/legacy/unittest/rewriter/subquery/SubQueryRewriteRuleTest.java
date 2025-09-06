@@ -41,7 +41,7 @@ public class SubQueryRewriteRuleTest {
 
   @Test
   public void isNotExistsMatch() throws SQLFeatureNotSupportedException {
-    String sql = "SELECT * " + "FROM A WHERE NOT EXISTS (SELECT 1 FROM B WHERE A.a_v = B.b_v)";
+    String sql = "SELECT * FROM A WHERE NOT EXISTS (SELECT 1 FROM B WHERE A.a_v = B.b_v)";
     assertTrue(rewriteRule.match(SqlParserUtils.parse(sql)));
   }
 

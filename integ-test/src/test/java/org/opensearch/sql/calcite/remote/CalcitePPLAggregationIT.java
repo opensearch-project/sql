@@ -303,21 +303,21 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             Index.DATE_FORMATS.ppl(
-                "stats count(strict_date) by span(strict_date, 1 day) as" + " date_span"));
+                "stats count(strict_date) by span(strict_date, 1 day) as date_span"));
     verifySchema(actual, schema("date_span", "date"), schema("count(strict_date)", "bigint"));
     verifyDataRows(actual, rows(2, "1984-04-12"));
 
     actual =
         executeQuery(
             Index.DATE_FORMATS.ppl(
-                "stats count(basic_date) by span(basic_date, 1 year) as" + " date_span"));
+                "stats count(basic_date) by span(basic_date, 1 year) as date_span"));
     verifySchema(actual, schema("date_span", "date"), schema("count(basic_date)", "bigint"));
     verifyDataRows(actual, rows(2, "1984-01-01"));
 
     actual =
         executeQuery(
             Index.DATE_FORMATS.ppl(
-                "stats count(year_month_day) by span(year_month_day, 1 month)" + " as date_span"));
+                "stats count(year_month_day) by span(year_month_day, 1 month) as date_span"));
     verifySchema(actual, schema("date_span", "date"), schema("count(year_month_day)", "bigint"));
     verifyDataRows(actual, rows(2, "1984-04-01"));
   }
@@ -336,7 +336,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             Index.DATE_FORMATS.ppl(
-                "stats count(custom_time) by span(custom_time, 1 second) as" + " time_span"));
+                "stats count(custom_time) by span(custom_time, 1 second) as time_span"));
     verifySchema(actual, schema("time_span", "time"), schema("count(custom_time)", "bigint"));
     verifyDataRows(actual, rows(1, "09:07:42"), rows(1, "21:07:42"));
 
@@ -525,8 +525,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   public void testEarliestAndLatestWithBy() throws IOException {
     JSONObject actual =
         executeQuery(
-            Index.LOGS.ppl(
-                "stats latest(server) as late, earliest(server) as early by" + " level"));
+            Index.LOGS.ppl("stats latest(server) as late, earliest(server) as early by level"));
 
     verifySchema(
         actual, schema("late", "string"), schema("early", "string"), schema("level", "string"));

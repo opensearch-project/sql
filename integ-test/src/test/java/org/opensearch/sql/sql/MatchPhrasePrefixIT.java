@@ -60,7 +60,7 @@ public class MatchPhrasePrefixIT extends SQLIntegTestCase {
     // English analyzer removes 'in' and 'to' as they are common words.
     // This results in an empty query.
     String query =
-        "SELECT Title FROM %s " + "WHERE match_phrase_prefix(Title, 'in to', analyzer=english)";
+        "SELECT Title FROM %s WHERE match_phrase_prefix(Title, 'in to', analyzer=english)";
     JSONObject result = executeJdbcRequest(String.format(query, TEST_INDEX_BEER));
     assertTrue(
         "Expect English analyzer to filter out common words 'in' and 'to'",
@@ -72,7 +72,7 @@ public class MatchPhrasePrefixIT extends SQLIntegTestCase {
     // Standard analyzer does not treat 'in' and 'to' as special terms.
     // This results in 'to' being used as a phrase prefix given us 'Tokyo'.
     String query =
-        "SELECT Title FROM %s " + "WHERE match_phrase_prefix(Title, 'in to', analyzer=standard)";
+        "SELECT Title FROM %s WHERE match_phrase_prefix(Title, 'in to', analyzer=standard)";
     JSONObject result = executeJdbcRequest(String.format(query, TEST_INDEX_BEER));
     verifyDataRows(result, rows("Local microbreweries and craft beer in Tokyo"));
   }

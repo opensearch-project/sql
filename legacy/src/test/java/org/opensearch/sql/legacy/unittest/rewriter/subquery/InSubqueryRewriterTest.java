@@ -25,7 +25,7 @@ public class InSubqueryRewriterTest extends SubQueryRewriterTestBase {
                     + "JOIN TbB as TbB_1 "
                     + "ON TbA_0.a = TbB_1.b "
                     + "WHERE TbB_1.b IS NOT NULL")),
-        sqlString(rewrite(expr("SELECT * FROM TbA " + "WHERE a in (SELECT b FROM TbB)"))));
+        sqlString(rewrite(expr("SELECT * FROM TbA WHERE a in (SELECT b FROM TbB)"))));
   }
 
   @Test
@@ -38,9 +38,7 @@ public class InSubqueryRewriterTest extends SubQueryRewriterTestBase {
                     + "JOIN TbB as TbB_1 "
                     + "ON TbA_0.a = TbB_1.b "
                     + "WHERE TbB_1.b IS NOT NULL AND TbB_1.b > 0")),
-        sqlString(
-            rewrite(
-                expr("SELECT * " + "FROM TbA " + "WHERE a in (SELECT b FROM TbB WHERE b > 0)"))));
+        sqlString(rewrite(expr("SELECT * FROM TbA WHERE a in (SELECT b FROM TbB WHERE b > 0)"))));
   }
 
   @Test
@@ -53,9 +51,7 @@ public class InSubqueryRewriterTest extends SubQueryRewriterTestBase {
                     + "JOIN TbB as TbB_1 "
                     + "ON TbA_0.a = TbB_1.b "
                     + "WHERE TbB_1.b IS NOT NULL AND TbA_0.a > 10")),
-        sqlString(
-            rewrite(
-                expr("SELECT * " + "FROM TbA " + "WHERE a in (SELECT b FROM TbB) AND a > 10"))));
+        sqlString(rewrite(expr("SELECT * FROM TbA WHERE a in (SELECT b FROM TbB) AND a > 10"))));
   }
 
   @Test
@@ -69,6 +65,6 @@ public class InSubqueryRewriterTest extends SubQueryRewriterTestBase {
   public void testMultipleSelectException() throws Exception {
     exceptionRule.expect(IllegalStateException.class);
     exceptionRule.expectMessage("Unsupported subquery with multiple select [TbB_1.b1, TbB_1.b2]");
-    rewrite(expr("SELECT * " + "FROM TbA WHERE a in (SELECT b1, b2 FROM TbB) AND a > 10"));
+    rewrite(expr("SELECT * FROM TbA WHERE a in (SELECT b1, b2 FROM TbB) AND a > 10"));
   }
 }

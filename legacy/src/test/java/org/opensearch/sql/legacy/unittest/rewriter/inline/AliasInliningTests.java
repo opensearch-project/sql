@@ -59,7 +59,7 @@ public class AliasInliningTests {
   public void orderByAliasedScriptedField() throws SqlParseException {
     String originalDsl =
         parseAsSimpleQuery(
-            "SELECT date_format(birthday, 'dd-MM-YYYY') date " + "FROM bank " + "ORDER BY date");
+            "SELECT date_format(birthday, 'dd-MM-YYYY') date FROM bank ORDER BY date");
     String rewrittenQuery =
         "SELECT date_format(birthday, 'dd-MM-YYYY') date "
             + "FROM bank "
@@ -72,7 +72,7 @@ public class AliasInliningTests {
   @Test
   public void groupByAliasedFieldTest() throws SqlParseException {
     String originalQuery =
-        "SELECT utc_time date " + "FROM opensearch_dashboards_sample_data_logs " + "GROUP BY date";
+        "SELECT utc_time date FROM opensearch_dashboards_sample_data_logs GROUP BY date";
 
     String originalDsl = parseAsAggregationQuery(originalQuery);
 

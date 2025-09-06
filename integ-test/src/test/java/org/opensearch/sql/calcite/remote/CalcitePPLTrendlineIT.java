@@ -107,7 +107,7 @@ public class CalcitePPLTrendlineIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             Index.BANK_WITH_NULL_VALUES.ppl(
-                "trendline sma(2, balance) | fields" + " balance, balance_trendline"));
+                "trendline sma(2, balance) | fields balance, balance_trendline"));
     verifySchema(result, schema("balance", "bigint"), schema("balance_trendline", "double"));
     verifyDataRows(
         result, rows(39225, null), rows(32838, 36031.5), rows(4180, 18509), rows(48086, 26133));

@@ -24,9 +24,7 @@ public class SubqueryAliasRewriterTest {
                 "SELECT TbA_0.* "
                     + "FROM TbA as TbA_0 "
                     + "WHERE TbA_0.a IN (SELECT TbB_1.b FROM TbB as TbB_1) and TbA_0.c > 10")),
-        sqlString(
-            rewrite(
-                parse("SELECT * " + "FROM TbA " + "WHERE a IN (SELECT b FROM TbB) and c > 10"))));
+        sqlString(rewrite(parse("SELECT * FROM TbA WHERE a IN (SELECT b FROM TbB) and c > 10"))));
   }
 
   @Test

@@ -130,8 +130,7 @@ public class CalciteExplainIT extends ExplainIT {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            Index.ACCOUNT.ppl(
-                "where gender = 'M' or isempty(firstname) or" + " isnull(firstname)")));
+            Index.ACCOUNT.ppl("where gender = 'M' or isempty(firstname) or isnull(firstname)")));
   }
 
   // Only for Calcite
@@ -232,7 +231,7 @@ public class CalciteExplainIT extends ExplainIT {
   public void noPushDownForAggOnWindow() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String query =
-        Index.ACCOUNT.ppl("patterns address method=BRAIN  | stats count()" + " by patterns_field");
+        Index.ACCOUNT.ppl("patterns address method=BRAIN  | stats count() by patterns_field");
     var result = explainQueryToString(query);
     String expected = loadFromFile("expectedOutput/calcite/explain_agg_on_window.json");
     assertJsonEqualsIgnoreId(expected, result);
@@ -297,7 +296,7 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testExplainCountEvalComplex() throws IOException {
-    String query = Index.BANK.ppl("stats count(eval(age > 30 and age < 50)) as" + " mature_count");
+    String query = Index.BANK.ppl("stats count(eval(age > 30 and age < 50)) as mature_count");
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_count_eval_complex_push.json");
     assertJsonEqualsIgnoreId(expected, result);
@@ -315,7 +314,7 @@ public class CalciteExplainIT extends ExplainIT {
   public void testEventstatsDistinctCountFunctionExplain() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String query =
-        Index.ACCOUNT.ppl("eventstats distinct_count(state) as" + " distinct_states by gender");
+        Index.ACCOUNT.ppl("eventstats distinct_count(state) as distinct_states by gender");
     var result = explainQueryToString(query);
     String expected = loadFromFile("expectedOutput/calcite/explain_eventstats_distinct_count.json");
     assertJsonEqualsIgnoreId(expected, result);
@@ -417,7 +416,7 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testRexExplain() throws IOException {
-    String query = Index.ACCOUNT.ppl("rex field=lastname \\\"(?<initial>^[A-Z])\\\" |" + " head 5");
+    String query = Index.ACCOUNT.ppl("rex field=lastname \\\"(?<initial>^[A-Z])\\\" | head 5");
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_rex.json");
     assertJsonEqualsIgnoreId(expected, result);

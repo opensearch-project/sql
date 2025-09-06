@@ -85,8 +85,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testBinValueFieldOnly() throws IOException {
-    JSONObject result =
-        executeQuery(Index.TIME.ppl("bin value span=2000" + " | fields value | head 3"));
+    JSONObject result = executeQuery(Index.TIME.ppl("bin value span=2000 | fields value | head 3"));
     verifySchema(result, schema("value", null, "string"));
 
     verifyDataRows(result, rows("8000-10000"), rows("6000-8000"), rows("8000-10000"));
@@ -161,7 +160,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinOnlyWithoutAggregation() throws IOException {
     // Test just the bin operation without aggregation
     JSONObject binOnlyResult =
-        executeQuery(Index.TIME.ppl("bin @timestamp span=4h" + " | fields `@timestamp` | head 3"));
+        executeQuery(Index.TIME.ppl("bin @timestamp span=4h | fields `@timestamp` | head 3"));
 
     // Verify schema and that binning works correctly
     verifySchema(binOnlyResult, schema("@timestamp", null, "timestamp"));

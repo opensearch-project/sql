@@ -35,7 +35,7 @@ import org.opensearch.sql.legacy.exception.SqlParseException;
 public class DateFormatIT extends SQLIntegTestCase {
 
   private static final String SELECT_FROM =
-      "SELECT insert_time " + "FROM " + TestsConstants.TEST_INDEX_ONLINE + " ";
+      "SELECT insert_time FROM " + TestsConstants.TEST_INDEX_ONLINE + " ";
 
   @Override
   protected void init() throws Exception {

@@ -128,7 +128,7 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            Index.ACCOUNT.ppl("where age > 30 " + "| stats avg(age) AS avg_age by state, city")));
+            Index.ACCOUNT.ppl("where age > 30 | stats avg(age) AS avg_age by state, city")));
   }
 
   @Test
@@ -142,8 +142,7 @@ public class ExplainIT extends PPLIntegTestCase {
   public void testSortPushDownExplain() throws IOException {
     String expected = loadExpectedPlan("explain_sort_push.json");
     assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString(Index.ACCOUNT.ppl("sort age " + "| where age > 30" + "| fields age")));
+        expected, explainQueryToString(Index.ACCOUNT.ppl("sort age | where age > 30| fields age")));
   }
 
   @Test
@@ -159,7 +158,7 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            Index.ACCOUNT.ppl("sort age, - firstname desc | fields age," + " firstname")));
+            Index.ACCOUNT.ppl("sort age, - firstname desc | fields age, firstname")));
   }
 
   @Test
@@ -176,7 +175,7 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            Index.ACCOUNT.ppl("stats avg(age) AS avg_age by state, city " + "| sort avg_age")));
+            Index.ACCOUNT.ppl("stats avg(age) AS avg_age by state, city | sort avg_age")));
 
     // sorts whose by fields are not aggregators can be pushed down.
     // This test is covered in testExplain
@@ -203,8 +202,7 @@ public class ExplainIT extends PPLIntegTestCase {
     String expected = loadExpectedPlan("explain_sort_then_agg_push.json");
     assertJsonEqualsIgnoreId(
         expected,
-        explainQueryToString(
-            Index.ACCOUNT.ppl("sort balance, age " + "| stats avg(balance) by state")));
+        explainQueryToString(Index.ACCOUNT.ppl("sort balance, age | stats avg(balance) by state")));
   }
 
   @Test
@@ -228,8 +226,7 @@ public class ExplainIT extends PPLIntegTestCase {
   public void testSortThenLimitExplain() throws IOException {
     String expected = loadExpectedPlan("explain_sort_then_limit_push.json");
     assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString(Index.ACCOUNT.ppl("sort age " + "| head 5 " + "| fields age")));
+        expected, explainQueryToString(Index.ACCOUNT.ppl("sort age | head 5 | fields age")));
   }
 
   /**
@@ -242,8 +239,7 @@ public class ExplainIT extends PPLIntegTestCase {
     //  limit-then-sort should not be pushed down.
     String expected = loadExpectedPlan("explain_limit_then_sort_push.json");
     assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString(Index.ACCOUNT.ppl("head 5 " + "| sort age " + "| fields age")));
+        expected, explainQueryToString(Index.ACCOUNT.ppl("head 5 | sort age | fields age")));
   }
 
   @Test
@@ -252,7 +248,7 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            Index.ACCOUNT.ppl("eval ageMinus = age - 30 " + "| head 5 " + "| fields ageMinus")));
+            Index.ACCOUNT.ppl("eval ageMinus = age - 30 | head 5 | fields ageMinus")));
   }
 
   @Test
@@ -260,40 +256,36 @@ public class ExplainIT extends PPLIntegTestCase {
     String expectedFilterThenLimit = loadExpectedPlan("explain_filter_then_limit_push.json");
     assertJsonEqualsIgnoreId(
         expectedFilterThenLimit,
-        explainQueryToString(Index.ACCOUNT.ppl("where age > 30 " + "| head 5 " + "| fields age")));
+        explainQueryToString(Index.ACCOUNT.ppl("where age > 30 | head 5 | fields age")));
 
     // The filter in limit-then-filter queries should not be pushed since the current DSL will
     // execute it as filter-then-limit
     String expectedLimitThenFilter = loadExpectedPlan("explain_limit_then_filter_push.json");
     assertJsonEqualsIgnoreId(
         expectedLimitThenFilter,
-        explainQueryToString(Index.ACCOUNT.ppl("head 5 " + "| where age > 30 " + "| fields age")));
+        explainQueryToString(Index.ACCOUNT.ppl("head 5 | where age > 30 | fields age")));
   }
 
   @Test
   public void testMultipleLimitExplain() throws IOException {
     String expected5Then10 = loadExpectedPlan("explain_limit_5_10_push.json");
     assertJsonEqualsIgnoreId(
-        expected5Then10,
-        explainQueryToString(Index.ACCOUNT.ppl("head 5 " + "| head 10 " + "| fields age")));
+        expected5Then10, explainQueryToString(Index.ACCOUNT.ppl("head 5 | head 10 | fields age")));
 
     String expected10Then5 = loadExpectedPlan("explain_limit_10_5_push.json");
     assertJsonEqualsIgnoreId(
-        expected10Then5,
-        explainQueryToString(Index.ACCOUNT.ppl("head 10 " + "| head 5 " + "| fields age")));
+        expected10Then5, explainQueryToString(Index.ACCOUNT.ppl("head 10 | head 5 | fields age")));
 
     String expected10from1then10from2 = loadExpectedPlan("explain_limit_10from1_10from2_push.json");
     assertJsonEqualsIgnoreId(
         expected10from1then10from2,
-        explainQueryToString(
-            Index.ACCOUNT.ppl("head 10 from 1 " + "| head 10 from 2 " + "| fields age")));
+        explainQueryToString(Index.ACCOUNT.ppl("head 10 from 1 | head 10 from 2 | fields age")));
 
     // The second limit should not be pushed down for limit-filter-limit queries
     String expected10ThenFilterThen5 = loadExpectedPlan("explain_limit_10_filter_5_push.json");
     assertJsonEqualsIgnoreId(
         expected10ThenFilterThen5,
-        explainQueryToString(
-            Index.ACCOUNT.ppl("head 10 " + "| where age > 30 " + "| head 5 " + "| fields age")));
+        explainQueryToString(Index.ACCOUNT.ppl("head 10 | where age > 30 | head 5 | fields age")));
   }
 
   @Test
@@ -301,8 +293,7 @@ public class ExplainIT extends PPLIntegTestCase {
     String expected = loadExpectedPlan("explain_limit_offsets_push.json");
     assertJsonEqualsIgnoreId(
         expected,
-        explainQueryToString(
-            Index.ACCOUNT.ppl("head 10 from 1 " + "| head 5 from 2 " + "| fields age")));
+        explainQueryToString(Index.ACCOUNT.ppl("head 10 from 1 | head 5 from 2 | fields age")));
   }
 
   @Test
@@ -320,8 +311,7 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            Index.ACCOUNT.ppl(
-                "head 5 " + "| trendline sma(2, age) as ageTrend " + "| fields ageTrend")));
+            Index.ACCOUNT.ppl("head 5 | trendline sma(2, age) as ageTrend | fields ageTrend")));
   }
 
   @Test
@@ -396,7 +386,7 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            Index.ACCOUNT.ppl("fields account_number, gender, age" + " | dedup 1 gender")));
+            Index.ACCOUNT.ppl("fields account_number, gender, age | dedup 1 gender")));
   }
 
   @Test
@@ -405,8 +395,7 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            Index.ACCOUNT.ppl(
-                "fields account_number, gender, age" + " | dedup gender KEEPEMPTY=true")));
+            Index.ACCOUNT.ppl("fields account_number, gender, age | dedup gender KEEPEMPTY=true")));
   }
 
   @Test
@@ -416,7 +405,7 @@ public class ExplainIT extends PPLIntegTestCase {
         expected,
         explainQueryToString(
             Index.ACCOUNT.ppl(
-                "fields account_number, gender, age" + " | dedup gender KEEPEMPTY=false")));
+                "fields account_number, gender, age | dedup gender KEEPEMPTY=false")));
   }
 
   @Test
@@ -472,7 +461,7 @@ public class ExplainIT extends PPLIntegTestCase {
         expected,
         explainQueryToString(
             Index.ACCOUNT.ppl(
-                "where firstname ='Amber' and age - 2 = 30 |" + " fields firstname, age")));
+                "where firstname ='Amber' and age - 2 = 30 | fields firstname, age")));
   }
 
   @Ignore("The serialized string is unstable because of function properties")
@@ -515,7 +504,7 @@ public class ExplainIT extends PPLIntegTestCase {
         expected,
         explainQueryToString(
             Index.ACCOUNT.ppl(
-                "stats percentile(balance, 50) as p50," + " percentile(balance, 90) as p90")));
+                "stats percentile(balance, 50) as p50, percentile(balance, 90) as p90")));
   }
 
   @Test

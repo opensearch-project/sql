@@ -46,7 +46,7 @@ public class IdentifierIT extends SQLIntegTestCase {
     new Index("test").addDoc("{\"@timestamp\": 10, \"dimensions:major_version\": 30}");
     final JSONObject result =
         new JSONObject(
-            executeQuery("SELECT @timestamp, " + "`dimensions:major_version` FROM test", "jdbc"));
+            executeQuery("SELECT @timestamp, `dimensions:major_version` FROM test", "jdbc"));
 
     verifySchema(
         result,
@@ -81,7 +81,7 @@ public class IdentifierIT extends SQLIntegTestCase {
 
     // Execute using field metadata values
     final JSONObject result =
-        new JSONObject(executeQuery("SELECT *, _id, _index, _sort " + "FROM " + index, "jdbc"));
+        new JSONObject(executeQuery("SELECT *, _id, _index, _sort FROM " + index, "jdbc"));
 
     // Verify that the metadata values are returned when requested
     verifySchema(
@@ -108,8 +108,7 @@ public class IdentifierIT extends SQLIntegTestCase {
 
     // Execute using field metadata values filtering on the routing shard hash id
     final JSONObject result =
-        new JSONObject(
-            executeQuery("SELECT age, _id, _index, _routing " + "FROM " + index, "jdbc"));
+        new JSONObject(executeQuery("SELECT age, _id, _index, _routing FROM " + index, "jdbc"));
 
     // Verify that the metadata values are returned when requested
     verifySchema(

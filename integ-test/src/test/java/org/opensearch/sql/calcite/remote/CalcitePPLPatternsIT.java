@@ -159,7 +159,7 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             Index.HDFS_LOGS.ppl(
-                "patterns content method=brain mode=aggregation" + " variable_count_threshold=5"));
+                "patterns content method=brain mode=aggregation variable_count_threshold=5"));
     verifySchema(
         result,
         schema("patterns_field", "string"),

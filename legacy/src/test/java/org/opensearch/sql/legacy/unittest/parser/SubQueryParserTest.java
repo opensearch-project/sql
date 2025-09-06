@@ -58,7 +58,7 @@ public class SubQueryParserTest {
     Select select =
         parseSelect(
             StringUtils.format(
-                "SELECT t.T1 as age1 " + "FROM (SELECT age as T1, balance as T2 FROM %s/account) t",
+                "SELECT t.T1 as age1 FROM (SELECT age as T1, balance as T2 FROM %s/account) t",
                 TEST_INDEX_ACCOUNT));
 
     assertEquals(1, select.getFields().size());

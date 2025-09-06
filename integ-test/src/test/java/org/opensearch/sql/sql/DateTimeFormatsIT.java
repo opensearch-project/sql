@@ -130,8 +130,7 @@ public class DateTimeFormatsIT extends SQLIntegTestCase {
   @Test
   @SneakyThrows
   public void testNumericFormats() {
-    String query =
-        String.format("SELECT epoch_sec, epoch_milli" + " FROM %s", TEST_INDEX_DATE_FORMATS);
+    String query = String.format("SELECT epoch_sec, epoch_milli FROM %s", TEST_INDEX_DATE_FORMATS);
     JSONObject result = executeQuery(query);
     verifySchema(
         result, schema("epoch_sec", null, "timestamp"), schema("epoch_milli", null, "timestamp"));
@@ -145,7 +144,7 @@ public class DateTimeFormatsIT extends SQLIntegTestCase {
   @SneakyThrows
   public void testDateNanosWithFormats() {
     String query =
-        String.format("SELECT hour_minute_second_OR_t_time" + " FROM %s", TEST_INDEX_DATE_FORMATS);
+        String.format("SELECT hour_minute_second_OR_t_time FROM %s", TEST_INDEX_DATE_FORMATS);
     JSONObject result = executeQuery(query);
     verifySchema(result, schema("hour_minute_second_OR_t_time", null, "time"));
     verifyDataRows(result, rows("09:07:42"), rows("07:07:42.123456789"));
@@ -212,7 +211,7 @@ public class DateTimeFormatsIT extends SQLIntegTestCase {
   public void testDateNanosGroupBy() {
     String query =
         String.format(
-            "SELECT count(*)" + " FROM %s GROUP BY hour_minute_second_OR_t_time",
+            "SELECT count(*) FROM %s GROUP BY hour_minute_second_OR_t_time",
             TEST_INDEX_DATE_FORMATS);
     JSONObject result = executeQuery(query);
     verifySchema(result, schema("count(*)", null, "integer"));
@@ -222,8 +221,7 @@ public class DateTimeFormatsIT extends SQLIntegTestCase {
   @Test
   @SneakyThrows
   public void testDateNanosWithNanos() {
-    String query =
-        String.format("SELECT date_nanos_value" + " FROM %s", TEST_INDEX_DATATYPE_NONNUMERIC);
+    String query = String.format("SELECT date_nanos_value FROM %s", TEST_INDEX_DATATYPE_NONNUMERIC);
     JSONObject result = executeQuery(query);
     verifySchema(result, schema("date_nanos_value", null, "timestamp"));
     verifyDataRows(result, rows("2019-03-24 01:34:46.123456789"));

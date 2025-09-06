@@ -40,7 +40,7 @@ public abstract class PhysicalPlan
   public ExecutionEngine.Schema schema() {
     throw new IllegalStateException(
         String.format(
-            "[BUG] schema can been only applied to " + "ProjectOperator, instead of %s",
+            "[BUG] schema can been only applied to ProjectOperator, instead of %s",
             this.getClass().getSimpleName()));
   }
 }

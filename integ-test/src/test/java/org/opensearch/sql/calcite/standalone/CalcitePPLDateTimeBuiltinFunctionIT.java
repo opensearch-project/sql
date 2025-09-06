@@ -687,7 +687,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject result =
         executeQuery(
             Index.DATE.ppl(
-                "eval f = convert_tz('2021-02-30 10:00:00','+00:00','+00:00') | fields" + " f"));
+                "eval f = convert_tz('2021-02-30 10:00:00','+00:00','+00:00') | fields f"));
     verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows(new Object[] {null}));
   }

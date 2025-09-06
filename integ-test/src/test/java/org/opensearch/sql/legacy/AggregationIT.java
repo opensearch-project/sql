@@ -491,8 +491,7 @@ public class AggregationIT extends SQLIntegTestCase {
     JSONObject response =
         executeJdbcRequest(
             String.format(
-                "SELECT COUNT(*) FROM %s " + "GROUP BY gender ORDER BY COUNT(*)",
-                TEST_INDEX_ACCOUNT));
+                "SELECT COUNT(*) FROM %s GROUP BY gender ORDER BY COUNT(*)", TEST_INDEX_ACCOUNT));
 
     verifySchema(response, schema("COUNT(*)", null, "integer"));
     verifyDataRows(response, rows(493), rows(507));
@@ -503,7 +502,7 @@ public class AggregationIT extends SQLIntegTestCase {
     JSONObject response =
         executeJdbcRequest(
             String.format(
-                "SELECT COUNT(*) as count FROM %s " + "GROUP BY gender ORDER BY count",
+                "SELECT COUNT(*) as count FROM %s GROUP BY gender ORDER BY count",
                 TEST_INDEX_ACCOUNT));
 
     verifySchema(response, schema("COUNT(*)", "count", "integer"));
@@ -515,7 +514,7 @@ public class AggregationIT extends SQLIntegTestCase {
     JSONObject response =
         executeJdbcRequest(
             String.format(
-                "SELECT COUNT(*) FROM %s " + "GROUP BY gender ORDER BY COUNT(*) DESC",
+                "SELECT COUNT(*) FROM %s GROUP BY gender ORDER BY COUNT(*) DESC",
                 TEST_INDEX_ACCOUNT));
 
     verifySchema(response, schema("COUNT(*)", null, "integer"));
@@ -527,7 +526,7 @@ public class AggregationIT extends SQLIntegTestCase {
     JSONObject response =
         executeJdbcRequest(
             String.format(
-                "SELECT COUNT(*) as count FROM %s " + "GROUP BY gender ORDER BY count DESC",
+                "SELECT COUNT(*) as count FROM %s GROUP BY gender ORDER BY count DESC",
                 TEST_INDEX_ACCOUNT));
 
     verifySchema(response, schema("COUNT(*)", "count", "integer"));
@@ -551,7 +550,7 @@ public class AggregationIT extends SQLIntegTestCase {
     response =
         executeJdbcRequest(
             String.format(
-                "SELECT gender as g, COUNT(*) as count " + "FROM %s GROUP BY gender ORDER BY g",
+                "SELECT gender as g, COUNT(*) as count FROM %s GROUP BY gender ORDER BY g",
                 TEST_INDEX_ACCOUNT));
 
     verifySchema(response, schema("gender", "g", "text"), schema("COUNT(*)", "count", "integer"));
@@ -563,7 +562,7 @@ public class AggregationIT extends SQLIntegTestCase {
     JSONObject response =
         executeJdbcRequest(
             String.format(
-                "SELECT COUNT(*) FROM %s " + "GROUP BY age ORDER BY COUNT(*) LIMIT 5",
+                "SELECT COUNT(*) FROM %s GROUP BY age ORDER BY COUNT(*) LIMIT 5",
                 TEST_INDEX_ACCOUNT));
 
     verifySchema(response, schema("COUNT(*)", null, "integer"));
@@ -576,7 +575,7 @@ public class AggregationIT extends SQLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "SELECT COUNT(age) FROM %s" + " GROUP BY range(age, 20,25,30,35,40)",
+                "SELECT COUNT(age) FROM %s GROUP BY range(age, 20,25,30,35,40)",
                 TEST_INDEX_ACCOUNT));
     JSONObject ageAgg = getAggregation(result, "range(age,20,25,30,35,40)");
     JSONArray buckets = ageAgg.getJSONArray("buckets");
@@ -787,7 +786,7 @@ public class AggregationIT extends SQLIntegTestCase {
 
     String query =
         String.format(
-            "select topHits('size'=3,'exclude'='lastname',age='desc') from " + "%s group by gender",
+            "select topHits('size'=3,'exclude'='lastname',age='desc') from %s group by gender",
             TEST_INDEX_ACCOUNT);
     JSONObject result = executeQuery(query);
     JSONObject gender = getAggregation(result, "gender");

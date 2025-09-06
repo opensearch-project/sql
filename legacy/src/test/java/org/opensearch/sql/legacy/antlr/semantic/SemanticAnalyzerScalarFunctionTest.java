@@ -197,12 +197,12 @@ public class SemanticAnalyzerScalarFunctionTest extends SemanticAnalyzerTestBase
 
   @Test
   public void allSupportedConstantsUseInSelectClauseShouldPass() {
-    validate("SELECT " + " E(), " + " PI() " + "FROM semantics");
+    validate("SELECT E(), PI() FROM semantics");
   }
 
   @Test
   public void allSupportedConstantsUseInWhereClauseShouldPass() {
-    validate("SELECT * FROM semantics WHERE " + " E() > 1 OR " + " PI() > 1");
+    validate("SELECT * FROM semantics WHERE E() > 1 OR PI() > 1");
   }
 
   @Test

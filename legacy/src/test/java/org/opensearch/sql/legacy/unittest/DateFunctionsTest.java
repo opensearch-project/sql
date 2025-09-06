@@ -33,14 +33,14 @@ public class DateFunctionsTest {
    */
   @Test
   public void yearInSelect() {
-    String query = "SELECT YEAR(creationDate) " + "FROM dates";
+    String query = "SELECT YEAR(creationDate) FROM dates";
     ScriptField scriptField = getScriptFieldFromQuery(query);
     assertTrue(scriptContainsString(scriptField, "doc['creationDate'].value.year"));
   }
 
   @Test
   public void yearInWhere() {
-    String query = "SELECT * " + "FROM dates " + "WHERE YEAR(creationDate) > 2012";
+    String query = "SELECT * FROM dates WHERE YEAR(creationDate) > 2012";
     ScriptFilter scriptFilter = getScriptFilterFromQuery(query, parser);
     assertTrue(scriptContainsString(scriptFilter, "doc['creationDate'].value.year"));
     assertTrue(scriptHasPattern(scriptFilter, "year_\\d+ > 2012"));
@@ -48,7 +48,7 @@ public class DateFunctionsTest {
 
   @Test
   public void weekOfYearInSelect() {
-    String query = "SELECT WEEK_OF_YEAR(creationDate) " + "FROM dates";
+    String query = "SELECT WEEK_OF_YEAR(creationDate) FROM dates";
     ScriptField scriptField = getScriptFieldFromQuery(query);
     assertTrue(
         scriptContainsString(
@@ -57,7 +57,7 @@ public class DateFunctionsTest {
 
   @Test
   public void weekOfYearInWhere() {
-    String query = "SELECT * " + "FROM dates " + "WHERE WEEK_OF_YEAR(creationDate) > 15";
+    String query = "SELECT * FROM dates WHERE WEEK_OF_YEAR(creationDate) > 15";
     ScriptFilter scriptFilter = getScriptFilterFromQuery(query, parser);
     assertTrue(
         scriptContainsString(
@@ -67,21 +67,21 @@ public class DateFunctionsTest {
 
   @Test
   public void dayOfMonth() {
-    String query = "SELECT DAY_OF_MONTH(creationDate) " + "FROM dates";
+    String query = "SELECT DAY_OF_MONTH(creationDate) FROM dates";
     ScriptField scriptField = getScriptFieldFromQuery(query);
     assertTrue(scriptContainsString(scriptField, "doc['creationDate'].value.dayOfMonth"));
   }
 
   @Test
   public void hourOfDay() {
-    String query = "SELECT HOUR_OF_DAY(creationDate) " + "FROM dates";
+    String query = "SELECT HOUR_OF_DAY(creationDate) FROM dates";
     ScriptField scriptField = getScriptFieldFromQuery(query);
     assertTrue(scriptContainsString(scriptField, "doc['creationDate'].value.hour"));
   }
 
   @Test
   public void secondOfMinute() {
-    String query = "SELECT SECOND_OF_MINUTE(creationDate) " + "FROM dates";
+    String query = "SELECT SECOND_OF_MINUTE(creationDate) FROM dates";
     ScriptField scriptField = getScriptFieldFromQuery(query);
     assertTrue(scriptContainsString(scriptField, "doc['creationDate'].value.second"));
   }

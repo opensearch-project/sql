@@ -198,22 +198,19 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
 
     result =
         executeQuery(
-            Index.DATE.ppl(
-                "eval " + " f = date_add(date('2020-09-16'), interval 1 day)" + " | fields f"));
+            Index.DATE.ppl("eval f = date_add(date('2020-09-16'), interval 1 day) | fields f"));
     verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows("2020-09-17 00:00:00"));
 
     result =
         executeQuery(
-            Index.DATE.ppl(
-                "eval " + " f = date_add(date('2020-09-16'), interval 1 hour)" + " | fields f"));
+            Index.DATE.ppl("eval f = date_add(date('2020-09-16'), interval 1 hour) | fields f"));
     verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows("2020-09-16 01:00:00"));
 
     result =
         executeQuery(
-            Index.DATE.ppl(
-                "eval " + " f = date_add(TIME('07:40:00'), interval 1 day)" + " | fields f"));
+            Index.DATE.ppl("eval f = date_add(TIME('07:40:00'), interval 1 day) | fields f"));
     verifySchema(result, schema("f", null, "timestamp"));
     verifySome(
         result.getJSONArray("datarows"),
@@ -226,8 +223,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
 
     result =
         executeQuery(
-            Index.DATE.ppl(
-                "eval " + " f = date_add(TIME('07:40:00'), interval 1 hour)" + " | fields f"));
+            Index.DATE.ppl("eval f = date_add(TIME('07:40:00'), interval 1 hour) | fields f"));
     verifySchema(result, schema("f", null, "timestamp"));
     verifySome(
         result.getJSONArray("datarows"),
@@ -238,8 +234,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))));
 
     result =
-        executeQuery(
-            Index.BANK.ppl("eval " + " f = DATE_ADD(birthdate, INTERVAL 1 YEAR)" + " | fields f"));
+        executeQuery(Index.BANK.ppl("eval f = DATE_ADD(birthdate, INTERVAL 1 YEAR) | fields f"));
     verifySchema(result, schema("f", null, "timestamp"));
     verifyDataRows(
         result,
@@ -339,22 +334,19 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
 
     result =
         executeQuery(
-            Index.DATE.ppl(
-                "eval " + " f = date_sub(date('2020-09-16'), interval 1 day)" + " | fields f"));
+            Index.DATE.ppl("eval f = date_sub(date('2020-09-16'), interval 1 day) | fields f"));
     verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows("2020-09-15 00:00:00"));
 
     result =
         executeQuery(
-            Index.DATE.ppl(
-                "eval " + " f = date_sub(date('2020-09-16'), interval 1 hour)" + " | fields f"));
+            Index.DATE.ppl("eval f = date_sub(date('2020-09-16'), interval 1 hour) | fields f"));
     verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows("2020-09-15 23:00:00"));
 
     result =
         executeQuery(
-            Index.DATE.ppl(
-                "eval " + " f = date_sub(TIME('07:40:00'), interval 1 day)" + " | fields f"));
+            Index.DATE.ppl("eval f = date_sub(TIME('07:40:00'), interval 1 day) | fields f"));
     verifySchema(result, schema("f", null, "timestamp"));
     verifySome(
         result.getJSONArray("datarows"),
@@ -367,8 +359,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
 
     result =
         executeQuery(
-            Index.DATE.ppl(
-                "eval " + " f = date_sub(TIME('07:40:00'), interval 1 hour)" + " | fields f"));
+            Index.DATE.ppl("eval f = date_sub(TIME('07:40:00'), interval 1 hour) | fields f"));
     verifySchema(result, schema("f", null, "timestamp"));
     verifySome(
         result.getJSONArray("datarows"),
@@ -529,7 +520,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             Index.DATE.ppl(
-                "eval f =  microsecond(timestamp('2020-09-16 17:30:00.123456')) |" + " fields f"));
+                "eval f =  microsecond(timestamp('2020-09-16 17:30:00.123456')) | fields f"));
     verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(123456));
 
@@ -537,7 +528,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     result =
         executeQuery(
             Index.DATE.ppl(
-                "eval f =  microsecond(timestamp('2020-09-16 17:30:00.1234')) | fields" + " f"));
+                "eval f =  microsecond(timestamp('2020-09-16 17:30:00.1234')) | fields f"));
     verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(123400));
 
@@ -715,7 +706,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             Index.DATE.ppl(
-                "eval f =  second_of_minute(timestamp('2020-09-16 17:30:00')) | fields" + " f"));
+                "eval f =  second_of_minute(timestamp('2020-09-16 17:30:00')) | fields f"));
     verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(0));
 
@@ -737,27 +728,21 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testSubDateDays() throws IOException {
-    var result =
-        executeQuery(
-            Index.DATE.ppl("eval " + " f = subdate(date('2020-09-16'), 1)" + " | fields f"));
+    var result = executeQuery(Index.DATE.ppl("eval f = subdate(date('2020-09-16'), 1) | fields f"));
     verifySchema(result, schema("f", null, "date"));
     verifySome(result.getJSONArray("datarows"), rows("2020-09-15"));
 
     result =
         executeQuery(
-            Index.DATE.ppl(
-                "eval " + " f = subdate(timestamp('2020-09-16 17:30:00'), 1)" + " | fields f"));
+            Index.DATE.ppl("eval f = subdate(timestamp('2020-09-16 17:30:00'), 1) | fields f"));
     verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows("2020-09-15 17:30:00"));
 
-    result =
-        executeQuery(
-            Index.DATE.ppl("eval " + " f = subdate(date('2020-09-16'), 1)" + " | fields f"));
+    result = executeQuery(Index.DATE.ppl("eval f = subdate(date('2020-09-16'), 1) | fields f"));
     verifySchema(result, schema("f", null, "date"));
     verifySome(result.getJSONArray("datarows"), rows("2020-09-15"));
 
-    result =
-        executeQuery(Index.DATE.ppl("eval " + " f = subdate(TIME('07:40:00'), 0)" + " | fields f"));
+    result = executeQuery(Index.DATE.ppl("eval f = subdate(TIME('07:40:00'), 0) | fields f"));
     verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows(LocalDate.now() + " 07:40:00"));
   }
@@ -775,15 +760,13 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
 
     result =
         executeQuery(
-            Index.DATE.ppl(
-                "eval " + " f = subdate(date('2020-09-16'), interval 1 day) " + " | fields f"));
+            Index.DATE.ppl("eval f = subdate(date('2020-09-16'), interval 1 day) | fields f"));
     verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows("2020-09-15 00:00:00"));
 
     result =
         executeQuery(
-            Index.DATE.ppl(
-                "eval " + " f = subdate(date('2020-09-16'), interval 1 hour)" + " | fields f"));
+            Index.DATE.ppl("eval f = subdate(date('2020-09-16'), interval 1 hour) | fields f"));
     verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows("2020-09-15 23:00:00"));
 
@@ -911,8 +894,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
   @Test
   public void testDateFormat() throws IOException {
     String timestamp = "1998-01-31 13:14:15.012345";
-    String timestampFormat =
-        "%a %b %c %D %d %e %f %H %h %I %i %j %k %l %M " + "%m %p %r %S %s %T %% %P";
+    String timestampFormat = "%a %b %c %D %d %e %f %H %h %I %i %j %k %l %M %m %p %r %S %s %T %% %P";
     String timestampFormatted =
         "Sat Jan 01 31st 31 31 012345 13 01 01 14 031 13 1 "
             + "January 01 PM 01:14:15 PM 15 15 13:14:15 % P";

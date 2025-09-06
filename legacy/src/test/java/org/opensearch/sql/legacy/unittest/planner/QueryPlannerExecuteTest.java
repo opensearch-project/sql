@@ -34,7 +34,7 @@ public class QueryPlannerExecuteTest extends QueryPlannerTest {
   public void simpleJoinWithSelectAll() {
     MatcherAssert.assertThat(
         query(
-            "SELECT * FROM employee e " + "  JOIN department d ON d.id = e.departmentId ",
+            "SELECT * FROM employee e  JOIN department d ON d.id = e.departmentId ",
             employees(employee(1, "Alice", "1"), employee(2, "Hank", "1")),
             departments(department(1, "1", "AWS"))),
         hits(
@@ -84,7 +84,7 @@ public class QueryPlannerExecuteTest extends QueryPlannerTest {
   public void simpleJoinWithSelectAllFromBothTables() {
     MatcherAssert.assertThat(
         query(
-            "SELECT e.*, d.* FROM employee e " + "  JOIN department d ON d.id = e.departmentId ",
+            "SELECT e.*, d.* FROM employee e  JOIN department d ON d.id = e.departmentId ",
             employees(employee(1, "Alice", "1"), employee(2, "Hank", "1")),
             departments(department(1, "1", "AWS"))),
         hits(

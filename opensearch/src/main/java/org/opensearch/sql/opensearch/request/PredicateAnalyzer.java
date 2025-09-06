@@ -932,17 +932,17 @@ public class PredicateAnalyzer {
 
     QueryExpression exists() {
       throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['exists'] " + "cannot be applied to " + this.getClass());
+          "SqlOperatorImpl ['exists'] cannot be applied to " + this.getClass());
     }
 
     QueryExpression notExists() {
       throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['notExists'] " + "cannot be applied to " + this.getClass());
+          "SqlOperatorImpl ['notExists'] cannot be applied to " + this.getClass());
     }
 
     QueryExpression contains(LiteralExpression literal) {
       throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['contains'] " + "cannot be applied to " + this.getClass());
+          "SqlOperatorImpl ['contains'] cannot be applied to " + this.getClass());
     }
 
     QueryExpression between(Range<?> literal, boolean isTimeStamp) {
@@ -951,17 +951,17 @@ public class PredicateAnalyzer {
 
     QueryExpression like(LiteralExpression literal) {
       throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['like'] " + "cannot be applied to " + this.getClass());
+          "SqlOperatorImpl ['like'] cannot be applied to " + this.getClass());
     }
 
     QueryExpression notLike(LiteralExpression literal) {
       throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['notLike'] " + "cannot be applied to " + this.getClass());
+          "SqlOperatorImpl ['notLike'] cannot be applied to " + this.getClass());
     }
 
     QueryExpression equals(LiteralExpression literal) {
       throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['='] " + "cannot be applied to " + this.getClass());
+          "SqlOperatorImpl ['='] cannot be applied to " + this.getClass());
     }
 
     QueryExpression equals(Object point, boolean isTimeStamp) {
@@ -970,64 +970,61 @@ public class PredicateAnalyzer {
 
     QueryExpression notEquals(LiteralExpression literal) {
       throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['not'] " + "cannot be applied to " + this.getClass());
+          "SqlOperatorImpl ['not'] cannot be applied to " + this.getClass());
     }
 
     QueryExpression gt(LiteralExpression literal) {
       throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['>'] " + "cannot be applied to " + this.getClass());
+          "SqlOperatorImpl ['>'] cannot be applied to " + this.getClass());
     }
 
     QueryExpression gte(LiteralExpression literal) {
       throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['>='] " + "cannot be applied to " + this.getClass());
+          "SqlOperatorImpl ['>='] cannot be applied to " + this.getClass());
     }
 
     QueryExpression lt(LiteralExpression literal) {
       throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['<'] " + "cannot be applied to " + this.getClass());
+          "SqlOperatorImpl ['<'] cannot be applied to " + this.getClass());
     }
 
     QueryExpression lte(LiteralExpression literal) {
       throw new PredicateAnalyzerException(
-          "SqlOperatorImpl ['<='] " + "cannot be applied to " + this.getClass());
+          "SqlOperatorImpl ['<='] cannot be applied to " + this.getClass());
     }
 
     QueryExpression match(String query, Map<String, String> optionalArguments) {
-      throw new PredicateAnalyzerException("Match " + "cannot be applied to " + this.getClass());
+      throw new PredicateAnalyzerException("Match cannot be applied to " + this.getClass());
     }
 
     QueryExpression matchPhrase(String query, Map<String, String> optionalArguments) {
-      throw new PredicateAnalyzerException(
-          "MatchPhrase " + "cannot be applied to " + this.getClass());
+      throw new PredicateAnalyzerException("MatchPhrase cannot be applied to " + this.getClass());
     }
 
     QueryExpression matchBoolPrefix(String query, Map<String, String> optionalArguments) {
       throw new PredicateAnalyzerException(
-          "MatchBoolPrefix " + "cannot be applied to " + this.getClass());
+          "MatchBoolPrefix cannot be applied to " + this.getClass());
     }
 
     QueryExpression matchPhrasePrefix(String query, Map<String, String> optionalArguments) {
       throw new PredicateAnalyzerException(
-          "MatchPhrasePrefix " + "cannot be applied to " + this.getClass());
+          "MatchPhrasePrefix cannot be applied to " + this.getClass());
     }
 
     QueryExpression simpleQueryString(
         RexCall fieldsRexCall, String query, Map<String, String> optionalArguments) {
       throw new PredicateAnalyzerException(
-          "SimpleQueryString " + "cannot be applied to " + this.getClass());
+          "SimpleQueryString cannot be applied to " + this.getClass());
     }
 
     QueryExpression queryString(
         RexCall fieldsRexCall, String query, Map<String, String> optionalArguments) {
-      throw new PredicateAnalyzerException(
-          "QueryString " + "cannot be applied to " + this.getClass());
+      throw new PredicateAnalyzerException("QueryString cannot be applied to " + this.getClass());
     }
 
     QueryExpression multiMatch(
         RexCall fieldsRexCall, String query, Map<String, String> optionalArguments) {
-      throw new PredicateAnalyzerException(
-          "MultiMatch " + "cannot be applied to " + this.getClass());
+      throw new PredicateAnalyzerException("MultiMatch cannot be applied to " + this.getClass());
     }
 
     QueryExpression isTrue() {

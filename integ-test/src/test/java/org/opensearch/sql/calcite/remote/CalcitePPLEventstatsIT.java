@@ -351,7 +351,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             Index.STATE_COUNTRY.ppl(
-                "eventstats stddev_pop(age), stddev_samp(age), var_pop(age)," + " var_samp(age)"));
+                "eventstats stddev_pop(age), stddev_samp(age), var_pop(age), var_samp(age)"));
 
     verifySchemaInOrder(
         actual,
@@ -419,7 +419,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             Index.STATE_COUNTRY_WITH_NULL.ppl(
-                "eventstats stddev_pop(age), stddev_samp(age), var_pop(age)," + " var_samp(age)"));
+                "eventstats stddev_pop(age), stddev_samp(age), var_pop(age), var_samp(age)"));
 
     verifySchemaInOrder(
         actual,
