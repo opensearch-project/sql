@@ -168,20 +168,16 @@ public class ArgumentFactory {
   }
 
   public static Join.JoinType getJoinType(OpenSearchPPLParser.SqlLikeJoinTypeContext ctx) {
-    try {
-      if (ctx == null) return Join.JoinType.INNER;
-      if (ctx.INNER() != null) return Join.JoinType.valueOf(ctx.INNER().getText());
-      if (ctx.SEMI() != null) return Join.JoinType.valueOf(ctx.SEMI().getText());
-      if (ctx.ANTI() != null) return Join.JoinType.valueOf(ctx.ANTI().getText());
-      if (ctx.LEFT() != null) return Join.JoinType.valueOf(ctx.LEFT().getText());
-      if (ctx.RIGHT() != null) return Join.JoinType.valueOf(ctx.RIGHT().getText());
-      if (ctx.CROSS() != null) return Join.JoinType.valueOf(ctx.CROSS().getText());
-      if (ctx.FULL() != null) return Join.JoinType.valueOf(ctx.FULL().getText());
-      if (ctx.OUTER() != null) return Join.JoinType.LEFT; // Special case
-      return Join.JoinType.INNER; // Default case
-    } catch (Exception e) {
-      throw new SemanticCheckException(String.format("Unsupported join type %s", ctx.getText()));
-    }
+    if (ctx == null) return Join.JoinType.INNER;
+    if (ctx.INNER() != null) return Join.JoinType.INNER;
+    if (ctx.SEMI() != null) return Join.JoinType.SEMI;
+    if (ctx.ANTI() != null) return Join.JoinType.ANTI;
+    if (ctx.LEFT() != null) return Join.JoinType.LEFT;
+    if (ctx.RIGHT() != null) return Join.JoinType.RIGHT;
+    if (ctx.CROSS() != null) return Join.JoinType.CROSS;
+    if (ctx.FULL() != null) return Join.JoinType.FULL;
+    if (ctx.OUTER() != null) return Join.JoinType.LEFT;
+    throw new SemanticCheckException(String.format("Unsupported join type %s", ctx.getText()));
   }
 
   public static Join.JoinType getJoinType(OpenSearchPPLParser.JoinTypeContext ctx) {
@@ -193,7 +189,7 @@ public class ArgumentFactory {
     if (ctx.RIGHT() != null) return Join.JoinType.RIGHT;
     if (ctx.CROSS() != null) return Join.JoinType.CROSS;
     if (ctx.FULL() != null) return Join.JoinType.FULL;
-    if (ctx.OUTER() != null) return Join.JoinType.LEFT; // Special case
+    if (ctx.OUTER() != null) return Join.JoinType.LEFT;
     throw new SemanticCheckException(String.format("Unsupported join type %s", ctx.getText()));
   }
 
