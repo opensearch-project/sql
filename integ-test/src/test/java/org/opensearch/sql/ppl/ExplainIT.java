@@ -441,14 +441,14 @@ public class ExplainIT extends PPLIntegTestCase {
   public void testKeywordLikeFunctionExplain() throws IOException {
     String expected = loadExpectedPlan("explain_keyword_like_function.json");
     assertJsonEqualsIgnoreId(
-        expected, explainQueryToString(Index.ACCOUNT.ppl("where like(firstname, '%%mbe%%')")));
+        expected, explainQueryToString(Index.ACCOUNT.ppl("where like(firstname, '%mbe%')")));
   }
 
   @Test
   public void testTextLikeFunctionExplain() throws IOException {
     String expected = loadExpectedPlan("explain_text_like_function.json");
     assertJsonEqualsIgnoreId(
-        expected, explainQueryToString(Index.ACCOUNT.ppl("where like(address, '%%Holmes%%')")));
+        expected, explainQueryToString(Index.ACCOUNT.ppl("where like(address, '%Holmes%')")));
   }
 
   @Ignore("The serialized string is unstable because of function properties")

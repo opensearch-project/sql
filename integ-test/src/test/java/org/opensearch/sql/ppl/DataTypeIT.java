@@ -35,7 +35,7 @@ public class DataTypeIT extends PPLIntegTestCase {
 
   @Test
   public void test_numeric_data_types() throws IOException {
-    JSONObject result = executeQuery("source=" + TEST_INDEX_DATATYPE_NUMERIC);
+    JSONObject result = executeQuery(Index.DATATYPE_NUMERIC.ppl());
     verifySchema(
         result,
         schema("long_number", "bigint"),
@@ -50,7 +50,7 @@ public class DataTypeIT extends PPLIntegTestCase {
 
   @Test
   public void test_nonnumeric_data_types() throws IOException {
-    JSONObject result = executeQuery("source=" + TEST_INDEX_DATATYPE_NUMERIC);
+    JSONObject result = executeQuery(Index.DATATYPE_NONNUMERIC.ppl());
     verifySchemaInOrder(
         result,
         schema("text_value", "string"),

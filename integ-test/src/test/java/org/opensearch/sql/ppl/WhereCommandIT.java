@@ -6,7 +6,6 @@
 package org.opensearch.sql.ppl;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -66,7 +65,7 @@ public class WhereCommandIT extends PPLIntegTestCase {
   public void testWhereEquivalentSortCommand() throws IOException {
     assertEquals(
         executeQueryToString(Index.ACCOUNT.ppl("where firstname='Amber'")),
-        executeQueryToString(String.format("source=%s firstname='Amber'", TEST_INDEX_ACCOUNT)));
+        executeQueryToString(Index.ACCOUNT.ppl_("firstname='Amber'")));
   }
 
   @Test

@@ -140,7 +140,7 @@ public class CalcitePPLAppendCommandIT extends PPLIntegTestCase {
             Index.ACCOUNT.ppl(
                 "stats sum(age) as sum by gender | append [ source=%s | stats"
                     + " sum(age) as bank_sum_age ]",
-                TEST_INDEX_ACCOUNT, TEST_INDEX_BANK));
+                TEST_INDEX_BANK));
     verifySchemaInOrder(
         actual,
         schema("sum", "bigint"),
@@ -156,7 +156,7 @@ public class CalcitePPLAppendCommandIT extends PPLIntegTestCase {
             Index.ACCOUNT.ppl(
                 "stats sum(age) as sum by gender |"
                     + " append [ source=%s | stats sum(age) as sum by state | sort sum ] | head 5",
-                TEST_INDEX_ACCOUNT, TEST_INDEX_ACCOUNT));
+                TEST_INDEX_ACCOUNT));
     verifySchemaInOrder(
         actual, schema("sum", "bigint"), schema("gender", "string"), schema("state", "string"));
     verifyDataRows(

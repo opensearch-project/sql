@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.calcite.remote;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
 import static org.opensearch.sql.util.MatcherUtils.closeTo;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -90,15 +89,14 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
   public void testTypeOfBasic() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s| eval `typeof(1)` = typeof(1)| eval `typeof(true)` = typeof(true)| eval"
+            Index.STATE_COUNTRY.ppl(
+                "eval `typeof(1)` = typeof(1)| eval `typeof(true)` = typeof(true)| eval"
                     + " `typeof(2.0)` = typeof(2.0)| eval `typeof('2.0')` = typeof('2.0')| eval"
                     + " `typeof(name)` = typeof(name)| eval `typeof(country)` = typeof(country)|"
                     + " eval `typeof(age)` = typeof(age)| eval `typeof(interval)` = typeof(INTERVAL"
                     + " 2 DAY)| fields `typeof(1)`, `typeof(true)`, `typeof(2.0)`,"
                     + " `typeof('2.0')`, `typeof(name)`, `typeof(country)`, `typeof(age)`,"
-                    + " `typeof(interval)`| head 1",
-                TEST_INDEX_STATE_COUNTRY));
+                    + " `typeof(interval)`| head 1"));
     verifyDataRows(
         result, rows("INT", "BOOLEAN", "DOUBLE", "STRING", "STRING", "STRING", "INT", "INTERVAL"));
   }
@@ -106,12 +104,10 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
   public void testTypeOfDateTime() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s"
-                    + "| eval `typeof(date)` = typeof(DATE('2008-04-14'))"
+            Index.STATE_COUNTRY.ppl(
+                "eval `typeof(date)` = typeof(DATE('2008-04-14'))"
                     + "| eval `typeof(now())` = typeof(now())"
-                    + "| fields `typeof(date)`, `typeof(now())`",
-                TEST_INDEX_STATE_COUNTRY));
+                    + "| fields `typeof(date)`, `typeof(now())`"));
   }
 
   @Test
@@ -176,10 +172,9 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
   public void testCrc32AndAbs() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval crc_name = crc32('Jane') | where crc32(name) = abs(0 - crc_name)"
-                    + " | fields crc_name, name",
-                TEST_INDEX_STATE_COUNTRY));
+            Index.STATE_COUNTRY.ppl(
+                "eval crc_name = crc32('Jane') | where crc32(name) = abs(0 - crc_name)"
+                    + " | fields crc_name, name"));
 
     verifySchema(actual, schema("crc_name", "bigint"), schema("name", "string"));
     verifyDataRows(actual, rows(1516115372L, "Jane"));
@@ -232,8 +227,8 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             Index.DATATYPE_NUMERIC.ppl(
-                "eval f = mod(float_number, 2), n = -1 * short_number %% 2, nd = -1 *"
-                    + " double_number %% 2 | fields f, n, nd"));
+                "eval f = mod(float_number, 2), n = -1 * short_number % 2, nd = -1 *"
+                    + " double_number % 2 | fields f, n, nd"));
     verifySchema(actual, schema("f", "float"), schema("n", "int"), schema("nd", "double"));
     verifyDataRows(actual, closeTo(0.2, -1, -1.1));
   }
@@ -243,9 +238,9 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             Index.DATATYPE_NUMERIC.ppl(
-                "eval b = byte_number %% 2, i = mod(integer_number, 3), l ="
-                    + " mod(long_number, 2), f = float_number %% 2, d = mod(double_number, 2), s ="
-                    + " short_number %% byte_number | fields b, i, l, f, d, s"));
+                "eval b = byte_number % 2, i = mod(integer_number, 3), l ="
+                    + " mod(long_number, 2), f = float_number % 2, d = mod(double_number, 2), s ="
+                    + " short_number % byte_number | fields b, i, l, f, d, s"));
     verifySchema(
         actual,
         schema("b", "int"),

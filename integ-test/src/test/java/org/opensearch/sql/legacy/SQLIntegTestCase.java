@@ -945,6 +945,10 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
       return this.dataSet;
     }
 
+    public String ppl() {
+      return withSource_(name, "");
+    }
+
     public String ppl(String query) {
       return withSource(name, query);
     }
@@ -959,6 +963,10 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
 
     public String ppl_(String query, Object... args) {
       return searchWithSource_(name, String.format(query, args));
+    }
+
+    public String pplSearch() {
+      return searchWithSource_(name, "");
     }
 
     public String pplSearch(String query) {
