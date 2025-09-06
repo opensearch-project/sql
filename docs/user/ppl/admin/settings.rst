@@ -17,7 +17,7 @@ Introduction
 When OpenSearch bootstraps, PPL plugin will register a few settings in OpenSearch cluster settings. Most of the settings are able to change dynamically so you can control the behavior of PPL plugin without need to bounce your cluster.
 
 plugins.ppl.enabled
-======================
+===================
 
 Description
 -----------
@@ -90,7 +90,7 @@ PPL query::
     }
 
 plugins.query.memory_limit
-=================================
+==========================
 
 Description
 -----------
@@ -120,7 +120,7 @@ PPL query::
 Note: the legacy settings of ``opendistro.ppl.query.memory_limit`` is deprecated, it will fallback to the new settings if you request an update with the legacy name.
 
 plugins.query.size_limit
-===========================
+========================
 
 Description
 -----------
@@ -159,3 +159,33 @@ Rollback to default value::
     }
 
 Note: the legacy settings of ``opendistro.query.size_limit`` is deprecated, it will fallback to the new settings if you request an update with the legacy name.
+
+plugins.calcite.all_join_types.allowed
+======================================
+
+Description
+-----------
+
+Since 3.3.0, join types ``inner``, ``left``, ``outer`` (alias of ``left``), ``semi`` and ``anti`` are supported by default. ``right``, ``full``, ``cross`` are performance sensitive join types which are disabled by default. Set config ``plugins.calcite.all_join_types.allowed = true`` to enable.
+
+Example
+-------
+
+PPL query::
+
+    sh$ curl -sS -H 'Content-Type: application/json' \
+    ... -X PUT localhost:9200/_plugins/_query/settings \
+    ... -d '{"transient" : {"plugins.calcite.all_join_types.allowed" : "true"}}'
+    {
+      "acknowledged": true,
+      "persistent": {},
+      "transient": {
+        "plugins": {
+          "calcite": {
+            "all_join_types": {
+                "allowed": "true"
+            }
+          }
+        }
+      }
+    }
