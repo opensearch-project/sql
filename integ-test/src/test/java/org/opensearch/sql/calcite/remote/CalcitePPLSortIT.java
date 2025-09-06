@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.calcite.remote;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
@@ -32,9 +30,7 @@ public class CalcitePPLSortIT extends PPLIntegTestCase {
   public void testFieldsAndSort1() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | fields + firstname, gender, account_number | sort - account_number",
-                TEST_INDEX_BANK));
+            Index.BANK.ppl("fields + firstname, gender, account_number | sort - account_number"));
     verifySchema(
         actual,
         schema("firstname", "string"),
@@ -53,7 +49,7 @@ public class CalcitePPLSortIT extends PPLIntegTestCase {
 
   @Test
   public void testFieldsAndSort2() throws IOException {
-    JSONObject actual = executeQuery(withSource(TEST_INDEX_BANK, "fields age | sort - age"));
+    JSONObject actual = executeQuery(Index.BANK.ppl("fields age | sort - age"));
     verifySchema(actual, schema("age", "int"));
     verifyDataRowsInOrder(
         actual, rows(39), rows(36), rows(36), rows(34), rows(33), rows(32), rows(28));
@@ -63,10 +59,9 @@ public class CalcitePPLSortIT extends PPLIntegTestCase {
   public void testFieldsAndSortTwoFields() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | fields + firstname, gender, account_number | sort + gender, -"
-                    + " account_number",
-                TEST_INDEX_BANK));
+            Index.BANK.ppl(
+                "fields + firstname, gender, account_number | sort + gender, -"
+                    + " account_number"));
     verifySchema(
         actual,
         schema("firstname", "string"),
@@ -87,10 +82,9 @@ public class CalcitePPLSortIT extends PPLIntegTestCase {
   public void testFieldsAndSortWithDescAndLimit() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | fields + firstname, gender, account_number | sort + gender, -"
-                    + " account_number | head 5",
-                TEST_INDEX_BANK));
+            Index.BANK.ppl(
+                "fields + firstname, gender, account_number | sort + gender, -"
+                    + " account_number | head 5"));
     verifySchema(
         actual,
         schema("firstname", "string"),
@@ -108,9 +102,7 @@ public class CalcitePPLSortIT extends PPLIntegTestCase {
   @Test
   public void testSortAccountAndFieldsAccount() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | sort - account_number | fields account_number", TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("sort - account_number | fields account_number"));
     verifySchema(actual, schema("account_number", "bigint"));
     verifyDataRowsInOrder(
         actual, rows(32), rows(25), rows(20), rows(18), rows(13), rows(6), rows(1));
@@ -119,10 +111,7 @@ public class CalcitePPLSortIT extends PPLIntegTestCase {
   @Test
   public void testSortAccountAndFieldsNameAccount() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | sort - account_number | fields firstname, account_number",
-                TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("sort - account_number | fields firstname, account_number"));
     verifySchema(actual, schema("firstname", "string"), schema("account_number", "bigint"));
     verifyDataRowsInOrder(
         actual,
@@ -138,10 +127,7 @@ public class CalcitePPLSortIT extends PPLIntegTestCase {
   @Test
   public void testSortAccountAndFieldsAccountName() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | sort - account_number | fields account_number, firstname",
-                TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("sort - account_number | fields account_number, firstname"));
     verifySchema(actual, schema("account_number", "bigint"), schema("firstname", "string"));
     verifyDataRowsInOrder(
         actual,
@@ -156,7 +142,7 @@ public class CalcitePPLSortIT extends PPLIntegTestCase {
 
   @Test
   public void testSortAgeAndFieldsAge() throws IOException {
-    JSONObject actual = executeQuery(withSource(TEST_INDEX_BANK, "sort - age | fields age"));
+    JSONObject actual = executeQuery(Index.BANK.ppl("sort - age | fields age"));
     verifySchema(actual, schema("age", "int"));
     verifyDataRowsInOrder(
         actual, rows(39), rows(36), rows(36), rows(34), rows(33), rows(32), rows(28));
@@ -164,8 +150,7 @@ public class CalcitePPLSortIT extends PPLIntegTestCase {
 
   @Test
   public void testSortAgeAndFieldsNameAge() throws IOException {
-    JSONObject actual =
-        executeQuery(withSource(TEST_INDEX_BANK, "sort - age | fields firstname, age"));
+    JSONObject actual = executeQuery(Index.BANK.ppl("sort - age | fields firstname, age"));
     verifySchema(actual, schema("firstname", "string"), schema("age", "int"));
     verifyDataRowsInOrder(
         actual,
@@ -181,9 +166,7 @@ public class CalcitePPLSortIT extends PPLIntegTestCase {
   @Test
   public void testSortAgeNameAndFieldsNameAge() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | sort - age, - firstname | fields firstname, age", TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("sort - age, - firstname | fields firstname, age"));
     verifySchema(actual, schema("firstname", "string"), schema("age", "int"));
     verifyDataRowsInOrder(
         actual,
@@ -199,10 +182,7 @@ public class CalcitePPLSortIT extends PPLIntegTestCase {
   @Test
   public void testSortWithNullValue() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | sort balance | fields firstname, balance",
-                TEST_INDEX_BANK_WITH_NULL_VALUES));
+        executeQuery(Index.BANK_WITH_NULL_VALUES.ppl("sort balance | fields firstname, balance"));
     verifyDataRowsInOrder(
         result,
         rows("Hattie", null),
@@ -217,9 +197,7 @@ public class CalcitePPLSortIT extends PPLIntegTestCase {
   @Test
   public void testSortDate() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | sort birthdate | fields firstname, birthdate", TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("sort birthdate | fields firstname, birthdate"));
     verifySchema(result, schema("firstname", "string"), schema("birthdate", "timestamp"));
     verifyDataRowsInOrder(
         result,
@@ -235,10 +213,7 @@ public class CalcitePPLSortIT extends PPLIntegTestCase {
   @Test
   public void testSortWithAscKeyword() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | sort account_number asc | fields account_number, firstname",
-                TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("sort account_number asc | fields account_number, firstname"));
     verifySchema(result, schema("account_number", "bigint"), schema("firstname", "string"));
     verifyDataRowsInOrder(
         result,
@@ -254,10 +229,7 @@ public class CalcitePPLSortIT extends PPLIntegTestCase {
   @Test
   public void testSortWithAKeyword() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | sort account_number a | fields account_number, firstname",
-                TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("sort account_number a | fields account_number, firstname"));
     verifySchema(result, schema("account_number", "bigint"), schema("firstname", "string"));
     verifyDataRowsInOrder(
         result,
@@ -273,10 +245,7 @@ public class CalcitePPLSortIT extends PPLIntegTestCase {
   @Test
   public void testSortWithDescKeyword() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | sort account_number desc | fields account_number, firstname",
-                TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("sort account_number desc | fields account_number, firstname"));
     verifySchema(result, schema("account_number", "bigint"), schema("firstname", "string"));
     verifyDataRowsInOrder(
         result,
@@ -292,10 +261,7 @@ public class CalcitePPLSortIT extends PPLIntegTestCase {
   @Test
   public void testSortWithCount() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | sort 3 account_number | fields account_number, firstname",
-                TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("sort 3 account_number | fields account_number, firstname"));
     verifySchema(result, schema("account_number", "bigint"), schema("firstname", "string"));
     verifyDataRowsInOrder(result, rows(1, "Amber JOHnny"), rows(6, "Hattie"), rows(13, "Nanette"));
   }
@@ -304,17 +270,14 @@ public class CalcitePPLSortIT extends PPLIntegTestCase {
   public void testSortWithStrCast() throws IOException {
 
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | sort STR(account_number) | fields account_number", TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("sort STR(account_number) | fields account_number"));
     verifyDataRowsInOrder(
         result, rows(1), rows(13), rows(18), rows(20), rows(25), rows(32), rows(6));
   }
 
   @Test
   public void testSortWithAutoCast() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "sort AUTO(age) | fields firstname, age"));
+    JSONObject result = executeQuery(Index.BANK.ppl("sort AUTO(age) | fields firstname, age"));
     verifySchema(result, schema("firstname", "string"), schema("age", "int"));
     verifyDataRowsInOrder(
         result,

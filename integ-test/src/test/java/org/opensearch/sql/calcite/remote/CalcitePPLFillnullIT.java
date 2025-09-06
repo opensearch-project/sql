@@ -82,9 +82,7 @@ public class CalcitePPLFillnullIT extends PPLIntegTestCase {
   public void testFillnullWithoutFieldList() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | fields name, state, country | fillnull with 'N/A'",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl("fields name, state, country | fillnull with 'N/A'"));
     verifySchema(
         actual, schema("name", "string"), schema("state", "string"), schema("country", "string"));
     verifyDataRows(

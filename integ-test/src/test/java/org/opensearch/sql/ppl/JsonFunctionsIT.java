@@ -32,11 +32,7 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
   public void test_json_valid() throws IOException {
     JSONObject result;
 
-    result =
-        executeQuery(
-            String.format(
-                "source=%s | where json_valid(json_string) | fields test_name",
-                TEST_INDEX_JSON_TEST));
+    result = executeQuery(Index.JSON_TEST.ppl("where json_valid(json_string) | fields test_name"));
     verifySchema(result, schema("test_name", null, "string"));
     verifyDataRows(
         result,
@@ -58,10 +54,7 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
     JSONObject result;
 
     result =
-        executeQuery(
-            String.format(
-                "source=%s | where not json_valid(json_string) | fields test_name",
-                TEST_INDEX_JSON_TEST));
+        executeQuery(Index.JSON_TEST.ppl("where not json_valid(json_string) | fields test_name"));
     verifySchema(result, schema("test_name", null, "string"));
     verifyDataRows(result, rows("json invalid object"), rows("json null"));
   }
@@ -70,10 +63,9 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
   public void test_cast_json() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | where json_valid(json_string) | eval casted=cast(json_string as json)"
-                    + " | fields test_name, casted",
-                TEST_INDEX_JSON_TEST));
+            Index.JSON_TEST.ppl(
+                "where json_valid(json_string) | eval casted=cast(json_string as json)"
+                    + " | fields test_name, casted"));
     String jsonType;
     if (isCalciteEnabled()) {
       jsonType = "string";
@@ -107,10 +99,9 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
 
     result =
         executeQuery(
-            String.format(
-                "source=%s | where json_valid(json_string) | eval casted=json(json_string) | fields"
-                    + " test_name, casted",
-                TEST_INDEX_JSON_TEST));
+            Index.JSON_TEST.ppl(
+                "where json_valid(json_string) | eval casted=json(json_string) | fields"
+                    + " test_name, casted"));
     String jsonType;
     if (isCalciteEnabled()) {
       jsonType = "string";
@@ -152,45 +143,41 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
 
     result =
         executeQuery(
-            String.format(
-                "source=%s | "
+            Index.JSON_TEST.ppl(
+                ""
                     + "where test_name='json scalar int' | "
                     + "eval casted=cast(json(json_string) as int) | "
-                    + "fields test_name, casted",
-                TEST_INDEX_JSON_TEST));
+                    + "fields test_name, casted"));
     verifySchema(result, schema("test_name", null, "string"), schema("casted", null, "int"));
     verifyDataRows(result, rows("json scalar int", 1234));
 
     result =
         executeQuery(
-            String.format(
-                "source=%s | "
+            Index.JSON_TEST.ppl(
+                ""
                     + "where test_name='json scalar int' | "
                     + "eval casted=cast(json(json_string) as long) | "
-                    + "fields test_name, casted",
-                TEST_INDEX_JSON_TEST));
+                    + "fields test_name, casted"));
     verifySchema(result, schema("test_name", null, "string"), schema("casted", null, "bigint"));
     verifyDataRows(result, rows("json scalar int", 1234l));
 
     result =
         executeQuery(
-            String.format(
-                "source=%s | "
+            Index.JSON_TEST.ppl(
+                ""
                     + "where test_name='json scalar float' | "
                     + "eval casted=cast(json(json_string) as float) | "
-                    + "fields test_name, casted",
-                TEST_INDEX_JSON_TEST));
+                    + "fields test_name, casted"));
     verifySchema(result, schema("test_name", null, "string"), schema("casted", null, "float"));
     verifyDataRows(result, rows("json scalar float", 12.34f));
 
     result =
         executeQuery(
-            String.format(
-                "source=%s | "
+            Index.JSON_TEST.ppl(
+                ""
                     + "where test_name='json scalar double' | "
                     + "eval casted=cast(json(json_string) as double) | "
-                    + "fields test_name, casted",
-                TEST_INDEX_JSON_TEST));
+                    + "fields test_name, casted"));
     verifySchema(result, schema("test_name", null, "string"), schema("casted", null, "double"));
     verifyDataRows(result, rows("json scalar double", 2.99792458e8));
 

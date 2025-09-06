@@ -7,7 +7,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
-import static org.opensearch.sql.legacy.SQLIntegTestCase.Index.NESTED_WITHOUT_ARRAYS;
+import static org.opensearch.sql.legacy.SQLIntegTestCase.Index.NESTED_TYPE_WITHOUT_ARRAYS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -28,14 +28,13 @@ public class CalciteFlattenCommandIT extends PPLIntegTestCase {
   @Override
   public void init() throws Exception {
     super.init();
-    loadIndex(NESTED_WITHOUT_ARRAYS);
+    loadIndex(NESTED_TYPE_WITHOUT_ARRAYS);
     enableCalcite();
   }
 
   @Test
   public void testFlattenNestedStruct() throws Exception {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS, "flatten message"));
+    JSONObject result = executeQuery(Index.NESTED_TYPE_WITHOUT_ARRAYS.ppl("flatten message"));
     verifySchema(
         result,
         // Nested fields are retrieved as array of nested structs
@@ -56,9 +55,7 @@ public class CalciteFlattenCommandIT extends PPLIntegTestCase {
   public void testFlattenWithAliases() throws Exception {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | flatten message as (creator, dow, information)",
-                TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS));
+            Index.NESTED_TYPE_WITHOUT_ARRAYS.ppl("flatten message as (creator, dow, information)"));
     verifySchema(
         result,
         schema("comment", "array"),
@@ -78,9 +75,7 @@ public class CalciteFlattenCommandIT extends PPLIntegTestCase {
             Exception.class,
             () ->
                 executeQuery(
-                    String.format(
-                        "source=%s | flatten message as a, b, c, d",
-                        TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS)));
+                    Index.NESTED_TYPE_WITHOUT_ARRAYS.ppl("flatten message as a, b, c, d")));
     verifyErrorMessageContains(
         t,
         "The number of aliases has to match the number of flattened fields. Expected 3"
@@ -101,9 +96,8 @@ public class CalciteFlattenCommandIT extends PPLIntegTestCase {
 
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | where someField='' | flatten message as (creator, dow, information)",
-                TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS));
+            Index.NESTED_TYPE_WITHOUT_ARRAYS.ppl(
+                "where someField='' | flatten message as (creator, dow, information)"));
     verifySchema(
         result,
         schema("comment", "array"),
@@ -131,9 +125,8 @@ public class CalciteFlattenCommandIT extends PPLIntegTestCase {
   public void testFlattenAfterFields() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | where myNum=1 | fields message | flatten message",
-                TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS));
+            Index.NESTED_TYPE_WITHOUT_ARRAYS.ppl(
+                "where myNum=1 | fields message | flatten message"));
     verifySchema(
         result,
         schema("message", "array"),

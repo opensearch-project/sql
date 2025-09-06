@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.ppl;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_PHRASE;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
@@ -24,10 +23,7 @@ public class MatchBoolPrefixIT extends PPLIntegTestCase {
   @Test
   public void valid_query_match_test() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | where match_bool_prefix(phrase, 'qui') | fields phrase",
-                TEST_INDEX_PHRASE));
+        executeQuery(Index.PHRASE.ppl("where match_bool_prefix(phrase, 'qui') | fields phrase"));
 
     verifyDataRows(result, rows("quick fox"), rows("quick fox here"));
   }
@@ -36,10 +32,9 @@ public class MatchBoolPrefixIT extends PPLIntegTestCase {
   public void optional_parameter_match_test() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | where match_bool_prefix(phrase, '2 tes', minimum_should_match=1,"
-                    + " fuzziness=2) | fields phrase",
-                TEST_INDEX_PHRASE));
+            Index.PHRASE.ppl(
+                "where match_bool_prefix(phrase, '2 tes', minimum_should_match=1,"
+                    + " fuzziness=2) | fields phrase"));
 
     verifyDataRows(result, rows("my test"), rows("my test 2"));
   }
@@ -47,10 +42,7 @@ public class MatchBoolPrefixIT extends PPLIntegTestCase {
   @Test
   public void no_matches_test() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | where match_bool_prefix(phrase, 'rice') | fields phrase",
-                TEST_INDEX_PHRASE));
+        executeQuery(Index.PHRASE.ppl("where match_bool_prefix(phrase, 'rice') | fields phrase"));
 
     assertEquals(0, result.getInt("total"));
   }

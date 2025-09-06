@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.calcite.remote;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -90,8 +89,7 @@ public class CalciteEvalCommandIT extends PPLIntegTestCase {
   public void testEvalStringConcatenationWithExistingData() throws IOException {
     JSONObject result =
         executeQuery(
-            withSource(
-                TEST_INDEX_BANK,
+            Index.BANK.ppl(
                 "eval full_name = firstname + ' ' + lastname | head 3 | fields"
                     + " firstname, lastname, full_name"));
     verifySchema(

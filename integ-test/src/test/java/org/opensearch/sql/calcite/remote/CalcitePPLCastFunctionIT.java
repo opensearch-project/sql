@@ -5,10 +5,6 @@
 
 package org.opensearch.sql.calcite.remote;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NONNUMERIC;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -31,9 +27,7 @@ public class CalcitePPLCastFunctionIT extends CastFunctionIT {
   @Test
   public void testCastToUnsupportedType() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(name as boolean) | fields a", TEST_INDEX_STATE_COUNTRY));
+        executeQuery(Index.STATE_COUNTRY.ppl("eval a = cast(name as boolean) | fields a"));
 
     verifySchema(actual, schema("a", "boolean"));
     verifyDataRows(
@@ -67,53 +61,36 @@ public class CalcitePPLCastFunctionIT extends CastFunctionIT {
     // > select cast('aa' as boolean); -- null;
     JSONObject actual;
     actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(1 as boolean) | fields a | head 1",
-                TEST_INDEX_DATATYPE_NUMERIC));
+        executeQuery(Index.DATATYPE_NUMERIC.ppl("eval a = cast(1 as boolean) | fields a | head 1"));
     verifyDataRows(actual, rows(true));
 
     actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(2 as boolean) | fields a | head 1",
-                TEST_INDEX_DATATYPE_NUMERIC));
+        executeQuery(Index.DATATYPE_NUMERIC.ppl("eval a = cast(2 as boolean) | fields a | head 1"));
     verifyDataRows(actual, rows(true));
 
     actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(0 as boolean) | fields a | head 1",
-                TEST_INDEX_DATATYPE_NUMERIC));
+        executeQuery(Index.DATATYPE_NUMERIC.ppl("eval a = cast(0 as boolean) | fields a | head 1"));
     verifyDataRows(actual, rows(false));
 
     actual =
         executeQuery(
-            String.format(
-                "source=%s | eval a = cast('1' as boolean) | fields a | head 1",
-                TEST_INDEX_DATATYPE_NUMERIC));
+            Index.DATATYPE_NUMERIC.ppl("eval a = cast('1' as boolean) | fields a | head 1"));
     verifyDataRows(actual, rows(true));
 
     actual =
         executeQuery(
-            String.format(
-                "source=%s | eval a = cast('2' as boolean) | fields a | head 1",
-                TEST_INDEX_DATATYPE_NUMERIC));
+            Index.DATATYPE_NUMERIC.ppl("eval a = cast('2' as boolean) | fields a | head 1"));
     verifySchema(actual, schema("a", "boolean"));
     verifyDataRows(actual, rows((Object) null));
 
     actual =
         executeQuery(
-            String.format(
-                "source=%s | eval a = cast('0' as boolean) | fields a | head 1",
-                TEST_INDEX_DATATYPE_NUMERIC));
+            Index.DATATYPE_NUMERIC.ppl("eval a = cast('0' as boolean) | fields a | head 1"));
     verifyDataRows(actual, rows(false));
 
     actual =
         executeQuery(
-            String.format(
-                "source=%s | eval a = cast('aa' as boolean) | fields a | head 1",
-                TEST_INDEX_DATATYPE_NUMERIC));
+            Index.DATATYPE_NUMERIC.ppl("eval a = cast('aa' as boolean) | fields a | head 1"));
     verifySchema(actual, schema("a", "boolean"));
     verifyDataRows(actual, rows((Object) null));
   }
@@ -123,16 +100,12 @@ public class CalcitePPLCastFunctionIT extends CastFunctionIT {
     JSONObject actual;
     actual =
         executeQuery(
-            String.format(
-                "source=%s | eval a = cast(boolean_value as INT) | fields a",
-                TEST_INDEX_DATATYPE_NONNUMERIC));
+            Index.DATATYPE_NONNUMERIC.ppl("eval a = cast(boolean_value as INT) | fields a"));
     verifyDataRows(actual, rows(1));
 
     actual =
         executeQuery(
-            String.format(
-                "source=%s | eval a = cast(boolean_value as LONG) | fields a",
-                TEST_INDEX_DATATYPE_NONNUMERIC));
+            Index.DATATYPE_NONNUMERIC.ppl("eval a = cast(boolean_value as LONG) | fields a"));
     verifyDataRows(actual, rows(1));
 
     // TODO the calcite codegen cannot handle this case. The generated java code is
@@ -158,9 +131,7 @@ public class CalcitePPLCastFunctionIT extends CastFunctionIT {
 
     actual =
         executeQuery(
-            String.format(
-                "source=%s | eval a = cast(boolean_value as STRING) | fields a",
-                TEST_INDEX_DATATYPE_NONNUMERIC));
+            Index.DATATYPE_NONNUMERIC.ppl("eval a = cast(boolean_value as STRING) | fields a"));
     verifyDataRows(actual, rows("TRUE"));
   }
 
@@ -169,11 +140,7 @@ public class CalcitePPLCastFunctionIT extends CastFunctionIT {
     Throwable t =
         assertThrowsWithReplace(
             ExpressionEvaluationException.class,
-            () ->
-                executeQuery(
-                    String.format(
-                        "source=%s | eval a = cast(1 as ip) | fields a",
-                        TEST_INDEX_DATATYPE_NUMERIC)));
+            () -> executeQuery(Index.DATATYPE_NUMERIC.ppl("eval a = cast(1 as ip) | fields a")));
     verifyErrorMessageContains(
         t, "Cannot convert INTEGER to IP, only STRING and IP types are supported");
   }
@@ -182,10 +149,7 @@ public class CalcitePPLCastFunctionIT extends CastFunctionIT {
   @Test
   public void testCastIpToString() throws IOException {
     // Test casting ip to string
-    var actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval s = cast(host as STRING) | fields s", TEST_INDEX_WEBLOGS));
+    var actual = executeQuery(Index.WEBLOGS.ppl("eval s = cast(host as STRING) | fields s"));
     verifySchema(actual, schema("s", "string"));
     verifyDataRows(
         actual,

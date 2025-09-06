@@ -24,7 +24,7 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
     super.init();
     enableCalcite();
 
-    loadIndex(Index.WEBLOG);
+    loadIndex(Index.WEBLOGS);
     appendDataForBadResponse();
   }
 

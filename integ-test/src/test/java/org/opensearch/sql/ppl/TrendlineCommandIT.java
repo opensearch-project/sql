@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.ppl;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
@@ -25,10 +24,9 @@ public class TrendlineCommandIT extends PPLIntegTestCase {
   public void testTrendline() throws IOException {
     final JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | where balance > 39000 | sort balance | trendline sma(2, balance) as"
-                    + " balance_trend | fields balance_trend",
-                TEST_INDEX_BANK));
+            Index.BANK.ppl(
+                "where balance > 39000 | sort balance | trendline sma(2, balance) as"
+                    + " balance_trend | fields balance_trend"));
     verifyDataRows(result, rows(new Object[] {null}), rows(44313.0), rows(39882.5));
   }
 
@@ -36,11 +34,10 @@ public class TrendlineCommandIT extends PPLIntegTestCase {
   public void testTrendlineMultipleFields() throws IOException {
     final JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | where balance > 39000 | sort balance | trendline sma(2, balance) as"
+            Index.BANK.ppl(
+                "where balance > 39000 | sort balance | trendline sma(2, balance) as"
                     + " balance_trend sma(2, account_number) as account_number_trend | fields"
-                    + " balance_trend, account_number_trend",
-                TEST_INDEX_BANK));
+                    + " balance_trend, account_number_trend"));
     verifyDataRows(result, rows(null, null), rows(44313.0, 28.5), rows(39882.5, 13.0));
   }
 
@@ -48,10 +45,9 @@ public class TrendlineCommandIT extends PPLIntegTestCase {
   public void testTrendlineOverwritesExistingField() throws IOException {
     final JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | where balance > 39000 | sort balance | trendline sma(2, balance) as"
-                    + " age | fields age",
-                TEST_INDEX_BANK));
+            Index.BANK.ppl(
+                "where balance > 39000 | sort balance | trendline sma(2, balance) as"
+                    + " age | fields age"));
     verifyDataRows(result, rows(new Object[] {null}), rows(44313.0), rows(39882.5));
   }
 
@@ -59,10 +55,9 @@ public class TrendlineCommandIT extends PPLIntegTestCase {
   public void testTrendlineNoAlias() throws IOException {
     final JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | where balance > 39000 | sort balance | trendline sma(2, balance) |"
-                    + " fields balance_trendline",
-                TEST_INDEX_BANK));
+            Index.BANK.ppl(
+                "where balance > 39000 | sort balance | trendline sma(2, balance) |"
+                    + " fields balance_trendline"));
     verifyDataRows(result, rows(new Object[] {null}), rows(44313.0), rows(39882.5));
   }
 
@@ -70,10 +65,9 @@ public class TrendlineCommandIT extends PPLIntegTestCase {
   public void testTrendlineWithSort() throws IOException {
     final JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | where balance > 39000 | trendline sort balance sma(2, balance) |"
-                    + " fields balance_trendline",
-                TEST_INDEX_BANK));
+            Index.BANK.ppl(
+                "where balance > 39000 | trendline sort balance sma(2, balance) |"
+                    + " fields balance_trendline"));
     verifyDataRows(result, rows(new Object[] {null}), rows(44313.0), rows(39882.5));
   }
 }

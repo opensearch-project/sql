@@ -5,12 +5,7 @@
 
 package org.opensearch.sql.ppl;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NONNUMERIC;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY_WITH_NULL;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -18,7 +13,6 @@ import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
-import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
@@ -30,18 +24,16 @@ public class CastFunctionIT extends PPLIntegTestCase {
   public void init() throws Exception {
     loadIndex(Index.STATE_COUNTRY);
     loadIndex(Index.STATE_COUNTRY_WITH_NULL);
-    loadIndex(Index.DATA_TYPE_NUMERIC);
-    loadIndex(Index.DATA_TYPE_NONNUMERIC);
+    loadIndex(Index.DATATYPE_NUMERIC);
+    loadIndex(Index.DATATYPE_NONNUMERIC);
     loadIndex(Index.DATE_FORMATS);
-    loadIndex(Index.WEBLOG);
+    loadIndex(Index.WEBLOGS);
   }
 
   @Test
   public void testCast() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(age as string) | fields a", TEST_INDEX_STATE_COUNTRY));
+        executeQuery(Index.STATE_COUNTRY.ppl("eval a = cast(age as string) | fields a"));
 
     verifySchema(actual, schema("a", "string"));
 
@@ -51,10 +43,7 @@ public class CastFunctionIT extends PPLIntegTestCase {
   @Test
   public void testCastOverriding() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval age = cast(age as STRING) | fields age",
-                TEST_INDEX_STATE_COUNTRY));
+        executeQuery(Index.STATE_COUNTRY.ppl("eval age = cast(age as STRING) | fields age"));
 
     verifySchema(actual, schema("age", "string"));
 
@@ -66,10 +55,7 @@ public class CastFunctionIT extends PPLIntegTestCase {
     assertThrowsWithReplace(
         SyntaxCheckException.class,
         () ->
-            executeQuery(
-                String.format(
-                    "source=%s | eval age = cast(age as VARCHAR) | fields age",
-                    TEST_INDEX_STATE_COUNTRY)));
+            executeQuery(Index.STATE_COUNTRY.ppl("eval age = cast(age as VARCHAR) | fields age")));
   }
 
   @Test
@@ -90,9 +76,7 @@ public class CastFunctionIT extends PPLIntegTestCase {
   public void testCastNullValues() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval a = cast(state as string) | fields a",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl("eval a = cast(state as string) | fields a"));
 
     verifySchema(actual, schema("a", "string"));
     verifyDataRows(
@@ -109,130 +93,88 @@ public class CastFunctionIT extends PPLIntegTestCase {
   public void testCastINT() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval a = cast(integer_number as INTEGER) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
+            Index.DATATYPE_NUMERIC.ppl("eval a = cast(integer_number as INTEGER) | fields a"));
     verifyDataRows(actual, rows(2));
 
     actual =
         executeQuery(
-            String.format(
-                "source=%s | eval a = cast(integer_number as FLOAT) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
+            Index.DATATYPE_NUMERIC.ppl("eval a = cast(integer_number as FLOAT) | fields a"));
     verifyDataRows(actual, rows(2));
 
     actual =
         executeQuery(
-            String.format(
-                "source=%s | eval a = cast(integer_number as LONG) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
+            Index.DATATYPE_NUMERIC.ppl("eval a = cast(integer_number as LONG) | fields a"));
     verifyDataRows(actual, rows(2));
 
     actual =
         executeQuery(
-            String.format(
-                "source=%s | eval a = cast(integer_number as DOUBLE) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
+            Index.DATATYPE_NUMERIC.ppl("eval a = cast(integer_number as DOUBLE) | fields a"));
     verifyDataRows(actual, rows(2));
 
     actual =
         executeQuery(
-            String.format(
-                "source=%s | eval a = cast(integer_number as STRING) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
+            Index.DATATYPE_NUMERIC.ppl("eval a = cast(integer_number as STRING) | fields a"));
     verifyDataRows(actual, rows("2"));
   }
 
   @Test
   public void testCastLONG() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(long_number as INT) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
+        executeQuery(Index.DATATYPE_NUMERIC.ppl("eval a = cast(long_number as INT) | fields a"));
     verifyDataRows(actual, rows(1));
 
     actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(long_number as FLOAT) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
+        executeQuery(Index.DATATYPE_NUMERIC.ppl("eval a = cast(long_number as FLOAT) | fields a"));
     verifyDataRows(actual, rows(1));
 
     actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(long_number as DOUBLE) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
+        executeQuery(Index.DATATYPE_NUMERIC.ppl("eval a = cast(long_number as DOUBLE) | fields a"));
     verifyDataRows(actual, rows(1));
 
     actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(long_number as STRING) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
+        executeQuery(Index.DATATYPE_NUMERIC.ppl("eval a = cast(long_number as STRING) | fields a"));
     verifyDataRows(actual, rows("1"));
   }
 
   @Test
   public void testCastFLOAT() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(float_number as INT) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
+        executeQuery(Index.DATATYPE_NUMERIC.ppl("eval a = cast(float_number as INT) | fields a"));
+    verifyDataRows(actual, rows(6));
+
+    actual =
+        executeQuery(Index.DATATYPE_NUMERIC.ppl("eval a = cast(float_number as LONG) | fields a"));
     verifyDataRows(actual, rows(6));
 
     actual =
         executeQuery(
-            String.format(
-                "source=%s | eval a = cast(float_number as LONG) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
-    verifyDataRows(actual, rows(6));
-
-    actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(float_number as DOUBLE) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
+            Index.DATATYPE_NUMERIC.ppl("eval a = cast(float_number as DOUBLE) | fields a"));
     verifyDataRows(actual, rows(6.199999809265137));
 
     actual =
         executeQuery(
-            String.format(
-                "source=%s | eval a = cast(float_number as STRING) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
+            Index.DATATYPE_NUMERIC.ppl("eval a = cast(float_number as STRING) | fields a"));
     verifyDataRows(actual, rows("6.2"));
   }
 
   @Test
   public void testCastDOUBLE() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(double_number as INT) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
+        executeQuery(Index.DATATYPE_NUMERIC.ppl("eval a = cast(double_number as INT) | fields a"));
+    verifyDataRows(actual, rows(5));
+
+    actual =
+        executeQuery(Index.DATATYPE_NUMERIC.ppl("eval a = cast(double_number as LONG) | fields a"));
     verifyDataRows(actual, rows(5));
 
     actual =
         executeQuery(
-            String.format(
-                "source=%s | eval a = cast(double_number as LONG) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
-    verifyDataRows(actual, rows(5));
-
-    actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast(double_number as FLOAT) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
+            Index.DATATYPE_NUMERIC.ppl("eval a = cast(double_number as FLOAT) | fields a"));
     verifyDataRows(actual, rows(5.1));
 
     actual =
         executeQuery(
-            String.format(
-                "source=%s | eval a = cast(double_number as STRING) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
+            Index.DATATYPE_NUMERIC.ppl("eval a = cast(double_number as STRING) | fields a"));
     verifyDataRows(actual, rows("5.1"));
   }
 
@@ -240,37 +182,32 @@ public class CastFunctionIT extends PPLIntegTestCase {
   public void testCastNumericSTRING() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval a = cast(cast(integer_number as STRING) as INT) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
+            Index.DATATYPE_NUMERIC.ppl(
+                "eval a = cast(cast(integer_number as STRING) as INT) | fields a"));
     verifyDataRows(actual, rows(2));
 
     actual =
         executeQuery(
-            String.format(
-                "source=%s | eval a = cast(cast(long_number as STRING) as LONG) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
+            Index.DATATYPE_NUMERIC.ppl(
+                "eval a = cast(cast(long_number as STRING) as LONG) | fields a"));
     verifyDataRows(actual, rows(1));
 
     actual =
         executeQuery(
-            String.format(
-                "source=%s | eval a = cast(cast(float_number as STRING) as FLOAT) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
+            Index.DATATYPE_NUMERIC.ppl(
+                "eval a = cast(cast(float_number as STRING) as FLOAT) | fields a"));
     verifyDataRows(actual, rows(6.2));
 
     actual =
         executeQuery(
-            String.format(
-                "source=%s | eval a = cast(cast(double_number as STRING) as DOUBLE) | fields a",
-                TEST_INDEX_DATATYPE_NUMERIC));
+            Index.DATATYPE_NUMERIC.ppl(
+                "eval a = cast(cast(double_number as STRING) as DOUBLE) | fields a"));
     verifyDataRows(actual, rows(5.1));
 
     actual =
         executeQuery(
-            String.format(
-                "source=%s | eval a = cast(cast(boolean_value as STRING) as BOOLEAN)| fields a",
-                TEST_INDEX_DATATYPE_NONNUMERIC));
+            Index.DATATYPE_NONNUMERIC.ppl(
+                "eval a = cast(cast(boolean_value as STRING) as BOOLEAN)| fields a"));
     verifyDataRows(actual, rows(true));
   }
 
@@ -278,11 +215,10 @@ public class CastFunctionIT extends PPLIntegTestCase {
   public void testCastDecimal() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval s = cast(0.99 as string), f = cast(12.9 as float), "
+            Index.DATATYPE_NONNUMERIC.ppl(
+                "eval s = cast(0.99 as string), f = cast(12.9 as float), "
                     + "d = cast(100.00 as double), i = cast(2.9 as int) "
-                    + "| fields s, f, d, i",
-                TEST_INDEX_DATATYPE_NONNUMERIC));
+                    + "| fields s, f, d, i"));
     verifySchema(
         actual,
         schema("s", "string"),
@@ -295,18 +231,14 @@ public class CastFunctionIT extends PPLIntegTestCase {
   @Test
   public void testCastDate() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast('1984-04-12' as DATE) | fields a",
-                TEST_INDEX_DATE_FORMATS));
+        executeQuery(Index.DATE_FORMATS.ppl("eval a = cast('1984-04-12' as DATE) | fields a"));
     verifySchema(actual, schema("a", "date"));
     verifyDataRows(actual, rows("1984-04-12"), rows("1984-04-12"));
 
     actual =
         executeQuery(
-            String.format(
-                "source=%s | head 1 | eval a = cast('2023-10-01 12:00:00' as date) | fields a",
-                TEST_INDEX_DATE_FORMATS));
+            Index.DATE_FORMATS.ppl(
+                "head 1 | eval a = cast('2023-10-01 12:00:00' as date) | fields a"));
     verifySchema(actual, schema("a", "date"));
     verifyDataRows(actual, rows("2023-10-01"));
 
@@ -315,9 +247,7 @@ public class CastFunctionIT extends PPLIntegTestCase {
             ExpressionEvaluationException.class,
             () ->
                 executeQuery(
-                    String.format(
-                        "source=%s | eval a = cast('09:07:42' as DATE) | fields a",
-                        TEST_INDEX_DATE_FORMATS)));
+                    Index.DATE_FORMATS.ppl("eval a = cast('09:07:42' as DATE) | fields a")));
 
     verifyErrorMessageContains(t, "date:09:07:42 in unsupported format, please use 'yyyy-MM-dd'");
   }
@@ -325,26 +255,20 @@ public class CastFunctionIT extends PPLIntegTestCase {
   @Test
   public void testCastTime() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast('09:07:42' as TIME) | fields a",
-                TEST_INDEX_DATE_FORMATS));
+        executeQuery(Index.DATE_FORMATS.ppl("eval a = cast('09:07:42' as TIME) | fields a"));
     verifySchema(actual, schema("a", "time"));
     verifyDataRows(actual, rows("09:07:42"), rows("09:07:42"));
 
     actual =
         executeQuery(
-            String.format(
-                "source=%s | head 1 | eval a = cast('09:07:42.12345' as TIME) | fields a",
-                TEST_INDEX_DATE_FORMATS));
+            Index.DATE_FORMATS.ppl("head 1 | eval a = cast('09:07:42.12345' as TIME) | fields a"));
     verifySchema(actual, schema("a", "time"));
     verifyDataRows(actual, rows("09:07:42.12345"));
 
     actual =
         executeQuery(
-            String.format(
-                "source=%s | head 1 | eval a = cast('1985-10-09 12:00:00' as time) | fields a",
-                TEST_INDEX_DATE_FORMATS));
+            Index.DATE_FORMATS.ppl(
+                "head 1 | eval a = cast('1985-10-09 12:00:00' as time) | fields a"));
     verifySchema(actual, schema("a", "time"));
     verifyDataRows(actual, rows("12:00:00"));
 
@@ -353,9 +277,7 @@ public class CastFunctionIT extends PPLIntegTestCase {
             ExpressionEvaluationException.class,
             () ->
                 executeQuery(
-                    String.format(
-                        "source=%s | eval a = cast('1984-04-12' as TIME) | fields a",
-                        TEST_INDEX_DATE_FORMATS)));
+                    Index.DATE_FORMATS.ppl("eval a = cast('1984-04-12' as TIME) | fields a")));
 
     verifyErrorMessageContains(
         t, "time:1984-04-12 in unsupported format, please use 'HH:mm:ss[.SSSSSSSSS]'");
@@ -365,26 +287,20 @@ public class CastFunctionIT extends PPLIntegTestCase {
   public void testCastTimestamp() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval a = cast('1984-04-12 09:07:42' as TIMESTAMP) | fields a",
-                TEST_INDEX_DATE_FORMATS));
+            Index.DATE_FORMATS.ppl("eval a = cast('1984-04-12 09:07:42' as TIMESTAMP) | fields a"));
     verifySchema(actual, schema("a", "timestamp"));
     verifyDataRows(actual, rows("1984-04-12 09:07:42"), rows("1984-04-12 09:07:42"));
 
     actual =
         executeQuery(
-            String.format(
-                "source=%s | head 1 | eval a = cast('2023-10-01 12:00:00.123456' as timestamp) |"
-                    + " fields a",
-                TEST_INDEX_DATE_FORMATS));
+            Index.DATE_FORMATS.ppl(
+                "head 1 | eval a = cast('2023-10-01 12:00:00.123456' as timestamp) |"
+                    + " fields a"));
     verifySchema(actual, schema("a", "timestamp"));
     verifyDataRows(actual, rows("2023-10-01 12:00:00.123456"));
 
     actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = cast('1984-04-12' as TIMESTAMP) | fields a",
-                TEST_INDEX_DATE_FORMATS));
+        executeQuery(Index.DATE_FORMATS.ppl("eval a = cast('1984-04-12' as TIMESTAMP) | fields a"));
     verifySchema(actual, schema("a", "timestamp"));
     verifyDataRows(actual, rows("1984-04-12 00:00:00"), rows("1984-04-12 00:00:00"));
 
@@ -393,9 +309,7 @@ public class CastFunctionIT extends PPLIntegTestCase {
             ExpressionEvaluationException.class,
             () ->
                 executeQuery(
-                    String.format(
-                        "source=%s | eval a = cast('09:07:42' as TIMESTAMP) | fields a",
-                        TEST_INDEX_DATE_FORMATS)));
+                    Index.DATE_FORMATS.ppl("eval a = cast('09:07:42' as TIMESTAMP) | fields a")));
 
     verifyErrorMessageContains(
         t,
@@ -405,8 +319,7 @@ public class CastFunctionIT extends PPLIntegTestCase {
   @Test
   public void testCastToIP() throws IOException {
     // Test casting IP to IP type
-    JSONObject actual =
-        executeQuery(withSource(TEST_INDEX_WEBLOGS, "eval a = cast(host as IP) | fields a"));
+    JSONObject actual = executeQuery(Index.WEBLOGS.ppl("eval a = cast(host as IP) | fields a"));
     verifySchema(actual, schema("a", "ip"));
     verifyDataRows(
         actual,
@@ -419,20 +332,16 @@ public class CastFunctionIT extends PPLIntegTestCase {
 
     // Test casting valid IP literal to IP type
     actual =
-        executeQuery(
-            String.format(
-                "source=%s | head 1 | eval a = cast('192.168.1.1' as IP) | fields a",
-                TEST_INDEX_WEBLOGS));
+        executeQuery(Index.WEBLOGS.ppl("head 1 | eval a = cast('192.168.1.1' as IP) | fields a"));
     verifySchema(actual, schema("a", "ip"));
     verifyDataRows(actual, rows("192.168.1.1"));
 
     // Test casting IPv6 literal to IP type
     actual =
         executeQuery(
-            String.format(
-                "source=%s | head 1 | eval a = cast('2001:0db8:85a3:0000:0000:8a2e:0370:7334' as"
-                    + " IP) | fields a",
-                TEST_INDEX_WEBLOGS));
+            Index.WEBLOGS.ppl(
+                "head 1 | eval a = cast('2001:0db8:85a3:0000:0000:8a2e:0370:7334' as"
+                    + " IP) | fields a"));
     verifySchema(actual, schema("a", "ip"));
     verifyDataRows(actual, rows("2001:db8:85a3::8a2e:370:7334"));
 
@@ -442,9 +351,7 @@ public class CastFunctionIT extends PPLIntegTestCase {
             SemanticCheckException.class,
             () ->
                 executeQuery(
-                    String.format(
-                        "source=%s | head 1 | eval a = cast('invalid_ip' as IP) | fields a",
-                        TEST_INDEX_WEBLOGS)));
+                    Index.WEBLOGS.ppl("head 1 | eval a = cast('invalid_ip' as IP) | fields a")));
     verifyErrorMessageContains(
         t,
         "IP address string 'invalid_ip' is not valid. Error details: invalid_ip IP Address error:"
@@ -455,11 +362,9 @@ public class CastFunctionIT extends PPLIntegTestCase {
   public void testCastDoubleAsString() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                Locale.ROOT,
-                "source=%s | head 1 | eval d = cast(0 as double) | eval s = cast(d as string) |"
-                    + " fields s",
-                TEST_INDEX_STATE_COUNTRY));
+            Index.STATE_COUNTRY.ppl(
+                "head 1 | eval d = cast(0 as double) | eval s = cast(d as string) |"
+                    + " fields s"));
     verifySchema(actual, schema("s", "string"));
     verifyDataRows(actual, rows("0.0"));
   }

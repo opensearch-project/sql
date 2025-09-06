@@ -24,56 +24,55 @@ public class QueryAnalysisIT extends PPLIntegTestCase {
   /** Valid commands should pass both syntax analysis and semantic check. */
   @Test
   public void searchCommandShouldPassSemanticCheck() {
-    String query = searchWithSource(TEST_INDEX_ACCOUNT, "age=20");
+    String query = Index.ACCOUNT.pplSearch_("age=20");
     queryShouldPassSyntaxAndSemanticCheck(query);
   }
 
   @Test
   public void whereCommandShouldPassSemanticCheck() {
-    String query = searchWithSource(TEST_INDEX_ACCOUNT, "where age=20");
+    String query = Index.ACCOUNT.pplSearch("where age=20");
     queryShouldPassSyntaxAndSemanticCheck(query);
   }
 
   @Test
   public void fieldsCommandShouldPassSemanticCheck() {
-    String query = searchWithSource(TEST_INDEX_ACCOUNT, "fields firstname");
+    String query = Index.ACCOUNT.pplSearch("fields firstname");
     queryShouldPassSyntaxAndSemanticCheck(query);
   }
 
   @Test
   public void renameCommandShouldPassSemanticCheck() {
-    String query = searchWithSource(TEST_INDEX_ACCOUNT, "rename firstname as first");
+    String query = Index.ACCOUNT.pplSearch("rename firstname as first");
     queryShouldPassSyntaxAndSemanticCheck(query);
   }
 
   @Test
   public void statsCommandShouldPassSemanticCheck() {
-    String query = searchWithSource(TEST_INDEX_ACCOUNT, "stats avg(age)");
+    String query = Index.ACCOUNT.pplSearch("stats avg(age)");
     queryShouldPassSyntaxAndSemanticCheck(query);
   }
 
   @Test
   public void dedupCommandShouldPassSemanticCheck() {
-    String query = searchWithSource(TEST_INDEX_ACCOUNT, "dedup firstname, lastname");
+    String query = Index.ACCOUNT.pplSearch("dedup firstname, lastname");
     queryShouldPassSyntaxAndSemanticCheck(query);
   }
 
   @Test
   public void sortCommandShouldPassSemanticCheck() {
-    String query = searchWithSource(TEST_INDEX_ACCOUNT, "sort age");
+    String query = Index.ACCOUNT.pplSearch("sort age");
     queryShouldPassSyntaxAndSemanticCheck(query);
   }
 
   @Test
   public void evalCommandShouldPassSemanticCheck() {
-    String query = searchWithSource(TEST_INDEX_ACCOUNT, "eval age=abs(age)");
-    queryShouldPassSyntaxAndSemanticCheck(query);
+    String query = Index.ACCOUNT.pplSearch("eval age=abs(age)");
     queryShouldPassSyntaxAndSemanticCheck(query);
   }
 
   @Test
   public void queryShouldBeCaseInsensitiveInKeywords() {
-    String query = searchWithSource(TEST_INDEX_ACCOUNT, "");
+    String query = String.format("SEARCH SourCE=%s", TEST_INDEX_ACCOUNT);
     queryShouldPassSyntaxAndSemanticCheck(query);
   }
 
@@ -86,7 +85,7 @@ public class QueryAnalysisIT extends PPLIntegTestCase {
 
   @Test
   public void queryWithIncorrectCommandShouldFailSyntaxCheck() {
-    String query = searchWithSource(TEST_INDEX_ACCOUNT, "field firstname");
+    String query = Index.ACCOUNT.pplSearch("field firstname");
     queryShouldThrowSyntaxException(query, SYNTAX_EX_MSG_FRAGMENT);
   }
 
@@ -98,14 +97,14 @@ public class QueryAnalysisIT extends PPLIntegTestCase {
 
   @Test
   public void unsupportedAggregationFunctionShouldFailSyntaxCheck() {
-    String query = searchWithSource(TEST_INDEX_ACCOUNT, "stats range(age)");
+    String query = Index.ACCOUNT.pplSearch("stats range(age)");
     queryShouldThrowSyntaxException(query, SYNTAX_EX_MSG_FRAGMENT);
   }
 
   /** Commands that fail semantic analysis should throw {@link SemanticCheckException}. */
   @Test
   public void nonexistentFieldShouldFailSemanticCheck() {
-    String query = searchWithSource(TEST_INDEX_ACCOUNT, "fields name");
+    String query = Index.ACCOUNT.pplSearch("fields name");
     queryShouldThrowSemanticException(
         query, "can't resolve Symbol(namespace=FIELD_NAME, name=name) in type env");
   }

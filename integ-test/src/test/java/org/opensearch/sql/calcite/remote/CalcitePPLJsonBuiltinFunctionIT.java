@@ -37,10 +37,9 @@ public class CalcitePPLJsonBuiltinFunctionIT extends PPLIntegTestCase {
   public void testJson() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval a = json('[1,2,3,{\\\"f1\\\":1,\\\"f2\\\":[5,6]},4]'),"
-                    + " b=json('{\\\"invalid\\\": \\\"json\\\"')| fields a,b | head 1",
-                TEST_INDEX_DATE_FORMATS));
+            Index.DATE_FORMATS.ppl(
+                "eval a = json('[1,2,3,{\\\"f1\\\":1,\\\"f2\\\":[5,6]},4]'),"
+                    + " b=json('{\\\"invalid\\\": \\\"json\\\"')| fields a,b | head 1"));
 
     verifySchema(actual, schema("a", "string"), schema("b", "string"));
 

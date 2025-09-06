@@ -20,7 +20,7 @@ public class IPComparisonIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    loadIndex(SQLIntegTestCase.Index.WEBLOG);
+    loadIndex(SQLIntegTestCase.Index.WEBLOGS);
   }
 
   @Test

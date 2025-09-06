@@ -28,14 +28,14 @@ public class LegacyAPICompatibilityIT extends PPLIntegTestCase {
 
   @Test
   public void query() {
-    String query = "source=opensearch-sql_test_index_account | where age > 30";
+    String query = Index.ACCOUNT.ppl("where age > 30");
     Request request = buildRequest(query, LEGACY_PPL_API_ENDPOINT);
     assertBadRequest(() -> client().performRequest(request));
   }
 
   @Test
   public void explain() {
-    String query = "source=opensearch-sql_test_index_account | where age > 30";
+    String query = Index.ACCOUNT.ppl("where age > 30");
     Request request = buildRequest(query, LEGACY_PPL_EXPLAIN_API_ENDPOINT);
     assertBadRequest(() -> client().performRequest(request));
   }

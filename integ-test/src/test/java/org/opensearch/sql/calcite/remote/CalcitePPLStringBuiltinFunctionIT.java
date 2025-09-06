@@ -34,9 +34,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
         "{\"name\":\"EeD\",\"age\":27,\"state\":\"B.C\",\"country\":\"Canada\",\"year\":2023,\"month\":4}");
     client().performRequest(request1);
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where ascii(name) = 69 | fields name, age", TEST_INDEX_STATE_COUNTRY));
+        executeQuery(Index.STATE_COUNTRY.ppl("where ascii(name) = 69 | fields name, age"));
 
     verifySchema(actual, schema("name", "string"), schema("age", "int"));
 
@@ -47,9 +45,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
   public void testConcat() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | where name=concat('He', 'll', 'o') | fields name, age",
-                TEST_INDEX_STATE_COUNTRY));
+            Index.STATE_COUNTRY.ppl("where name=concat('He', 'll', 'o') | fields name, age"));
 
     verifySchema(actual, schema("name", "string"), schema("age", "int"));
 
@@ -65,9 +61,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
     client().performRequest(request1);
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | where name=concat('Hello', state) | fields name, age",
-                TEST_INDEX_STATE_COUNTRY));
+            Index.STATE_COUNTRY.ppl("where name=concat('Hello', state) | fields name, age"));
 
     verifySchema(actual, schema("name", "string"), schema("age", "int"));
 
@@ -83,9 +77,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
     client().performRequest(request1);
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | where name=concat_ws(',', 'John', state) | fields name, age",
-                TEST_INDEX_STATE_COUNTRY));
+            Index.STATE_COUNTRY.ppl("where name=concat_ws(',', 'John', state) | fields name, age"));
 
     verifySchema(actual, schema("name", "string"), schema("age", "int"));
 
@@ -95,9 +87,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
   @Test
   public void testLength() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where length(name) = 5 | fields name, age", TEST_INDEX_STATE_COUNTRY));
+        executeQuery(Index.STATE_COUNTRY.ppl("where length(name) = 5 | fields name, age"));
 
     verifySchema(actual, schema("name", "string"), schema("age", "int"));
 
@@ -107,9 +97,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
   @Test
   public void testLengthShouldBeInsensitive() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where leNgTh(name) = 5 | fields name, age", TEST_INDEX_STATE_COUNTRY));
+        executeQuery(Index.STATE_COUNTRY.ppl("where leNgTh(name) = 5 | fields name, age"));
 
     verifySchema(actual, schema("name", "string"), schema("age", "int"));
 
@@ -119,10 +107,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
   @Test
   public void testLower() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where lower(name) = 'hello' | fields name, age",
-                TEST_INDEX_STATE_COUNTRY));
+        executeQuery(Index.STATE_COUNTRY.ppl("where lower(name) = 'hello' | fields name, age"));
 
     verifySchema(actual, schema("name", "string"), schema("age", "int"));
 
@@ -133,9 +118,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
   public void testUpper() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | where upper(name) = upper('hello') | fields name, age",
-                TEST_INDEX_STATE_COUNTRY));
+            Index.STATE_COUNTRY.ppl("where upper(name) = upper('hello') | fields name, age"));
 
     verifySchema(actual, schema("name", "string"), schema("age", "int"));
 
@@ -146,9 +129,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
   public void testLike() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | where like(name, '_ello%%') | fields name, age",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl("where like(name, '_ello%%') | fields name, age"));
 
     verifySchema(actual, schema("name", "string"), schema("age", "int"));
 
@@ -173,9 +154,8 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
   public void testSubstring() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | where substring(name, 3, 2) = 'hn' | fields name, age",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "where substring(name, 3, 2) = 'hn' | fields name, age"));
 
     verifySchema(actual, schema("name", "string"), schema("age", "int"));
 
@@ -186,9 +166,8 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
   public void testSubstr() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | where substr(name, 3, 2) = 'hn' | fields name, age",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "where substr(name, 3, 2) = 'hn' | fields name, age"));
 
     verifySchema(actual, schema("name", "string"), schema("age", "int"));
 
@@ -199,9 +178,8 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
   public void testPosition() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | where position('ohn' in name) = 2 | fields name, age",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "where position('ohn' in name) = 2 | fields name, age"));
 
     verifySchema(actual, schema("name", "string"), schema("age", "int"));
 
@@ -212,10 +190,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
   public void testTrim() throws IOException {
     prepareTrim();
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where Trim(name) = 'Jim' | fields name, age",
-                TEST_INDEX_STATE_COUNTRY));
+        executeQuery(Index.STATE_COUNTRY.ppl("where Trim(name) = 'Jim' | fields name, age"));
 
     verifySchema(actual, schema("name", "string"), schema("age", "int"));
 
@@ -226,10 +201,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
   public void testRTrim() throws IOException {
     prepareTrim();
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where RTrim(name) = 'Jim' | fields name, age",
-                TEST_INDEX_STATE_COUNTRY));
+        executeQuery(Index.STATE_COUNTRY.ppl("where RTrim(name) = 'Jim' | fields name, age"));
 
     verifySchema(actual, schema("name", "string"), schema("age", "int"));
 
@@ -240,10 +212,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
   public void testLTrim() throws IOException {
     prepareTrim();
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where LTrim(name) = 'Jim' | fields name, age",
-                TEST_INDEX_STATE_COUNTRY));
+        executeQuery(Index.STATE_COUNTRY.ppl("where LTrim(name) = 'Jim' | fields name, age"));
 
     verifySchema(actual, schema("name", "string"), schema("age", "int"));
 
@@ -258,10 +227,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
         "{\"name\":\"DeD\",\"age\":27,\"state\":\"B.C\",\"country\":\"Canada\",\"year\":2023,\"month\":4}");
     client().performRequest(request1);
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where Reverse(name) = name | fields name, age",
-                TEST_INDEX_STATE_COUNTRY));
+        executeQuery(Index.STATE_COUNTRY.ppl("where Reverse(name) = name | fields name, age"));
 
     verifySchema(actual, schema("name", "string"), schema("age", "int"));
 
@@ -276,10 +242,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
         "{\"name\":\"DeD\",\"age\":27,\"state\":\"B.C\",\"country\":\"Canada\",\"year\":2023,\"month\":4}");
     client().performRequest(request1);
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where right(name, 2) = 'lo' | fields name, age",
-                TEST_INDEX_STATE_COUNTRY));
+        executeQuery(Index.STATE_COUNTRY.ppl("where right(name, 2) = 'lo' | fields name, age"));
 
     verifySchema(actual, schema("name", "string"), schema("age", "int"));
 
@@ -303,10 +266,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
   @Test
   public void testLeft() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where left(name, 2) = 'Ja' | fields name, age",
-                TEST_INDEX_STATE_COUNTRY));
+        executeQuery(Index.STATE_COUNTRY.ppl("where left(name, 2) = 'Ja' | fields name, age"));
 
     verifySchema(actual, schema("name", "string"), schema("age", "int"));
 
@@ -316,10 +276,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
   @Test
   public void testStrCmp() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where strcmp(name, 'Jane') = 0 | fields name, age",
-                TEST_INDEX_STATE_COUNTRY));
+        executeQuery(Index.STATE_COUNTRY.ppl("where strcmp(name, 'Jane') = 0 | fields name, age"));
 
     verifySchema(actual, schema("name", "string"), schema("age", "int"));
 

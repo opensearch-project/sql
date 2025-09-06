@@ -614,7 +614,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "nestedType",
         getNestedTypeIndexMapping(),
         "src/test/resources/nested_objects.json"),
-    NESTED_WITHOUT_ARRAYS(
+    NESTED_TYPE_WITHOUT_ARRAYS(
         TestsConstants.TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS,
         "nestedTypeWithoutArrays",
         getNestedTypeIndexMapping(),
@@ -659,7 +659,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "account_null",
         getBankWithNullValuesIndexMapping(),
         "src/test/resources/bank_with_null_values.json"),
-    BANK_WITH_STRING_VALUES(
+    STRINGS(
         TestsConstants.TEST_INDEX_STRINGS,
         "strings",
         getStringIndexMapping(),
@@ -679,7 +679,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "_doc",
         getOrderIndexMapping(),
         "src/test/resources/order.json"),
-    WEBLOG(
+    WEBLOGS(
         TestsConstants.TEST_INDEX_WEBLOGS,
         "weblogs",
         getWeblogsIndexMapping(),
@@ -689,7 +689,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "dates",
         getDateIndexMapping(),
         "src/test/resources/dates.json"),
-    DATETIME(
+    DATE_TIME(
         TestsConstants.TEST_INDEX_DATE_TIME,
         "_doc",
         getDateTimeIndexMapping(),
@@ -704,12 +704,12 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "_doc",
         getDeepNestedIndexMapping(),
         "src/test/resources/deep_nested_index_data.json"),
-    DATA_TYPE_NUMERIC(
+    DATATYPE_NUMERIC(
         TestsConstants.TEST_INDEX_DATATYPE_NUMERIC,
         "_doc",
         getDataTypeNumericIndexMapping(),
         "src/test/resources/datatypes_numeric.json"),
-    DATA_TYPE_NONNUMERIC(
+    DATATYPE_NONNUMERIC(
         TestsConstants.TEST_INDEX_DATATYPE_NONNUMERIC,
         "_doc",
         getDataTypeNonnumericIndexMapping(),
@@ -765,7 +765,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "multi_nested",
         getNestedTypeIndexMapping(),
         "src/test/resources/nested_with_nulls.json"),
-    GEOPOINTS(
+    GEOPOINT(
         TestsConstants.TEST_INDEX_GEOPOINT,
         "dates",
         getGeopointIndexMapping(),
@@ -821,7 +821,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "json",
         getJsonTestIndexMapping(),
         "src/test/resources/json_test.json"),
-    DATA_TYPE_ALIAS(
+    ALIAS(
         TestsConstants.TEST_INDEX_ALIAS,
         "alias",
         getAliasIndexMapping(),
@@ -901,7 +901,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "logs",
         getLogsIndexMapping(),
         "src/test/resources/logs.json"),
-    TIME_TEST_DATA(
+    TIME(
         "opensearch-sql_test_index_time_data",
         "time_data",
         getMappingFile("time_test_data_index_mapping.json"),
@@ -944,5 +944,53 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     public String getDataSet() {
       return this.dataSet;
     }
+
+    public String ppl(String query) {
+      return withSource(name, query);
+    }
+
+    public String ppl(String query, Object... args) {
+      return withSource(name, String.format(query, args));
+    }
+
+    public String ppl_(String query) {
+      return searchWithSource_(name, query);
+    }
+
+    public String ppl_(String query, Object... args) {
+      return searchWithSource_(name, String.format(query, args));
+    }
+
+    public String pplSearch(String query) {
+      return searchWithSource(name, query);
+    }
+
+    public String pplSearch(String query, Object... args) {
+      return searchWithSource(name, String.format(query, args));
+    }
+
+    public String pplSearch_(String query) {
+      return searchWithSource_(name, query);
+    }
+
+    public String pplSearch_(String query, Object... args) {
+      return searchWithSource_(name, String.format(query, args));
+    }
+  }
+
+  protected static String withSource(String source, String query) {
+    return String.format(Locale.ROOT, "source=%s | %s", source, query);
+  }
+
+  protected static String withSource_(String source, String query) {
+    return String.format(Locale.ROOT, "source=%s %s", source, query);
+  }
+
+  protected static String searchWithSource(String source, String query) {
+    return String.format(Locale.ROOT, "search source=%s | %s", source, query);
+  }
+
+  protected static String searchWithSource_(String source, String query) {
+    return String.format(Locale.ROOT, "search source=%s %s", source, query);
   }
 }

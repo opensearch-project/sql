@@ -5,8 +5,8 @@
 
 package org.opensearch.sql.ppl;
 
-import static org.opensearch.sql.legacy.SQLIntegTestCase.Index.DATA_TYPE_NONNUMERIC;
-import static org.opensearch.sql.legacy.SQLIntegTestCase.Index.DATA_TYPE_NUMERIC;
+import static org.opensearch.sql.legacy.SQLIntegTestCase.Index.DATATYPE_NONNUMERIC;
+import static org.opensearch.sql.legacy.SQLIntegTestCase.Index.DATATYPE_NUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NONNUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -21,8 +21,8 @@ public class SystemFunctionIT extends PPLIntegTestCase {
   @Override
   public void init() throws Exception {
     super.init();
-    loadIndex(DATA_TYPE_NUMERIC);
-    loadIndex(DATA_TYPE_NONNUMERIC);
+    loadIndex(DATATYPE_NUMERIC);
+    loadIndex(DATATYPE_NONNUMERIC);
   }
 
   @Test
@@ -56,14 +56,13 @@ public class SystemFunctionIT extends PPLIntegTestCase {
   public void typeof_opensearch_types() throws IOException {
     JSONObject response =
         executeQuery(
-            String.format(
-                "source=%s | eval `double` = typeof(double_number), `long` ="
+            Index.DATATYPE_NUMERIC.ppl(
+                "eval `double` = typeof(double_number), `long` ="
                     + " typeof(long_number),`integer` = typeof(integer_number), `byte` ="
                     + " typeof(byte_number),`short` = typeof(short_number), `float` ="
                     + " typeof(float_number),`half_float` = typeof(half_float_number),"
                     + " `scaled_float` = typeof(scaled_float_number) | fields `double`, `long`,"
-                    + " `integer`, `byte`, `short`, `float`, `half_float`, `scaled_float`",
-                TEST_INDEX_DATATYPE_NUMERIC));
+                    + " `integer`, `byte`, `short`, `float`, `half_float`, `scaled_float`"));
     verifyDataRows(
         response,
         rows("DOUBLE", "BIGINT", "INT", "TINYINT", "SMALLINT", "FLOAT", "FLOAT", "DOUBLE"));

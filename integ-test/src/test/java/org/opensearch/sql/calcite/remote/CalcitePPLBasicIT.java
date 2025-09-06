@@ -39,7 +39,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
     client().performRequest(request3);
 
     loadIndex(Index.BANK);
-    loadIndex(Index.DATA_TYPE_ALIAS);
+    loadIndex(Index.ALIAS);
     loadIndex(Index.MERGE_TEST_1);
     loadIndex(Index.MERGE_TEST_2);
   }
@@ -140,9 +140,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   @Test
   public void testFilterOnTextField() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where gender = 'F' | fields firstname, lastname", TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("where gender = 'F' | fields firstname, lastname"));
     verifySchema(actual, schema("firstname", "string"), schema("lastname", "string"));
     verifyDataRows(
         actual, rows("Nanette", "Bates"), rows("Virginia", "Ayala"), rows("Dillard", "Mcpherson"));
@@ -151,9 +149,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   @Test
   public void testFilterOnTextFieldWithKeywordSubField() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where state = 'VA' | fields firstname, lastname", TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("where state = 'VA' | fields firstname, lastname"));
     verifySchema(actual, schema("firstname", "string"), schema("lastname", "string"));
     verifyDataRows(actual, rows("Nanette", "Bates"));
   }
@@ -184,8 +180,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
 
   @Test
   public void testQueryMinusFields() throws IOException {
-    JSONObject actual =
-        executeQuery(withSource(TEST_INDEX_BANK, "fields - firstname, lastname, birthdate"));
+    JSONObject actual = executeQuery(Index.BANK.ppl("fields - firstname, lastname, birthdate"));
     verifySchema(
         actual,
         schema("account_number", "bigint"),
@@ -332,10 +327,9 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   public void testFieldsPlusThenMinus() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | fields + firstname, lastname, account_number | fields - firstname,"
-                    + " lastname",
-                TEST_INDEX_BANK));
+            Index.BANK.ppl(
+                "fields + firstname, lastname, account_number | fields - firstname,"
+                    + " lastname"));
     verifySchema(actual, schema("account_number", "bigint"));
     verifyDataRows(actual, rows(1), rows(6), rows(13), rows(18), rows(20), rows(25), rows(32));
   }
@@ -383,7 +377,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
 
   @Test
   public void testSelectDateTypeField() throws IOException {
-    JSONObject actual = executeQuery(withSource(TEST_INDEX_BANK, "fields birthdate"));
+    JSONObject actual = executeQuery(Index.BANK.ppl("fields birthdate"));
     verifySchema(actual, schema("birthdate", "timestamp"));
     verifyDataRows(
         actual,
@@ -410,10 +404,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   @Test
   public void testBetween() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where age between 35 and 38 | fields firstname, age",
-                TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("where age between 35 and 38 | fields firstname, age"));
     verifySchema(actual, schema("firstname", "string"), schema("age", "int"));
     verifyDataRows(actual, rows("Hattie", 36), rows("Elinor", 36));
   }
@@ -421,10 +412,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   @Test
   public void testBetweenWithExpression() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where age between 36 - 1 and 37 + 1 | fields firstname, age",
-                TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("where age between 36 - 1 and 37 + 1 | fields firstname, age"));
     verifySchema(actual, schema("firstname", "string"), schema("age", "int"));
     verifyDataRows(actual, rows("Hattie", 36), rows("Elinor", 36));
   }
@@ -432,10 +420,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   @Test
   public void testBetweenWithDifferentTypes() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where age between 35.5 and 38.5 | fields firstname, age",
-                TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("where age between 35.5 and 38.5 | fields firstname, age"));
     verifySchema(actual, schema("firstname", "string"), schema("age", "int"));
     verifyDataRows(actual, rows("Hattie", 36), rows("Elinor", 36));
   }
@@ -443,10 +428,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   @Test
   public void testBetweenWithDifferentTypes2() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where age between 35 and 38.5 | fields firstname, age",
-                TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("where age between 35 and 38.5 | fields firstname, age"));
     verifySchema(actual, schema("firstname", "string"), schema("age", "int"));
     verifyDataRows(actual, rows("Hattie", 36), rows("Elinor", 36));
   }
@@ -458,19 +440,14 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
             SemanticCheckException.class,
             () ->
                 executeQuery(
-                    String.format(
-                        "source=%s | where age between '35' and 38.5 | fields firstname, age",
-                        TEST_INDEX_BANK)));
+                    Index.BANK.ppl("where age between '35' and 38.5 | fields firstname, age")));
     verifyErrorMessageContains(e, "BETWEEN expression types are incompatible");
   }
 
   @Test
   public void testNotBetween() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where age not between 30 and 39 | fields firstname, age",
-                TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("where age not between 30 and 39 | fields firstname, age"));
     verifySchema(actual, schema("firstname", "string"), schema("age", "int"));
     verifyDataRows(actual, rows("Nanette", 28));
   }
@@ -478,10 +455,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   @Test
   public void testNotBetween2() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where not age between 30 and 39 | fields firstname, age",
-                TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("where not age between 30 and 39 | fields firstname, age"));
     verifySchema(actual, schema("firstname", "string"), schema("age", "int"));
     verifyDataRows(actual, rows("Nanette", 28));
   }
@@ -489,10 +463,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   @Test
   public void testNotBetween3() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where not age not between 35 and 38 | fields firstname, age",
-                TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("where not age not between 35 and 38 | fields firstname, age"));
     verifySchema(actual, schema("firstname", "string"), schema("age", "int"));
     verifyDataRows(actual, rows("Hattie", 36), rows("Elinor", 36));
   }
@@ -500,10 +471,9 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   public void testDateBetween() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | where birthdate between date('2018-06-01') and date('2018-06-30') |"
-                    + " fields firstname, birthdate",
-                TEST_INDEX_BANK));
+            Index.BANK.ppl(
+                "where birthdate between date('2018-06-01') and date('2018-06-30') |"
+                    + " fields firstname, birthdate"));
     verifySchema(actual, schema("firstname", "string"), schema("birthdate", "timestamp"));
     verifyDataRows(
         actual, rows("Nanette", "2018-06-23 00:00:00"), rows("Elinor", "2018-06-27 00:00:00"));
@@ -512,10 +482,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   @Test
   public void testXor() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | where firstname='Hattie' xor age=36 | fields firstname, age",
-                TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("where firstname='Hattie' xor age=36 | fields firstname, age"));
     verifyDataRows(result, rows("Elinor", 36));
   }
 
@@ -528,7 +495,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
           Throwable e =
               assertThrowsWithReplace(
                   IllegalArgumentException.class,
-                  () -> executeQuery(withSource(TEST_INDEX_BANK, "fields firstname1, age")));
+                  () -> executeQuery(Index.BANK.ppl("fields firstname1, age")));
           verifyErrorMessageContains(
               e,
               "field [firstname1] not found; input fields are: [account_number, firstname, address,"
@@ -541,10 +508,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   @Test
   public void testAliasDataType() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | where alias_col > 1 | fields original_col, alias_col ",
-                TEST_INDEX_ALIAS));
+        executeQuery(Index.ALIAS.ppl("where alias_col > 1 | fields original_col, alias_col "));
     verifySchema(result, schema("original_col", "int"), schema("alias_col", "int"));
     verifyDataRows(result, rows(2, 2), rows(3, 3));
   }
@@ -553,8 +517,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   public void testMetaFieldAlias() throws IOException {
     Throwable e =
         assertThrowsWithReplace(
-            Exception.class,
-            () -> executeQuery(withSource(TEST_INDEX_ACCOUNT, "stats count() as _score")));
+            Exception.class, () -> executeQuery(Index.ACCOUNT.ppl("stats count() as _score")));
     verifyErrorMessageContains(e, "Cannot use metadata field [_score] as the alias.");
   }
 
@@ -562,11 +525,11 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   public void testFieldsMergedObject() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | fields machine.os1,  machine.os2, machine_array.os1, "
+            withSource(
+                TEST_INDEX_MERGE_TEST_WILDCARD,
+                "fields machine.os1,  machine.os2, machine_array.os1, "
                     + " machine_array.os2, machine_deep.attr1, machine_deep.attr2,"
-                    + " machine_deep.layer.os1, machine_deep.layer.os2",
-                TEST_INDEX_MERGE_TEST_WILDCARD));
+                    + " machine_deep.layer.os1, machine_deep.layer.os2"));
     verifySchema(
         result,
         schema("machine.os1", "string"),

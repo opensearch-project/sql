@@ -61,8 +61,8 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
     loadIndex(Index.ACCOUNT, remoteClient());
     loadIndex(Index.DOG);
     loadIndex(Index.DOG, remoteClient());
-    loadIndex(Index.TIME_TEST_DATA);
-    loadIndex(Index.TIME_TEST_DATA, remoteClient());
+    loadIndex(Index.TIME);
+    loadIndex(Index.TIME, remoteClient());
     enableCalcite();
   }
 
@@ -188,10 +188,10 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
     // MinSpan-based binning
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | bin age minspan=5 start=0 end=100 | stats count() by age | sort age |"
-                    + " head 3",
-                TEST_INDEX_ACCOUNT_REMOTE));
+            withSource(
+                TEST_INDEX_ACCOUNT_REMOTE,
+                "bin age minspan=5 start=0 end=100 | stats count() by age | sort age |"
+                    + " head 3"));
     verifySchema(result, schema("count()", null, "bigint"), schema("age", null, "string"));
 
     verifyDataRows(result, rows(451L, "20-30"), rows(504L, "30-40"), rows(45L, "40-50"));
@@ -202,9 +202,9 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
     // Range-based binning (start/end only)
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | bin age start=0 end=100 | stats count() by age | sort age | head 3",
-                TEST_INDEX_ACCOUNT_REMOTE));
+            withSource(
+                TEST_INDEX_ACCOUNT_REMOTE,
+                "bin age start=0 end=100 | stats count() by age | sort age | head 3"));
     verifySchema(result, schema("count()", null, "bigint"), schema("age", null, "string"));
 
     verifyDataRows(result, rows(1000L, "0-100"));

@@ -42,9 +42,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
   public void inRangeZeroToPositive() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | eval f = DATETIME('2008-12-25 05:30:00+00:00', '+01:00') | fields f",
-                TEST_INDEX_DATE));
+            Index.DATE.ppl("eval f = DATETIME('2008-12-25 05:30:00+00:00', '+01:00') | fields f"));
     verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows("2008-12-25 06:30:00"));
   }
@@ -53,9 +51,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
   public void inRangeNegativeToPositive() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | eval f = DATETIME('2008-12-25 05:30:00-05:00', '+05:00') | fields f",
-                TEST_INDEX_DATE));
+            Index.DATE.ppl("eval f = DATETIME('2008-12-25 05:30:00-05:00', '+05:00') | fields f"));
     verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows("2008-12-25 15:30:00"));
   }
@@ -64,9 +60,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
   public void inRangeTwentyHourOffset() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | eval f = DATETIME('2004-02-28 23:00:00-10:00', '+10:00') | fields f",
-                TEST_INDEX_DATE));
+            Index.DATE.ppl("eval f = DATETIME('2004-02-28 23:00:00-10:00', '+10:00') | fields f"));
     verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows("2004-02-29 19:00:00"));
   }
@@ -75,9 +69,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
   public void inRangeYearChange() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | eval f = DATETIME('2008-01-01 02:00:00+10:00', '-10:00') | fields f",
-                TEST_INDEX_DATE));
+            Index.DATE.ppl("eval f = DATETIME('2008-01-01 02:00:00+10:00', '-10:00') | fields f"));
     verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows("2007-12-31 06:00:00"));
   }
@@ -86,9 +78,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
   public void inRangeZeroToMax() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | eval f = DATETIME('2008-12-25 05:30:00+00:00', '+14:00') | fields f",
-                TEST_INDEX_DATE));
+            Index.DATE.ppl("eval f = DATETIME('2008-12-25 05:30:00+00:00', '+14:00') | fields f"));
     verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows("2008-12-25 19:30:00"));
   }
@@ -96,10 +86,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
   @Test
   public void inRangeNoToTZ() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | eval f = DATETIME('2008-01-01 02:00:00+10:00') | fields f",
-                TEST_INDEX_DATE));
+        executeQuery(Index.DATE.ppl("eval f = DATETIME('2008-01-01 02:00:00+10:00') | fields f"));
     verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows("2008-01-01 02:00:00"));
   }
@@ -107,10 +94,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
   @Test
   public void inRangeNoTZ() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | eval f = DATETIME('2008-01-01 02:00:00') | fields f",
-                TEST_INDEX_DATE));
+        executeQuery(Index.DATE.ppl("eval f = DATETIME('2008-01-01 02:00:00') | fields f"));
     verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows("2008-01-01 02:00:00"));
   }
@@ -119,9 +103,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
   public void nullField3Over() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | eval f = DATETIME('2008-01-01 02:00:00+15:00', '-12:00') | fields f",
-                TEST_INDEX_DATE));
+            Index.DATE.ppl("eval f = DATETIME('2008-01-01 02:00:00+15:00', '-12:00') | fields f"));
     verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows(new Object[] {null}));
   }
@@ -130,9 +112,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
   public void nullField2Under() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | eval f = DATETIME('2008-01-01 02:00:00+10:00', '-14:00') | fields f",
-                TEST_INDEX_DATE));
+            Index.DATE.ppl("eval f = DATETIME('2008-01-01 02:00:00+10:00', '-14:00') | fields f"));
     verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows(new Object[] {null}));
   }
@@ -141,9 +121,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
   public void nullTField3Over() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | eval f = DATETIME('2008-01-01 02:00:00', '+15:00') | fields f",
-                TEST_INDEX_DATE));
+            Index.DATE.ppl("eval f = DATETIME('2008-01-01 02:00:00', '+15:00') | fields f"));
     verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows(new Object[] {null}));
   }
@@ -151,10 +129,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
   @Test
   public void nullDateTimeInvalidDateValueFebruary() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | eval f = DATETIME('2021-02-30 10:00:00') | fields f",
-                TEST_INDEX_DATE));
+        executeQuery(Index.DATE.ppl("eval f = DATETIME('2021-02-30 10:00:00') | fields f"));
     verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows(new Object[] {null}));
   }
@@ -162,10 +137,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
   @Test
   public void nullDateTimeInvalidDateValueApril() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | eval f = DATETIME('2021-04-31 10:00:00') | fields f",
-                TEST_INDEX_DATE));
+        executeQuery(Index.DATE.ppl("eval f = DATETIME('2021-04-31 10:00:00') | fields f"));
     verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows(new Object[] {null}));
   }
@@ -173,10 +145,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
   @Test
   public void nullDateTimeInvalidDateValueMonth() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | eval f = DATETIME('2021-13-03 10:00:00') | fields f",
-                TEST_INDEX_DATE));
+        executeQuery(Index.DATE.ppl("eval f = DATETIME('2021-13-03 10:00:00') | fields f"));
     verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows(new Object[] {null}));
   }
@@ -185,9 +154,8 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
   public void testSpanDatetimeWithCustomFormat() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | eval a = 1 | stats count() as cnt by span(yyyy-MM-dd, 1d) as span",
-                TEST_INDEX_DATE_FORMATS));
+            Index.DATE_FORMATS.ppl(
+                "eval a = 1 | stats count() as cnt by span(yyyy-MM-dd, 1d) as span"));
     verifySchema(
         result,
         isCalciteEnabled() ? schema("cnt", null, "bigint") : schema("cnt", null, "int"),
@@ -199,9 +167,8 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
   public void testSpanDatetimeWithEpochMillisFormat() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | eval a = 1 | stats count() as cnt by span(epoch_millis, 1d) as span",
-                TEST_INDEX_DATE_FORMATS));
+            Index.DATE_FORMATS.ppl(
+                "eval a = 1 | stats count() as cnt by span(epoch_millis, 1d) as span"));
     verifySchema(
         result,
         isCalciteEnabled() ? schema("cnt", null, "bigint") : schema("cnt", null, "int"),

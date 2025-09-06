@@ -27,9 +27,7 @@ public class ObjectFieldOperateIT extends PPLIntegTestCase {
   @Test
   public void select_object_field() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | fields city.name, city.location.latitude", TEST_INDEX_DEEP_NESTED));
+        executeQuery(Index.DEEP_NESTED.ppl("fields city.name, city.location.latitude"));
     verifySchema(result, schema("city.name", "string"), schema("city.location.latitude", "double"));
     verifyDataRows(result, rows("Seattle", 10.5));
   }
@@ -49,8 +47,7 @@ public class ObjectFieldOperateIT extends PPLIntegTestCase {
 
   @Test
   public void group_object_field_in_stats() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_DEEP_NESTED, "stats count() by city.name"));
+    JSONObject result = executeQuery(Index.DEEP_NESTED.ppl("stats count() by city.name"));
     verifySchema(
         result,
         schema("count()", isCalciteEnabled() ? "bigint" : "int"),
@@ -62,16 +59,14 @@ public class ObjectFieldOperateIT extends PPLIntegTestCase {
   public void sort_by_object_field() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | sort city.name | fields city.name, city.location.latitude",
-                TEST_INDEX_DEEP_NESTED));
+            Index.DEEP_NESTED.ppl("sort city.name | fields city.name, city.location.latitude"));
     verifySchema(result, schema("city.name", "string"), schema("city.location.latitude", "double"));
     verifyDataRows(result, rows("Seattle", 10.5));
   }
 
   @Test
   public void verify_schema_without_fields() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_DEEP_NESTED, "sort city.name "));
+    JSONObject result = executeQuery(Index.DEEP_NESTED.ppl("sort city.name "));
     verifySchema(
         result,
         schema("projects", "array"),

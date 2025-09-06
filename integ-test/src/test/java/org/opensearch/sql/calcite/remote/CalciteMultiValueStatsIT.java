@@ -5,9 +5,6 @@
 
 package org.opensearch.sql.calcite.remote;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NONNUMERIC;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -25,8 +22,8 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    loadIndex(Index.DATA_TYPE_NUMERIC);
-    loadIndex(Index.DATA_TYPE_NONNUMERIC);
+    loadIndex(Index.DATATYPE_NUMERIC);
+    loadIndex(Index.DATATYPE_NONNUMERIC);
     loadIndex(Index.CALCS);
   }
 
@@ -35,10 +32,7 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
   @Test
   public void testListFunctionWithBoolean() throws IOException {
     JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | stats list(boolean_value) as bool_list",
-                TEST_INDEX_DATATYPE_NONNUMERIC));
+        executeQuery(Index.DATATYPE_NONNUMERIC.ppl("stats list(boolean_value) as bool_list"));
     verifySchema(response, schema("bool_list", "array"));
     verifyDataRows(response, rows(List.of("true")));
   }
@@ -46,9 +40,7 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
   @Test
   public void testListFunctionWithByte() throws IOException {
     JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | stats list(byte_number) as byte_list", TEST_INDEX_DATATYPE_NUMERIC));
+        executeQuery(Index.DATATYPE_NUMERIC.ppl("stats list(byte_number) as byte_list"));
     verifySchema(response, schema("byte_list", "array"));
     verifyDataRows(response, rows(List.of("4")));
   }
@@ -56,9 +48,7 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
   @Test
   public void testListFunctionWithShort() throws IOException {
     JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | stats list(short_number) as short_list", TEST_INDEX_DATATYPE_NUMERIC));
+        executeQuery(Index.DATATYPE_NUMERIC.ppl("stats list(short_number) as short_list"));
     verifySchema(response, schema("short_list", "array"));
     verifyDataRows(response, rows(List.of("3")));
   }
@@ -66,9 +56,7 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
   @Test
   public void testListFunctionWithInteger() throws IOException {
     JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | stats list(integer_number) as int_list", TEST_INDEX_DATATYPE_NUMERIC));
+        executeQuery(Index.DATATYPE_NUMERIC.ppl("stats list(integer_number) as int_list"));
     verifySchema(response, schema("int_list", "array"));
     verifyDataRows(response, rows(List.of("2")));
   }
@@ -76,9 +64,7 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
   @Test
   public void testListFunctionWithLong() throws IOException {
     JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | stats list(long_number) as long_list", TEST_INDEX_DATATYPE_NUMERIC));
+        executeQuery(Index.DATATYPE_NUMERIC.ppl("stats list(long_number) as long_list"));
     verifySchema(response, schema("long_list", "array"));
     verifyDataRows(response, rows(List.of("1")));
   }
@@ -86,9 +72,7 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
   @Test
   public void testListFunctionWithFloat() throws IOException {
     JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | stats list(float_number) as float_list", TEST_INDEX_DATATYPE_NUMERIC));
+        executeQuery(Index.DATATYPE_NUMERIC.ppl("stats list(float_number) as float_list"));
     verifySchema(response, schema("float_list", "array"));
     verifyDataRows(response, rows(List.of("6.2")));
   }
@@ -96,10 +80,7 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
   @Test
   public void testListFunctionWithDouble() throws IOException {
     JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | stats list(double_number) as double_list",
-                TEST_INDEX_DATATYPE_NUMERIC));
+        executeQuery(Index.DATATYPE_NUMERIC.ppl("stats list(double_number) as double_list"));
     verifySchema(response, schema("double_list", "array"));
     verifyDataRows(response, rows(List.of("5.1")));
   }
@@ -107,17 +88,12 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
   @Test
   public void testListFunctionWithString() throws IOException {
     JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | stats list(keyword_value) as keyword_list",
-                TEST_INDEX_DATATYPE_NONNUMERIC));
+        executeQuery(Index.DATATYPE_NONNUMERIC.ppl("stats list(keyword_value) as keyword_list"));
     verifySchema(response, schema("keyword_list", "array"));
     verifyDataRows(response, rows(List.of("keyword")));
 
     JSONObject textResponse =
-        executeQuery(
-            String.format(
-                "source=%s | stats list(text_value) as text_list", TEST_INDEX_DATATYPE_NONNUMERIC));
+        executeQuery(Index.DATATYPE_NONNUMERIC.ppl("stats list(text_value) as text_list"));
     verifySchema(textResponse, schema("text_list", "array"));
     verifyDataRows(textResponse, rows(List.of("text")));
   }
@@ -125,9 +101,7 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
   @Test
   public void testListFunctionWithDate() throws IOException {
     JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | stats list(date_value) as date_list", TEST_INDEX_DATATYPE_NONNUMERIC));
+        executeQuery(Index.DATATYPE_NONNUMERIC.ppl("stats list(date_value) as date_list"));
     verifySchema(response, schema("date_list", "array"));
     // Date values should be returned as timestamp strings
     verifyDataRows(response, rows(List.of("2020-10-13 13:00:00")));
@@ -135,8 +109,7 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
 
   @Test
   public void testListFunctionWithTime() throws IOException {
-    JSONObject response =
-        executeQuery(withSource(TEST_INDEX_CALCS, "head 1 | stats list(time1) as time_list"));
+    JSONObject response = executeQuery(Index.CALCS.ppl("head 1 | stats list(time1) as time_list"));
     verifySchema(response, schema("time_list", "array"));
     // Time values are stored as strings in the test data
     verifyDataRows(response, rows(List.of("19:36:22")));
@@ -146,9 +119,7 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
   public void testListFunctionWithTimestamp() throws IOException {
     JSONObject response =
         executeQuery(
-            String.format(
-                "source=%s | stats list(date_nanos_value) as timestamp_list",
-                TEST_INDEX_DATATYPE_NONNUMERIC));
+            Index.DATATYPE_NONNUMERIC.ppl("stats list(date_nanos_value) as timestamp_list"));
     verifySchema(response, schema("timestamp_list", "array"));
     // Calcite converts timezone to UTC
     verifyDataRows(response, rows(List.of("2019-03-24 01:34:46.123456789")));
@@ -157,9 +128,7 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
   @Test
   public void testListFunctionWithIP() throws IOException {
     JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | stats list(ip_value) as ip_list", TEST_INDEX_DATATYPE_NONNUMERIC));
+        executeQuery(Index.DATATYPE_NONNUMERIC.ppl("stats list(ip_value) as ip_list"));
     verifySchema(response, schema("ip_list", "array"));
     verifyDataRows(response, rows(List.of("127.0.0.1")));
   }
@@ -167,10 +136,7 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
   @Test
   public void testListFunctionWithBinary() throws IOException {
     JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | stats list(binary_value) as binary_list",
-                TEST_INDEX_DATATYPE_NONNUMERIC));
+        executeQuery(Index.DATATYPE_NONNUMERIC.ppl("stats list(binary_value) as binary_list"));
     verifySchema(response, schema("binary_list", "array"));
     verifyDataRows(response, rows(List.of("U29tZSBiaW5hcnkgYmxvYg==")));
   }
@@ -179,8 +145,7 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
 
   @Test
   public void testListFunctionWithNullValues() throws IOException {
-    JSONObject response =
-        executeQuery(withSource(TEST_INDEX_CALCS, "head 5 | stats list(int0) as int_list"));
+    JSONObject response = executeQuery(Index.CALCS.ppl("head 5 | stats list(int0) as int_list"));
     verifySchema(response, schema("int_list", "array"));
     // Nulls are filtered out by list function
     verifyDataRows(response, rows(List.of("1", "7")));
@@ -189,9 +154,7 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
   @Test
   public void testListFunctionGroupBy() throws IOException {
     JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | head 5 | stats list(num0) as num_list by str0", TEST_INDEX_CALCS));
+        executeQuery(Index.CALCS.ppl("head 5 | stats list(num0) as num_list by str0"));
     verifySchema(response, schema("num_list", "array"), schema("str0", null, "string"));
 
     // Group by str0 field - should have different groups with their respective num0 values
@@ -203,9 +166,7 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
   public void testListFunctionMultipleFields() throws IOException {
     JSONObject response =
         executeQuery(
-            String.format(
-                "source=%s | head 3 | stats list(str2) as str_list, list(int2) as int_list",
-                TEST_INDEX_CALCS));
+            Index.CALCS.ppl("head 3 | stats list(str2) as str_list, list(int2) as int_list"));
     verifySchema(response, schema("str_list", "array"), schema("int_list", "array"));
 
     // Verify we get arrays for both fields
@@ -219,10 +180,7 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
   public void testListFunctionWithComplexGroupBy() throws IOException {
     // Test list aggregation with multiple grouping fields
     JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | head 5 | stats list(num0) as values by str0, bool0",
-                TEST_INDEX_CALCS));
+        executeQuery(Index.CALCS.ppl("head 5 | stats list(num0) as values by str0, bool0"));
     verifySchema(
         response,
         schema("values", "array"),
@@ -240,9 +198,7 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
     // Test list function with no matching records - simplify this test
     JSONObject response =
         executeQuery(
-            String.format(
-                "source=%s | where str0 = 'NONEXISTENT' | stats list(num0) as empty_list",
-                TEST_INDEX_CALCS));
+            Index.CALCS.ppl("where str0 = 'NONEXISTENT' | stats list(num0) as empty_list"));
     verifySchema(response, schema("empty_list", "array"));
 
     assert response.has("datarows");
@@ -256,9 +212,7 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
   public void testListFunctionWithObjectField() throws IOException {
     JSONObject response =
         executeQuery(
-            String.format(
-                "source=%s | stats list(object_value.first) as object_field_list",
-                TEST_INDEX_DATATYPE_NONNUMERIC));
+            Index.DATATYPE_NONNUMERIC.ppl("stats list(object_value.first) as object_field_list"));
     verifySchema(response, schema("object_field_list", "array"));
     verifyDataRows(response, rows(List.of("Dale")));
   }
@@ -266,9 +220,7 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
   @Test
   public void testListFunctionWithArithmeticExpression() throws IOException {
     JSONObject response =
-        executeQuery(
-            String.format(
-                "source=%s | head 3 | stats list(int3 + 1) as arithmetic_list", TEST_INDEX_CALCS));
+        executeQuery(Index.CALCS.ppl("head 3 | stats list(int3 + 1) as arithmetic_list"));
     verifySchema(response, schema("arithmetic_list", "array"));
     verifyDataRows(response, rows(List.of("9", "14", "3")));
   }

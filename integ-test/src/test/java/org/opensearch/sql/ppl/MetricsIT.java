@@ -6,7 +6,6 @@
 package org.opensearch.sql.ppl;
 
 import static org.hamcrest.Matchers.equalTo;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -39,7 +38,7 @@ public class MetricsIT extends PPLIntegTestCase {
 
   private void multiQueries(int n) throws IOException {
     for (int i = 0; i < n; ++i) {
-      executeQuery(withSource(TEST_INDEX_BANK, "where age = 31 + 1 | fields age"));
+      executeQuery(Index.BANK.ppl("where age = 31 + 1 | fields age"));
     }
   }
 

@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.ppl;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
@@ -28,16 +26,13 @@ public class DedupCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testDedup() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "dedup male | fields male"));
+    JSONObject result = executeQuery(Index.BANK.ppl("dedup male | fields male"));
     verifyDataRows(result, rows(true), rows(false));
   }
 
   @Test
   public void testConsecutiveDedup() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | dedup male consecutive=true | fields male", TEST_INDEX_BANK));
+    JSONObject result = executeQuery(Index.BANK.ppl("dedup male consecutive=true | fields male"));
     List<Object[]> actualRows = extractActualRows(result);
     List<Object[]> expectedRows = getExpectedDedupRows(actualRows);
     assertTrue("Deduplication was not consecutive", expectedRows != null);
@@ -52,7 +47,7 @@ public class DedupCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testAllowMoreDuplicates() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "dedup 2 male | fields male"));
+    JSONObject result = executeQuery(Index.BANK.ppl("dedup 2 male | fields male"));
     verifyDataRows(result, rows(true), rows(true), rows(false), rows(false));
   }
 
@@ -60,9 +55,8 @@ public class DedupCommandIT extends PPLIntegTestCase {
   public void testKeepEmptyDedup() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | dedup balance keepempty=true | fields firstname, balance",
-                TEST_INDEX_BANK_WITH_NULL_VALUES));
+            Index.BANK_WITH_NULL_VALUES.ppl(
+                "dedup balance keepempty=true | fields firstname, balance"));
     verifyDataRows(
         result,
         rows("Amber JOHnny", 39225),

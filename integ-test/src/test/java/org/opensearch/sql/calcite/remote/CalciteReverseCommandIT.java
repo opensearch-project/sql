@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.calcite.remote;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
@@ -28,8 +27,7 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testReverse() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "fields account_number | reverse"));
+    JSONObject result = executeQuery(Index.BANK.ppl("fields account_number | reverse"));
     verifySchema(result, schema("account_number", "bigint"));
     verifyDataRowsInOrder(
         result, rows(32), rows(25), rows(20), rows(18), rows(13), rows(6), rows(1));
@@ -37,10 +35,7 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testReverseWithFields() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | fields account_number, firstname | reverse", TEST_INDEX_BANK));
+    JSONObject result = executeQuery(Index.BANK.ppl("fields account_number, firstname | reverse"));
     verifySchema(result, schema("account_number", "bigint"), schema("firstname", "string"));
     verifyDataRowsInOrder(
         result,
@@ -56,10 +51,7 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
   @Test
   public void testReverseWithSort() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | sort account_number | fields account_number | reverse",
-                TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("sort account_number | fields account_number | reverse"));
     verifySchema(result, schema("account_number", "bigint"));
     verifyDataRowsInOrder(
         result, rows(32), rows(25), rows(20), rows(18), rows(13), rows(6), rows(1));
@@ -67,10 +59,7 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testDoubleReverse() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | fields account_number | reverse | reverse", TEST_INDEX_BANK));
+    JSONObject result = executeQuery(Index.BANK.ppl("fields account_number | reverse | reverse"));
     verifySchema(result, schema("account_number", "bigint"));
     verifyDataRowsInOrder(
         result, rows(1), rows(6), rows(13), rows(18), rows(20), rows(25), rows(32));
@@ -78,8 +67,7 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testReverseWithHead() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "fields account_number | reverse | head 3"));
+    JSONObject result = executeQuery(Index.BANK.ppl("fields account_number | reverse | head 3"));
     verifySchema(result, schema("account_number", "bigint"));
     verifyDataRowsInOrder(result, rows(32), rows(25), rows(20));
   }
@@ -88,9 +76,7 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
   public void testReverseWithComplexPipeline() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | where account_number > 18 | fields account_number | reverse | head 2",
-                TEST_INDEX_BANK));
+            Index.BANK.ppl("where account_number > 18 | fields account_number | reverse | head 2"));
     verifySchema(result, schema("account_number", "bigint"));
     verifyDataRowsInOrder(result, rows(32), rows(25));
   }
@@ -100,9 +86,7 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
     // Use the existing BANK data but with a simpler, more predictable query
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | sort account_number | fields account_number | reverse | head 3",
-                TEST_INDEX_BANK));
+            Index.BANK.ppl("sort account_number | fields account_number | reverse | head 3"));
     verifySchema(result, schema("account_number", "bigint"));
     verifyDataRowsInOrder(result, rows(32), rows(25), rows(20));
   }

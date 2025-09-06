@@ -22,7 +22,7 @@ public class JdbcTestIT extends SQLIntegTestCase {
     loadIndex(Index.ONLINE);
     loadIndex(Index.PEOPLE);
     loadIndex(Index.ACCOUNT);
-    loadIndex(Index.WEBLOG);
+    loadIndex(Index.WEBLOGS);
   }
 
   public void testPercentilesQuery() {

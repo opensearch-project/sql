@@ -10,7 +10,6 @@ import static org.opensearch.sql.util.MatcherUtils.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 
 import java.io.IOException;
-import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
@@ -43,9 +42,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
   @Test
   public void testIsNull() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where isnull(name) | fields age", TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+        executeQuery(Index.STATE_COUNTRY_WITH_NULL.ppl("where isnull(name) | fields age"));
 
     verifySchema(actual, schema("age", "int"));
 
@@ -62,11 +59,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
   @Test
   public void testIsNullWithNested() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                Locale.ROOT,
-                "source=%s | where isnull(address) | fields address",
-                TEST_INDEX_NESTED_SIMPLE));
+        executeQuery(Index.NESTED_SIMPLE.ppl("where isnull(address) | fields address"));
     verifySchema(actual, schema("address", "array"));
     verifyNumOfRows(actual, 0);
   }
@@ -74,10 +67,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
   @Test
   public void testIsNotNull() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where isnotnull(name) | fields name",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+        executeQuery(Index.STATE_COUNTRY_WITH_NULL.ppl("where isnotnull(name) | fields name"));
 
     verifySchema(actual, schema("name", "string"));
 
@@ -102,11 +92,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
   @Test
   public void testIsNotNullWithNested() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                Locale.ROOT,
-                "source=%s | where isnotnull(address) | fields address",
-                TEST_INDEX_NESTED_SIMPLE));
+        executeQuery(Index.NESTED_SIMPLE.ppl("where isnotnull(address) | fields address"));
     verifySchema(actual, schema("address", "array"));
     verifyNumOfRows(actual, 5);
   }
@@ -115,9 +101,8 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
   public void testNullIf() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval new_age = nullif(age, 20) | fields name, new_age",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "eval new_age = nullif(age, 20) | fields name, new_age"));
 
     verifySchema(actual, schema("name", "string"), schema("new_age", "int"));
 
@@ -160,9 +145,8 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
   public void testIfNull() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval new_name = ifnull(name, 'Unknown') | fields new_name, age",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "eval new_name = ifnull(name, 'Unknown') | fields new_name, age"));
 
     verifySchema(actual, schema("new_name", "string"), schema("age", "int"));
 
@@ -182,11 +166,10 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
   public void testCoalesce() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | where age = 10 | eval new_country = coalesce(name, state, country),"
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "where age = 10 | eval new_country = coalesce(name, state, country),"
                     + " null = coalesce(name, state, name)  | fields name, state, country,"
-                    + " new_country, null",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+                    + " new_country, null"));
 
     verifySchema(
         actual,
@@ -203,10 +186,9 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
   public void testIf() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | where isnotnull(age) | eval judge = if(age>50, 'old', 'young') |"
-                    + " fields judge, age",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "where isnotnull(age) | eval judge = if(age>50, 'old', 'young') |"
+                    + " fields judge, age"));
 
     verifySchema(actual, schema("judge", "string"), schema("age", "int"));
 
@@ -225,9 +207,8 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
   public void testIfWithLike() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval judge = if(Like(name, 'He%%'), 1.0, 0.0) | fields judge, name",
-                TEST_INDEX_STATE_COUNTRY));
+            Index.STATE_COUNTRY.ppl(
+                "eval judge = if(Like(name, 'He%%'), 1.0, 0.0) | fields judge, name"));
 
     verifySchema(actual, schema("judge", "double"), schema("name", "string"));
 
@@ -239,9 +220,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
   public void testIfWithEquals() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval jake = if(name='Jake', 1, 0) | fields name, jake",
-                TEST_INDEX_STATE_COUNTRY));
+            Index.STATE_COUNTRY.ppl("eval jake = if(name='Jake', 1, 0) | fields name, jake"));
 
     verifySchema(actual, schema("name", "string"), schema("jake", "int"));
 
@@ -251,10 +230,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
   @Test
   public void testIsPresent() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where ispresent(name) | fields name, age",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+        executeQuery(Index.STATE_COUNTRY_WITH_NULL.ppl("where ispresent(name) | fields name, age"));
 
     verifySchema(actual, schema("name", "string"), schema("age", "int"));
 
@@ -272,10 +248,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
   @Test
   public void testIsEmpty() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where isempty(name) | fields name, age",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+        executeQuery(Index.STATE_COUNTRY_WITH_NULL.ppl("where isempty(name) | fields name, age"));
 
     verifySchema(actual, schema("name", "string"), schema("age", "int"));
 
@@ -285,10 +258,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
   @Test
   public void testIsBlank() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where isblank(name) | fields name, age",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+        executeQuery(Index.STATE_COUNTRY_WITH_NULL.ppl("where isblank(name) | fields name, age"));
 
     verifySchema(actual, schema("name", "string"), schema("age", "int"));
 
@@ -313,9 +283,8 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
   public void testLatest() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | where latest('07/28/2004:12:34:27', datetime0) | stats COUNT() as cnt",
-                TEST_INDEX_CALCS));
+            Index.CALCS.ppl(
+                "where latest('07/28/2004:12:34:27', datetime0) | stats COUNT() as cnt"));
 
     verifySchema(actual, schema("cnt", "bigint"));
 
@@ -326,10 +295,9 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
   public void testEarliestWithEval() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval now=utc_timestamp() | eval a = earliest('now', now), b ="
-                    + " earliest('-2d@d', now) | fields a,b | head 1",
-                TEST_INDEX_CALCS));
+            Index.CALCS.ppl(
+                "eval now=utc_timestamp() | eval a = earliest('now', now), b ="
+                    + " earliest('-2d@d', now) | fields a,b | head 1"));
 
     verifySchema(actual, schema("a", "boolean"), schema("b", "boolean"));
 

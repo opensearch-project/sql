@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.ppl;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_GEOPOINT;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -22,13 +21,12 @@ public class GeoPointFormatsIT extends PPLIntegTestCase {
   @Override
   public void init() throws Exception {
     super.init();
-    loadIndex(Index.GEOPOINTS);
+    loadIndex(Index.GEOPOINT);
   }
 
   @Test
   public void testReadingGeopoints() throws IOException {
-    JSONObject result =
-        executeQuery(searchWithSource(TEST_INDEX_GEOPOINT, "head 5 | fields point"));
+    JSONObject result = executeQuery(Index.GEOPOINT.pplSearch("head 5 | fields point"));
     verifySchema(result, schema("point", null, "geo_point"));
     verifyDataRows(
         result,
@@ -41,8 +39,7 @@ public class GeoPointFormatsIT extends PPLIntegTestCase {
 
   @Test
   public void testReadingGeoHash() throws IOException {
-    JSONObject result =
-        executeQuery(searchWithSource(TEST_INDEX_GEOPOINT, "where _id = '6' | fields point"));
+    JSONObject result = executeQuery(Index.GEOPOINT.pplSearch("where _id = '6' | fields point"));
     verifySchema(result, schema("point", null, "geo_point"));
     Pair<Double, Double> point = GeopointFormatsIT.getGeoValue(result);
     assertEquals(40.71, point.getLeft(), GeopointFormatsIT.TOLERANCE);

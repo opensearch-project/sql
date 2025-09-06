@@ -6,13 +6,9 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STRINGS;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 
 import java.io.IOException;
-import java.util.Locale;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.ppl.ExplainIT;
@@ -22,9 +18,9 @@ public class CalciteExplainIT extends ExplainIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    loadIndex(Index.BANK_WITH_STRING_VALUES);
+    loadIndex(Index.STRINGS);
     loadIndex(Index.NESTED_SIMPLE);
-    loadIndex(Index.TIME_TEST_DATA);
+    loadIndex(Index.TIME);
     loadIndex(Index.EVENTS);
     loadIndex(Index.LOGS);
   }
@@ -36,8 +32,7 @@ public class CalciteExplainIT extends ExplainIT {
   // Only for Calcite
   @Test
   public void supportSearchSargPushDown_singleRange() throws IOException {
-    String query =
-        "source=opensearch-sql_test_index_account | where age >= 1.0 and age < 10 | fields age";
+    String query = Index.ACCOUNT.ppl("where age >= 1.0 and age < 10 | fields age");
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_sarg_filter_push_single_range.json");
     assertJsonEqualsIgnoreId(expected, result);
@@ -47,8 +42,9 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void supportSearchSargPushDown_multiRange() throws IOException {
     String query =
-        "source=opensearch-sql_test_index_account | where (age > 20 and age < 28) or (age > 25 and"
-            + " age < 30) or (age >= 1 and age <= 10) or age = 0  | fields age";
+        Index.ACCOUNT.ppl(
+            "where (age > 20 and age < 28) or (age > 25 and"
+                + " age < 30) or (age >= 1 and age <= 10) or age = 0  | fields age");
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_sarg_filter_push_multi_range.json");
     assertJsonEqualsIgnoreId(expected, result);
@@ -58,9 +54,9 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void supportSearchSargPushDown_timeRange() throws IOException {
     String query =
-        "source=opensearch-sql_test_index_bank"
-            + "| where birthdate >= '2016-12-08 00:00:00.000000000' "
-            + "and birthdate < '2018-11-09 00:00:00.000000000'";
+        Index.BANK.ppl(
+            "where birthdate >= '2016-12-08 00:00:00.000000000' "
+                + "and birthdate < '2018-11-09 00:00:00.000000000'");
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_sarg_filter_push_time_range.json");
     assertJsonEqualsIgnoreId(expected, result);
@@ -70,8 +66,9 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void supportPushDownSortMergeJoin() throws IOException {
     String query =
-        "source=opensearch-sql_test_index_bank| join left=l right=r on"
-            + " l.account_number=r.account_number opensearch-sql_test_index_bank";
+        Index.BANK.ppl(
+            "join left=l right=r on"
+                + " l.account_number=r.account_number opensearch-sql_test_index_bank");
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_merge_join_sort_push.json");
     assertJsonEqualsIgnoreId(expected, result);
@@ -84,8 +81,9 @@ public class CalciteExplainIT extends ExplainIT {
     enabledOnlyWhenPushdownIsEnabled();
     // field `address` is text type without keyword subfield, so we cannot push it down.
     String query =
-        "source=opensearch-sql_test_index_account | where (state = 'Seattle' or age < 10) and (age"
-            + " >= 1 and address = '880 Holmes Lane') | fields age, address";
+        Index.ACCOUNT.ppl(
+            "where (state = 'Seattle' or age < 10) and (age"
+                + " >= 1 and address = '880 Holmes Lane') | fields age, address");
     var result = explainQueryToString(query);
     String expected = loadFromFile("expectedOutput/calcite/explain_partial_filter_push.json");
     assertJsonEqualsIgnoreId(expected, result);
@@ -98,8 +96,9 @@ public class CalciteExplainIT extends ExplainIT {
     enabledOnlyWhenPushdownIsEnabled();
     // field `address` is text type without keyword subfield, so we cannot push it down.
     String query =
-        "source=opensearch-sql_test_index_account | where (address = '671 Bristol Street' or age <"
-            + " 10) and (age >= 10 or address = '880 Holmes Lane') | fields age, address";
+        Index.ACCOUNT.ppl(
+            "where (address = '671 Bristol Street' or age <"
+                + " 10) and (age >= 10 or address = '880 Holmes Lane') | fields age, address");
     var result = explainQueryToString(query);
     String expected = loadFromFile("expectedOutput/calcite/explain_partial_filter_push2.json");
     assertJsonEqualsIgnoreId(expected, result);
@@ -111,9 +110,7 @@ public class CalciteExplainIT extends ExplainIT {
     // script pushdown
     String expected = loadExpectedPlan("explain_isempty.json");
     assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString(
-            "source=opensearch-sql_test_index_account | where isempty(firstname)"));
+        expected, explainQueryToString(Index.ACCOUNT.ppl("where isempty(firstname)")));
   }
 
   // Only for Calcite
@@ -122,9 +119,7 @@ public class CalciteExplainIT extends ExplainIT {
     // script pushdown
     String expected = loadExpectedPlan("explain_isblank.json");
     assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString(
-            "source=opensearch-sql_test_index_account | where isblank(firstname)"));
+        expected, explainQueryToString(Index.ACCOUNT.ppl("where isblank(firstname)")));
   }
 
   // Only for Calcite
@@ -135,8 +130,8 @@ public class CalciteExplainIT extends ExplainIT {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            "source=opensearch-sql_test_index_account | where gender = 'M' or isempty(firstname) or"
-                + " isnull(firstname)"));
+            Index.ACCOUNT.ppl(
+                "where gender = 'M' or isempty(firstname) or" + " isnull(firstname)")));
   }
 
   // Only for Calcite
@@ -146,8 +141,7 @@ public class CalciteExplainIT extends ExplainIT {
     String expected = loadExpectedPlan("explain_isnull_or_others.json");
     assertJsonEqualsIgnoreId(
         expected,
-        explainQueryToString(
-            "source=opensearch-sql_test_index_account | where isnull(firstname) or gender = 'M'"));
+        explainQueryToString(Index.ACCOUNT.ppl("where isnull(firstname) or gender = 'M'")));
   }
 
   @Ignore("We've supported script push down on text field")
@@ -157,8 +151,9 @@ public class CalciteExplainIT extends ExplainIT {
     // field `address` is text type without keyword subfield, so we cannot push it down.
     // But the second condition can be translated to script, so the second one is pushed down.
     String query =
-        "source=opensearch-sql_test_index_account | where address = '671 Bristol Street' and age -"
-            + " 2 = 30 | fields firstname, age, address";
+        Index.ACCOUNT.ppl(
+            "where address = '671 Bristol Street' and age -"
+                + " 2 = 30 | fields firstname, age, address");
     var result = explainQueryToString(query);
     String expected =
         loadFromFile("expectedOutput/calcite/explain_partial_filter_script_push.json");
@@ -169,11 +164,7 @@ public class CalciteExplainIT extends ExplainIT {
   public void testPartialPushdownFilterWithIsNull() throws IOException {
     // isnull(nested_field) should not be pushed down since DSL doesn't handle it correctly, but
     // name='david' can be pushed down
-    String query =
-        String.format(
-            Locale.ROOT,
-            "source=%s | where isnull(address) and name='david'",
-            TEST_INDEX_NESTED_SIMPLE);
+    String query = Index.NESTED_SIMPLE.ppl("where isnull(address) and name='david'");
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_partial_filter_isnull.json");
     assertJsonEqualsIgnoreId(expected, result);
@@ -183,8 +174,9 @@ public class CalciteExplainIT extends ExplainIT {
   public void testSkipScriptEncodingOnExtendedFormat() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String query =
-        "source=opensearch-sql_test_index_account | where address = '671 Bristol Street' and age -"
-            + " 2 = 30 | fields firstname, age, address";
+        Index.ACCOUNT.ppl(
+            "where address = '671 Bristol Street' and age -"
+                + " 2 = 30 | fields firstname, age, address");
     var result = explainQueryToString(query, true);
     String expected = loadFromFile("expectedOutput/calcite/explain_skip_script_encoding.json");
     assertJsonEqualsIgnoreId(expected, result);
@@ -240,8 +232,7 @@ public class CalciteExplainIT extends ExplainIT {
   public void noPushDownForAggOnWindow() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String query =
-        "source=opensearch-sql_test_index_account | patterns address method=BRAIN  | stats count()"
-            + " by patterns_field";
+        Index.ACCOUNT.ppl("patterns address method=BRAIN  | stats count()" + " by patterns_field");
     var result = explainQueryToString(query);
     String expected = loadFromFile("expectedOutput/calcite/explain_agg_on_window.json");
     assertJsonEqualsIgnoreId(expected, result);
@@ -263,26 +254,21 @@ public class CalciteExplainIT extends ExplainIT {
   public void testExplainBinWithBins() throws IOException {
     String expected = loadExpectedPlan("explain_bin_bins.json");
     assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString("source=opensearch-sql_test_index_account | bin age bins=3 | head 5"));
+        expected, explainQueryToString(Index.ACCOUNT.ppl("bin age bins=3 | head 5")));
   }
 
   @Test
   public void testExplainBinWithSpan() throws IOException {
     String expected = loadExpectedPlan("explain_bin_span.json");
     assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString(
-            "source=opensearch-sql_test_index_account | bin age span=10 | head 5"));
+        expected, explainQueryToString(Index.ACCOUNT.ppl("bin age span=10 | head 5")));
   }
 
   @Test
   public void testExplainBinWithMinspan() throws IOException {
     String expected = loadExpectedPlan("explain_bin_minspan.json");
     assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString(
-            "source=opensearch-sql_test_index_account | bin age minspan=5 | head 5"));
+        expected, explainQueryToString(Index.ACCOUNT.ppl("bin age minspan=5 | head 5")));
   }
 
   @Test
@@ -290,8 +276,7 @@ public class CalciteExplainIT extends ExplainIT {
     String expected = loadExpectedPlan("explain_bin_start_end.json");
     assertJsonEqualsIgnoreId(
         expected,
-        explainQueryToString(
-            "source=opensearch-sql_test_index_account | bin balance start=0 end=100001 | head 5"));
+        explainQueryToString(Index.ACCOUNT.ppl("bin balance start=0 end=100001 | head 5")));
   }
 
   @Test
@@ -299,15 +284,12 @@ public class CalciteExplainIT extends ExplainIT {
     String expected = loadExpectedPlan("explain_bin_aligntime.json");
     assertJsonEqualsIgnoreId(
         expected,
-        explainQueryToString(
-            "source=opensearch-sql_test_index_time_data | bin @timestamp span=2h aligntime=latest |"
-                + " head 5"));
+        explainQueryToString(Index.TIME.ppl("bin @timestamp span=2h aligntime=latest | head 5")));
   }
 
   @Test
   public void testExplainCountEval() throws IOException {
-    String query =
-        "source=opensearch-sql_test_index_bank | stats count(eval(age > 30)) as mature_count";
+    String query = Index.BANK.ppl("stats count(eval(age > 30)) as mature_count");
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_count_eval_push.json");
     assertJsonEqualsIgnoreId(expected, result);
@@ -315,9 +297,7 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testExplainCountEvalComplex() throws IOException {
-    String query =
-        "source=opensearch-sql_test_index_bank | stats count(eval(age > 30 and age < 50)) as"
-            + " mature_count";
+    String query = Index.BANK.ppl("stats count(eval(age > 30 and age < 50)) as" + " mature_count");
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_count_eval_complex_push.json");
     assertJsonEqualsIgnoreId(expected, result);
@@ -325,8 +305,7 @@ public class CalciteExplainIT extends ExplainIT {
 
   public void testEventstatsDistinctCountExplain() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
-    String query =
-        "source=opensearch-sql_test_index_account | eventstats dc(state) as distinct_states";
+    String query = Index.ACCOUNT.ppl("eventstats dc(state) as distinct_states");
     var result = explainQueryToString(query);
     String expected = loadFromFile("expectedOutput/calcite/explain_eventstats_dc.json");
     assertJsonEqualsIgnoreId(expected, result);
@@ -336,8 +315,7 @@ public class CalciteExplainIT extends ExplainIT {
   public void testEventstatsDistinctCountFunctionExplain() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String query =
-        "source=opensearch-sql_test_index_account | eventstats distinct_count(state) as"
-            + " distinct_states by gender";
+        Index.ACCOUNT.ppl("eventstats distinct_count(state) as" + " distinct_states by gender");
     var result = explainQueryToString(query);
     String expected = loadFromFile("expectedOutput/calcite/explain_eventstats_distinct_count.json");
     assertJsonEqualsIgnoreId(expected, result);
@@ -350,16 +328,15 @@ public class CalciteExplainIT extends ExplainIT {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            String.format(
-                "source=%s | stats sum(balance), sum(balance + 100), sum(balance - 100),"
-                    + " sum(balance * 100), sum(balance / 100) by gender",
-                TEST_INDEX_BANK)));
+            Index.BANK.ppl(
+                "stats sum(balance), sum(balance + 100), sum(balance - 100),"
+                    + " sum(balance * 100), sum(balance / 100) by gender")));
   }
 
   @Test
   public void testExplainRegexMatchInWhereWithScriptPushdown() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
-    String query = withSource(TEST_INDEX_STRINGS, "where regex_match(name, 'hello')");
+    String query = Index.STRINGS.ppl("where regex_match(name, 'hello')");
     var result = explainQueryToString(query);
     String expected = loadFromFile("expectedOutput/calcite/explain_regex_match_in_where.json");
     assertJsonEqualsIgnoreId(expected, result);
@@ -369,9 +346,7 @@ public class CalciteExplainIT extends ExplainIT {
   public void testExplainRegexMatchInEvalWithOutScriptPushdown() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String query =
-        String.format(
-            "source=%s |eval has_hello = regex_match(name, 'hello') | fields has_hello",
-            TEST_INDEX_STRINGS);
+        Index.STRINGS.ppl("eval has_hello = regex_match(name, 'hello') | fields has_hello");
     var result = explainQueryToString(query);
     String expected = loadFromFile("expectedOutput/calcite/explain_regex_match_in_eval.json");
     assertJsonEqualsIgnoreId(expected, result);
@@ -384,10 +359,9 @@ public class CalciteExplainIT extends ExplainIT {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            String.format(
-                "source=%s | stats earliest(message) as earliest_message, latest(message) as"
-                    + " latest_message by server",
-                TEST_INDEX_LOGS)));
+            Index.LOGS.ppl(
+                "stats earliest(message) as earliest_message, latest(message) as"
+                    + " latest_message by server")));
   }
 
   // Only for Calcite
@@ -397,25 +371,21 @@ public class CalciteExplainIT extends ExplainIT {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            String.format(
-                "source=%s | stats earliest(message, created_at) as earliest_message,"
-                    + " latest(message, created_at) as latest_message by level",
-                TEST_INDEX_LOGS)));
+            Index.LOGS.ppl(
+                "stats earliest(message, created_at) as earliest_message,"
+                    + " latest(message, created_at) as latest_message by level")));
   }
 
   @Test
   public void testListAggregationExplain() throws IOException {
     String expected = loadExpectedPlan("explain_list_aggregation.json");
     assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString(
-            "source=opensearch-sql_test_index_account | stats list(age) as age_list"));
+        expected, explainQueryToString(Index.ACCOUNT.ppl("stats list(age) as age_list")));
   }
 
   @Test
   public void testRegexExplain() throws IOException {
-    String query =
-        "source=opensearch-sql_test_index_account | regex lastname='^[A-Z][a-z]+$' | head 5";
+    String query = Index.ACCOUNT.ppl("regex lastname='^[A-Z][a-z]+$' | head 5");
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_regex.json");
     assertJsonEqualsIgnoreId(expected, result);
@@ -423,7 +393,7 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testRegexNegatedExplain() throws IOException {
-    String query = "source=opensearch-sql_test_index_account | regex lastname!='.*son$' | head 5";
+    String query = Index.ACCOUNT.ppl("regex lastname!='.*son$' | head 5");
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_regex_negated.json");
     assertJsonEqualsIgnoreId(expected, result);
@@ -431,8 +401,7 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testSimpleSortExpressionPushDownExplain() throws Exception {
-    String query =
-        "source=opensearch-sql_test_index_bank| eval age2 = age + 2 | sort age2 | fields age, age2";
+    String query = Index.BANK.ppl("eval age2 = age + 2 | sort age2 | fields age, age2");
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_simple_sort_expr_push.json");
     assertJsonEqualsIgnoreId(expected, result);
@@ -440,8 +409,7 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testSimpleSortExpressionPushDownWithOnlyExprProjected() throws Exception {
-    String query =
-        "source=opensearch-sql_test_index_bank| eval b = balance + 1 | sort b | fields b";
+    String query = Index.BANK.ppl("eval b = balance + 1 | sort b | fields b");
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_simple_sort_expr_single_expr_output_push.json");
     assertJsonEqualsIgnoreId(expected, result);
@@ -449,9 +417,7 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testRexExplain() throws IOException {
-    String query =
-        "source=opensearch-sql_test_index_account | rex field=lastname \\\"(?<initial>^[A-Z])\\\" |"
-            + " head 5";
+    String query = Index.ACCOUNT.ppl("rex field=lastname \\\"(?<initial>^[A-Z])\\\" |" + " head 5");
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_rex.json");
     assertJsonEqualsIgnoreId(expected, result);
@@ -463,11 +429,9 @@ public class CalciteExplainIT extends ExplainIT {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            String.format(
-                Locale.ROOT,
-                "source=%s | stats count(balance) as cnt by gender | append [ source=%s | stats"
+            Index.BANK.ppl(
+                "stats count(balance) as cnt by gender | append [ source=%s | stats"
                     + " count() as cnt ]",
-                TEST_INDEX_BANK,
                 TEST_INDEX_BANK)));
   }
 

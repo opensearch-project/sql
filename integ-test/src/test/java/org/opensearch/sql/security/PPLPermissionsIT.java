@@ -350,22 +350,20 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
   @Test
   public void testUserWithBankPermissionCanAccessBankIndex() throws IOException {
     // Test that bank_user can access bank index - this should work with the fix
-    JSONObject result =
-        executeQueryAsUser(searchWithSource(TEST_INDEX_BANK, "fields firstname"), BANK_USER);
+    JSONObject result = executeQueryAsUser(Index.BANK.pplSearch("fields firstname"), BANK_USER);
     verifyColumn(result, columnName("firstname"));
 
     // Verify we get expected data from the bank index
     JSONObject resultWithFilter =
         executeQueryAsUser(
-            searchWithSource(TEST_INDEX_BANK, "firstname='Hattie' | fields firstname"), BANK_USER);
+            Index.BANK.pplSearch("firstname='Hattie' | fields firstname"), BANK_USER);
     verifyDataRows(resultWithFilter, rows("Hattie"));
   }
 
   @Test
   public void testUserWithDogPermissionCanAccessDogIndex() throws IOException {
     // Test that dog_user can access dog index - this should work with the fix
-    JSONObject result =
-        executeQueryAsUser(searchWithSource(TEST_INDEX_DOG, "fields dog_name"), DOG_USER);
+    JSONObject result = executeQueryAsUser(Index.DOG.pplSearch("fields dog_name"), DOG_USER);
     verifyColumn(result, columnName("dog_name"));
   }
 
@@ -373,7 +371,7 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
   public void testUserWithBankPermissionCannotAccessDogIndex() throws IOException {
     // Test that bank_user cannot access dog index - this should fail
     try {
-      executeQueryAsUser(searchWithSource(TEST_INDEX_DOG, "fields dog_name"), BANK_USER);
+      executeQueryAsUser(Index.DOG.pplSearch("fields dog_name"), BANK_USER);
       fail("Expected security exception when accessing unauthorized index");
     } catch (ResponseException e) {
       // This is expected - user should not be able to access the dog index
@@ -389,7 +387,7 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
   public void testUserWithDogPermissionCannotAccessBankIndex() throws IOException {
     // Test that dog_user cannot access bank index - this should fail
     try {
-      executeQueryAsUser(searchWithSource(TEST_INDEX_BANK, "fields firstname"), DOG_USER);
+      executeQueryAsUser(Index.BANK.pplSearch("fields firstname"), DOG_USER);
       fail("Expected security exception when accessing unauthorized index");
     } catch (ResponseException e) {
       // This is expected - user should not be able to access the dog index
@@ -405,8 +403,7 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
   public void testBankUserWithMultipleFieldsFromBankIndex() throws IOException {
     // Test that bank_user can query multiple fields from bank index
     JSONObject result =
-        executeQueryAsUser(
-            searchWithSource(TEST_INDEX_BANK, "fields firstname, lastname, age"), BANK_USER);
+        executeQueryAsUser(Index.BANK.pplSearch("fields firstname, lastname, age"), BANK_USER);
     verifyColumn(result, columnName("firstname"), columnName("lastname"), columnName("age"));
   }
 
@@ -415,7 +412,7 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
     // Test PPL search with WHERE clause on bank index by bank_user
     JSONObject result =
         executeQueryAsUser(
-            searchWithSource(TEST_INDEX_BANK, "where age > 30 | fields firstname, age"), BANK_USER);
+            Index.BANK.pplSearch("where age > 30 | fields firstname, age"), BANK_USER);
     verifyColumn(result, columnName("firstname"), columnName("age"));
   }
 
@@ -423,7 +420,7 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
   public void testBankUserWithStatsOnBankIndex() throws IOException {
     // Test PPL search with stats aggregation on bank index by bank_user
     JSONObject result =
-        executeQueryAsUser(searchWithSource(TEST_INDEX_BANK, "stats count() by gender"), BANK_USER);
+        executeQueryAsUser(Index.BANK.pplSearch("stats count() by gender"), BANK_USER);
     verifyColumn(result, columnName("gender"), columnName("count()"));
   }
 
@@ -432,8 +429,7 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
     // Test PPL search with sort on bank index by bank_user
     JSONObject result =
         executeQueryAsUser(
-            searchWithSource(TEST_INDEX_BANK, "sort age | fields firstname, age | head 5"),
-            BANK_USER);
+            Index.BANK.pplSearch("sort age | fields firstname, age | head 5"), BANK_USER);
     verifyColumn(result, columnName("firstname"), columnName("age"));
   }
 
@@ -475,8 +471,7 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
     JSONObject result =
         executeQueryAsUser(
             "search "
-                + withSource(
-                    TEST_INDEX_BANK,
+                + Index.BANK.ppl(
                     "where age > 25 AND gender = 'M' | stats avg(age) as avg_age,"
                         + " count() as total_count by state | sort total_count | head 3"),
             BANK_USER);
@@ -488,8 +483,7 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
     // Test PPL search with rename command by bank_user
     JSONObject result =
         executeQueryAsUser(
-            "search "
-                + withSource(TEST_INDEX_BANK, "rename firstname as first_name | fields first_name"),
+            "search " + Index.BANK.ppl("rename firstname as first_name | fields first_name"),
             BANK_USER);
     verifyColumn(result, columnName("first_name"));
   }
@@ -500,8 +494,7 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
     JSONObject result =
         executeQueryAsUser(
             "search "
-                + withSource(
-                    TEST_INDEX_BANK,
+                + Index.BANK.ppl(
                     "eval full_name = concat(firstname, ' ', lastname) | fields"
                         + " full_name | head 5"),
             BANK_USER);
@@ -514,7 +507,7 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
   public void testUserWithoutPPLPermissionCannotExecutePPLQuery() throws IOException {
     // Test that user without PPL cluster permission gets 403 error
     try {
-      executeQueryAsUser(searchWithSource(TEST_INDEX_BANK, "fields firstname"), NO_PPL_USER);
+      executeQueryAsUser(Index.BANK.pplSearch("fields firstname"), NO_PPL_USER);
       fail("Expected security exception for user without PPL permission");
     } catch (ResponseException e) {
       assertEquals(403, e.getResponse().getStatusLine().getStatusCode());
@@ -532,7 +525,7 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
   public void testUserWithoutSearchPermissionCannotSearchIndex() throws IOException {
     // Test that user without search permission gets 403 error
     try {
-      executeQueryAsUser(searchWithSource(TEST_INDEX_BANK, "fields firstname"), NO_SEARCH_USER);
+      executeQueryAsUser(Index.BANK.pplSearch("fields firstname"), NO_SEARCH_USER);
       fail("Expected security exception for user without search permission");
     } catch (ResponseException e) {
       assertEquals(403, e.getResponse().getStatusLine().getStatusCode());
@@ -568,7 +561,7 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
   public void testUserWithoutSettingsPermissionCannotGetSettings() throws IOException {
     // Test that user without settings permission gets 403 error
     try {
-      executeQueryAsUser(searchWithSource(TEST_INDEX_BANK, "fields firstname"), NO_SETTINGS_USER);
+      executeQueryAsUser(Index.BANK.pplSearch("fields firstname"), NO_SETTINGS_USER);
       fail("Expected security exception for user without settings permission");
     } catch (ResponseException e) {
       assertEquals(403, e.getResponse().getStatusLine().getStatusCode());
@@ -591,30 +584,26 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
     // 1. Query with filter - should work with plugin-based PIT
     JSONObject result1 =
         executeQueryAsUser(
-            searchWithSource(TEST_INDEX_BANK, "where age > 25 | fields firstname, age"),
-            MINIMAL_USER);
+            Index.BANK.pplSearch("where age > 25 | fields firstname, age"), MINIMAL_USER);
     verifyColumn(result1, columnName("firstname"), columnName("age"));
 
     // 2. Query with aggregation and filter - should work with plugin-based PIT
     JSONObject result2 =
         executeQueryAsUser(
-            searchWithSource(TEST_INDEX_BANK, "where gender = 'M' | stats count() by state"),
-            MINIMAL_USER);
+            Index.BANK.pplSearch("where gender = 'M' | stats count() by state"), MINIMAL_USER);
     verifyColumn(result2, columnName("state"), columnName("count()"));
 
     // 3. Query with sort and limit (pagination-like) - should work with plugin-based PIT
     JSONObject result3 =
         executeQueryAsUser(
-            searchWithSource(TEST_INDEX_BANK, "sort age | fields firstname | head 100"),
-            MINIMAL_USER);
+            Index.BANK.pplSearch("sort age | fields firstname | head 100"), MINIMAL_USER);
     verifyColumn(result3, columnName("firstname"));
 
     // 4. Complex query with multiple operations - should work with plugin-based PIT
     JSONObject result4 =
         executeQueryAsUser(
             "search "
-                + withSource(
-                    TEST_INDEX_BANK,
+                + Index.BANK.ppl(
                     "where age > 30 | stats avg(age) as avg_age by gender | sort" + " avg_age"),
             MINIMAL_USER);
     verifyColumn(result4, columnName("gender"), columnName("avg_age"));
@@ -646,7 +635,7 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
 
     // 1. Query with deep pagination that exceeds maxResultWindow should fail
     try {
-      executeQueryAsUser(searchWithSource(TEST_INDEX_BANK, "head 10 from 10000"), NO_PIT_USER);
+      executeQueryAsUser(Index.BANK.pplSearch("head 10 from 10000"), NO_PIT_USER);
       fail("Expected security exception for user without PIT permission on deep pagination query");
     } catch (ResponseException e) {
       assertEquals(403, e.getResponse().getStatusLine().getStatusCode());
@@ -668,14 +657,12 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
 
     // Small query that doesn't exceed maxResultWindow - should work
     JSONObject result =
-        executeQueryAsUser(
-            searchWithSource(TEST_INDEX_BANK, "head 10 | fields firstname"), NO_PIT_USER);
+        executeQueryAsUser(Index.BANK.pplSearch("head 10 | fields firstname"), NO_PIT_USER);
     verifyColumn(result, columnName("firstname"));
 
     // Aggregation query - should work (aggregations don't use PIT)
     JSONObject aggResult =
-        executeQueryAsUser(
-            searchWithSource(TEST_INDEX_BANK, "stats count() by gender"), NO_PIT_USER);
+        executeQueryAsUser(Index.BANK.pplSearch("stats count() by gender"), NO_PIT_USER);
     verifyColumn(aggResult, columnName("gender"), columnName("count()"));
   }
 
@@ -687,8 +674,7 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
     // has PIT permissions
     JSONObject result =
         executeQueryAsUser(
-            searchWithSource(TEST_INDEX_BANK, "head 10 from 10000 | fields firstname"),
-            MINIMAL_USER);
+            Index.BANK.pplSearch("head 10 from 10000 | fields firstname"), MINIMAL_USER);
     verifyColumn(result, columnName("firstname"));
   }
 
@@ -697,8 +683,7 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
     // Test that error messages clearly indicate PIT permission issues
 
     try {
-      executeQueryAsUser(
-          searchWithSource(TEST_INDEX_BANK, "sort firstname | head 5 from 9999"), NO_PIT_USER);
+      executeQueryAsUser(Index.BANK.pplSearch("sort firstname | head 5 from 9999"), NO_PIT_USER);
       fail("Expected security exception for user without PIT permission");
     } catch (ResponseException e) {
       assertEquals(403, e.getResponse().getStatusLine().getStatusCode());
@@ -723,7 +708,7 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
 
     // Alternative: Test other patterns that might trigger PIT
     try {
-      executeQueryAsUser(searchWithSource(TEST_INDEX_BANK, "head 2 from 9999"), NO_PIT_USER);
+      executeQueryAsUser(Index.BANK.pplSearch("head 2 from 9999"), NO_PIT_USER);
       fail("Expected security exception for user without PIT permission on paginated query");
     } catch (ResponseException e) {
       assertEquals(403, e.getResponse().getStatusLine().getStatusCode());

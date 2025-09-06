@@ -40,10 +40,8 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
 
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval result = coalesce(name, age, 0) | fields name, age, result |"
-                    + " head 3",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "eval result = coalesce(name, age, 0) | fields name, age, result |" + " head 3"));
 
     verifySchema(
         actual, schema("name", "string"), schema("age", "int"), schema("result", "string"));
@@ -56,10 +54,9 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
 
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval result = coalesce(name, age, 'fallback') |"
-                    + " fields name, age, result | head 3",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "eval result = coalesce(name, age, 'fallback') |"
+                    + " fields name, age, result | head 3"));
 
     verifySchema(
         actual, schema("name", "string"), schema("age", "int"), schema("result", "string"));
@@ -72,10 +69,9 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
 
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval result = coalesce(name, 123, 'unknown') | fields name, result |"
-                    + " head 1",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "eval result = coalesce(name, 123, 'unknown') | fields name, result |"
+                    + " head 1"));
 
     verifySchema(actual, schema("name", "string"), schema("result", "string"));
     verifyDataRows(actual, rows("Jake", "Jake"));
@@ -86,9 +82,8 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
 
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | where coalesce(name, 'UNKNOWN') = 'Jake' | fields name, age",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "where coalesce(name, 'UNKNOWN') = 'Jake' | fields name, age"));
 
     verifySchema(actual, schema("name", "string"), schema("age", "int"));
     verifyDataRows(actual, rows("Jake", 70));
@@ -99,10 +94,9 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
 
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval result = coalesce(name, age, year, month) | fields name, age,"
-                    + " year, month, result | head 2",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "eval result = coalesce(name, age, year, month) | fields name, age,"
+                    + " year, month, result | head 2"));
 
     verifySchema(
         actual,
@@ -119,10 +113,9 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
 
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval result1 = coalesce(name, 'default'), result2 = coalesce(result1,"
-                    + " age) | fields name, age, result1, result2 | head 2",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "eval result1 = coalesce(name, 'default'), result2 = coalesce(result1,"
+                    + " age) | fields name, age, result1, result2 | head 2"));
 
     verifySchema(
         actual,
@@ -138,10 +131,9 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
 
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval result = coalesce(nonexistent_field, name) | fields name, result"
-                    + " | head 2",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "eval result = coalesce(nonexistent_field, name) | fields name, result"
+                    + " | head 2"));
 
     verifySchema(actual, schema("name", "string"), schema("result", "string"));
     verifyDataRows(actual, rows("Jake", "Jake"), rows("Hello", "Hello"));
@@ -152,10 +144,9 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
 
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval result = coalesce(field1, field2, name, 'fallback') | fields"
-                    + " name, result | head 1",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "eval result = coalesce(field1, field2, name, 'fallback') | fields"
+                    + " name, result | head 1"));
 
     verifySchema(actual, schema("name", "string"), schema("result", "string"));
     verifyDataRows(actual, rows("Jake", "Jake"));
@@ -166,10 +157,9 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
 
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval result = coalesce(field1, field2, field3) | fields name, result |"
-                    + " head 1",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "eval result = coalesce(field1, field2, field3) | fields name, result |"
+                    + " head 1"));
 
     verifySchema(actual, schema("name", "string"), schema("result", "string"));
     verifyDataRows(actual, rows("Jake", null));
@@ -180,9 +170,8 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
 
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval result = coalesce('', name) | fields name, result | head 1",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "eval result = coalesce('', name) | fields name, result | head 1"));
 
     verifySchema(actual, schema("name", "string"), schema("result", "string"));
     verifyDataRows(actual, rows("Jake", ""));
@@ -193,9 +182,8 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
 
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval result = coalesce(' ', name) | fields name, result | head 1",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "eval result = coalesce(' ', name) | fields name, result | head 1"));
 
     verifySchema(actual, schema("name", "string"), schema("result", "string"));
     verifyDataRows(actual, rows("Jake", " "));
@@ -206,10 +194,9 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
 
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval empty_field = '' | eval result = coalesce(empty_field, name) |"
-                    + " fields name, result | head 1",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "eval empty_field = '' | eval result = coalesce(empty_field, name) |"
+                    + " fields name, result | head 1"));
 
     verifySchema(actual, schema("name", "string"), schema("result", "string"));
     verifyDataRows(actual, rows("Jake", ""));
@@ -220,10 +207,8 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
 
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval result = coalesce(age, year, 999) | fields age, year, result |"
-                    + " head 2",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "eval result = coalesce(age, year, 999) | fields age, year, result |" + " head 2"));
 
     verifySchema(actual, schema("age", "int"), schema("year", "int"), schema("result", "int"));
     verifyDataRows(actual, rows(70, 2023, 70), rows(30, 2023, 30));
@@ -233,10 +218,9 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
   public void testCoalesceTypeCoercionWithMixedTypes() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval result = coalesce(nonexistent_field, age,"
-                    + " 'default') | fields age, result | head 2",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "eval result = coalesce(nonexistent_field, age,"
+                    + " 'default') | fields age, result | head 2"));
 
     verifySchema(actual, schema("age", "int"), schema("result", "string"));
     verifyDataRows(actual, rows(70, "70"), rows(30, "30"));
@@ -246,10 +230,9 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
   public void testCoalesceWithCompatibleNumericAndTemporalTypes() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval result = coalesce(age, year, month) | fields age, year, month,"
-                    + " result | head 2",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "eval result = coalesce(age, year, month) | fields age, year, month,"
+                    + " result | head 2"));
 
     verifySchema(
         actual,

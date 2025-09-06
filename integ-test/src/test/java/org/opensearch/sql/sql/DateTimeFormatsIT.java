@@ -30,7 +30,7 @@ public class DateTimeFormatsIT extends SQLIntegTestCase {
   public void init() throws Exception {
     super.init();
     loadIndex(Index.DATE_FORMATS);
-    loadIndex(Index.DATA_TYPE_NONNUMERIC);
+    loadIndex(Index.DATATYPE_NONNUMERIC);
   }
 
   @Test

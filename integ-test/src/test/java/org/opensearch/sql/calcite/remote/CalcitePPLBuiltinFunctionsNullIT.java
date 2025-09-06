@@ -502,9 +502,8 @@ public class CalcitePPLBuiltinFunctionsNullIT extends PPLIntegTestCase {
   public void testLastDayNull() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval l1 = LAST_DAY(date), l2 = LAST_DAY(date_time) | fields l1, l2",
-                TEST_INDEX_DATE_FORMATS_WITH_NULL));
+            Index.DATE_FORMATS_WITH_NULL.ppl(
+                "eval l1 = LAST_DAY(date), l2 = LAST_DAY(date_time) | fields l1, l2"));
     verifySchema(actual, schema("l1", "date"), schema("l2", "date"));
     verifyDataRows(actual, rows(null, null));
   }
@@ -634,10 +633,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends PPLIntegTestCase {
   @Test
   public void testDatetimeNullTimestamp() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval d1 = DATETIME(date_time) | fields d1",
-                TEST_INDEX_DATE_FORMATS_WITH_NULL));
+        executeQuery(Index.DATE_FORMATS_WITH_NULL.ppl("eval d1 = DATETIME(date_time) | fields d1"));
     verifySchema(actual, schema("d1", "timestamp"));
     verifyDataRows(actual, rows((Object) null));
   }
@@ -646,9 +642,8 @@ public class CalcitePPLBuiltinFunctionsNullIT extends PPLIntegTestCase {
   public void testDayNull() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval d1 = DAY(date), d2 = DAY(date_time) | fields d1, d2",
-                TEST_INDEX_DATE_FORMATS_WITH_NULL));
+            Index.DATE_FORMATS_WITH_NULL.ppl(
+                "eval d1 = DAY(date), d2 = DAY(date_time) | fields d1, d2"));
     verifySchema(actual, schema("d1", "int"), schema("d2", "int"));
     verifyDataRows(actual, rows(null, null));
   }
@@ -657,9 +652,8 @@ public class CalcitePPLBuiltinFunctionsNullIT extends PPLIntegTestCase {
   public void testDaynameNull() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval d1 = DAYNAME(date), d2 = DAYNAME(date_time) | fields d1, d2",
-                TEST_INDEX_DATE_FORMATS_WITH_NULL));
+            Index.DATE_FORMATS_WITH_NULL.ppl(
+                "eval d1 = DAYNAME(date), d2 = DAYNAME(date_time) | fields d1, d2"));
     verifySchema(actual, schema("d1", "string"), schema("d2", "string"));
     verifyDataRows(actual, rows(null, null));
   }
@@ -692,9 +686,8 @@ public class CalcitePPLBuiltinFunctionsNullIT extends PPLIntegTestCase {
   public void testMinuteNull() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval m1 = MINUTE(time), m2 = MINUTE(date_time) | fields m1, m2",
-                TEST_INDEX_DATE_FORMATS_WITH_NULL));
+            Index.DATE_FORMATS_WITH_NULL.ppl(
+                "eval m1 = MINUTE(time), m2 = MINUTE(date_time) | fields m1, m2"));
     verifySchema(actual, schema("m1", "int"), schema("m2", "int"));
     verifyDataRows(actual, rows(null, null));
   }
@@ -727,9 +720,8 @@ public class CalcitePPLBuiltinFunctionsNullIT extends PPLIntegTestCase {
   public void testMonthNull() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval mo1 = MONTH(date), mo2 = MONTH(date_time) | fields mo1, mo2",
-                TEST_INDEX_DATE_FORMATS_WITH_NULL));
+            Index.DATE_FORMATS_WITH_NULL.ppl(
+                "eval mo1 = MONTH(date), mo2 = MONTH(date_time) | fields mo1, mo2"));
     verifySchema(actual, schema("mo1", "int"), schema("mo2", "int"));
     verifyDataRows(actual, rows(null, null));
   }
@@ -775,9 +767,8 @@ public class CalcitePPLBuiltinFunctionsNullIT extends PPLIntegTestCase {
   public void testQuarterNull() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval q1 = QUARTER(date), q2 = QUARTER(date_time) | fields q1, q2",
-                TEST_INDEX_DATE_FORMATS_WITH_NULL));
+            Index.DATE_FORMATS_WITH_NULL.ppl(
+                "eval q1 = QUARTER(date), q2 = QUARTER(date_time) | fields q1, q2"));
     verifySchema(actual, schema("q1", "int"), schema("q2", "int"));
     verifyDataRows(actual, rows(null, null));
   }
@@ -798,9 +789,8 @@ public class CalcitePPLBuiltinFunctionsNullIT extends PPLIntegTestCase {
   public void testSecondNull() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval s1 = SECOND(time), s2 = SECOND(date_time) | fields s1, s2",
-                TEST_INDEX_DATE_FORMATS_WITH_NULL));
+            Index.DATE_FORMATS_WITH_NULL.ppl(
+                "eval s1 = SECOND(time), s2 = SECOND(date_time) | fields s1, s2"));
     verifySchema(actual, schema("s1", "int"), schema("s2", "int"));
     verifyDataRows(actual, rows(null, null));
   }
@@ -821,9 +811,8 @@ public class CalcitePPLBuiltinFunctionsNullIT extends PPLIntegTestCase {
   public void testStrToDateNull() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval s = STR_TO_DATE(MONTHNAME(date_time), '%%M') | fields s",
-                TEST_INDEX_DATE_FORMATS_WITH_NULL));
+            Index.DATE_FORMATS_WITH_NULL.ppl(
+                "eval s = STR_TO_DATE(MONTHNAME(date_time), '%%M') | fields s"));
     verifySchema(actual, schema("s", "timestamp"));
     verifyDataRows(actual, rows((Object) null));
   }
@@ -856,10 +845,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends PPLIntegTestCase {
   @Test
   public void testTimeNull() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval t1 = TIME(date_time) | fields t1",
-                TEST_INDEX_DATE_FORMATS_WITH_NULL));
+        executeQuery(Index.DATE_FORMATS_WITH_NULL.ppl("eval t1 = TIME(date_time) | fields t1"));
     verifySchema(actual, schema("t1", "time"));
     verifyDataRows(actual, rows((Object) null));
   }
@@ -868,9 +854,8 @@ public class CalcitePPLBuiltinFunctionsNullIT extends PPLIntegTestCase {
   public void testTimeFormatNull() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval tf1 = TIME_FORMAT(time, '%%H:%%i:%%s') | fields tf1",
-                TEST_INDEX_DATE_FORMATS_WITH_NULL));
+            Index.DATE_FORMATS_WITH_NULL.ppl(
+                "eval tf1 = TIME_FORMAT(time, '%%H:%%i:%%s') | fields tf1"));
     verifySchema(actual, schema("tf1", "string"));
     verifyDataRows(actual, rows((Object) null));
   }
@@ -878,10 +863,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends PPLIntegTestCase {
   @Test
   public void testTimeToSecNull() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval ts1 = TIME_TO_SEC(time) | fields ts1",
-                TEST_INDEX_DATE_FORMATS_WITH_NULL));
+        executeQuery(Index.DATE_FORMATS_WITH_NULL.ppl("eval ts1 = TIME_TO_SEC(time) | fields ts1"));
     verifySchema(actual, schema("ts1", "bigint"));
     verifyDataRows(actual, rows((Object) null));
   }
@@ -890,9 +872,7 @@ public class CalcitePPLBuiltinFunctionsNullIT extends PPLIntegTestCase {
   public void testTimediffNull() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval td1 = TIMEDIFF(time, time) | fields td1",
-                TEST_INDEX_DATE_FORMATS_WITH_NULL));
+            Index.DATE_FORMATS_WITH_NULL.ppl("eval td1 = TIMEDIFF(time, time) | fields td1"));
     verifySchema(actual, schema("td1", "time"));
     verifyDataRows(actual, rows((Object) null));
   }
@@ -937,9 +917,8 @@ public class CalcitePPLBuiltinFunctionsNullIT extends PPLIntegTestCase {
   public void testToDaysNull() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval td1 = TO_DAYS(date), td2 = TO_DAYS(date_time) | fields td1, td2",
-                TEST_INDEX_DATE_FORMATS_WITH_NULL));
+            Index.DATE_FORMATS_WITH_NULL.ppl(
+                "eval td1 = TO_DAYS(date), td2 = TO_DAYS(date_time) | fields td1, td2"));
     verifySchema(actual, schema("td1", "bigint"), schema("td2", "bigint"));
     verifyDataRows(actual, rows(null, null));
   }
@@ -948,9 +927,8 @@ public class CalcitePPLBuiltinFunctionsNullIT extends PPLIntegTestCase {
   public void testWeekNull() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval w1 = WEEK(date), w2 = WEEK(date_time) | fields w1, w2",
-                TEST_INDEX_DATE_FORMATS_WITH_NULL));
+            Index.DATE_FORMATS_WITH_NULL.ppl(
+                "eval w1 = WEEK(date), w2 = WEEK(date_time) | fields w1, w2"));
     verifySchema(actual, schema("w1", "int"), schema("w2", "int"));
     verifyDataRows(actual, rows(null, null));
   }
@@ -959,9 +937,8 @@ public class CalcitePPLBuiltinFunctionsNullIT extends PPLIntegTestCase {
   public void testWeekdayNull() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval wd1 = WEEKDAY(date), wd2 = WEEKDAY(date_time) | fields wd1, wd2",
-                TEST_INDEX_DATE_FORMATS_WITH_NULL));
+            Index.DATE_FORMATS_WITH_NULL.ppl(
+                "eval wd1 = WEEKDAY(date), wd2 = WEEKDAY(date_time) | fields wd1, wd2"));
     verifySchema(actual, schema("wd1", "int"), schema("wd2", "int"));
     verifyDataRows(actual, rows(null, null));
   }
@@ -982,9 +959,8 @@ public class CalcitePPLBuiltinFunctionsNullIT extends PPLIntegTestCase {
   public void testYearNull() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eval y1 = YEAR(date), y2 = YEAR(date_time) | fields y1, y2",
-                TEST_INDEX_DATE_FORMATS_WITH_NULL));
+            Index.DATE_FORMATS_WITH_NULL.ppl(
+                "eval y1 = YEAR(date), y2 = YEAR(date_time) | fields y1, y2"));
     verifySchema(actual, schema("y1", "int"), schema("y2", "int"));
     verifyDataRows(actual, rows(null, null));
   }

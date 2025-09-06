@@ -6,7 +6,6 @@
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.plugin.rest.RestPPLQueryAction.QUERY_API_ENDPOINT;
 
 import java.io.IOException;
@@ -25,7 +24,7 @@ public class VisualizationFormatIT extends PPLIntegTestCase {
 
   @Test
   void format() throws IOException {
-    String result = executeVizQuery(withSource(TEST_INDEX_BANK, "fields firstname, age"), true);
+    String result = executeVizQuery(Index.BANK.ppl("fields firstname, age"), true);
     assertEquals(
         "{\n"
             + "  \"data\": {\n"

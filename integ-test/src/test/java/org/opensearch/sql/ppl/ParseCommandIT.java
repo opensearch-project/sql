@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.ppl;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,9 +24,7 @@ public class ParseCommandIT extends PPLIntegTestCase {
   @Test
   public void testParseCommand() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | parse email '.+@(?<host>.+)' | fields email, host", TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("parse email '.+@(?<host>.+)' | fields email, host"));
 
     // Create the expected rows
     List<Object[]> expectedRows =
@@ -51,9 +47,7 @@ public class ParseCommandIT extends PPLIntegTestCase {
   @Test
   public void testParseCommandReplaceOriginalField() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | parse email '.+@(?<email>.+)' | fields email", TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("parse email '.+@(?<email>.+)' | fields email"));
 
     // Create the expected rows
     List<Object[]> expectedRows =
@@ -77,10 +71,9 @@ public class ParseCommandIT extends PPLIntegTestCase {
   public void testParseCommandWithOtherRunTimeFields() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | parse email '.+@(?<host>.+)' | "
-                    + "eval eval_result=1 | fields host, eval_result",
-                TEST_INDEX_BANK));
+            Index.BANK.ppl(
+                "parse email '.+@(?<host>.+)' | "
+                    + "eval eval_result=1 | fields host, eval_result"));
 
     // Create the expected rows as List<Object[]>
     List<Object[]> expectedRows =

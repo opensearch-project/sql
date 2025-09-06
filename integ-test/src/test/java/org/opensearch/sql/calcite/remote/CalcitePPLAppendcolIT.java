@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.calcite.remote;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -28,11 +27,10 @@ public class CalcitePPLAppendcolIT extends PPLIntegTestCase {
   public void testAppendCol() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | stats sum(age) as sum by gender, state | sort gender, state |"
+            Index.ACCOUNT.ppl(
+                "stats sum(age) as sum by gender, state | sort gender, state |"
                     + " appendcol [ stats count(age) as cnt by gender | sort gender ] | fields"
-                    + " gender, state, sum, cnt | head 10",
-                TEST_INDEX_ACCOUNT));
+                    + " gender, state, sum, cnt | head 10"));
     verifySchema(
         actual,
         schema("gender", "string"),
@@ -57,11 +55,10 @@ public class CalcitePPLAppendcolIT extends PPLIntegTestCase {
   public void testAppendColOverride() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | stats sum(age) as sum by gender, state | sort gender, state |"
+            Index.ACCOUNT.ppl(
+                "stats sum(age) as sum by gender, state | sort gender, state |"
                     + " appendcol override = true [ stats count(age) as cnt by gender | sort gender"
-                    + " ] | fields gender, state, sum, cnt | head 10",
-                TEST_INDEX_ACCOUNT));
+                    + " ] | fields gender, state, sum, cnt | head 10"));
     verifySchema(
         actual,
         schema("gender", "string"),

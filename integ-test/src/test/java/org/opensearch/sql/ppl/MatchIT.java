@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.ppl;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
@@ -24,10 +23,7 @@ public class MatchIT extends PPLIntegTestCase {
   @Test
   public void test_match_function() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | where match(firstname, 'Hattie') | fields firstname",
-                TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("where match(firstname, 'Hattie') | fields firstname"));
     verifyDataRows(result, rows("Hattie"));
   }
 }

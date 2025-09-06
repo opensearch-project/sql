@@ -25,9 +25,7 @@ public class CalciteRegexCommandIT extends PPLIntegTestCase {
   public void testRegexBasicStringMatch() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | regex firstname='Amber' | fields account_number, firstname",
-                TEST_INDEX_ACCOUNT));
+            Index.ACCOUNT.ppl("regex firstname='Amber' | fields account_number, firstname"));
 
     assertEquals(1, result.getJSONArray("datarows").length());
     assertEquals("Amber", result.getJSONArray("datarows").getJSONArray(0).get(1));
@@ -36,10 +34,7 @@ public class CalciteRegexCommandIT extends PPLIntegTestCase {
   @Test
   public void testRegexPartialStringMatch() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | regex firstname='nan' | fields account_number, firstname",
-                TEST_INDEX_ACCOUNT));
+        executeQuery(Index.ACCOUNT.ppl("regex firstname='nan' | fields account_number, firstname"));
 
     // Should match names containing "nan": Fernandez, Buchanan
     assertEquals(2, result.getJSONArray("datarows").length());
@@ -51,10 +46,7 @@ public class CalciteRegexCommandIT extends PPLIntegTestCase {
   @Test
   public void testRegexPatternMatch() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | regex firstname='A.*' | fields account_number, firstname",
-                TEST_INDEX_ACCOUNT));
+        executeQuery(Index.ACCOUNT.ppl("regex firstname='A.*' | fields account_number, firstname"));
 
     // Should match names starting with A - there are 66 such names in accounts.json
     assertEquals(66, result.getJSONArray("datarows").length());
@@ -66,9 +58,8 @@ public class CalciteRegexCommandIT extends PPLIntegTestCase {
   public void testRegexNegatedMatch() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | regex firstname!='Amber' | fields account_number, firstname | head 3",
-                TEST_INDEX_ACCOUNT));
+            Index.ACCOUNT.ppl(
+                "regex firstname!='Amber' | fields account_number, firstname | head 3"));
 
     assertEquals(3, result.getJSONArray("datarows").length());
     // Verify Amber is not in results
@@ -81,9 +72,7 @@ public class CalciteRegexCommandIT extends PPLIntegTestCase {
   public void testRegexWithStateField() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | regex state='CA' | fields account_number, firstname, state",
-                TEST_INDEX_ACCOUNT));
+            Index.ACCOUNT.ppl("regex state='CA' | fields account_number, firstname, state"));
 
     // There are 17 CA records in accounts.json
     assertEquals(17, result.getJSONArray("datarows").length());

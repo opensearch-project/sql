@@ -436,14 +436,12 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     int week19840412 = getYearWeek(LocalDate.of(1984, 4, 12), 0) % 100;
     JSONObject actual =
         executeQuery(
-            String.format(
-                Locale.ROOT,
-                "source=%s | fields  strict_date_optional_time"
+            Index.DATE_FORMATS.ppl(
+                "fields  strict_date_optional_time"
                     + "| where YEAR(strict_date_optional_time) < 2000"
                     + "| where WEEK(DATE(strict_date_optional_time)) = %d"
                     + "| stats COUNT() AS CNT "
                     + "| head 1 ",
-                TEST_INDEX_DATE_FORMATS,
                 week19840412));
 
     verifySchema(actual, schema("CNT", "bigint"));
@@ -688,10 +686,8 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   public void nullDateTimeInvalidDateValueFebruary() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | eval f = convert_tz('2021-02-30 10:00:00','+00:00','+00:00') | fields"
-                    + " f",
-                TEST_INDEX_DATE));
+            Index.DATE.ppl(
+                "eval f = convert_tz('2021-02-30 10:00:00','+00:00','+00:00') | fields" + " f"));
     verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows(new Object[] {null}));
   }
@@ -700,9 +696,8 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   public void testComparisonBetweenDateAndTimestamp() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | where date > TIMESTAMP('1984-04-11 00:00:00') | stats COUNT() AS cnt",
-                TEST_INDEX_DATE_FORMATS));
+            Index.DATE_FORMATS.ppl(
+                "where date > TIMESTAMP('1984-04-11 00:00:00') | stats COUNT() AS cnt"));
     verifySchema(actual, schema("cnt", "bigint"));
     verifyDataRows(actual, rows(2));
   }
@@ -1382,9 +1377,8 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   public void testTpchQueryDate() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | where strict_date <= subdate(date('1998-12-01'), 90) | stats COUNT()",
-                TEST_INDEX_DATE_FORMATS));
+            Index.DATE_FORMATS.ppl(
+                "where strict_date <= subdate(date('1998-12-01'), 90) | stats COUNT()"));
     verifyDataRows(actual, rows(2));
   }
 

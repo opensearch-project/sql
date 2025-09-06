@@ -25,7 +25,7 @@ public class CalcitePPLGrokIT extends PPLIntegTestCase {
     enableCalcite();
 
     loadIndex(Index.BANK);
-    loadIndex(Index.WEBLOG);
+    loadIndex(Index.WEBLOGS);
   }
 
   @Test

@@ -25,10 +25,9 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
   public void testRexBasicFieldExtraction() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | rex field=email \\\"(?<user>[^@]+)@(?<domain>.+)\\\" | fields email,"
-                    + " user, domain",
-                TEST_INDEX_ACCOUNT));
+            Index.ACCOUNT.ppl(
+                "rex field=email \\\"(?<user>[^@]+)@(?<domain>.+)\\\" | fields email,"
+                    + " user, domain"));
 
     assertEquals(1000, result.getJSONArray("datarows").length());
     assertEquals("amberduke@pyrami.com", result.getJSONArray("datarows").getJSONArray(0).get(0));
@@ -39,10 +38,7 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
   @Test
   public void testRexErrorNoNamedGroups() throws IOException {
     try {
-      executeQuery(
-          String.format(
-              "source=%s | rex field=email \\\"([^@]+)@(.+)\\\" | fields email",
-              TEST_INDEX_ACCOUNT));
+      executeQuery(Index.ACCOUNT.ppl("rex field=email \\\"([^@]+)@(.+)\\\" | fields email"));
       fail("Should have thrown an exception for pattern without named capture groups");
     } catch (Exception e) {
       assertTrue(
@@ -54,11 +50,10 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
   public void testRexWithFiltering() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | rex field=address"
+            Index.ACCOUNT.ppl(
+                "rex field=address"
                     + " \\\"(?<streetnum>\\\\\\\\d+)\\\\\\\\s+(?<streetname>.+)\\\" | fields"
-                    + " address, streetnum, streetname",
-                TEST_INDEX_ACCOUNT));
+                    + " address, streetnum, streetname"));
 
     assertEquals(1000, result.getJSONArray("datarows").length());
     assertEquals("880 Holmes Lane", result.getJSONArray("datarows").getJSONArray(0).get(0));
@@ -85,11 +80,10 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
   public void testRexChainedCommands() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | rex field=firstname \\\"(?<firstinitial>^.)\\\" | rex field=lastname"
+            Index.ACCOUNT.ppl(
+                "rex field=firstname \\\"(?<firstinitial>^.)\\\" | rex field=lastname"
                     + " \\\"(?<lastinitial>^.)\\\" | fields firstname, lastname, firstinitial,"
-                    + " lastinitial",
-                TEST_INDEX_ACCOUNT));
+                    + " lastinitial"));
 
     assertEquals(1000, result.getJSONArray("datarows").length());
     assertEquals("Amber", result.getJSONArray("datarows").getJSONArray(0).get(0));
@@ -136,10 +130,8 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
   public void testRexWithStatsCommand() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | rex field=email \\\"[^@]+@(?<domain>[^.]+)\\\" | stats count() by"
-                    + " domain",
-                TEST_INDEX_ACCOUNT));
+            Index.ACCOUNT.ppl(
+                "rex field=email \\\"[^@]+@(?<domain>[^.]+)\\\" | stats count() by" + " domain"));
 
     assertTrue(result.getJSONArray("datarows").length() > 0);
     int count = Integer.parseInt(result.getJSONArray("datarows").getJSONArray(0).get(0).toString());
@@ -153,10 +145,9 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
   public void testRexMaxMatchZeroLimitedToDefaultTen() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | rex field=address \\\"(?<digit>\\\\\\\\d*)\\\" max_match=0 | eval"
-                    + " digit_count=array_length(digit) | fields address, digit_count | head 1",
-                TEST_INDEX_ACCOUNT));
+            Index.ACCOUNT.ppl(
+                "rex field=address \\\"(?<digit>\\\\\\\\d*)\\\" max_match=0 | eval"
+                    + " digit_count=array_length(digit) | fields address, digit_count | head 1"));
 
     assertEquals(1, result.getJSONArray("datarows").length());
     // Should be capped at 10 matches
@@ -167,10 +158,9 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
   public void testRexMaxMatchExceedsDefaultLimit() throws IOException {
     try {
       executeQuery(
-          String.format(
-              "source=%s | rex field=address \\\"(?<digit>\\\\\\\\d+)\\\" max_match=100 | fields"
-                  + " address, digit",
-              TEST_INDEX_ACCOUNT));
+          Index.ACCOUNT.ppl(
+              "rex field=address \\\"(?<digit>\\\\\\\\d+)\\\" max_match=100 | fields"
+                  + " address, digit"));
       fail("Should have thrown an exception for max_match exceeding default limit");
     } catch (Exception e) {
       assertTrue(e.getMessage().contains("exceeds the configured limit (10)"));
@@ -182,10 +172,9 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
   public void testRexMaxMatchWithinDefaultLimit() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | rex field=address \\\"(?<digit>\\\\\\\\d*)\\\" max_match=5 | eval"
-                    + " digit_count=array_length(digit) | fields address, digit_count | head 1",
-                TEST_INDEX_ACCOUNT));
+            Index.ACCOUNT.ppl(
+                "rex field=address \\\"(?<digit>\\\\\\\\d*)\\\" max_match=5 | eval"
+                    + " digit_count=array_length(digit) | fields address, digit_count | head 1"));
 
     assertEquals(1, result.getJSONArray("datarows").length());
     // Should respect the specified limit of 5
@@ -196,10 +185,9 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
   public void testRexMaxMatchAtDefaultLimit() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | rex field=address \\\"(?<digit>\\\\\\\\d*)\\\" max_match=10 | eval"
-                    + " digit_count=array_length(digit) | fields address, digit_count | head 1",
-                TEST_INDEX_ACCOUNT));
+            Index.ACCOUNT.ppl(
+                "rex field=address \\\"(?<digit>\\\\\\\\d*)\\\" max_match=10 | eval"
+                    + " digit_count=array_length(digit) | fields address, digit_count | head 1"));
 
     assertEquals(1, result.getJSONArray("datarows").length());
     // Should accept exactly the limit
@@ -216,10 +204,9 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
       // Test that max_match=0 is capped to the new limit
       JSONObject result =
           executeQuery(
-              String.format(
-                  "source=%s | rex field=address \\\"(?<digit>\\\\\\\\d*)\\\" max_match=0 | eval"
-                      + " digit_count=array_length(digit) | fields address, digit_count | head 1",
-                  TEST_INDEX_ACCOUNT));
+              Index.ACCOUNT.ppl(
+                  "rex field=address \\\"(?<digit>\\\\\\\\d*)\\\" max_match=0 | eval"
+                      + " digit_count=array_length(digit) | fields address, digit_count | head 1"));
 
       assertEquals(1, result.getJSONArray("datarows").length());
       // Should be capped at the configured limit of 5
@@ -228,10 +215,9 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
       // Test that exceeding the custom limit throws an error
       try {
         executeQuery(
-            String.format(
-                "source=%s | rex field=address \\\"(?<digit>\\\\\\\\d+)\\\" max_match=10 | fields"
-                    + " address, digit",
-                TEST_INDEX_ACCOUNT));
+            Index.ACCOUNT.ppl(
+                "rex field=address \\\"(?<digit>\\\\\\\\d+)\\\" max_match=10 | fields"
+                    + " address, digit"));
         fail("Should have thrown an exception for max_match exceeding custom limit");
       } catch (Exception e) {
         assertTrue(e.getMessage().contains("exceeds the configured limit (5)"));

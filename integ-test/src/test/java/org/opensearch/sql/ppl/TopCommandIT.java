@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.ppl;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -26,7 +25,7 @@ public class TopCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testTopWithoutGroup() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_ACCOUNT, "top gender"));
+    JSONObject result = executeQuery(Index.ACCOUNT.ppl("top gender"));
     if (isCalciteEnabled()) {
       verifySchemaInOrder(result, schema("gender", "string"), schema("count", "bigint"));
       verifyDataRows(result, rows("M", 507), rows("F", 493));
@@ -37,7 +36,7 @@ public class TopCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testTopNWithoutGroup() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_ACCOUNT, "top 1 gender"));
+    JSONObject result = executeQuery(Index.ACCOUNT.ppl("top 1 gender"));
     if (isCalciteEnabled()) {
       verifySchemaInOrder(result, schema("gender", "string"), schema("count", "bigint"));
       verifyDataRows(result, rows("M", 507));
@@ -48,7 +47,7 @@ public class TopCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testTopNWithGroup() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_ACCOUNT, "top 1 state by gender"));
+    JSONObject result = executeQuery(Index.ACCOUNT.ppl("top 1 state by gender"));
     if (isCalciteEnabled()) {
       verifySchemaInOrder(
           result, schema("gender", "string"), schema("state", "string"), schema("count", "bigint"));

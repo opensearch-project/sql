@@ -28,7 +28,7 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
   @Override
   public void init() throws Exception {
     super.init();
-    loadIndex(Index.DATA_TYPE_NONNUMERIC);
+    loadIndex(Index.DATATYPE_NONNUMERIC);
   }
 
   private final TimeZone testTz = TimeZone.getDefault();

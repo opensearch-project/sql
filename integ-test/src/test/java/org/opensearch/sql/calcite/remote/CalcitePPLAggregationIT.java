@@ -5,12 +5,6 @@
 
 package org.opensearch.sql.calcite.remote;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -37,7 +31,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     loadIndex(Index.BANK_WITH_NULL_VALUES);
     loadIndex(Index.CALCS);
     loadIndex(Index.DATE_FORMATS);
-    loadIndex(Index.DATA_TYPE_NUMERIC);
+    loadIndex(Index.DATATYPE_NUMERIC);
     loadIndex(Index.LOGS);
   }
 
@@ -57,29 +51,29 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
 
   @Test
   public void testSimpleCount() throws IOException {
-    JSONObject actual = executeQuery(withSource(TEST_INDEX_BANK, "stats count() as c"));
+    JSONObject actual = executeQuery(Index.BANK.ppl("stats count() as c"));
     verifySchema(actual, schema("c", "bigint"));
     verifyDataRows(actual, rows(7));
 
-    actual = executeQuery(withSource(TEST_INDEX_BANK, "stats c() as count_emp"));
+    actual = executeQuery(Index.BANK.ppl("stats c() as count_emp"));
     verifySchema(actual, schema("count_emp", "bigint"));
     verifyDataRows(actual, rows(7));
 
-    actual = executeQuery(withSource(TEST_INDEX_BANK, "stats count as count_alias"));
+    actual = executeQuery(Index.BANK.ppl("stats count as count_alias"));
     verifySchema(actual, schema("count_alias", "bigint"));
     verifyDataRows(actual, rows(7));
   }
 
   @Test
   public void testSimpleAvg() throws IOException {
-    JSONObject actual = executeQuery(withSource(TEST_INDEX_BANK, "stats avg(balance)"));
+    JSONObject actual = executeQuery(Index.BANK.ppl("stats avg(balance)"));
     verifySchema(actual, schema("avg(balance)", "double"));
     verifyDataRows(actual, rows(26710.428571428572));
   }
 
   @Test
   public void testSumAvg() throws IOException {
-    JSONObject actual = executeQuery(withSource(TEST_INDEX_BANK, "stats sum(balance)"));
+    JSONObject actual = executeQuery(Index.BANK.ppl("stats sum(balance)"));
     verifySchema(actual, schema("sum(balance)", "bigint"));
 
     verifyDataRows(actual, rows(186973));
@@ -87,7 +81,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
 
   @Test
   public void testAsExistedField() throws IOException {
-    JSONObject actual = executeQuery(withSource(TEST_INDEX_BANK, "stats count() as balance"));
+    JSONObject actual = executeQuery(Index.BANK.ppl("stats count() as balance"));
     verifySchema(actual, schema("balance", "bigint"));
 
     verifyDataRows(actual, rows(7));
@@ -97,8 +91,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   public void testMultipleAggregatesWithAliases() throws IOException {
     JSONObject actual =
         executeQuery(
-            withSource(
-                TEST_INDEX_BANK,
+            Index.BANK.ppl(
                 "stats avg(balance) as avg, max(balance) as max, min(balance) as min,"
                     + " count()"));
     verifySchema(
@@ -114,8 +107,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   public void testMultipleAggregatesWithAliasesByClause() throws IOException {
     JSONObject actual =
         executeQuery(
-            withSource(
-                TEST_INDEX_BANK,
+            Index.BANK.ppl(
                 "stats avg(balance) as avg, max(balance) as max, min(balance) as min,"
                     + " count() as cnt by gender"));
     verifySchema(
@@ -131,15 +123,14 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
 
   @Test
   public void testAvgByField() throws IOException {
-    JSONObject actual = executeQuery(withSource(TEST_INDEX_BANK, "stats avg(balance) by gender"));
+    JSONObject actual = executeQuery(Index.BANK.ppl("stats avg(balance) by gender"));
     verifySchema(actual, schema("gender", "string"), schema("avg(balance)", "double"));
     verifyDataRows(actual, rows(40488.0, "F"), rows(16377.25, "M"));
   }
 
   @Test
   public void testAvgByMultipleFields() throws IOException {
-    JSONObject actual1 =
-        executeQuery(withSource(TEST_INDEX_BANK, "stats avg(balance) by gender, city"));
+    JSONObject actual1 = executeQuery(Index.BANK.ppl("stats avg(balance) by gender, city"));
     verifySchema(
         actual1,
         schema("avg(balance)", "double"),
@@ -155,8 +146,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         rows(4180.0, "M", "Orick"),
         rows(16418.0, "M", "Ribera"));
 
-    JSONObject actual2 =
-        executeQuery(withSource(TEST_INDEX_BANK, "stats avg(balance) by city, gender"));
+    JSONObject actual2 = executeQuery(Index.BANK.ppl("stats avg(balance) by city, gender"));
     verifySchema(
         actual2,
         schema("avg(balance)", "double"),
@@ -176,7 +166,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   @Test
   public void testStatsBySpanAndMultipleFields() throws IOException {
     JSONObject response =
-        executeQuery(withSource(TEST_INDEX_BANK, "stats count() by span(age,10), gender, state"));
+        executeQuery(Index.BANK.ppl("stats count() by span(age,10), gender, state"));
     verifySchemaInOrder(
         response,
         schema("count()", null, "bigint"),
@@ -199,7 +189,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     // Use verifySchemaInOrder() and verifyDataRows() to check that the span column is always
     // the first column in result whatever the order of span in query is first or last one
     JSONObject response =
-        executeQuery(withSource(TEST_INDEX_BANK, "stats count() by gender, state, span(age,10)"));
+        executeQuery(Index.BANK.ppl("stats count() by gender, state, span(age,10)"));
     verifySchemaInOrder(
         response,
         schema("count()", null, "bigint"),
@@ -219,8 +209,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
 
   @org.junit.Test
   public void testAvgBySpan() throws IOException {
-    JSONObject actual =
-        executeQuery(withSource(TEST_INDEX_BANK, "stats avg(balance) by span(age, 10)"));
+    JSONObject actual = executeQuery(Index.BANK.ppl("stats avg(balance) by span(age, 10)"));
     verifySchema(actual, schema("span(age,10)", "int"), schema("avg(balance)", "double"));
     verifyDataRows(actual, rows(32838.0, 20), rows(25689.166666666668, 30));
   }
@@ -228,8 +217,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   @Test
   public void testAvgBySpanAndFields() throws IOException {
     JSONObject actual =
-        executeQuery(
-            withSource(TEST_INDEX_BANK, "stats avg(balance) by span(age, 10) as age_span, gender"));
+        executeQuery(Index.BANK.ppl("stats avg(balance) by span(age, 10) as age_span, gender"));
     verifySchema(
         actual,
         schema("gender", "string"),
@@ -242,8 +230,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   public void testAvgByTimeSpanAndFields() throws IOException {
     JSONObject actual =
         executeQuery(
-            withSource(
-                TEST_INDEX_BANK, "stats avg(balance) by span(birthdate, 1 month) as age_balance"));
+            Index.BANK.ppl("stats avg(balance) by span(birthdate, 1 month) as age_balance"));
     verifySchema(actual, schema("age_balance", "timestamp"), schema("avg(balance)", "double"));
     verifyDataRows(
         actual,
@@ -258,8 +245,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   public void testCountByCustomTimeSpanWithDifferentUnits() throws IOException {
     JSONObject actual =
         executeQuery(
-            withSource(
-                TEST_INDEX_CALCS,
+            Index.CALCS.ppl(
                 "head 5 | stats count(datetime0) by span(datetime0, 15 minute) as"
                     + " datetime_span"));
     verifySchema(
@@ -274,8 +260,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
 
     actual =
         executeQuery(
-            withSource(
-                TEST_INDEX_CALCS,
+            Index.CALCS.ppl(
                 "head 5 | stats count(datetime0) by span(datetime0, 5 second) as"
                     + " datetime_span"));
     verifySchema(
@@ -290,8 +275,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
 
     actual =
         executeQuery(
-            withSource(
-                TEST_INDEX_CALCS,
+            Index.CALCS.ppl(
                 "head 5 | stats count(datetime0) by span(datetime0, 3 month) as"
                     + " datetime_span"));
     verifySchema(
@@ -303,8 +287,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   public void testCountByNullableTimeSpan() throws IOException {
     JSONObject actual =
         executeQuery(
-            withSource(
-                TEST_INDEX_CALCS,
+            Index.CALCS.ppl(
                 "head 5 | stats count(datetime0), count(datetime1) by span(datetime1,"
                     + " 15 minute) as datetime_span"));
     verifySchema(
@@ -319,27 +302,22 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   public void testCountByDateTypeSpanWithDifferentUnits() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | stats count(strict_date) by span(strict_date, 1 day) as"
-                    + " date_span",
-                TEST_INDEX_DATE_FORMATS));
+            Index.DATE_FORMATS.ppl(
+                "stats count(strict_date) by span(strict_date, 1 day) as" + " date_span"));
     verifySchema(actual, schema("date_span", "date"), schema("count(strict_date)", "bigint"));
     verifyDataRows(actual, rows(2, "1984-04-12"));
 
     actual =
         executeQuery(
-            String.format(
-                "source=%s | stats count(basic_date) by span(basic_date, 1 year) as" + " date_span",
-                TEST_INDEX_DATE_FORMATS));
+            Index.DATE_FORMATS.ppl(
+                "stats count(basic_date) by span(basic_date, 1 year) as" + " date_span"));
     verifySchema(actual, schema("date_span", "date"), schema("count(basic_date)", "bigint"));
     verifyDataRows(actual, rows(2, "1984-01-01"));
 
     actual =
         executeQuery(
-            String.format(
-                "source=%s | stats count(year_month_day) by span(year_month_day, 1 month)"
-                    + " as date_span",
-                TEST_INDEX_DATE_FORMATS));
+            Index.DATE_FORMATS.ppl(
+                "stats count(year_month_day) by span(year_month_day, 1 month)" + " as date_span"));
     verifySchema(actual, schema("date_span", "date"), schema("count(year_month_day)", "bigint"));
     verifyDataRows(actual, rows(2, "1984-04-01"));
   }
@@ -348,28 +326,23 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   public void testCountByTimeTypeSpanWithDifferentUnits() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | stats count(hour_minute_second) by span(hour_minute_second, 1"
-                    + " minute) as time_span",
-                TEST_INDEX_DATE_FORMATS));
+            Index.DATE_FORMATS.ppl(
+                "stats count(hour_minute_second) by span(hour_minute_second, 1"
+                    + " minute) as time_span"));
     verifySchema(
         actual, schema("time_span", "time"), schema("count(hour_minute_second)", "bigint"));
     verifyDataRows(actual, rows(2, "09:07:00"));
 
     actual =
         executeQuery(
-            String.format(
-                "source=%s | stats count(custom_time) by span(custom_time, 1 second) as"
-                    + " time_span",
-                TEST_INDEX_DATE_FORMATS));
+            Index.DATE_FORMATS.ppl(
+                "stats count(custom_time) by span(custom_time, 1 second) as" + " time_span"));
     verifySchema(actual, schema("time_span", "time"), schema("count(custom_time)", "bigint"));
     verifyDataRows(actual, rows(1, "09:07:42"), rows(1, "21:07:42"));
 
     actual =
         executeQuery(
-            String.format(
-                "source=%s | stats count(hour) by span(hour, 6 hour) as time_span",
-                TEST_INDEX_DATE_FORMATS));
+            Index.DATE_FORMATS.ppl("stats count(hour) by span(hour, 6 hour) as time_span"));
     verifySchema(actual, schema("time_span", "time"), schema("count(hour)", "bigint"));
     verifyDataRows(actual, rows(2, "06:00:00"));
   }
@@ -401,9 +374,8 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     for (String timestampField : timestampFields) {
       JSONObject actual =
           executeQuery(
-              String.format(
-                  "source=%s | stats count() by span(%s, 1d) as timestamp_span",
-                  TEST_INDEX_DATE_FORMATS, timestampField));
+              Index.DATE_FORMATS.ppl(
+                  "stats count() by span(%s, 1d) as timestamp_span", timestampField));
       verifySchema(actual, schema("timestamp_span", "timestamp"), schema("count()", "bigint"));
       verifyDataRows(actual, rows(2, "1984-04-12 00:00:00"));
     }
@@ -425,9 +397,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     for (String dateField : dateFields) {
       JSONObject actual =
           executeQuery(
-              String.format(
-                  "source=%s | stats count() by span(%s, 1d) as date_span",
-                  TEST_INDEX_DATE_FORMATS, dateField));
+              Index.DATE_FORMATS.ppl("stats count() by span(%s, 1d) as date_span", dateField));
       verifySchema(actual, schema("date_span", "date"), schema("count()", "bigint"));
       verifyDataRows(actual, rows(2, "1984-04-12"));
     }
@@ -454,9 +424,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     for (String timeField : timeFields) {
       JSONObject actual =
           executeQuery(
-              String.format(
-                  "source=%s | stats count() by span(%s, 1h) as time_span",
-                  TEST_INDEX_DATE_FORMATS, timeField));
+              Index.DATE_FORMATS.ppl("stats count() by span(%s, 1h) as time_span", timeField));
       verifySchema(actual, schema("time_span", "time"), schema("count()", "bigint"));
       verifyDataRows(actual, rows(2, "09:00:00"));
     }
@@ -466,20 +434,18 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   public void testCountBySpanForCustomFormats() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | stats count(custom_date_or_date) by span(custom_date_or_date, 1"
-                    + " month) as date_span",
-                TEST_INDEX_DATE_FORMATS));
+            Index.DATE_FORMATS.ppl(
+                "stats count(custom_date_or_date) by span(custom_date_or_date, 1"
+                    + " month) as date_span"));
     verifySchema(
         actual, schema("date_span", "date"), schema("count(custom_date_or_date)", "bigint"));
     verifyDataRows(actual, rows(2, "1984-04-01"));
 
     actual =
         executeQuery(
-            String.format(
-                "source=%s | stats count(custom_date_or_custom_time) by"
-                    + " span(custom_date_or_custom_time, 1 hour) as timestamp_span",
-                TEST_INDEX_DATE_FORMATS));
+            Index.DATE_FORMATS.ppl(
+                "stats count(custom_date_or_custom_time) by"
+                    + " span(custom_date_or_custom_time, 1 hour) as timestamp_span"));
     verifySchema(
         actual,
         schema("timestamp_span", "timestamp"),
@@ -488,10 +454,9 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
 
     actual =
         executeQuery(
-            String.format(
-                "source=%s | stats count(custom_no_delimiter_ts) by span(custom_no_delimiter_ts, 1"
-                    + " hour) as timestamp_span",
-                TEST_INDEX_DATE_FORMATS));
+            Index.DATE_FORMATS.ppl(
+                "stats count(custom_no_delimiter_ts) by span(custom_no_delimiter_ts, 1"
+                    + " hour) as timestamp_span"));
     verifySchema(
         actual,
         schema("timestamp_span", "timestamp"),
@@ -500,10 +465,9 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
 
     actual =
         executeQuery(
-            String.format(
-                "source=%s | stats count(incomplete_custom_time) by span(incomplete_custom_time, 12"
-                    + " hour) as time_span",
-                TEST_INDEX_DATE_FORMATS));
+            Index.DATE_FORMATS.ppl(
+                "stats count(incomplete_custom_time) by span(incomplete_custom_time, 12"
+                    + " hour) as time_span"));
     verifySchema(
         actual, schema("time_span", "time"), schema("count(incomplete_custom_time)", "bigint"));
     verifyDataRows(actual, rows(1, "00:00:00"), rows(1, "12:00:00"));
@@ -511,8 +475,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
 
   @Test
   public void testCountDistinct() throws IOException {
-    JSONObject actual =
-        executeQuery(withSource(TEST_INDEX_BANK, "stats distinct_count(state) by gender"));
+    JSONObject actual = executeQuery(Index.BANK.ppl("stats distinct_count(state) by gender"));
     verifySchema(actual, schema("gender", "string"), schema("distinct_count(state)", "bigint"));
     verifyDataRows(actual, rows(3, "F"), rows(4, "M"));
   }
@@ -520,7 +483,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   @Test
   public void testCountDistinctApprox() throws IOException {
     JSONObject actual =
-        executeQuery(withSource(TEST_INDEX_BANK, "stats distinct_count_approx(state) by gender"));
+        executeQuery(Index.BANK.ppl("stats distinct_count_approx(state) by gender"));
     verifySchema(
         actual, schema("gender", "string"), schema("distinct_count_approx(state)", "bigint"));
     verifyDataRows(actual, rows(3, "F"), rows(4, "M"));
@@ -529,24 +492,21 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   @Test
   public void testCountDistinctApproxWithAlias() throws IOException {
     JSONObject actual =
-        executeQuery(
-            withSource(TEST_INDEX_BANK, "stats distinct_count_approx(state) as dca by gender"));
+        executeQuery(Index.BANK.ppl("stats distinct_count_approx(state) as dca by gender"));
     verifySchema(actual, schema("gender", "string"), schema("dca", "bigint"));
     verifyDataRows(actual, rows(3, "F"), rows(4, "M"));
   }
 
   @Test
   public void testCountDistinctWithAlias() throws IOException {
-    JSONObject actual =
-        executeQuery(withSource(TEST_INDEX_BANK, "stats distinct_count(state) as dc by gender"));
+    JSONObject actual = executeQuery(Index.BANK.ppl("stats distinct_count(state) as dc by gender"));
     verifySchema(actual, schema("gender", "string"), schema("dc", "bigint"));
     verifyDataRows(actual, rows(3, "F"), rows(4, "M"));
   }
 
   @Test
   public void testEarliestAndLatest() throws IOException {
-    JSONObject actual =
-        executeQuery(withSource(TEST_INDEX_LOGS, "stats latest(server), earliest(server)"));
+    JSONObject actual = executeQuery(Index.LOGS.ppl("stats latest(server), earliest(server)"));
 
     verifySchema(actual, schema("latest(server)", "string"), schema("earliest(server)", "string"));
     verifyDataRows(actual, rows("server2", "server1"));
@@ -555,8 +515,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   @Test
   public void testEarliestAndLatestWithAlias() throws IOException {
     JSONObject actual =
-        executeQuery(
-            withSource(TEST_INDEX_LOGS, "stats latest(server) as late, earliest(server) as early"));
+        executeQuery(Index.LOGS.ppl("stats latest(server) as late, earliest(server) as early"));
 
     verifySchema(actual, schema("late", "string"), schema("early", "string"));
     verifyDataRows(actual, rows("server2", "server1"));
@@ -566,8 +525,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   public void testEarliestAndLatestWithBy() throws IOException {
     JSONObject actual =
         executeQuery(
-            withSource(
-                TEST_INDEX_LOGS,
+            Index.LOGS.ppl(
                 "stats latest(server) as late, earliest(server) as early by" + " level"));
 
     verifySchema(
@@ -583,9 +541,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   public void testVarSampVarPop() throws IOException {
     JSONObject actual =
         executeQuery(
-            withSource(
-                TEST_INDEX_BANK,
-                "stats var_samp(balance) as vs, var_pop(balance) as vp by gender"));
+            Index.BANK.ppl("stats var_samp(balance) as vs, var_pop(balance) as vp by gender"));
     verifySchema(
         actual, schema("gender", "string"), schema("vs", "double"), schema("vp", "double"));
     verifyDataRows(
@@ -598,8 +554,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   public void testStddevSampStddevPop() throws IOException {
     JSONObject actual =
         executeQuery(
-            withSource(
-                TEST_INDEX_BANK,
+            Index.BANK.ppl(
                 "stats stddev_samp(balance) as ss, stddev_pop(balance) as sp by gender"));
     verifySchema(
         actual, schema("gender", "string"), schema("ss", "double"), schema("sp", "double"));
@@ -612,15 +567,14 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   @Test
   public void testAggWithEval() throws IOException {
     JSONObject actual =
-        executeQuery(withSource(TEST_INDEX_BANK, "eval a = 1, b = a | stats avg(a) as avg_a by b"));
+        executeQuery(Index.BANK.ppl("eval a = 1, b = a | stats avg(a) as avg_a by b"));
     verifySchema(actual, schema("b", "int"), schema("avg_a", "double"));
     verifyDataRows(actual, rows(1, 1.0));
   }
 
   @Test
   public void testAggWithBackticksAlias() throws IOException {
-    JSONObject actual =
-        executeQuery(withSource(TEST_INDEX_BANK, "stats sum(`balance`) as `sum_b`"));
+    JSONObject actual = executeQuery(Index.BANK.ppl("stats sum(`balance`) as `sum_b`"));
     verifySchema(actual, schema("sum_b", "bigint"));
     verifyDataRows(actual, rows(186973L));
   }
@@ -629,8 +583,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   public void testSimpleTwoLevelStats() throws IOException {
     JSONObject actual =
         executeQuery(
-            withSource(
-                TEST_INDEX_BANK,
+            Index.BANK.ppl(
                 "stats avg(balance) as avg_by_gender by gender | stats"
                     + " avg(avg_by_gender) as avg_avg"));
     verifySchema(actual, schema("avg_avg", "double"));
@@ -639,8 +592,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
 
   @Test
   public void testTake() throws IOException {
-    JSONObject actual =
-        executeQuery(withSource(TEST_INDEX_BANK, "stats take(firstname, 2) as take"));
+    JSONObject actual = executeQuery(Index.BANK.ppl("stats take(firstname, 2) as take"));
     verifySchema(actual, schema("take", "array"));
     verifyDataRows(actual, rows(List.of("Amber JOHnny", "Hattie")));
   }
@@ -649,9 +601,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   public void testPercentile() throws IOException {
     JSONObject actual =
         executeQuery(
-            withSource(
-                TEST_INDEX_BANK,
-                "stats percentile(balance, 50) as p50, percentile(balance, 90) as p90"));
+            Index.BANK.ppl("stats percentile(balance, 50) as p50, percentile(balance, 90) as p90"));
     verifySchema(actual, schema("p50", "bigint"), schema("p90", "bigint"));
     verifyDataRows(actual, rows(32838, 48086));
   }
@@ -659,8 +609,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   @Test
   public void testSumGroupByNullValue() throws IOException {
     JSONObject response =
-        executeQuery(
-            withSource(TEST_INDEX_BANK_WITH_NULL_VALUES, "stats sum(balance) as a by age"));
+        executeQuery(Index.BANK_WITH_NULL_VALUES.ppl("stats sum(balance) as a by age"));
     verifySchema(response, schema("a", null, "bigint"), schema("age", null, "int"));
     verifyDataRows(
         response,
@@ -675,8 +624,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   @Test
   public void testAvgGroupByNullValue() throws IOException {
     JSONObject response =
-        executeQuery(
-            withSource(TEST_INDEX_BANK_WITH_NULL_VALUES, "stats avg(balance) as a by age"));
+        executeQuery(Index.BANK_WITH_NULL_VALUES.ppl("stats avg(balance) as a by age"));
     verifySchema(response, schema("a", null, "double"), schema("age", null, "int"));
     verifyDataRows(
         response,
@@ -691,8 +639,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   @Test
   public void testSumEmpty() throws IOException {
     JSONObject response =
-        executeQuery(
-            withSource(TEST_INDEX_BANK_WITH_NULL_VALUES, "where 1=2 | stats sum(balance)"));
+        executeQuery(Index.BANK_WITH_NULL_VALUES.ppl("where 1=2 | stats sum(balance)"));
     assertJsonEquals(
         "{\n"
             + "  \"schema\": [\n"
@@ -717,8 +664,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   @Test
   public void testSumNull() throws IOException {
     JSONObject response =
-        executeQuery(
-            withSource(TEST_INDEX_BANK_WITH_NULL_VALUES, "where age = 36 | stats sum(balance)"));
+        executeQuery(Index.BANK_WITH_NULL_VALUES.ppl("where age = 36 | stats sum(balance)"));
     assertJsonEquals(
         "{\n"
             + "  \"schema\": [\n"
@@ -742,8 +688,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   public void testAggWithFunction() throws IOException {
     JSONObject response =
         executeQuery(
-            withSource(
-                TEST_INDEX_BANK,
+            Index.BANK.ppl(
                 "eval len = length(gender) | stats sum(balance + 100) as sum by len,"
                     + " gender "));
     verifySchema(
@@ -757,16 +702,13 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   @Test
   public void testAggByByteNumberWithScript() throws IOException {
     JSONObject response =
-        executeQuery(
-            withSource(
-                TEST_INDEX_DATATYPE_NUMERIC, "eval a = abs(byte_number) | stats count() by a"));
+        executeQuery(Index.DATATYPE_NUMERIC.ppl("eval a = abs(byte_number) | stats count() by a"));
     verifyDataRows(response, rows(1, 4));
   }
 
   @Test
   public void testCountEvalSimpleCondition() throws IOException {
-    JSONObject actual =
-        executeQuery(withSource(TEST_INDEX_BANK, "stats count(eval(age > 30)) as c"));
+    JSONObject actual = executeQuery(Index.BANK.ppl("stats count(eval(age > 30)) as c"));
     verifySchema(actual, schema("c", "bigint"));
     verifyDataRows(actual, rows(6));
   }
@@ -774,8 +716,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   @Test
   public void testCountEvalComplexCondition() throws IOException {
     JSONObject actual =
-        executeQuery(
-            withSource(TEST_INDEX_BANK, "stats count(eval(balance > 20000 and age < 35)) as c"));
+        executeQuery(Index.BANK.ppl("stats count(eval(balance > 20000 and age < 35)) as c"));
     verifySchema(actual, schema("c", "bigint"));
     verifyDataRows(actual, rows(3));
   }
@@ -784,8 +725,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   public void testCountEvalGroupBy() throws IOException {
     JSONObject actual =
         executeQuery(
-            withSource(
-                TEST_INDEX_BANK, "stats count(eval(balance > 25000)) as high_balance by gender"));
+            Index.BANK.ppl("stats count(eval(balance > 25000)) as high_balance by gender"));
     verifySchema(actual, schema("gender", "string"), schema("high_balance", "bigint"));
     verifyDataRows(actual, rows(3, "F"), rows(1, "M"));
   }
@@ -794,11 +734,10 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   public void testCountEvalWithMultipleAggregations() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | stats count(eval(age > 30)) as mature_count, "
+            Index.BANK.ppl(
+                "stats count(eval(age > 30)) as mature_count, "
                     + "count(eval(balance > 25000)) as high_balance_count, "
-                    + "count() as total_count",
-                TEST_INDEX_BANK));
+                    + "count() as total_count"));
     verifySchema(
         actual,
         schema("mature_count", "bigint"),
@@ -809,7 +748,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
 
   @Test
   public void testShortcutCEvalSimpleCondition() throws IOException {
-    JSONObject actual = executeQuery(withSource(TEST_INDEX_BANK, "stats c(eval(age > 30)) as c"));
+    JSONObject actual = executeQuery(Index.BANK.ppl("stats c(eval(age > 30)) as c"));
     verifySchema(actual, schema("c", "bigint"));
     verifyDataRows(actual, rows(6));
   }
@@ -817,24 +756,21 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   @Test
   public void testShortcutCEvalComplexCondition() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | stats c(eval(balance > 20000 and age < 35)) as c", TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("stats c(eval(balance > 20000 and age < 35)) as c"));
     verifySchema(actual, schema("c", "bigint"));
     verifyDataRows(actual, rows(3));
   }
 
   @Test
   public void testPercentileShortcuts() throws IOException {
-    JSONObject actual =
-        executeQuery(withSource(TEST_INDEX_BANK, "stats perc50(balance), p95(balance)"));
+    JSONObject actual = executeQuery(Index.BANK.ppl("stats perc50(balance), p95(balance)"));
     verifySchema(actual, schema("perc50(balance)", "bigint"), schema("p95(balance)", "bigint"));
     verifyDataRows(actual, rows(32838, 48086));
   }
 
   @Test
   public void testPercentileShortcutsWithDecimals() throws IOException {
-    JSONObject actual = executeQuery(withSource(TEST_INDEX_BANK, "stats perc99.5(balance)"));
+    JSONObject actual = executeQuery(Index.BANK.ppl("stats perc99.5(balance)"));
     verifySchema(actual, schema("perc99.5(balance)", "bigint"));
     verifyDataRows(actual, rows(48086));
   }
@@ -842,10 +778,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   @Test
   public void testPercentileShortcutsFloatingPoint() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | stats perc25.5(balance), p75.25(balance), perc0.1(balance)",
-                TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("stats perc25.5(balance), p75.25(balance), perc0.1(balance)"));
     verifySchema(
         actual,
         schema("perc25.5(balance)", "bigint"),
@@ -856,9 +789,8 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
 
   @Test
   public void testPercentileShortcutsFloatingEquivalence() throws IOException {
-    JSONObject shortcut = executeQuery(withSource(TEST_INDEX_BANK, "stats perc25.5(balance)"));
-    JSONObject standard =
-        executeQuery(withSource(TEST_INDEX_BANK, "stats percentile(balance, 25.5)"));
+    JSONObject shortcut = executeQuery(Index.BANK.ppl("stats perc25.5(balance)"));
+    JSONObject standard = executeQuery(Index.BANK.ppl("stats percentile(balance, 25.5)"));
 
     verifySchema(shortcut, schema("perc25.5(balance)", "bigint"));
     verifySchema(standard, schema("percentile(balance, 25.5)", "bigint"));
@@ -872,9 +804,8 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
 
   @Test
   public void testPercentileShortcutsEquivalentToStandard() throws IOException {
-    JSONObject shortcut = executeQuery(withSource(TEST_INDEX_BANK, "stats perc50(balance)"));
-    JSONObject standard =
-        executeQuery(withSource(TEST_INDEX_BANK, "stats percentile(balance, 50)"));
+    JSONObject shortcut = executeQuery(Index.BANK.ppl("stats perc50(balance)"));
+    JSONObject standard = executeQuery(Index.BANK.ppl("stats percentile(balance, 50)"));
 
     verifySchema(shortcut, schema("perc50(balance)", "bigint"));
     verifySchema(standard, schema("percentile(balance, 50)", "bigint"));
@@ -890,9 +821,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   public void testStatsCountAliasWithMultipleAggregatesAndSort() throws IOException {
     JSONObject response =
         executeQuery(
-            String.format(
-                "source=%s | stats sum(balance), count, avg(balance) by state | sort - `count`",
-                TEST_INDEX_BANK));
+            Index.BANK.ppl("stats sum(balance), count, avg(balance) by state | sort - `count`"));
     verifySchema(
         response,
         schema("sum(balance)", "bigint"),
@@ -912,8 +841,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
 
   @Test
   public void testStatsCountAliasByGroupWithSort() throws IOException {
-    JSONObject response =
-        executeQuery(withSource(TEST_INDEX_BANK, "stats count by state | sort - `count`"));
+    JSONObject response = executeQuery(Index.BANK.ppl("stats count by state | sort - `count`"));
     verifySchema(response, schema("count", "bigint"), schema("state", "string"));
     verifyDataRows(
         response,

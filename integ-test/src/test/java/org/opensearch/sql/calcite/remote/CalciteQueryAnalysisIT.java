@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.calcite.remote;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
-
 import java.io.IOException;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.ppl.QueryAnalysisIT;
@@ -20,7 +18,7 @@ public class CalciteQueryAnalysisIT extends QueryAnalysisIT {
 
   @Override
   public void nonexistentFieldShouldFailSemanticCheck() {
-    String query = searchWithSource(TEST_INDEX_ACCOUNT, "fields name");
+    String query = Index.ACCOUNT.pplSearch("fields name");
     try {
       executeQuery(query);
       fail("Expected to throw Exception, but none was thrown for query: " + query);

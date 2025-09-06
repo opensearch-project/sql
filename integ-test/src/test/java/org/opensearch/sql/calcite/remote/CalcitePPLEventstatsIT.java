@@ -30,10 +30,9 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   public void testEventstat() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max",
-                TEST_INDEX_STATE_COUNTRY));
+            Index.STATE_COUNTRY.ppl(
+                "eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
+                    + " as max"));
 
     verifySchemaInOrder(
         actual,
@@ -60,10 +59,9 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   public void testEventstatWithNull() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
+                    + " as max"));
 
     verifySchemaInOrder(
         actual,
@@ -92,10 +90,9 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   public void testEventstatBy() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by country",
-                TEST_INDEX_STATE_COUNTRY));
+            Index.STATE_COUNTRY.ppl(
+                "eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
+                    + " as max by country"));
 
     verifySchemaInOrder(
         actual,
@@ -122,10 +119,9 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   public void testEventstatByWithNull() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by country",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
+                    + " as max by country"));
 
     verifySchemaInOrder(
         actual,
@@ -151,10 +147,9 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
 
     actual =
         executeQuery(
-            String.format(
-                "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by state",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
+                    + " as max by state"));
     verifyDataRows(
         actual,
         rows(null, "Canada", null, 4, 2023, 10, 2, 10, 10, 10),
@@ -169,10 +164,9 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   public void testEventstatBySpan() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by span(age, 10) as age_span",
-                TEST_INDEX_STATE_COUNTRY));
+            Index.STATE_COUNTRY.ppl(
+                "eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
+                    + " as max by span(age, 10) as age_span"));
 
     verifyDataRows(
         actual,
@@ -186,10 +180,9 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   public void testEventstatBySpanWithNull() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by span(age, 10) as age_span",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
+                    + " as max by span(age, 10) as age_span"));
 
     verifyDataRows(
         actual,
@@ -205,10 +198,9 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   public void testEventstatByMultiplePartitions1() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by span(age, 10) as age_span, country",
-                TEST_INDEX_STATE_COUNTRY));
+            Index.STATE_COUNTRY.ppl(
+                "eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
+                    + " as max by span(age, 10) as age_span, country"));
 
     verifyDataRows(
         actual,
@@ -222,10 +214,9 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   public void testEventstatByMultiplePartitions2() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by span(age, 10) as age_span, state",
-                TEST_INDEX_STATE_COUNTRY));
+            Index.STATE_COUNTRY.ppl(
+                "eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
+                    + " as max by span(age, 10) as age_span, state"));
 
     verifyDataRows(
         actual,
@@ -239,10 +230,9 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   public void testEventstatByMultiplePartitionsWithNull1() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by span(age, 10) as age_span, country",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
+                    + " as max by span(age, 10) as age_span, country"));
 
     verifyDataRows(
         actual,
@@ -258,10 +248,9 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   public void testEventstatByMultiplePartitionsWithNull2() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by span(age, 10) as age_span, state",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
+                    + " as max by span(age, 10) as age_span, state"));
 
     verifyDataRows(
         actual,
@@ -292,10 +281,9 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   public void testMultipleEventstat() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eventstats avg(age) as avg_age by state, country | eventstats"
-                    + " avg(avg_age) as avg_state_age by country",
-                TEST_INDEX_STATE_COUNTRY));
+            Index.STATE_COUNTRY.ppl(
+                "eventstats avg(age) as avg_age by state, country | eventstats"
+                    + " avg(avg_age) as avg_state_age by country"));
 
     verifyDataRows(
         actual,
@@ -309,10 +297,9 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   public void testMultipleEventstatWithNull() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eventstats avg(age) as avg_age by state, country | eventstats"
-                    + " avg(avg_age) as avg_state_age by country",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "eventstats avg(age) as avg_age by state, country | eventstats"
+                    + " avg(avg_age) as avg_state_age by country"));
 
     verifyDataRows(
         actual,
@@ -328,12 +315,11 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   public void testMultipleEventstatWithEval() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eventstats avg(age) as avg_age by country, state, name | eval"
+            Index.STATE_COUNTRY.ppl(
+                "eventstats avg(age) as avg_age by country, state, name | eval"
                     + " avg_age_divide_20 = avg_age - 20 | eventstats avg(avg_age_divide_20) as"
                     + " avg_state_age by country, state | where avg_state_age > 0 | eventstats"
-                    + " count(avg_state_age) as count_country_age_greater_20 by country",
-                TEST_INDEX_STATE_COUNTRY));
+                    + " count(avg_state_age) as count_country_age_greater_20 by country"));
 
     verifyDataRows(
         actual,
@@ -346,19 +332,17 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   public void testEventstatEmptyRows() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | where name = 'non-existed' | eventstats count(), avg(age), min(age),"
-                    + " max(age), stddev_pop(age), stddev_samp(age), var_pop(age), var_samp(age)",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "where name = 'non-existed' | eventstats count(), avg(age), min(age),"
+                    + " max(age), stddev_pop(age), stddev_samp(age), var_pop(age), var_samp(age)"));
     verifyNumOfRows(actual, 0);
 
     JSONObject actual2 =
         executeQuery(
-            String.format(
-                "source=%s | where name = 'non-existed' | eventstats count(), avg(age), min(age),"
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "where name = 'non-existed' | eventstats count(), avg(age), min(age),"
                     + " max(age), stddev_pop(age), stddev_samp(age), var_pop(age), var_samp(age) by"
-                    + " country",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+                    + " country"));
     verifyNumOfRows(actual2, 0);
   }
 
@@ -366,10 +350,8 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   public void testEventstatVariance() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eventstats stddev_pop(age), stddev_samp(age), var_pop(age),"
-                    + " var_samp(age)",
-                TEST_INDEX_STATE_COUNTRY));
+            Index.STATE_COUNTRY.ppl(
+                "eventstats stddev_pop(age), stddev_samp(age), var_pop(age)," + " var_samp(age)"));
 
     verifySchemaInOrder(
         actual,
@@ -436,10 +418,8 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   public void testEventstatVarianceWithNull() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eventstats stddev_pop(age), stddev_samp(age), var_pop(age),"
-                    + " var_samp(age)",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "eventstats stddev_pop(age), stddev_samp(age), var_pop(age)," + " var_samp(age)"));
 
     verifySchemaInOrder(
         actual,
@@ -499,10 +479,9 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   public void testEventstatVarianceBy() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eventstats stddev_pop(age), stddev_samp(age), var_pop(age),"
-                    + " var_samp(age) by country",
-                TEST_INDEX_STATE_COUNTRY));
+            Index.STATE_COUNTRY.ppl(
+                "eventstats stddev_pop(age), stddev_samp(age), var_pop(age),"
+                    + " var_samp(age) by country"));
 
     verifyDataRows(
         actual,
@@ -516,9 +495,8 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   public void testEventstatVarianceBySpan() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | where country != 'USA' | eventstats stddev_samp(age) by span(age, 10)",
-                TEST_INDEX_STATE_COUNTRY));
+            Index.STATE_COUNTRY.ppl(
+                "where country != 'USA' | eventstats stddev_samp(age) by span(age, 10)"));
 
     verifyDataRows(
         actual,
@@ -530,10 +508,9 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   public void testEventstatVarianceWithNullBy() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eventstats stddev_pop(age), stddev_samp(age), var_pop(age),"
-                    + " var_samp(age) by country",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+            Index.STATE_COUNTRY_WITH_NULL.ppl(
+                "eventstats stddev_pop(age), stddev_samp(age), var_pop(age),"
+                    + " var_samp(age) by country"));
 
     verifyDataRows(
         actual,
@@ -577,10 +554,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
 
   @Test
   public void testEventstatDistinctCount() throws IOException {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | eventstats dc(state) as dc_state", TEST_INDEX_STATE_COUNTRY));
+    JSONObject actual = executeQuery(Index.STATE_COUNTRY.ppl("eventstats dc(state) as dc_state"));
 
     verifySchemaInOrder(
         actual,
@@ -603,10 +577,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   @Test
   public void testEventstatDistinctCountByCountry() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | eventstats dc(state) as dc_state by country",
-                TEST_INDEX_STATE_COUNTRY));
+        executeQuery(Index.STATE_COUNTRY.ppl("eventstats dc(state) as dc_state by country"));
 
     verifySchemaInOrder(
         actual,
@@ -629,10 +600,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   @Test
   public void testEventstatDistinctCountFunction() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | eventstats distinct_count(country) as dc_country",
-                TEST_INDEX_STATE_COUNTRY));
+        executeQuery(Index.STATE_COUNTRY.ppl("eventstats distinct_count(country) as dc_country"));
 
     verifySchemaInOrder(
         actual,
@@ -655,10 +623,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   @Test
   public void testEventstatDistinctCountWithNull() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | eventstats dc(state) as dc_state",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+        executeQuery(Index.STATE_COUNTRY_WITH_NULL.ppl("eventstats dc(state) as dc_state"));
 
     verifySchemaInOrder(
         actual,
@@ -685,9 +650,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   public void testEventstatEarliestAndLatest() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | eventstats earliest(birthdate), latest(birthdate) | head 1",
-                TEST_INDEX_BANK_TWO));
+            Index.BANK_TWO.ppl("eventstats earliest(birthdate), latest(birthdate) | head 1"));
     verifySchema(
         actual,
         schema("account_number", "bigint"),

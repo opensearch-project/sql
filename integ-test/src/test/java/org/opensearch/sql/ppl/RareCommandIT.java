@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.ppl;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -32,7 +31,7 @@ public class RareCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testRareWithoutGroup() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_ACCOUNT, "rare gender"));
+    JSONObject result = executeQuery(Index.ACCOUNT.ppl("rare gender"));
     if (isCalciteEnabled()) {
       verifySchemaInOrder(result, schema("gender", "string"), schema("count", "bigint"));
       verifyDataRows(result, rows("F", 493), rows("M", 507));
@@ -43,7 +42,7 @@ public class RareCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testRareWithGroup() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_ACCOUNT, "rare state by gender"));
+    JSONObject result = executeQuery(Index.ACCOUNT.ppl("rare state by gender"));
     if (isCalciteEnabled()) {
       verifySchemaInOrder(
           result, schema("gender", "string"), schema("state", "string"), schema("count", "bigint"));

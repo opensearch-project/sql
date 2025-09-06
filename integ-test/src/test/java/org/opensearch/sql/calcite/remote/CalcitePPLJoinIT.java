@@ -59,11 +59,11 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
   public void testJoinWithCondition() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | inner join left=a, right=b ON a.name = b.name AND a.year = 2023"
+            Index.STATE_COUNTRY.ppl(
+                "inner join left=a, right=b ON a.name = b.name AND a.year = 2023"
                     + " AND a.month = 4 AND b.year = 2023 AND b.month = 4 %s | fields a.name,"
                     + " a.age, a.state, a.country, b.occupation, b.country, b.salary",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                TEST_INDEX_OCCUPATION));
     verifySchema(
         actual,
         schema("name", "string"),

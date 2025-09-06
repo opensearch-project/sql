@@ -5,10 +5,6 @@
 
 package org.opensearch.sql.ppl;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyOrder;
 
@@ -30,22 +26,19 @@ public class SortCommandIT extends PPLIntegTestCase {
     loadIndex(Index.BANK);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
     loadIndex(Index.DOG);
-    loadIndex(Index.WEBLOG);
+    loadIndex(Index.WEBLOGS);
   }
 
   @Test
   public void testSortCommand() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "sort age | fields age"));
+    JSONObject result = executeQuery(Index.BANK.ppl("sort age | fields age"));
     verifyOrder(result, rows(28), rows(32), rows(33), rows(34), rows(36), rows(36), rows(39));
   }
 
   @Test
   public void testSortWithNullValue() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | sort balance | fields firstname, balance",
-                TEST_INDEX_BANK_WITH_NULL_VALUES));
+        executeQuery(Index.BANK_WITH_NULL_VALUES.ppl("sort balance | fields firstname, balance"));
 
     JSONArray dataRows = result.getJSONArray("datarows");
 
@@ -119,8 +112,7 @@ public class SortCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testSortStringField() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "sort lastname | fields lastname"));
+    JSONObject result = executeQuery(Index.BANK.ppl("sort lastname | fields lastname"));
     verifyOrder(
         result,
         rows("Adams"),
@@ -134,8 +126,7 @@ public class SortCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testSortIpField() throws IOException {
-    final JSONObject result =
-        executeQuery(withSource(TEST_INDEX_WEBLOGS, "fields host | sort host"));
+    final JSONObject result = executeQuery(Index.WEBLOGS.ppl("fields host | sort host"));
     verifyOrder(
         result,
         rows("::1"),
@@ -148,23 +139,20 @@ public class SortCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testSortMultipleFields() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_DOG, "sort dog_name, age | fields dog_name, age"));
+    JSONObject result = executeQuery(Index.DOG.ppl("sort dog_name, age | fields dog_name, age"));
     verifyOrder(result, rows("rex", 2), rows("snoopy", 4));
   }
 
   @Test
   public void testSortThenHead() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "sort age | head 2 | fields age"));
+    JSONObject result = executeQuery(Index.BANK.ppl("sort age | head 2 | fields age"));
     verifyOrder(result, rows(28), rows(32));
   }
 
   @Test
   public void testSortWithCountLimit() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | sort 3 - account_number | fields account_number", TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("sort 3 - account_number | fields account_number"));
     verifyOrder(result, rows(32), rows(25), rows(20));
   }
 
@@ -172,18 +160,14 @@ public class SortCommandIT extends PPLIntegTestCase {
   public void testSortWithCountZero() throws IOException {
     // count=0 should return all results
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | sort 0 account_number | fields account_number", TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("sort 0 account_number | fields account_number"));
     verifyOrder(result, rows(1), rows(6), rows(13), rows(18), rows(20), rows(25), rows(32));
   }
 
   @Test
   public void testSortWithDesc() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | sort account_number desc | fields account_number", TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("sort account_number desc | fields account_number"));
     verifyOrder(result, rows(32), rows(25), rows(20), rows(18), rows(13), rows(6), rows(1));
   }
 
@@ -191,25 +175,20 @@ public class SortCommandIT extends PPLIntegTestCase {
   public void testSortWithDescMultipleFields() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | sort 4 age, - account_number desc | fields age, account_number",
-                TEST_INDEX_BANK));
+            Index.BANK.ppl("sort 4 age, - account_number desc | fields age, account_number"));
     verifyOrder(result, rows(39, 25), rows(36, 6), rows(36, 20), rows(34, 32));
   }
 
   @Test
   public void testSortWithStrCast() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | sort str(account_number) | fields account_number", TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("sort str(account_number) | fields account_number"));
     verifyOrder(result, rows(1), rows(13), rows(18), rows(20), rows(25), rows(32), rows(6));
   }
 
   @Test
   public void testSortWithNumCast() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_WEBLOGS, "sort num(bytes) | fields bytes"));
+    JSONObject result = executeQuery(Index.WEBLOGS.ppl("sort num(bytes) | fields bytes"));
     verifyOrder(
         result, rows("1234"), rows("3985"), rows("4085"), rows("4321"), rows("6245"), rows("9876"));
   }
@@ -217,28 +196,21 @@ public class SortCommandIT extends PPLIntegTestCase {
   @Test
   public void testSortWithAsc() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | sort account_number asc | fields account_number", TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("sort account_number asc | fields account_number"));
     verifyOrder(result, rows(1), rows(6), rows(13), rows(18), rows(20), rows(25), rows(32));
   }
 
   @Test
   public void testSortWithA() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | sort account_number a | fields account_number", TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("sort account_number a | fields account_number"));
     verifyOrder(result, rows(1), rows(6), rows(13), rows(18), rows(20), rows(25), rows(32));
   }
 
   @Test
   public void testSortWithAscMultipleFields() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | sort age, account_number asc | fields age, account_number",
-                TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("sort age, account_number asc | fields age, account_number"));
     verifyOrder(
         result,
         rows(28, 13),

@@ -86,9 +86,8 @@ public class CalcitePPLCryptographicFunctionIT extends PPLIntegTestCase {
             IllegalArgumentException.class,
             () ->
                 executeQuery(
-                    String.format(
-                        "source=%s | head 1 | eval sha100 = SHA2('hello', 100) | fields sha100",
-                        TEST_INDEX_STATE_COUNTRY)));
+                    Index.STATE_COUNTRY.ppl(
+                        "head 1 | eval sha100 = SHA2('hello', 100) | fields sha100")));
     verifyErrorMessageContains(e, "Unsupported SHA2 algorithm");
   }
 }

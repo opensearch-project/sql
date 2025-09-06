@@ -6,13 +6,10 @@
 package org.opensearch.sql.ppl;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 
 import java.io.IOException;
-import java.util.Locale;
 import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
@@ -27,7 +24,7 @@ public class ExplainIT extends PPLIntegTestCase {
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK);
     loadIndex(Index.DATE_FORMATS);
-    loadIndex(Index.WEBLOG);
+    loadIndex(Index.WEBLOGS);
   }
 
   @Test
@@ -36,14 +33,14 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            "source=opensearch-sql_test_index_account"
-                + "| where age > 30 "
-                + "| stats avg(age) AS avg_age by state, city "
-                + "| sort state "
-                + "| fields - city "
-                + "| eval age2 = avg_age + 2 "
-                + "| dedup age2 "
-                + "| fields age2"));
+            Index.ACCOUNT.ppl(
+                "where age > 30 "
+                    + "| stats avg(age) AS avg_age by state, city "
+                    + "| sort state "
+                    + "| fields - city "
+                    + "| eval age2 = avg_age + 2 "
+                    + "| dedup age2 "
+                    + "| fields age2")));
   }
 
   @Test
@@ -52,11 +49,11 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            "source=opensearch-sql_test_index_account"
-                + "| where age > 30 "
-                + "| where age < 40 "
-                + "| where balance > 10000 "
-                + "| fields age"));
+            Index.ACCOUNT.ppl(
+                "where age > 30 "
+                    + "| where age < 40 "
+                    + "| where balance > 10000 "
+                    + "| fields age")));
   }
 
   @Test
@@ -65,9 +62,9 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            "source=opensearch-sql_test_index_bank"
-                + "| where birthdate > '2016-12-08 00:00:00.000000000' "
-                + "| where birthdate < '2018-11-09 00:00:00.000000000' "));
+            Index.BANK.ppl(
+                "where birthdate > '2016-12-08 00:00:00.000000000' "
+                    + "| where birthdate < '2018-11-09 00:00:00.000000000' ")));
   }
 
   @Test
@@ -76,9 +73,10 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            "source=opensearch-sql_test_index_date_formats | fields yyyy-MM-dd"
-                + "| where yyyy-MM-dd > '2016-12-08 00:00:00.123456789' "
-                + "| where yyyy-MM-dd < '2018-11-09 00:00:00.000000000' "));
+            Index.DATE_FORMATS.ppl(
+                "fields yyyy-MM-dd"
+                    + "| where yyyy-MM-dd > '2016-12-08 00:00:00.123456789' "
+                    + "| where yyyy-MM-dd < '2018-11-09 00:00:00.000000000' ")));
   }
 
   @Test
@@ -87,9 +85,10 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            "source=opensearch-sql_test_index_date_formats | fields custom_time"
-                + "| where custom_time > '2016-12-08 12:00:00.123456789' "
-                + "| where custom_time < '2018-11-09 19:00:00.123456789' "));
+            Index.DATE_FORMATS.ppl(
+                "fields custom_time"
+                    + "| where custom_time > '2016-12-08 12:00:00.123456789' "
+                    + "| where custom_time < '2018-11-09 19:00:00.123456789' ")));
   }
 
   @Test
@@ -98,10 +97,7 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         loadExpectedPlan("explain_filter_compare_ip.json"),
         explainQueryToString(
-            String.format(
-                Locale.ROOT,
-                "source=%s | where host > '1.1.1.1' | fields host",
-                TEST_INDEX_WEBLOGS)));
+            Index.WEBLOGS.ppl("where host > '1.1.1.1' | fields host", TEST_INDEX_WEBLOGS)));
   }
 
   @Test
@@ -113,10 +109,7 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         loadExpectedPlan("explain_filter_compare_ipv6_swapped.json"),
         explainQueryToString(
-            String.format(
-                Locale.ROOT,
-                "source=%s | where '::ffff:1234' <= host | fields host",
-                TEST_INDEX_WEBLOGS)));
+            Index.WEBLOGS.ppl("where '::ffff:1234' <= host | fields host", TEST_INDEX_WEBLOGS)));
   }
 
   @Test
@@ -126,11 +119,7 @@ public class ExplainIT extends PPLIntegTestCase {
     // argument to timestamp with Calcite. In v2, it accepts string, so there is no cast.
     assertJsonEqualsIgnoreId(
         expected,
-        explainQueryToString(
-            String.format(
-                Locale.ROOT,
-                "source=%s |  eval w = week('2024-12-10') | fields w",
-                TEST_INDEX_ACCOUNT)));
+        explainQueryToString(Index.ACCOUNT.ppl("eval w = week('2024-12-10') | fields w")));
   }
 
   @Test
@@ -139,17 +128,14 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            "source=opensearch-sql_test_index_account"
-                + "| where age > 30 "
-                + "| stats avg(age) AS avg_age by state, city"));
+            Index.ACCOUNT.ppl("where age > 30 " + "| stats avg(age) AS avg_age by state, city")));
   }
 
   @Test
   public void testCountAggPushDownExplain() throws IOException {
     String expected = loadExpectedPlan("explain_count_agg_push.json");
     assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString("source=opensearch-sql_test_index_account | stats count() as cnt"));
+        expected, explainQueryToString(Index.ACCOUNT.ppl("stats count() as cnt")));
   }
 
   @Test
@@ -157,19 +143,14 @@ public class ExplainIT extends PPLIntegTestCase {
     String expected = loadExpectedPlan("explain_sort_push.json");
     assertJsonEqualsIgnoreId(
         expected,
-        explainQueryToString(
-            "source=opensearch-sql_test_index_account"
-                + "| sort age "
-                + "| where age > 30"
-                + "| fields age"));
+        explainQueryToString(Index.ACCOUNT.ppl("sort age " + "| where age > 30" + "| fields age")));
   }
 
   @Test
   public void testSortWithCountPushDownExplain() throws IOException {
     String expected = loadExpectedPlan("explain_sort_count_push.json");
     assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString("source=opensearch-sql_test_index_account | sort 5 age | fields age"));
+        expected, explainQueryToString(Index.ACCOUNT.ppl("sort 5 age | fields age")));
   }
 
   @Test
@@ -178,17 +159,14 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            "source=opensearch-sql_test_index_account | sort age, - firstname desc | fields age,"
-                + " firstname"));
+            Index.ACCOUNT.ppl("sort age, - firstname desc | fields age," + " firstname")));
   }
 
   @Test
   public void testSortWithTypePushDownExplain() throws IOException {
     String expected = loadExpectedPlan("explain_sort_type_push.json");
     assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString(
-            "source=opensearch-sql_test_index_account | sort num(age) | fields age"));
+        expected, explainQueryToString(Index.ACCOUNT.ppl("sort num(age) | fields age")));
   }
 
   @Test
@@ -198,9 +176,7 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            "source=opensearch-sql_test_index_account"
-                + "| stats avg(age) AS avg_age by state, city "
-                + "| sort avg_age"));
+            Index.ACCOUNT.ppl("stats avg(age) AS avg_age by state, city " + "| sort avg_age")));
 
     // sorts whose by fields are not aggregators can be pushed down.
     // This test is covered in testExplain
@@ -214,10 +190,10 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            "source=opensearch-sql_test_index_account "
-                + "| sort account_number, firstname, address, balance "
-                + "| sort - balance, - gender, account_number "
-                + "| fields account_number, firstname, address, balance, gender"));
+            Index.ACCOUNT.ppl(
+                "sort account_number, firstname, address, balance "
+                    + "| sort - balance, - gender, account_number "
+                    + "| fields account_number, firstname, address, balance, gender")));
   }
 
   @Test
@@ -228,9 +204,7 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            "source=opensearch-sql_test_index_account"
-                + "| sort balance, age "
-                + "| stats avg(balance) by state"));
+            Index.ACCOUNT.ppl("sort balance, age " + "| stats avg(balance) by state")));
   }
 
   @Test
@@ -239,11 +213,11 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            "source=opensearch-sql_test_index_account "
-                + "| rename firstname as name "
-                + "| eval alias = name "
-                + "|  sort alias "
-                + "| fields alias"));
+            Index.ACCOUNT.ppl(
+                "rename firstname as name "
+                    + "| eval alias = name "
+                    + "|  sort alias "
+                    + "| fields alias")));
   }
 
   /**
@@ -255,11 +229,7 @@ public class ExplainIT extends PPLIntegTestCase {
     String expected = loadExpectedPlan("explain_sort_then_limit_push.json");
     assertJsonEqualsIgnoreId(
         expected,
-        explainQueryToString(
-            "source=opensearch-sql_test_index_account"
-                + "| sort age "
-                + "| head 5 "
-                + "| fields age"));
+        explainQueryToString(Index.ACCOUNT.ppl("sort age " + "| head 5 " + "| fields age")));
   }
 
   /**
@@ -273,11 +243,7 @@ public class ExplainIT extends PPLIntegTestCase {
     String expected = loadExpectedPlan("explain_limit_then_sort_push.json");
     assertJsonEqualsIgnoreId(
         expected,
-        explainQueryToString(
-            "source=opensearch-sql_test_index_account"
-                + "| head 5 "
-                + "| sort age "
-                + "| fields age"));
+        explainQueryToString(Index.ACCOUNT.ppl("head 5 " + "| sort age " + "| fields age")));
   }
 
   @Test
@@ -286,10 +252,7 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            "source=opensearch-sql_test_index_account"
-                + "| eval ageMinus = age - 30 "
-                + "| head 5 "
-                + "| fields ageMinus"));
+            Index.ACCOUNT.ppl("eval ageMinus = age - 30 " + "| head 5 " + "| fields ageMinus")));
   }
 
   @Test
@@ -297,22 +260,14 @@ public class ExplainIT extends PPLIntegTestCase {
     String expectedFilterThenLimit = loadExpectedPlan("explain_filter_then_limit_push.json");
     assertJsonEqualsIgnoreId(
         expectedFilterThenLimit,
-        explainQueryToString(
-            "source=opensearch-sql_test_index_account"
-                + "| where age > 30 "
-                + "| head 5 "
-                + "| fields age"));
+        explainQueryToString(Index.ACCOUNT.ppl("where age > 30 " + "| head 5 " + "| fields age")));
 
     // The filter in limit-then-filter queries should not be pushed since the current DSL will
     // execute it as filter-then-limit
     String expectedLimitThenFilter = loadExpectedPlan("explain_limit_then_filter_push.json");
     assertJsonEqualsIgnoreId(
         expectedLimitThenFilter,
-        explainQueryToString(
-            "source=opensearch-sql_test_index_account"
-                + "| head 5 "
-                + "| where age > 30 "
-                + "| fields age"));
+        explainQueryToString(Index.ACCOUNT.ppl("head 5 " + "| where age > 30 " + "| fields age")));
   }
 
   @Test
@@ -320,40 +275,25 @@ public class ExplainIT extends PPLIntegTestCase {
     String expected5Then10 = loadExpectedPlan("explain_limit_5_10_push.json");
     assertJsonEqualsIgnoreId(
         expected5Then10,
-        explainQueryToString(
-            "source=opensearch-sql_test_index_account"
-                + "| head 5 "
-                + "| head 10 "
-                + "| fields age"));
+        explainQueryToString(Index.ACCOUNT.ppl("head 5 " + "| head 10 " + "| fields age")));
 
     String expected10Then5 = loadExpectedPlan("explain_limit_10_5_push.json");
     assertJsonEqualsIgnoreId(
         expected10Then5,
-        explainQueryToString(
-            "source=opensearch-sql_test_index_account"
-                + "| head 10 "
-                + "| head 5 "
-                + "| fields age"));
+        explainQueryToString(Index.ACCOUNT.ppl("head 10 " + "| head 5 " + "| fields age")));
 
     String expected10from1then10from2 = loadExpectedPlan("explain_limit_10from1_10from2_push.json");
     assertJsonEqualsIgnoreId(
         expected10from1then10from2,
         explainQueryToString(
-            "source=opensearch-sql_test_index_account"
-                + "| head 10 from 1 "
-                + "| head 10 from 2 "
-                + "| fields age"));
+            Index.ACCOUNT.ppl("head 10 from 1 " + "| head 10 from 2 " + "| fields age")));
 
     // The second limit should not be pushed down for limit-filter-limit queries
     String expected10ThenFilterThen5 = loadExpectedPlan("explain_limit_10_filter_5_push.json");
     assertJsonEqualsIgnoreId(
         expected10ThenFilterThen5,
         explainQueryToString(
-            "source=opensearch-sql_test_index_account"
-                + "| head 10 "
-                + "| where age > 30 "
-                + "| head 5 "
-                + "| fields age"));
+            Index.ACCOUNT.ppl("head 10 " + "| where age > 30 " + "| head 5 " + "| fields age")));
   }
 
   @Test
@@ -362,10 +302,7 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            "source=opensearch-sql_test_index_account"
-                + "| head 10 from 1 "
-                + "| head 5 from 2 "
-                + "| fields age"));
+            Index.ACCOUNT.ppl("head 10 from 1 " + "| head 5 from 2 " + "| fields age")));
   }
 
   @Test
@@ -374,8 +311,7 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            "source=opensearch-sql_test_index_account"
-                + " | fillnull with -1 in age,balance | fields age, balance"));
+            Index.ACCOUNT.ppl(+" | fillnull with -1 in age,balance | fields age, balance")));
   }
 
   @Test
@@ -384,10 +320,8 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            "source=opensearch-sql_test_index_account"
-                + "| head 5 "
-                + "| trendline sma(2, age) as ageTrend "
-                + "| fields ageTrend"));
+            Index.ACCOUNT.ppl(
+                "head 5 " + "| trendline sma(2, age) as ageTrend " + "| fields ageTrend")));
   }
 
   @Test
@@ -397,10 +331,10 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            "source=opensearch-sql_test_index_account"
-                + "| head 5 "
-                + "| trendline sort age sma(2, age) as ageTrend "
-                + "| fields ageTrend"));
+            Index.ACCOUNT.ppl(
+                "head 5 "
+                    + "| trendline sort age sma(2, age) as ageTrend "
+                    + "| fields ageTrend")));
   }
 
   @Test
@@ -419,18 +353,14 @@ public class ExplainIT extends PPLIntegTestCase {
   public void testPatternsSimplePatternMethodWithoutAggExplain() throws IOException {
     // TODO: Correct calcite expected result once pushdown is supported
     String expected = loadExpectedPlan("explain_patterns_simple_pattern.json");
-    assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString("source=opensearch-sql_test_index_account | patterns email"));
+    assertJsonEqualsIgnoreId(expected, explainQueryToString(Index.ACCOUNT.ppl("patterns email")));
   }
 
   @Test
   public void testPatternsSimplePatternMethodWithAggPushDownExplain() throws IOException {
     String expected = loadExpectedPlan("explain_patterns_simple_pattern_agg_push.json");
     assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString(
-            "source=opensearch-sql_test_index_account | patterns email mode=aggregation"));
+        expected, explainQueryToString(Index.ACCOUNT.ppl("patterns email mode=aggregation")));
   }
 
   @Test
@@ -439,30 +369,25 @@ public class ExplainIT extends PPLIntegTestCase {
     String expected = loadExpectedPlan("explain_patterns_brain_agg_push.json");
     assertJsonEqualsIgnoreId(
         expected,
-        explainQueryToString(
-            "source=opensearch-sql_test_index_account"
-                + "| patterns email method=brain mode=aggregation"));
+        explainQueryToString(Index.ACCOUNT.ppl("patterns email method=brain mode=aggregation")));
   }
 
   @Test
   public void testStatsBySpan() throws IOException {
     String expected = loadExpectedPlan("explain_stats_by_span.json");
     assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString(withSource(TEST_INDEX_BANK, "stats count() by span(age,10)")));
+        expected, explainQueryToString(Index.BANK.ppl("stats count() by span(age,10)")));
   }
 
   @Test
   public void testStatsByTimeSpan() throws IOException {
     String expected = loadExpectedPlan("explain_stats_by_timespan.json");
     assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString(withSource(TEST_INDEX_BANK, "stats count() by span(birthdate,1m)")));
+        expected, explainQueryToString(Index.BANK.ppl("stats count() by span(birthdate,1m)")));
 
     expected = loadExpectedPlan("explain_stats_by_timespan2.json");
     assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString(withSource(TEST_INDEX_BANK, "stats count() by span(birthdate,1M)")));
+        expected, explainQueryToString(Index.BANK.ppl("stats count() by span(birthdate,1M)")));
   }
 
   @Test
@@ -471,8 +396,7 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            "source=opensearch-sql_test_index_account | fields account_number, gender, age"
-                + " | dedup 1 gender"));
+            Index.ACCOUNT.ppl("fields account_number, gender, age" + " | dedup 1 gender")));
   }
 
   @Test
@@ -481,8 +405,8 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            "source=opensearch-sql_test_index_account | fields account_number, gender, age"
-                + " | dedup gender KEEPEMPTY=true"));
+            Index.ACCOUNT.ppl(
+                "fields account_number, gender, age" + " | dedup gender KEEPEMPTY=true")));
   }
 
   @Test
@@ -491,8 +415,8 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            "source=opensearch-sql_test_index_account | fields account_number, gender, age"
-                + " | dedup gender KEEPEMPTY=false"));
+            Index.ACCOUNT.ppl(
+                "fields account_number, gender, age" + " | dedup gender KEEPEMPTY=false")));
   }
 
   @Test
@@ -506,9 +430,7 @@ public class ExplainIT extends PPLIntegTestCase {
 
     assertJsonEqualsIgnoreId(
         expected,
-        explainQueryToString(
-            "source=opensearch-sql_test_index_account"
-                + "| where match(email, '*@gmail.com', boost=1.0)"));
+        explainQueryToString(Index.ACCOUNT.ppl("where match(email, '*@gmail.com', boost=1.0)")));
   }
 
   @Test
@@ -523,27 +445,23 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            "source=opensearch-sql_test_index_account"
-                + "| where simple_query_string(['email', name 4.0], 'gmail',"
-                + " default_operator='or', analyzer=english)"));
+            Index.ACCOUNT.ppl(
+                "where simple_query_string(['email', name 4.0], 'gmail',"
+                    + " default_operator='or', analyzer=english)")));
   }
 
   @Test
   public void testKeywordLikeFunctionExplain() throws IOException {
     String expected = loadExpectedPlan("explain_keyword_like_function.json");
     assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString(
-            "source=opensearch-sql_test_index_account | where like(firstname, '%mbe%')"));
+        expected, explainQueryToString(Index.ACCOUNT.ppl("where like(firstname, '%%mbe%%')")));
   }
 
   @Test
   public void testTextLikeFunctionExplain() throws IOException {
     String expected = loadExpectedPlan("explain_text_like_function.json");
     assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString(
-            "source=opensearch-sql_test_index_account | where like(address, '%Holmes%')"));
+        expected, explainQueryToString(Index.ACCOUNT.ppl("where like(address, '%%Holmes%%')")));
   }
 
   @Ignore("The serialized string is unstable because of function properties")
@@ -553,8 +471,8 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            "source=opensearch-sql_test_index_account | where firstname ='Amber' and age - 2 = 30 |"
-                + " fields firstname, age"));
+            Index.ACCOUNT.ppl(
+                "where firstname ='Amber' and age - 2 = 30 |" + " fields firstname, age")));
   }
 
   @Ignore("The serialized string is unstable because of function properties")
@@ -564,15 +482,15 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            "source=opensearch-sql_test_index_account |  where length(firstname) = 5 and abs(age) ="
-                + " 32 and balance = 39225 | fields firstname, age"));
+            Index.ACCOUNT.ppl(
+                " where length(firstname) = 5 and abs(age) ="
+                    + " 32 and balance = 39225 | fields firstname, age")));
   }
 
   @Test
   public void testDifferentFilterScriptPushDownBehaviorExplain() throws Exception {
     String explainedPlan =
-        explainQueryToString(
-            "source=opensearch-sql_test_index_account |  where firstname != '' | fields firstname");
+        explainQueryToString(Index.ACCOUNT.ppl(" where firstname != '' | fields firstname"));
     if (isCalciteEnabled()) {
       // Calcite pushdown as pure filter query
       String expected = loadExpectedPlan("explain_filter_script_push_diff.json");
@@ -587,9 +505,7 @@ public class ExplainIT extends PPLIntegTestCase {
   public void testExplainOnTake() throws IOException {
     String expected = loadExpectedPlan("explain_take.json");
     assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString(
-            "source=opensearch-sql_test_index_account | stats take(firstname, 2) as take"));
+        expected, explainQueryToString(Index.ACCOUNT.ppl("stats take(firstname, 2) as take")));
   }
 
   @Test
@@ -598,8 +514,8 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            "source=opensearch-sql_test_index_account | stats percentile(balance, 50) as p50,"
-                + " percentile(balance, 90) as p90"));
+            Index.ACCOUNT.ppl(
+                "stats percentile(balance, 50) as p50," + " percentile(balance, 90) as p90")));
   }
 
   @Test
@@ -608,10 +524,9 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            String.format(
-                "source=%s | eval len = length(gender) | stats sum(balance + 100) as sum by len,"
-                    + " gender ",
-                TEST_INDEX_BANK)));
+            Index.BANK.ppl(
+                "eval len = length(gender) | stats sum(balance + 100) as sum by len,"
+                    + " gender ")));
   }
 
   protected String loadExpectedPlan(String fileName) throws IOException {

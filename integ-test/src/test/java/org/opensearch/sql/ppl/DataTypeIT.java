@@ -5,10 +5,9 @@
 
 package org.opensearch.sql.ppl;
 
-import static org.opensearch.sql.legacy.SQLIntegTestCase.Index.DATA_TYPE_ALIAS;
-import static org.opensearch.sql.legacy.SQLIntegTestCase.Index.DATA_TYPE_NONNUMERIC;
-import static org.opensearch.sql.legacy.SQLIntegTestCase.Index.DATA_TYPE_NUMERIC;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ALIAS;
+import static org.opensearch.sql.legacy.SQLIntegTestCase.Index.ALIAS;
+import static org.opensearch.sql.legacy.SQLIntegTestCase.Index.DATATYPE_NONNUMERIC;
+import static org.opensearch.sql.legacy.SQLIntegTestCase.Index.DATATYPE_NUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NONNUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -29,14 +28,14 @@ public class DataTypeIT extends PPLIntegTestCase {
   @Override
   public void init() throws Exception {
     super.init();
-    loadIndex(DATA_TYPE_NUMERIC);
-    loadIndex(DATA_TYPE_NONNUMERIC);
-    loadIndex(DATA_TYPE_ALIAS);
+    loadIndex(DATATYPE_NUMERIC);
+    loadIndex(DATATYPE_NONNUMERIC);
+    loadIndex(ALIAS);
   }
 
   @Test
   public void test_numeric_data_types() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_DATATYPE_NUMERIC, ""));
+    JSONObject result = executeQuery("source=" + TEST_INDEX_DATATYPE_NUMERIC);
     verifySchema(
         result,
         schema("long_number", "bigint"),
@@ -51,7 +50,7 @@ public class DataTypeIT extends PPLIntegTestCase {
 
   @Test
   public void test_nonnumeric_data_types() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_DATATYPE_NONNUMERIC, ""));
+    JSONObject result = executeQuery("source=" + TEST_INDEX_DATATYPE_NUMERIC);
     verifySchemaInOrder(
         result,
         schema("text_value", "string"),
@@ -85,8 +84,7 @@ public class DataTypeIT extends PPLIntegTestCase {
   public void test_long_integer_data_type() throws IOException {
     JSONObject result =
         executeQuery(
-            withSource(
-                TEST_INDEX_DATATYPE_NUMERIC,
+            Index.DATATYPE_NUMERIC.ppl(
                 "eval "
                     + " int1 = 2147483647,"
                     + " int2 = -2147483648,"
@@ -104,8 +102,7 @@ public class DataTypeIT extends PPLIntegTestCase {
   @Test
   public void test_alias_data_type() throws IOException {
     JSONObject result =
-        executeQuery(
-            withSource(TEST_INDEX_ALIAS, "where alias_col > 1 | fields original_col, alias_col "));
+        executeQuery(Index.ALIAS.ppl("where alias_col > 1 | fields original_col, alias_col "));
     verifySchema(result, schema("original_col", "int"), schema("alias_col", "int"));
     verifyDataRows(result, rows(2, 2), rows(3, 3));
   }
@@ -124,8 +121,7 @@ public class DataTypeIT extends PPLIntegTestCase {
 
     JSONObject result =
         executeQuery(
-            withSource(
-                TEST_INDEX_DATATYPE_NUMERIC,
+            Index.DATATYPE_NUMERIC.ppl(
                 "where long_number=12345678 | fields long_number, integer_number,"
                     + " double_number, float_number"));
     verifySchema(
@@ -155,9 +151,7 @@ public class DataTypeIT extends PPLIntegTestCase {
 
     JSONObject result =
         executeQuery(
-            withSource(
-                TEST_INDEX_DATATYPE_NONNUMERIC,
-                "where keyword_value='test' | fields boolean_value"));
+            Index.DATATYPE_NONNUMERIC.ppl("where keyword_value='test' | fields boolean_value"));
     verifySchema(result, schema("boolean_value", "boolean"));
     verifyDataRows(result, rows(true));
 

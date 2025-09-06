@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.ppl;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
 import static org.opensearch.sql.util.MatcherUtils.closeTo;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -30,42 +28,38 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testAbs() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "eval f = abs(age) | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = abs(age) | fields f"));
     verifySchema(result, schema("f", null, "int"));
     verifyDataRows(result, rows(32), rows(36), rows(28), rows(33), rows(36), rows(39), rows(34));
   }
 
   @Test
   public void testAddFunction() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "where age = add(31, 1) | fields age"));
+    JSONObject result = executeQuery(Index.BANK.ppl("where age = add(31, 1) | fields age"));
     verifyDataRows(result, rows(32));
   }
 
   @Test
   public void testSubtractFunction() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "where age = subtract(33, 1) | fields age"));
+    JSONObject result = executeQuery(Index.BANK.ppl("where age = subtract(33, 1) | fields age"));
     verifyDataRows(result, rows(32));
   }
 
   @Test
   public void testMultiplyFunction() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "where age = multiply(16, 2) | fields age"));
+    JSONObject result = executeQuery(Index.BANK.ppl("where age = multiply(16, 2) | fields age"));
     verifyDataRows(result, rows(32));
   }
 
   @Test
   public void testDivideFunction() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "where divide(age, 2) = 16 | fields age"));
+    JSONObject result = executeQuery(Index.BANK.ppl("where divide(age, 2) = 16 | fields age"));
     verifyDataRows(result, rows(32), rows(33));
   }
 
   @Test
   public void testCeil() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "eval f = ceil(age) | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = ceil(age) | fields f"));
     if (isCalciteEnabled()) {
       verifySchema(result, schema("f", null, "int"));
     } else {
@@ -76,8 +70,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testCeiling() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "eval f = ceiling(age) | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = ceiling(age) | fields f"));
     if (isCalciteEnabled()) {
       verifySchema(result, schema("f", null, "int"));
     } else {
@@ -88,7 +81,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testE() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "eval f = e() | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = e() | fields f"));
     verifySchema(result, schema("f", null, "double"));
     verifyDataRows(
         result,
@@ -103,7 +96,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testExp() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "eval f = exp(age) | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = exp(age) | fields f"));
     verifySchema(result, schema("f", null, "double"));
     verifyDataRows(
         result,
@@ -118,7 +111,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testExpm1() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "eval f = expm1(age) | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = expm1(age) | fields f"));
     verifySchema(result, schema("f", null, "double"));
     verifyDataRows(
         result,
@@ -133,7 +126,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testFloor() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "eval f = floor(age) | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = floor(age) | fields f"));
     if (isCalciteEnabled()) {
       verifySchema(result, schema("f", null, "int"));
     } else {
@@ -144,7 +137,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testLn() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "eval f = ln(age) | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = ln(age) | fields f"));
     verifySchema(result, schema("f", null, "double"));
     verifyDataRows(
         result,
@@ -159,7 +152,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testLogOneArg() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "eval f = log(age) | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = log(age) | fields f"));
     verifySchema(result, schema("f", null, "double"));
     verifyDataRows(
         result,
@@ -174,8 +167,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testLogTwoArgs() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "eval f = log(age, balance) | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = log(age, balance) | fields f"));
     verifySchema(result, schema("f", null, "double"));
     verifyDataRows(
         result,
@@ -190,7 +182,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testLog10() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "eval f = log10(age) | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = log10(age) | fields f"));
     verifySchema(result, schema("f", null, "double"));
     verifyDataRows(
         result,
@@ -205,7 +197,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testLog2() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "eval f = log2(age) | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = log2(age) | fields f"));
     verifySchema(result, schema("f", null, "double"));
     verifyDataRows(
         result,
@@ -220,8 +212,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testConv() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "eval f = conv(age, 10, 16) | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = conv(age, 10, 16) | fields f"));
     verifySchema(result, schema("f", null, "string"));
     verifyDataRows(
         result, rows("20"), rows("24"), rows("1c"), rows("21"), rows("24"), rows("27"), rows("22"));
@@ -229,8 +220,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testCrc32() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "eval f = crc32(firstname) | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = crc32(firstname) | fields f"));
     verifySchema(result, schema("f", null, "bigint"));
     verifyDataRows(
         result,
@@ -245,23 +235,21 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testMod() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "eval f = mod(age, 10) | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = mod(age, 10) | fields f"));
     verifySchema(result, schema("f", null, "int"));
     verifyDataRows(result, rows(2), rows(6), rows(8), rows(3), rows(6), rows(9), rows(4));
   }
 
   @Test
   public void testModulus() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "eval f = modulus(age, 10) | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = modulus(age, 10) | fields f"));
     verifySchema(result, schema("f", null, "int"));
     verifyDataRows(result, rows(2), rows(6), rows(8), rows(3), rows(6), rows(9), rows(4));
   }
 
   @Test
   public void testPow() throws IOException {
-    JSONObject pow = executeQuery(withSource(TEST_INDEX_BANK, "eval f = pow(age, 2) | fields f"));
+    JSONObject pow = executeQuery(Index.BANK.ppl("eval f = pow(age, 2) | fields f"));
     verifySchema(pow, schema("f", null, "double"));
     verifyDataRows(
         pow,
@@ -273,8 +261,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
         rows(1521.0),
         rows(1156.0));
 
-    JSONObject power =
-        executeQuery(withSource(TEST_INDEX_BANK, "eval f = power(age, 2) | fields f"));
+    JSONObject power = executeQuery(Index.BANK.ppl("eval f = power(age, 2) | fields f"));
     verifySchema(power, schema("f", null, "double"));
     verifyDataRows(
         power,
@@ -289,7 +276,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testRound() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "eval f = round(age) | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = round(age) | fields f"));
     if (isCalciteEnabled()) {
       verifySchema(result, schema("f", null, "int"));
     } else {
@@ -297,7 +284,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
     }
     verifyDataRows(result, rows(32), rows(36), rows(28), rows(33), rows(36), rows(39), rows(34));
 
-    result = executeQuery(withSource(TEST_INDEX_BANK, "eval f = round(age, -1) | fields f"));
+    result = executeQuery(Index.BANK.ppl("eval f = round(age, -1) | fields f"));
     if (isCalciteEnabled()) {
       verifySchema(result, schema("f", null, "int"));
     } else {
@@ -308,22 +295,21 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testSign() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "eval f = sign(age) | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = sign(age) | fields f"));
     verifySchema(result, schema("f", null, "int"));
     verifyDataRows(result, rows(1), rows(1), rows(1), rows(1), rows(1), rows(1), rows(1));
   }
 
   @Test
   public void testSignum() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "eval f = signum(age) | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = signum(age) | fields f"));
     verifySchema(result, schema("f", null, "int"));
     verifyDataRows(result, rows(1), rows(1), rows(1), rows(1), rows(1), rows(1), rows(1));
   }
 
   @Test
   public void testSqrt() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "eval f = sqrt(age) | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = sqrt(age) | fields f"));
     verifySchema(result, schema("f", null, "double"));
     verifyDataRows(
         result,
@@ -338,8 +324,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testCbrt() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_CALCS, "eval f = cbrt(num3) | fields f"));
+    JSONObject result = executeQuery(Index.CALCS.ppl("eval f = cbrt(num3) | fields f"));
     verifySchema(result, schema("f", null, "double"));
     verifyDataRows(
         result,
@@ -364,8 +349,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testTruncate() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "eval f = truncate(age, 1) | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = truncate(age, 1) | fields f"));
     if (isCalciteEnabled()) {
       verifySchema(result, schema("f", null, "int"));
     } else {
@@ -373,7 +357,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
     }
     verifyDataRows(result, rows(32), rows(36), rows(28), rows(33), rows(36), rows(39), rows(34));
 
-    result = executeQuery(withSource(TEST_INDEX_BANK, "eval f = truncate(age, -1) | fields f"));
+    result = executeQuery(Index.BANK.ppl("eval f = truncate(age, -1) | fields f"));
     if (isCalciteEnabled()) {
       verifySchema(result, schema("f", null, "int"));
     } else {
@@ -384,7 +368,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testPi() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "eval f = pi() | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = pi() | fields f"));
     verifySchema(result, schema("f", null, "double"));
     verifyDataRows(
         result,
@@ -399,13 +383,13 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testRand() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "eval f = rand() | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = rand() | fields f"));
     if (isCalciteEnabled()) {
       verifySchema(result, schema("f", null, "double"));
     } else {
       verifySchema(result, schema("f", null, "float"));
     }
-    result = executeQuery(withSource(TEST_INDEX_BANK, "eval f = rand(5) | fields f"));
+    result = executeQuery(Index.BANK.ppl("eval f = rand(5) | fields f"));
     if (isCalciteEnabled()) {
       verifySchema(result, schema("f", null, "double"));
     } else {
@@ -415,91 +399,88 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testAcos() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "eval f = acos(0) | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = acos(0) | fields f"));
     verifySchema(result, schema("f", null, "double"));
     verifySome(result.getJSONArray("datarows"), rows(Math.acos(0)));
   }
 
   @Test
   public void testAsin() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "eval f = asin(1) | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = asin(1) | fields f"));
     verifySchema(result, schema("f", null, "double"));
     verifySome(result.getJSONArray("datarows"), rows(Math.asin(1)));
   }
 
   @Test
   public void testAtan() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "eval f = atan(2) | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = atan(2) | fields f"));
     verifySchema(result, schema("f", null, "double"));
     verifySome(result.getJSONArray("datarows"), rows(Math.atan(2)));
 
-    result = executeQuery(withSource(TEST_INDEX_BANK, "eval f = atan(2, 3) | fields f"));
+    result = executeQuery(Index.BANK.ppl("eval f = atan(2, 3) | fields f"));
     verifySchema(result, schema("f", null, "double"));
     verifySome(result.getJSONArray("datarows"), rows(Math.atan2(2, 3)));
   }
 
   @Test
   public void testAtan2() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "eval f = atan2(2, 3) | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = atan2(2, 3) | fields f"));
     verifySchema(result, schema("f", null, "double"));
     verifySome(result.getJSONArray("datarows"), rows(Math.atan2(2, 3)));
   }
 
   @Test
   public void testCos() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "eval f = cos(1.57) | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = cos(1.57) | fields f"));
     verifySchema(result, schema("f", null, "double"));
     verifySome(result.getJSONArray("datarows"), rows(Math.cos(1.57)));
   }
 
   @Test
   public void testCosh() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "eval f = cosh(1.5) | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = cosh(1.5) | fields f"));
     verifySchema(result, schema("f", null, "double"));
     verifySome(result.getJSONArray("datarows"), rows(Math.cosh(1.5)));
   }
 
   @Test
   public void testCot() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "eval f = cot(2) | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = cot(2) | fields f"));
     verifySchema(result, schema("f", null, "double"));
     verifySome(result.getJSONArray("datarows"), closeTo(1 / Math.tan(2)));
   }
 
   @Test
   public void testDegrees() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "eval f = degrees(1.57) | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = degrees(1.57) | fields f"));
     verifySchema(result, schema("f", null, "double"));
     verifySome(result.getJSONArray("datarows"), rows(Math.toDegrees(1.57)));
   }
 
   @Test
   public void testRadians() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "eval f = radians(90) | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = radians(90) | fields f"));
     verifySchema(result, schema("f", null, "double"));
     verifySome(result.getJSONArray("datarows"), rows(Math.toRadians(90)));
   }
 
   @Test
   public void testSin() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "eval f = sin(1.57) | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = sin(1.57) | fields f"));
     verifySchema(result, schema("f", null, "double"));
     verifySome(result.getJSONArray("datarows"), rows(Math.sin(1.57)));
   }
 
   @Test
   public void testSinh() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "eval f = sinh(1.5) | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = sinh(1.5) | fields f"));
     verifySchema(result, schema("f", null, "double"));
     verifySome(result.getJSONArray("datarows"), rows(Math.sinh(1.5)));
   }
 
   @Test
   public void testRint() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "eval f = rint(1.7) | fields f"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = rint(1.7) | fields f"));
     verifySchema(result, schema("f", null, "double"));
     verifySome(result.getJSONArray("datarows"), rows(Math.rint(1.7)));
   }
@@ -507,32 +488,28 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   // SUM function tests for eval command
   @Test
   public void testEvalSumSingleInteger() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "eval f = sum(42) | fields f | head 5"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = sum(42) | fields f | head 5"));
     verifySchema(result, schema("f", null, "int"));
     verifyDataRows(result, rows(42), rows(42), rows(42), rows(42), rows(42));
   }
 
   @Test
   public void testEvalSumMultipleIntegers() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "eval f = sum(1, 2, 3) | fields f | head 5"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = sum(1, 2, 3) | fields f | head 5"));
     verifySchema(result, schema("f", null, "int"));
     verifyDataRows(result, rows(6), rows(6), rows(6), rows(6), rows(6));
   }
 
   @Test
   public void testEvalSumMixedNumericTypes() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "eval f = sum(1, 2.5) | fields f | head 5"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = sum(1, 2.5) | fields f | head 5"));
     verifySchema(result, schema("f", null, "double"));
     verifyDataRows(result, rows(3.5), rows(3.5), rows(3.5), rows(3.5), rows(3.5));
   }
 
   @Test
   public void testEvalSumWithFields() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "eval f = sum(age, 10) | fields f | head 7"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = sum(age, 10) | fields f | head 7"));
     verifySchema(result, schema("f", null, "int"));
     verifyDataRows(result, rows(42), rows(46), rows(38), rows(43), rows(46), rows(49), rows(44));
   }
@@ -540,8 +517,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   @Test
   public void testEvalSumMultipleNumericArguments() throws IOException {
     JSONObject result =
-        executeQuery(
-            withSource(TEST_INDEX_BANK, "eval f = sum(1, 2, 3, 4, 5) | fields f | head 5"));
+        executeQuery(Index.BANK.ppl("eval f = sum(1, 2, 3, 4, 5) | fields f | head 5"));
     verifySchema(result, schema("f", null, "int"));
     verifyDataRows(result, rows(15), rows(15), rows(15), rows(15), rows(15));
   }
@@ -549,40 +525,35 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   // AVG function tests for eval command
   @Test
   public void testEvalAvgSingleInteger() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "eval f = avg(42) | fields f | head 5"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = avg(42) | fields f | head 5"));
     verifySchema(result, schema("f", null, "double"));
     verifyDataRows(result, rows(42.0), rows(42.0), rows(42.0), rows(42.0), rows(42.0));
   }
 
   @Test
   public void testEvalAvgMultipleIntegers() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "eval f = avg(1, 2, 3) | fields f | head 5"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = avg(1, 2, 3) | fields f | head 5"));
     verifySchema(result, schema("f", null, "double"));
     verifyDataRows(result, rows(2.0), rows(2.0), rows(2.0), rows(2.0), rows(2.0));
   }
 
   @Test
   public void testEvalAvgTwoIntegers() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "eval f = avg(1, 2) | fields f | head 5"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = avg(1, 2) | fields f | head 5"));
     verifySchema(result, schema("f", null, "double"));
     verifyDataRows(result, rows(1.5), rows(1.5), rows(1.5), rows(1.5), rows(1.5));
   }
 
   @Test
   public void testEvalAvgMixedNumericTypes() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "eval f = avg(1, 2.5) | fields f | head 5"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = avg(1, 2.5) | fields f | head 5"));
     verifySchema(result, schema("f", null, "double"));
     verifyDataRows(result, rows(1.75), rows(1.75), rows(1.75), rows(1.75), rows(1.75));
   }
 
   @Test
   public void testEvalAvgWithFields() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "eval f = avg(age, 10) | fields f | head 7"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = avg(age, 10) | fields f | head 7"));
     verifySchema(result, schema("f", null, "double"));
     verifyDataRows(
         result, rows(21.0), rows(23.0), rows(19.0), rows(21.5), rows(23.0), rows(24.5), rows(22.0));
@@ -590,8 +561,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testEvalAvgMultipleValues() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "eval f = avg(1, 4) | fields f | head 5"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = avg(1, 4) | fields f | head 5"));
     verifySchema(result, schema("f", null, "double"));
     verifyDataRows(result, rows(2.5), rows(2.5), rows(2.5), rows(2.5), rows(2.5));
   }
@@ -599,8 +569,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   @Test
   public void testEvalAvgFiveValues() throws IOException {
     JSONObject result =
-        executeQuery(
-            withSource(TEST_INDEX_BANK, "eval f = avg(1, 2, 3, 4, 5) | fields f | head 5"));
+        executeQuery(Index.BANK.ppl("eval f = avg(1, 2, 3, 4, 5) | fields f | head 5"));
     verifySchema(result, schema("f", null, "double"));
     verifyDataRows(result, rows(3.0), rows(3.0), rows(3.0), rows(3.0), rows(3.0));
   }
@@ -610,8 +579,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   public void testEvalSumAndAvgComparison() throws IOException {
     JSONObject result =
         executeQuery(
-            withSource(
-                TEST_INDEX_BANK,
+            Index.BANK.ppl(
                 "eval sum_val = sum(10, 20, 30), avg_val = avg(10, 20, 30) | fields"
                     + " sum_val, avg_val | head 5"));
     verifySchema(result, schema("sum_val", null, "int"), schema("avg_val", null, "double"));
@@ -623,9 +591,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   public void testEvalSumInWhereClause() throws IOException {
     JSONObject result =
         executeQuery(
-            withSource(
-                TEST_INDEX_BANK,
-                "where sum(age, 10) > 40 | eval f = sum(age, 10) | fields f | head 6"));
+            Index.BANK.ppl("where sum(age, 10) > 40 | eval f = sum(age, 10) | fields f | head 6"));
     verifySchema(result, schema("f", null, "int"));
     // Should return rows where age + 10 > 40, so age > 30
     verifyDataRows(result, rows(42), rows(46), rows(43), rows(46), rows(49), rows(44));
@@ -635,9 +601,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   public void testEvalAvgInWhereClause() throws IOException {
     JSONObject result =
         executeQuery(
-            withSource(
-                TEST_INDEX_BANK,
-                "where avg(age, 10) > 20 | eval f = avg(age, 10) | fields f | head 6"));
+            Index.BANK.ppl("where avg(age, 10) > 20 | eval f = avg(age, 10) | fields f | head 6"));
     verifySchema(result, schema("f", null, "double"));
     // Should return rows where (age + 10) / 2 > 20, so age > 30
     verifyDataRows(result, rows(21.0), rows(23.0), rows(21.5), rows(23.0), rows(24.5), rows(22.0));
@@ -646,8 +610,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   @Test
   public void testEvalComplexExpression() throws IOException {
     JSONObject result =
-        executeQuery(
-            withSource(TEST_INDEX_BANK, "eval f = sum(age, 5) + avg(10, 20) | fields f | head 5"));
+        executeQuery(Index.BANK.ppl("eval f = sum(age, 5) + avg(10, 20) | fields f | head 5"));
     verifySchema(result, schema("f", null, "double"));
     // sum(age, 5) + avg(10, 20) = (age + 5) + 15.0
     verifyDataRows(result, rows(52.0), rows(56.0), rows(48.0), rows(53.0), rows(56.0));
@@ -657,8 +620,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   public void testEvalNestedSumAvg() throws IOException {
     // Note: This tests the arithmetic expression rewriting, not actual nested function calls
     JSONObject result =
-        executeQuery(
-            withSource(TEST_INDEX_BANK, "eval f = sum(avg(20, 30), 10) | fields f | head 5"));
+        executeQuery(Index.BANK.ppl("eval f = sum(avg(20, 30), 10) | fields f | head 5"));
     verifySchema(result, schema("f", null, "double"));
     // avg(20, 30) = 25.0, sum(25.0, 10) = 35.0
     verifyDataRows(result, rows(35.0), rows(35.0), rows(35.0), rows(35.0), rows(35.0));
@@ -667,7 +629,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   @Test
   public void testEvalSumWithMultipleFields() throws IOException {
     JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "eval f = sum(age, age, 10) | fields f | head 5"));
+        executeQuery(Index.BANK.ppl("eval f = sum(age, age, 10) | fields f | head 5"));
     verifySchema(result, schema("f", null, "int"));
     // sum(age, age, 10) = age + age + 10 = 2*age + 10
     verifyDataRows(result, rows(74), rows(82), rows(66), rows(76), rows(82));
@@ -676,7 +638,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   @Test
   public void testEvalAvgWithExpression() throws IOException {
     JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "eval f = avg(age * 2, 10) | fields f | head 5"));
+        executeQuery(Index.BANK.ppl("eval f = avg(age * 2, 10) | fields f | head 5"));
     verifySchema(result, schema("f", null, "double"));
     // avg(age * 2, 10) = (age * 2 + 10) / 2 = age + 5
     verifyDataRows(result, rows(37.0), rows(41.0), rows(33.0), rows(38.0), rows(41.0));
@@ -685,15 +647,14 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   @Test
   public void testEvalSumWithNegativeNumbers() throws IOException {
     JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "eval f = sum(-5, 10, -3) | fields f | head 5"));
+        executeQuery(Index.BANK.ppl("eval f = sum(-5, 10, -3) | fields f | head 5"));
     verifySchema(result, schema("f", null, "int"));
     verifyDataRows(result, rows(2), rows(2), rows(2), rows(2), rows(2));
   }
 
   @Test
   public void testEvalAvgWithNegativeNumbers() throws IOException {
-    JSONObject result =
-        executeQuery(withSource(TEST_INDEX_BANK, "eval f = avg(-10, 10) | fields f | head 5"));
+    JSONObject result = executeQuery(Index.BANK.ppl("eval f = avg(-10, 10) | fields f | head 5"));
     verifySchema(result, schema("f", null, "double"));
     verifyDataRows(result, rows(0.0), rows(0.0), rows(0.0), rows(0.0), rows(0.0));
   }

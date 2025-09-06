@@ -33,7 +33,7 @@ public class NestedIT extends SQLIntegTestCase {
   public void init() throws IOException {
     loadIndex(Index.MULTI_NESTED);
     loadIndex(Index.NESTED);
-    loadIndex(Index.NESTED_WITHOUT_ARRAYS);
+    loadIndex(Index.NESTED_TYPE_WITHOUT_ARRAYS);
     loadIndex(Index.EMPLOYEE_NESTED);
     loadIndex(Index.NESTED_WITH_NULLS);
     loadIndex(Index.NESTED_SIMPLE);

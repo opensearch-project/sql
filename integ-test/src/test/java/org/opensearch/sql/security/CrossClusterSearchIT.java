@@ -68,13 +68,13 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
 
   @Test
   public void testCrossClusterSearchAllFields() throws IOException {
-    JSONObject result = executeQuery(searchWithSource(TEST_INDEX_DOG_REMOTE, ""));
+    JSONObject result = executeQuery("search " + withSource(TEST_INDEX_DOG_REMOTE, ""));
     verifyColumn(result, columnName("dog_name"), columnName("holdersName"), columnName("age"));
   }
 
   @Test
   public void testMatchAllCrossClusterSearchAllFields() throws IOException {
-    JSONObject result = executeQuery(searchWithSource(TEST_INDEX_DOG_MATCH_ALL_REMOTE, ""));
+    JSONObject result = executeQuery("search " + withSource(TEST_INDEX_DOG_MATCH_ALL_REMOTE, ""));
     verifyColumn(result, columnName("dog_name"), columnName("holdersName"), columnName("age"));
   }
 
@@ -83,7 +83,7 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
     var exception =
         assertThrows(
             ResponseException.class,
-            () -> executeQuery(searchWithSource(TEST_INDEX_ACCOUNT_REMOTE, "")));
+            () -> executeQuery("search " + withSource(TEST_INDEX_ACCOUNT_REMOTE, "")));
     assertTrue(exception.getMessage().contains("IndexNotFoundException"));
   }
 

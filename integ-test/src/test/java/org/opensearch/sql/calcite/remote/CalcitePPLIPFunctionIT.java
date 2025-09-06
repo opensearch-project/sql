@@ -23,35 +23,26 @@ public class CalcitePPLIPFunctionIT extends PPLIntegTestCase {
     enableCalcite();
 
     loadIndex(Index.GEOIP);
-    loadIndex(Index.WEBLOG);
+    loadIndex(Index.WEBLOGS);
   }
 
   @Test
   public void testCidrMatch() throws IOException {
     // No matches
     JSONObject resultNoMatch =
-        executeQuery(
-            String.format(
-                "source=%s | where cidrmatch(host, '250.0.0.0/24') | fields host",
-                TEST_INDEX_WEBLOGS));
+        executeQuery(Index.WEBLOGS.ppl("where cidrmatch(host, '250.0.0.0/24') | fields host"));
     verifySchema(resultNoMatch, schema("host", null, "ip"));
     verifyDataRows(resultNoMatch);
 
     // One match
     JSONObject resultSingleMatch =
-        executeQuery(
-            String.format(
-                "source=%s | where cidrmatch(host, '0.0.0.0/24') | fields host",
-                TEST_INDEX_WEBLOGS));
+        executeQuery(Index.WEBLOGS.ppl("where cidrmatch(host, '0.0.0.0/24') | fields host"));
     verifySchema(resultSingleMatch, schema("host", null, "ip"));
     verifyDataRows(resultSingleMatch, rows("0.0.0.2"));
 
     // Multiple matches
     JSONObject resultMultipleMatch =
-        executeQuery(
-            String.format(
-                "source=%s | where cidrmatch(host, '1.2.3.0/24') | fields host",
-                TEST_INDEX_WEBLOGS));
+        executeQuery(Index.WEBLOGS.ppl("where cidrmatch(host, '1.2.3.0/24') | fields host"));
     verifySchema(resultMultipleMatch, schema("host", null, "ip"));
     verifyDataRows(resultMultipleMatch, rows("1.2.3.4"), rows("1.2.3.5"));
 

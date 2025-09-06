@@ -26,7 +26,7 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
     enableCalcite();
 
     loadIndex(Index.BANK);
-    loadIndex(Index.WEBLOG);
+    loadIndex(Index.WEBLOGS);
     loadIndex(Index.HDFS_LOGS);
   }
 
@@ -81,9 +81,7 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
   @Test
   public void testSimplePatternAggregationMode() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | patterns email mode=aggregation max_sample_count=3", TEST_INDEX_BANK));
+        executeQuery(Index.BANK.ppl("patterns email mode=aggregation max_sample_count=3"));
     verifySchema(
         result,
         schema("pattern_count", "bigint"),
@@ -160,10 +158,8 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
   public void testBrainAggregationMode() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | patterns content method=brain mode=aggregation"
-                    + " variable_count_threshold=5",
-                TEST_INDEX_HDFS_LOGS));
+            Index.HDFS_LOGS.ppl(
+                "patterns content method=brain mode=aggregation" + " variable_count_threshold=5"));
     verifySchema(
         result,
         schema("patterns_field", "string"),
@@ -224,11 +220,10 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
   public void testBrainAggregationModeWithGroupByClause() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | patterns content by level method=BRAIN"
+            Index.HDFS_LOGS.ppl(
+                "patterns content by level method=BRAIN"
                     + " mode=aggregation max_sample_count=5"
-                    + " variable_count_threshold=2 frequency_threshold_percentage=0.2",
-                TEST_INDEX_HDFS_LOGS));
+                    + " variable_count_threshold=2 frequency_threshold_percentage=0.2"));
     verifySchema(
         result,
         schema("level", "string"),
@@ -290,7 +285,7 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
                 "source=%s | eval body = '[PlaceOrder] user_id=d664d7be-77d8-11f0-8880-0242f00b101d"
                     + " user_currency=USD' | head 1 | patterns body method=BRAIN mode=label |"
                     + " fields patterns_field, tokens",
-                Index.WEBLOG.getName()));
+                Index.WEBLOGS.getName()));
     verifySchema(result, schema("patterns_field", "string"), schema("tokens", "struct"));
     verifyDataRows(
         result,

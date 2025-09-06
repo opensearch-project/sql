@@ -248,7 +248,7 @@ public class CursorIT extends SQLIntegTestCase {
 
   @Test
   public void testRegressionOnDateFormatChange() throws IOException {
-    loadIndex(Index.DATETIME);
+    loadIndex(Index.DATE_TIME);
     /**
      * With pagination, the field should be date formatted to MySQL format as in
      *

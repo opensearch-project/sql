@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.ppl;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_CSV_SANITIZE;
 import static org.opensearch.sql.util.TestUtils.assertRowsEqual;
 
 import java.io.IOException;
@@ -22,8 +21,7 @@ public class CsvFormatIT extends PPLIntegTestCase {
 
   @Test
   public void sanitizeTest() throws IOException {
-    String result =
-        executeCsvQuery(withSource(TEST_INDEX_BANK_CSV_SANITIZE, "fields firstname, lastname"));
+    String result = executeCsvQuery(Index.BANK_CSV_SANITIZE.ppl("fields firstname, lastname"));
     assertRowsEqual(
         StringUtils.format(
             "firstname,lastname%n"
@@ -38,8 +36,7 @@ public class CsvFormatIT extends PPLIntegTestCase {
   @Test
   public void escapeSanitizeTest() throws IOException {
     String result =
-        executeCsvQuery(
-            withSource(TEST_INDEX_BANK_CSV_SANITIZE, "fields firstname, lastname"), false);
+        executeCsvQuery(Index.BANK_CSV_SANITIZE.ppl("fields firstname, lastname"), false);
     assertRowsEqual(
         StringUtils.format(
             "firstname,lastname%n"

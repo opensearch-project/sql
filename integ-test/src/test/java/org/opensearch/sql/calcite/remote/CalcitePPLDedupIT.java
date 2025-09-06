@@ -25,10 +25,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
 
   @Test
   public void testDedup() throws IOException {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | dedup 1 name | fields name", TEST_INDEX_DUPLICATION_NULLABLE));
+    JSONObject actual = executeQuery(Index.DUPLICATION_NULLABLE.ppl("dedup 1 name | fields name"));
     verifyDataRows(actual, rows("A"), rows("B"), rows("C"), rows("D"), rows("E"));
   }
 
@@ -36,9 +33,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
   public void testDedupMultipleFields() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | dedup 1 name, category | fields name, category",
-                TEST_INDEX_DUPLICATION_NULLABLE));
+            Index.DUPLICATION_NULLABLE.ppl("dedup 1 name, category | fields name, category"));
     verifyDataRows(
         actual,
         rows("A", "X"),
@@ -53,9 +48,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
   public void testDedupKeepEmpty() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | dedup 1 name KEEPEMPTY=true | fields name, category",
-                TEST_INDEX_DUPLICATION_NULLABLE));
+            Index.DUPLICATION_NULLABLE.ppl("dedup 1 name KEEPEMPTY=true | fields name, category"));
     verifyDataRows(
         actual,
         rows("A", "X"),
@@ -73,9 +66,8 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
   public void testDedupMultipleFieldsKeepEmpty() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | dedup 1 name, category KEEPEMPTY=true | fields name, category",
-                TEST_INDEX_DUPLICATION_NULLABLE));
+            Index.DUPLICATION_NULLABLE.ppl(
+                "dedup 1 name, category KEEPEMPTY=true | fields name, category"));
     verifyDataRows(
         actual,
         rows("A", "X"),
@@ -130,10 +122,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
 
   @Test
   public void testDedup2() throws IOException {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | dedup 2 name | fields name", TEST_INDEX_DUPLICATION_NULLABLE));
+    JSONObject actual = executeQuery(Index.DUPLICATION_NULLABLE.ppl("dedup 2 name | fields name"));
     verifyDataRows(
         actual, rows("A"), rows("A"), rows("B"), rows("B"), rows("C"), rows("C"), rows("D"),
         rows("E"));
@@ -143,9 +132,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
   public void testDedupMultipleFields2() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | dedup 2 name, category | fields name, category",
-                TEST_INDEX_DUPLICATION_NULLABLE));
+            Index.DUPLICATION_NULLABLE.ppl("dedup 2 name, category | fields name, category"));
     verifyDataRows(
         actual,
         rows("A", "X"),
@@ -164,9 +151,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
   public void testDedupKeepEmpty2() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | dedup 2 name KEEPEMPTY=true | fields name, category",
-                TEST_INDEX_DUPLICATION_NULLABLE));
+            Index.DUPLICATION_NULLABLE.ppl("dedup 2 name KEEPEMPTY=true | fields name, category"));
     verifyDataRows(
         actual,
         rows("A", "X"),
@@ -187,9 +172,8 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
   public void testDedupMultipleFieldsKeepEmpty2() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | dedup 2 name, category KEEPEMPTY=true | fields name, category",
-                TEST_INDEX_DUPLICATION_NULLABLE));
+            Index.DUPLICATION_NULLABLE.ppl(
+                "dedup 2 name, category KEEPEMPTY=true | fields name, category"));
     verifyDataRows(
         actual,
         rows("A", "X"),
@@ -214,9 +198,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
   public void testReorderDedupFieldsShouldNotAffectResult() throws IOException {
     JSONObject actual1 =
         executeQuery(
-            String.format(
-                "source=%s | dedup 2 name, category | fields name, category, id",
-                TEST_INDEX_DUPLICATION_NULLABLE));
+            Index.DUPLICATION_NULLABLE.ppl("dedup 2 name, category | fields name, category, id"));
     verifySchemaInOrder(
         actual1,
         schema("name", null, "string"),
@@ -224,9 +206,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
         schema("id", null, "int"));
     JSONObject actual2 =
         executeQuery(
-            String.format(
-                "source=%s | dedup 2 category, name | fields name, category, id",
-                TEST_INDEX_DUPLICATION_NULLABLE));
+            Index.DUPLICATION_NULLABLE.ppl("dedup 2 category, name | fields name, category, id"));
     verifySchemaInOrder(
         actual2,
         schema("name", null, "string"),
@@ -234,9 +214,8 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
         schema("id", null, "int"));
     JSONObject actual3 =
         executeQuery(
-            String.format(
-                "source=%s | dedup 2 name, category KEEPEMPTY=true | fields name, category, id",
-                TEST_INDEX_DUPLICATION_NULLABLE));
+            Index.DUPLICATION_NULLABLE.ppl(
+                "dedup 2 name, category KEEPEMPTY=true | fields name, category, id"));
     verifySchemaInOrder(
         actual3,
         schema("name", null, "string"),
@@ -244,9 +223,8 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
         schema("id", null, "int"));
     JSONObject actual4 =
         executeQuery(
-            String.format(
-                "source=%s | dedup 2 category, name KEEPEMPTY=true | fields name, category, id",
-                TEST_INDEX_DUPLICATION_NULLABLE));
+            Index.DUPLICATION_NULLABLE.ppl(
+                "dedup 2 category, name KEEPEMPTY=true | fields name, category, id"));
     verifySchemaInOrder(
         actual4,
         schema("name", null, "string"),

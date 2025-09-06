@@ -18,8 +18,8 @@ public class SystemFunctionIT extends SQLIntegTestCase {
 
   @Override
   protected void init() throws Exception {
-    loadIndex(Index.DATA_TYPE_NONNUMERIC);
-    loadIndex(Index.DATA_TYPE_NUMERIC);
+    loadIndex(Index.DATATYPE_NONNUMERIC);
+    loadIndex(Index.DATATYPE_NUMERIC);
   }
 
   @Test

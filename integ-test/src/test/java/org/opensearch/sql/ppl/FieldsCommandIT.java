@@ -33,17 +33,14 @@ public class FieldsCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testBasicFieldSelection() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields firstname, lastname"));
+    JSONObject result = executeQuery(Index.ACCOUNT.ppl("fields firstname, lastname"));
     verifyColumn(result, columnName("firstname"), columnName("lastname"));
     verifySchema(result, schema("firstname", "string"), schema("lastname", "string"));
   }
 
   @Test
   public void testMultipleFieldSelection() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | fields firstname, lastname, age | head 3", TEST_INDEX_ACCOUNT));
+    JSONObject result = executeQuery(Index.ACCOUNT.ppl("fields firstname, lastname, age | head 3"));
     verifySchema(
         result,
         schema("firstname", "string"),
@@ -58,7 +55,7 @@ public class FieldsCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testSpecialDataTypes() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "fields birthdate"));
+    JSONObject result = executeQuery(Index.BANK.ppl("fields birthdate"));
     verifySchema(result, schema("birthdate", null, "timestamp"));
 
     verifyDataRows(
@@ -75,14 +72,13 @@ public class FieldsCommandIT extends PPLIntegTestCase {
   @Test
   public void testMetadataFields() throws IOException {
     // Test basic metadata fields
-    JSONObject basicResult =
-        executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields firstname, _index"));
+    JSONObject basicResult = executeQuery(Index.ACCOUNT.ppl("fields firstname, _index"));
     verifyColumn(basicResult, columnName("firstname"), columnName("_index"));
     verifySchema(basicResult, schema("firstname", "string"), schema("_index", "string"));
 
     // Test delimited metadata fields
     JSONObject delimitedResult =
-        executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields firstname, `_id`, `_index`"));
+        executeQuery(Index.ACCOUNT.ppl("fields firstname, `_id`, `_index`"));
     verifyColumn(delimitedResult, columnName("firstname"), columnName("_id"), columnName("_index"));
     verifySchema(
         delimitedResult,
@@ -92,7 +88,7 @@ public class FieldsCommandIT extends PPLIntegTestCase {
 
     // Test metadata fields with eval
     JSONObject evalResult =
-        executeQuery(withSource(TEST_INDEX_ACCOUNT, "eval a = 1 | fields firstname, _index"));
+        executeQuery(Index.ACCOUNT.ppl("eval a = 1 | fields firstname, _index"));
     verifyColumn(evalResult, columnName("firstname"), columnName("_index"));
     verifySchema(evalResult, schema("firstname", "string"), schema("_index", "string"));
   }
@@ -102,10 +98,7 @@ public class FieldsCommandIT extends PPLIntegTestCase {
     Exception e =
         assertThrows(
             Exception.class,
-            () ->
-                executeQuery(
-                    String.format(
-                        "source=%s | eval _id = 1 | fields firstname, _id", TEST_INDEX_ACCOUNT)));
+            () -> executeQuery(Index.ACCOUNT.ppl("eval _id = 1 | fields firstname, _id")));
     verifyErrorMessageContains(e, "Cannot use metadata field [_id] as the eval field.");
   }
 
@@ -113,11 +106,11 @@ public class FieldsCommandIT extends PPLIntegTestCase {
   public void testMergedObjectFields() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | fields machine.os1,  machine.os2, machine_array.os1, "
+            withSource(
+                TEST_INDEX_MERGE_TEST_WILDCARD,
+                "fields machine.os1,  machine.os2, machine_array.os1, "
                     + " machine_array.os2, machine_deep.attr1, machine_deep.attr2,"
-                    + " machine_deep.layer.os1, machine_deep.layer.os2",
-                TEST_INDEX_MERGE_TEST_WILDCARD));
+                    + " machine_deep.layer.os1, machine_deep.layer.os2"));
     verifySchema(
         result,
         schema("machine.os1", "string"),
@@ -154,7 +147,7 @@ public class FieldsCommandIT extends PPLIntegTestCase {
           + " https://github.com/opensearch-project/sql/issues/787 is resolved.")
   @Test
   public void testFieldsWildCard() throws IOException {
-    JSONObject result = executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields ") + "firstnam%");
+    JSONObject result = executeQuery(Index.ACCOUNT.ppl("fields ") + "firstnam%");
     verifyColumn(result, columnPattern("^firstnam.*"));
   }
 }

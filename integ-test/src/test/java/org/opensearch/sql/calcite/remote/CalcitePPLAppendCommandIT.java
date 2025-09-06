@@ -15,7 +15,6 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
@@ -33,12 +32,10 @@ public class CalcitePPLAppendCommandIT extends PPLIntegTestCase {
   public void testAppend() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                Locale.ROOT,
-                "source=%s | stats sum(age) as sum_age_by_gender by gender | append [ source=%s |"
+            Index.ACCOUNT.ppl(
+                "stats sum(age) as sum_age_by_gender by gender | append [ source=%s |"
                     + " stats sum(age) as sum_age_by_state by state | sort sum_age_by_state ] |"
                     + " head 5",
-                TEST_INDEX_ACCOUNT,
                 TEST_INDEX_ACCOUNT));
     verifySchemaInOrder(
         actual,
@@ -59,25 +56,16 @@ public class CalcitePPLAppendCommandIT extends PPLIntegTestCase {
   public void testAppendEmptySearchCommand() throws IOException {
     List<String> emptySourcePPLs =
         Arrays.asList(
-            String.format(
-                Locale.ROOT,
-                "source=%s | stats sum(age) as sum_age_by_gender by gender | append [ |"
-                    + " stats sum(age) as sum_age_by_state by state ]",
-                TEST_INDEX_ACCOUNT),
-            String.format(
-                Locale.ROOT,
-                "source=%s | stats sum(age) as sum_age_by_gender by gender | append [ ]",
-                TEST_INDEX_ACCOUNT),
-            String.format(
-                Locale.ROOT,
-                "source=%s | stats sum(age) as sum_age_by_gender by gender | append [ | where age >"
-                    + " 10 | append [ ] ]",
-                TEST_INDEX_ACCOUNT),
-            String.format(
-                Locale.ROOT,
-                "source=%s | stats sum(age) as sum_age_by_gender by gender | append [ | where age >"
+            Index.ACCOUNT.ppl(
+                "stats sum(age) as sum_age_by_gender by gender | append [ |"
+                    + " stats sum(age) as sum_age_by_state by state ]"),
+            Index.ACCOUNT.ppl("stats sum(age) as sum_age_by_gender by gender | append [ ]"),
+            Index.ACCOUNT.ppl(
+                "stats sum(age) as sum_age_by_gender by gender | append [ | where age >"
+                    + " 10 | append [ ] ]"),
+            Index.ACCOUNT.ppl(
+                "stats sum(age) as sum_age_by_gender by gender | append [ | where age >"
                     + " 10 | lookup %s gender as igender ]",
-                TEST_INDEX_ACCOUNT,
                 TEST_INDEX_ACCOUNT));
 
     for (String ppl : emptySourcePPLs) {
@@ -92,29 +80,21 @@ public class CalcitePPLAppendCommandIT extends PPLIntegTestCase {
   public void testAppendEmptySearchWithJoin() throws IOException {
     List<String> emptySourceWithJoinPPLs =
         Arrays.asList(
-            String.format(
-                Locale.ROOT,
-                "source=%s | stats sum(age) as sum_age_by_gender by gender | append [ | "
+            Index.ACCOUNT.ppl(
+                "stats sum(age) as sum_age_by_gender by gender | append [ | "
                     + " join left=L right=R on L.gender = R.gender %s ]",
-                TEST_INDEX_ACCOUNT,
                 TEST_INDEX_ACCOUNT),
-            String.format(
-                Locale.ROOT,
-                "source=%s | stats sum(age) as sum_age_by_gender by gender | append [ | "
+            Index.ACCOUNT.ppl(
+                "stats sum(age) as sum_age_by_gender by gender | append [ | "
                     + " cross join left=L right=R on L.gender = R.gender %s ]",
-                TEST_INDEX_ACCOUNT,
                 TEST_INDEX_ACCOUNT),
-            String.format(
-                Locale.ROOT,
-                "source=%s | stats sum(age) as sum_age_by_gender by gender | append [ | "
+            Index.ACCOUNT.ppl(
+                "stats sum(age) as sum_age_by_gender by gender | append [ | "
                     + " left join left=L right=R on L.gender = R.gender %s ]",
-                TEST_INDEX_ACCOUNT,
                 TEST_INDEX_ACCOUNT),
-            String.format(
-                Locale.ROOT,
-                "source=%s | stats sum(age) as sum_age_by_gender by gender | append [ | "
+            Index.ACCOUNT.ppl(
+                "stats sum(age) as sum_age_by_gender by gender | append [ | "
                     + " semi join left=L right=R on L.gender = R.gender %s ]",
-                TEST_INDEX_ACCOUNT,
                 TEST_INDEX_ACCOUNT));
 
     for (String ppl : emptySourceWithJoinPPLs) {
@@ -126,19 +106,15 @@ public class CalcitePPLAppendCommandIT extends PPLIntegTestCase {
 
     List<String> emptySourceWithRightOrFullJoinPPLs =
         Arrays.asList(
-            String.format(
-                Locale.ROOT,
-                "source=%s | stats sum(age) as sum_age_by_gender by gender | append [ | where"
+            Index.ACCOUNT.ppl(
+                "stats sum(age) as sum_age_by_gender by gender | append [ | where"
                     + " gender = 'F' |  right join on gender = gender [source=%s | stats count() as"
                     + " cnt by gender ] ]",
-                TEST_INDEX_ACCOUNT,
                 TEST_INDEX_ACCOUNT),
-            String.format(
-                Locale.ROOT,
-                "source=%s | stats sum(age) as sum_age_by_gender by gender | append [ | where"
+            Index.ACCOUNT.ppl(
+                "stats sum(age) as sum_age_by_gender by gender | append [ | where"
                     + " gender = 'F' |  full join on gender = gender [source=%s | stats count() as"
                     + " cnt by gender ] ]",
-                TEST_INDEX_ACCOUNT,
                 TEST_INDEX_ACCOUNT));
 
     for (String ppl : emptySourceWithRightOrFullJoinPPLs) {
@@ -161,12 +137,10 @@ public class CalcitePPLAppendCommandIT extends PPLIntegTestCase {
   public void testAppendDifferentIndex() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                Locale.ROOT,
-                "source=%s | stats sum(age) as sum by gender | append [ source=%s | stats"
+            Index.ACCOUNT.ppl(
+                "stats sum(age) as sum by gender | append [ source=%s | stats"
                     + " sum(age) as bank_sum_age ]",
-                TEST_INDEX_ACCOUNT,
-                TEST_INDEX_BANK));
+                TEST_INDEX_ACCOUNT, TEST_INDEX_BANK));
     verifySchemaInOrder(
         actual,
         schema("sum", "bigint"),
@@ -179,12 +153,10 @@ public class CalcitePPLAppendCommandIT extends PPLIntegTestCase {
   public void testAppendWithMergedColumn() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                Locale.ROOT,
-                "source=%s | stats sum(age) as sum by gender |"
+            Index.ACCOUNT.ppl(
+                "stats sum(age) as sum by gender |"
                     + " append [ source=%s | stats sum(age) as sum by state | sort sum ] | head 5",
-                TEST_INDEX_ACCOUNT,
-                TEST_INDEX_ACCOUNT));
+                TEST_INDEX_ACCOUNT, TEST_INDEX_ACCOUNT));
     verifySchemaInOrder(
         actual, schema("sum", "bigint"), schema("gender", "string"), schema("state", "string"));
     verifyDataRows(
@@ -200,11 +172,9 @@ public class CalcitePPLAppendCommandIT extends PPLIntegTestCase {
   public void testAppendWithConflictTypeColumn() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                Locale.ROOT,
-                "source=%s | stats sum(age) as sum by gender | append [ source=%s | stats sum(age)"
+            Index.ACCOUNT.ppl(
+                "stats sum(age) as sum by gender | append [ source=%s | stats sum(age)"
                     + " as sum by state | sort sum | eval sum = cast(sum as double) ] | head 5",
-                TEST_INDEX_ACCOUNT,
                 TEST_INDEX_ACCOUNT));
     verifySchemaInOrder(
         actual,
