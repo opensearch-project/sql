@@ -28,8 +28,7 @@ public class DedupCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testDedup() throws IOException {
-    JSONObject result =
-        executeQuery(String.format("source=%s | dedup male | fields male", TEST_INDEX_BANK));
+    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "dedup male | fields male"));
     verifyDataRows(result, rows(true), rows(false));
   }
 
@@ -53,8 +52,7 @@ public class DedupCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testAllowMoreDuplicates() throws IOException {
-    JSONObject result =
-        executeQuery(String.format("source=%s | dedup 2 male | fields male", TEST_INDEX_BANK));
+    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "dedup 2 male | fields male"));
     verifyDataRows(result, rows(true), rows(true), rows(false), rows(false));
   }
 

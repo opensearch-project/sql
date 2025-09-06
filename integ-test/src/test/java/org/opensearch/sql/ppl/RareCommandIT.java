@@ -32,7 +32,7 @@ public class RareCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testRareWithoutGroup() throws IOException {
-    JSONObject result = executeQuery(String.format("source=%s | rare gender", TEST_INDEX_ACCOUNT));
+    JSONObject result = executeQuery(withSource(TEST_INDEX_ACCOUNT, "rare gender"));
     if (isCalciteEnabled()) {
       verifySchemaInOrder(result, schema("gender", "string"), schema("count", "bigint"));
       verifyDataRows(result, rows("F", 493), rows("M", 507));
@@ -43,8 +43,7 @@ public class RareCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testRareWithGroup() throws IOException {
-    JSONObject result =
-        executeQuery(String.format("source=%s | rare state by gender", TEST_INDEX_ACCOUNT));
+    JSONObject result = executeQuery(withSource(TEST_INDEX_ACCOUNT, "rare state by gender"));
     if (isCalciteEnabled()) {
       verifySchemaInOrder(
           result, schema("gender", "string"), schema("state", "string"), schema("count", "bigint"));

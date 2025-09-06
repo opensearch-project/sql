@@ -90,10 +90,10 @@ public class CalciteEvalCommandIT extends PPLIntegTestCase {
   public void testEvalStringConcatenationWithExistingData() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | eval full_name = firstname + ' ' + lastname | head 3 | fields"
-                    + " firstname, lastname, full_name",
-                TEST_INDEX_BANK));
+            withSource(
+                TEST_INDEX_BANK,
+                "eval full_name = firstname + ' ' + lastname | head 3 | fields"
+                    + " firstname, lastname, full_name"));
     verifySchema(
         result,
         schema("firstname", "string"),

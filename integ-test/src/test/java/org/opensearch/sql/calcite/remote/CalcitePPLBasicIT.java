@@ -185,8 +185,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   @Test
   public void testQueryMinusFields() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format("source=%s | fields - firstname, lastname, birthdate", TEST_INDEX_BANK));
+        executeQuery(withSource(TEST_INDEX_BANK, "fields - firstname, lastname, birthdate"));
     verifySchema(
         actual,
         schema("account_number", "bigint"),
@@ -344,8 +343,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   @Test
   public void testMultipleTables_SameTable() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format("source=%s, %s | stats count() as c", TEST_INDEX_BANK, TEST_INDEX_BANK));
+        executeQuery(withSource(TEST_INDEX_BANK + ", " + TEST_INDEX_BANK, "stats count() as c"));
     verifySchema(actual, schema("c", "bigint"));
     verifyDataRows(actual, rows(7));
   }
@@ -363,16 +361,14 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
 
   @Test
   public void testMultipleTables_DifferentTables() throws IOException {
-    JSONObject actual =
-        executeQuery(String.format("source=%s, test | stats count() as c", TEST_INDEX_BANK));
+    JSONObject actual = executeQuery(withSource(TEST_INDEX_BANK + ", test", "stats count() as c"));
     verifySchema(actual, schema("c", "bigint"));
     verifyDataRows(actual, rows(9));
   }
 
   @Test
   public void testMultipleTables_WithIndexPattern() throws IOException {
-    JSONObject actual =
-        executeQuery(String.format("source=%s, test* | stats count() as c", TEST_INDEX_BANK));
+    JSONObject actual = executeQuery(withSource(TEST_INDEX_BANK + ", test*", "stats count() as c"));
     verifySchema(actual, schema("c", "bigint"));
     verifyDataRows(actual, rows(10));
   }
@@ -380,16 +376,14 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   @Test
   public void testMultipleTablesAndFilters_WithIndexPattern() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format("source=%s, test* gender = 'F' | stats count() as c", TEST_INDEX_BANK));
+        executeQuery(withSource(TEST_INDEX_BANK + ", test* gender = 'F'", "stats count() as c"));
     verifySchema(actual, schema("c", "bigint"));
     verifyDataRows(actual, rows(3));
   }
 
   @Test
   public void testSelectDateTypeField() throws IOException {
-    JSONObject actual =
-        executeQuery(String.format("source=%s | fields birthdate", TEST_INDEX_BANK));
+    JSONObject actual = executeQuery(withSource(TEST_INDEX_BANK, "fields birthdate"));
     verifySchema(actual, schema("birthdate", "timestamp"));
     verifyDataRows(
         actual,
@@ -534,9 +528,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
           Throwable e =
               assertThrowsWithReplace(
                   IllegalArgumentException.class,
-                  () ->
-                      executeQuery(
-                          String.format("source=%s | fields firstname1, age", TEST_INDEX_BANK)));
+                  () -> executeQuery(withSource(TEST_INDEX_BANK, "fields firstname1, age")));
           verifyErrorMessageContains(
               e,
               "field [firstname1] not found; input fields are: [account_number, firstname, address,"
@@ -562,9 +554,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
     Throwable e =
         assertThrowsWithReplace(
             Exception.class,
-            () ->
-                executeQuery(
-                    String.format("source=%s | stats count() as _score", TEST_INDEX_ACCOUNT)));
+            () -> executeQuery(withSource(TEST_INDEX_ACCOUNT, "stats count() as _score")));
     verifyErrorMessageContains(e, "Cannot use metadata field [_score] as the alias.");
   }
 

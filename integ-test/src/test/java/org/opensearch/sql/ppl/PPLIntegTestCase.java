@@ -70,6 +70,10 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     return responseBody.replace("\\r\\n", "\\n");
   }
 
+  protected String withSource(String source, String query) {
+    return String.format(Locale.ROOT, "source=%s | %s", source, query);
+  }
+
   protected String executeCsvQuery(String query, boolean sanitize) throws IOException {
     Request request =
         buildRequest(

@@ -33,8 +33,7 @@ public class FieldsCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testBasicFieldSelection() throws IOException {
-    JSONObject result =
-        executeQuery(String.format("source=%s | fields firstname, lastname", TEST_INDEX_ACCOUNT));
+    JSONObject result = executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields firstname, lastname"));
     verifyColumn(result, columnName("firstname"), columnName("lastname"));
     verifySchema(result, schema("firstname", "string"), schema("lastname", "string"));
   }
@@ -59,8 +58,7 @@ public class FieldsCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testSpecialDataTypes() throws IOException {
-    JSONObject result =
-        executeQuery(String.format("source=%s | fields birthdate", TEST_INDEX_BANK));
+    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "fields birthdate"));
     verifySchema(result, schema("birthdate", null, "timestamp"));
 
     verifyDataRows(
@@ -78,14 +76,13 @@ public class FieldsCommandIT extends PPLIntegTestCase {
   public void testMetadataFields() throws IOException {
     // Test basic metadata fields
     JSONObject basicResult =
-        executeQuery(String.format("source=%s | fields firstname, _index", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields firstname, _index"));
     verifyColumn(basicResult, columnName("firstname"), columnName("_index"));
     verifySchema(basicResult, schema("firstname", "string"), schema("_index", "string"));
 
     // Test delimited metadata fields
     JSONObject delimitedResult =
-        executeQuery(
-            String.format("source=%s | fields firstname, `_id`, `_index`", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields firstname, `_id`, `_index`"));
     verifyColumn(delimitedResult, columnName("firstname"), columnName("_id"), columnName("_index"));
     verifySchema(
         delimitedResult,
@@ -95,8 +92,7 @@ public class FieldsCommandIT extends PPLIntegTestCase {
 
     // Test metadata fields with eval
     JSONObject evalResult =
-        executeQuery(
-            String.format("source=%s | eval a = 1 | fields firstname, _index", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "eval a = 1 | fields firstname, _index"));
     verifyColumn(evalResult, columnName("firstname"), columnName("_index"));
     verifySchema(evalResult, schema("firstname", "string"), schema("_index", "string"));
   }
@@ -158,8 +154,7 @@ public class FieldsCommandIT extends PPLIntegTestCase {
           + " https://github.com/opensearch-project/sql/issues/787 is resolved.")
   @Test
   public void testFieldsWildCard() throws IOException {
-    JSONObject result =
-        executeQuery(String.format("source=%s | fields ", TEST_INDEX_ACCOUNT) + "firstnam%");
+    JSONObject result = executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields ") + "firstnam%");
     verifyColumn(result, columnPattern("^firstnam.*"));
   }
 }

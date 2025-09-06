@@ -24,58 +24,56 @@ public class QueryAnalysisIT extends PPLIntegTestCase {
   /** Valid commands should pass both syntax analysis and semantic check. */
   @Test
   public void searchCommandShouldPassSemanticCheck() {
-    String query = String.format("search source=%s age=20", TEST_INDEX_ACCOUNT);
+    String query = "search " + withSource(TEST_INDEX_ACCOUNT, "age=20");
     queryShouldPassSyntaxAndSemanticCheck(query);
   }
 
   @Test
   public void whereCommandShouldPassSemanticCheck() {
-    String query = String.format("search source=%s | where age=20", TEST_INDEX_ACCOUNT);
+    String query = "search " + withSource(TEST_INDEX_ACCOUNT, "where age=20");
     queryShouldPassSyntaxAndSemanticCheck(query);
   }
 
   @Test
   public void fieldsCommandShouldPassSemanticCheck() {
-    String query = String.format("search source=%s | fields firstname", TEST_INDEX_ACCOUNT);
+    String query = "search " + withSource(TEST_INDEX_ACCOUNT, "fields firstname");
     queryShouldPassSyntaxAndSemanticCheck(query);
   }
 
   @Test
   public void renameCommandShouldPassSemanticCheck() {
-    String query =
-        String.format("search source=%s | rename firstname as first", TEST_INDEX_ACCOUNT);
+    String query = "search " + withSource(TEST_INDEX_ACCOUNT, "rename firstname as first");
     queryShouldPassSyntaxAndSemanticCheck(query);
   }
 
   @Test
   public void statsCommandShouldPassSemanticCheck() {
-    String query = String.format("search source=%s | stats avg(age)", TEST_INDEX_ACCOUNT);
+    String query = "search " + withSource(TEST_INDEX_ACCOUNT, "stats avg(age)");
     queryShouldPassSyntaxAndSemanticCheck(query);
   }
 
   @Test
   public void dedupCommandShouldPassSemanticCheck() {
-    String query =
-        String.format("search source=%s | dedup firstname, lastname", TEST_INDEX_ACCOUNT);
+    String query = "search " + withSource(TEST_INDEX_ACCOUNT, "dedup firstname, lastname");
     queryShouldPassSyntaxAndSemanticCheck(query);
   }
 
   @Test
   public void sortCommandShouldPassSemanticCheck() {
-    String query = String.format("search source=%s | sort age", TEST_INDEX_ACCOUNT);
+    String query = "search " + withSource(TEST_INDEX_ACCOUNT, "sort age");
     queryShouldPassSyntaxAndSemanticCheck(query);
   }
 
   @Test
   public void evalCommandShouldPassSemanticCheck() {
-    String query = String.format("search source=%s | eval age=abs(age)", TEST_INDEX_ACCOUNT);
+    String query = "search " + withSource(TEST_INDEX_ACCOUNT, "eval age=abs(age)");
     queryShouldPassSyntaxAndSemanticCheck(query);
     queryShouldPassSyntaxAndSemanticCheck(query);
   }
 
   @Test
   public void queryShouldBeCaseInsensitiveInKeywords() {
-    String query = String.format("SEARCH SourCE=%s", TEST_INDEX_ACCOUNT);
+    String query = "SEARCH " + withSource(TEST_INDEX_ACCOUNT, "");
     queryShouldPassSyntaxAndSemanticCheck(query);
   }
 
@@ -88,7 +86,7 @@ public class QueryAnalysisIT extends PPLIntegTestCase {
 
   @Test
   public void queryWithIncorrectCommandShouldFailSyntaxCheck() {
-    String query = String.format("search source=%s | field firstname", TEST_INDEX_ACCOUNT);
+    String query = "search " + withSource(TEST_INDEX_ACCOUNT, "field firstname");
     queryShouldThrowSyntaxException(query, SYNTAX_EX_MSG_FRAGMENT);
   }
 
@@ -100,14 +98,14 @@ public class QueryAnalysisIT extends PPLIntegTestCase {
 
   @Test
   public void unsupportedAggregationFunctionShouldFailSyntaxCheck() {
-    String query = String.format("search source=%s | stats range(age)", TEST_INDEX_ACCOUNT);
+    String query = "search " + withSource(TEST_INDEX_ACCOUNT, "stats range(age)");
     queryShouldThrowSyntaxException(query, SYNTAX_EX_MSG_FRAGMENT);
   }
 
   /** Commands that fail semantic analysis should throw {@link SemanticCheckException}. */
   @Test
   public void nonexistentFieldShouldFailSemanticCheck() {
-    String query = String.format("search source=%s | fields name", TEST_INDEX_ACCOUNT);
+    String query = "search " + withSource(TEST_INDEX_ACCOUNT, "fields name");
     queryShouldThrowSemanticException(
         query, "can't resolve Symbol(namespace=FIELD_NAME, name=name) in type env");
   }

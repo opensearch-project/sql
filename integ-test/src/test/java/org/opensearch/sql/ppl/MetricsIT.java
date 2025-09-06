@@ -39,7 +39,7 @@ public class MetricsIT extends PPLIntegTestCase {
 
   private void multiQueries(int n) throws IOException {
     for (int i = 0; i < n; ++i) {
-      executeQuery(String.format("source=%s | where age = 31 + 1 | fields age", TEST_INDEX_BANK));
+      executeQuery(withSource(TEST_INDEX_BANK, "where age = 31 + 1 | fields age"));
     }
   }
 

@@ -26,7 +26,7 @@ public class TopCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testTopWithoutGroup() throws IOException {
-    JSONObject result = executeQuery(String.format("source=%s | top gender", TEST_INDEX_ACCOUNT));
+    JSONObject result = executeQuery(withSource(TEST_INDEX_ACCOUNT, "top gender"));
     if (isCalciteEnabled()) {
       verifySchemaInOrder(result, schema("gender", "string"), schema("count", "bigint"));
       verifyDataRows(result, rows("M", 507), rows("F", 493));
@@ -37,7 +37,7 @@ public class TopCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testTopNWithoutGroup() throws IOException {
-    JSONObject result = executeQuery(String.format("source=%s | top 1 gender", TEST_INDEX_ACCOUNT));
+    JSONObject result = executeQuery(withSource(TEST_INDEX_ACCOUNT, "top 1 gender"));
     if (isCalciteEnabled()) {
       verifySchemaInOrder(result, schema("gender", "string"), schema("count", "bigint"));
       verifyDataRows(result, rows("M", 507));
@@ -48,8 +48,7 @@ public class TopCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testTopNWithGroup() throws IOException {
-    JSONObject result =
-        executeQuery(String.format("source=%s | top 1 state by gender", TEST_INDEX_ACCOUNT));
+    JSONObject result = executeQuery(withSource(TEST_INDEX_ACCOUNT, "top 1 state by gender"));
     if (isCalciteEnabled()) {
       verifySchemaInOrder(
           result, schema("gender", "string"), schema("state", "string"), schema("count", "bigint"));

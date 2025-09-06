@@ -36,7 +36,7 @@ public class DataTypeIT extends PPLIntegTestCase {
 
   @Test
   public void test_numeric_data_types() throws IOException {
-    JSONObject result = executeQuery(String.format("source=%s", TEST_INDEX_DATATYPE_NUMERIC));
+    JSONObject result = executeQuery(withSource(TEST_INDEX_DATATYPE_NUMERIC, ""));
     verifySchema(
         result,
         schema("long_number", "bigint"),
@@ -51,7 +51,7 @@ public class DataTypeIT extends PPLIntegTestCase {
 
   @Test
   public void test_nonnumeric_data_types() throws IOException {
-    JSONObject result = executeQuery(String.format("source=%s", TEST_INDEX_DATATYPE_NONNUMERIC));
+    JSONObject result = executeQuery(withSource(TEST_INDEX_DATATYPE_NONNUMERIC, ""));
     verifySchemaInOrder(
         result,
         schema("text_value", "string"),
@@ -85,14 +85,14 @@ public class DataTypeIT extends PPLIntegTestCase {
   public void test_long_integer_data_type() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | eval "
+            withSource(
+                TEST_INDEX_DATATYPE_NUMERIC,
+                "eval "
                     + " int1 = 2147483647,"
                     + " int2 = -2147483648,"
                     + " long1 = 2147483648,"
                     + " long2 = -2147483649 | "
-                    + "fields int1, int2, long1, long2 ",
-                TEST_INDEX_DATATYPE_NUMERIC));
+                    + "fields int1, int2, long1, long2 "));
     verifySchema(
         result,
         schema("int1", "int"),
@@ -105,9 +105,7 @@ public class DataTypeIT extends PPLIntegTestCase {
   public void test_alias_data_type() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | where alias_col > 1 | fields original_col, alias_col ",
-                TEST_INDEX_ALIAS));
+            withSource(TEST_INDEX_ALIAS, "where alias_col > 1 | fields original_col, alias_col "));
     verifySchema(result, schema("original_col", "int"), schema("alias_col", "int"));
     verifyDataRows(result, rows(2, 2), rows(3, 3));
   }
@@ -126,10 +124,10 @@ public class DataTypeIT extends PPLIntegTestCase {
 
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | where long_number=12345678 | fields long_number, integer_number,"
-                    + " double_number, float_number",
-                TEST_INDEX_DATATYPE_NUMERIC));
+            withSource(
+                TEST_INDEX_DATATYPE_NUMERIC,
+                "where long_number=12345678 | fields long_number, integer_number,"
+                    + " double_number, float_number"));
     verifySchema(
         result,
         schema("long_number", "bigint"),
@@ -157,9 +155,9 @@ public class DataTypeIT extends PPLIntegTestCase {
 
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | where keyword_value='test' | fields boolean_value",
-                TEST_INDEX_DATATYPE_NONNUMERIC));
+            withSource(
+                TEST_INDEX_DATATYPE_NONNUMERIC,
+                "where keyword_value='test' | fields boolean_value"));
     verifySchema(result, schema("boolean_value", "boolean"));
     verifyDataRows(result, rows(true));
 

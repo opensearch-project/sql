@@ -35,8 +35,7 @@ public class SortCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testSortCommand() throws IOException {
-    JSONObject result =
-        executeQuery(String.format("source=%s | sort age | fields age", TEST_INDEX_BANK));
+    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "sort age | fields age"));
     verifyOrder(result, rows(28), rows(32), rows(33), rows(34), rows(36), rows(36), rows(39));
   }
 
@@ -121,7 +120,7 @@ public class SortCommandIT extends PPLIntegTestCase {
   @Test
   public void testSortStringField() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | sort lastname | fields lastname", TEST_INDEX_BANK));
+        executeQuery(withSource(TEST_INDEX_BANK, "sort lastname | fields lastname"));
     verifyOrder(
         result,
         rows("Adams"),
@@ -136,7 +135,7 @@ public class SortCommandIT extends PPLIntegTestCase {
   @Test
   public void testSortIpField() throws IOException {
     final JSONObject result =
-        executeQuery(String.format("source=%s | fields host | sort host", TEST_INDEX_WEBLOGS));
+        executeQuery(withSource(TEST_INDEX_WEBLOGS, "fields host | sort host"));
     verifyOrder(
         result,
         rows("::1"),
@@ -150,15 +149,13 @@ public class SortCommandIT extends PPLIntegTestCase {
   @Test
   public void testSortMultipleFields() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format("source=%s | sort dog_name, age | fields dog_name, age", TEST_INDEX_DOG));
+        executeQuery(withSource(TEST_INDEX_DOG, "sort dog_name, age | fields dog_name, age"));
     verifyOrder(result, rows("rex", 2), rows("snoopy", 4));
   }
 
   @Test
   public void testSortThenHead() throws IOException {
-    JSONObject result =
-        executeQuery(String.format("source=%s | sort age | head 2 | fields age", TEST_INDEX_BANK));
+    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "sort age | head 2 | fields age"));
     verifyOrder(result, rows(28), rows(32));
   }
 
@@ -212,8 +209,7 @@ public class SortCommandIT extends PPLIntegTestCase {
   @Test
   public void testSortWithNumCast() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format("source=%s | sort num(bytes) | fields bytes", TEST_INDEX_WEBLOGS));
+        executeQuery(withSource(TEST_INDEX_WEBLOGS, "sort num(bytes) | fields bytes"));
     verifyOrder(
         result, rows("1234"), rows("3985"), rows("4085"), rows("4321"), rows("6245"), rows("9876"));
   }

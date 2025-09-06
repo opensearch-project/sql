@@ -25,13 +25,12 @@ public class SettingsIT extends PPLIntegTestCase {
   public void testQuerySizeLimit() throws IOException {
     // Default setting, fetch 200 rows from query
     JSONObject result =
-        executeQuery(String.format("search source=%s age>35 | fields firstname", TEST_INDEX_BANK));
+        executeQuery("search " + withSource(TEST_INDEX_BANK, "age>35 | fields firstname"));
     verifyDataRows(result, rows("Hattie"), rows("Elinor"), rows("Virginia"));
 
     // Fetch 1 rows from query
     setQuerySizeLimit(1);
-    result =
-        executeQuery(String.format("search source=%s age>35 | fields firstname", TEST_INDEX_BANK));
+    result = executeQuery("search " + withSource(TEST_INDEX_BANK, "age>35 | fields firstname"));
     verifyDataRows(result, rows("Hattie"));
   }
 
@@ -40,27 +39,24 @@ public class SettingsIT extends PPLIntegTestCase {
     // Default setting, fetch 200 rows from query
     JSONObject result =
         executeQuery(
-            String.format(
-                "search source=%s | eval a = 1 | where age>35 | fields firstname",
-                TEST_INDEX_BANK));
+            "search "
+                + withSource(TEST_INDEX_BANK, "eval a = 1 | where age>35 | fields firstname"));
     verifyDataRows(result, rows("Hattie"), rows("Elinor"), rows("Virginia"));
 
     // Fetch 2 rows from query
     setQuerySizeLimit(2);
     result =
         executeQuery(
-            String.format(
-                "search source=%s | eval a = 1 | where age>35 | fields firstname",
-                TEST_INDEX_BANK));
+            "search "
+                + withSource(TEST_INDEX_BANK, "eval a = 1 | where age>35 | fields firstname"));
     verifyDataRows(result, rows("Hattie"), rows("Elinor"));
 
     // Fetch 1 rows from query
     setQuerySizeLimit(1);
     result =
         executeQuery(
-            String.format(
-                "search source=%s | eval a = 1 | where age>35 | fields firstname",
-                TEST_INDEX_BANK));
+            "search "
+                + withSource(TEST_INDEX_BANK, "eval a = 1 | where age>35 | fields firstname"));
     verifyDataRows(result, rows("Hattie"));
   }
 }

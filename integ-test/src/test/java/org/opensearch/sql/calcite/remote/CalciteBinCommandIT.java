@@ -32,9 +32,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinWithNumericSpan() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | bin age span=10 | fields age | sort age | head 3",
-                TEST_INDEX_ACCOUNT));
+            withSource(TEST_INDEX_ACCOUNT, "bin age span=10 | fields age | sort age | head 3"));
     verifySchema(result, schema("age", null, "string"));
 
     verifyDataRows(result, rows("20-30"), rows("20-30"), rows("20-30"));
@@ -44,9 +42,9 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinNumericSpanPrecise() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | bin balance span=10000 | fields balance | sort balance |" + " head 3",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT,
+                "bin balance span=10000 | fields balance | sort balance | head 3"));
     verifySchema(result, schema("balance", null, "string"));
 
     verifyDataRows(result, rows("0-10000"), rows("0-10000"), rows("0-10000"));
@@ -67,9 +65,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinWithMinspan() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | bin age minspan=5 | fields age | sort age | head 3",
-                TEST_INDEX_ACCOUNT));
+            withSource(TEST_INDEX_ACCOUNT, "bin age minspan=5 | fields age | sort age | head 3"));
     verifySchema(result, schema("age", null, "string"));
 
     verifyDataRows(result, rows("20-30"), rows("20-30"), rows("20-30"));
@@ -78,8 +74,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   @Test
   public void testBinBasicFunctionality() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format("source=%s | bin age span=5 | fields age | head 3", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "bin age span=5 | fields age | head 3"));
     verifySchema(result, schema("age", null, "string"));
 
     verifyDataRows(result, rows("30-35"), rows("35-40"), rows("25-30"));
@@ -89,9 +84,9 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinLargeSpanValue() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | bin balance span=25000 | fields balance | sort balance |" + " head 2",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT,
+                "bin balance span=25000 | fields balance | sort balance | head 2"));
     verifySchema(result, schema("balance", null, "string"));
 
     verifyDataRows(result, rows("0-25000"), rows("0-25000"));
@@ -113,9 +108,9 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinWithStartEndBins() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | bin age bins=5 start=0 end=100 | fields age | sort age |" + " head 3",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT,
+                "bin age bins=5 start=0 end=100 | fields age | sort age | head 3"));
     verifySchema(result, schema("age", null, "string"));
 
     // With bins=5 and start=0 end=100, expect equal-width bins based on actual data
@@ -126,10 +121,9 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinWithStartEndBinsBalance() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | bin balance bins=10 start=0 end=200000 | fields balance |"
-                    + " sort balance | head 3",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT,
+                "bin balance bins=10 start=0 end=200000 | fields balance | sort balance | head 3"));
     verifySchema(result, schema("balance", null, "string"));
 
     verifyDataRows(result, rows("0-10000"), rows("0-10000"), rows("0-10000"));
@@ -139,9 +133,9 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinWithStartEndLargeRange() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | bin age bins=5 start=0 end=1000 | fields age | sort age |" + " head 1",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT,
+                "bin age bins=5 start=0 end=1000 | fields age | sort age | head 1"));
     verifySchema(result, schema("age", null, "string"));
 
     verifyDataRows(result, rows("20-30"));
@@ -243,8 +237,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinAgeSpan5() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | bin age span=5 | fields age | sort age | head 3", TEST_INDEX_ACCOUNT));
+            withSource(TEST_INDEX_ACCOUNT, "bin age span=5 | fields age | sort age | head 3"));
     verifySchema(result, schema("age", null, "string"));
     verifyDataRows(result, rows("20-25"), rows("20-25"), rows("20-25"));
   }
@@ -253,9 +246,9 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinBalanceSpan1000() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | bin balance span=1000 | fields balance | sort balance | head" + " 3",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT,
+                "bin balance span=1000 | fields balance | sort balance | head 3"));
     verifySchema(result, schema("balance", null, "string"));
     verifyDataRows(result, rows("1000-2000"), rows("1000-2000"), rows("1000-2000"));
   }
@@ -264,8 +257,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinAgeBins2() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | bin age bins=2 | fields age | sort age | head 3", TEST_INDEX_ACCOUNT));
+            withSource(TEST_INDEX_ACCOUNT, "bin age bins=2 | fields age | sort age | head 3"));
     verifySchema(result, schema("age", null, "string"));
     verifyDataRows(result, rows("0-100"), rows("0-100"), rows("0-100"));
   }
@@ -274,9 +266,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinAgeBins21() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | bin age bins=21 | fields age | sort age | head 3",
-                TEST_INDEX_ACCOUNT));
+            withSource(TEST_INDEX_ACCOUNT, "bin age bins=21 | fields age | sort age | head 3"));
     verifySchema(result, schema("age", null, "string"));
     verifyDataRows(result, rows("20-21"), rows("20-21"), rows("20-21"));
   }
@@ -285,9 +275,9 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinBalanceBins49() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | bin balance bins=49 | fields balance | sort balance | head" + " 3",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT,
+                "bin balance bins=49 | fields balance | sort balance | head 3"));
     verifySchema(result, schema("balance", null, "string"));
     verifyDataRows(result, rows("1000-2000"), rows("1000-2000"), rows("1000-2000"));
   }
@@ -296,9 +286,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinAgeMinspan101() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | bin age minspan=101 | fields age | sort age | head 3",
-                TEST_INDEX_ACCOUNT));
+            withSource(TEST_INDEX_ACCOUNT, "bin age minspan=101 | fields age | sort age | head 3"));
     verifySchema(result, schema("age", null, "string"));
     verifyDataRows(result, rows("0-1000"), rows("0-1000"), rows("0-1000"));
   }
@@ -307,9 +295,8 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinAgeStartEndRange() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | bin age start=0 end=101 | fields age | sort age | head 3",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT, "bin age start=0 end=101 | fields age | sort age | head 3"));
     verifySchema(result, schema("age", null, "string"));
     verifyDataRows(result, rows("0-100"), rows("0-100"), rows("0-100"));
   }
@@ -318,10 +305,9 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinBalanceStartEndRange() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | bin balance start=0 end=100001 | fields balance | sort"
-                    + " balance | head 3",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT,
+                "bin balance start=0 end=100001 | fields balance | sort balance | head 3"));
     verifySchema(result, schema("balance", null, "string"));
     verifyDataRows(result, rows("0-100000"), rows("0-100000"), rows("0-100000"));
   }
@@ -330,9 +316,9 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinBalanceSpanLog10() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | bin balance span=log10 | fields balance | sort balance |" + " head 3",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT,
+                "bin balance span=log10 | fields balance | sort balance | head 3"));
     verifySchema(result, schema("balance", null, "string"));
     verifyDataRows(result, rows("1000.0-10000.0"), rows("1000.0-10000.0"), rows("1000.0-10000.0"));
   }
@@ -341,9 +327,9 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinBalanceSpan2Log10() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | bin balance span=2log10 | fields balance | sort balance |" + " head 3",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT,
+                "bin balance span=2log10 | fields balance | sort balance | head 3"));
     verifySchema(result, schema("balance", null, "string"));
     verifyDataRows(result, rows("200.0-2000.0"), rows("200.0-2000.0"), rows("200.0-2000.0"));
   }
@@ -352,9 +338,9 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinBalanceSpanLog2() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | bin balance span=log2 | fields balance | sort balance | head" + " 3",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT,
+                "bin balance span=log2 | fields balance | sort balance | head 3"));
     verifySchema(result, schema("balance", null, "string"));
     verifyDataRows(result, rows("1024.0-2048.0"), rows("1024.0-2048.0"), rows("1024.0-2048.0"));
   }
@@ -363,10 +349,9 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinBalanceSpan1Point5Log10() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | bin balance span=1.5log10 | fields balance | sort balance |"
-                    + " head 3",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT,
+                "bin balance span=1.5log10 | fields balance | sort balance | head 3"));
     verifySchema(result, schema("balance", null, "string"));
     verifyDataRows(result, rows("150.0-1500.0"), rows("150.0-1500.0"), rows("150.0-1500.0"));
   }
@@ -375,10 +360,9 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinBalanceSpanArbitraryLog() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | bin balance span=1.11log2 | fields balance | sort balance |"
-                    + " head 3",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT,
+                "bin balance span=1.11log2 | fields balance | sort balance | head 3"));
     verifySchema(result, schema("balance", null, "string"));
     verifyDataRows(
         result, rows("1136.64-2273.28"), rows("1136.64-2273.28"), rows("1136.64-2273.28"));
@@ -476,8 +460,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
             ResponseException.class,
             () -> {
               executeQuery(
-                  String.format(
-                      "source=%s | bin non_existent_field span=10 | head 1", TEST_INDEX_ACCOUNT));
+                  withSource(TEST_INDEX_ACCOUNT, "bin non_existent_field span=10 | head 1"));
             });
 
     // Verify the error message contains information about the missing field
@@ -491,9 +474,9 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinSpanWithStartEndNeverShrinkRange() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | bin age span=1 start=25 end=35 as cate | fields cate, age | head 6",
-                TEST_INDEX_BANK));
+            withSource(
+                TEST_INDEX_BANK,
+                "bin age span=1 start=25 end=35 as cate | fields cate, age | head 6"));
 
     verifySchema(result, schema("cate", null, "string"), schema("age", null, "int"));
 
@@ -510,9 +493,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   @Test
   public void testBinFloatingPointSpanBasicFunctionality() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | bin age span=2.5 | fields age | head 3", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "bin age span=2.5 | fields age | head 3"));
     verifySchema(result, schema("age", null, "string"));
 
     // Test that floating point spans work with proper range formatting
@@ -523,10 +504,9 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinFloatingPointSpanWithStats() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | bin balance span=15000.5 | fields balance | sort balance |"
-                    + " head 2",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT,
+                "bin balance span=15000.5 | fields balance | sort balance | head 2"));
 
     verifySchema(result, schema("balance", null, "string"));
 

@@ -50,8 +50,7 @@ public class ObjectFieldOperateIT extends PPLIntegTestCase {
   @Test
   public void group_object_field_in_stats() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format("source=%s | stats count() by city.name", TEST_INDEX_DEEP_NESTED));
+        executeQuery(withSource(TEST_INDEX_DEEP_NESTED, "stats count() by city.name"));
     verifySchema(
         result,
         schema("count()", isCalciteEnabled() ? "bigint" : "int"),
@@ -72,8 +71,7 @@ public class ObjectFieldOperateIT extends PPLIntegTestCase {
 
   @Test
   public void verify_schema_without_fields() throws IOException {
-    JSONObject result =
-        executeQuery(String.format("source=%s | sort city.name ", TEST_INDEX_DEEP_NESTED));
+    JSONObject result = executeQuery(withSource(TEST_INDEX_DEEP_NESTED, "sort city.name "));
     verifySchema(
         result,
         schema("projects", "array"),

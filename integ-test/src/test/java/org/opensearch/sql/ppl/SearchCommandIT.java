@@ -28,15 +28,15 @@ public class SearchCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testSearchAllFields() throws IOException {
-    JSONObject result = executeQuery(String.format("search source=%s", TEST_INDEX_DOG));
+    JSONObject result = executeQuery("search " + withSource(TEST_INDEX_DOG, ""));
     verifyColumn(result, columnName("dog_name"), columnName("holdersName"), columnName("age"));
   }
 
   @Test
   public void testSearchCommandWithoutSearchKeyword() throws IOException {
     assertEquals(
-        executeQueryToString(String.format("search source=%s", TEST_INDEX_BANK)),
-        executeQueryToString(String.format("source=%s", TEST_INDEX_BANK)));
+        executeQueryToString("search " + withSource(TEST_INDEX_BANK, "")),
+        executeQueryToString(withSource(TEST_INDEX_BANK, "")));
   }
 
   @Test
@@ -52,8 +52,7 @@ public class SearchCommandIT extends PPLIntegTestCase {
   public void testSearchCommandWithLogicalExpression() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "search source=%s firstname='Hattie' | fields firstname", TEST_INDEX_BANK));
+            "search " + withSource(TEST_INDEX_BANK, "firstname='Hattie' | fields firstname"));
     verifyDataRows(result, rows("Hattie"));
   }
 

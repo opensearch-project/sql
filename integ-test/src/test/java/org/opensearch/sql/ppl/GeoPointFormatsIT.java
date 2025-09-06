@@ -28,8 +28,7 @@ public class GeoPointFormatsIT extends PPLIntegTestCase {
   @Test
   public void testReadingGeopoints() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format("search source=%s | head 5 | fields point ", TEST_INDEX_GEOPOINT));
+        executeQuery("search " + withSource(TEST_INDEX_GEOPOINT, "head 5 | fields point"));
     verifySchema(result, schema("point", null, "geo_point"));
     verifyDataRows(
         result,
@@ -43,9 +42,7 @@ public class GeoPointFormatsIT extends PPLIntegTestCase {
   @Test
   public void testReadingGeoHash() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | where _id = '6' | fields point ", TEST_INDEX_GEOPOINT));
+        executeQuery("search " + withSource(TEST_INDEX_GEOPOINT, "where _id = '6' | fields point"));
     verifySchema(result, schema("point", null, "geo_point"));
     Pair<Double, Double> point = GeopointFormatsIT.getGeoValue(result);
     assertEquals(40.71, point.getLeft(), GeopointFormatsIT.TOLERANCE);

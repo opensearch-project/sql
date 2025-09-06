@@ -9,7 +9,6 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_CSV_SANIT
 import static org.opensearch.sql.util.TestUtils.assertRowsEqual;
 
 import java.io.IOException;
-import java.util.Locale;
 import org.junit.Test;
 import org.opensearch.sql.common.utils.StringUtils;
 
@@ -24,11 +23,7 @@ public class CsvFormatIT extends PPLIntegTestCase {
   @Test
   public void sanitizeTest() throws IOException {
     String result =
-        executeCsvQuery(
-            String.format(
-                Locale.ROOT,
-                "source=%s | fields firstname, lastname",
-                TEST_INDEX_BANK_CSV_SANITIZE));
+        executeCsvQuery(withSource(TEST_INDEX_BANK_CSV_SANITIZE, "fields firstname, lastname"));
     assertRowsEqual(
         StringUtils.format(
             "firstname,lastname%n"
@@ -44,11 +39,7 @@ public class CsvFormatIT extends PPLIntegTestCase {
   public void escapeSanitizeTest() throws IOException {
     String result =
         executeCsvQuery(
-            String.format(
-                Locale.ROOT,
-                "source=%s | fields firstname, lastname",
-                TEST_INDEX_BANK_CSV_SANITIZE),
-            false);
+            withSource(TEST_INDEX_BANK_CSV_SANITIZE, "fields firstname, lastname"), false);
     assertRowsEqual(
         StringUtils.format(
             "firstname,lastname%n"

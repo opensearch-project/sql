@@ -406,8 +406,7 @@ public class CastFunctionIT extends PPLIntegTestCase {
   public void testCastToIP() throws IOException {
     // Test casting IP to IP type
     JSONObject actual =
-        executeQuery(
-            String.format("source=%s | eval a = cast(host as IP) | fields a", TEST_INDEX_WEBLOGS));
+        executeQuery(withSource(TEST_INDEX_WEBLOGS, "eval a = cast(host as IP) | fields a"));
     verifySchema(actual, schema("a", "ip"));
     verifyDataRows(
         actual,

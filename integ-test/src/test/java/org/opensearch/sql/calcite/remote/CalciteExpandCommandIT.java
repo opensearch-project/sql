@@ -33,8 +33,7 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testExpandOnNested() throws Exception {
-    JSONObject response =
-        executeQuery(String.format("source=%s | expand address", TEST_INDEX_NESTED_SIMPLE));
+    JSONObject response = executeQuery(withSource(TEST_INDEX_NESTED_SIMPLE, "expand address"));
     verifySchema(
         response,
         schema("name", "string"),
@@ -146,8 +145,7 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
   @Ignore
   @Test
   public void testExpandOnArray() throws Exception {
-    JSONObject response =
-        executeQuery(String.format("source=%s | expand strings", TEST_INDEX_ARRAY));
+    JSONObject response = executeQuery(withSource(TEST_INDEX_ARRAY, "expand strings"));
     verifySchema(response, schema("numbers", "array"), schema("strings", "string"));
     verifyNumOfRows(response, 5);
   }
@@ -155,7 +153,7 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
   @Test
   public void testExpandWithAlias() throws Exception {
     JSONObject response =
-        executeQuery(String.format("source=%s | expand address as addr", TEST_INDEX_NESTED_SIMPLE));
+        executeQuery(withSource(TEST_INDEX_NESTED_SIMPLE, "expand address as addr"));
     verifySchema(
         response,
         schema("name", "string"),
@@ -264,8 +262,7 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
   @Test
   public void testExpandWithEval() throws Exception {
     JSONObject response =
-        executeQuery(
-            String.format("source=%s | eval addr=address | expand addr", TEST_INDEX_NESTED_SIMPLE));
+        executeQuery(withSource(TEST_INDEX_NESTED_SIMPLE, "eval addr=address | expand addr"));
     verifySchema(
         response,
         schema("name", "string"),

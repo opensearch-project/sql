@@ -30,8 +30,7 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testTableBasic() throws IOException {
-    JSONObject result =
-        executeQuery(String.format("source=%s | table firstname, lastname", TEST_INDEX_ACCOUNT));
+    JSONObject result = executeQuery(withSource(TEST_INDEX_ACCOUNT, "table firstname, lastname"));
     verifyColumn(result, columnName("firstname"), columnName("lastname"));
     verifySchema(result, schema("firstname", "string"), schema("lastname", "string"));
   }
@@ -41,7 +40,7 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
   @Test
   public void testTableSpaceDelimited() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | table firstname lastname age", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "table firstname lastname age"));
     verifyColumn(result, columnName("firstname"), columnName("lastname"), columnName("age"));
     verifySchema(
         result,
@@ -54,30 +53,28 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testTableWithPrefixWildcard() throws IOException {
-    JSONObject result =
-        executeQuery(String.format("source=%s | table account*", TEST_INDEX_ACCOUNT));
+    JSONObject result = executeQuery(withSource(TEST_INDEX_ACCOUNT, "table account*"));
     verifyColumn(result, columnName("account_number"));
     verifySchema(result, schema("account_number", "bigint"));
   }
 
   @Test
   public void testFieldsWithSuffixWildcard() throws IOException {
-    JSONObject result = executeQuery(String.format("source=%s | fields *name", TEST_INDEX_ACCOUNT));
+    JSONObject result = executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields *name"));
     verifyColumn(result, columnName("firstname"), columnName("lastname"));
     verifySchema(result, schema("firstname", "string"), schema("lastname", "string"));
   }
 
   @Test
   public void testTableWithSuffixWildcard() throws IOException {
-    JSONObject result = executeQuery(String.format("source=%s | table *name", TEST_INDEX_ACCOUNT));
+    JSONObject result = executeQuery(withSource(TEST_INDEX_ACCOUNT, "table *name"));
     verifyColumn(result, columnName("firstname"), columnName("lastname"));
     verifySchema(result, schema("firstname", "string"), schema("lastname", "string"));
   }
 
   @Test
   public void testFieldsWithContainsWildcard() throws IOException {
-    JSONObject result =
-        executeQuery(String.format("source=%s | fields *a* | head 1", TEST_INDEX_ACCOUNT));
+    JSONObject result = executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields *a* | head 1"));
     // Matches fields containing 'a'
     verifySchema(
         result,
@@ -93,8 +90,7 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testTableWithContainsWildcard() throws IOException {
-    JSONObject result =
-        executeQuery(String.format("source=%s | table *a* | head 1", TEST_INDEX_ACCOUNT));
+    JSONObject result = executeQuery(withSource(TEST_INDEX_ACCOUNT, "table *a* | head 1"));
     verifySchema(
         result,
         schema("account_number", "bigint"),
@@ -109,7 +105,7 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testFieldsWithComplexWildcardPattern() throws IOException {
-    JSONObject result = executeQuery(String.format("source=%s | fields *a*e", TEST_INDEX_ACCOUNT));
+    JSONObject result = executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields *a*e"));
     // Matches fields containing 'a' and ending with 'e'
     verifyColumn(
         result,
@@ -129,7 +125,7 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testTableWithComplexWildcardPattern() throws IOException {
-    JSONObject result = executeQuery(String.format("source=%s | table *a*e", TEST_INDEX_ACCOUNT));
+    JSONObject result = executeQuery(withSource(TEST_INDEX_ACCOUNT, "table *a*e"));
     verifyColumn(
         result,
         columnName("balance"),
@@ -150,8 +146,7 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
   @Test
   public void testFieldsWithMixedWildcards() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format("source=%s | fields firstname, account*, *name", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields firstname, account*, *name"));
     verifyColumn(
         result, columnName("firstname"), columnName("account_number"), columnName("lastname"));
     verifySchema(
@@ -164,8 +159,7 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
   @Test
   public void testTableWithMixedWildcards() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format("source=%s | table firstname, account*, *name", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "table firstname, account*, *name"));
     verifyColumn(
         result, columnName("firstname"), columnName("account_number"), columnName("lastname"));
     verifySchema(
@@ -177,8 +171,7 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testFieldsWithComplexMixedWildcards() throws IOException {
-    JSONObject result =
-        executeQuery(String.format("source=%s | fields *a*, *e*, *r*", TEST_INDEX_ACCOUNT));
+    JSONObject result = executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields *a*, *e*, *r*"));
     // Matches fields containing 'a', 'e', or 'r'
     verifyColumn(
         result,
@@ -208,8 +201,7 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testTableWithComplexMixedWildcards() throws IOException {
-    JSONObject result =
-        executeQuery(String.format("source=%s | table *a*, *e*, *r*", TEST_INDEX_ACCOUNT));
+    JSONObject result = executeQuery(withSource(TEST_INDEX_ACCOUNT, "table *a*, *e*, *r*"));
     verifyColumn(
         result,
         columnName("account_number"),
@@ -240,8 +232,7 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
   @Test
   public void testFieldsMinusSpaceDelimited() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format("source=%s | fields - firstname lastname | head 3", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields - firstname lastname | head 3"));
     verifyColumn(
         result,
         columnName("account_number"),
@@ -269,8 +260,7 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
   @Test
   public void testTableMinusSpaceDelimited() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format("source=%s | table - firstname lastname | head 3", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "table - firstname lastname | head 3"));
     verifyColumn(
         result,
         columnName("account_number"),
@@ -297,8 +287,7 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testFieldsMinusWithWildcards() throws IOException {
-    JSONObject result =
-        executeQuery(String.format("source=%s | fields - *name | head 1", TEST_INDEX_ACCOUNT));
+    JSONObject result = executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields - *name | head 1"));
     // Excludes firstname and lastname
     verifySchema(
         result,
@@ -315,8 +304,7 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testTableMinusWithWildcards() throws IOException {
-    JSONObject result =
-        executeQuery(String.format("source=%s | table - *name | head 1", TEST_INDEX_ACCOUNT));
+    JSONObject result = executeQuery(withSource(TEST_INDEX_ACCOUNT, "table - *name | head 1"));
     verifySchema(
         result,
         schema("account_number", "bigint"),
@@ -333,9 +321,7 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
   @Test
   public void testFieldsMinusMultipleFields() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | fields - firstname, lastname, age | head 1", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields - firstname, lastname, age | head 1"));
     verifySchema(
         result,
         schema("account_number", "bigint"),
@@ -351,9 +337,7 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
   @Test
   public void testTableMinusMultipleFields() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | table - firstname, lastname, age | head 1", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "table - firstname, lastname, age | head 1"));
     verifySchema(
         result,
         schema("account_number", "bigint"),
@@ -370,9 +354,7 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
   @Test
   public void testFieldsWithMixedDelimiters() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | fields firstname lastname, age | head 3", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields firstname lastname, age | head 3"));
     verifyColumn(result, columnName("firstname"), columnName("lastname"), columnName("age"));
     verifySchema(
         result,
@@ -384,9 +366,7 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
   @Test
   public void testTableWithMixedDelimiters() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | table firstname lastname, age | head 3", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "table firstname lastname, age | head 3"));
     verifyColumn(result, columnName("firstname"), columnName("lastname"), columnName("age"));
     verifySchema(
         result,
@@ -398,8 +378,7 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
   @Test
   public void testFieldsCommaDelimitedWithWildcards() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format("source=%s | fields firstname,*a*,employer", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields firstname,*a*,employer"));
     verifyColumn(
         result,
         columnName("firstname"),
@@ -427,7 +406,7 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
   @Test
   public void testTableCommaDelimitedWithWildcards() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | table firstname,*a*,employer", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "table firstname,*a*,employer"));
     verifyColumn(
         result,
         columnName("firstname"),
@@ -456,8 +435,7 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
   @Test
   public void testFieldsOrdering() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format("source=%s | fields age, firstname, balance", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields age, firstname, balance"));
     verifyColumn(result, columnName("age"), columnName("firstname"), columnName("balance"));
     verifySchema(
         result,
@@ -469,8 +447,7 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
   @Test
   public void testTableOrdering() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format("source=%s | table age, firstname, balance", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "table age, firstname, balance"));
     verifyColumn(result, columnName("age"), columnName("firstname"), columnName("balance"));
     verifySchema(
         result,
@@ -482,8 +459,7 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
   @Test
   public void testFieldsOrderingWithWildcards() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format("source=%s | fields balance, account*, firstname", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields balance, account*, firstname"));
     verifyColumn(
         result, columnName("balance"), columnName("account_number"), columnName("firstname"));
     verifySchema(
@@ -496,8 +472,7 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
   @Test
   public void testTableOrderingWithWildcards() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format("source=%s | table balance, account*, firstname", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "table balance, account*, firstname"));
     verifyColumn(
         result, columnName("balance"), columnName("account_number"), columnName("firstname"));
     verifySchema(
@@ -510,8 +485,7 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
   // Explicit include with + prefix (fields only)
   @Test
   public void testFieldsExplicitIncludeWithPlusPrefix() throws IOException {
-    JSONObject result =
-        executeQuery(String.format("source=%s | fields + firstname, age", TEST_INDEX_ACCOUNT));
+    JSONObject result = executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields + firstname, age"));
     verifyColumn(result, columnName("firstname"), columnName("age"));
     verifySchema(result, schema("firstname", "string"), schema("age", "bigint"));
   }
@@ -519,8 +493,7 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
   @Test
   public void testFieldsExplicitIncludeMultiple() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format("source=%s | fields + firstname, balance, employer", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields + firstname, balance, employer"));
     verifyColumn(result, columnName("firstname"), columnName("balance"), columnName("employer"));
     verifySchema(
         result,
@@ -533,8 +506,7 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
   @Test
   public void testFieldsWithDuplicateFields() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format("source=%s | fields firstname, age, firstname", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields firstname, age, firstname"));
     // Deduplicates repeated firstname
     verifyColumn(result, columnName("firstname"), columnName("age"));
     verifySchema(result, schema("firstname", "string"), schema("age", "bigint"));
@@ -543,8 +515,7 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
   @Test
   public void testTableWithDuplicateFields() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format("source=%s | table firstname, age, firstname", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "table firstname, age, firstname"));
     verifyColumn(result, columnName("firstname"), columnName("age"));
     verifySchema(result, schema("firstname", "string"), schema("age", "bigint"));
   }
@@ -552,8 +523,7 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
   @Test
   public void testFieldsWithDuplicateWildcardMatches() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format("source=%s | fields account*, account_number", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields account*, account_number"));
     // account* matches account_number, deduplicates explicit account_number
     verifyColumn(result, columnName("account_number"));
     verifySchema(result, schema("account_number", "bigint"));
@@ -562,8 +532,7 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
   @Test
   public void testTableWithDuplicateWildcardMatches() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format("source=%s | table account*, account_number", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "table account*, account_number"));
     verifyColumn(result, columnName("account_number"));
     verifySchema(result, schema("account_number", "bigint"));
   }
@@ -572,11 +541,9 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
   @Test
   public void testFieldsAndTableEquivalence() throws IOException {
     JSONObject fieldsResult =
-        executeQuery(
-            String.format("source=%s | fields firstname, lastname | head 3", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields firstname, lastname | head 3"));
     JSONObject tableResult =
-        executeQuery(
-            String.format("source=%s | table firstname, lastname | head 3", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "table firstname, lastname | head 3"));
 
     verifySchema(fieldsResult, schema("firstname", "string"), schema("lastname", "string"));
     verifySchema(tableResult, schema("firstname", "string"), schema("lastname", "string"));
@@ -590,13 +557,9 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
   @Test
   public void testSpaceDelimitedEquivalentToCommaDelimited() throws IOException {
     JSONObject commaResult =
-        executeQuery(
-            String.format(
-                "source=%s | fields firstname, lastname, age | head 3", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields firstname, lastname, age | head 3"));
     JSONObject spaceResult =
-        executeQuery(
-            String.format(
-                "source=%s | fields firstname lastname age | head 3", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields firstname lastname age | head 3"));
 
     verifySchema(
         commaResult,
@@ -626,9 +589,8 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
   public void testFieldsWithManyFields() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | fields firstname, lastname, age, balance, address, employer",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT, "fields firstname, lastname, age, balance, address, employer"));
     verifyColumn(
         result,
         columnName("firstname"),
@@ -651,9 +613,8 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
   public void testTableWithManyFields() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | table firstname, lastname, age, balance, address, employer",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT, "table firstname, lastname, age, balance, address, employer"));
     verifyColumn(
         result,
         columnName("firstname"),
@@ -677,8 +638,7 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
   public void testFieldsWithNoMatchingWildcard() {
     Exception e =
         assertThrows(
-            Exception.class,
-            () -> executeQuery(String.format("source=%s | fields XYZ*", TEST_INDEX_ACCOUNT)));
+            Exception.class, () -> executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields XYZ*")));
     // No fields match XYZ*
     verifyErrorMessageContains(e, "wildcard pattern [XYZ*] matches no fields");
   }
@@ -687,8 +647,7 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
   public void testTableWithNoMatchingWildcard() {
     Exception e =
         assertThrows(
-            Exception.class,
-            () -> executeQuery(String.format("source=%s | table *XYZ", TEST_INDEX_ACCOUNT)));
+            Exception.class, () -> executeQuery(withSource(TEST_INDEX_ACCOUNT, "table *XYZ")));
     // No fields match *XYZ
     verifyErrorMessageContains(e, "wildcard pattern [*XYZ] matches no fields");
   }

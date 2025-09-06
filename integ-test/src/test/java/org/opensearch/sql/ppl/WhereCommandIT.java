@@ -36,9 +36,9 @@ public class WhereCommandIT extends PPLIntegTestCase {
   public void testWhereWithLogicalExpr() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | fields firstname | where firstname='Amber' | fields firstname",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT,
+                "fields firstname | where firstname='Amber' | fields firstname"));
     verifyDataRows(result, rows("Amber"));
   }
 
@@ -46,11 +46,10 @@ public class WhereCommandIT extends PPLIntegTestCase {
   public void testWhereWithMultiLogicalExpr() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s "
-                    + "| where firstname='Amber' and lastname='Duke' and age=32 "
-                    + "| fields firstname, lastname, age",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT,
+                "where firstname='Amber' and lastname='Duke' and age=32 "
+                    + "| fields firstname, lastname, age"));
     verifyDataRows(result, rows("Amber", "Duke", 32));
   }
 
@@ -58,33 +57,31 @@ public class WhereCommandIT extends PPLIntegTestCase {
   public void testMultipleWhereCommands() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s "
-                    + "| where firstname='Amber' "
+            withSource(
+                TEST_INDEX_ACCOUNT,
+                "where firstname='Amber' "
                     + "| fields lastname, age"
                     + "| where lastname='Duke' "
                     + "| fields age "
                     + "| where age=32 "
-                    + "| fields age",
-                TEST_INDEX_ACCOUNT));
+                    + "| fields age"));
     verifyDataRows(result, rows(32));
   }
 
   @Test
   public void testWhereEquivalentSortCommand() throws IOException {
     assertEquals(
-        executeQueryToString(
-            String.format("source=%s | where firstname='Amber'", TEST_INDEX_ACCOUNT)),
-        executeQueryToString(String.format("source=%s firstname='Amber'", TEST_INDEX_ACCOUNT)));
+        executeQueryToString(withSource(TEST_INDEX_ACCOUNT, "where firstname='Amber'")),
+        executeQueryToString(withSource(TEST_INDEX_ACCOUNT, "firstname='Amber'")));
   }
 
   @Test
   public void testLikeFunction() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | fields firstname | where like(firstname, 'Ambe_') | fields firstname",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT,
+                "fields firstname | where like(firstname, 'Ambe_') | fields firstname"));
     verifyDataRows(result, rows("Amber"));
   }
 
@@ -92,9 +89,9 @@ public class WhereCommandIT extends PPLIntegTestCase {
   public void testLikeFunctionNoHit() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | where like(firstname, 'Duk_') | fields lastname",
-                TEST_INDEX_BANK_WITH_NULL_VALUES));
+            withSource(
+                TEST_INDEX_BANK_WITH_NULL_VALUES,
+                "where like(firstname, 'Duk_') | fields lastname"));
     assertEquals(0, result.getInt("total"));
   }
 
@@ -103,16 +100,15 @@ public class WhereCommandIT extends PPLIntegTestCase {
     // Test LIKE operator syntax
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | fields firstname | where firstname LIKE 'Ambe_' | fields firstname",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT,
+                "fields firstname | where firstname LIKE 'Ambe_' | fields firstname"));
     verifyDataRows(result, rows("Amber"));
 
     // Test with wildcard %
     result =
         executeQuery(
-            String.format(
-                "source=%s | where firstname LIKE 'A%%' | fields firstname", TEST_INDEX_ACCOUNT));
+            withSource(TEST_INDEX_ACCOUNT, "where firstname LIKE 'A%%' | fields firstname"));
     assertTrue(result.getInt("total") > 0);
   }
 
@@ -123,20 +119,17 @@ public class WhereCommandIT extends PPLIntegTestCase {
     // Uppercase LIKE
     JSONObject result1 =
         executeQuery(
-            String.format(
-                "source=%s | where firstname LIKE 'Ambe_' | fields firstname", TEST_INDEX_ACCOUNT));
+            withSource(TEST_INDEX_ACCOUNT, "where firstname LIKE 'Ambe_' | fields firstname"));
 
     // Lowercase like
     JSONObject result2 =
         executeQuery(
-            String.format(
-                "source=%s | where firstname like 'Ambe_' | fields firstname", TEST_INDEX_ACCOUNT));
+            withSource(TEST_INDEX_ACCOUNT, "where firstname like 'Ambe_' | fields firstname"));
 
     // Mixed case Like
     JSONObject result3 =
         executeQuery(
-            String.format(
-                "source=%s | where firstname Like 'Ambe_' | fields firstname", TEST_INDEX_ACCOUNT));
+            withSource(TEST_INDEX_ACCOUNT, "where firstname Like 'Ambe_' | fields firstname"));
 
     // All should return the same result
     verifyDataRows(result1, rows("Amber"));
@@ -148,9 +141,7 @@ public class WhereCommandIT extends PPLIntegTestCase {
   public void testIsNullFunction() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | where isnull(age) | fields firstname",
-                TEST_INDEX_BANK_WITH_NULL_VALUES));
+            withSource(TEST_INDEX_BANK_WITH_NULL_VALUES, "where isnull(age) | fields firstname"));
     verifyDataRows(result, rows("Virginia"));
   }
 
@@ -158,25 +149,22 @@ public class WhereCommandIT extends PPLIntegTestCase {
   public void testIsNotNullFunction() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | where isnotnull(age) and like(firstname, 'Ambe_%%') | fields"
-                    + " firstname",
-                TEST_INDEX_BANK_WITH_NULL_VALUES));
+            withSource(
+                TEST_INDEX_BANK_WITH_NULL_VALUES,
+                "where isnotnull(age) and like(firstname, 'Ambe_%%') | fields" + " firstname"));
     verifyDataRows(result, rows("Amber JOHnny"));
   }
 
   @Test
   public void testWhereWithMetadataFields() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format("source=%s | where _id='1' | fields firstname", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "where _id='1' | fields firstname"));
     verifyDataRows(result, rows("Amber"));
   }
 
   @Test
   public void testWhereWithMetadataFields2() throws IOException {
-    JSONObject result =
-        executeQuery(String.format("source=%s | where _id='1'", TEST_INDEX_ACCOUNT));
+    JSONObject result = executeQuery(withSource(TEST_INDEX_ACCOUNT, "where _id='1'"));
     verifyDataRows(
         result,
         rows(
@@ -197,22 +185,18 @@ public class WhereCommandIT extends PPLIntegTestCase {
   public void testWhereWithIn() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | where firstname in ('Amber') | fields firstname", TEST_INDEX_ACCOUNT));
+            withSource(TEST_INDEX_ACCOUNT, "where firstname in ('Amber') | fields firstname"));
     verifyDataRows(result, rows("Amber"));
 
     result =
         executeQuery(
-            String.format(
-                "source=%s | where firstname in ('Amber', 'Dale') | fields firstname",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT, "where firstname in ('Amber', 'Dale') | fields firstname"));
     verifyDataRows(result, rows("Amber"), rows("Dale"));
 
     result =
         executeQuery(
-            String.format(
-                "source=%s | where balance in (4180, 5686.0) | fields balance",
-                TEST_INDEX_ACCOUNT));
+            withSource(TEST_INDEX_ACCOUNT, "where balance in (4180, 5686.0) | fields balance"));
     verifyDataRows(result, rows(4180), rows(5686));
   }
 
@@ -220,25 +204,25 @@ public class WhereCommandIT extends PPLIntegTestCase {
   public void testWhereWithNotIn() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | where account_number < 4 | where firstname not in ('Amber', 'Levine')"
-                    + " | fields firstname",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT,
+                "where account_number < 4 | where firstname not in ('Amber', 'Levine')"
+                    + " | fields firstname"));
     verifyDataRows(result, rows("Roberta"), rows("Bradshaw"));
 
     result =
         executeQuery(
-            String.format(
-                "source=%s | where account_number < 4 | where not firstname in ('Amber', 'Levine')"
-                    + " | fields firstname",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT,
+                "where account_number < 4 | where not firstname in ('Amber', 'Levine')"
+                    + " | fields firstname"));
     verifyDataRows(result, rows("Roberta"), rows("Bradshaw"));
 
     result =
         executeQuery(
-            String.format(
-                "source=%s | where not firstname not in ('Amber', 'Dale') | fields firstname",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT,
+                "where not firstname not in ('Amber', 'Dale') | fields firstname"));
     verifyDataRows(result, rows("Amber"), rows("Dale"));
   }
 
@@ -249,9 +233,9 @@ public class WhereCommandIT extends PPLIntegTestCase {
             Exception.class,
             () -> {
               executeQuery(
-                  String.format(
-                      "source=%s | where balance in (4180, 5686, '6077') | fields firstname",
-                      TEST_INDEX_ACCOUNT));
+                  withSource(
+                      TEST_INDEX_ACCOUNT,
+                      "where balance in (4180, 5686, '6077') | fields firstname"));
             });
     MatcherAssert.assertThat(e.getMessage(), containsString(getIncompatibleTypeErrMsg()));
   }
@@ -269,9 +253,9 @@ public class WhereCommandIT extends PPLIntegTestCase {
   public void testFilterScriptPushDown() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | where firstname ='Amber' and age - 2.0 = 30 | fields firstname, age",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT,
+                "where firstname ='Amber' and age - 2.0 = 30 | fields firstname, age"));
     verifySchema(actual, schema("firstname", "string"), schema("age", "bigint"));
     verifyDataRows(actual, rows("Amber", 32));
   }
@@ -280,10 +264,10 @@ public class WhereCommandIT extends PPLIntegTestCase {
   public void testFilterScriptPushDownWithCalciteStdFunction() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | where length(firstname) = 5 and abs(age) = 32 and balance = 39225 |"
-                    + " fields firstname, age",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT,
+                "where length(firstname) = 5 and abs(age) = 32 and balance = 39225 |"
+                    + " fields firstname, age"));
     verifySchema(actual, schema("firstname", "string"), schema("age", "bigint"));
     verifyDataRows(actual, rows("Amber", 32));
   }
@@ -291,8 +275,7 @@ public class WhereCommandIT extends PPLIntegTestCase {
   @Test
   public void testFilterScriptPushDownWithPPLBuiltInFunction() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format("source=%s | where month(login_time) = 1", TEST_INDEX_DATE_TIME));
+        executeQuery(withSource(TEST_INDEX_DATE_TIME, "where month(login_time) = 1"));
     verifySchema(actual, schema("birthday", "timestamp"), schema("login_time", "timestamp"));
     verifyDataRows(
         actual,
@@ -305,9 +288,7 @@ public class WhereCommandIT extends PPLIntegTestCase {
   public void testFilterScriptPushDownWithCalciteStdLibraryFunction() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | where left(firstname, 3) = 'Ama' | fields firstname",
-                TEST_INDEX_ACCOUNT));
+            withSource(TEST_INDEX_ACCOUNT, "where left(firstname, 3) = 'Ama' | fields firstname"));
     verifySchema(actual, schema("firstname", "string"));
     verifyDataRows(actual, rows("Amalia"), rows("Amanda"));
   }
@@ -319,9 +300,7 @@ public class WhereCommandIT extends PPLIntegTestCase {
     // Test == operator works same as = operator
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | where age == 32 | fields firstname, age | head 3",
-                TEST_INDEX_ACCOUNT));
+            withSource(TEST_INDEX_ACCOUNT, "where age == 32 | fields firstname, age | head 3"));
     verifySchema(result, schema("firstname", "string"), schema("age", "bigint"));
     assertEquals(3, result.getJSONArray("datarows").length());
     // Verify all returned records have age 32
@@ -334,9 +313,8 @@ public class WhereCommandIT extends PPLIntegTestCase {
   public void testDoubleEqualWithStringComparison() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | where firstname == 'Amber' | fields firstname, lastname",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT, "where firstname == 'Amber' | fields firstname, lastname"));
     verifyDataRows(result, rows("Amber", "Duke"));
   }
 
@@ -345,15 +323,13 @@ public class WhereCommandIT extends PPLIntegTestCase {
     // Verify = and == produce identical results
     JSONObject resultSingleEqual =
         executeQuery(
-            String.format(
-                "source=%s | where age = 32 AND gender = 'M' | stats count() as total",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT, "where age = 32 AND gender = 'M' | stats count() as total"));
 
     JSONObject resultDoubleEqual =
         executeQuery(
-            String.format(
-                "source=%s | where age == 32 AND gender == 'M' | stats count() as total",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT, "where age == 32 AND gender == 'M' | stats count() as total"));
 
     // Both queries should return the same count
     assertEquals(
@@ -366,9 +342,9 @@ public class WhereCommandIT extends PPLIntegTestCase {
     // Test mixing = and == in the same query
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | where age = 32 AND state == 'TN' | fields firstname, age, state",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT,
+                "where age = 32 AND state == 'TN' | fields firstname, age, state"));
     verifySchema(
         result, schema("firstname", "string"), schema("age", "bigint"), schema("state", "string"));
     verifyDataRows(result, rows("Norma", 32, "TN"));
@@ -376,9 +352,9 @@ public class WhereCommandIT extends PPLIntegTestCase {
     // Test with operators reversed
     JSONObject result2 =
         executeQuery(
-            String.format(
-                "source=%s | where age == 32 AND state = 'TN' | fields firstname, age, state",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT,
+                "where age == 32 AND state = 'TN' | fields firstname, age, state"));
     assertEquals(
         result.getJSONArray("datarows").toString(), result2.getJSONArray("datarows").toString());
   }
@@ -387,10 +363,9 @@ public class WhereCommandIT extends PPLIntegTestCase {
   public void testDoubleEqualWithMultipleConditions() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | where age == 32 AND gender == 'M' | fields firstname, age, gender |"
-                    + " head 3",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT,
+                "where age == 32 AND gender == 'M' | fields firstname, age, gender |" + " head 3"));
     verifySchema(
         result, schema("firstname", "string"), schema("age", "bigint"), schema("gender", "string"));
     // Verify all returned records match the conditions
@@ -404,9 +379,8 @@ public class WhereCommandIT extends PPLIntegTestCase {
   public void testDoubleEqualWithOrCondition() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | where age == 28 OR age == 32 | stats count() as total",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT, "where age == 28 OR age == 32 | stats count() as total"));
     // Should count accounts with age 28 or 32
     assertTrue(result.getJSONArray("datarows").getJSONArray(0).getLong(0) > 0);
   }
@@ -415,10 +389,10 @@ public class WhereCommandIT extends PPLIntegTestCase {
   public void testDoubleEqualInEvalCommand() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | eval is_thirty_two = (age == 32) | where is_thirty_two == true |"
-                    + " fields firstname, age, is_thirty_two | head 2",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT,
+                "eval is_thirty_two = (age == 32) | where is_thirty_two == true |"
+                    + " fields firstname, age, is_thirty_two | head 2"));
     verifySchema(
         result,
         schema("firstname", "string"),
@@ -436,10 +410,10 @@ public class WhereCommandIT extends PPLIntegTestCase {
     // Test == in complex expression with parentheses
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | where (age == 32 OR age == 28) AND (state == 'ID' OR state == 'WY') |"
-                    + " fields firstname, age, state",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT,
+                "where (age == 32 OR age == 28) AND (state == 'ID' OR state == 'WY') |"
+                    + " fields firstname, age, state"));
     verifySchema(
         result, schema("firstname", "string"), schema("age", "bigint"), schema("state", "string"));
     // Verify all results match the complex condition
@@ -455,10 +429,10 @@ public class WhereCommandIT extends PPLIntegTestCase {
     // Test multiple where commands with ==
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | where age == 32 | where gender == 'M' | where state == 'TN' | fields"
-                    + " firstname, age, gender, state",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT,
+                "where age == 32 | where gender == 'M' | where state == 'TN' | fields"
+                    + " firstname, age, gender, state"));
     verifyDataRows(result, rows("Norma", 32, "M", "TN"));
   }
 
@@ -467,16 +441,14 @@ public class WhereCommandIT extends PPLIntegTestCase {
     // Test case sensitivity in string comparison
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | where firstname == 'amber' | fields firstname", TEST_INDEX_ACCOUNT));
+            withSource(TEST_INDEX_ACCOUNT, "where firstname == 'amber' | fields firstname"));
     // Should return no results as 'amber' != 'Amber' (case sensitive)
     assertEquals(0, result.getJSONArray("datarows").length());
 
     // Correct case should work
     JSONObject result2 =
         executeQuery(
-            String.format(
-                "source=%s | where firstname == 'Amber' | fields firstname", TEST_INDEX_ACCOUNT));
+            withSource(TEST_INDEX_ACCOUNT, "where firstname == 'Amber' | fields firstname"));
     verifyDataRows(result2, rows("Amber"));
   }
 
@@ -485,9 +457,9 @@ public class WhereCommandIT extends PPLIntegTestCase {
     // Test == with strings containing special characters
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | where email == 'amberduke@pyrami.com' | fields firstname, email",
-                TEST_INDEX_ACCOUNT));
+            withSource(
+                TEST_INDEX_ACCOUNT,
+                "where email == 'amberduke@pyrami.com' | fields firstname, email"));
     verifyDataRows(result, rows("Amber", "amberduke@pyrami.com"));
   }
 
@@ -495,14 +467,10 @@ public class WhereCommandIT extends PPLIntegTestCase {
   public void testDoubleEqualWithoutSpaces() throws IOException {
     // Test that == works without spaces
     JSONObject result1 =
-        executeQuery(
-            String.format(
-                "source=%s | where age==32 | stats count() as total", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "where age==32 | stats count() as total"));
 
     JSONObject result2 =
-        executeQuery(
-            String.format(
-                "source=%s | where age == 32 | stats count() as total", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "where age == 32 | stats count() as total"));
 
     // Both should return same count
     assertEquals(

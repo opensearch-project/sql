@@ -12,7 +12,6 @@ import static org.opensearch.sql.util.MatcherUtils.verifyOrder;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
-import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.ppl.SortCommandIT;
@@ -27,18 +26,14 @@ public class CalciteSortCommandIT extends SortCommandIT {
   // TODO: Move this test to SortCommandIT once head-then-sort is fixed in v2.
   @Test
   public void testHeadThenSort() throws IOException {
-    JSONObject result =
-        executeQuery(String.format("source=%s | head 2 | sort age | fields age", TEST_INDEX_BANK));
+    JSONObject result = executeQuery(withSource(TEST_INDEX_BANK, "head 2 | sort age | fields age"));
     verifyOrder(result, rows(32), rows(36));
   }
 
   @Test
   public void testPushdownSortPlusExpression() throws IOException {
     String ppl =
-        String.format(
-            Locale.ROOT,
-            "source=%s | eval age2 = age + 2 | sort age2 | fields age | head 2",
-            TEST_INDEX_BANK);
+        withSource(TEST_INDEX_BANK, "eval age2 = age + 2 | sort age2 | fields age | head 2");
     String explained = explainQueryToString(ppl);
     if (isPushdownEnabled()) {
       assertTrue(
@@ -58,10 +53,7 @@ public class CalciteSortCommandIT extends SortCommandIT {
   @Test
   public void testPushdownSortMinusExpression() throws IOException {
     String ppl =
-        String.format(
-            Locale.ROOT,
-            "source=%s | eval age2 = 1 - age | sort age2 | fields age | head 2",
-            TEST_INDEX_BANK);
+        withSource(TEST_INDEX_BANK, "eval age2 = 1 - age | sort age2 | fields age | head 2");
     String explained = explainQueryToString(ppl);
     if (isPushdownEnabled()) {
       assertTrue(
@@ -81,10 +73,7 @@ public class CalciteSortCommandIT extends SortCommandIT {
   @Test
   public void testPushdownSortTimesExpression() throws IOException {
     String ppl =
-        String.format(
-            Locale.ROOT,
-            "source=%s | eval age2 = 5 * age | sort age2 | fields age | head 2",
-            TEST_INDEX_BANK);
+        withSource(TEST_INDEX_BANK, "eval age2 = 5 * age | sort age2 | fields age | head 2");
     String explained = explainQueryToString(ppl);
     if (isPushdownEnabled()) {
       assertTrue(
@@ -104,10 +93,9 @@ public class CalciteSortCommandIT extends SortCommandIT {
   @Test
   public void testPushdownSortByMultiExpressions() throws IOException {
     String ppl =
-        String.format(
-            Locale.ROOT,
-            "source=%s | eval age2 = 5 * age | sort gender, age2 | fields gender, age | head 2",
-            TEST_INDEX_BANK);
+        withSource(
+            TEST_INDEX_BANK,
+            "eval age2 = 5 * age | sort gender, age2 | fields gender, age | head 2");
     String explained = explainQueryToString(ppl);
     if (isPushdownEnabled()) {
       assertTrue(
@@ -132,10 +120,8 @@ public class CalciteSortCommandIT extends SortCommandIT {
   @Test
   public void testPushdownSortCastExpression() throws IOException {
     String ppl =
-        String.format(
-            Locale.ROOT,
-            "source=%s | eval age2 = cast(age * 5 as long) | sort age2 | fields age | head 2",
-            TEST_INDEX_BANK);
+        withSource(
+            TEST_INDEX_BANK, "eval age2 = cast(age * 5 as long) | sort age2 | fields age | head 2");
     String explained = explainQueryToString(ppl);
     if (isPushdownEnabled()) {
       assertTrue(
@@ -156,9 +142,9 @@ public class CalciteSortCommandIT extends SortCommandIT {
   public void testPushdownSortCastToDoubleExpression() throws IOException {
     // Similar to query: 'source=%s | sort num(age)'. But left query doesn't output casted column.
     String ppl =
-        String.format(
-            "source=%s | eval age2 = cast(age as double) | sort age2 | fields age, age2 | head 2",
-            TEST_INDEX_BANK);
+        withSource(
+            TEST_INDEX_BANK,
+            "eval age2 = cast(age as double) | sort age2 | fields age, age2 | head 2");
     String explained = explainQueryToString(ppl);
     if (isPushdownEnabled()) {
       assertTrue(

@@ -25,9 +25,7 @@ public class VisualizationFormatIT extends PPLIntegTestCase {
 
   @Test
   void format() throws IOException {
-    String result =
-        executeVizQuery(
-            String.format(Locale.ROOT, "source=%s | fields firstname, age", TEST_INDEX_BANK), true);
+    String result = executeVizQuery(withSource(TEST_INDEX_BANK, "fields firstname, age"), true);
     assertEquals(
         "{\n"
             + "  \"data\": {\n"

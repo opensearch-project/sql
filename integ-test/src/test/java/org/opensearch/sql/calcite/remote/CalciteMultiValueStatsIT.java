@@ -136,8 +136,7 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
   @Test
   public void testListFunctionWithTime() throws IOException {
     JSONObject response =
-        executeQuery(
-            String.format("source=%s | head 1 | stats list(time1) as time_list", TEST_INDEX_CALCS));
+        executeQuery(withSource(TEST_INDEX_CALCS, "head 1 | stats list(time1) as time_list"));
     verifySchema(response, schema("time_list", "array"));
     // Time values are stored as strings in the test data
     verifyDataRows(response, rows(List.of("19:36:22")));
@@ -181,8 +180,7 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
   @Test
   public void testListFunctionWithNullValues() throws IOException {
     JSONObject response =
-        executeQuery(
-            String.format("source=%s | head 5 | stats list(int0) as int_list", TEST_INDEX_CALCS));
+        executeQuery(withSource(TEST_INDEX_CALCS, "head 5 | stats list(int0) as int_list"));
     verifySchema(response, schema("int_list", "array"));
     // Nulls are filtered out by list function
     verifyDataRows(response, rows(List.of("1", "7")));

@@ -23,22 +23,19 @@ public class CalciteTextFunctionIT extends TextFunctionIT {
   @Test
   public void testRegexMatch() throws IOException {
     // Test regex_match with pattern that matches substring
-    String query1 =
-        String.format("source=%s | eval f=regex_match(name, 'ell') | fields f", TEST_INDEX_STRINGS);
+    String query1 = withSource(TEST_INDEX_STRINGS, "eval f=regex_match(name, 'ell') | fields f");
     JSONObject result1 = executeQuery(query1);
     verifySchema(result1, schema("f", null, "boolean"));
     verifyDataRows(result1, rows(true), rows(false), rows(true));
 
     // Test regex_match with pattern for beginning of string
-    String query2 =
-        String.format("source=%s | eval f=regex_match(name, '^he') | fields f", TEST_INDEX_STRINGS);
+    String query2 = withSource(TEST_INDEX_STRINGS, "eval f=regex_match(name, '^he') | fields f");
     JSONObject result2 = executeQuery(query2);
     verifySchema(result2, schema("f", null, "boolean"));
     verifyDataRows(result2, rows(true), rows(false), rows(true));
 
     // Test regex_match with pattern for end of string
-    String query3 =
-        String.format("source=%s | eval f=regex_match(name, 'ld$') | fields f", TEST_INDEX_STRINGS);
+    String query3 = withSource(TEST_INDEX_STRINGS, "eval f=regex_match(name, 'ld$') | fields f");
     JSONObject result3 = executeQuery(query3);
     verifySchema(result3, schema("f", null, "boolean"));
     verifyDataRows(result3, rows(false), rows(true), rows(true));

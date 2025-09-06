@@ -449,8 +449,7 @@ public class ExplainIT extends PPLIntegTestCase {
     String expected = loadExpectedPlan("explain_stats_by_span.json");
     assertJsonEqualsIgnoreId(
         expected,
-        explainQueryToString(
-            String.format("source=%s | stats count() by span(age,10)", TEST_INDEX_BANK)));
+        explainQueryToString(withSource(TEST_INDEX_BANK, "stats count() by span(age,10)")));
   }
 
   @Test
@@ -458,14 +457,12 @@ public class ExplainIT extends PPLIntegTestCase {
     String expected = loadExpectedPlan("explain_stats_by_timespan.json");
     assertJsonEqualsIgnoreId(
         expected,
-        explainQueryToString(
-            String.format("source=%s | stats count() by span(birthdate,1m)", TEST_INDEX_BANK)));
+        explainQueryToString(withSource(TEST_INDEX_BANK, "stats count() by span(birthdate,1m)")));
 
     expected = loadExpectedPlan("explain_stats_by_timespan2.json");
     assertJsonEqualsIgnoreId(
         expected,
-        explainQueryToString(
-            String.format("source=%s | stats count() by span(birthdate,1M)", TEST_INDEX_BANK)));
+        explainQueryToString(withSource(TEST_INDEX_BANK, "stats count() by span(birthdate,1M)")));
   }
 
   @Test

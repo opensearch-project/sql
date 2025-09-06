@@ -27,7 +27,7 @@ public class FlattenDocValueIT extends PPLIntegTestCase {
 
   @Test
   public void testFlattenDocValue() throws IOException {
-    JSONObject result = executeQuery(String.format("source=%s", TEST_INDEX_FLATTENED_VALUE));
+    JSONObject result = executeQuery(withSource(TEST_INDEX_FLATTENED_VALUE, ""));
     verifySchema(result, schema("log", "struct"));
     TypeSafeMatcher<JSONArray> expectedRow =
         rows(new JSONObject("{ \"json\" : { \"status\": \"SUCCESS\", \"time\": 100} }"));
@@ -38,9 +38,9 @@ public class FlattenDocValueIT extends PPLIntegTestCase {
   public void testFlattenDocValueWithFields() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | fields log, log.json, log.json.status, log.json.time",
-                TEST_INDEX_FLATTENED_VALUE));
+            withSource(
+                TEST_INDEX_FLATTENED_VALUE,
+                "fields log, log.json, log.json.status, log.json.time"));
     verifySchema(
         result,
         schema("log", "struct"),

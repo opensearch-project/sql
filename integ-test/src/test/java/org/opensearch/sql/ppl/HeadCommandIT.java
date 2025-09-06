@@ -38,7 +38,7 @@ public class HeadCommandIT extends PPLIntegTestCase {
   @Test
   public void testHead() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | fields firstname, age | head", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields firstname, age | head"));
     verifyDataRows(
         result,
         rows("Amber", 32),
@@ -56,8 +56,7 @@ public class HeadCommandIT extends PPLIntegTestCase {
   @Test
   public void testHeadWithNumber() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format("source=%s | fields firstname, age | head 3", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields firstname, age | head 3"));
     verifyDataRows(result, rows("Amber", 32), rows("Hattie", 36), rows("Nanette", 28));
   }
 
@@ -66,8 +65,7 @@ public class HeadCommandIT extends PPLIntegTestCase {
   public void testHeadWithNumberLargerThanQuerySizeLimit() throws IOException {
     setQuerySizeLimit(5);
     JSONObject result =
-        executeQuery(
-            String.format("source=%s | fields firstname, age | head 10", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields firstname, age | head 10"));
     verifyDataRows(
         result,
         rows("Amber", 32),
@@ -86,8 +84,7 @@ public class HeadCommandIT extends PPLIntegTestCase {
   public void testHeadWithNumberLargerThanMaxResultWindow() throws IOException {
     setMaxResultWindow(TEST_INDEX_ACCOUNT, 10);
     JSONObject result =
-        executeQuery(
-            String.format("source=%s | fields firstname, age | head 15", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields firstname, age | head 15"));
     verifyDataRows(
         result,
         rows("Amber", 32),
@@ -113,8 +110,7 @@ public class HeadCommandIT extends PPLIntegTestCase {
     setQuerySizeLimit(5);
     setMaxResultWindow(TEST_INDEX_ACCOUNT, 10);
     JSONObject result =
-        executeQuery(
-            String.format("source=%s | fields firstname, age | head 15", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields firstname, age | head 15"));
     verifyDataRows(
         result,
         rows("Amber", 32),
@@ -137,8 +133,7 @@ public class HeadCommandIT extends PPLIntegTestCase {
   @Test
   public void testHeadWithNumberAndFrom() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format("source=%s | fields firstname, age | head 3 from 4", TEST_INDEX_ACCOUNT));
+        executeQuery(withSource(TEST_INDEX_ACCOUNT, "fields firstname, age | head 3 from 4"));
     verifyDataRows(result, rows("Elinor", 36), rows("Virginia", 39), rows("Dillard", 34));
   }
 }

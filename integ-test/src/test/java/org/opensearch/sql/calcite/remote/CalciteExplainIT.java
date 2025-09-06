@@ -359,8 +359,7 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testExplainRegexMatchInWhereWithScriptPushdown() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
-    String query =
-        String.format("source=%s | where regex_match(name, 'hello')", TEST_INDEX_STRINGS);
+    String query = withSource(TEST_INDEX_STRINGS, "where regex_match(name, 'hello')");
     var result = explainQueryToString(query);
     String expected = loadFromFile("expectedOutput/calcite/explain_regex_match_in_where.json");
     assertJsonEqualsIgnoreId(expected, result);

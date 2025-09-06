@@ -69,24 +69,21 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
   @Test
   public void testCrossClusterFieldsSpaceDelimited() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format("search source=%s | fields dog_name age", TEST_INDEX_DOG_REMOTE));
+        executeQuery("search " + withSource(TEST_INDEX_DOG_REMOTE, "fields dog_name age"));
     verifyColumn(result, columnName("dog_name"), columnName("age"));
     verifySchema(result, schema("dog_name", "string"), schema("age", "bigint"));
   }
 
   @Test
   public void testCrossClusterFieldsWildcardPrefix() throws IOException {
-    JSONObject result =
-        executeQuery(String.format("search source=%s | fields dog*", TEST_INDEX_DOG_REMOTE));
+    JSONObject result = executeQuery("search " + withSource(TEST_INDEX_DOG_REMOTE, "fields dog*"));
     verifyColumn(result, columnName("dog_name"));
     verifySchema(result, schema("dog_name", "string"));
   }
 
   @Test
   public void testCrossClusterFieldsWildcardSuffix() throws IOException {
-    JSONObject result =
-        executeQuery(String.format("search source=%s | fields *Name", TEST_INDEX_DOG_REMOTE));
+    JSONObject result = executeQuery("search " + withSource(TEST_INDEX_DOG_REMOTE, "fields *Name"));
     verifyColumn(result, columnName("dog_name"), columnName("holdersName"));
     verifySchema(result, schema("dog_name", "string"), schema("holdersName", "string"));
   }
@@ -95,8 +92,7 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
   public void testCrossClusterFieldsMixedDelimiters() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "search source=%s | fields dog_name, age holdersName", TEST_INDEX_DOG_REMOTE));
+            "search " + withSource(TEST_INDEX_DOG_REMOTE, "fields dog_name, age holdersName"));
     verifyColumn(result, columnName("dog_name"), columnName("age"), columnName("holdersName"));
     verifySchema(
         result,
@@ -108,15 +104,14 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
   @Test
   public void testCrossClusterTableCommand() throws IOException {
     JSONObject result =
-        executeQuery(String.format("search source=%s | table dog_name age", TEST_INDEX_DOG_REMOTE));
+        executeQuery("search " + withSource(TEST_INDEX_DOG_REMOTE, "table dog_name age"));
     verifyColumn(result, columnName("dog_name"), columnName("age"));
     verifySchema(result, schema("dog_name", "string"), schema("age", "bigint"));
   }
 
   @Test
   public void testCrossClusterFieldsAllWildcard() throws IOException {
-    JSONObject result =
-        executeQuery(String.format("search source=%s | fields *", TEST_INDEX_DOG_REMOTE));
+    JSONObject result = executeQuery("search " + withSource(TEST_INDEX_DOG_REMOTE, "fields *"));
     verifyColumn(result, columnName("dog_name"), columnName("holdersName"), columnName("age"));
     verifySchema(
         result,
@@ -127,8 +122,7 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
 
   @Test
   public void testCrossClusterFieldsExclusion() throws IOException {
-    JSONObject result =
-        executeQuery(String.format("search source=%s | fields - age", TEST_INDEX_DOG_REMOTE));
+    JSONObject result = executeQuery("search " + withSource(TEST_INDEX_DOG_REMOTE, "fields - age"));
     verifyColumn(result, columnName("dog_name"), columnName("holdersName"));
     verifySchema(result, schema("dog_name", "string"), schema("holdersName", "string"));
   }
@@ -136,7 +130,7 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
   @Test
   public void testCrossClusterTableWildcardPrefix() throws IOException {
     JSONObject result =
-        executeQuery(String.format("search source=%s | table first*", TEST_INDEX_BANK_REMOTE));
+        executeQuery("search " + withSource(TEST_INDEX_BANK_REMOTE, "table first*"));
     verifyColumn(result, columnName("firstname"));
     verifySchema(result, schema("firstname", "string"));
   }
@@ -144,10 +138,9 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
   @Test
   public void testCrossClusterFieldsAndTableEquivalence() throws IOException {
     JSONObject fieldsResult =
-        executeQuery(
-            String.format("search source=%s | fields dog_name age", TEST_INDEX_DOG_REMOTE));
+        executeQuery("search " + withSource(TEST_INDEX_DOG_REMOTE, "fields dog_name age"));
     JSONObject tableResult =
-        executeQuery(String.format("search source=%s | table dog_name age", TEST_INDEX_DOG_REMOTE));
+        executeQuery("search " + withSource(TEST_INDEX_DOG_REMOTE, "table dog_name age"));
 
     verifyColumn(fieldsResult, columnName("dog_name"), columnName("age"));
     verifyColumn(tableResult, columnName("dog_name"), columnName("age"));
@@ -160,9 +153,8 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
     // Default bin without any parameters
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | bin age | stats count() by age | sort age | head 3",
-                TEST_INDEX_ACCOUNT_REMOTE));
+            withSource(
+                TEST_INDEX_ACCOUNT_REMOTE, "bin age | stats count() by age | sort age | head 3"));
     verifySchema(result, schema("count()", null, "bigint"), schema("age", null, "string"));
 
     verifyDataRows(result, rows(451L, "20-30"), rows(504L, "30-40"), rows(45L, "40-50"));
@@ -173,9 +165,9 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
     // Span-based binning
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | bin age span=10 | stats count() by age | sort age | head 3",
-                TEST_INDEX_ACCOUNT_REMOTE));
+            withSource(
+                TEST_INDEX_ACCOUNT_REMOTE,
+                "bin age span=10 | stats count() by age | sort age | head 3"));
     verifySchema(result, schema("count()", null, "bigint"), schema("age", null, "string"));
 
     verifyDataRows(result, rows(451L, "20-30"), rows(504L, "30-40"), rows(45L, "40-50"));
@@ -186,9 +178,9 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
     // Count-based binning (bins parameter)
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | bin age bins=5 | stats count() by age | sort age | head 3",
-                TEST_INDEX_ACCOUNT_REMOTE));
+            withSource(
+                TEST_INDEX_ACCOUNT_REMOTE,
+                "bin age bins=5 | stats count() by age | sort age | head 3"));
     verifySchema(result, schema("count()", null, "bigint"), schema("age", null, "string"));
 
     verifyDataRows(result, rows(451L, "20-30"), rows(504L, "30-40"), rows(45L, "40-50"));

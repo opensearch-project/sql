@@ -29,7 +29,7 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
   @Test
   public void testReverse() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s | fields account_number | reverse", TEST_INDEX_BANK));
+        executeQuery(withSource(TEST_INDEX_BANK, "fields account_number | reverse"));
     verifySchema(result, schema("account_number", "bigint"));
     verifyDataRowsInOrder(
         result, rows(32), rows(25), rows(20), rows(18), rows(13), rows(6), rows(1));
@@ -79,8 +79,7 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
   @Test
   public void testReverseWithHead() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format("source=%s | fields account_number | reverse | head 3", TEST_INDEX_BANK));
+        executeQuery(withSource(TEST_INDEX_BANK, "fields account_number | reverse | head 3"));
     verifySchema(result, schema("account_number", "bigint"));
     verifyDataRowsInOrder(result, rows(32), rows(25), rows(20));
   }

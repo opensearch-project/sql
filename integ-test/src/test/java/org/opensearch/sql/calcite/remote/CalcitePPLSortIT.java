@@ -53,8 +53,7 @@ public class CalcitePPLSortIT extends PPLIntegTestCase {
 
   @Test
   public void testFieldsAndSort2() throws IOException {
-    JSONObject actual =
-        executeQuery(String.format("source=%s | fields age | sort - age", TEST_INDEX_BANK));
+    JSONObject actual = executeQuery(withSource(TEST_INDEX_BANK, "fields age | sort - age"));
     verifySchema(actual, schema("age", "int"));
     verifyDataRowsInOrder(
         actual, rows(39), rows(36), rows(36), rows(34), rows(33), rows(32), rows(28));
@@ -157,8 +156,7 @@ public class CalcitePPLSortIT extends PPLIntegTestCase {
 
   @Test
   public void testSortAgeAndFieldsAge() throws IOException {
-    JSONObject actual =
-        executeQuery(String.format("source=%s | sort - age | fields age", TEST_INDEX_BANK));
+    JSONObject actual = executeQuery(withSource(TEST_INDEX_BANK, "sort - age | fields age"));
     verifySchema(actual, schema("age", "int"));
     verifyDataRowsInOrder(
         actual, rows(39), rows(36), rows(36), rows(34), rows(33), rows(32), rows(28));
@@ -167,8 +165,7 @@ public class CalcitePPLSortIT extends PPLIntegTestCase {
   @Test
   public void testSortAgeAndFieldsNameAge() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format("source=%s | sort - age | fields firstname, age", TEST_INDEX_BANK));
+        executeQuery(withSource(TEST_INDEX_BANK, "sort - age | fields firstname, age"));
     verifySchema(actual, schema("firstname", "string"), schema("age", "int"));
     verifyDataRowsInOrder(
         actual,
@@ -317,8 +314,7 @@ public class CalcitePPLSortIT extends PPLIntegTestCase {
   @Test
   public void testSortWithAutoCast() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format("source=%s | sort AUTO(age) | fields firstname, age", TEST_INDEX_BANK));
+        executeQuery(withSource(TEST_INDEX_BANK, "sort AUTO(age) | fields firstname, age"));
     verifySchema(result, schema("firstname", "string"), schema("age", "int"));
     verifyDataRowsInOrder(
         result,

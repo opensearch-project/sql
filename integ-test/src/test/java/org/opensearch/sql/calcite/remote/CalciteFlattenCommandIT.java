@@ -35,8 +35,7 @@ public class CalciteFlattenCommandIT extends PPLIntegTestCase {
   @Test
   public void testFlattenNestedStruct() throws Exception {
     JSONObject result =
-        executeQuery(
-            String.format("source=%s | flatten message", TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS));
+        executeQuery(withSource(TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS, "flatten message"));
     verifySchema(
         result,
         // Nested fields are retrieved as array of nested structs
