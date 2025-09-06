@@ -14,6 +14,7 @@ import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BinCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DescribeCommandContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DynamicSourceClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.HeadCommandContext;
@@ -818,6 +819,12 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return ctx.alias != null
         ? new SubqueryAlias(internalVisitExpression(ctx.alias).toString(), relation)
         : relation;
+  }
+
+  @Override
+  public UnresolvedPlan visitDynamicSourceClause(DynamicSourceClauseContext ctx) {
+    throw new UnsupportedOperationException(
+        "Dynamic source clause with metadata filters is not supported.");
   }
 
   @Override

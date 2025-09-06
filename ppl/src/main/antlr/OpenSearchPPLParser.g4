@@ -423,6 +423,8 @@ fromClause
    | INDEX EQUAL tableOrSubqueryClause
    | SOURCE EQUAL tableFunction
    | INDEX EQUAL tableFunction
+   | SOURCE EQUAL dynamicSourceClause
+   | INDEX EQUAL dynamicSourceClause
    ;
 
 tableOrSubqueryClause
@@ -432,6 +434,27 @@ tableOrSubqueryClause
 
 tableSourceClause
    : tableSource (COMMA tableSource)* (AS alias = qualifiedName)?
+   ;
+
+dynamicSourceClause
+   : LT_SQR_PRTHS sourceReferences (COMMA sourceFilterArgs)? RT_SQR_PRTHS
+   ;
+
+sourceReferences
+   : sourceReference (COMMA sourceReference)*
+   ;
+
+sourceReference
+   : (CLUSTER)? wcQualifiedName
+   ;
+
+sourceFilterArgs
+   : sourceFilterArg (COMMA sourceFilterArg)*
+   ;
+
+sourceFilterArg
+   : ident EQUAL literalValue
+   | ident IN valueList
    ;
 
 // join
