@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.ppl;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
@@ -24,14 +23,12 @@ public class SettingsIT extends PPLIntegTestCase {
   @Test
   public void testQuerySizeLimit() throws IOException {
     // Default setting, fetch 200 rows from query
-    JSONObject result =
-        executeQuery(String.format("search source=%s age>35 | fields firstname", TEST_INDEX_BANK));
+    JSONObject result = executeQuery(Index.BANK.pplSearch_("age>35 | fields firstname"));
     verifyDataRows(result, rows("Hattie"), rows("Elinor"), rows("Virginia"));
 
     // Fetch 1 rows from query
     setQuerySizeLimit(1);
-    result =
-        executeQuery(String.format("search source=%s age>35 | fields firstname", TEST_INDEX_BANK));
+    result = executeQuery(Index.BANK.pplSearch_("age>35 | fields firstname"));
     verifyDataRows(result, rows("Hattie"));
   }
 
@@ -39,19 +36,17 @@ public class SettingsIT extends PPLIntegTestCase {
   public void testQuerySizeLimit_NoPushdown() throws IOException {
     // Default setting, fetch 200 rows from query
     JSONObject result =
-        executeQuery("search " + Index.BANK.ppl("eval a = 1 | where age>35 | fields firstname"));
+        executeQuery(Index.BANK.pplSearch("eval a = 1 | where age>35 | fields firstname"));
     verifyDataRows(result, rows("Hattie"), rows("Elinor"), rows("Virginia"));
 
     // Fetch 2 rows from query
     setQuerySizeLimit(2);
-    result =
-        executeQuery("search " + Index.BANK.ppl("eval a = 1 | where age>35 | fields firstname"));
+    result = executeQuery(Index.BANK.pplSearch("eval a = 1 | where age>35 | fields firstname"));
     verifyDataRows(result, rows("Hattie"), rows("Elinor"));
 
     // Fetch 1 rows from query
     setQuerySizeLimit(1);
-    result =
-        executeQuery("search " + Index.BANK.ppl("eval a = 1 | where age>35 | fields firstname"));
+    result = executeQuery(Index.BANK.pplSearch("eval a = 1 | where age>35 | fields firstname"));
     verifyDataRows(result, rows("Hattie"));
   }
 }

@@ -99,7 +99,9 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
   public void testCrossClusterSearchMultiClusters() throws IOException {
     JSONObject result =
         executeQuery(
-            searchWithSource_(",%s firstname='Hattie' | fields firstname", TEST_INDEX_BANK));
+            String.format(
+                "source=%s,%s firstname='Hattie' | fields firstname",
+                TEST_INDEX_BANK_REMOTE, TEST_INDEX_BANK));
     verifyDataRows(result, rows("Hattie"), rows("Hattie"));
   }
 

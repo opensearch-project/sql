@@ -356,7 +356,7 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
     // Verify we get expected data from the bank index
     JSONObject resultWithFilter =
         executeQueryAsUser(
-            Index.BANK.pplSearch("firstname='Hattie' | fields firstname"), BANK_USER);
+            Index.BANK.pplSearch_("firstname='Hattie' | fields firstname"), BANK_USER);
     verifyDataRows(resultWithFilter, rows("Hattie"));
   }
 
@@ -470,10 +470,9 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
     // Test a more complex PPL query to ensure the fix works with various operations
     JSONObject result =
         executeQueryAsUser(
-            "search "
-                + Index.BANK.ppl(
-                    "where age > 25 AND gender = 'M' | stats avg(age) as avg_age,"
-                        + " count() as total_count by state | sort total_count | head 3"),
+            Index.BANK.pplSearch(
+                "where age > 25 AND gender = 'M' | stats avg(age) as avg_age,"
+                    + " count() as total_count by state | sort total_count | head 3"),
             BANK_USER);
     verifyColumn(result, columnName("state"), columnName("avg_age"), columnName("total_count"));
   }
@@ -483,8 +482,7 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
     // Test PPL search with rename command by bank_user
     JSONObject result =
         executeQueryAsUser(
-            "search " + Index.BANK.ppl("rename firstname as first_name | fields first_name"),
-            BANK_USER);
+            Index.BANK.pplSearch("rename firstname as first_name | fields first_name"), BANK_USER);
     verifyColumn(result, columnName("first_name"));
   }
 
@@ -493,10 +491,8 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
     // Test PPL search with eval command by bank_user
     JSONObject result =
         executeQueryAsUser(
-            "search "
-                + Index.BANK.ppl(
-                    "eval full_name = concat(firstname, ' ', lastname) | fields"
-                        + " full_name | head 5"),
+            Index.BANK.pplSearch(
+                "eval full_name = concat(firstname, ' ', lastname) | fields full_name | head 5"),
             BANK_USER);
     verifyColumn(result, columnName("full_name"));
   }
@@ -602,9 +598,8 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
     // 4. Complex query with multiple operations - should work with plugin-based PIT
     JSONObject result4 =
         executeQueryAsUser(
-            "search "
-                + Index.BANK.ppl(
-                    "where age > 30 | stats avg(age) as avg_age by gender | sort" + " avg_age"),
+            Index.BANK.pplSearch(
+                "where age > 30 | stats avg(age) as avg_age by gender | sort" + " avg_age"),
             MINIMAL_USER);
     verifyColumn(result4, columnName("gender"), columnName("avg_age"));
   }

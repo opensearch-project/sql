@@ -7,7 +7,6 @@ package org.opensearch.sql.ppl;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NONNUMERIC;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -401,9 +400,8 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
   public void testCompare() throws IOException {
     var result =
         executeQuery(
-            withSource(
-                TEST_INDEX_DATATYPE_NONNUMERIC,
-                String.format("eval `%s` = %s | fields `%s`", name, functionCall, name)));
+            Index.DATATYPE_NONNUMERIC.ppl(
+                "eval `%s` = %s | fields `%s`", name, functionCall, name));
     verifySchema(result, schema(name, null, "boolean"));
     verifyDataRows(result, rows(expectedResult));
   }
