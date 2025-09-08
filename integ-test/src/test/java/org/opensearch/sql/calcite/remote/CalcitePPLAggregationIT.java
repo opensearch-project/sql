@@ -977,4 +977,16 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     verifySchema(actual, schema("median(balance)", "bigint"));
     verifyDataRows(actual, rows(32838));
   }
+
+  @Test
+  public void testStatsCountOnFunctionsWithUDTArg() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | eval t = unix_timestamp(birthdate) | stats count() by t | sort t |"
+                    + " head 3",
+                TEST_INDEX_BANK));
+    verifySchema(response, schema("count()", "bigint"), schema("t", "double"));
+    verifyDataRows(response, rows(1, 1508716800), rows(1, 1511136000), rows(1, 1529712000));
+  }
 }

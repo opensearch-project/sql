@@ -74,18 +74,17 @@ public class RelJsonSerializer {
    * <li>Encodes the resulting map into a final object string
    *
    * @param rexNode pushed down RexNode
-   * @param relDataType row type of RexNode input
+   * @param rowType row type of RexNode input
    * @param fieldTypes input field and ExprType mapping
    * @return serialized string of map structure for inputs
    */
-  public String serialize(
-      RexNode rexNode, RelDataType relDataType, Map<String, ExprType> fieldTypes) {
+  public String serialize(RexNode rexNode, RelDataType rowType, Map<String, ExprType> fieldTypes) {
     try {
       // Serialize RexNode and RelDataType by JSON
       JsonBuilder jsonBuilder = new JsonBuilder();
-      RelJson relJson = RelJson.create().withJsonBuilder(jsonBuilder);
+      RelJson relJson = ExtendedRelJson.create(jsonBuilder);
       String rexNodeJson = jsonBuilder.toJsonString(relJson.toJson(rexNode));
-      String rowTypeJson = jsonBuilder.toJsonString(relJson.toJson(relDataType));
+      String rowTypeJson = jsonBuilder.toJsonString(relJson.toJson(rowType));
       // Construct envelope of serializable objects
       Map<String, Object> envelope =
           Map.of(EXPR, rexNodeJson, FIELD_TYPES, fieldTypes, ROW_TYPE, rowTypeJson);
@@ -121,7 +120,7 @@ public class RelJsonSerializer {
       // PPL Expr types are all serializable
       Map<String, ExprType> fieldTypes = (Map<String, ExprType>) objectMap.get(FIELD_TYPES);
       // Deserialize RelDataType and RexNode by JSON
-      RelJson relJson = RelJson.create();
+      RelJson relJson = ExtendedRelJson.create((JsonBuilder) null);
       Map<String, Object> rowTypeMap = mapper.readValue((String) objectMap.get(ROW_TYPE), TYPE_REF);
       RelDataType rowType = relJson.toType(cluster.getTypeFactory(), rowTypeMap);
       OpenSearchRelInputTranslator inputTranslator = new OpenSearchRelInputTranslator(rowType);
