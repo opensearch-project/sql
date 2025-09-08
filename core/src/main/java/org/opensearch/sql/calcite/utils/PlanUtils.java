@@ -372,9 +372,18 @@ public interface PlanUtils {
     List<RelFieldCollation> reversedFields = new ArrayList<>();
     for (RelFieldCollation field : original.getFieldCollations()) {
       RelFieldCollation.Direction reversedDirection = field.direction.reverse();
+      
+      // Handle null direction properly - reverse it as well
+      RelFieldCollation.NullDirection reversedNullDirection = field.nullDirection;
+      if (reversedNullDirection == RelFieldCollation.NullDirection.FIRST) {
+        reversedNullDirection = RelFieldCollation.NullDirection.LAST;
+      } else if (reversedNullDirection == RelFieldCollation.NullDirection.LAST) {
+        reversedNullDirection = RelFieldCollation.NullDirection.FIRST;
+      }
+      // UNSPECIFIED remains UNSPECIFIED
 
       RelFieldCollation reversedField =
-          new RelFieldCollation(field.getFieldIndex(), reversedDirection, field.nullDirection);
+          new RelFieldCollation(field.getFieldIndex(), reversedDirection, reversedNullDirection);
       reversedFields.add(reversedField);
     }
 

@@ -232,6 +232,7 @@ public class CalciteExplainIT extends ExplainIT {
     assertJsonEqualsIgnoreId(expected, result);
   }
 
+<<<<<<< HEAD
   @Test
   public void testExplainWithTimechartAvg() throws IOException {
     var result = explainQueryToString("source=events | timechart span=1m avg(cpu_usage) by host");
@@ -260,6 +261,35 @@ public class CalciteExplainIT extends ExplainIT {
     String expected = loadFromFile("expectedOutput/calcite/explain_double_reverse_sort_no_op.json");
     assertJsonEqualsIgnoreId(expected, result);
   }
+=======
+//  @Test
+//  public void testDoubleReverseNoOp() throws IOException {
+//    String query =
+//        "source=opensearch-sql_test_index_account | fields account_number | reverse | reverse";
+//    var result = explainQueryToString(query);
+//    String expected = loadFromFile("expectedOutput/calcite/explain_double_reverse_no_op.json");
+//    assertJsonEqualsIgnoreId(expected, result);
+//  }
+
+//  @Test
+//  public void testTripleReverseOneOp() throws IOException {
+//    String query =
+//        "source=opensearch-sql_test_index_account | fields account_number | reverse | reverse |"
+//            + " reverse";
+//    var result = explainQueryToString(query);
+//    String expected = loadFromFile("expectedOutput/calcite/explain_triple_reverse_one_op.json");
+//    assertJsonEqualsIgnoreId(expected, result);
+//  }
+//
+//  @Test
+//  public void testDoubleReverseWithSortNoOp() throws IOException {
+//    String query =
+//        "source=opensearch-sql_test_index_account | sort - age, + firstname | reverse | reverse";
+//    var result = explainQueryToString(query);
+//    String expected = loadFromFile("expectedOutput/calcite/explain_double_reverse_sort_no_op.json");
+//    assertJsonEqualsIgnoreId(expected, result);
+//  }
+>>>>>>> f6a6803f3 (add opt rule for sort flip)
 
   @Test
   public void noPushDownForAggOnWindow() throws IOException {

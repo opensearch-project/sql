@@ -8,12 +8,19 @@ package org.opensearch.sql.calcite.plan;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.rel.convert.ConverterRule;
+import org.opensearch.sql.calcite.rule.SortReverseOptimizationRule;
 
 public class OpenSearchRules {
   private static final PPLAggregateConvertRule AGGREGATE_CONVERT_RULE =
       PPLAggregateConvertRule.Config.SUM_CONVERTER.toRule();
 
-  public static final List<RelOptRule> OPEN_SEARCH_OPT_RULES =
+  public static final List<ConverterRule> OPEN_SEARCH_OPT_RULES = ImmutableList.of();
+  
+  public static final List<RelOptRule> OPTIMIZATION_RULES = 
+      ImmutableList.of(SortReverseOptimizationRule.INSTANCE);
+
+  public static final List<RelOptRule> OPEN_SEARCH_OPT_RULES_OLD =
       ImmutableList.of(AGGREGATE_CONVERT_RULE);
 
   // prevent instantiation

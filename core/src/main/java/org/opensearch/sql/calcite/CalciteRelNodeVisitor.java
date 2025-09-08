@@ -569,11 +569,18 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitReverse(
       org.opensearch.sql.ast.tree.Reverse node, CalcitePlanContext context) {
     visitChildren(node, context);
-
-    RelCollation collation = context.relBuilder.peek().getTraitSet().getCollation();
-    if (collation == null || collation == RelCollations.EMPTY) {
-      // If no collation exists, use the traditional row_number approach
-      // Add ROW_NUMBER() column
+    
+    // Check if there's an existing sort to reverse
+    List<RelCollation> collations = 
+        context.relBuilder.getCluster().getMetadataQuery().collations(context.relBuilder.peek());
+    RelCollation collation = collations != null && !collations.isEmpty() ? collations.get(0) : null;
+    
+    if (collation != null && !collation.getFieldCollations().isEmpty()) {
+      // If there's an existing sort, reverse its direction
+      RelCollation reversedCollation = PlanUtils.reverseCollation(collation);
+      context.relBuilder.sort(reversedCollation);
+    } else {
+      // Fallback: use ROW_NUMBER approach when no existing sort
       RexNode rowNumber =
           context
               .relBuilder
@@ -582,16 +589,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               .rowsTo(RexWindowBounds.CURRENT_ROW)
               .as(REVERSE_ROW_NUM);
       context.relBuilder.projectPlus(rowNumber);
-      // Sort by row number descending
       context.relBuilder.sort(context.relBuilder.desc(context.relBuilder.field(REVERSE_ROW_NUM)));
-      // Remove row number column
       context.relBuilder.projectExcept(context.relBuilder.field(REVERSE_ROW_NUM));
-    } else {
-      // If collation exists, reverse the sort direction
-      RelCollation reversedCollation = PlanUtils.reverseCollation(collation);
-      context.relBuilder.sort(reversedCollation);
     }
-
+    
     return context.relBuilder.peek();
   }
 
