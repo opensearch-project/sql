@@ -51,6 +51,7 @@ stats <aggregation>... [by-clause]
  * Description: The unit of the interval expression is the natural unit by default. If the field is a date and time type field, and the interval is in date/time units, you will need to specify the unit in the interval expression. For example, to split the field ``age`` into buckets by 10 years, it looks like ``span(age, 10)``. And here is another example of time span, the span to split a ``timestamp`` field into hourly intervals, it looks like ``span(timestamp, 1h)``.
 
 * Available time unit:
+
 +----------------------------+
 | Span Interval Units        |
 +============================+
@@ -273,7 +274,7 @@ Example::
     +--------------------+
 
 DISTINCT_COUNT_APPROX
-----------
+---------------------
 
 Description
 >>>>>>>>>>>
@@ -335,6 +336,58 @@ Example::
     | 28                  | F      |
     | 36                  | M      |
     +---------------------+--------+
+
+Percentile Shortcut Functions
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+Version: 3.3.0
+
+For convenience, OpenSearch PPL provides shortcut functions for common percentiles:
+
+- ``PERC<percent>(expr)`` - Equivalent to ``PERCENTILE(expr, <percent>)``
+- ``P<percent>(expr)`` - Equivalent to ``PERCENTILE(expr, <percent>)``
+
+Both integer and decimal percentiles from 0 to 100 are supported (e.g., ``PERC95``, ``P99.5``).
+
+Example::
+
+    ppl> source=accounts | stats perc99.5(age);
+    fetched rows / total rows = 1/1
+    +---------------+
+    | perc99.5(age) |
+    |---------------|
+    | 36            |
+    +---------------+
+
+    ppl> source=accounts | stats p50(age);
+    fetched rows / total rows = 1/1
+    +---------+
+    | p50(age) |
+    |---------|
+    | 32      |
+    +---------+
+
+MEDIAN
+------
+
+Description
+>>>>>>>>>>>
+
+Version: 3.3.0
+
+Usage: MEDIAN(expr). Returns the median (50th percentile) value of `expr`. This is equivalent to ``PERCENTILE(expr, 50)``.
+
+Note: This function requires Calcite to be enabled (see `Configuration`_ section above).
+
+Example::
+
+    os> source=accounts | stats median(age);
+    fetched rows / total rows = 1/1
+    +-------------+
+    | median(age) |
+    |-------------|
+    | 33          |
+    +-------------+
 
 EARLIEST
 --------
