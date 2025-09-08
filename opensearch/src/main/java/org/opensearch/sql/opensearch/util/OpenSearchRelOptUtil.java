@@ -39,7 +39,8 @@ public class OpenSearchRelOptUtil {
       case MINUS_PREFIX:
         return getOrderEquivalentInputInfo(((RexCall) expr).getOperands().get(0))
             .map(inputInfo -> Pair.of(inputInfo.getLeft(), !inputInfo.getRight()));
-      case PLUS, MINUS:
+      case PLUS:
+      case MINUS:
         {
           RexNode operand0 = ((RexCall) expr).getOperands().get(0);
           RexNode operand1 = ((RexCall) expr).getOperands().get(1);
@@ -82,7 +83,8 @@ public class OpenSearchRelOptUtil {
               .map(inputInfo -> Pair.of(inputInfo.getLeft(), flipped != inputInfo.getRight()));
         }
         // Ignore DIVIDE operator for now because it has too many precision issues
-      case CAST, SAFE_CAST:
+      case CAST:
+      case SAFE_CAST:
         {
           RexNode child = ((RexCall) expr).getOperands().get(0);
           if (!isOrderPreservingCast(child.getType(), expr.getType())) {
@@ -100,21 +102,37 @@ public class OpenSearchRelOptUtil {
     final SqlTypeName dstType = dst.getSqlTypeName();
 
     if (SqlTypeUtil.isIntType(src) && SqlTypeUtil.isApproximateNumeric(dst)) {
-      int intBits =
-          switch (srcType) {
-            case TINYINT -> 8;
-            case SMALLINT -> 16;
-            case INTEGER -> 32;
-            case BIGINT -> 64;
-            default -> 0;
-          };
+      int intBits;
+      switch (srcType) {
+        case TINYINT:
+          intBits = 8;
+          break;
+        case SMALLINT:
+          intBits = 16;
+          break;
+        case INTEGER:
+          intBits = 32;
+          break;
+        case BIGINT:
+          intBits = 64;
+          break;
+        default:
+          intBits = 0;
+          break;
+      };
       // Float and double can only handle exact number based on its significand precision
-      int floatBits =
-          switch (dstType) {
-            case FLOAT -> 24;
-            case DOUBLE -> 53;
-            default -> 0;
-          };
+      int floatBits;
+      switch (dstType) {
+        case FLOAT:
+          floatBits = 24;
+          break;
+        case DOUBLE:
+          floatBits = 53;
+          break;
+        default:
+          floatBits = 0;
+          break;
+      };
       return intBits > 0 && floatBits > 0 && intBits <= floatBits;
     }
 
