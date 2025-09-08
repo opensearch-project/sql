@@ -281,18 +281,17 @@ public class AggregateAnalyzer {
           new SingleValueParser(aggFieldName));
       case MIN -> {
         // For string fields, use topHits instead of min aggregations
-        NamedFieldExpression fieldExpr = helper.inferNamedField(args.getFirst());
-        String fieldName = fieldExpr.getRootName();
+        String fieldName = helper.inferNamedField(args.getFirst()).getRootName();
         ExprType fieldType = helper.fieldTypes.get(fieldName);
         
         if (fieldType != null && fieldType instanceof OpenSearchTextType) {
           // Use topHits with ascending sort to get minimum string value
           yield Pair.of(
               AggregationBuilders.topHits(aggFieldName)
-                  .fetchSource(fieldExpr.getRootName(), null)
+                  .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)
                   .size(1)
                   .from(0)
-                  .sort(fieldExpr.getReferenceForTermQuery(), SortOrder.ASC),
+                  .sort(helper.inferNamedField(args.getFirst()).getReferenceForTermQuery(), SortOrder.ASC),
               new ArgMaxMinParser(aggFieldName));
         } else {
           // Use regular min aggregation for numeric/date fields
@@ -303,18 +302,17 @@ public class AggregateAnalyzer {
       }
       case MAX -> {
         // For string fields, use topHits instead of max aggregation
-        NamedFieldExpression fieldExpr = helper.inferNamedField(args.getFirst());
-        String fieldName = fieldExpr.getRootName();
+        String fieldName = helper.inferNamedField(args.getFirst()).getRootName();
         ExprType fieldType = helper.fieldTypes.get(fieldName);
         
         if (fieldType != null && fieldType instanceof OpenSearchTextType) {
           // Use topHits with descending sort to get maximum string value
           yield Pair.of(
               AggregationBuilders.topHits(aggFieldName)
-                  .fetchSource(fieldExpr.getRootName(), null)
+                  .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)
                   .size(1)
                   .from(0)
-                  .sort(fieldExpr.getReferenceForTermQuery(), SortOrder.DESC),
+                  .sort(helper.inferNamedField(args.getFirst()).getReferenceForTermQuery(), SortOrder.DESC),
               new ArgMaxMinParser(aggFieldName));
         } else {
           // Use regular max aggregation for numeric/date fields
