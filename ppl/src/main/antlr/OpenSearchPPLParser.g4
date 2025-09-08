@@ -515,6 +515,9 @@ statsFunctionName
    | STDDEV_POP
    | PERCENTILE
    | PERCENTILE_APPROX
+   | MEDIAN
+   | EARLIEST
+   | LATEST
    | LIST
    ;
 
