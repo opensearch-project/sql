@@ -76,16 +76,13 @@ import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
+import org.opensearch.sql.ppl.AstPlanningTest;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.utils.SystemIndexUtils;
 
-public class AstBuilderTest {
+public class AstBuilderTest extends AstPlanningTest {
 
   @Rule public ExpectedException exceptionRule = ExpectedException.none();
-
-  private final PPLSyntaxParser parser = new PPLSyntaxParser();
-
-  private final Settings settings = Mockito.mock(Settings.class);
 
   @Test
   public void testSearchCommand() {
@@ -1063,11 +1060,6 @@ public class AstBuilderTest {
   protected void assertEqual(String query, String expected) {
     Node expectedPlan = plan(expected);
     assertEqual(query, expectedPlan);
-  }
-
-  private Node plan(String query) {
-    AstBuilder astBuilder = new AstBuilder(query, settings);
-    return astBuilder.visit(parser.parse(query));
   }
 
   private String mappingTable(String indexName) {
