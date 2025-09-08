@@ -6,7 +6,7 @@
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "3.2.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "3.3.0-SNAPSHOT")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
         version_tokens = opensearch_version.tokenize('-')
@@ -16,6 +16,28 @@ buildscript {
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
         }
+
+        // Turn a
+        createVersionRange = { String version ->
+            def components = version.tokenize('.')
+            if (components.size() < 2) {
+                return version
+            }
+            def major = components[0]
+            def minor = components[1].toInteger()
+
+            def prevMinor = minor - 1
+            if (prevMinor < 0) {
+                return version
+            }
+
+            if (components.size() < 3) {
+                return "[${major}.${prevMinor}, ${major}.${minor}]"
+            }
+            def tail = String.join(".", components.subList(2, components.size()))
+            return "[${major}.${prevMinor}.${tail}, ${major}.${minor}.${tail}]"
+        }
+
         //this variable for always downloading snapshot version of security plugin.
         //need to figure out more elegant solution for integ tests with security.
         opensearch_build_snapshot = opensearch_build + '-SNAPSHOT'
@@ -72,7 +94,7 @@ buildscript {
     }
 
     dependencies {
-        classpath "org.opensearch.gradle:build-tools:${opensearch_version}"
+        classpath "org.opensearch.gradle:build-tools:${createVersionRange(opensearch_version)}"
     }
 }
 

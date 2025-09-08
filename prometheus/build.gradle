@@ -17,7 +17,7 @@ dependencies {
     api project(':core')
     implementation project(':datasources')
 
-    implementation group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
+    implementation group: 'org.opensearch', name: 'opensearch', version: "${createVersionRange(opensearch_version)}"
     implementation "io.github.resilience4j:resilience4j-retry:${resilience4j_version}"
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: "${versions.jackson}"
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: "${versions.jackson_databind}"

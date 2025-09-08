@@ -101,8 +101,8 @@ test {
 dependencies {
     implementation group: 'com.alibaba', name: 'druid', version:'1.0.15'
     implementation group: 'org.locationtech.spatial4j', name: 'spatial4j', version:'0.7'
-    implementation group: "org.opensearch.plugin", name: 'parent-join-client', version: "${opensearch_version}"
-    implementation group: "org.opensearch.plugin", name: 'reindex-client', version: "${opensearch_version}"
+    implementation group: "org.opensearch.plugin", name: 'parent-join-client', version: "${createVersionRange(opensearch_version)}"
+    implementation group: "org.opensearch.plugin", name: 'reindex-client', version: "${createVersionRange(opensearch_version)}"
     constraints {
         implementation("commons-codec:commons-codec:${commons_codec_version}") {
             because 'https://www.whitesourcesoftware.com/vulnerability-database/WS-2019-0379'
@@ -112,9 +112,9 @@ dependencies {
     implementation group: 'org.json', name: 'json', version:'20231013'
     implementation group: 'org.apache.commons', name: 'commons-lang3', version: "${commons_lang3_version}"
     implementation group: 'org.apache.commons', name: 'commons-text', version: "${commons_text_version}"
-    implementation group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
+    implementation group: 'org.opensearch', name: 'opensearch', version: "${createVersionRange(opensearch_version)}"
     // add geo module as dependency. https://github.com/opensearch-project/OpenSearch/pull/4180/.
-    implementation group: 'org.opensearch.plugin', name: 'geo', version: "${opensearch_version}"
+    implementation group: 'org.opensearch.plugin', name: 'geo', version: "${createVersionRange(opensearch_version)}"
     api project(':sql')
     api project(':common')
     api project(':opensearch')

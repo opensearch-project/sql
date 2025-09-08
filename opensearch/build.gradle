@@ -32,15 +32,16 @@ plugins {
 
 dependencies {
     api project(':core')
-    api group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
+    api group: 'org.opensearch', name: 'opensearch', version: "${createVersionRange(opensearch_version)}"
     implementation "io.github.resilience4j:resilience4j-retry:${resilience4j_version}"
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: "${versions.jackson}"
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: "${versions.jackson_databind}"
     implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-cbor', version: "${versions.jackson}"
     implementation group: 'org.json', name: 'json', version:'20231013'
-    compileOnly group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
-    implementation group: 'org.opensearch', name:'opensearch-ml-client', version: "${opensearch_build}"
-    implementation group: 'org.opensearch', name:'geospatial-client', version: "${opensearch_build}"
+    compileOnly group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${createVersionRange(opensearch_version)}"
+    implementation group: 'org.opensearch', name:'opensearch-ml-client', version: "${createVersionRange(opensearch_build)}"
+    implementation group: 'org.opensearch', name:'geospatial-client', version: "${createVersionRange(opensearch_build)}"
+
 
     annotationProcessor 'org.immutables:value:2.8.8'
     compileOnly 'org.immutables:value-annotations:2.8.8'
@@ -53,8 +54,8 @@ dependencies {
     testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: "${hamcrest_version}"
     testImplementation group: 'org.mockito', name: 'mockito-core', version: "${mockito_version}"
     testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: "${mockito_version}"
-    testImplementation group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
-    testImplementation group: 'org.opensearch.test', name: 'framework', version: "${opensearch_version}"
+    testImplementation group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${createVersionRange(opensearch_version)}"
+    testImplementation group: 'org.opensearch.test', name: 'framework', version: "${createVersionRange(opensearch_version)}"
 }
 
 spotless {

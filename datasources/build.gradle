@@ -18,9 +18,9 @@ dependencies {
     implementation project(':protocol')
     implementation project(':opensearch')
     implementation project(':legacy')
-    implementation group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
-    implementation group: 'org.opensearch', name: 'opensearch-x-content', version: "${opensearch_version}"
-    implementation group: 'org.opensearch', name: 'common-utils', version: "${opensearch_build}"
+    implementation group: 'org.opensearch', name: 'opensearch', version: "${createVersionRange(opensearch_version)}"
+    implementation group: 'org.opensearch', name: 'opensearch-x-content', version: "${createVersionRange(opensearch_version)}"
+    implementation group: 'org.opensearch', name: 'common-utils', version: "${createVersionRange(opensearch_build)}"
     implementation group: 'commons-io', name: 'commons-io', version: "${commons_io_version}"
     // FIXME. upgrade aws-encryption-sdk-java once the bouncycastle dependency update to 1.78.
     implementation ('com.amazonaws:aws-encryption-sdk-java:2.4.1') {
