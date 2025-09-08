@@ -744,7 +744,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   public void testCountWithInvalidParams() throws IOException {
     verifyExplainException(
         source(TEST_INDEX_BANK, "eventstats count(balance, age)"),
-        "Aggregation function COUNT expects field type and additional arguments {[ANY],[]},"
+        "Aggregation function COUNT expects field type and additional arguments {[ANY]|[]},"
             + " but got [LONG,INTEGER]");
   }
 
@@ -752,7 +752,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   public void testAvgWithInvalidParams() throws IOException {
     verifyExplainException(
         source(TEST_INDEX_BANK, "eventstats avg(balance, age)"),
-        "Aggregation function AVG expects field type and additional arguments {[INTEGER],[DOUBLE]},"
+        "Aggregation function AVG expects field type and additional arguments {[INTEGER]|[DOUBLE]},"
             + " but got [LONG,INTEGER]");
   }
 
@@ -760,7 +760,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   public void testSumWithInvalidParams() throws IOException {
     verifyExplainException(
         source(TEST_INDEX_BANK, "eventstats sum(balance, age)"),
-        "Aggregation function SUM expects field type and additional arguments {[INTEGER],[DOUBLE]},"
+        "Aggregation function SUM expects field type and additional arguments {[INTEGER]|[DOUBLE]},"
             + " but got [LONG,INTEGER]");
   }
 
@@ -785,7 +785,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     verifyExplainException(
         source(TEST_INDEX_BANK, "eventstats var_samp(balance, age)"),
         "Aggregation function VARSAMP expects field type and additional arguments"
-            + " {[INTEGER],[DOUBLE]}, but got [LONG,INTEGER]");
+            + " {[INTEGER]|[DOUBLE]}, but got [LONG,INTEGER]");
   }
 
   @Test
@@ -793,7 +793,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     verifyExplainException(
         source(TEST_INDEX_BANK, "eventstats var_pop(balance, age)"),
         "Aggregation function VARPOP expects field type and additional arguments"
-            + " {[INTEGER],[DOUBLE]}, but got [LONG,INTEGER]");
+            + " {[INTEGER]|[DOUBLE]}, but got [LONG,INTEGER]");
   }
 
   @Test
@@ -801,7 +801,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     verifyExplainException(
         source(TEST_INDEX_BANK, "eventstats stddev_samp(balance, age)"),
         "Aggregation function STDDEV_SAMP expects field type and additional arguments"
-            + " {[INTEGER],[DOUBLE]}, but got [LONG,INTEGER]");
+            + " {[INTEGER]|[DOUBLE]}, but got [LONG,INTEGER]");
   }
 
   @Test
@@ -809,7 +809,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     verifyExplainException(
         source(TEST_INDEX_BANK, "eventstats stddev_pop(balance, age)"),
         "Aggregation function STDDEV_POP expects field type and additional arguments"
-            + " {[INTEGER],[DOUBLE]}, but got [LONG,INTEGER]");
+            + " {[INTEGER]|[DOUBLE]}, but got [LONG,INTEGER]");
   }
 
   @Test
@@ -817,8 +817,17 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     verifyExplainException(
         source(TEST_INDEX_LOGS, "eventstats earliest(server, @timestamp, message)"),
         "Aggregation function EARLIEST expects field type and additional arguments"
-            + " {[ANY],[ANY,TIMESTAMP],[ANY,DATE],[ANY,TIME],[ANY,STRING]}, but got"
+            + " {[ANY]|[ANY,TIMESTAMP]|[ANY,DATE]|[ANY,TIME]|[ANY,STRING]}, but got"
             + " [STRING,TIMESTAMP,STRING]");
+  }
+
+  @Test
+  public void testEarliestWithIncompatibleType() throws IOException {
+    verifyExplainException(
+        source(TEST_INDEX_LOGS, "eventstats earliest(server, _id)"),
+        "Aggregation function EARLIEST expects field type and additional arguments"
+            + " {[ANY]|[ANY,TIMESTAMP]|[ANY,DATE]|[ANY,TIME]|[ANY,STRING]}, but got"
+            + " [STRING,INTEGER]");
   }
 
   @Test
@@ -826,7 +835,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     verifyExplainException(
         source(TEST_INDEX_LOGS, "eventstats latest(server, @timestamp, message)"),
         "Aggregation function LATEST expects field type and additional arguments"
-            + " {[ANY],[ANY,TIMESTAMP],[ANY,DATE],[ANY,TIME],[ANY,STRING]}, but got"
+            + " {[ANY]|[ANY,TIMESTAMP]|[ANY,DATE]|[ANY,TIME]|[ANY,STRING]}, but got"
             + " [STRING,TIMESTAMP,STRING]");
   }
 }

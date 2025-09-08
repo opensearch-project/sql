@@ -1180,15 +1180,15 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   public void testAggregateWithExtraParametersThrowsException() throws IOException {
     verifyExplainException(
         source(TEST_INDEX_BANK, "stats count(balance, age)"),
-        "Aggregation function COUNT expects field type and additional arguments {[ANY],[]},"
+        "Aggregation function COUNT expects field type and additional arguments {[ANY]|[]},"
             + " but got [LONG,INTEGER]");
     verifyExplainException(
         source(TEST_INDEX_BANK, "stats avg(balance, age)"),
-        "Aggregation function AVG expects field type and additional arguments {[INTEGER],[DOUBLE]},"
+        "Aggregation function AVG expects field type and additional arguments {[INTEGER]|[DOUBLE]},"
             + " but got [LONG,INTEGER]");
     verifyExplainException(
         source(TEST_INDEX_BANK, "stats sum(balance, age)"),
-        "Aggregation function SUM expects field type and additional arguments {[INTEGER],[DOUBLE]},"
+        "Aggregation function SUM expects field type and additional arguments {[INTEGER]|[DOUBLE]},"
             + " but got [LONG,INTEGER]");
     verifyExplainException(
         source(TEST_INDEX_BANK, "stats min(balance, age)"),
@@ -1205,19 +1205,19 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     verifyExplainException(
         source(TEST_INDEX_BANK, "stats var_samp(balance, age)"),
         "Aggregation function VARSAMP expects field type and additional arguments"
-            + " {[INTEGER],[DOUBLE]}, but got [LONG,INTEGER]");
+            + " {[INTEGER]|[DOUBLE]}, but got [LONG,INTEGER]");
     verifyExplainException(
         source(TEST_INDEX_BANK, "stats var_pop(balance, age)"),
         "Aggregation function VARPOP expects field type and additional arguments"
-            + " {[INTEGER],[DOUBLE]}, but got [LONG,INTEGER]");
+            + " {[INTEGER]|[DOUBLE]}, but got [LONG,INTEGER]");
     verifyExplainException(
         source(TEST_INDEX_BANK, "stats stddev_samp(balance, age)"),
         "Aggregation function STDDEV_SAMP expects field type and additional arguments"
-            + " {[INTEGER],[DOUBLE]}, but got [LONG,INTEGER]");
+            + " {[INTEGER]|[DOUBLE]}, but got [LONG,INTEGER]");
     verifyExplainException(
         source(TEST_INDEX_BANK, "stats stddev_pop(balance, age)"),
         "Aggregation function STDDEV_POP expects field type and additional arguments"
-            + " {[INTEGER],[DOUBLE]}, but got [LONG,INTEGER]");
+            + " {[INTEGER]|[DOUBLE]}, but got [LONG,INTEGER]");
   }
 
   @Test
@@ -1225,12 +1225,12 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     verifyExplainException(
         source(TEST_INDEX_BANK, "stats percentile(balance)"),
         "Aggregation function PERCENTILE_APPROX expects field type"
-            + " {[INTEGER,INTEGER],[INTEGER,DOUBLE],[DOUBLE,INTEGER],[DOUBLE,DOUBLE],[INTEGER,INTEGER,INTEGER],[INTEGER,INTEGER,DOUBLE],[INTEGER,DOUBLE,INTEGER],[INTEGER,DOUBLE,DOUBLE],[DOUBLE,INTEGER,INTEGER],[DOUBLE,INTEGER,DOUBLE],[DOUBLE,DOUBLE,INTEGER],[DOUBLE,DOUBLE,DOUBLE]},"
+            + " {[INTEGER,INTEGER]|[INTEGER,DOUBLE]|[DOUBLE,INTEGER]|[DOUBLE,DOUBLE]|[INTEGER,INTEGER,INTEGER]|[INTEGER,INTEGER,DOUBLE]|[INTEGER,DOUBLE,INTEGER]|[INTEGER,DOUBLE,DOUBLE]|[DOUBLE,INTEGER,INTEGER]|[DOUBLE,INTEGER,DOUBLE]|[DOUBLE,DOUBLE,INTEGER]|[DOUBLE,DOUBLE,DOUBLE]},"
             + " but got [LONG]");
     verifyExplainException(
         source(TEST_INDEX_BANK, "stats percentile(balance, 50, firstname)"),
         "Aggregation function PERCENTILE_APPROX expects field type and additional arguments"
-            + " {[INTEGER,INTEGER],[INTEGER,DOUBLE],[DOUBLE,INTEGER],[DOUBLE,DOUBLE],[INTEGER,INTEGER,INTEGER],[INTEGER,INTEGER,DOUBLE],[INTEGER,DOUBLE,INTEGER],[INTEGER,DOUBLE,DOUBLE],[DOUBLE,INTEGER,INTEGER],[DOUBLE,INTEGER,DOUBLE],[DOUBLE,DOUBLE,INTEGER],[DOUBLE,DOUBLE,DOUBLE]},"
+            + " {[INTEGER,INTEGER]|[INTEGER,DOUBLE]|[DOUBLE,INTEGER]|[DOUBLE,DOUBLE]|[INTEGER,INTEGER,INTEGER]|[INTEGER,INTEGER,DOUBLE]|[INTEGER,DOUBLE,INTEGER]|[INTEGER,DOUBLE,DOUBLE]|[DOUBLE,INTEGER,INTEGER]|[DOUBLE,INTEGER,DOUBLE]|[DOUBLE,DOUBLE,INTEGER]|[DOUBLE,DOUBLE,DOUBLE]},"
             + " but got [LONG,INTEGER,STRING]");
   }
 
@@ -1239,12 +1239,12 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     verifyExplainException(
         source(TEST_INDEX_LOGS, "stats earliest(server, @timestamp, message)"),
         "Aggregation function EARLIEST expects field type and additional arguments"
-            + " {[ANY],[ANY,TIMESTAMP],[ANY,DATE],[ANY,TIME],[ANY,STRING]}, but got"
+            + " {[ANY]|[ANY,TIMESTAMP]|[ANY,DATE]|[ANY,TIME]|[ANY,STRING]}, but got"
             + " [STRING,TIMESTAMP,STRING]");
     verifyExplainException(
         source(TEST_INDEX_LOGS, "stats latest(server, @timestamp, message)"),
         "Aggregation function LATEST expects field type and additional arguments"
-            + " {[ANY],[ANY,TIMESTAMP],[ANY,DATE],[ANY,TIME],[ANY,STRING]}, but got"
+            + " {[ANY]|[ANY,TIMESTAMP]|[ANY,DATE]|[ANY,TIME]|[ANY,STRING]}, but got"
             + " [STRING,TIMESTAMP,STRING]");
   }
 }

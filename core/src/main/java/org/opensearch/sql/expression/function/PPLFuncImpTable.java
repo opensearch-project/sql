@@ -231,7 +231,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
@@ -261,7 +260,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.calcite.CalcitePlanContext;
-import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -407,25 +405,38 @@ public class PPLFuncImpTable {
     aggExternalFunctionRegistry.put(functionName, Pair.of(signature, handler));
   }
 
+  public void validateAggFunctionSignature(
+      BuiltinFunctionName functionName, RexNode field, List<RexNode> argList) {
+    var implementation = getImplementation(functionName);
+    validateFunctionArgs(implementation, functionName, field, argList);
+  }
+
   public RelBuilder.AggCall resolveAgg(
       BuiltinFunctionName functionName,
       boolean distinct,
       RexNode field,
       List<RexNode> argList,
       CalcitePlanContext context) {
-    var implementation = aggExternalFunctionRegistry.get(functionName);
-    if (implementation == null) {
-      implementation = aggFunctionRegistry.get(functionName);
-    }
-    if (implementation == null) {
-      throw new IllegalStateException(String.format("Cannot resolve function: %s", functionName));
-    }
+    var implementation = getImplementation(functionName);
+
+    validateFunctionArgs(implementation, functionName, field, argList);
+    var handler = implementation.getValue();
+    return handler.apply(distinct, field, argList, context);
+  }
+
+  static void validateFunctionArgs(
+      Pair<CalciteFuncSignature, AggHandler> implementation,
+      BuiltinFunctionName functionName,
+      RexNode field,
+      List<RexNode> argList) {
     CalciteFuncSignature signature = implementation.getKey();
+
     List<RelDataType> argTypes = new ArrayList<>();
     if (field != null) {
       argTypes.add(field.getType());
     }
-    // Currently only PERCENTILE_APPROX and TAKE have additional arguments.
+
+    // Currently only PERCENTILE_APPROX, TAKE, EARLIEST, and LATEST have additional arguments.
     // Their additional arguments will always come as a map of <argName, value>
     List<RelDataType> additionalArgTypes =
         argList.stream().map(PlanUtils::derefMapCall).map(RexNode::getType).toList();
@@ -441,10 +452,20 @@ public class PPLFuncImpTable {
               errorMessagePattern,
               functionName,
               signature.typeChecker().getAllowedSignatures(),
-              getActualSignature(argTypes)));
+              PlanUtils.getActualSignature(argTypes)));
     }
-    var handler = implementation.getValue();
-    return handler.apply(distinct, field, argList, context);
+  }
+
+  private Pair<CalciteFuncSignature, AggHandler> getImplementation(
+      BuiltinFunctionName functionName) {
+    var implementation = aggExternalFunctionRegistry.get(functionName);
+    if (implementation == null) {
+      implementation = aggFunctionRegistry.get(functionName);
+    }
+    if (implementation == null) {
+      throw new IllegalStateException(String.format("Cannot resolve function: %s", functionName));
+    }
+    return implementation;
   }
 
   public RexNode resolve(final RexBuilder builder, final String functionName, RexNode... args) {
@@ -492,7 +513,7 @@ public class PPLFuncImpTable {
       throw new ExpressionEvaluationException(
           String.format(
               "Cannot resolve function: %s, arguments: %s, caused by: %s",
-              functionName, getActualSignature(argTypes), e.getMessage()),
+              functionName, PlanUtils.getActualSignature(argTypes), e.getMessage()),
           e);
     }
     StringJoiner allowedSignatures = new StringJoiner(",");
@@ -505,7 +526,7 @@ public class PPLFuncImpTable {
     throw new ExpressionEvaluationException(
         String.format(
             "%s function expects {%s}, but got %s",
-            functionName, allowedSignatures, getActualSignature(argTypes)));
+            functionName, allowedSignatures, PlanUtils.getActualSignature(argTypes)));
   }
 
   /**
@@ -1150,8 +1171,6 @@ public class PPLFuncImpTable {
           AVG,
           (distinct, field, argList, ctx) -> ctx.relBuilder.avg(field),
           PPLTypeChecker.family(SqlTypeFamily.NUMERIC));
-      // wrapSqlOperandTypeChecker(PPLOperandTypes.NUMERIC.getInnerTypeChecker(), AVG.name(),
-      // false));
 
       register(
           COUNT,
@@ -1166,9 +1185,6 @@ public class PPLFuncImpTable {
           },
           wrapSqlOperandTypeChecker(
               PPLOperandTypes.OPTIONAL_ANY.getInnerTypeChecker(), COUNT.name(), false));
-      // PPLTypeChecker.family(SqlTypeFamily.));
-      // wrapSqlOperandTypeChecker(
-      //     SqlStdOperatorTable.COUNT.getOperandTypeChecker(), COUNT.name(), false));
 
       register(
           PERCENTILE_APPROX,
@@ -1254,21 +1270,6 @@ public class PPLFuncImpTable {
           wrapSqlOperandTypeChecker(
               PPLBuiltinOperators.LAST.getOperandTypeChecker(), LAST.name(), false));
     }
-  }
-
-  /**
-   * Get a string representation of the argument types expressed in ExprType for error messages.
-   *
-   * @param argTypes the list of argument types as {@link RelDataType}
-   * @return a string in the format [type1,type2,...] representing the argument types
-   */
-  private static String getActualSignature(List<RelDataType> argTypes) {
-    return "["
-        + argTypes.stream()
-            .map(OpenSearchTypeFactory::convertRelDataTypeToExprType)
-            .map(Objects::toString)
-            .collect(Collectors.joining(","))
-        + "]";
   }
 
   /**

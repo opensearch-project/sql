@@ -220,7 +220,7 @@ public interface PPLTypeChecker {
       for (SqlOperandTypeChecker rule : allowedRules) {
         if (rule instanceof FamilyOperandTypeChecker familyOperandTypeChecker) {
           if (!builder.isEmpty()) {
-            builder.append(",");
+            builder.append("|");
           }
           builder.append(PPLTypeChecker.getFamilySignatures(familyOperandTypeChecker));
         } else {
