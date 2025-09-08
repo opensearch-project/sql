@@ -60,7 +60,6 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.mockito.Mockito;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.DataType;
@@ -74,10 +73,8 @@ import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
-import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.ppl.AstPlanningTest;
-import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.utils.SystemIndexUtils;
 
 public class AstBuilderTest extends AstPlanningTest {

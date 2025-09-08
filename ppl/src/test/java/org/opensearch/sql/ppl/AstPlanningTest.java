@@ -11,15 +11,13 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.parser.AstBuilder;
 
-/**
- * Base class for tests for the AST query planner.
- */
+/** Base class for tests for the AST query planner. */
 public class AstPlanningTest {
-    public final Settings settings = Mockito.mock(Settings.class);
-    public final PPLSyntaxParser parser = new PPLSyntaxParser();
+  protected final Settings settings = Mockito.mock(Settings.class);
+  protected final PPLSyntaxParser parser = new PPLSyntaxParser();
 
-    public Node plan(String query) {
-        AstBuilder astBuilder = new AstBuilder(query, settings);
-        return astBuilder.visit(parser.parse(query));
-    }
+  protected Node plan(String query) {
+    AstBuilder astBuilder = new AstBuilder(query, settings);
+    return astBuilder.visit(parser.parse(query));
+  }
 }

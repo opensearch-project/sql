@@ -5,24 +5,25 @@
 
 package org.opensearch.sql.ppl.parser;
 
+import static org.junit.Assert.assertEquals;
+
 import org.junit.Test;
 import org.opensearch.sql.ppl.AstPlanningTest;
 
-import static org.junit.Assert.assertEquals;
-
 public class AstEquivalenceTest extends AstPlanningTest {
-    @Test
-    public void testSpathArgumentDeshuffle() {
-        assertEquals(plan("source = t | spath path=a input=a"), plan("source = t | spath input=a a"));
-    }
+  @Test
+  public void testSpathArgumentDeshuffle() {
+    assertEquals(plan("source = t | spath path=a input=a"), plan("source = t | spath input=a a"));
+  }
 
-    @Test
-    public void testHeadLimitEquivalent() {
-        assertEquals(plan("source = t | head limit=50"), plan("source = t | head 50"));
-    }
+  @Test
+  public void testHeadLimitEquivalent() {
+    assertEquals(plan("source = t | head limit=50"), plan("source = t | head 50"));
+  }
 
-    @Test
-    public void testTopLimitEquivalent() {
-        assertEquals(plan("source = t | top limit=50 field_name"), plan("source = t | top 50 field_name"));
-    }
+  @Test
+  public void testTopLimitEquivalent() {
+    assertEquals(
+        plan("source = t | top limit=50 field_name"), plan("source = t | top 50 field_name"));
+  }
 }
