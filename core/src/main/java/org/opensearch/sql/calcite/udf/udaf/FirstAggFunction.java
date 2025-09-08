@@ -28,7 +28,7 @@ public class FirstAggFunction implements UserDefinedAggFunction<FirstAggFunction
     Object candidateValue = values[0];
     // Only accept the first non-null value encountered
     // Skip null values to find the first actual value
-    if (candidateValue != null && !acc.hasValue()) {
+    if (candidateValue != null) {
       acc.setValue(candidateValue);
     }
     return acc;
@@ -48,10 +48,6 @@ public class FirstAggFunction implements UserDefinedAggFunction<FirstAggFunction
         this.first = value;
         this.hasValue = true;
       }
-    }
-
-    public boolean hasValue() {
-      return hasValue;
     }
 
     @Override
