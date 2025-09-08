@@ -73,7 +73,7 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
     for (RelOptRule rule : OpenSearchRules.OPEN_SEARCH_OPT_RULES) {
       planner.addRule(rule);
     }
-    
+
     for (RelOptRule rule : OpenSearchRules.OPTIMIZATION_RULES) {
       planner.addRule(rule);
     }

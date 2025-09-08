@@ -19,8 +19,7 @@ public class CalcitePPLReverseTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | reverse";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalSort(sort0=[$0], dir0=[DESC])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalSort(sort0=[$0], dir0=[DESC])\n" + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedResult =
@@ -54,7 +53,8 @@ public class CalcitePPLReverseTest extends CalcitePPLAbstractTest {
             + " COMM=null; DEPTNO=20\n";
     verifyResult(root, expectedResult);
 
-    String expectedSparkSql = "SELECT *\n" + "FROM `scott`.`EMP`\n" + "ORDER BY `EMPNO` DESC NULLS FIRST";
+    String expectedSparkSql =
+        "SELECT *\n" + "FROM `scott`.`EMP`\n" + "ORDER BY `EMPNO` DESC NULLS FIRST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -82,22 +82,19 @@ public class CalcitePPLReverseTest extends CalcitePPLAbstractTest {
   public void testDoubleReverseParserSuccess() {
     String ppl = "source=EMP | reverse | reverse";
     RelNode root = getRelNode(ppl);
-    // TODO: fix logical plan to be no-op with opt rule
+    // Without optimization rule, shows consecutive sorts
     String expectedLogical =
-        "LogicalSort(sort0=[$8], dir0=[DESC])\n"
-            + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], __reverse_row_num__=[ROW_NUMBER() OVER ()])\n"
-            + "    LogicalSort(sort0=[$8], dir0=[DESC])\n"
-            + "      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], __reverse_row_num__=[ROW_NUMBER() OVER ()])\n"
-            + "        LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalSort(sort0=[$0], dir0=[ASC])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
-            + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, ROW_NUMBER() OVER () AS `__reverse_row_num__`\n"
-            + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, ROW_NUMBER() OVER () AS `__reverse_row_num__`\n"
-            + "FROM `scott`.`EMP`) `t`\n"
-            + "ORDER BY `__reverse_row_num__` DESC) `t0`\n"
-            + "ORDER BY `__reverse_row_num__` DESC";
+        "SELECT *\n"
+            + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "ORDER BY `EMPNO` DESC NULLS FIRST) `t`\n"
+            + "ORDER BY `EMPNO` NULLS LAST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 

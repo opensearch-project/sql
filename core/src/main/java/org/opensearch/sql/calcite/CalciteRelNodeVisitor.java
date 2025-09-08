@@ -39,7 +39,6 @@ import java.util.stream.Stream;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelCollation;
-import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -569,12 +568,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitReverse(
       org.opensearch.sql.ast.tree.Reverse node, CalcitePlanContext context) {
     visitChildren(node, context);
-    
+
     // Check if there's an existing sort to reverse
-    List<RelCollation> collations = 
+    List<RelCollation> collations =
         context.relBuilder.getCluster().getMetadataQuery().collations(context.relBuilder.peek());
     RelCollation collation = collations != null && !collations.isEmpty() ? collations.get(0) : null;
-    
+
     if (collation != null && !collation.getFieldCollations().isEmpty()) {
       // If there's an existing sort, reverse its direction
       RelCollation reversedCollation = PlanUtils.reverseCollation(collation);
@@ -592,7 +591,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       context.relBuilder.sort(context.relBuilder.desc(context.relBuilder.field(REVERSE_ROW_NUM)));
       context.relBuilder.projectExcept(context.relBuilder.field(REVERSE_ROW_NUM));
     }
-    
+
     return context.relBuilder.peek();
   }
 

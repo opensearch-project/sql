@@ -409,7 +409,7 @@ public interface PlanUtils {
     List<RelFieldCollation> reversedFields = new ArrayList<>();
     for (RelFieldCollation field : original.getFieldCollations()) {
       RelFieldCollation.Direction reversedDirection = field.direction.reverse();
-      
+
       // Handle null direction properly - reverse it as well
       RelFieldCollation.NullDirection reversedNullDirection = field.nullDirection;
       if (reversedNullDirection == RelFieldCollation.NullDirection.FIRST) {
