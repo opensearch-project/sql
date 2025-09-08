@@ -371,6 +371,30 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testAppend() {
+    assertEquals(
+        "source=t | stats count() by b | append [ | stats sum(c) by b ]",
+        anonymize("source=t | stats count() by b | append [ | stats sum(c) by b ]"));
+    assertEquals(
+        "source=t | stats count() by b | append [ | stats sum(c) by b ]",
+        anonymize("source=t | stats count() by b | append [ | stats sum(c) by b ]"));
+    assertEquals(
+        "source=t | append [ | where a = *** ]", anonymize("source=t | append [ | where a = 1 ]"));
+    assertEquals(
+        "source=t | stats count() by b | append [source=a | stats sum(c) by b ]",
+        anonymize("source=t | stats count() by b | append [source=a | stats sum(c) by b ]"));
+    assertEquals(
+        "source=t | append [source=b | where a = *** ]",
+        anonymize("source=t | append [source=b | where a = 1 ]"));
+    assertEquals(
+        "source=t | stats count() by b | append [source=a ]",
+        anonymize("source=t | stats count() by b | append [ source=a ]"));
+    assertEquals(
+        "source=t | stats count() by b | append [ ]",
+        anonymize("source=t | stats count() by b | append [ ]"));
+  }
+
+  @Test
   public void testSubqueryAlias() {
     assertEquals("source=t as t1", anonymize("source=t as t1"));
   }
@@ -525,11 +549,30 @@ public class PPLQueryDataAnonymizerTest {
 
   @Test
   public void testRegex() {
-    assertEquals("source=t | regex field=***", anonymize("source=t | regex field='pattern'"));
-    assertEquals("source=t | regex field!=***", anonymize("source=t | regex field!='pattern'"));
+    assertEquals(
+        "source=t | regex fieldname=***", anonymize("source=t | regex fieldname='pattern'"));
+    assertEquals(
+        "source=t | regex fieldname!=***", anonymize("source=t | regex fieldname!='pattern'"));
     assertEquals(
         "source=t | regex email=*** | fields + email",
         anonymize("source=t | regex email='.*@domain.com' | fields email"));
+  }
+
+  @Test
+  public void testRexCommand() {
+    when(settings.getSettingValue(Key.PPL_REX_MAX_MATCH_LIMIT)).thenReturn(10);
+
+    assertEquals(
+        "source=t | rex field=message mode=extract \"(?<user>[A-Z]+)\" max_match=1",
+        anonymize("source=t | rex field=message \"(?<user>[A-Z]+)\""));
+    assertEquals(
+        "source=t | rex field=lastname mode=extract \"(?<initial>^[A-Z])\" max_match=1 | fields +"
+            + " lastname,initial",
+        anonymize(
+            "source=t | rex field=lastname \"(?<initial>^[A-Z])\" | fields lastname, initial"));
+    assertEquals(
+        "source=t | rex field=name mode=extract \"(?<first>[A-Z])\" max_match=3",
+        anonymize("source=t | rex field=name \"(?<first>[A-Z])\" max_match=3"));
   }
 
   private String anonymize(String query) {
