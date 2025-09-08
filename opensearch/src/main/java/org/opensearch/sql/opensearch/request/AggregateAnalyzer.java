@@ -28,6 +28,7 @@ package org.opensearch.sql.opensearch.request;
 
 import static java.util.Objects.requireNonNull;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 
@@ -68,6 +69,7 @@ import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
+import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.response.agg.ArgMaxMinParser;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParser;
@@ -277,12 +279,50 @@ public class AggregateAnalyzer {
           helper.build(
               !args.isEmpty() ? args.getFirst() : null, AggregationBuilders.count(aggFieldName)),
           new SingleValueParser(aggFieldName));
-      case MIN -> Pair.of(
-          helper.build(args.getFirst(), AggregationBuilders.min(aggFieldName)),
-          new SingleValueParser(aggFieldName));
-      case MAX -> Pair.of(
-          helper.build(args.getFirst(), AggregationBuilders.max(aggFieldName)),
-          new SingleValueParser(aggFieldName));
+      case MIN -> {
+        // For string fields, use topHits instead of min aggregations
+        NamedFieldExpression fieldExpr = helper.inferNamedField(args.getFirst());
+        String fieldName = fieldExpr.getRootName();
+        ExprType fieldType = helper.fieldTypes.get(fieldName);
+        
+        if (fieldType != null && fieldType instanceof OpenSearchTextType) {
+          // Use topHits with ascending sort to get minimum string value
+          yield Pair.of(
+              AggregationBuilders.topHits(aggFieldName)
+                  .fetchSource(fieldExpr.getRootName(), null)
+                  .size(1)
+                  .from(0)
+                  .sort(fieldExpr.getReferenceForTermQuery(), SortOrder.ASC),
+              new ArgMaxMinParser(aggFieldName));
+        } else {
+          // Use regular min aggregation for numeric/date fields
+          yield Pair.of(
+              helper.build(args.getFirst(), AggregationBuilders.min(aggFieldName)),
+              new SingleValueParser(aggFieldName));
+        }
+      }
+      case MAX -> {
+        // For string fields, use topHits instead of max aggregation
+        NamedFieldExpression fieldExpr = helper.inferNamedField(args.getFirst());
+        String fieldName = fieldExpr.getRootName();
+        ExprType fieldType = helper.fieldTypes.get(fieldName);
+        
+        if (fieldType != null && fieldType instanceof OpenSearchTextType) {
+          // Use topHits with descending sort to get maximum string value
+          yield Pair.of(
+              AggregationBuilders.topHits(aggFieldName)
+                  .fetchSource(fieldExpr.getRootName(), null)
+                  .size(1)
+                  .from(0)
+                  .sort(fieldExpr.getReferenceForTermQuery(), SortOrder.DESC),
+              new ArgMaxMinParser(aggFieldName));
+        } else {
+          // Use regular max aggregation for numeric/date fields
+          yield Pair.of(
+              helper.build(args.getFirst(), AggregationBuilders.max(aggFieldName)),
+              new SingleValueParser(aggFieldName));
+        }
+      }
       case VAR_SAMP -> Pair.of(
           helper.build(args.getFirst(), AggregationBuilders.extendedStats(aggFieldName)),
           new StatsParser(ExtendedStats::getVarianceSampling, aggFieldName));
