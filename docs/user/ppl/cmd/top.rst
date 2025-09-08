@@ -21,6 +21,7 @@ top [N] <field-list> [by-clause]
 top [N] <field-list> [top-options] [by-clause] ``(available from 3.1.0+)``
 
 * N: number of results to return. **Default**: 10
+  * For readability or convenience, this can be prefixed by `limit=`.
 * field-list: mandatory. comma-delimited list of field names.
 * by-clause: optional. one or more fields to group the results by.
 * top-options: optional. options for the top command. Supported syntax is [countfield=<string>] [showcount=<bool>].

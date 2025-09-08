@@ -19,6 +19,7 @@ Syntax
 head [<size>] [from <offset>]
 
 * <size>: optional integer. number of results to return. **Default:** 10
+  * For readability or convenience, this can be prefixed by `limit=`.
 * <offset>: integer after optional ``from``. number of results to skip. **Default:** 0
 
 Example 1: Get first 10 results
