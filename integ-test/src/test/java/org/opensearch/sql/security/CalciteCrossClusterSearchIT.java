@@ -292,7 +292,7 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
         schema("old_holdersName", "string"),
         schema("old_age", "bigint"));
   }
-  
+
   @Test
   public void testCrossClusterRexBasic() throws IOException {
     JSONObject result =
