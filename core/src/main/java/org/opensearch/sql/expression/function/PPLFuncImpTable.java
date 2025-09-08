@@ -1035,6 +1035,7 @@ public class PPLFuncImpTable {
   }
 
   private static class AggBuilder {
+    private static final double MEDIAN_PERCENTILE = 50.0;
     private final Map<BuiltinFunctionName, Pair<CalciteFuncSignature, AggHandler>> map =
         new HashMap<>();
 
@@ -1109,6 +1110,9 @@ public class PPLFuncImpTable {
       register(
           PERCENTILE_APPROX,
           (distinct, field, argList, ctx) -> {
+            if (field.getType() == null) {
+              throw new IllegalArgumentException("Field type cannot be null");
+            }
             List<RexNode> newArgList =
                 argList.stream().map(PlanUtils::derefMapCall).collect(Collectors.toList());
             newArgList.add(ctx.rexBuilder.makeFlag(field.getType().getSqlTypeName()));
@@ -1123,9 +1127,19 @@ public class PPLFuncImpTable {
       register(
           MEDIAN,
           (distinct, field, argList, ctx) -> {
-            List<RexNode> medianArgList = new ArrayList<>();
-            medianArgList.add(ctx.rexBuilder.makeExactLiteral(BigDecimal.valueOf(50.0)));
-            medianArgList.add(ctx.rexBuilder.makeFlag(field.getType().getSqlTypeName()));
+            if (distinct) {
+              throw new IllegalArgumentException("MEDIAN does not support DISTINCT");
+            }
+            if (!argList.isEmpty()) {
+              throw new IllegalArgumentException("MEDIAN takes no additional arguments");
+            }
+            if (field.getType() == null) {
+              throw new IllegalArgumentException("Field type cannot be null");
+            }
+            List<RexNode> medianArgList =
+                List.of(
+                    ctx.rexBuilder.makeExactLiteral(BigDecimal.valueOf(MEDIAN_PERCENTILE)),
+                    ctx.rexBuilder.makeFlag(field.getType().getSqlTypeName()));
             return UserDefinedFunctionUtils.makeAggregateCall(
                 PPLBuiltinOperators.PERCENTILE_APPROX,
                 List.of(field),
