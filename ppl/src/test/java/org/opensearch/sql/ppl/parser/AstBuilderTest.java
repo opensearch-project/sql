@@ -88,6 +88,17 @@ public class AstBuilderTest {
   private final PPLSyntaxParser parser = new PPLSyntaxParser();
 
   @Test
+  public void testDynamicSourceClauseThrowsUnsupportedException() {
+    String query = "source=[myindex, logs, fieldIndex=\"test\"]";
+
+    UnsupportedOperationException exception =
+        assertThrows(UnsupportedOperationException.class, () -> plan(query));
+
+    assertEquals(
+        "Dynamic source clause with metadata filters is not supported.", exception.getMessage());
+  }
+
+  @Test
   public void testSearchCommand() {
     assertEqual(
         "search source=t a=1", filter(relation("t"), compare("=", field("a"), intLiteral(1))));
@@ -1077,6 +1088,6 @@ public class AstBuilderTest {
   @Test(expected = IllegalArgumentException.class)
   public void testBinCommandDuplicateParameter() {
     // Test that duplicate parameters throw an exception
-    plan("search source=test | bin field span=10 span=20");
+    plan("search source=test | bin index_field span=10 span=20");
   }
 }

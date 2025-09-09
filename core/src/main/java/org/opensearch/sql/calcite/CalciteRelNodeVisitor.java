@@ -109,6 +109,7 @@ import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
+import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
@@ -131,7 +132,9 @@ import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
+import org.opensearch.sql.expression.parse.RegexCommonUtils;
 import org.opensearch.sql.utils.ParseUtils;
+import org.opensearch.sql.utils.WildcardRenameUtils;
 
 public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalcitePlanContext> {
 
@@ -206,6 +209,50 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
 
     context.relBuilder.filter(regexCondition);
+    return context.relBuilder.peek();
+  }
+
+  public RelNode visitRex(Rex node, CalcitePlanContext context) {
+    visitChildren(node, context);
+
+    RexNode fieldRex = rexVisitor.analyze(node.getField(), context);
+    String patternStr = (String) node.getPattern().getValue();
+
+    List<String> namedGroups = RegexCommonUtils.getNamedGroupCandidates(patternStr);
+
+    if (namedGroups.isEmpty()) {
+      throw new IllegalArgumentException(
+          "Rex pattern must contain at least one named capture group");
+    }
+
+    List<RexNode> newFields = new ArrayList<>();
+    List<String> newFieldNames = new ArrayList<>();
+
+    for (int i = 0; i < namedGroups.size(); i++) {
+      RexNode extractCall;
+      if (node.getMaxMatch().isPresent() && node.getMaxMatch().get() > 1) {
+        extractCall =
+            PPLFuncImpTable.INSTANCE.resolve(
+                context.rexBuilder,
+                BuiltinFunctionName.REX_EXTRACT_MULTI,
+                fieldRex,
+                context.rexBuilder.makeLiteral(patternStr),
+                context.relBuilder.literal(i + 1),
+                context.relBuilder.literal(node.getMaxMatch().get()));
+      } else {
+        extractCall =
+            PPLFuncImpTable.INSTANCE.resolve(
+                context.rexBuilder,
+                BuiltinFunctionName.REX_EXTRACT,
+                fieldRex,
+                context.rexBuilder.makeLiteral(patternStr),
+                context.relBuilder.literal(i + 1));
+      }
+      newFields.add(extractCall);
+      newFieldNames.add(namedGroups.get(i));
+    }
+
+    projectPlusOverriding(newFields, newFieldNames, context);
     return context.relBuilder.peek();
   }
 
@@ -420,23 +467,50 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     visitChildren(node, context);
     List<String> originalNames = context.relBuilder.peek().getRowType().getFieldNames();
     List<String> newNames = new ArrayList<>(originalNames);
+
     for (org.opensearch.sql.ast.expression.Map renameMap : node.getRenameList()) {
-      if (renameMap.getTarget() instanceof Field t) {
-        String newName = t.getField().toString();
-        RexNode check = rexVisitor.analyze(renameMap.getOrigin(), context);
-        if (check instanceof RexInputRef ref) {
-          newNames.set(ref.getIndex(), newName);
-        } else {
-          throw new SemanticCheckException(
-              String.format("the original field %s cannot be resolved", renameMap.getOrigin()));
-        }
-      } else {
+      if (!(renameMap.getTarget() instanceof Field)) {
         throw new SemanticCheckException(
             String.format("the target expected to be field, but is %s", renameMap.getTarget()));
+      }
+
+      String sourcePattern = ((Field) renameMap.getOrigin()).getField().toString();
+      String targetPattern = ((Field) renameMap.getTarget()).getField().toString();
+
+      if (WildcardRenameUtils.isWildcardPattern(sourcePattern)
+          && !WildcardRenameUtils.validatePatternCompatibility(sourcePattern, targetPattern)) {
+        throw new SemanticCheckException(
+            "Source and target patterns have different wildcard counts");
+      }
+
+      List<String> matchingFields = WildcardRenameUtils.matchFieldNames(sourcePattern, newNames);
+
+      for (String fieldName : matchingFields) {
+        String newName =
+            WildcardRenameUtils.applyWildcardTransformation(
+                sourcePattern, targetPattern, fieldName);
+        if (newNames.contains(newName) && !newName.equals(fieldName)) {
+          removeFieldIfExists(newName, newNames, context);
+        }
+        int fieldIndex = newNames.indexOf(fieldName);
+        if (fieldIndex != -1) {
+          newNames.set(fieldIndex, newName);
+        }
+      }
+
+      if (matchingFields.isEmpty() && newNames.contains(targetPattern)) {
+        removeFieldIfExists(targetPattern, newNames, context);
+        context.relBuilder.rename(newNames);
       }
     }
     context.relBuilder.rename(newNames);
     return context.relBuilder.peek();
+  }
+
+  private void removeFieldIfExists(
+      String fieldName, List<String> newNames, CalcitePlanContext context) {
+    newNames.remove(fieldName);
+    context.relBuilder.projectExcept(context.relBuilder.field(fieldName));
   }
 
   @Override

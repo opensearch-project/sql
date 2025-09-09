@@ -198,6 +198,7 @@ public enum BuiltinFunctionName {
   TAKE(FunctionName.of("take")),
   // t-digest percentile which is used in OpenSearch core by default.
   PERCENTILE_APPROX(FunctionName.of("percentile_approx")),
+  MEDIAN(FunctionName.of("median")),
   EARLIEST(FunctionName.of("earliest")),
   LATEST(FunctionName.of("latest")),
   DISTINCT_COUNT_APPROX(FunctionName.of("distinct_count_approx")),
@@ -219,6 +220,8 @@ public enum BuiltinFunctionName {
   POSITION(FunctionName.of("position")),
   REGEXP(FunctionName.of("regexp")),
   REGEX_MATCH(FunctionName.of("regex_match")),
+  REX_EXTRACT(FunctionName.of("REX_EXTRACT")),
+  REX_EXTRACT_MULTI(FunctionName.of("REX_EXTRACT_MULTI")),
   REPLACE(FunctionName.of("replace")),
   REVERSE(FunctionName.of("reverse")),
   RIGHT(FunctionName.of("right")),
@@ -315,7 +318,10 @@ public enum BuiltinFunctionName {
   INTERNAL_UNCOLLECT_PATTERNS(FunctionName.of("uncollect_patterns")),
   INTERNAL_REGEXP_EXTRACT(FunctionName.of("regexp_extract"), true),
   INTERNAL_GROK(FunctionName.of("grok"), true),
-  INTERNAL_REGEXP_REPLACE_3(FunctionName.of("regexp_replace_3"), true);
+  INTERNAL_REGEXP_REPLACE_3(FunctionName.of("regexp_replace_3"), true),
+  INTERNAL_REGEXP_REPLACE_PG_4(FunctionName.of("regexp_replace_pg_4"), true),
+  INTERNAL_REGEXP_REPLACE_5(FunctionName.of("regexp_replace_5"), true),
+  INTERNAL_TRANSLATE3(FunctionName.of("translate3"), true);
 
   private final FunctionName name;
   private boolean isInternal;
@@ -347,6 +353,7 @@ public enum BuiltinFunctionName {
           .put("take", BuiltinFunctionName.TAKE)
           .put("percentile", BuiltinFunctionName.PERCENTILE_APPROX)
           .put("percentile_approx", BuiltinFunctionName.PERCENTILE_APPROX)
+          .put("median", BuiltinFunctionName.MEDIAN)
           .put("earliest", BuiltinFunctionName.EARLIEST)
           .put("latest", BuiltinFunctionName.LATEST)
           .put("distinct_count_approx", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
