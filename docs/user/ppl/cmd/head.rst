@@ -9,7 +9,7 @@ head
    :depth: 2
 
 Version Information
------------------
+============
 .. versionadded:: 1.0.0
 
 .. versionchanged:: 3.3.0
