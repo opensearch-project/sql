@@ -8,6 +8,12 @@ top
    :local:
    :depth: 2
 
+Version Information
+-----------------
+.. versionadded:: 1.0.0
+
+.. versionchanged:: 3.3.0
+    Added support for the `limit=` argument name.
 
 Description
 ============
@@ -18,7 +24,7 @@ Syntax
 ============
 top [N] <field-list> [by-clause]
 
-top [N] <field-list> [top-options] [by-clause] ``(available from 3.1.0+)``
+top [limit=][N] <field-list> [top-options] [by-clause] ``(available from 3.1.0+)``
 
 * N: number of results to return. **Default**: 10
   * For readability or convenience, this can be prefixed by `limit=`.
