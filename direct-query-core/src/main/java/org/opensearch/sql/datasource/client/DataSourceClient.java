@@ -8,5 +8,7 @@ package org.opensearch.sql.datasource.client;
 /**
  * Base interface for all data source clients. This interface serves as a marker interface for all
  * client implementations.
+ *
+ * @opensearch.experimental
  */
 public interface DataSourceClient {}

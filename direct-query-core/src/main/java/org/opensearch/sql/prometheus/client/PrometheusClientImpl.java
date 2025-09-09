@@ -27,6 +27,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.opensearch.sql.prometheus.model.MetricMetadata;
 
+/*
+ * @opensearch.experimental
+ */
 public class PrometheusClientImpl implements PrometheusClient {
 
   private static final Logger logger = LogManager.getLogger(PrometheusClientImpl.class);

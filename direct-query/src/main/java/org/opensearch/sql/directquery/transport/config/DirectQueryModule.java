@@ -19,6 +19,9 @@ import org.opensearch.sql.directquery.DirectQueryExecutorService;
 import org.opensearch.sql.directquery.DirectQueryExecutorServiceImpl;
 import org.opensearch.sql.prometheus.query.PrometheusQueryHandler;
 
+/*
+ * @opensearch.experimental
+ */
 public class DirectQueryModule extends AbstractModule {
 
   @Override

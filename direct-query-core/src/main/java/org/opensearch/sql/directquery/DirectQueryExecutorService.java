@@ -10,6 +10,9 @@ import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryResponse;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesResponse;
 
+/*
+ * @opensearch.experimental
+ */
 public interface DirectQueryExecutorService {
 
   /**

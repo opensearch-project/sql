@@ -24,6 +24,9 @@ import org.opensearch.sql.directquery.transport.model.GetDirectQueryResourcesAct
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
+/*
+ * @opensearch.experimental
+ */
 public class TransportGetDirectQueryResourcesRequestActionTest {
 
   @Mock private TransportService transportService;

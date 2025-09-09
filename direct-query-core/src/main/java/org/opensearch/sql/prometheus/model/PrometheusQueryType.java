@@ -9,6 +9,9 @@ import lombok.Getter;
 
 /** Enum representing the types of Prometheus queries. */
 @Getter
+/*
+ * @opensearch.experimental
+ */
 public enum PrometheusQueryType {
   INSTANT("instant"),
   RANGE("range");

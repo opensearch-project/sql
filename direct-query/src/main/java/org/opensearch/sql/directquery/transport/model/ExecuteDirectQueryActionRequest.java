@@ -12,6 +12,9 @@ import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
 
+/*
+ * @opensearch.experimental
+ */
 public class ExecuteDirectQueryActionRequest extends ActionRequest {
   private final ExecuteDirectQueryRequest directQueryRequest;
 

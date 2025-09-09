@@ -8,6 +8,9 @@ package org.opensearch.sql.prometheus.utils;
 import java.io.IOException;
 import java.util.Objects;
 
+/*
+ * @opensearch.experimental
+ */
 public class TestUtils {
 
   /**
