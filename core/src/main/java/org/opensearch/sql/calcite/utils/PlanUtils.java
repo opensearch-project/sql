@@ -411,13 +411,12 @@ public interface PlanUtils {
       RelFieldCollation.Direction reversedDirection = field.direction.reverse();
 
       // Handle null direction properly - reverse it as well
-      RelFieldCollation.NullDirection reversedNullDirection = field.nullDirection;
-      if (reversedNullDirection == RelFieldCollation.NullDirection.FIRST) {
-        reversedNullDirection = RelFieldCollation.NullDirection.LAST;
-      } else if (reversedNullDirection == RelFieldCollation.NullDirection.LAST) {
-        reversedNullDirection = RelFieldCollation.NullDirection.FIRST;
-      }
-      // UNSPECIFIED remains UNSPECIFIED
+      RelFieldCollation.NullDirection reversedNullDirection =
+          field.nullDirection == RelFieldCollation.NullDirection.FIRST
+              ? RelFieldCollation.NullDirection.LAST
+              : field.nullDirection == RelFieldCollation.NullDirection.LAST
+                  ? RelFieldCollation.NullDirection.FIRST
+                  : field.nullDirection;
 
       RelFieldCollation reversedField =
           new RelFieldCollation(field.getFieldIndex(), reversedDirection, reversedNullDirection);

@@ -70,30 +70,48 @@ public class SortReverseOptimizationRule extends RelOptRule {
   }
 
   private boolean hasSameFieldWithOppositeDirection(LogicalSort outerSort, LogicalSort innerSort) {
-    if (outerSort.getCollation().getFieldCollations().isEmpty()
-        || innerSort.getCollation().getFieldCollations().isEmpty()) {
+    var outerFields = outerSort.getCollation().getFieldCollations();
+    var innerFields = innerSort.getCollation().getFieldCollations();
+
+    if (outerFields.isEmpty() || innerFields.isEmpty()) {
       LOG.debug("No field collations found");
       return false;
     }
 
-    var outerField = outerSort.getCollation().getFieldCollations().get(0);
-    var innerField = innerSort.getCollation().getFieldCollations().get(0);
+    // Must have same number of fields
+    if (outerFields.size() != innerFields.size()) {
+      LOG.debug(
+          "Different number of sort fields: outer={}, inner={}",
+          outerFields.size(),
+          innerFields.size());
+      return false;
+    }
 
-    LOG.debug(
-        "Outer field: index={}, direction={}",
-        outerField.getFieldIndex(),
-        outerField.getDirection());
-    LOG.debug(
-        "Inner field: index={}, direction={}",
-        innerField.getFieldIndex(),
-        innerField.getDirection());
+    // Check all fields have same index but opposite directions
+    for (int i = 0; i < outerFields.size(); i++) {
+      var outerField = outerFields.get(i);
+      var innerField = innerFields.get(i);
 
-    boolean sameField = outerField.getFieldIndex() == innerField.getFieldIndex();
-    boolean oppositeDirection = outerField.getDirection() != innerField.getDirection();
+      LOG.debug(
+          "Field {}: outer(index={}, direction={}), inner(index={}, direction={})",
+          i,
+          outerField.getFieldIndex(),
+          outerField.getDirection(),
+          innerField.getFieldIndex(),
+          innerField.getDirection());
 
-    LOG.debug("Same field: {}, Opposite direction: {}", sameField, oppositeDirection);
+      if (outerField.getFieldIndex() != innerField.getFieldIndex()
+          || outerField.getDirection() == innerField.getDirection()) {
+        LOG.debug(
+            "Field {} mismatch: same index={}, opposite direction={}",
+            i,
+            outerField.getFieldIndex() == innerField.getFieldIndex(),
+            outerField.getDirection() != innerField.getDirection());
+        return false;
+      }
+    }
 
-    // Must be same field with opposite directions
-    return sameField && oppositeDirection;
+    LOG.debug("All fields match with opposite directions");
+    return true;
   }
 }
