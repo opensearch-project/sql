@@ -56,7 +56,7 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | rex field=address"
-                    + " \\\"(?<streetnum>\\\\\\\\d+)\\\\\\\\s+(?<streetname>.+)\\\" | fields"
+                    + " \\\"(?<streetnum>\\\\d+)\\\\s+(?<streetname>.+)\\\" | fields"
                     + " address, streetnum, streetname",
                 TEST_INDEX_ACCOUNT));
 
@@ -104,7 +104,7 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | rex field=email"
-                    + " \\\"(?<user>[a-zA-Z0-9._%%+-]+)@(?<domain>[a-zA-Z0-9.-]+)\\\\\\\\.(?<tld>[a-zA-Z]{2,})\\\""
+                    + " \\\"(?<user>[a-zA-Z0-9._%%+-]+)@(?<domain>[a-zA-Z0-9.-]+)\\\\.(?<tld>[a-zA-Z]{2,})\\\""
                     + " | fields email, user, domain, tld",
                 TEST_INDEX_ACCOUNT));
 
@@ -154,7 +154,7 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | rex field=address \\\"(?<digit>\\\\\\\\d*)\\\" max_match=0 | eval"
+                "source=%s | rex field=address \\\"(?<digit>\\\\d*)\\\" max_match=0 | eval"
                     + " digit_count=array_length(digit) | fields address, digit_count | head 1",
                 TEST_INDEX_ACCOUNT));
 
@@ -168,7 +168,7 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
     try {
       executeQuery(
           String.format(
-              "source=%s | rex field=address \\\"(?<digit>\\\\\\\\d+)\\\" max_match=100 | fields"
+              "source=%s | rex field=address \\\"(?<digit>\\\\d+)\\\" max_match=100 | fields"
                   + " address, digit",
               TEST_INDEX_ACCOUNT));
       fail("Should have thrown an exception for max_match exceeding default limit");
@@ -183,7 +183,7 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | rex field=address \\\"(?<digit>\\\\\\\\d*)\\\" max_match=5 | eval"
+                "source=%s | rex field=address \\\"(?<digit>\\\\d*)\\\" max_match=5 | eval"
                     + " digit_count=array_length(digit) | fields address, digit_count | head 1",
                 TEST_INDEX_ACCOUNT));
 
@@ -197,7 +197,7 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | rex field=address \\\"(?<digit>\\\\\\\\d*)\\\" max_match=10 | eval"
+                "source=%s | rex field=address \\\"(?<digit>\\\\d*)\\\" max_match=10 | eval"
                     + " digit_count=array_length(digit) | fields address, digit_count | head 1",
                 TEST_INDEX_ACCOUNT));
 
@@ -217,7 +217,7 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
       JSONObject result =
           executeQuery(
               String.format(
-                  "source=%s | rex field=address \\\"(?<digit>\\\\\\\\d*)\\\" max_match=0 | eval"
+                  "source=%s | rex field=address \\\"(?<digit>\\\\d*)\\\" max_match=0 | eval"
                       + " digit_count=array_length(digit) | fields address, digit_count | head 1",
                   TEST_INDEX_ACCOUNT));
 
@@ -229,7 +229,7 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
       try {
         executeQuery(
             String.format(
-                "source=%s | rex field=address \\\"(?<digit>\\\\\\\\d+)\\\" max_match=10 | fields"
+                "source=%s | rex field=address \\\"(?<digit>\\\\d+)\\\" max_match=10 | fields"
                     + " address, digit",
                 TEST_INDEX_ACCOUNT));
         fail("Should have thrown an exception for max_match exceeding custom limit");
