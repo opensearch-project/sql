@@ -19,7 +19,9 @@ import lombok.Getter;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.externalize.RelJson;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
@@ -84,7 +86,17 @@ public class RelJsonSerializer {
       JsonBuilder jsonBuilder = new JsonBuilder();
       RelJson relJson = ExtendedRelJson.create(jsonBuilder);
       String rexNodeJson = jsonBuilder.toJsonString(relJson.toJson(rexNode));
-      String rowTypeJson = jsonBuilder.toJsonString(relJson.toJson(rowType));
+      Object rowTypeJsonObj;
+      // UDTs are not comparable when pushed-down as scripts. We set their types to strings as a
+      // workaround. Refer to this comment for more details:
+      // https://github.com/opensearch-project/sql/pull/4245#issuecomment-3268673999
+      if (rexNode instanceof RexCall
+          && ((RexCall) rexNode).getOperator() instanceof SqlBinaryOperator) {
+        rowTypeJsonObj = ((ExtendedRelJson) relJson).toJson(rowType, true);
+      } else {
+        rowTypeJsonObj = relJson.toJson(rowType);
+      }
+      String rowTypeJson = jsonBuilder.toJsonString(rowTypeJsonObj);
       // Construct envelope of serializable objects
       Map<String, Object> envelope =
           Map.of(EXPR, rexNodeJson, FIELD_TYPES, fieldTypes, ROW_TYPE, rowTypeJson);
