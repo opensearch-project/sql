@@ -74,6 +74,7 @@ commands
    | reverseCommand
    | regexCommand
    | timechartCommand
+   | rexCommand
    ;
 
 commandName
@@ -113,6 +114,7 @@ commandName
    | EXPLAIN
    | REVERSE
    | REGEX
+   | REX
    ;
 
 searchCommand
@@ -254,6 +256,18 @@ regexExpr
     : field=qualifiedName operator=(EQUAL | NOT_EQUAL) pattern=stringLiteral
     ;
 
+rexCommand
+    : REX rexExpr
+    ;
+
+rexExpr
+    : FIELD EQUAL field=qualifiedName (rexOption)* pattern=stringLiteral (rexOption)*
+    ;
+
+rexOption
+    : MAX_MATCH EQUAL maxMatch=integerLiteral
+    | MODE EQUAL EXTRACT
+    ;
 patternsMethod
    : PUNCT
    | REGEX

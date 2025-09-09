@@ -432,6 +432,16 @@ public class CalciteExplainIT extends ExplainIT {
             "source=opensearch-sql_test_index_account | stats list(age) as age_list"));
   }
 
+  @Test
+  public void testRexExplain() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | rex field=lastname \\\"(?<initial>^[A-Z])\\\" |"
+            + " head 5";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_rex.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
   /**
    * Executes the PPL query and returns the result as a string with windows-style line breaks
    * replaced with Unix-style ones.
