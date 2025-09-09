@@ -349,133 +349,22 @@ class AggregateAnalyzerTest {
 
   @Test
   void analyze_firstAggregation() throws ExpressionNotAnalyzableException {
-    AggregateCall firstCall =
-        AggregateCall.create(
-            PPLBuiltinOperators.FIRST,
-            false,
-            false,
-            false,
-            ImmutableList.of(),
-            ImmutableList.of(0),
-            -1,
-            null,
-            RelCollations.EMPTY,
-            typeFactory.createSqlType(SqlTypeName.INTEGER),
-            "first_a");
-    List<String> outputFields = List.of("first_a");
-    Aggregate aggregate = createMockAggregate(List.of(firstCall), ImmutableBitSet.of());
-    Project project = null; // No project needed for simple aggregation
-    Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
-        AggregateAnalyzer.analyze(aggregate, project, rowType, fieldTypes, outputFields, null);
-
-    // Verify the aggregation builder JSON output
-    assertEquals(
-        "[{\"first_a\":{\"top_hits\":{\"from\":0,\"size\":1,\"version\":false,\"seq_no_primary_term\":false,\"explain\":false}}}]",
-        result.getLeft().toString());
-    assertInstanceOf(NoBucketAggregationParser.class, result.getRight());
-    MetricParserHelper metricsParser =
-        ((NoBucketAggregationParser) result.getRight()).getMetricsParser();
-    assertEquals(1, metricsParser.getMetricParserMap().size());
-    metricsParser
-        .getMetricParserMap()
-        .forEach(
-            (k, v) -> {
-              assertEquals("first_a", k);
-              assertInstanceOf(TopHitsParser.class, v);
-            });
+    buildAggregation("first_a")
+        .withAggCall(b -> b.aggregateCall(PPLBuiltinOperators.FIRST, b.field("a")).as("first_a"))
+        .expectDslQuery(
+            "[{\"first_a\":{\"top_hits\":{\"from\":0,\"size\":1,\"version\":false,\"seq_no_primary_term\":false,\"explain\":false}}}]")
+        .expectResponseParser(new MetricParserHelper(List.of(new TopHitsParser("first_a", true))))
+        .verify();
   }
 
   @Test
   void analyze_lastAggregation() throws ExpressionNotAnalyzableException {
-    AggregateCall lastCall =
-        AggregateCall.create(
-            PPLBuiltinOperators.LAST,
-            false,
-            false,
-            false,
-            ImmutableList.of(),
-            ImmutableList.of(1),
-            -1,
-            null,
-            RelCollations.EMPTY,
-            typeFactory.createSqlType(SqlTypeName.VARCHAR),
-            "last_b");
-    List<String> outputFields = List.of("last_b");
-    Aggregate aggregate = createMockAggregate(List.of(lastCall), ImmutableBitSet.of());
-    Project project = null; // No project needed for simple aggregation
-    Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
-        AggregateAnalyzer.analyze(aggregate, project, rowType, fieldTypes, outputFields, null);
-
-    // Verify the aggregation builder JSON output
-    assertEquals(
-        "[{\"last_b\":{\"top_hits\":{\"from\":0,\"size\":1,\"version\":false,\"seq_no_primary_term\":false,\"explain\":false,\"sort\":[{\"_doc\":{\"order\":\"desc\"}}]}}}]",
-        result.getLeft().toString());
-    assertInstanceOf(NoBucketAggregationParser.class, result.getRight());
-    MetricParserHelper metricsParser =
-        ((NoBucketAggregationParser) result.getRight()).getMetricsParser();
-    assertEquals(1, metricsParser.getMetricParserMap().size());
-    metricsParser
-        .getMetricParserMap()
-        .forEach(
-            (k, v) -> {
-              assertEquals("last_b", k);
-              assertInstanceOf(TopHitsParser.class, v);
-            });
-  }
-
-  @Test
-  void analyze_firstAndLastAggregations_withGroupBy() throws ExpressionNotAnalyzableException {
-    AggregateCall firstCall =
-        AggregateCall.create(
-            PPLBuiltinOperators.FIRST,
-            false,
-            false,
-            false,
-            ImmutableList.of(),
-            ImmutableList.of(0),
-            -1,
-            null,
-            RelCollations.EMPTY,
-            typeFactory.createSqlType(SqlTypeName.INTEGER),
-            "first_a");
-    AggregateCall lastCall =
-        AggregateCall.create(
-            PPLBuiltinOperators.LAST,
-            false,
-            false,
-            false,
-            ImmutableList.of(),
-            ImmutableList.of(0),
-            -1,
-            null,
-            RelCollations.EMPTY,
-            typeFactory.createSqlType(SqlTypeName.INTEGER),
-            "last_a");
-    List<String> outputFields = List.of("b", "first_a", "last_a");
-    Aggregate aggregate = createMockAggregate(List.of(firstCall, lastCall), ImmutableBitSet.of(1));
-    Project project =
-        createMockProject(List.of(0, 1)); // Need both fields for groupBy with aggregations
-    Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
-        AggregateAnalyzer.analyze(aggregate, project, rowType, fieldTypes, outputFields, null);
-
-    assertEquals(
-        "[{\"composite_buckets\":{\"composite\":{\"size\":1000,\"sources\":["
-            + "{\"b\":{\"terms\":{\"field\":\"b.keyword\",\"missing_bucket\":true,\"missing_order\":\"first\",\"order\":\"asc\"}}}]},"
-            + "\"aggregations\":{"
-            + "\"first_a\":{\"top_hits\":{\"from\":0,\"size\":1,\"version\":false,\"seq_no_primary_term\":false,\"explain\":false,\"_source\":{\"includes\":[\"a\"],\"excludes\":[]}}},"
-            + "\"last_a\":{\"top_hits\":{\"from\":0,\"size\":1,\"version\":false,\"seq_no_primary_term\":false,\"explain\":false,\"_source\":{\"includes\":[\"a\"],\"excludes\":[]},\"sort\":[{\"_doc\":{\"order\":\"desc\"}}]}}}}}]",
-        result.getLeft().toString());
-    assertInstanceOf(CompositeAggregationParser.class, result.getRight());
-    MetricParserHelper metricsParser =
-        ((CompositeAggregationParser) result.getRight()).getMetricsParser();
-    assertEquals(2, metricsParser.getMetricParserMap().size());
-    metricsParser
-        .getMetricParserMap()
-        .forEach(
-            (k, v) -> {
-              assertTrue(k.equals("first_a") || k.equals("last_a"));
-              assertInstanceOf(TopHitsParser.class, v);
-            });
+    buildAggregation("last_b")
+        .withAggCall(b -> b.aggregateCall(PPLBuiltinOperators.LAST, b.field("b")).as("last_b"))
+        .expectDslQuery(
+            "[{\"last_b\":{\"top_hits\":{\"from\":0,\"size\":1,\"version\":false,\"seq_no_primary_term\":false,\"explain\":false,\"sort\":[{\"_doc\":{\"order\":\"desc\"}}]}}}]")
+        .expectResponseParser(new MetricParserHelper(List.of(new TopHitsParser("last_b", true))))
+        .verify();
   }
 
   @Test
@@ -791,7 +680,11 @@ class AggregateAnalyzerTest {
 
       // Run analyzer
       Aggregate agg = (Aggregate) rel;
-      Project project = (Project) agg.getInput(0);
+      // Check if the input is a Project node, otherwise use null
+      Project project = null;
+      if (agg.getInput(0) instanceof Project) {
+        project = (Project) agg.getInput(0);
+      }
       Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
           AggregateAnalyzer.analyze(
               agg, project, rowType, fieldTypes, outputFields, agg.getCluster());

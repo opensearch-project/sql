@@ -492,16 +492,16 @@ Example::
     | Amber            | M      |
     +------------------+--------+
 
-Example with multiple aggregations::
+Example with count aggregation::
 
-    os> source=accounts | stats first(firstname), last(firstname), count() by gender;
+    os> source=accounts | stats first(firstname), count() by gender;
     fetched rows / total rows = 2/2
-    +------------------+-----------------+---------+--------+
-    | first(firstname) | last(firstname) | count() | gender |
-    |------------------+-----------------+---------+--------|
-    | Nanette          | Nanette         | 1       | F      |
-    | Amber            | Dale            | 3       | M      |
-    +------------------+-----------------+---------+--------+
+    +------------------+---------+--------+
+    | first(firstname) | count() | gender |
+    |------------------+---------+--------|
+    | Nanette          | 1       | F      |
+    | Amber            | 3       | M      |
+    +------------------+---------+--------+
 
 LAST
 ----
