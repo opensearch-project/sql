@@ -52,7 +52,7 @@ public interface PPLTypeChecker {
 
   /**
    * Get a string representation of the allowed signatures. The format is like {@code
-   * [STRING,STRING],[INTEGER,INTEGER]}.
+   * [STRING,STRING]|[INTEGER,INTEGER]}.
    *
    * @return a string representation of the allowed signatures
    */

@@ -200,8 +200,8 @@ public class PercentileApproxAggregatorTest extends AggregationTest {
                     tuples));
     assertEquals(
         "percentile_approx function expected"
-            + " {[INTEGER,DOUBLE],[INTEGER,DOUBLE,DOUBLE],[LONG,DOUBLE],[LONG,DOUBLE,DOUBLE],"
-            + "[FLOAT,DOUBLE],[FLOAT,DOUBLE,DOUBLE],[DOUBLE,DOUBLE],[DOUBLE,DOUBLE,DOUBLE]},"
+            + " {[INTEGER,DOUBLE]|[INTEGER,DOUBLE,DOUBLE]|[LONG,DOUBLE]|[LONG,DOUBLE,DOUBLE],"
+            + "[FLOAT,DOUBLE]|[FLOAT,DOUBLE,DOUBLE]|[DOUBLE,DOUBLE]|[DOUBLE,DOUBLE,DOUBLE]},"
             + " but got [DOUBLE,STRING]",
         exception2.getMessage());
   }

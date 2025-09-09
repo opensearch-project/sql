@@ -48,7 +48,7 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
         t,
         // Temporary fix for the error message as LESS function has two variants. Will remove
         // [IP,IP] when merging the two variants.
-        "LESS function expects {[IP,IP],[COMPARABLE_TYPE,COMPARABLE_TYPE]},"
+        "LESS function expects {[IP,IP]|[COMPARABLE_TYPE,COMPARABLE_TYPE]},"
             + " but got [STRING,INTEGER]");
   }
 
@@ -74,7 +74,7 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
     Throwable t = Assert.assertThrows(ExpressionEvaluationException.class, () -> getRelNode(ppl));
     verifyErrorMessageContains(
         t,
-        "SUBSTRING function expects {[STRING,INTEGER],[STRING,INTEGER,INTEGER]}, but got"
+        "SUBSTRING function expects {[STRING,INTEGER]|[STRING,INTEGER,INTEGER]}, but got"
             + " [STRING,INTEGER,STRING]");
   }
 
@@ -108,9 +108,9 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
     verifyErrorMessageContains(
         t,
         "TIMESTAMP function expects {"
-            + "[STRING],[TIMESTAMP],[DATE],[TIME],[STRING,STRING],[TIMESTAMP,TIMESTAMP],[TIMESTAMP,DATE],"
-            + "[TIMESTAMP,TIME],[DATE,TIMESTAMP],[DATE,DATE],[DATE,TIME],[TIME,TIMESTAMP],[TIME,DATE],"
-            + "[TIME,TIME],[STRING,TIMESTAMP],[STRING,DATE],[STRING,TIME],[TIMESTAMP,STRING],[DATE,STRING],[TIME,STRING]},"
+            + "[STRING]|[TIMESTAMP]|[DATE]|[TIME]|[STRING,STRING]|[TIMESTAMP,TIMESTAMP]|[TIMESTAMP,DATE],"
+            + "[TIMESTAMP,TIME]|[DATE,TIMESTAMP]|[DATE,DATE]|[DATE,TIME]|[TIME,TIMESTAMP]|[TIME,DATE],"
+            + "[TIME,TIME]|[STRING,TIMESTAMP]|[STRING,DATE]|[STRING,TIME]|[TIMESTAMP,STRING]|[DATE,STRING]|[TIME,STRING]},"
             + " but got [STRING,INTEGER]");
   }
 
@@ -187,7 +187,7 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
                 getRelNode(
                     "source=EMP | head 1 | eval sqrt_name = sqrt(ENAME) | fields sqrt_name"));
     verifyErrorMessageContains(
-        nanException, "SQRT function expects {[INTEGER],[DOUBLE]}, but got [STRING]");
+        nanException, "SQRT function expects {[INTEGER]|[DOUBLE]}, but got [STRING]");
   }
 
   // Test UDF registered with PPL builtin operators: registerOperator(MOD, PPLBuiltinOperators.MOD);
@@ -200,7 +200,7 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
     verifyErrorMessageContains(
         wrongArgException,
         "MOD function expects"
-            + " {[INTEGER,INTEGER],[INTEGER,DOUBLE],[DOUBLE,INTEGER],[DOUBLE,DOUBLE]}, but got"
+            + " {[INTEGER,INTEGER]|[INTEGER,DOUBLE]|[DOUBLE,INTEGER]|[DOUBLE,DOUBLE]}, but got"
             + " [DOUBLE,INTEGER,INTEGER]");
   }
 
@@ -223,7 +223,7 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
             ExpressionEvaluationException.class,
             () -> getRelNode("source=EMP | eval log2 = log2(ENAME, JOB) | fields log2"));
     verifyErrorMessageContains(
-        wrongArgException, "LOG2 function expects {[INTEGER],[DOUBLE]}, but got [STRING,STRING]");
+        wrongArgException, "LOG2 function expects {[INTEGER]|[DOUBLE]}, but got [STRING,STRING]");
   }
 
   @Test
@@ -233,7 +233,7 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
             ExpressionEvaluationException.class,
             () -> getRelNode("source=EMP | stats avg(ENAME) as avg_name"));
     verifyErrorMessageContains(
-        e, "Aggregation function AVG expects field type {[INTEGER],[DOUBLE]}, but got [STRING]");
+        e, "Aggregation function AVG expects field type {[INTEGER]|[DOUBLE]}, but got [STRING]");
   }
 
   @Test
@@ -244,7 +244,7 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
             () -> getRelNode("source=EMP | stats var_samp(ENAME) as varsamp_name"));
     verifyErrorMessageContains(
         e,
-        "Aggregation function VARSAMP expects field type {[INTEGER],[DOUBLE]}, but got [STRING]");
+        "Aggregation function VARSAMP expects field type {[INTEGER]|[DOUBLE]}, but got [STRING]");
   }
 
   @Test
@@ -254,7 +254,7 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
             ExpressionEvaluationException.class,
             () -> getRelNode("source=EMP | stats var_pop(ENAME) as varpop_name"));
     verifyErrorMessageContains(
-        e, "Aggregation function VARPOP expects field type {[INTEGER],[DOUBLE]}, but got [STRING]");
+        e, "Aggregation function VARPOP expects field type {[INTEGER]|[DOUBLE]}, but got [STRING]");
   }
 
   @Test
@@ -265,7 +265,7 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
             () -> getRelNode("source=EMP | stats stddev_samp(ENAME) as stddev_name"));
     verifyErrorMessageContains(
         e,
-        "Aggregation function STDDEV_SAMP expects field type {[INTEGER],[DOUBLE]}, but got"
+        "Aggregation function STDDEV_SAMP expects field type {[INTEGER]|[DOUBLE]}, but got"
             + " [STRING]");
   }
 
@@ -277,7 +277,7 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
             () -> getRelNode("source=EMP | stats stddev_pop(ENAME) as stddev_name"));
     verifyErrorMessageContains(
         e,
-        "Aggregation function STDDEV_POP expects field type {[INTEGER],[DOUBLE]}, but got"
+        "Aggregation function STDDEV_POP expects field type {[INTEGER]|[DOUBLE]}, but got"
             + " [STRING]");
   }
 
@@ -291,7 +291,7 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
     verifyErrorMessageContains(
         e1,
         "Aggregation function PERCENTILE_APPROX expects field type and additional arguments"
-            + " {[INTEGER,INTEGER],[INTEGER,DOUBLE],[DOUBLE,INTEGER],[DOUBLE,DOUBLE],[INTEGER,INTEGER,INTEGER],[INTEGER,INTEGER,DOUBLE],[INTEGER,DOUBLE,INTEGER],[INTEGER,DOUBLE,DOUBLE],[DOUBLE,INTEGER,INTEGER],[DOUBLE,INTEGER,DOUBLE],[DOUBLE,DOUBLE,INTEGER],[DOUBLE,DOUBLE,DOUBLE]},"
+            + " {[INTEGER,INTEGER]|[INTEGER,DOUBLE]|[DOUBLE,INTEGER]|[DOUBLE,DOUBLE]|[INTEGER,INTEGER,INTEGER]|[INTEGER,INTEGER,DOUBLE]|[INTEGER,DOUBLE,INTEGER]|[INTEGER,DOUBLE,DOUBLE]|[DOUBLE,INTEGER,INTEGER]|[DOUBLE,INTEGER,DOUBLE]|[DOUBLE,DOUBLE,INTEGER]|[DOUBLE,DOUBLE,DOUBLE]},"
             + " but got [STRING,INTEGER]");
   }
 
@@ -305,7 +305,7 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
     verifyErrorMessageContains(
         e,
         "Aggregation function LIST expects field type"
-            + " {[BYTE],[SHORT],[INTEGER],[LONG],[FLOAT],[DOUBLE],[STRING],[BOOLEAN],[DATE],[TIME],[TIMESTAMP],[IP],[BINARY]},"
+            + " {[BYTE]|[SHORT]|[INTEGER]|[LONG]|[FLOAT]|[DOUBLE]|[STRING]|[BOOLEAN]|[DATE]|[TIME]|[TIMESTAMP]|[IP]|[BINARY]},"
             + " but got [ARRAY]");
   }
 }
