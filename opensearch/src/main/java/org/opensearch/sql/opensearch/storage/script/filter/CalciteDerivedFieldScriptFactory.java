@@ -10,17 +10,18 @@ import lombok.EqualsAndHashCode;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.rel.type.RelDataType;
-import org.opensearch.script.FieldScript;
+import org.opensearch.script.DerivedFieldScript;
 import org.opensearch.search.lookup.SearchLookup;
 
 /** Calcite script factory that generates leaf factory. */
 @EqualsAndHashCode
-public class CalciteFieldScriptFactory implements FieldScript.Factory {
+public class CalciteDerivedFieldScriptFactory implements DerivedFieldScript.Factory {
 
   /** Generated code of calcite to execute. */
   private final Function1<DataContext, Object[]> function;
 
-  public CalciteFieldScriptFactory(Function1<DataContext, Object[]> function, RelDataType type) {
+  public CalciteDerivedFieldScriptFactory(
+      Function1<DataContext, Object[]> function, RelDataType type) {
     this.function = function;
   }
 
@@ -31,7 +32,8 @@ public class CalciteFieldScriptFactory implements FieldScript.Factory {
   }
 
   @Override
-  public FieldScript.LeafFactory newFactory(Map<String, Object> params, SearchLookup lookup) {
-    return new CalciteFieldScriptLeafFactory(function, params, lookup);
+  public DerivedFieldScript.LeafFactory newFactory(
+      Map<String, Object> params, SearchLookup lookup) {
+    return new CalciteDerivedFieldScriptLeafFactory(function, params, lookup);
   }
 }

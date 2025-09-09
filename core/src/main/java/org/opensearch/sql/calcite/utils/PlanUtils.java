@@ -401,19 +401,4 @@ public interface PlanUtils {
   static boolean containsRexCall(LogicalProject project) {
     return project.getProjects().stream().anyMatch(e -> e instanceof RexCall);
   }
-
-  /** Check if contains RexOver */
-  static boolean containsRexOver(LogicalProject project) {
-    List<Boolean> containsRexOver = new ArrayList<>();
-    final RexVisitorImpl<Void> visitor =
-        new RexVisitorImpl<Void>(true) {
-          @Override
-          public Void visitOver(RexOver over) {
-            containsRexOver.add(true);
-            return null;
-          }
-        };
-    visitor.visitEach(project.getProjects());
-    return !containsRexOver.isEmpty();
-  }
 }

@@ -9,11 +9,11 @@ import java.util.Map;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.lucene.index.LeafReaderContext;
-import org.opensearch.script.FieldScript;
+import org.opensearch.script.DerivedFieldScript;
 import org.opensearch.search.lookup.SearchLookup;
 
 /** Calcite script leaf factory that produces script executor for each leaf. */
-class CalciteFieldScriptLeafFactory implements FieldScript.LeafFactory {
+class CalciteDerivedFieldScriptLeafFactory implements DerivedFieldScript.LeafFactory {
 
   private final Function1<DataContext, Object[]> function;
 
@@ -23,7 +23,7 @@ class CalciteFieldScriptLeafFactory implements FieldScript.LeafFactory {
   /** Document lookup that returns doc values. */
   private final SearchLookup lookup;
 
-  public CalciteFieldScriptLeafFactory(
+  public CalciteDerivedFieldScriptLeafFactory(
       Function1<DataContext, Object[]> function, Map<String, Object> params, SearchLookup lookup) {
     this.function = function;
     this.params = params;
@@ -31,7 +31,7 @@ class CalciteFieldScriptLeafFactory implements FieldScript.LeafFactory {
   }
 
   @Override
-  public FieldScript newInstance(LeafReaderContext ctx) {
-    return new CalciteFieldScript(function, lookup, ctx, params);
+  public DerivedFieldScript newInstance(LeafReaderContext ctx) {
+    return new CalciteDerivedFieldScript(function, lookup, ctx, params);
   }
 }

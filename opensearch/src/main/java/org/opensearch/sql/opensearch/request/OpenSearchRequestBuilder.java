@@ -296,9 +296,10 @@ public class OpenSearchRequestBuilder {
   }
 
   /** Push down script project list to DSL requests for v3 engine. */
-  public void pushDownScriptProjects(List<String> scriptProjects, List<Script> scripts) {
+  public void pushDownScriptProjects(
+      List<String> scriptProjects, List<String> types, List<Script> scripts) {
     for (int i = 0; i < scriptProjects.size(); i++) {
-      sourceBuilder.scriptField(scriptProjects.get(i), scripts.get(i));
+      sourceBuilder.derivedField(scriptProjects.get(i), types.get(i), scripts.get(i));
     }
   }
 

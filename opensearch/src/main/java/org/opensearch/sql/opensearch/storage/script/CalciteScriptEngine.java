@@ -85,7 +85,7 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.storage.script.aggregation.CalciteAggregationScriptFactory;
-import org.opensearch.sql.opensearch.storage.script.filter.CalciteFieldScriptFactory;
+import org.opensearch.sql.opensearch.storage.script.filter.CalciteDerivedFieldScriptFactory;
 import org.opensearch.sql.opensearch.storage.script.filter.CalciteFilterScriptFactory;
 import org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer;
 
@@ -114,7 +114,7 @@ public class CalciteScriptEngine implements ScriptEngine {
                   BiFunction<Function1<DataContext, Object[]>, RelDataType, Object>>()
               .put(FilterScript.CONTEXT, CalciteFilterScriptFactory::new)
               .put(AggregationScript.CONTEXT, CalciteAggregationScriptFactory::new)
-              .put(FieldScript.CONTEXT, CalciteFieldScriptFactory::new)
+              .put(FieldScript.CONTEXT, CalciteDerivedFieldScriptFactory::new)
               .build();
 
   @Override

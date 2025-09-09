@@ -70,7 +70,7 @@ public class OpenSearchScriptProjectIndexScanRule
                 b0 ->
                     b0.operand(LogicalProject.class)
                         .predicate(
-                            Predicate.not(PlanUtils::containsRexOver)
+                            Predicate.not(LogicalProject::containsOver)
                                 .and(PlanUtils::containsRexCall))
                         .oneInput(
                             b1 ->
