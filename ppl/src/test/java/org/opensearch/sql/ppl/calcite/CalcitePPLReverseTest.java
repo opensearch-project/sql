@@ -142,4 +142,87 @@ public class CalcitePPLReverseTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | reverse EMPNO + 1";
     getRelNode(ppl);
   }
+
+  @Test
+  public void testMultipleSortsWithReverseParserSuccess() {
+    String ppl = "source=EMP | sort + SAL | sort - ENAME | reverse";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(sort0=[$1], dir0=[ASC-nulls-first])\n"
+            + "  LogicalSort(sort0=[$1], dir0=[DESC-nulls-last])\n"
+            + "    LogicalSort(sort0=[$5], dir0=[ASC-nulls-first])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT *\n"
+            + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
+            + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "ORDER BY `SAL`) `t`\n"
+            + "ORDER BY `ENAME` DESC) `t0`\n"
+            + "ORDER BY `ENAME`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMultiFieldSortWithReverseParserSuccess() {
+    String ppl = "source=EMP | sort + SAL, - ENAME | reverse";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(sort0=[$5], sort1=[$1], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first])\n"
+            + "  LogicalSort(sort0=[$5], sort1=[$1], dir0=[ASC-nulls-first],"
+            + " dir1=[DESC-nulls-last])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT *\n"
+            + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "ORDER BY `SAL`, `ENAME` DESC) `t`\n"
+            + "ORDER BY `SAL` DESC, `ENAME`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testComplexMultiFieldSortWithReverseParserSuccess() {
+    String ppl = "source=EMP | sort DEPTNO, + SAL, - ENAME | reverse";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(sort0=[$7], sort1=[$5], sort2=[$1], dir0=[DESC-nulls-last],"
+            + " dir1=[DESC-nulls-last], dir2=[ASC-nulls-first])\n"
+            + "  LogicalSort(sort0=[$7], sort1=[$5], sort2=[$1], dir0=[ASC-nulls-first],"
+            + " dir1=[ASC-nulls-first], dir2=[DESC-nulls-last])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT *\n"
+            + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "ORDER BY `DEPTNO`, `SAL`, `ENAME` DESC) `t`\n"
+            + "ORDER BY `DEPTNO` DESC, `SAL` DESC, `ENAME`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testReverseWithFieldsAndSortParserSuccess() {
+    String ppl = "source=EMP | fields ENAME, SAL, DEPTNO | sort + SAL | reverse";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(sort0=[$1], dir0=[DESC-nulls-last])\n"
+            + "  LogicalSort(sort0=[$1], dir0=[ASC-nulls-first])\n"
+            + "    LogicalProject(ENAME=[$1], SAL=[$5], DEPTNO=[$7])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT *\n"
+            + "FROM (SELECT `ENAME`, `SAL`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "ORDER BY `SAL`) `t0`\n"
+            + "ORDER BY `SAL` DESC";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
 }
