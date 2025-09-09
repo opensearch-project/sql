@@ -49,7 +49,7 @@ The rex command returns all events, setting extracted fields to null for non-mat
 
 PPL query::
 
-    os> source=accounts | rex field=email "(?<user>[^@]+)@(?<domain>gmail\\.com)" | fields email, user, domain | head 2 ;
+    os> source=accounts | rex field=email "(?<user>[^@]+)@(?<domain>gmail\.com)" | fields email, user, domain | head 2 ;
     fetched rows / total rows = 2/2
     +-----------------------+------+--------+
     | email                 | user | domain |
@@ -84,7 +84,7 @@ Extract comprehensive email components including top-level domain. All extracted
 
 PPL query::
 
-    os> source=accounts | rex field=email "(?<user>[a-zA-Z0-9._%+-]+)@(?<domain>[a-zA-Z0-9.-]+)\\.(?<tld>[a-zA-Z]{2,})" | fields email, user, domain, tld | head 2 ;
+    os> source=accounts | rex field=email "(?<user>[a-zA-Z0-9._%+-]+)@(?<domain>[a-zA-Z0-9.-]+)\.(?<tld>[a-zA-Z]{2,})" | fields email, user, domain, tld | head 2 ;
     fetched rows / total rows = 2/2
     +-----------------------+------------+--------+-----+
     | email                 | user       | domain | tld |
@@ -142,7 +142,7 @@ Demonstrates the max_match limit protection mechanism. When max_match=0 (unlimit
 
 PPL query with max_match=0 automatically capped to default limit of 10::
 
-    os> source=accounts | rex field=address "(?<digit>\\d*)" max_match=0 | eval digit_count=array_length(digit) | fields address, digit_count | head 1 ;
+    os> source=accounts | rex field=address "(?<digit>\d*)" max_match=0 | eval digit_count=array_length(digit) | fields address, digit_count | head 1 ;
     fetched rows / total rows = 1/1
     +-----------------+-------------+
     | address         | digit_count |
@@ -152,7 +152,7 @@ PPL query with max_match=0 automatically capped to default limit of 10::
 
 PPL query exceeding the configured limit results in an error::
 
-    os> source=accounts | rex field=address "(?<digit>\\d*)" max_match=100 | fields address, digit | head 1 ;
+    os> source=accounts | rex field=address "(?<digit>\d*)" max_match=100 | fields address, digit | head 1 ;
     {'reason': 'Invalid Query', 'details': 'Rex command max_match value (100) exceeds the configured limit (10). Consider using a smaller max_match value or adjust the plugins.ppl.rex.max_match.limit setting.', 'type': 'IllegalArgumentException'}
     Error: Query returned no data
 
