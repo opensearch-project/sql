@@ -88,6 +88,17 @@ public class AstBuilderTest {
   private final Settings settings = Mockito.mock(Settings.class);
 
   @Test
+  public void testDynamicSourceClauseThrowsUnsupportedException() {
+    String query = "source=[myindex, logs, fieldIndex=\"test\"]";
+
+    UnsupportedOperationException exception =
+        assertThrows(UnsupportedOperationException.class, () -> plan(query));
+
+    assertEquals(
+        "Dynamic source clause with metadata filters is not supported.", exception.getMessage());
+  }
+
+  @Test
   public void testSearchCommand() {
     assertEqual(
         "search source=t a=1", filter(relation("t"), compare("=", field("a"), intLiteral(1))));
