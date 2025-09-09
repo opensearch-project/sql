@@ -202,6 +202,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         this.osIndex.getFieldTypes().entrySet().stream()
             .filter(entry -> this.schema.getFieldNames().contains(entry.getKey()))
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    // TODO: Check if we need to support partial project nodes pushdown
     CalciteLogicalIndexScan newScan =
         new CalciteLogicalIndexScan(
             getCluster(),
@@ -215,6 +216,11 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     // figure out the RexCall in projects
     List<org.apache.calcite.util.Pair<RexNode, String>> calls =
         project.getNamedProjects().stream().filter(pair -> pair.left instanceof RexCall).toList();
+    List<String> callNames =
+        project.getNamedProjects().stream()
+            .filter(pair -> pair.left instanceof RexCall)
+            .map(call -> call.getValue())
+            .toList();
 
     // push down the RexCall to script fields
     List<Script> scripts =
@@ -235,7 +241,8 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
                     calls.stream()
                         .map(call -> OpenSearchRelOptUtil.toDslType(call.left.getType()))
                         .toList(),
-                    scripts)));
+                    scripts,
+                    callNames)));
     return newScan;
   }
 

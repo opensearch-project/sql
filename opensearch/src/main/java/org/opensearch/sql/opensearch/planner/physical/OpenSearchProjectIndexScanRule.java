@@ -74,7 +74,11 @@ public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectInd
       if (RexUtil.isIdentity(newProjectRexNodes, newScan.getRowType())) {
         call.transformTo(newScan);
       } else {
-        call.transformTo(call.builder().push(newScan).project(newProjectRexNodes).build());
+        call.transformTo(
+            call.builder()
+                .push(newScan)
+                .project(newProjectRexNodes, project.getRowType().getFieldNames())
+                .build());
       }
     }
   }

@@ -297,9 +297,15 @@ public class OpenSearchRequestBuilder {
 
   /** Push down script project list to DSL requests for v3 engine. */
   public void pushDownScriptProjects(
-      List<String> scriptProjects, List<String> types, List<Script> scripts) {
+      List<String> scriptProjects,
+      List<String> types,
+      List<Script> scripts,
+      List<String> fieldNames) {
     for (int i = 0; i < scriptProjects.size(); i++) {
       sourceBuilder.derivedField(scriptProjects.get(i), types.get(i), scripts.get(i));
+    }
+    for (String fieldName : fieldNames) {
+      sourceBuilder.fetchField(fieldName);
     }
   }
 
