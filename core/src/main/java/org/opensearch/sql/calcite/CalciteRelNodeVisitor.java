@@ -52,6 +52,7 @@ import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilder.AggCall;
 import org.apache.calcite.util.Holder;
@@ -59,6 +60,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.EmptySourcePropagateVisitor;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AggregateFunction;
@@ -81,6 +83,7 @@ import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.CloseCursor;
@@ -105,6 +108,7 @@ import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
+import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
@@ -113,6 +117,7 @@ import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.Trendline.TrendlineType;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.utils.BinUtils;
@@ -126,7 +131,9 @@ import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
+import org.opensearch.sql.expression.parse.RegexCommonUtils;
 import org.opensearch.sql.utils.ParseUtils;
+import org.opensearch.sql.utils.WildcardRenameUtils;
 
 public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalcitePlanContext> {
 
@@ -201,6 +208,50 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
 
     context.relBuilder.filter(regexCondition);
+    return context.relBuilder.peek();
+  }
+
+  public RelNode visitRex(Rex node, CalcitePlanContext context) {
+    visitChildren(node, context);
+
+    RexNode fieldRex = rexVisitor.analyze(node.getField(), context);
+    String patternStr = (String) node.getPattern().getValue();
+
+    List<String> namedGroups = RegexCommonUtils.getNamedGroupCandidates(patternStr);
+
+    if (namedGroups.isEmpty()) {
+      throw new IllegalArgumentException(
+          "Rex pattern must contain at least one named capture group");
+    }
+
+    List<RexNode> newFields = new ArrayList<>();
+    List<String> newFieldNames = new ArrayList<>();
+
+    for (int i = 0; i < namedGroups.size(); i++) {
+      RexNode extractCall;
+      if (node.getMaxMatch().isPresent() && node.getMaxMatch().get() > 1) {
+        extractCall =
+            PPLFuncImpTable.INSTANCE.resolve(
+                context.rexBuilder,
+                BuiltinFunctionName.REX_EXTRACT_MULTI,
+                fieldRex,
+                context.rexBuilder.makeLiteral(patternStr),
+                context.relBuilder.literal(i + 1),
+                context.relBuilder.literal(node.getMaxMatch().get()));
+      } else {
+        extractCall =
+            PPLFuncImpTable.INSTANCE.resolve(
+                context.rexBuilder,
+                BuiltinFunctionName.REX_EXTRACT,
+                fieldRex,
+                context.rexBuilder.makeLiteral(patternStr),
+                context.relBuilder.literal(i + 1));
+      }
+      newFields.add(extractCall);
+      newFieldNames.add(namedGroups.get(i));
+    }
+
+    projectPlusOverriding(newFields, newFieldNames, context);
     return context.relBuilder.peek();
   }
 
@@ -415,23 +466,50 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     visitChildren(node, context);
     List<String> originalNames = context.relBuilder.peek().getRowType().getFieldNames();
     List<String> newNames = new ArrayList<>(originalNames);
+
     for (org.opensearch.sql.ast.expression.Map renameMap : node.getRenameList()) {
-      if (renameMap.getTarget() instanceof Field t) {
-        String newName = t.getField().toString();
-        RexNode check = rexVisitor.analyze(renameMap.getOrigin(), context);
-        if (check instanceof RexInputRef ref) {
-          newNames.set(ref.getIndex(), newName);
-        } else {
-          throw new SemanticCheckException(
-              String.format("the original field %s cannot be resolved", renameMap.getOrigin()));
-        }
-      } else {
+      if (!(renameMap.getTarget() instanceof Field)) {
         throw new SemanticCheckException(
             String.format("the target expected to be field, but is %s", renameMap.getTarget()));
+      }
+
+      String sourcePattern = ((Field) renameMap.getOrigin()).getField().toString();
+      String targetPattern = ((Field) renameMap.getTarget()).getField().toString();
+
+      if (WildcardRenameUtils.isWildcardPattern(sourcePattern)
+          && !WildcardRenameUtils.validatePatternCompatibility(sourcePattern, targetPattern)) {
+        throw new SemanticCheckException(
+            "Source and target patterns have different wildcard counts");
+      }
+
+      List<String> matchingFields = WildcardRenameUtils.matchFieldNames(sourcePattern, newNames);
+
+      for (String fieldName : matchingFields) {
+        String newName =
+            WildcardRenameUtils.applyWildcardTransformation(
+                sourcePattern, targetPattern, fieldName);
+        if (newNames.contains(newName) && !newName.equals(fieldName)) {
+          removeFieldIfExists(newName, newNames, context);
+        }
+        int fieldIndex = newNames.indexOf(fieldName);
+        if (fieldIndex != -1) {
+          newNames.set(fieldIndex, newName);
+        }
+      }
+
+      if (matchingFields.isEmpty() && newNames.contains(targetPattern)) {
+        removeFieldIfExists(targetPattern, newNames, context);
+        context.relBuilder.rename(newNames);
       }
     }
     context.relBuilder.rename(newNames);
     return context.relBuilder.peek();
+  }
+
+  private void removeFieldIfExists(
+      String fieldName, List<String> newNames, CalcitePlanContext context) {
+    newNames.remove(fieldName);
+    context.relBuilder.projectExcept(context.relBuilder.field(fieldName));
   }
 
   @Override
@@ -1214,6 +1292,75 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
   }
 
+  @Override
+  public RelNode visitAppend(Append node, CalcitePlanContext context) {
+    // 1. Resolve main plan
+    visitChildren(node, context);
+
+    // 2. Resolve subsearch plan
+    UnresolvedPlan prunedSubSearch =
+        node.getSubSearch().accept(new EmptySourcePropagateVisitor(), null);
+    prunedSubSearch.accept(this, context);
+
+    // 3. Merge two query schemas
+    RelNode subsearchNode = context.relBuilder.build();
+    RelNode mainNode = context.relBuilder.build();
+    List<RelDataTypeField> mainFields = mainNode.getRowType().getFieldList();
+    List<RelDataTypeField> subsearchFields = subsearchNode.getRowType().getFieldList();
+    Map<String, RelDataTypeField> subsearchFieldMap =
+        subsearchFields.stream()
+            .map(typeField -> Pair.of(typeField.getName(), typeField))
+            .collect(Collectors.toMap(Pair::getKey, Pair::getValue));
+    boolean[] isSelected = new boolean[subsearchFields.size()];
+    List<String> names = new ArrayList<>();
+    List<RexNode> mainUnionProjects = new ArrayList<>();
+    List<RexNode> subsearchUnionProjects = new ArrayList<>();
+
+    // 3.1 Start with main query's schema. If subsearch plan doesn't have matched column,
+    // add same type column in place with NULL literal
+    for (int i = 0; i < mainFields.size(); i++) {
+      mainUnionProjects.add(context.rexBuilder.makeInputRef(mainNode, i));
+      RelDataTypeField mainField = mainFields.get(i);
+      RelDataTypeField subsearchField = subsearchFieldMap.get(mainField.getName());
+      names.add(mainField.getName());
+      if (subsearchFieldMap.containsKey(mainField.getName())
+          && subsearchField != null
+          && subsearchField.getType().equals(mainField.getType())) {
+        subsearchUnionProjects.add(
+            context.rexBuilder.makeInputRef(subsearchNode, subsearchField.getIndex()));
+        isSelected[subsearchField.getIndex()] = true;
+      } else {
+        subsearchUnionProjects.add(context.rexBuilder.makeNullLiteral(mainField.getType()));
+      }
+    }
+
+    // 3.2 Add remaining subsearch columns to the merged schema
+    for (int j = 0; j < subsearchFields.size(); j++) {
+      RelDataTypeField subsearchField = subsearchFields.get(j);
+      if (!isSelected[j]) {
+        mainUnionProjects.add(context.rexBuilder.makeNullLiteral(subsearchField.getType()));
+        subsearchUnionProjects.add(context.rexBuilder.makeInputRef(subsearchNode, j));
+        names.add(subsearchField.getName());
+      }
+    }
+
+    // 3.3 Uniquify names in case the merged names have duplicates
+    List<String> uniqNames =
+        SqlValidatorUtil.uniquify(names, SqlValidatorUtil.EXPR_SUGGESTER, true);
+
+    // 4. Apply new schema over two query plans
+    RelNode projectedMainNode =
+        context.relBuilder.push(mainNode).project(mainUnionProjects, uniqNames).build();
+    RelNode projectedSubsearchNode =
+        context.relBuilder.push(subsearchNode).project(subsearchUnionProjects, uniqNames).build();
+
+    // 5. Union all two projected plans
+    context.relBuilder.push(projectedMainNode);
+    context.relBuilder.push(projectedSubsearchNode);
+    context.relBuilder.union(true);
+    return context.relBuilder.peek();
+  }
+
   /*
    * Unsupported Commands of PPL with Calcite for OpenSearch 3.0.0-beta
    */
@@ -1842,6 +1989,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     buildExpandRelNode(arrayFieldRex, arrayField.getField().toString(), alias, context);
 
     return context.relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitValues(Values values, CalcitePlanContext context) {
+    if (values.getValues() == null || values.getValues().isEmpty()) {
+      context.relBuilder.values(context.relBuilder.getTypeFactory().builder().build());
+      return context.relBuilder.peek();
+    } else {
+      throw new CalciteUnsupportedException("Explicit values node is unsupported in Calcite");
+    }
   }
 
   private void buildParseRelNode(Parse node, CalcitePlanContext context) {
