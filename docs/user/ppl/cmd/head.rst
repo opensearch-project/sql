@@ -8,10 +8,7 @@ head
    :local:
    :depth: 2
 
-Version Information
-============
 .. versionadded:: 1.0.0
-
 .. versionchanged:: 3.3.0
     Added support for the `limit=` argument name.
 
