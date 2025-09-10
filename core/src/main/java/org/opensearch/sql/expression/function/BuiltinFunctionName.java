@@ -198,6 +198,7 @@ public enum BuiltinFunctionName {
   TAKE(FunctionName.of("take")),
   // t-digest percentile which is used in OpenSearch core by default.
   PERCENTILE_APPROX(FunctionName.of("percentile_approx")),
+  MEDIAN(FunctionName.of("median")),
   EARLIEST(FunctionName.of("earliest")),
   LATEST(FunctionName.of("latest")),
   DISTINCT_COUNT_APPROX(FunctionName.of("distinct_count_approx")),
@@ -206,6 +207,9 @@ public enum BuiltinFunctionName {
   LIST(FunctionName.of("list")),
   // Not always an aggregation query
   NESTED(FunctionName.of("nested")),
+  // Document order aggregation functions
+  FIRST(FunctionName.of("first")),
+  LAST(FunctionName.of("last")),
 
   /** Text Functions. */
   ASCII(FunctionName.of("ascii")),
@@ -352,11 +356,14 @@ public enum BuiltinFunctionName {
           .put("take", BuiltinFunctionName.TAKE)
           .put("percentile", BuiltinFunctionName.PERCENTILE_APPROX)
           .put("percentile_approx", BuiltinFunctionName.PERCENTILE_APPROX)
+          .put("median", BuiltinFunctionName.MEDIAN)
           .put("earliest", BuiltinFunctionName.EARLIEST)
           .put("latest", BuiltinFunctionName.LATEST)
           .put("distinct_count_approx", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
           .put("list", BuiltinFunctionName.LIST)
           .put("pattern", BuiltinFunctionName.INTERNAL_PATTERN)
+          .put("first", BuiltinFunctionName.FIRST)
+          .put("last", BuiltinFunctionName.LAST)
           .build();
 
   private static final Map<String, BuiltinFunctionName> WINDOW_FUNC_MAPPING =

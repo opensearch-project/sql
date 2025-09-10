@@ -28,6 +28,8 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalcitePPLAggregationIT extends PPLIntegTestCase {
 
+  private static final String TEST_INDEX_TIME_DATA = "opensearch-sql_test_index_time_data";
+
   @Override
   public void init() throws Exception {
     super.init();
@@ -39,6 +41,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     loadIndex(Index.DATE_FORMATS);
     loadIndex(Index.DATA_TYPE_NUMERIC);
     loadIndex(Index.LOGS);
+    loadIndex(Index.TIME_TEST_DATA);
   }
 
   @Test
@@ -235,6 +238,202 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
             String.format("source=%s | stats avg(balance) by span(age, 10)", TEST_INDEX_BANK));
     verifySchema(actual, schema("span(age,10)", "int"), schema("avg(balance)", "double"));
     verifyDataRows(actual, rows(32838.0, 20), rows(25689.166666666668, 30));
+  }
+
+  @Test
+  public void testFirstAggregation() throws IOException {
+    JSONObject actual =
+        executeQuery(String.format("source=%s | stats first(firstname)", TEST_INDEX_BANK));
+    verifySchema(actual, schema("first(firstname)", "string"));
+    verifyDataRows(actual, rows("Amber JOHnny"));
+  }
+
+  @Test
+  public void testLastAggregation() throws IOException {
+    JSONObject actual =
+        executeQuery(String.format("source=%s | stats last(firstname)", TEST_INDEX_BANK));
+    verifySchema(actual, schema("last(firstname)", "string"));
+    verifyDataRows(actual, rows("Dillard"));
+  }
+
+  @Test
+  public void testFirstLastByGroup() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(firstname), last(lastname) by gender", TEST_INDEX_BANK));
+    verifySchema(
+        actual,
+        schema("first(firstname)", "string"),
+        schema("last(lastname)", "string"),
+        schema("gender", "string"));
+    verifyDataRows(actual, rows("Amber JOHnny", "Ratliff", "M"), rows("Nanette", "Mcpherson", "F"));
+  }
+
+  @Test
+  public void testFirstLastWithOtherAggregations() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(firstname), last(firstname), count(), avg(age) by gender",
+                TEST_INDEX_BANK));
+    verifySchema(
+        actual,
+        schema("first(firstname)", "string"),
+        schema("last(firstname)", "string"),
+        schema("count()", "bigint"),
+        schema("avg(age)", "double"),
+        schema("gender", "string"));
+    verifyDataRows(
+        actual,
+        rows("Amber JOHnny", "Elinor", 4L, 34.25, "M"),
+        rows("Nanette", "Dillard", 3L, 33.666666666666664, "F"));
+  }
+
+  @Test
+  public void testFirstLastDifferentFields() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(account_number), last(balance), first(age)",
+                TEST_INDEX_BANK));
+    verifySchema(
+        actual,
+        schema("first(account_number)", "bigint"),
+        schema("last(balance)", "bigint"),
+        schema("first(age)", "int"));
+    verifyDataRows(actual, rows(1L, 48086L, 32L));
+  }
+
+  @Test
+  public void testFirstLastWithBirthdate() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format("source=%s | stats first(birthdate), last(birthdate)", TEST_INDEX_BANK));
+    verifySchema(
+        actual, schema("first(birthdate)", "timestamp"), schema("last(birthdate)", "timestamp"));
+    verifyDataRows(actual, rows("2017-10-23 00:00:00", "2018-08-11 00:00:00"));
+  }
+
+  @Test
+  public void testFirstLastBirthdateByGender() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(birthdate) as first_bd, last(birthdate) as last_bd by"
+                    + " gender",
+                TEST_INDEX_BANK));
+    verifySchema(
+        actual,
+        schema("first_bd", "timestamp"),
+        schema("last_bd", "timestamp"),
+        schema("gender", "string"));
+    verifyDataRows(
+        actual,
+        rows("2017-10-23 00:00:00", "2018-06-27 00:00:00", "M"),
+        rows("2018-06-23 00:00:00", "2018-08-11 00:00:00", "F"));
+  }
+
+  @Test
+  public void testFirstLastBirthdateWithOtherFields() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(firstname), first(birthdate), last(lastname),"
+                    + " last(birthdate) by gender",
+                TEST_INDEX_BANK));
+    verifySchema(
+        actual,
+        schema("first(firstname)", "string"),
+        schema("first(birthdate)", "timestamp"),
+        schema("last(lastname)", "string"),
+        schema("last(birthdate)", "timestamp"),
+        schema("gender", "string"));
+    verifyDataRows(
+        actual,
+        rows("Amber JOHnny", "2017-10-23 00:00:00", "Ratliff", "2018-06-27 00:00:00", "M"),
+        rows("Nanette", "2018-06-23 00:00:00", "Mcpherson", "2018-08-11 00:00:00", "F"));
+  }
+
+  @Test
+  public void testFirstLastWithTimestamp() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(timestamp), last(timestamp)", TEST_INDEX_TIME_DATA));
+    verifySchema(
+        actual, schema("first(timestamp)", "timestamp"), schema("last(timestamp)", "timestamp"));
+    verifyDataRows(actual, rows("2025-07-28 00:15:23", "2025-08-01 03:47:41"));
+  }
+
+  @Test
+  public void testFirstLastTimestampByCategory() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(timestamp) as first_ts, last(timestamp) as last_ts by"
+                    + " category",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(
+        actual,
+        schema("first_ts", "timestamp"),
+        schema("last_ts", "timestamp"),
+        schema("category", "string"));
+    verifyDataRows(
+        actual,
+        rows("2025-07-28 04:33:10", "2025-08-01 00:27:26", "D"),
+        rows("2025-07-28 02:28:45", "2025-08-01 02:00:56", "C"),
+        rows("2025-07-28 01:42:15", "2025-08-01 01:14:11", "B"),
+        rows("2025-07-28 00:15:23", "2025-08-01 03:47:41", "A"));
+  }
+
+  @Test
+  public void testFirstLastTimestampWithValue() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(value), first(timestamp), last(value), last(timestamp)",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(
+        actual,
+        schema("first(value)", "int"),
+        schema("first(timestamp)", "timestamp"),
+        schema("last(value)", "int"),
+        schema("last(timestamp)", "timestamp"));
+    verifyDataRows(actual, rows(8945, "2025-07-28 00:15:23", 8762, "2025-08-01 03:47:41"));
+  }
+
+  @Test
+  public void testFirstLastWithNullValues() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(balance) as first_bal, last(balance) as last_bal",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(actual, schema("first_bal", "bigint"), schema("last_bal", "bigint"));
+    // Note: Current implementation skips nulls, so we expect first and last non-null values
+    // This test verifies current behavior - may need to change based on requirements
+    verifyDataRows(actual, rows(39225L, 48086L));
+  }
+
+  @Test
+  public void testFirstLastWithNullValuesByGroup() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(balance) as first_bal, last(balance) as last_bal by age",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(
+        actual, schema("first_bal", "bigint"), schema("last_bal", "bigint"), schema("age", "int"));
+    // Testing behavior when some groups have null values
+    verifyDataRows(
+        actual,
+        rows(null, null, null), // age is null, no balance values
+        rows(32838L, 32838L, 28),
+        rows(39225L, 39225L, 32),
+        rows(4180L, 4180L, 33),
+        rows(48086L, 48086L, 34),
+        rows(null, null, 36)); // balance is null for age 36
   }
 
   @Test
@@ -968,5 +1167,13 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         rows(1, "TN"),
         rows(1, "VA"),
         rows(1, "WA"));
+  }
+
+  @Test
+  public void testMedian() throws IOException {
+    JSONObject actual =
+        executeQuery(String.format("source=%s | stats median(balance)", TEST_INDEX_BANK));
+    verifySchema(actual, schema("median(balance)", "bigint"));
+    verifyDataRows(actual, rows(32838));
   }
 }

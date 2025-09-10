@@ -66,6 +66,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXPM1;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXTRACT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FILTER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.FIRST;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FLOOR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FORALL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FROM_DAYS;
@@ -102,6 +103,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_KE
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_OBJECT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_SET;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_VALID;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LAST;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LAST_DAY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LATEST;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LEFT;
@@ -127,6 +129,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_P
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_PHRASE_PREFIX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MD5;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MEDIAN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MICROSECOND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE;
@@ -259,6 +262,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
@@ -1043,6 +1047,7 @@ public class PPLFuncImpTable {
   }
 
   private static class AggBuilder {
+    private static final double MEDIAN_PERCENTILE = 50.0;
     private final Map<BuiltinFunctionName, Pair<CalciteFuncSignature, AggHandler>> map =
         new HashMap<>();
 
@@ -1117,6 +1122,9 @@ public class PPLFuncImpTable {
       register(
           PERCENTILE_APPROX,
           (distinct, field, argList, ctx) -> {
+            if (field.getType() == null) {
+              throw new IllegalArgumentException("Field type cannot be null");
+            }
             List<RexNode> newArgList =
                 argList.stream().map(PlanUtils::derefMapCall).collect(Collectors.toList());
             newArgList.add(ctx.rexBuilder.makeFlag(field.getType().getSqlTypeName()));
@@ -1127,6 +1135,31 @@ public class PPLFuncImpTable {
               extractTypeCheckerFromUDF(PPLBuiltinOperators.PERCENTILE_APPROX),
               PERCENTILE_APPROX.name(),
               false));
+
+      register(
+          MEDIAN,
+          (distinct, field, argList, ctx) -> {
+            if (distinct) {
+              throw new IllegalArgumentException("MEDIAN does not support DISTINCT");
+            }
+            if (!argList.isEmpty()) {
+              throw new IllegalArgumentException("MEDIAN takes no additional arguments");
+            }
+            if (field.getType() == null) {
+              throw new IllegalArgumentException("Field type cannot be null");
+            }
+            List<RexNode> medianArgList =
+                List.of(
+                    ctx.rexBuilder.makeExactLiteral(BigDecimal.valueOf(MEDIAN_PERCENTILE)),
+                    ctx.rexBuilder.makeFlag(field.getType().getSqlTypeName()));
+            return UserDefinedFunctionUtils.makeAggregateCall(
+                PPLBuiltinOperators.PERCENTILE_APPROX,
+                List.of(field),
+                medianArgList,
+                ctx.relBuilder);
+          },
+          wrapSqlOperandTypeChecker(
+              PPLOperandTypes.NUMERIC.getInnerTypeChecker(), MEDIAN.name(), false));
 
       register(
           EARLIEST,
@@ -1145,6 +1178,26 @@ public class PPLFuncImpTable {
           },
           wrapSqlOperandTypeChecker(
               SqlStdOperatorTable.ARG_MAX.getOperandTypeChecker(), LATEST.name(), false));
+
+      // Register FIRST function - uses document order
+      register(
+          FIRST,
+          (distinct, field, argList, ctx) -> {
+            // Use our custom FirstAggFunction for document order aggregation
+            return ctx.relBuilder.aggregateCall(PPLBuiltinOperators.FIRST, field);
+          },
+          wrapSqlOperandTypeChecker(
+              PPLBuiltinOperators.FIRST.getOperandTypeChecker(), FIRST.name(), false));
+
+      // Register LAST function - uses document order
+      register(
+          LAST,
+          (distinct, field, argList, ctx) -> {
+            // Use our custom LastAggFunction for document order aggregation
+            return ctx.relBuilder.aggregateCall(PPLBuiltinOperators.LAST, field);
+          },
+          wrapSqlOperandTypeChecker(
+              PPLBuiltinOperators.LAST.getOperandTypeChecker(), LAST.name(), false));
     }
   }
 

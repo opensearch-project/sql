@@ -68,6 +68,39 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   // Only for Calcite
+  @Ignore("https://github.com/opensearch-project/OpenSearch/issues/3725")
+  public void testJoinWithCriteriaAndMaxOption() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_bank | join max=1 left=l right=r on"
+            + " l.account_number=r.account_number opensearch-sql_test_index_bank";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_join_with_criteria_max_option.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  // Only for Calcite
+  @Ignore("https://github.com/opensearch-project/OpenSearch/issues/3725")
+  public void testJoinWithFieldListAndMaxOption() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_bank | join type=inner max=1 account_number"
+            + " opensearch-sql_test_index_bank";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_join_with_fields_max_option.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  // Only for Calcite
+  @Test
+  public void testJoinWithFieldList() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_bank | join type=outer account_number"
+            + " opensearch-sql_test_index_bank";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_join_with_fields.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  // Only for Calcite
   @Test
   public void supportPushDownSortMergeJoin() throws IOException {
     String query =
@@ -403,6 +436,19 @@ public class CalciteExplainIT extends ExplainIT {
                 "source=%s | stats earliest(message, created_at) as earliest_message,"
                     + " latest(message, created_at) as latest_message by level",
                 TEST_INDEX_LOGS)));
+  }
+
+  // Only for Calcite
+  @Test
+  public void testExplainOnFirstLast() throws IOException {
+    String expected = loadExpectedPlan("explain_first_last.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | stats first(firstname) as first_name, last(firstname) as"
+                    + " last_name by gender",
+                TEST_INDEX_BANK)));
   }
 
   @Test

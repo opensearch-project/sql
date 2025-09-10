@@ -42,6 +42,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer.ExpressionNotAnalyzableException;
@@ -52,6 +53,7 @@ import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.response.agg.SingleValueParser;
 import org.opensearch.sql.opensearch.response.agg.StatsParser;
+import org.opensearch.sql.opensearch.response.agg.TopHitsParser;
 
 class AggregateAnalyzerTest {
 
@@ -343,6 +345,26 @@ class AggregateAnalyzerTest {
                 AggregateAnalyzer.analyze(
                     aggregate, project, rowType, fieldTypes, outputFields, null));
     assertEquals("[field] must not be null", exception.getCause().getMessage());
+  }
+
+  @Test
+  void analyze_firstAggregation() throws ExpressionNotAnalyzableException {
+    buildAggregation("first_a")
+        .withAggCall(b -> b.aggregateCall(PPLBuiltinOperators.FIRST, b.field("a")).as("first_a"))
+        .expectDslQuery(
+            "[{\"first_a\":{\"top_hits\":{\"from\":0,\"size\":1,\"version\":false,\"seq_no_primary_term\":false,\"explain\":false}}}]")
+        .expectResponseParser(new MetricParserHelper(List.of(new TopHitsParser("first_a", true))))
+        .verify();
+  }
+
+  @Test
+  void analyze_lastAggregation() throws ExpressionNotAnalyzableException {
+    buildAggregation("last_b")
+        .withAggCall(b -> b.aggregateCall(PPLBuiltinOperators.LAST, b.field("b")).as("last_b"))
+        .expectDslQuery(
+            "[{\"last_b\":{\"top_hits\":{\"from\":0,\"size\":1,\"version\":false,\"seq_no_primary_term\":false,\"explain\":false,\"sort\":[{\"_doc\":{\"order\":\"desc\"}}]}}}]")
+        .expectResponseParser(new MetricParserHelper(List.of(new TopHitsParser("last_b", true))))
+        .verify();
   }
 
   @Test
@@ -658,7 +680,11 @@ class AggregateAnalyzerTest {
 
       // Run analyzer
       Aggregate agg = (Aggregate) rel;
-      Project project = (Project) agg.getInput(0);
+      // Check if the input is a Project node, otherwise use null
+      Project project = null;
+      if (agg.getInput(0) instanceof Project) {
+        project = (Project) agg.getInput(0);
+      }
       Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
           AggregateAnalyzer.analyze(
               agg, project, rowType, fieldTypes, outputFields, agg.getCluster());
