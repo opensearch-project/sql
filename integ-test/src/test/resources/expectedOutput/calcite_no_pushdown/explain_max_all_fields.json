@@ -1,6 +1,6 @@
 {
   "calcite": {
     "logical": "LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])\n  LogicalAggregate(group=[{}], max(account_number)=[MAX($0)], max(balance)=[MAX($1)], max(age)=[MAX($2)])\n    LogicalProject(account_number=[$0], balance=[$3], age=[$8])\n      CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
-    "physical": "EnumerableLimit(fetch=[10000])\n  EnumerableAggregate(group=[{}], max(account_number)=[MAX($0)], max(balance)=[MAX($1)], max(age)=[MAX($2)])\n    EnumerableCalc(expr#0..8=[{inputs}], account_number=[$t0], balance=[$t3], age=[$t8])\n      EnumerableTableScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n"
+    "physical": "EnumerableLimit(fetch=[10000])\n  EnumerableAggregate(group=[{}], max(account_number)=[MAX($0)], max(balance)=[MAX($3)], max(age)=[MAX($8)])\n    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n"
   }
 }

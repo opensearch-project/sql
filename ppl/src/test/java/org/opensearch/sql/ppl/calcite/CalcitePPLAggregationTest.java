@@ -756,7 +756,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     String expectedResult = "min_hire_date=1980-12-17\n";
     verifyResult(root, expectedResult);
   }
-  
+
   @Test
   public void testMedian() {
     String ppl = "source=EMP | stats median(SAL)";

@@ -86,6 +86,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalAndContext
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalNotContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalOrContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalXorContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.MaxMinAllFunctionCallContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.MultiFieldRelevanceFunctionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameFieldExpressionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SingleFieldRelevanceFunctionContext;
