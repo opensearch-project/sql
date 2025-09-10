@@ -341,34 +341,24 @@ public class AggregateAnalyzer {
                     .size(helper.inferValue(args.get(1), Integer.class))
                     .from(0),
                 new TopHitsParser(aggFieldName));
-          case PERCENTILE_APPROX:
-        yield switch (functionName) {
-          case TAKE -> Pair.of(
-              AggregationBuilders.topHits(aggFieldName)
-                  .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)
-                  .size(helper.inferValue(args.getLast(), Integer.class))
-                  .from(0),
-              new TopHitsParser(aggFieldName));
-          case FIRST -> {
+          case FIRST:
             TopHitsAggregationBuilder firstBuilder =
                 AggregationBuilders.topHits(aggFieldName).size(1).from(0);
             if (!args.isEmpty()) {
-              firstBuilder.fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null);
+              firstBuilder.fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null);
             }
-            yield Pair.of(firstBuilder, new TopHitsParser(aggFieldName, true));
-          }
-          case LAST -> {
+            return Pair.of(firstBuilder, new TopHitsParser(aggFieldName, true));
+          case LAST:
             TopHitsAggregationBuilder lastBuilder =
                 AggregationBuilders.topHits(aggFieldName)
                     .size(1)
                     .from(0)
                     .sort("_doc", org.opensearch.search.sort.SortOrder.DESC);
             if (!args.isEmpty()) {
-              lastBuilder.fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null);
+              lastBuilder.fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null);
             }
-            yield Pair.of(lastBuilder, new TopHitsParser(aggFieldName, true));
-          }
-          case PERCENTILE_APPROX -> {
+            return Pair.of(lastBuilder, new TopHitsParser(aggFieldName, true));
+          case PERCENTILE_APPROX:
             PercentilesAggregationBuilder aggBuilder =
                 helper
                     .build(args.get(0), AggregationBuilders.percentiles(aggFieldName))
