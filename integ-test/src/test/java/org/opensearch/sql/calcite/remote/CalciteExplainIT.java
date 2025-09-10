@@ -262,6 +262,25 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testExplainCountEval() throws IOException {
+    String query =
+            "source=opensearch-sql_test_index_bank | stats count(eval(age > 30)) as mature_count";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_count_eval_push.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testExplainCountEvalComplex() throws IOException {
+    String query =
+            "source=opensearch-sql_test_index_bank | stats count(eval(age > 30 and age < 50)) as"
+                    + " mature_count";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_count_eval_complex_push.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
   public void testEventstatsDistinctCountExplain() throws IOException {
     Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
     String query =
@@ -411,6 +430,16 @@ public class CalciteExplainIT extends ExplainIT {
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account | stats list(age) as age_list"));
+  }
+
+  @Test
+  public void testRexExplain() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | rex field=lastname \\\"(?<initial>^[A-Z])\\\" |"
+            + " head 5";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_rex.json");
+    assertJsonEqualsIgnoreId(expected, result);
   }
 
   @Test

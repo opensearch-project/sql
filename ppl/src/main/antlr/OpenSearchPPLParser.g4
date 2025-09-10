@@ -75,6 +75,7 @@ commands
    | reverseCommand
    | regexCommand
    | timechartCommand
+   | rexCommand
    ;
 
 commandName
@@ -114,6 +115,7 @@ commandName
    | EXPLAIN
    | REVERSE
    | REGEX
+   | REX
    | APPEND
    ;
 
@@ -256,6 +258,18 @@ regexExpr
     : field=qualifiedName operator=(EQUAL | NOT_EQUAL) pattern=stringLiteral
     ;
 
+rexCommand
+    : REX rexExpr
+    ;
+
+rexExpr
+    : FIELD EQUAL field=qualifiedName (rexOption)* pattern=stringLiteral (rexOption)*
+    ;
+
+rexOption
+    : MAX_MATCH EQUAL maxMatch=integerLiteral
+    | MODE EQUAL EXTRACT
+    ;
 patternsMethod
    : PUNCT
    | REGEX
@@ -391,6 +405,8 @@ fromClause
    | INDEX EQUAL tableOrSubqueryClause
    | SOURCE EQUAL tableFunction
    | INDEX EQUAL tableFunction
+   | SOURCE EQUAL dynamicSourceClause
+   | INDEX EQUAL dynamicSourceClause
    ;
 
 tableOrSubqueryClause
@@ -400,6 +416,27 @@ tableOrSubqueryClause
 
 tableSourceClause
    : tableSource (COMMA tableSource)* (AS alias = qualifiedName)?
+   ;
+
+dynamicSourceClause
+   : LT_SQR_PRTHS sourceReferences (COMMA sourceFilterArgs)? RT_SQR_PRTHS
+   ;
+
+sourceReferences
+   : sourceReference (COMMA sourceReference)*
+   ;
+
+sourceReference
+   : (CLUSTER)? wcQualifiedName
+   ;
+
+sourceFilterArgs
+   : sourceFilterArg (COMMA sourceFilterArg)*
+   ;
+
+sourceFilterArg
+   : ident EQUAL literalValue
+   | ident IN valueList
    ;
 
 // join

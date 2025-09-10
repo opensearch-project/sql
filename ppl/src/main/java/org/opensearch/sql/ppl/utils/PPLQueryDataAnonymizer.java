@@ -78,6 +78,7 @@ import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Reverse;
+import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
@@ -455,6 +456,24 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     }
 
     return StringUtils.format("%s%s", child, timechartCommand.toString());
+  }
+
+  public String visitRex(Rex node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    String field = visitExpression(node.getField());
+    String pattern = "\"" + node.getPattern().toString() + "\"";
+    StringBuilder command = new StringBuilder();
+
+    command.append(
+        String.format(
+            "%s | rex field=%s mode=%s %s",
+            child, field, node.getMode().toString().toLowerCase(), pattern));
+
+    if (node.getMaxMatch().isPresent()) {
+      command.append(" max_match=").append(node.getMaxMatch().get());
+    }
+
+    return command.toString();
   }
 
   @Override

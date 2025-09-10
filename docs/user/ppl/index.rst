@@ -98,6 +98,8 @@ The query start with search command and then flowing a set of command delimited 
 
   - `regex command <cmd/regex.rst>`_
 
+  - `rex command <cmd/rex.rst>`_
+
   - `search command <cmd/search.rst>`_
 
   - `show datasources command <cmd/showdatasources.rst>`_
