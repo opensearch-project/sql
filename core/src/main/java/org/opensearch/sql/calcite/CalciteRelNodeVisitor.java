@@ -861,8 +861,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<UnresolvedExpression> expandedList = new ArrayList<>();
 
     for (UnresolvedExpression expr : aggExprList) {
-      if (isMaxAllFieldsExpression(expr) || isMinAllFieldsExpression(expr)) {
-        String functionName = isMaxAllFieldsExpression(expr) ? "max" : "min";
+      if (isAllFieldsAggregation(expr, "max") || isAllFieldsAggregation(expr, "min")) {
+        String functionName = isAllFieldsAggregation(expr, "max") ? "max" : "min";
         RelNode currentRel = context.relBuilder.peek();
         List<RelDataTypeField> fields = currentRel.getRowType().getFieldList();
 
@@ -891,30 +891,26 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return expandedList;
   }
 
-  /** Checks if an expression is max(*) */
-  private boolean isMaxAllFieldsExpression(UnresolvedExpression expr) {
-    UnresolvedExpression actualExpr = expr;
+  /** Checks if an expression is an all-fields aggregation */
+  private boolean isAllFieldsAggregation(UnresolvedExpression expr, String expectedFuncName) {
+    UnresolvedExpression actualExpr;
+
     if (expr instanceof Alias alias) {
       actualExpr = alias.getDelegated();
+
+      String expectedAliasName = expectedFuncName + "(*)";
+      if (!expectedAliasName.equals(alias.getName())) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Cannot alias %s(*) aggregation. Use explicit field names when aliasing.",
+                expectedFuncName));
+      }
+    } else {
+      actualExpr = expr;
     }
 
     if (actualExpr instanceof AggregateFunction aggFunc) {
-      return "max".equalsIgnoreCase(aggFunc.getFuncName())
-          && aggFunc.getField() instanceof AllFieldsExcludeMeta;
-    }
-
-    return false;
-  }
-
-  /** Checks if an expression is min(*) */
-  private boolean isMinAllFieldsExpression(UnresolvedExpression expr) {
-    UnresolvedExpression actualExpr = expr;
-    if (expr instanceof Alias alias) {
-      actualExpr = alias.getDelegated();
-    }
-
-    if (actualExpr instanceof AggregateFunction aggFunc) {
-      return "min".equalsIgnoreCase(aggFunc.getFuncName())
+      return expectedFuncName.equalsIgnoreCase(aggFunc.getFuncName())
           && aggFunc.getField() instanceof AllFieldsExcludeMeta;
     }
 
@@ -924,7 +920,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   /** Checks if the aggregation expression list contains any max(*) or min(*) expressions. */
   private boolean containsMaxMinAllFields(List<UnresolvedExpression> aggExprList) {
     return aggExprList.stream()
-        .anyMatch(expr -> isMaxAllFieldsExpression(expr) || isMinAllFieldsExpression(expr));
+        .anyMatch(
+            expr -> isAllFieldsAggregation(expr, "max") || isAllFieldsAggregation(expr, "min"));
   }
 
   @Override

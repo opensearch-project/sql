@@ -280,12 +280,10 @@ public class AggregateAnalyzer {
               !args.isEmpty() ? args.getFirst() : null, AggregationBuilders.count(aggFieldName)),
           new SingleValueParser(aggFieldName));
       case MIN -> {
-        // For string fields, use topHits instead of min aggregations
         String fieldName = helper.inferNamedField(args.getFirst()).getRootName();
         ExprType fieldType = helper.fieldTypes.get(fieldName);
 
-        if (fieldType != null && fieldType instanceof OpenSearchTextType) {
-          // Use topHits with ascending sort to get minimum string value
+        if (fieldType instanceof OpenSearchTextType) {
           yield Pair.of(
               AggregationBuilders.topHits(aggFieldName)
                   .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)
@@ -296,19 +294,16 @@ public class AggregateAnalyzer {
                       SortOrder.ASC),
               new ArgMaxMinParser(aggFieldName));
         } else {
-          // Use regular min aggregation for numeric/date fields
           yield Pair.of(
               helper.build(args.getFirst(), AggregationBuilders.min(aggFieldName)),
               new SingleValueParser(aggFieldName));
         }
       }
       case MAX -> {
-        // For string fields, use topHits instead of max aggregation
         String fieldName = helper.inferNamedField(args.getFirst()).getRootName();
         ExprType fieldType = helper.fieldTypes.get(fieldName);
 
-        if (fieldType != null && fieldType instanceof OpenSearchTextType) {
-          // Use topHits with descending sort to get maximum string value
+        if (fieldType instanceof OpenSearchTextType) {
           yield Pair.of(
               AggregationBuilders.topHits(aggFieldName)
                   .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)
@@ -319,7 +314,6 @@ public class AggregateAnalyzer {
                       SortOrder.DESC),
               new ArgMaxMinParser(aggFieldName));
         } else {
-          // Use regular max aggregation for numeric/date fields
           yield Pair.of(
               helper.build(args.getFirst(), AggregationBuilders.max(aggFieldName)),
               new SingleValueParser(aggFieldName));
