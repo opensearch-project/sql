@@ -366,6 +366,30 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testAppend() {
+    assertEquals(
+        "source=t | stats count() by b | append [ | stats sum(c) by b ]",
+        anonymize("source=t | stats count() by b | append [ | stats sum(c) by b ]"));
+    assertEquals(
+        "source=t | stats count() by b | append [ | stats sum(c) by b ]",
+        anonymize("source=t | stats count() by b | append [ | stats sum(c) by b ]"));
+    assertEquals(
+        "source=t | append [ | where a = *** ]", anonymize("source=t | append [ | where a = 1 ]"));
+    assertEquals(
+        "source=t | stats count() by b | append [source=a | stats sum(c) by b ]",
+        anonymize("source=t | stats count() by b | append [source=a | stats sum(c) by b ]"));
+    assertEquals(
+        "source=t | append [source=b | where a = *** ]",
+        anonymize("source=t | append [source=b | where a = 1 ]"));
+    assertEquals(
+        "source=t | stats count() by b | append [source=a ]",
+        anonymize("source=t | stats count() by b | append [ source=a ]"));
+    assertEquals(
+        "source=t | stats count() by b | append [ ]",
+        anonymize("source=t | stats count() by b | append [ ]"));
+  }
+
+  @Test
   public void testSubqueryAlias() {
     assertEquals("source=t as t1", anonymize("source=t as t1"));
   }
