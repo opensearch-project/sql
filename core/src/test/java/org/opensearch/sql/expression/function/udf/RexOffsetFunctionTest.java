@@ -28,7 +28,7 @@ public class RexOffsetFunctionTest {
     String text = "SMITH";
     String pattern = "(?<first>[A-Z])(?<rest>[A-Z]+)";
     String result = RexOffsetFunction.calculateOffsets(text, pattern);
-    assertEquals("rest=1-4&first=0-0", result);
+    assertEquals("first=0-0&rest=1-4", result);
   }
 
   @Test
@@ -70,7 +70,7 @@ public class RexOffsetFunctionTest {
     String text = "ABC123DEF";
     String pattern = "(?<letters>[A-Z]+)(?<numbers>[0-9]+)(?<moreletters>[A-Z]+)";
     String result = RexOffsetFunction.calculateOffsets(text, pattern);
-    assertEquals("moreletters=6-8&numbers=3-5&letters=0-2", result);
+    assertEquals("letters=0-2&moreletters=6-8&numbers=3-5", result);
   }
 
   @Test

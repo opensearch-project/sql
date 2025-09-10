@@ -84,7 +84,7 @@ public final class RexOffsetFunction extends ImplementorUDF {
         groupIndex++;
       }
 
-      java.util.Collections.reverse(offsetPairs);
+      java.util.Collections.sort(offsetPairs);
       return offsetPairs.isEmpty() ? null : String.join("&", offsetPairs);
     } catch (PatternSyntaxException e) {
       throw new IllegalArgumentException(
