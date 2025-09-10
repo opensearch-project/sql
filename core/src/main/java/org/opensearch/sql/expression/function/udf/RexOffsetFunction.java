@@ -8,6 +8,7 @@ package org.opensearch.sql.expression.function.udf;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -85,7 +86,7 @@ public final class RexOffsetFunction extends ImplementorUDF {
 
       java.util.Collections.reverse(offsetPairs);
       return offsetPairs.isEmpty() ? null : String.join("&", offsetPairs);
-    } catch (Exception e) {
+    } catch (PatternSyntaxException | IllegalStateException | IndexOutOfBoundsException e) {
       return null;
     }
   }
