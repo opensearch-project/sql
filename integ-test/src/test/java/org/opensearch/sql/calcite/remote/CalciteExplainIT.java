@@ -69,6 +69,39 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   // Only for Calcite
+  @Ignore("https://github.com/opensearch-project/OpenSearch/issues/3725")
+  public void testJoinWithCriteriaAndMaxOption() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_bank | join max=1 left=l right=r on"
+            + " l.account_number=r.account_number opensearch-sql_test_index_bank";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_join_with_criteria_max_option.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  // Only for Calcite
+  @Ignore("https://github.com/opensearch-project/OpenSearch/issues/3725")
+  public void testJoinWithFieldListAndMaxOption() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_bank | join type=inner max=1 account_number"
+            + " opensearch-sql_test_index_bank";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_join_with_fields_max_option.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  // Only for Calcite
+  @Test
+  public void testJoinWithFieldList() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_bank | join type=outer account_number"
+            + " opensearch-sql_test_index_bank";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_join_with_fields.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  // Only for Calcite
   @Test
   public void supportPushDownSortMergeJoin() throws IOException {
     String query =
@@ -262,6 +295,25 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testExplainCountEval() throws IOException {
+    String query =
+            "source=opensearch-sql_test_index_bank | stats count(eval(age > 30)) as mature_count";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_count_eval_push.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testExplainCountEvalComplex() throws IOException {
+    String query =
+            "source=opensearch-sql_test_index_bank | stats count(eval(age > 30 and age < 50)) as"
+                    + " mature_count";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_count_eval_complex_push.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
   public void testEventstatsDistinctCountExplain() throws IOException {
     Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
     String query =
@@ -411,6 +463,30 @@ public class CalciteExplainIT extends ExplainIT {
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account | stats list(age) as age_list"));
+  }
+
+  @Test
+  public void testRexExplain() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | rex field=lastname \\\"(?<initial>^[A-Z])\\\" |"
+            + " head 5";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_rex.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testExplainAppendCommand() throws IOException {
+    String expected = loadExpectedPlan("explain_append_command.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                Locale.ROOT,
+                "source=%s | stats count(balance) as cnt by gender | append [ source=%s | stats"
+                    + " count() as cnt ]",
+                TEST_INDEX_BANK,
+                TEST_INDEX_BANK)));
   }
 
   /**

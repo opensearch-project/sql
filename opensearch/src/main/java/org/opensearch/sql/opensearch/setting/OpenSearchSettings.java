@@ -115,6 +115,14 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  public static final Setting<?> PPL_REX_MAX_MATCH_LIMIT_SETTING =
+      Setting.intSetting(
+          Key.PPL_REX_MAX_MATCH_LIMIT.getKeyValue(),
+          10,
+          1,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
   public static final Setting<?> CALCITE_ENGINE_ENABLED_SETTING =
       Setting.boolSetting(
           Key.CALCITE_ENGINE_ENABLED.getKeyValue(),
@@ -140,6 +148,13 @@ public class OpenSearchSettings extends Settings {
       Setting.doubleSetting(
           Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR.getKeyValue(),
           0.9,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<?> CALCITE_SUPPORT_ALL_JOIN_TYPES_SETTING =
+      Setting.boolSetting(
+          Key.CALCITE_SUPPORT_ALL_JOIN_TYPES.getKeyValue(),
+          false,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
@@ -361,6 +376,12 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
+        Key.PPL_REX_MAX_MATCH_LIMIT,
+        PPL_REX_MAX_MATCH_LIMIT_SETTING,
+        new Updater(Key.PPL_REX_MAX_MATCH_LIMIT));
+    register(
+        settingBuilder,
+        clusterSettings,
         Key.CALCITE_ENGINE_ENABLED,
         CALCITE_ENGINE_ENABLED_SETTING,
         new Updater(Key.CALCITE_ENGINE_ENABLED));
@@ -382,6 +403,12 @@ public class OpenSearchSettings extends Settings {
         Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR,
         CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR_SETTING,
         new Updater(Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.CALCITE_SUPPORT_ALL_JOIN_TYPES,
+        CALCITE_SUPPORT_ALL_JOIN_TYPES_SETTING,
+        new Updater(Key.CALCITE_SUPPORT_ALL_JOIN_TYPES));
     register(
         settingBuilder,
         clusterSettings,
@@ -560,10 +587,12 @@ public class OpenSearchSettings extends Settings {
         .add(CALCITE_FALLBACK_ALLOWED_SETTING)
         .add(CALCITE_PUSHDOWN_ENABLED_SETTING)
         .add(CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR_SETTING)
+        .add(CALCITE_SUPPORT_ALL_JOIN_TYPES_SETTING)
         .add(DEFAULT_PATTERN_METHOD_SETTING)
         .add(DEFAULT_PATTERN_MODE_SETTING)
         .add(DEFAULT_PATTERN_MAX_SAMPLE_COUNT_SETTING)
         .add(DEFAULT_PATTERN_BUFFER_LIMIT_SETTING)
+        .add(PPL_REX_MAX_MATCH_LIMIT_SETTING)
         .add(QUERY_MEMORY_LIMIT_SETTING)
         .add(QUERY_SIZE_LIMIT_SETTING)
         .add(METRICS_ROLLING_WINDOW_SETTING)

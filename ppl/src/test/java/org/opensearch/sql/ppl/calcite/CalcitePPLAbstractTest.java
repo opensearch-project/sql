@@ -33,6 +33,7 @@ import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelRunners;
 import org.apache.commons.lang3.StringUtils;
+import org.junit.Before;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.calcite.CalcitePlanContext;
@@ -48,6 +49,7 @@ public class CalcitePPLAbstractTest {
   private final CalciteRelNodeVisitor planTransformer;
   private final RelToSqlConverter converter;
   protected final Settings settings;
+  public PPLSyntaxParser pplParser = new PPLSyntaxParser();
 
   public CalcitePPLAbstractTest(CalciteAssert.SchemaSpec... schemaSpecs) {
     this.config = config(schemaSpecs);
@@ -56,7 +58,11 @@ public class CalcitePPLAbstractTest {
     this.settings = mock(Settings.class);
   }
 
-  public PPLSyntaxParser pplParser = new PPLSyntaxParser();
+  @Before
+  public void init() {
+    doReturn(true).when(settings).getSettingValue(Settings.Key.CALCITE_ENGINE_ENABLED);
+    doReturn(true).when(settings).getSettingValue(Settings.Key.CALCITE_SUPPORT_ALL_JOIN_TYPES);
+  }
 
   protected Frameworks.ConfigBuilder config(CalciteAssert.SchemaSpec... schemaSpecs) {
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
@@ -91,7 +97,6 @@ public class CalcitePPLAbstractTest {
   }
 
   private Node plan(PPLSyntaxParser parser, String query) {
-    doReturn(true).when(settings).getSettingValue(Settings.Key.CALCITE_ENGINE_ENABLED);
     final AstStatementBuilder builder =
         new AstStatementBuilder(
             new AstBuilder(query, settings),

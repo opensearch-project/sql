@@ -58,6 +58,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.CloseCursor;
@@ -84,6 +85,7 @@ import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Reverse;
+import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
@@ -750,6 +752,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   @Override
+  public LogicalPlan visitRex(Rex node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Rex");
+  }
+
+  @Override
   public LogicalPlan visitPaginate(Paginate paginate, AnalysisContext context) {
     LogicalPlan child = paginate.getChild().get(0).accept(this, context);
     return new LogicalPaginate(paginate.getPageSize(), List.of(child));
@@ -780,6 +787,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitAppendCol(AppendCol node, AnalysisContext context) {
     throw getOnlyForCalciteException("Appendcol");
+  }
+
+  @Override
+  public LogicalPlan visitAppend(Append node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Append");
   }
 
   private LogicalSort buildSort(
