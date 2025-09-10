@@ -156,13 +156,41 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
         rightTableOrSubquery.startsWith("source=")
             ? rightTableOrSubquery.substring("source=".length())
             : rightTableOrSubquery;
-    String joinType = node.getJoinType().name().toLowerCase(Locale.ROOT);
-    String leftAlias = node.getLeftAlias().map(l -> " left = " + l).orElse("");
-    String rightAlias = node.getRightAlias().map(r -> " right = " + r).orElse("");
-    String condition =
-        node.getJoinCondition().map(c -> expressionAnalyzer.analyze(c, context)).orElse("true");
-    return StringUtils.format(
-        "%s | %s join%s%s on %s %s", left, joinType, leftAlias, rightAlias, condition, right);
+    Argument.ArgumentMap argumentMap = node.getArgumentMap();
+    String max =
+        argumentMap.get("max") == null
+            ? "0"
+            : argumentMap.get("max").toString().toLowerCase(Locale.ROOT);
+    if (node.getJoinCondition().isEmpty()) {
+      String joinType =
+          argumentMap.get("type") == null
+              ? "inner"
+              : argumentMap.get("type").toString().toLowerCase(Locale.ROOT);
+      String overwrite =
+          argumentMap.get("overwrite") == null
+              ? "true"
+              : argumentMap.get("overwrite").toString().toLowerCase(Locale.ROOT);
+      String fieldList =
+          node.getJoinFields().isEmpty()
+              ? ""
+              : String.join(
+                  ",",
+                  node.getJoinFields().get().stream()
+                      .map(c -> expressionAnalyzer.analyze(c, context))
+                      .collect(Collectors.toList()));
+      return StringUtils.format(
+          "%s | join type=%s overwrite=%s max=%s %s %s",
+          left, joinType, overwrite, max, fieldList, right);
+    } else {
+      String joinType = node.getJoinType().name().toLowerCase(Locale.ROOT);
+      String leftAlias = node.getLeftAlias().map(l -> " left = " + l).orElse("");
+      String rightAlias = node.getRightAlias().map(r -> " right = " + r).orElse("");
+      String condition =
+          node.getJoinCondition().map(c -> expressionAnalyzer.analyze(c, context)).orElse("true");
+      return StringUtils.format(
+          "%s | %s join max=%s%s%s on %s %s",
+          left, joinType, max, leftAlias, rightAlias, condition, right);
+    }
   }
 
   @Override

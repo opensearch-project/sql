@@ -32,8 +32,9 @@ public class OpenSearchIndexRules {
           AGGREGATE_INDEX_SCAN,
           COUNT_STAR_INDEX_SCAN,
           LIMIT_INDEX_SCAN,
-          SORT_INDEX_SCAN,
-          DEDUP_PUSH_DOWN);
+          // TODO enable if https://github.com/opensearch-project/OpenSearch/issues/3725 resolved
+          // DEDUP_PUSH_DOWN,
+          SORT_INDEX_SCAN);
 
   // prevent instantiation
   private OpenSearchIndexRules() {}
