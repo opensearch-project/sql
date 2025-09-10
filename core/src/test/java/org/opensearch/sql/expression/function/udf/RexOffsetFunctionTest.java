@@ -7,7 +7,10 @@ package org.opensearch.sql.expression.function.udf;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.regex.PatternSyntaxException;
 import org.junit.jupiter.api.Test;
 
 public class RexOffsetFunctionTest {
@@ -52,8 +55,14 @@ public class RexOffsetFunctionTest {
   public void testCalculateOffsetsWithInvalidPattern() {
     String text = "test";
     String pattern = "(?<invalid[";
-    String result = RexOffsetFunction.calculateOffsets(text, pattern);
-    assertNull(result);
+
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> RexOffsetFunction.calculateOffsets(text, pattern));
+
+    assertTrue(exception.getMessage().contains("Invalid regex pattern in rex command"));
+    assertTrue(exception.getCause() instanceof PatternSyntaxException);
   }
 
   @Test
