@@ -28,6 +28,10 @@ The following table dataSources the aggregation functions and also indicates how
 +----------+-------------+-------------+
 | MIN      | Ignore      | Ignore      |
 +----------+-------------+-------------+
+| FIRST    | Ignore      | Ignore      |
++----------+-------------+-------------+
+| LAST     | Ignore      | Ignore      |
++----------+-------------+-------------+
 | LIST     | Ignore      | Ignore      |
 +----------+-------------+-------------+
 
@@ -408,13 +412,83 @@ Example with custom time field::
     | inactive                   | users    |
     +----------------------------+----------+
 
+FIRST
+-----
+
+Description
+>>>>>>>>>>>
+
+Version: 3.3.0
+
+Usage: FIRST(field). Return the first non-null value of a field based on natural document order. Returns NULL if no records exist, or if all records have NULL values for the field.
+
+* field: mandatory. The field to return the first value for.
+
+Note: This function requires Calcite to be enabled (see `Configuration`_ section above).
+
+Example::
+
+    os> source=accounts | stats first(firstname) by gender;
+    fetched rows / total rows = 2/2
+    +------------------+--------+
+    | first(firstname) | gender |
+    |------------------+--------|
+    | Nanette          | F      |
+    | Amber            | M      |
+    +------------------+--------+
+
+Example with count aggregation::
+
+    os> source=accounts | stats first(firstname), count() by gender;
+    fetched rows / total rows = 2/2
+    +------------------+---------+--------+
+    | first(firstname) | count() | gender |
+    |------------------+---------+--------|
+    | Nanette          | 1       | F      |
+    | Amber            | 3       | M      |
+    +------------------+---------+--------+
+
+LAST
+----
+
+Description
+>>>>>>>>>>>
+
+Version: 3.3.0
+
+Usage: LAST(field). Return the last non-null value of a field based on natural document order. Returns NULL if no records exist, or if all records have NULL values for the field.
+
+* field: mandatory. The field to return the last value for.
+
+Note: This function requires Calcite to be enabled (see `Configuration`_ section above).
+
+Example::
+
+    os> source=accounts | stats last(firstname) by gender;
+    fetched rows / total rows = 2/2
+    +-----------------+--------+
+    | last(firstname) | gender |
+    |-----------------+--------|
+    | Nanette         | F      |
+    | Dale            | M      |
+    +-----------------+--------+
+
+Example with different fields::
+
+    os> source=accounts | stats first(account_number), last(balance), first(age);
+    fetched rows / total rows = 1/1
+    +-----------------------+---------------+------------+
+    | first(account_number) | last(balance) | first(age) |
+    |-----------------------+---------------+------------|
+    | 1                     | 4180          | 32         |
+    +-----------------------+---------------+------------+
+
 LIST
 ----
 
 Description
 >>>>>>>>>>>
 
-=======
 Version: 3.3.0 (Calcite engine only)
 
 Usage: LIST(expr). Collects all values from the specified expression into an array. Values are converted to strings, nulls are filtered, and duplicates are preserved. 

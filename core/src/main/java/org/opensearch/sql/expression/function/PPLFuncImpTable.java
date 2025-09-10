@@ -66,6 +66,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXPM1;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXTRACT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FILTER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.FIRST;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FLOOR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FORALL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FROM_DAYS;
@@ -102,6 +103,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_KE
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_OBJECT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_SET;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_VALID;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LAST;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LAST_DAY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LATEST;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LEFT;
@@ -1152,6 +1154,26 @@ public class PPLFuncImpTable {
           },
           wrapSqlOperandTypeChecker(
               SqlStdOperatorTable.ARG_MAX.getOperandTypeChecker(), LATEST.name(), false));
+
+      // Register FIRST function - uses document order
+      register(
+          FIRST,
+          (distinct, field, argList, ctx) -> {
+            // Use our custom FirstAggFunction for document order aggregation
+            return ctx.relBuilder.aggregateCall(PPLBuiltinOperators.FIRST, field);
+          },
+          wrapSqlOperandTypeChecker(
+              PPLBuiltinOperators.FIRST.getOperandTypeChecker(), FIRST.name(), false));
+
+      // Register LAST function - uses document order
+      register(
+          LAST,
+          (distinct, field, argList, ctx) -> {
+            // Use our custom LastAggFunction for document order aggregation
+            return ctx.relBuilder.aggregateCall(PPLBuiltinOperators.LAST, field);
+          },
+          wrapSqlOperandTypeChecker(
+              PPLBuiltinOperators.LAST.getOperandTypeChecker(), LAST.name(), false));
     }
   }
 
