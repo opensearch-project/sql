@@ -83,9 +83,9 @@ public class AstBuilderTest {
 
   @Rule public ExpectedException exceptionRule = ExpectedException.none();
 
-  private final PPLSyntaxParser parser = new PPLSyntaxParser();
-
   private final Settings settings = Mockito.mock(Settings.class);
+
+  private final PPLSyntaxParser parser = new PPLSyntaxParser();
 
   @Test
   public void testDynamicSourceClauseThrowsUnsupportedException() {
