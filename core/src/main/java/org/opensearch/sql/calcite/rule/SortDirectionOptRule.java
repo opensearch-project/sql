@@ -12,36 +12,40 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.calcite.plan.LogicalSystemLimit;
 
-/** Combines sort then reverse into 1 sort. */
-public class SortReverseOptimizationRule extends RelOptRule {
-  private static final Logger LOG = LogManager.getLogger(SortReverseOptimizationRule.class);
+/** Combines consecutive sorts with opposite directions into 1 sort. */
+public class SortDirectionOptRule extends RelOptRule {
+  private static final Logger LOG = LogManager.getLogger(SortDirectionOptRule.class);
 
-  public static final SortReverseOptimizationRule INSTANCE = new SortReverseOptimizationRule();
+  public static final SortDirectionOptRule INSTANCE = new SortDirectionOptRule();
 
-  private SortReverseOptimizationRule() {
+  private SortDirectionOptRule() {
     super(
-        operand(LogicalSort.class, operand(LogicalSort.class, any())),
-        "SortReverseOptimizationRule");
+        operand(LogicalSort.class, 
+            operand(org.apache.calcite.rel.RelNode.class, 
+                operand(LogicalSort.class, any()))),
+        "SortDirectionOptRule");
   }
 
   @Override
   public boolean matches(RelOptRuleCall call) {
     LogicalSort outerSort = call.rel(0);
-    LogicalSort innerSort = call.rel(1);
+    org.apache.calcite.rel.RelNode intermediate = call.rel(1);
+    LogicalSort innerSort = call.rel(2);
 
-    LOG.debug("SortReverseOptimizationRule.matches() called");
-    LOG.debug("Outer sort: {}", outerSort);
-    LOG.debug("Inner sort: {}", innerSort);
-    LOG.debug("Inner sort input: {}", innerSort.getInput());
-
-    // Don't optimize if outer sort is a LogicalSystemLimit
-    if (call.rel(0) instanceof LogicalSystemLimit) {
-      LOG.debug("Skipping: outer sort is LogicalSystemLimit");
+    LOG.debug("SortDirectionOptRule.matches() - outer: {}, intermediate: {}, inner: {}", 
+        outerSort, intermediate, innerSort);
+        
+    // Only allow single-input intermediate nodes (like LogicalProject)
+    if (intermediate.getInputs().size() != 1) {
+      LOG.debug("Intermediate node has {} inputs, expected 1", intermediate.getInputs().size());
       return false;
     }
 
     // Don't optimize if inner sort has a fetch limit (head/limit before sort)
     // This preserves limit-then-sort semantics
+    // Example: source=t | head 5 | sort field | reverse
+    // Plan: Sort(reverse) -> Sort(field, fetch=5) -> Scan
+    // Should NOT be optimized to preserve the "take first 5, then sort" behavior
     if (innerSort.fetch != null) {
       LOG.debug("Skipping: inner sort has fetch limit: {}", innerSort.fetch);
       return false;
@@ -56,17 +60,23 @@ public class SortReverseOptimizationRule extends RelOptRule {
   @Override
   public void onMatch(RelOptRuleCall call) {
     LogicalSort outerSort = call.rel(0);
-    LogicalSort innerSort = call.rel(1);
+    org.apache.calcite.rel.RelNode intermediate = call.rel(1);
+    LogicalSort innerSort = call.rel(2);
 
-    LOG.debug("SortReverseOptimizationRule.onMatch() applying transformation");
-    LOG.debug("Transforming from: {} -> {}", outerSort, innerSort);
+    LOG.debug("SortDirectionOptRule.onMatch() transforming: {} -> {}", outerSort, innerSort);
 
+    // Create optimized sort with the final direction
     LogicalSort optimizedSort =
         LogicalSort.create(
             innerSort.getInput(), outerSort.getCollation(), outerSort.offset, outerSort.fetch);
 
-    LOG.debug("Transformed to: {}", optimizedSort);
-    call.transformTo(optimizedSort);
+    // Recreate the intermediate node with the optimized sort as input
+    org.apache.calcite.rel.RelNode newIntermediate = 
+        intermediate.copy(intermediate.getTraitSet(), 
+            java.util.Collections.singletonList(optimizedSort));
+
+    LOG.debug("Transformed to: {}", newIntermediate);
+    call.transformTo(newIntermediate);
   }
 
   private boolean hasSameFieldWithOppositeDirection(LogicalSort outerSort, LogicalSort innerSort) {
@@ -114,4 +124,5 @@ public class SortReverseOptimizationRule extends RelOptRule {
     LOG.debug("All fields match with opposite directions");
     return true;
   }
+
 }

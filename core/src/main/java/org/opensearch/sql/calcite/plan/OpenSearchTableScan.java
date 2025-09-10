@@ -33,11 +33,6 @@ public abstract class OpenSearchTableScan extends TableScan implements Enumerabl
       planner.addRule(rule);
     }
 
-    // Register optimization rules
-    for (RelOptRule rule : OpenSearchRules.OPTIMIZATION_RULES) {
-      planner.addRule(rule);
-    }
-
     // Register post-aggregation rules (run after aggregate optimizations)
     for (RelOptRule rule : OpenSearchRules.OPEN_SEARCH_POST_AGG_RULES) {
       planner.addRule(rule);

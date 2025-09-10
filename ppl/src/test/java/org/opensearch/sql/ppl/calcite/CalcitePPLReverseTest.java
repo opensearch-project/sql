@@ -225,4 +225,31 @@ public class CalcitePPLReverseTest extends CalcitePPLAbstractTest {
             + "ORDER BY `SAL` DESC";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  @Test
+  public void testHeadThenSortReverseNoOpt() {
+    // Tests fetch limit behavior: head 5 | sort field | reverse
+    // Should NOT be optimized to preserve "take first 5, then sort" semantics
+    String ppl = "source=EMP | head 5 | sort + SAL | reverse";
+    RelNode root = getRelNode(ppl);
+    
+    // Should have three LogicalSort nodes: fetch=5, sort SAL, reverse
+    // This demonstrates that SortDirectionOptRule skips optimization when inner sort has fetch
+    String expectedLogical =
+        "LogicalSort(sort0=[$5], dir0=[DESC-nulls-last])\n"
+            + "  LogicalSort(sort0=[$5], dir0=[ASC-nulls-first])\n"
+            + "    LogicalSort(fetch=[5])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT *\n"
+            + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
+            + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 5) `t`\n"
+            + "ORDER BY `SAL`) `t0`\n"
+            + "ORDER BY `SAL` DESC";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
 }
