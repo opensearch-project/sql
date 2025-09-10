@@ -300,7 +300,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         if (!pushed && offset > 0) return null;
         CalciteLogicalIndexScan newScan = this.copyWithNewSchema(getRowType());
         newScan.pushDownContext.add(
-            PushDownAction.of(
+            new PushDownAction(
                 PushDownType.LIMIT, new LimitDigest(limit, offset), requestBuilder -> {}));
         return offset > 0 ? sort.copy(sort.getTraitSet(), List.of(newScan)) : newScan;
       } else {

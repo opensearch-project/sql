@@ -146,7 +146,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                               rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest)) * 1.1;
                           break;
                         case LIMIT:
-                          estimated = Math.min(rowCount, ((LimitDigest) action.digest).limit());
+                          estimated = Math.min(rowCount, ((LimitDigest) action.digest).getLimit());
                           break;
                         default:
                           throw new IllegalStateException("Unexpected value: " + action.type);
@@ -408,7 +408,16 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     void apply(OpenSearchRequestBuilder requestBuilder);
   }
 
-  public record LimitDigest(int limit, int offset) {
+  @Getter
+  public static class LimitDigest {
+    private final int limit;
+    private final int offset;
+
+    public LimitDigest(int limit, int offset) {
+      this.limit = limit;
+      this.offset = offset;
+    }
+
     @Override
     public String toString() {
       return offset == 0 ? String.valueOf(limit) : "[" + limit + " from " + offset + "]";
