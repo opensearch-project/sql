@@ -19,7 +19,9 @@ import lombok.Getter;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.externalize.RelJson;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
@@ -74,18 +76,27 @@ public class RelJsonSerializer {
    * <li>Encodes the resulting map into a final object string
    *
    * @param rexNode pushed down RexNode
-   * @param relDataType row type of RexNode input
+   * @param rowType row type of RexNode input
    * @param fieldTypes input field and ExprType mapping
    * @return serialized string of map structure for inputs
    */
-  public String serialize(
-      RexNode rexNode, RelDataType relDataType, Map<String, ExprType> fieldTypes) {
+  public String serialize(RexNode rexNode, RelDataType rowType, Map<String, ExprType> fieldTypes) {
     try {
       // Serialize RexNode and RelDataType by JSON
       JsonBuilder jsonBuilder = new JsonBuilder();
-      RelJson relJson = RelJson.create().withJsonBuilder(jsonBuilder);
+      RelJson relJson = ExtendedRelJson.create(jsonBuilder);
       String rexNodeJson = jsonBuilder.toJsonString(relJson.toJson(rexNode));
-      String rowTypeJson = jsonBuilder.toJsonString(relJson.toJson(relDataType));
+      Object rowTypeJsonObj;
+      // UDTs are not comparable when pushed-down as scripts. We set their types to strings as a
+      // workaround. Refer to this comment for more details:
+      // https://github.com/opensearch-project/sql/pull/4245#issuecomment-3268673999
+      if (rexNode instanceof RexCall
+          && ((RexCall) rexNode).getOperator() instanceof SqlBinaryOperator) {
+        rowTypeJsonObj = ((ExtendedRelJson) relJson).toJson(rowType, true);
+      } else {
+        rowTypeJsonObj = relJson.toJson(rowType);
+      }
+      String rowTypeJson = jsonBuilder.toJsonString(rowTypeJsonObj);
       // Construct envelope of serializable objects
       Map<String, Object> envelope =
           Map.of(EXPR, rexNodeJson, FIELD_TYPES, fieldTypes, ROW_TYPE, rowTypeJson);
@@ -121,7 +132,7 @@ public class RelJsonSerializer {
       // PPL Expr types are all serializable
       Map<String, ExprType> fieldTypes = (Map<String, ExprType>) objectMap.get(FIELD_TYPES);
       // Deserialize RelDataType and RexNode by JSON
-      RelJson relJson = RelJson.create();
+      RelJson relJson = ExtendedRelJson.create((JsonBuilder) null);
       Map<String, Object> rowTypeMap = mapper.readValue((String) objectMap.get(ROW_TYPE), TYPE_REF);
       RelDataType rowType = relJson.toType(cluster.getTypeFactory(), rowTypeMap);
       OpenSearchRelInputTranslator inputTranslator = new OpenSearchRelInputTranslator(rowType);
