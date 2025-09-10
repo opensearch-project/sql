@@ -548,7 +548,7 @@ public class CalciteExplainIT extends ExplainIT {
         expected,
         explainQueryToString("source=opensearch-sql_test_index_account | stats min(firstname)"));
   }
-  
+
   @Test
   public void testPushdownLimitIntoAggregation() throws IOException {
     Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
