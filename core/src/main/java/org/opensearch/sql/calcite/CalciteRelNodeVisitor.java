@@ -2155,10 +2155,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
   }
 
-  /**
-   * Creates an optimized sed call using native Calcite functions where possible. Falls back to
-   * custom REX_SED for complex cases.
-   */
+  /** Creates an optimized sed call using native Calcite functions */
   private RexNode createOptimizedSedCall(
       RexNode fieldRex, String sedExpression, CalcitePlanContext context) {
     if (sedExpression.startsWith("s/")) {
