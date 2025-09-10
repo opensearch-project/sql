@@ -521,7 +521,7 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testPushdownLimitIntoAggregation() throws IOException {
-    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    Assume.assumeTrue("This test is only for push down enabled", !isPushdownDisabled());
     String expected = loadExpectedPlan("explain_limit_agg_pushdown.json");
     assertJsonEqualsIgnoreId(
         expected,
