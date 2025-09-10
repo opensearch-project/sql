@@ -10,6 +10,7 @@ import static org.opensearch.sql.util.MatcherUtils.*;
 
 import java.io.IOException;
 import java.util.List;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
@@ -21,6 +22,7 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     super.init();
     enableCalcite();
     loadIndex(Index.BANK);
+    loadIndex(Index.ARRAY);
   }
 
   @Test
@@ -332,5 +334,52 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
 
     verifySchema(actual, schema("result", "string"));
     verifyDataRows(actual, rows("apple AND banana AND cherry"));
+  }
+
+  @Test
+  public void testMvjoinWithArrayFromRealFields() throws IOException {
+    // Test mvjoin on arrays created from real fields using array() function
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval names_array = array(firstname, lastname) | eval result ="
+                    + " mvjoin(names_array, ',') | fields firstname, lastname, result | head 1",
+                TEST_INDEX_BANK));
+
+    verifySchema(
+        actual,
+        schema("firstname", "string"),
+        schema("lastname", "string"),
+        schema("result", "string"));
+    // Verify that mvjoin correctly joins the firstname and lastname fields
+    JSONArray dataRows = actual.getJSONArray("datarows");
+    assertTrue(dataRows.length() > 0);
+    JSONArray firstRow = dataRows.getJSONArray(0);
+    assertEquals(firstRow.getString(0) + "," + firstRow.getString(1), firstRow.getString(2));
+  }
+
+  @Test
+  public void testMvjoinWithMultipleRealFields() throws IOException {
+    // Test mvjoin with arrays created from multiple real fields
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval info_array = array(city, state, employer) | eval result ="
+                    + " mvjoin(info_array, ' | ') | fields city, state, employer, result | head 1",
+                TEST_INDEX_BANK));
+
+    verifySchema(
+        actual,
+        schema("city", "string"),
+        schema("state", "string"),
+        schema("employer", "string"),
+        schema("result", "string"));
+    // Verify that mvjoin correctly joins the city, state, and employer fields
+    JSONArray dataRows = actual.getJSONArray("datarows");
+    assertTrue(dataRows.length() > 0);
+    JSONArray firstRow = dataRows.getJSONArray(0);
+    assertEquals(
+        firstRow.getString(0) + " | " + firstRow.getString(1) + " | " + firstRow.getString(2),
+        firstRow.getString(3));
   }
 }
