@@ -83,9 +83,20 @@ public class AstBuilderTest {
 
   @Rule public ExpectedException exceptionRule = ExpectedException.none();
 
+  private final Settings settings = Mockito.mock(Settings.class);
+
   private final PPLSyntaxParser parser = new PPLSyntaxParser();
 
-  private final Settings settings = Mockito.mock(Settings.class);
+  @Test
+  public void testDynamicSourceClauseThrowsUnsupportedException() {
+    String query = "source=[myindex, logs, fieldIndex=\"test\"]";
+
+    UnsupportedOperationException exception =
+        assertThrows(UnsupportedOperationException.class, () -> plan(query));
+
+    assertEquals(
+        "Dynamic source clause with metadata filters is not supported.", exception.getMessage());
+  }
 
   @Test
   public void testSearchCommand() {

@@ -207,6 +207,9 @@ public enum BuiltinFunctionName {
   LIST(FunctionName.of("list")),
   // Not always an aggregation query
   NESTED(FunctionName.of("nested")),
+  // Document order aggregation functions
+  FIRST(FunctionName.of("first")),
+  LAST(FunctionName.of("last")),
 
   /** Text Functions. */
   ASCII(FunctionName.of("ascii")),
@@ -359,6 +362,8 @@ public enum BuiltinFunctionName {
           .put("distinct_count_approx", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
           .put("list", BuiltinFunctionName.LIST)
           .put("pattern", BuiltinFunctionName.INTERNAL_PATTERN)
+          .put("first", BuiltinFunctionName.FIRST)
+          .put("last", BuiltinFunctionName.LAST)
           .build();
 
   private static final Map<String, BuiltinFunctionName> WINDOW_FUNC_MAPPING =
