@@ -52,7 +52,7 @@ http-client.env.json
 /doctest/opensearch-job-scheduler/
 .factorypath
 
-# Coding agent files
-.claude/
-.clinerules/
-memory-bank/
+# Coding agent files (could be symlinks)
+.claude
+.clinerules
+memory-bank
