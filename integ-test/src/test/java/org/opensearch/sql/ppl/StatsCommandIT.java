@@ -324,6 +324,66 @@ public class StatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testStatsWithLimit() throws IOException {
+    // The original rows count is 6 if no head 5. See the test `testSumGroupByNullValue`.
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats avg(balance) as a by age | head 5",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(response, schema("a", null, "double"), schema("age", null, "int"));
+    // If push down disabled, the final results will no longer be stable. In DSL, the order is
+    // guaranteed because we always sort by bucket field, while we don't add sort in the plan.
+    if (isPushdownEnabled()) {
+      verifyDataRows(
+          response,
+          rows(null, null),
+          rows(32838D, 28),
+          rows(39225D, 32),
+          rows(4180D, 33),
+          rows(48086D, 34));
+    } else {
+      assert ((Integer) response.get("size") == 5);
+    }
+
+    response =
+        executeQuery(
+            String.format(
+                "source=%s | stats avg(balance) as a by age | head 5 | head 2 from 1",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(response, schema("a", null, "double"), schema("age", null, "int"));
+    if (isPushdownEnabled()) {
+      verifyDataRows(response, rows(32838D, 28), rows(39225D, 32));
+    } else {
+      assert ((Integer) response.get("size") == 2);
+    }
+
+    response =
+        executeQuery(
+            String.format(
+                "source=%s | stats avg(balance) as a by age | sort - age | head 5 | head 2 from 1",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(response, schema("a", null, "double"), schema("age", null, "int"));
+    if (isPushdownEnabled()) {
+      verifyDataRows(response, rows(48086D, 34), rows(4180D, 33));
+    } else {
+      assert ((Integer) response.get("size") == 2);
+    }
+
+    response =
+        executeQuery(
+            String.format(
+                "source=%s | stats avg(balance) as a by age | sort - a | head 5 | head 2 from 1",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(response, schema("a", null, "double"), schema("age", null, "int"));
+    if (isPushdownEnabled()) {
+      verifyDataRows(response, rows(39225D, 32), rows(32838D, 28));
+    } else {
+      assert ((Integer) response.get("size") == 2);
+    }
+  }
+
+  @Test
   public void testStddevSampGroupByNullValue() throws IOException {
     JSONObject response =
         executeQuery(

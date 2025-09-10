@@ -68,6 +68,39 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   // Only for Calcite
+  @Ignore("https://github.com/opensearch-project/OpenSearch/issues/3725")
+  public void testJoinWithCriteriaAndMaxOption() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_bank | join max=1 left=l right=r on"
+            + " l.account_number=r.account_number opensearch-sql_test_index_bank";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_join_with_criteria_max_option.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  // Only for Calcite
+  @Ignore("https://github.com/opensearch-project/OpenSearch/issues/3725")
+  public void testJoinWithFieldListAndMaxOption() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_bank | join type=inner max=1 account_number"
+            + " opensearch-sql_test_index_bank";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_join_with_fields_max_option.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  // Only for Calcite
+  @Test
+  public void testJoinWithFieldList() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_bank | join type=outer account_number"
+            + " opensearch-sql_test_index_bank";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_join_with_fields.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  // Only for Calcite
   @Test
   public void supportPushDownSortMergeJoin() throws IOException {
     String query =
@@ -405,6 +438,19 @@ public class CalciteExplainIT extends ExplainIT {
                 TEST_INDEX_LOGS)));
   }
 
+  // Only for Calcite
+  @Test
+  public void testExplainOnFirstLast() throws IOException {
+    String expected = loadExpectedPlan("explain_first_last.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | stats first(firstname) as first_name, last(firstname) as"
+                    + " last_name by gender",
+                TEST_INDEX_BANK)));
+  }
+
   @Test
   public void testListAggregationExplain() throws IOException {
     String expected = loadExpectedPlan("explain_list_aggregation.json");
@@ -471,6 +517,43 @@ public class CalciteExplainIT extends ExplainIT {
                     + " count() as cnt ]",
                 TEST_INDEX_BANK,
                 TEST_INDEX_BANK)));
+  }
+
+  @Test
+  public void testPushdownLimitIntoAggregation() throws IOException {
+    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    String expected = loadExpectedPlan("explain_limit_agg_pushdown.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString("source=opensearch-sql_test_index_account | stats count() by state"));
+
+    expected = loadExpectedPlan("explain_limit_agg_pushdown2.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats count() by state | head 100"));
+
+    expected = loadExpectedPlan("explain_limit_agg_pushdown3.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats count() by state | head 100 | head 10"
+                + " from 10 "));
+
+    expected = loadExpectedPlan("explain_limit_agg_pushdown4.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats count() by state | sort state | head"
+                + " 100 | head 10 from 10 "));
+
+    // Don't pushdown the combination of limit and sort
+    expected = loadExpectedPlan("explain_limit_agg_pushdown5.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats count() by state | sort `count()` |"
+                + " head 100 | head 10 from 10 "));
   }
 
   /**

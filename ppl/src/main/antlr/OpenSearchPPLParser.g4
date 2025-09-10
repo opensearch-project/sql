@@ -8,6 +8,7 @@ parser grammar OpenSearchPPLParser;
 
 
 options { tokenVocab = OpenSearchPPLLexer; }
+
 root
    : pplStatement? EOF
    ;
@@ -151,7 +152,7 @@ wcFieldList
    ;
 
 renameCommand
-   : RENAME renameClasue (COMMA renameClasue)*
+   : RENAME renameClasue (COMMA? renameClasue)*
    ;
 
 statsCommand
@@ -447,6 +448,8 @@ fromClause
    | INDEX EQUAL tableOrSubqueryClause
    | SOURCE EQUAL tableFunction
    | INDEX EQUAL tableFunction
+   | SOURCE EQUAL dynamicSourceClause
+   | INDEX EQUAL dynamicSourceClause
    ;
 
 tableOrSubqueryClause
@@ -458,19 +461,52 @@ tableSourceClause
    : tableSource (COMMA tableSource)* (AS alias = qualifiedName)?
    ;
 
-// join
-joinCommand
-   : (joinType) JOIN sideAlias joinHintList? joinCriteria? right = tableOrSubqueryClause
+dynamicSourceClause
+   : LT_SQR_PRTHS sourceReferences (COMMA sourceFilterArgs)? RT_SQR_PRTHS
    ;
 
-joinType
-   : INNER?
+sourceReferences
+   : sourceReference (COMMA sourceReference)*
+   ;
+
+sourceReference
+   : (CLUSTER)? wcQualifiedName
+   ;
+
+sourceFilterArgs
+   : sourceFilterArg (COMMA sourceFilterArg)*
+   ;
+
+sourceFilterArg
+   : ident EQUAL literalValue
+   | ident IN valueList
+   ;
+
+// join
+joinCommand
+   : JOIN (joinOption)* (fieldList)? right = tableOrSubqueryClause
+   | sqlLikeJoinType? JOIN (joinOption)* sideAlias joinHintList? joinCriteria right = tableOrSubqueryClause
+   ;
+
+sqlLikeJoinType
+   : INNER
    | CROSS
-   | LEFT OUTER?
+   | (LEFT OUTER? | OUTER)
    | RIGHT OUTER?
    | FULL OUTER?
    | LEFT? SEMI
    | LEFT? ANTI
+   ;
+
+joinType
+   : INNER
+   | CROSS
+   | OUTER
+   | LEFT
+   | RIGHT
+   | FULL
+   | SEMI
+   | ANTI
    ;
 
 sideAlias
@@ -478,7 +514,7 @@ sideAlias
    ;
 
 joinCriteria
-   : ON logicalExpression
+   : (ON | WHERE) logicalExpression
    ;
 
 joinHintList
@@ -490,8 +526,14 @@ hintPair
    | rightHintKey = RIGHT_HINT DOT ID EQUAL rightHintValue = ident          #rightHint
    ;
 
+joinOption
+   : OVERWRITE EQUAL booleanLiteral                     # overwriteOption
+   | TYPE EQUAL joinType                                # typeOption
+   | MAX EQUAL integerLiteral                           # maxOption
+   ;
+
 renameClasue
-   : orignalField = wcFieldExpression AS renamedField = wcFieldExpression
+   : orignalField = renameFieldExpression AS renamedField = renameFieldExpression
    ;
 
 byClause
@@ -577,12 +619,16 @@ statsFunctionName
    | STDDEV_POP
    | PERCENTILE
    | PERCENTILE_APPROX
+   | MEDIAN
    | LIST
+   | FIRST
+   | LAST
    ;
 
 earliestLatestFunction
    : (EARLIEST | LATEST) LT_PRTHS valueExpression (COMMA timeField = valueExpression)? RT_PRTHS
    ;
+
 
 
 
@@ -682,7 +728,7 @@ tableFunction
 
 // fields
 fieldList
-   : fieldExpression (COMMA fieldExpression)*
+   : fieldExpression ((COMMA)? fieldExpression)*
    ;
 
 sortField
@@ -706,6 +752,11 @@ wcFieldExpression
    ;
 
 selectFieldExpression
+   : wcQualifiedName
+   | STAR
+   ;
+
+renameFieldExpression
    : wcQualifiedName
    | STAR
    ;
@@ -1296,8 +1347,8 @@ keywordsCanBeId
    | multiFieldRelevanceFunctionName
    | commandName
    | collectionFunctionName
-   | comparisonOperator
    | explainMode
+   | REGEXP
    // commands assist keywords
    | CASE
    | ELSE

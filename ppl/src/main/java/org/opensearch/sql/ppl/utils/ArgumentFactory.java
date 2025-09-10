@@ -13,8 +13,10 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DecimalLiteralContext;
@@ -179,5 +181,67 @@ public class ArgumentFactory {
     } else {
       return new Literal(StringUtils.unquoteText(ctx.getText()), DataType.STRING);
     }
+  }
+
+  /**
+   * parse argument value into Literal.
+   *
+   * @param ctx ParserRuleContext instance
+   * @return Literal
+   */
+  public static Argument getArgumentValue(OpenSearchPPLParser.JoinTypeContext ctx) {
+    Join.JoinType type = getJoinType(ctx);
+    return new Argument("type", new Literal(type.name(), DataType.STRING));
+  }
+
+  public static Join.JoinType getJoinType(OpenSearchPPLParser.SqlLikeJoinTypeContext ctx) {
+    if (ctx == null) return Join.JoinType.INNER;
+    if (ctx.INNER() != null) return Join.JoinType.INNER;
+    if (ctx.SEMI() != null) return Join.JoinType.SEMI;
+    if (ctx.ANTI() != null) return Join.JoinType.ANTI;
+    if (ctx.LEFT() != null) return Join.JoinType.LEFT;
+    if (ctx.RIGHT() != null) return Join.JoinType.RIGHT;
+    if (ctx.CROSS() != null) return Join.JoinType.CROSS;
+    if (ctx.FULL() != null) return Join.JoinType.FULL;
+    if (ctx.OUTER() != null) return Join.JoinType.LEFT;
+    throw new SemanticCheckException(String.format("Unsupported join type %s", ctx.getText()));
+  }
+
+  public static Join.JoinType getJoinType(OpenSearchPPLParser.JoinTypeContext ctx) {
+    if (ctx == null) return Join.JoinType.INNER;
+    if (ctx.INNER() != null) return Join.JoinType.INNER;
+    if (ctx.SEMI() != null) return Join.JoinType.SEMI;
+    if (ctx.ANTI() != null) return Join.JoinType.ANTI;
+    if (ctx.LEFT() != null) return Join.JoinType.LEFT;
+    if (ctx.RIGHT() != null) return Join.JoinType.RIGHT;
+    if (ctx.CROSS() != null) return Join.JoinType.CROSS;
+    if (ctx.FULL() != null) return Join.JoinType.FULL;
+    if (ctx.OUTER() != null) return Join.JoinType.LEFT;
+    throw new SemanticCheckException(String.format("Unsupported join type %s", ctx.getText()));
+  }
+
+  public static Join.JoinType getJoinType(Argument.ArgumentMap argumentMap) {
+    Join.JoinType joinType;
+    String type = argumentMap.get("type").toString();
+    if (type.equalsIgnoreCase(Join.JoinType.INNER.name())) {
+      joinType = Join.JoinType.INNER;
+    } else if (type.equalsIgnoreCase(Join.JoinType.SEMI.name())) {
+      joinType = Join.JoinType.SEMI;
+    } else if (type.equalsIgnoreCase(Join.JoinType.ANTI.name())) {
+      joinType = Join.JoinType.ANTI;
+    } else if (type.equalsIgnoreCase(Join.JoinType.LEFT.name())) {
+      joinType = Join.JoinType.LEFT;
+    } else if (type.equalsIgnoreCase(Join.JoinType.RIGHT.name())) {
+      joinType = Join.JoinType.RIGHT;
+    } else if (type.equalsIgnoreCase(Join.JoinType.CROSS.name())) {
+      joinType = Join.JoinType.CROSS;
+    } else if (type.equalsIgnoreCase(Join.JoinType.FULL.name())) {
+      joinType = Join.JoinType.FULL;
+    } else if (type.equalsIgnoreCase("OUTER")) {
+      joinType = Join.JoinType.LEFT;
+    } else {
+      throw new SemanticCheckException(String.format("Supported join type %s", type));
+    }
+    return joinType;
   }
 }

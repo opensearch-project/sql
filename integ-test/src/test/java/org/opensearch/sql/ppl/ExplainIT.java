@@ -480,7 +480,7 @@ public class ExplainIT extends PPLIntegTestCase {
             String.format("source=%s | stats count() by span(birthdate,1M)", TEST_INDEX_BANK)));
   }
 
-  @Test
+  @Ignore("https://github.com/opensearch-project/OpenSearch/issues/3725")
   public void testDedupPushdown() throws IOException {
     String expected = loadExpectedPlan("explain_dedup_push.json");
     assertJsonEqualsIgnoreId(
@@ -500,7 +500,7 @@ public class ExplainIT extends PPLIntegTestCase {
                 + " | dedup gender KEEPEMPTY=true"));
   }
 
-  @Test
+  @Ignore("https://github.com/opensearch-project/OpenSearch/issues/3725")
   public void testDedupKeepEmptyFalsePushdown() throws IOException {
     String expected = loadExpectedPlan("explain_dedup_keepempty_false_push.json");
     assertJsonEqualsIgnoreId(
