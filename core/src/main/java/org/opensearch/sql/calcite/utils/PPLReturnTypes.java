@@ -63,4 +63,19 @@ public final class PPLReturnTypes {
             typeFactory.createSqlType(org.apache.calcite.sql.type.SqlTypeName.VARCHAR);
         return SqlTypeUtil.createArrayType(typeFactory, stringType, true);
       };
+  public static final SqlReturnTypeInference MAP_STRING_ANY_FORCE_NULLABLE =
+      opBinding -> {
+        RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+        if (typeFactory instanceof OpenSearchTypeFactory) {
+          OpenSearchTypeFactory osTypeFactory = (OpenSearchTypeFactory) typeFactory;
+          RelDataType stringType =
+              typeFactory.createSqlType(org.apache.calcite.sql.type.SqlTypeName.VARCHAR);
+          RelDataType anyType =
+              typeFactory.createSqlType(org.apache.calcite.sql.type.SqlTypeName.ANY);
+          RelDataType mapType = osTypeFactory.createMapType(stringType, anyType);
+          return typeFactory.createTypeWithNullability(mapType, true);
+        }
+        // Fallback for non-OpenSearch type factories
+        return typeFactory.createSqlType(org.apache.calcite.sql.type.SqlTypeName.ANY);
+      };
 }
