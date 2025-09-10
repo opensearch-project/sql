@@ -35,7 +35,7 @@ rex [mode=<mode>] field=<field> <pattern> [max_match=<int>] [offset_field=<strin
     - Backreferences: ``\1``, ``\2``, etc. reference captured groups in replacement
 
 * max_match: optional integer (default=1). Maximum number of matches to extract. If greater than 1, extracted fields become arrays. The value 0 means unlimited matches, but is automatically capped to the configured limit (default: 10, configurable via ``plugins.ppl.rex.max_match.limit``).
-* offset_field: optional string. Field name to store the character offset positions of matches.
+* offset_field: optional string. Field name to store the character offset positions of matches. Only available in extract mode.
 
 Example 1: Basic Field Extraction
 ==================================

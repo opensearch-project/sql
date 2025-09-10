@@ -1014,6 +1014,12 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       }
     }
 
+    if (mode == Rex.RexMode.SED && offsetField.isPresent()) {
+      throw new IllegalArgumentException(
+          "Rex command: offset_field cannot be used with mode=sed. "
+              + "The offset_field option is only supported in extract mode.");
+    }
+
     int maxMatchLimit =
         (settings != null) ? settings.getSettingValue(Settings.Key.PPL_REX_MAX_MATCH_LIMIT) : 10;
 
