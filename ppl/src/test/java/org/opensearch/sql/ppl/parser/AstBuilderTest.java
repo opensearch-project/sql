@@ -82,7 +82,7 @@ public class AstBuilderTest {
 
   @Rule public ExpectedException exceptionRule = ExpectedException.none();
 
-  private PPLSyntaxParser parser = new PPLSyntaxParser();
+  private final PPLSyntaxParser parser = new PPLSyntaxParser();
 
   private final Settings settings = Mockito.mock(Settings.class);
 

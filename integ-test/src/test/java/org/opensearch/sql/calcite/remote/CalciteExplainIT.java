@@ -69,6 +69,39 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   // Only for Calcite
+  @Ignore("https://github.com/opensearch-project/OpenSearch/issues/3725")
+  public void testJoinWithCriteriaAndMaxOption() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_bank | join max=1 left=l right=r on"
+            + " l.account_number=r.account_number opensearch-sql_test_index_bank";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_join_with_criteria_max_option.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  // Only for Calcite
+  @Ignore("https://github.com/opensearch-project/OpenSearch/issues/3725")
+  public void testJoinWithFieldListAndMaxOption() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_bank | join type=inner max=1 account_number"
+            + " opensearch-sql_test_index_bank";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_join_with_fields_max_option.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  // Only for Calcite
+  @Test
+  public void testJoinWithFieldList() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_bank | join type=outer account_number"
+            + " opensearch-sql_test_index_bank";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_join_with_fields.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  // Only for Calcite
   @Test
   public void supportPushDownSortMergeJoin() throws IOException {
     String query =
