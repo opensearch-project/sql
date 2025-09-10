@@ -86,8 +86,9 @@ public final class RexOffsetFunction extends ImplementorUDF {
 
       java.util.Collections.reverse(offsetPairs);
       return offsetPairs.isEmpty() ? null : String.join("&", offsetPairs);
-    } catch (PatternSyntaxException | IllegalStateException | IndexOutOfBoundsException e) {
-      return null;
+    } catch (PatternSyntaxException e) {
+      throw new IllegalArgumentException(
+          "Invalid regex pattern in rex command: " + e.getMessage(), e);
     }
   }
 }
