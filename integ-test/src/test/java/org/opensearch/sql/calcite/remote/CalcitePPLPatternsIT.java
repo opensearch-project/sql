@@ -88,19 +88,22 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
         result,
         schema("pattern_count", "bigint"),
         schema("patterns_field", "string"),
-        schema("tokens", "struct"));
+        schema("tokens", "struct"),
+        schema("sample_logs", "array"));
     verifyDataRows(
         result,
         rows(
-            7,
             "<token1>@<token2>.<token3>",
+            7,
             ImmutableMap.of(
                 "<token1>",
                 ImmutableList.of("amberduke", "hattiebond", "nanettebates"),
                 "<token2>",
                 ImmutableList.of("pyrami", "netagy", "quility"),
                 "<token3>",
-                ImmutableList.of("com", "com", "com"))));
+                ImmutableList.of("com", "com", "com")),
+            ImmutableList.of(
+                "amberduke@pyrami.com", "hattiebond@netagy.com", "nanettebates@quility.com")));
   }
 
   @Test
@@ -168,7 +171,8 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
         result,
         schema("patterns_field", "string"),
         schema("pattern_count", "bigint"),
-        schema("tokens", "struct"));
+        schema("tokens", "struct"),
+        schema("sample_logs", "array"));
     verifyDataRows(
         result,
         rows(
@@ -178,7 +182,10 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
                 "<token1>",
                 ImmutableList.of("for", "for"),
                 "<token2>",
-                ImmutableList.of("-1547954353065580372", "6996194389878584395"))),
+                ImmutableList.of("-1547954353065580372", "6996194389878584395")),
+            ImmutableList.of(
+                "Verification succeeded for blk_-1547954353065580372",
+                "Verification succeeded for blk_6996194389878584395")),
         rows(
             "BLOCK* NameSystem.addStoredBlock: blockMap updated: <token1> is added to blk_<token2>"
                 + " size <token3>",
@@ -189,7 +196,12 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
                 "<token3>",
                 ImmutableList.of("67108864", "67108864"),
                 "<token2>",
-                ImmutableList.of("-7017553867379051457", "-3249711809227781266"))),
+                ImmutableList.of("-7017553867379051457", "-3249711809227781266")),
+            ImmutableList.of(
+                "BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.31.85:50010 is added to"
+                    + " blk_-7017553867379051457 size 67108864",
+                "BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.107.19:50010 is added"
+                    + " to blk_-3249711809227781266 size 67108864")),
         rows(
             "<token1> NameSystem.allocateBlock:"
                 + " /user/root/sortrand/_temporary/_task_<token2>_<token3>_r_<token4>_<token5>/part<token6>"
@@ -209,7 +221,14 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
                 "<token3>",
                 ImmutableList.of("0002", "0002"),
                 "<token2>",
-                ImmutableList.of("200811092030", "200811092030"))),
+                ImmutableList.of("200811092030", "200811092030")),
+            ImmutableList.of(
+                "BLOCK* NameSystem.allocateBlock:"
+                    + " /user/root/sortrand/_temporary/_task_200811092030_0002_r_000296_0/part-00296."
+                    + " blk_-6620182933895093708",
+                "BLOCK* NameSystem.allocateBlock:"
+                    + " /user/root/sortrand/_temporary/_task_200811092030_0002_r_000318_0/part-00318."
+                    + " blk_2096692261399680562")),
         rows(
             "PacketResponder failed <token1> blk_<token2>",
             2,
@@ -217,7 +236,10 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
                 "<token1>",
                 ImmutableList.of("for", "for"),
                 "<token2>",
-                ImmutableList.of("6996194389878584395", "-1547954353065580372"))));
+                ImmutableList.of("6996194389878584395", "-1547954353065580372")),
+            ImmutableList.of(
+                "PacketResponder failed for blk_6996194389878584395",
+                "PacketResponder failed for blk_-1547954353065580372")));
   }
 
   @Test
@@ -229,12 +251,14 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
                     + " mode=aggregation max_sample_count=5"
                     + " variable_count_threshold=2 frequency_threshold_percentage=0.2",
                 TEST_INDEX_HDFS_LOGS));
+    System.out.println(result);
     verifySchema(
         result,
         schema("level", "string"),
         schema("patterns_field", "string"),
         schema("pattern_count", "bigint"),
-        schema("tokens", "struct"));
+        schema("tokens", "struct"),
+        schema("sample_logs", "array"));
     verifyDataRows(
         result,
         rows(
@@ -242,7 +266,10 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
             "Verification succeeded for blk_<token1>",
             2,
             ImmutableMap.of(
-                "<token1>", ImmutableList.of("-1547954353065580372", "6996194389878584395"))),
+                "<token1>", ImmutableList.of("-1547954353065580372", "6996194389878584395")),
+            ImmutableList.of(
+                "Verification succeeded for blk_-1547954353065580372",
+                "Verification succeeded for blk_6996194389878584395")),
         rows(
             "INFO",
             "BLOCK* NameSystem.addStoredBlock: blockMap updated: <token1> is added to blk_<token2>"
@@ -254,7 +281,12 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
                 "<token3>",
                 ImmutableList.of("67108864", "67108864"),
                 "<token2>",
-                ImmutableList.of("-7017553867379051457", "-3249711809227781266"))),
+                ImmutableList.of("-7017553867379051457", "-3249711809227781266")),
+            ImmutableList.of(
+                "BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.31.85:50010 is added to"
+                    + " blk_-7017553867379051457 size 67108864",
+                "BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.107.19:50010 is added"
+                    + " to blk_-3249711809227781266 size 67108864")),
         rows(
             "INFO",
             "BLOCK* NameSystem.allocateBlock:"
@@ -273,13 +305,23 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
                 "<token3>",
                 ImmutableList.of("000296", "000318"),
                 "<token2>",
-                ImmutableList.of("0002", "0002"))),
+                ImmutableList.of("0002", "0002")),
+            ImmutableList.of(
+                "BLOCK* NameSystem.allocateBlock:"
+                    + " /user/root/sortrand/_temporary/_task_200811092030_0002_r_000296_0/part-00296."
+                    + " blk_-6620182933895093708",
+                "BLOCK* NameSystem.allocateBlock:"
+                    + " /user/root/sortrand/_temporary/_task_200811092030_0002_r_000318_0/part-00318."
+                    + " blk_2096692261399680562")),
         rows(
             "WARN",
             "PacketResponder failed for blk_<token1>",
             2,
             ImmutableMap.of(
-                "<token1>", ImmutableList.of("6996194389878584395", "-1547954353065580372"))));
+                "<token1>", ImmutableList.of("6996194389878584395", "-1547954353065580372")),
+            ImmutableList.of(
+                "PacketResponder failed for blk_6996194389878584395",
+                "PacketResponder failed for blk_-1547954353065580372")));
   }
 
   @Test
