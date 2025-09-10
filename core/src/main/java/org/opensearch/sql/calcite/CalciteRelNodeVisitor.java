@@ -891,27 +891,25 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return expandedList;
   }
 
-  /** Checks if an expression is an all-fields aggregation */
   private boolean isAllFieldsAggregation(UnresolvedExpression expr, String expectedFuncName) {
-    UnresolvedExpression actualExpr;
-
-    if (expr instanceof Alias alias) {
-      actualExpr = alias.getDelegated();
-
-      String expectedAliasName = expectedFuncName + "(*)";
-      if (!expectedAliasName.equals(alias.getName())) {
-        throw new IllegalArgumentException(
-            String.format(
-                "Cannot alias %s(*) aggregation. Use explicit field names when aliasing.",
-                expectedFuncName));
-      }
-    } else {
-      actualExpr = expr;
-    }
+    UnresolvedExpression actualExpr = expr instanceof Alias alias ? alias.getDelegated() : expr;
 
     if (actualExpr instanceof AggregateFunction aggFunc) {
-      return expectedFuncName.equalsIgnoreCase(aggFunc.getFuncName())
-          && aggFunc.getField() instanceof AllFieldsExcludeMeta;
+      boolean isAllFields =
+          expectedFuncName.equalsIgnoreCase(aggFunc.getFuncName())
+              && aggFunc.getField() instanceof AllFieldsExcludeMeta;
+
+      if (isAllFields && expr instanceof Alias alias) {
+        String expectedAliasName = expectedFuncName + "(*)";
+        if (!expectedAliasName.equals(alias.getName())) {
+          throw new IllegalArgumentException(
+              String.format(
+                  "Cannot alias %s(*) aggregation. Use explicit field names when aliasing.",
+                  expectedFuncName));
+        }
+      }
+
+      return isAllFields;
     }
 
     return false;
