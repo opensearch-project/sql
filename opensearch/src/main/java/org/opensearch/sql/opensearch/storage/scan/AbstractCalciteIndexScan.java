@@ -498,7 +498,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
 
     public boolean pushDownLimitIntoBucketSize(Integer size) {
       CompositeAggregationBuilder compositeAggregationBuilder =
-          (CompositeAggregationBuilder) aggregationBuilder.getLeft().getFirst();
+          (CompositeAggregationBuilder) aggregationBuilder.getLeft().get(0);
       if (size < compositeAggregationBuilder.size()) {
         compositeAggregationBuilder.size(size);
         return true;
