@@ -4,10 +4,18 @@
  */
 package org.opensearch.sql.opensearch.planner.physical;
 
+import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.immutables.value.Value;
@@ -43,10 +51,36 @@ public class OpenSearchScriptProjectIndexScanRule
 
   protected void apply(RelOptRuleCall call, LogicalProject project, CalciteLogicalIndexScan scan) {
     try {
-      CalciteLogicalIndexScan newScan = scan.pushDownScriptProject(project);
+      // literals in project list cannot be pushdown
+      // TODO: Support partial project pushdown
       if (PlanUtils.containsRexLiteral(project)) {
-        // literals in project list cannot be pushdown
-        call.transformTo(call.builder().push(newScan).project(project.getProjects()).build());
+        return;
+      }
+      List<String> callNames =
+          project.getNamedProjects().stream()
+              .filter(pair -> pair.left instanceof RexCall)
+              .map(pair -> pair.getValue())
+              .toList();
+      CalciteLogicalIndexScan newScan = scan.pushDownScriptProject(project);
+      List<String> uniquifiedNames = newScan.getPushDownContext().getDerivedFieldNames();
+      Map<String, String> uniquifiedNamesMap =
+          IntStream.range(0, callNames.size())
+              .boxed()
+              .map(i -> Pair.of(callNames.get(i), uniquifiedNames.get(i)))
+              .collect(Collectors.toMap(Pair::getKey, Pair::getValue));
+
+      if (!callNames.equals(newScan.getPushDownContext().getDerivedFieldNames())) {
+        RelBuilder relBuilder = call.builder().push(newScan);
+        List<RexNode> projectNodes =
+            project.getNamedProjects().stream()
+                .map(
+                    pair ->
+                        uniquifiedNamesMap.get(pair.getValue()) == null
+                            ? relBuilder.field(pair.getValue())
+                            : relBuilder.field(uniquifiedNamesMap.get(pair.getValue())))
+                .collect(Collectors.toList());
+        call.transformTo(
+            relBuilder.project(projectNodes, project.getRowType().getFieldNames()).build());
       } else {
         call.transformTo(newScan);
       }

@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import lombok.Getter;
+import lombok.Setter;
 import org.apache.calcite.adapter.enumerable.EnumerableMergeJoin;
 import org.apache.calcite.adapter.enumerable.EnumerableSort;
 import org.apache.calcite.plan.RelOptCluster;
@@ -168,10 +169,13 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     @Getter private boolean isLimitPushed = false;
     @Getter private boolean isProjectPushed = false;
     @Getter private boolean isScriptProjectPushed = false;
+    @Getter @Setter private List<String> derivedFieldNames = new ArrayList<>();
 
     @Override
     public PushDownContext clone() {
-      return (PushDownContext) super.clone();
+      PushDownContext cloned = (PushDownContext) super.clone();
+      cloned.derivedFieldNames = new ArrayList<>(derivedFieldNames);
+      return cloned;
     }
 
     @Override
@@ -257,6 +261,18 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
         newContext.add(action);
       }
     }
+    newContext.setDerivedFieldNames(new ArrayList<>(pushDownContext.derivedFieldNames));
+    return newContext;
+  }
+
+  protected PushDownContext cloneWithoutProject(PushDownContext pushDownContext) {
+    PushDownContext newContext = new PushDownContext();
+    for (PushDownAction action : pushDownContext) {
+      if (action.type() != PushDownType.PROJECT) {
+        newContext.add(action);
+      }
+    }
+    newContext.setDerivedFieldNames(new ArrayList<>(pushDownContext.derivedFieldNames));
     return newContext;
   }
 
@@ -268,6 +284,13 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
   public AbstractCalciteIndexScan pushDownSort(List<RelFieldCollation> collations) {
     try {
       List<String> collationNames = getCollationNames(collations);
+      // Don't push down sort in case of sorting derived field because derived field sort is not
+      // supported.
+      for (String collationName : collationNames) {
+        if (this.getPushDownContext().getDerivedFieldNames().contains(collationName)) {
+          return null;
+        }
+      }
       if (getPushDownContext().isAggregatePushed() && hasAggregatorInSortBy(collationNames)) {
         // If aggregation is pushed down, we cannot push down sorts where its by fields contain
         // aggregators.

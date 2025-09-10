@@ -47,7 +47,7 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testScriptProjectPushDownExplain() throws IOException {
+  public void testScriptProjectHasLiteralNotPushDownExplain() throws IOException {
     String expected = loadExpectedPlan("explain_script_project_push.json");
     assertJsonEqualsIgnoreId(
         expected,

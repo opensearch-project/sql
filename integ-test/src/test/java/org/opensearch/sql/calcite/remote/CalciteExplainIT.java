@@ -368,7 +368,7 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testExplainRegexMatchInEvalWithOutScriptPushdown() throws IOException {
+  public void testExplainRegexMatchInEvalWithScriptPushdown() throws IOException {
     Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
     String query =
         String.format(

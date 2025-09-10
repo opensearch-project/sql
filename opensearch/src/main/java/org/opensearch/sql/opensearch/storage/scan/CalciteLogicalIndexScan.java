@@ -6,9 +6,12 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import com.google.common.collect.ImmutableList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import org.apache.calcite.plan.Convention;
@@ -29,10 +32,12 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -51,6 +56,9 @@ import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.QueryExpression;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
+import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan.AggPushDownAction;
+import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan.PushDownAction;
+import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan.PushDownType;
 import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
 
 /** The logical relational operator representing a scan of an OpenSearchIndex type. */
@@ -202,7 +210,46 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         this.osIndex.getFieldTypes().entrySet().stream()
             .filter(entry -> this.schema.getFieldNames().contains(entry.getKey()))
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-    // TODO: Check if we need to support partial project nodes pushdown
+
+    // figure out the RexCall in projects
+    List<org.apache.calcite.util.Pair<RexNode, String>> calls =
+        project.getNamedProjects().stream().filter(pair -> pair.left instanceof RexCall).toList();
+    List<String> fieldNames =
+        project.getNamedProjects().stream()
+            .filter(pair -> !(pair.left instanceof RexCall))
+            .map(call -> call.getValue())
+            .toList();
+    List<String> callNames =
+        project.getNamedProjects().stream()
+            .filter(pair -> pair.left instanceof RexCall)
+            .map(call -> call.getValue())
+            .toList();
+    Set<String> usedNamesInIndex = new HashSet<>(this.osIndex.getFieldTypes().keySet());
+    List<String> uniquifiedCallNames =
+        callNames.stream()
+            .map(
+                callName ->
+                    SqlValidatorUtil.uniquify(
+                        callName, usedNamesInIndex, SqlValidatorUtil.EXPR_SUGGESTER))
+            .collect(Collectors.toList());
+    Map<String, String> uniquifiedCallNamesMap = new HashMap<>();
+    for (int i = 0; i < uniquifiedCallNames.size(); i++) {
+      uniquifiedCallNamesMap.put(callNames.get(i), uniquifiedCallNames.get(i));
+    }
+
+    final RelDataTypeFactory.Builder builder = getCluster().getTypeFactory().builder();
+    final List<RelDataTypeField> fieldList = project.getRowType().getFieldList();
+    for (int i = 0; i < fieldList.size(); i++) {
+      String fieldName = fieldList.get(i).getName();
+      if (uniquifiedCallNamesMap.containsKey(fieldName)) {
+        builder.add(
+            new RelDataTypeFieldImpl(
+                uniquifiedCallNamesMap.get(fieldName), i, fieldList.get(i).getType()));
+      } else {
+        builder.add(fieldList.get(i));
+      }
+    }
+    RelDataType newSchema = builder.build();
     CalciteLogicalIndexScan newScan =
         new CalciteLogicalIndexScan(
             getCluster(),
@@ -210,17 +257,8 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
             hints,
             table,
             osIndex,
-            project.getRowType(),
-            pushDownContext.clone());
-
-    // figure out the RexCall in projects
-    List<org.apache.calcite.util.Pair<RexNode, String>> calls =
-        project.getNamedProjects().stream().filter(pair -> pair.left instanceof RexCall).toList();
-    List<String> callNames =
-        project.getNamedProjects().stream()
-            .filter(pair -> pair.left instanceof RexCall)
-            .map(call -> call.getValue())
-            .toList();
+            newSchema,
+            cloneWithoutProject(pushDownContext));
 
     // push down the RexCall to script fields
     List<Script> scripts =
@@ -233,16 +271,21 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
             .toList();
     newScan.pushDownContext.add(
         PushDownAction.of(
+            PushDownType.PROJECT,
+            fieldNames,
+            requestBuilder -> requestBuilder.pushDownProjectStream(fieldNames.stream())));
+    newScan.pushDownContext.add(
+        PushDownAction.of(
             PushDownType.SCRIPT_PROJECT,
-            calls.stream().map(call -> call.right).toList(),
+            uniquifiedCallNames,
             requestBuilder ->
                 requestBuilder.pushDownScriptProjects(
-                    calls.stream().map(call -> call.right).toList(),
+                    uniquifiedCallNames,
                     calls.stream()
                         .map(call -> OpenSearchRelOptUtil.toDslType(call.left.getType()))
                         .toList(),
-                    scripts,
-                    callNames)));
+                    scripts)));
+    newScan.pushDownContext.setDerivedFieldNames(uniquifiedCallNames);
     return newScan;
   }
 
