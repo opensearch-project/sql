@@ -846,11 +846,94 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return Pair.of(groupByList, aggCallList);
   }
 
+  /**
+   * Expands max(*) and min(*) expressions to individual max(field)/min(field) expressions for all
+   * numeric fields.
+   *
+   * @param aggExprList The original list of aggregation expressions
+   * @param context CalcitePlanContext
+   * @return Expanded list of aggregation expressions with max(*)/min(*) replaced by individual
+   *     max(field)/min(field) expressions
+   */
+  private List<UnresolvedExpression> expandMaxMinAllFieldsExpressions(
+      List<UnresolvedExpression> aggExprList, CalcitePlanContext context) {
+    List<UnresolvedExpression> expandedList = new ArrayList<>();
+
+    for (UnresolvedExpression expr : aggExprList) {
+      if (isMaxAllFieldsExpression(expr) || isMinAllFieldsExpression(expr)) {
+        String functionName = isMaxAllFieldsExpression(expr) ? "max" : "min";
+        RelNode currentRel = context.relBuilder.peek();
+        List<RelDataTypeField> fields = currentRel.getRowType().getFieldList();
+
+        List<UnresolvedExpression> aggregateExpressions = new ArrayList<>();
+        for (RelDataTypeField field : fields) {
+          String fieldName = field.getName();
+          if (SqlTypeFamily.NUMERIC.contains(field.getType()) && !isMetadataField(fieldName)) {
+            String aliasName = functionName + "(" + fieldName + ")";
+            UnresolvedExpression aggFunc = AstDSL.aggregate(functionName, AstDSL.field(fieldName));
+            aggregateExpressions.add(AstDSL.alias(aliasName, aggFunc));
+          }
+        }
+
+        if (aggregateExpressions.isEmpty()) {
+          throw new IllegalArgumentException(
+              functionName
+                  + "(*) requires at least one numeric field, but no numeric fields found");
+        }
+
+        expandedList.addAll(aggregateExpressions);
+      } else {
+        expandedList.add(expr);
+      }
+    }
+
+    return expandedList;
+  }
+
+  /** Checks if an expression is max(*) */
+  private boolean isMaxAllFieldsExpression(UnresolvedExpression expr) {
+    UnresolvedExpression actualExpr = expr;
+    if (expr instanceof Alias alias) {
+      actualExpr = alias.getDelegated();
+    }
+
+    if (actualExpr instanceof AggregateFunction aggFunc) {
+      return "max".equalsIgnoreCase(aggFunc.getFuncName())
+          && aggFunc.getField() instanceof AllFieldsExcludeMeta;
+    }
+
+    return false;
+  }
+
+  /** Checks if an expression is min(*) */
+  private boolean isMinAllFieldsExpression(UnresolvedExpression expr) {
+    UnresolvedExpression actualExpr = expr;
+    if (expr instanceof Alias alias) {
+      actualExpr = alias.getDelegated();
+    }
+
+    if (actualExpr instanceof AggregateFunction aggFunc) {
+      return "min".equalsIgnoreCase(aggFunc.getFuncName())
+          && aggFunc.getField() instanceof AllFieldsExcludeMeta;
+    }
+
+    return false;
+  }
+
+  /** Checks if the aggregation expression list contains any max(*) or min(*) expressions. */
+  private boolean containsMaxMinAllFields(List<UnresolvedExpression> aggExprList) {
+    return aggExprList.stream()
+        .anyMatch(expr -> isMaxAllFieldsExpression(expr) || isMinAllFieldsExpression(expr));
+  }
+
   @Override
   public RelNode visitAggregation(Aggregation node, CalcitePlanContext context) {
     visitChildren(node, context);
 
     List<UnresolvedExpression> aggExprList = node.getAggExprList();
+    if (containsMaxMinAllFields(aggExprList)) {
+      aggExprList = expandMaxMinAllFieldsExpressions(aggExprList, context);
+    }
     List<UnresolvedExpression> groupExprList = new ArrayList<>();
     // The span column is always the first column in result whatever
     // the order of span in query is first or last one

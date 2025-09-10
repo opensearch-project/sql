@@ -55,6 +55,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.AllFields;
+import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.RelevanceFieldList;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
@@ -516,6 +517,30 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             exprList(alias("var_samp(a)", aggregate("var_samp", field("a")))),
             emptyList(),
             exprList(alias("b", field("b"))),
+            defaultStatsArgs()));
+  }
+
+  @Test
+  public void testMaxAllFieldsAggregationShouldPass() {
+    assertEqual(
+        "source=t | stats max(*)",
+        agg(
+            relation("t"),
+            exprList(alias("max(*)", aggregate("max", AllFieldsExcludeMeta.of()))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+  }
+
+  @Test
+  public void testMinAllFieldsAggregationShouldPass() {
+    assertEqual(
+        "source=t | stats min(*)",
+        agg(
+            relation("t"),
+            exprList(alias("min(*)", aggregate("min", AllFieldsExcludeMeta.of()))),
+            emptyList(),
+            emptyList(),
             defaultStatsArgs()));
   }
 

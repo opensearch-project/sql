@@ -701,7 +701,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
   public void testMaxOnStringField() {
     String ppl = "source=EMP | stats max(ENAME) as max_name";
     RelNode root = getRelNode(ppl);
-    
+
     String expectedLogical =
         "LogicalAggregate(group=[{}], max_name=[MAX($0)])\n"
             + "  LogicalProject(ENAME=[$1])\n"
@@ -716,7 +716,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
   public void testMinOnStringField() {
     String ppl = "source=EMP | stats min(ENAME) as min_name";
     RelNode root = getRelNode(ppl);
-    
+
     String expectedLogical =
         "LogicalAggregate(group=[{}], min_name=[MIN($0)])\n"
             + "  LogicalProject(ENAME=[$1])\n"
@@ -731,7 +731,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
   public void testMaxOnTimeField() {
     String ppl = "source=EMP | stats max(HIREDATE) as max_hire_date";
     RelNode root = getRelNode(ppl);
-    
+
     String expectedLogical =
         "LogicalAggregate(group=[{}], max_hire_date=[MAX($0)])\n"
             + "  LogicalProject(HIREDATE=[$4])\n"
@@ -746,7 +746,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
   public void testMinOnTimeField() {
     String ppl = "source=EMP | stats min(HIREDATE) as min_hire_date";
     RelNode root = getRelNode(ppl);
-    
+
     String expectedLogical =
         "LogicalAggregate(group=[{}], min_hire_date=[MIN($0)])\n"
             + "  LogicalProject(HIREDATE=[$4])\n"
@@ -770,5 +770,71 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `percentile_approx`(`SAL`, 50.0, DECIMAL) `median(SAL)`\n" + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMaxAllFields() {
+    String ppl = "source=EMP | stats max(*)";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalAggregate(group=[{}], max(EMPNO)=[MAX($0)], max(MGR)=[MAX($1)],"
+            + " max(SAL)=[MAX($2)], max(COMM)=[MAX($3)], max(DEPTNO)=[MAX($4)])\n"
+            + "  LogicalProject(EMPNO=[$0], MGR=[$3], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedResult =
+        "max(EMPNO)=7934; max(MGR)=7902; max(SAL)=5000.00; max(COMM)=1400.00; max(DEPTNO)=30\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT MAX(`EMPNO`) `max(EMPNO)`, MAX(`MGR`) `max(MGR)`, MAX(`SAL`) `max(SAL)`,"
+            + " MAX(`COMM`) `max(COMM)`, MAX(`DEPTNO`) `max(DEPTNO)`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMaxAllFieldsMixedWithOtherAggregations() {
+    String ppl = "source=EMP | stats count(), max(*), avg(SAL)";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalAggregate(group=[{}], count()=[COUNT()], max(EMPNO)=[MAX($0)], max(MGR)=[MAX($1)],"
+            + " max(SAL)=[MAX($2)], max(COMM)=[MAX($3)], max(DEPTNO)=[MAX($4)],"
+            + " avg(SAL)=[AVG($2)])\n"
+            + "  LogicalProject(EMPNO=[$0], MGR=[$3], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testMaxAllFieldsWithNoNumericFields() {
+    String ppl = "source=EMP | fields JOB, ENAME | stats max(*)";
+    getRelNode(ppl);
+  }
+
+  @Test
+  public void testMinAllFields() {
+    String ppl = "source=EMP | stats min(*)";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalAggregate(group=[{}], min(EMPNO)=[MIN($0)], min(MGR)=[MIN($1)], min(SAL)=[MIN($2)],"
+            + " min(COMM)=[MIN($3)], min(DEPTNO)=[MIN($4)])\n"
+            + "  LogicalProject(EMPNO=[$0], MGR=[$3], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedResult =
+        "min(EMPNO)=7369; min(MGR)=7566; min(SAL)=800.00; min(COMM)=0.00; min(DEPTNO)=10\n";
+    verifyResult(root, expectedResult);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testMinAllFieldsWithNoNumericFields() {
+    String ppl = "source=EMP | fields JOB, ENAME | stats min(*)";
+    getRelNode(ppl);
   }
 }

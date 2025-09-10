@@ -28,7 +28,6 @@ package org.opensearch.sql.opensearch.request;
 
 import static java.util.Objects.requireNonNull;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
-import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 
@@ -68,8 +67,8 @@ import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
-import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
+import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
 import org.opensearch.sql.opensearch.response.agg.ArgMaxMinParser;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParser;
@@ -283,7 +282,7 @@ public class AggregateAnalyzer {
         // For string fields, use topHits instead of min aggregations
         String fieldName = helper.inferNamedField(args.getFirst()).getRootName();
         ExprType fieldType = helper.fieldTypes.get(fieldName);
-        
+
         if (fieldType != null && fieldType instanceof OpenSearchTextType) {
           // Use topHits with ascending sort to get minimum string value
           yield Pair.of(
@@ -291,7 +290,9 @@ public class AggregateAnalyzer {
                   .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)
                   .size(1)
                   .from(0)
-                  .sort(helper.inferNamedField(args.getFirst()).getReferenceForTermQuery(), SortOrder.ASC),
+                  .sort(
+                      helper.inferNamedField(args.getFirst()).getReferenceForTermQuery(),
+                      SortOrder.ASC),
               new ArgMaxMinParser(aggFieldName));
         } else {
           // Use regular min aggregation for numeric/date fields
@@ -304,7 +305,7 @@ public class AggregateAnalyzer {
         // For string fields, use topHits instead of max aggregation
         String fieldName = helper.inferNamedField(args.getFirst()).getRootName();
         ExprType fieldType = helper.fieldTypes.get(fieldName);
-        
+
         if (fieldType != null && fieldType instanceof OpenSearchTextType) {
           // Use topHits with descending sort to get maximum string value
           yield Pair.of(
@@ -312,7 +313,9 @@ public class AggregateAnalyzer {
                   .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)
                   .size(1)
                   .from(0)
-                  .sort(helper.inferNamedField(args.getFirst()).getReferenceForTermQuery(), SortOrder.DESC),
+                  .sort(
+                      helper.inferNamedField(args.getFirst()).getReferenceForTermQuery(),
+                      SortOrder.DESC),
               new ArgMaxMinParser(aggFieldName));
         } else {
           // Use regular max aggregation for numeric/date fields

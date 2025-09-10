@@ -31,6 +31,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalAnd
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalNotContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalOrContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalXorContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.MaxMinAllFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.MultiFieldRelevanceFunctionContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameFieldExpressionContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SingleFieldRelevanceFunctionContext;
@@ -59,6 +60,7 @@ import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFields;
+import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Between;
 import org.opensearch.sql.ast.expression.Case;
@@ -304,6 +306,12 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitCountAllFunctionCall(CountAllFunctionCallContext ctx) {
     return new AggregateFunction("count", AllFields.of());
+  }
+
+  @Override
+  public UnresolvedExpression visitMaxMinAllFunctionCall(MaxMinAllFunctionCallContext ctx) {
+    String functionName = ctx.MAX() != null ? "max" : "min";
+    return new AggregateFunction(functionName, AllFieldsExcludeMeta.of());
   }
 
   @Override
