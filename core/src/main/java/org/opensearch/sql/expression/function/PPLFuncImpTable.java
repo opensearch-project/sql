@@ -98,6 +98,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_AR
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_DELETE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_EXTEND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_EXTRACT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_EXTRACT_ALL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_KEYS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_OBJECT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_SET;
@@ -817,6 +818,7 @@ public class PPLFuncImpTable {
       registerOperator(JSON, PPLBuiltinOperators.JSON);
       registerOperator(JSON_ARRAY_LENGTH, PPLBuiltinOperators.JSON_ARRAY_LENGTH);
       registerOperator(JSON_EXTRACT, PPLBuiltinOperators.JSON_EXTRACT);
+      registerOperator(JSON_EXTRACT_ALL, PPLBuiltinOperators.JSON_EXTRACT_ALL);
       registerOperator(JSON_KEYS, PPLBuiltinOperators.JSON_KEYS);
       registerOperator(JSON_VALID, SqlStdOperatorTable.IS_JSON_VALUE);
       registerOperator(JSON_SET, PPLBuiltinOperators.JSON_SET);
