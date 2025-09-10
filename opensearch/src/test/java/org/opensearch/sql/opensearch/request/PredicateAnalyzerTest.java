@@ -731,6 +731,27 @@ public class PredicateAnalyzerTest {
   }
 
   @Test
+  void isTrue_predicate() throws ExpressionNotAnalyzableException {
+    RexNode call =
+        builder.makeCall(
+            SqlStdOperatorTable.IS_TRUE,
+            builder.makeCall(SqlStdOperatorTable.EQUALS, field2, stringLiteral));
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
+
+    assertInstanceOf(TermQueryBuilder.class, result);
+    assertEquals(
+        "{\n" +
+            "  \"term\" : {\n" +
+            "    \"b.keyword\" : {\n" +
+            "      \"value\" : \"Hi\",\n" +
+            "      \"boost\" : 1.0\n" +
+            "    }\n" +
+            "  }\n" +
+            "}",
+        result.toString());
+  }
+
+  @Test
   void isNullOr_ScriptPushDown() throws ExpressionNotAnalyzableException {
     final RelDataType rowType =
         builder
