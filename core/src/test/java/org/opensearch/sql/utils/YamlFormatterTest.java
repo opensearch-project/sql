@@ -79,7 +79,7 @@ class YamlFormatterTest {
             + "  FROM users u\n"
             + "  JOIN departments d ON u.dept_id = d.id\n"
             + "WHERE u.active = true\n"
-            + "ORDER BY u.created_date DESC");
+            + "ORDER BY u.created_date DESC\n");
     json.put("singleLine", "Simple single line text");
     json.put("number", 42);
 
@@ -103,7 +103,7 @@ class YamlFormatterTest {
             + "    and expected results\n"
             + "  version: \"2.0\"\n"
             + "number: 42\n"
-            + "query: |-\n"
+            + "query: |\n"
             + "  SELECT name, age, department\n"
             + "    FROM users u\n"
             + "    JOIN departments d ON u.dept_id = d.id\n"
