@@ -1168,4 +1168,12 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         rows(1, "VA"),
         rows(1, "WA"));
   }
+
+  @Test
+  public void testMedian() throws IOException {
+    JSONObject actual =
+        executeQuery(String.format("source=%s | stats median(balance)", TEST_INDEX_BANK));
+    verifySchema(actual, schema("median(balance)", "bigint"));
+    verifyDataRows(actual, rows(32838));
+  }
 }

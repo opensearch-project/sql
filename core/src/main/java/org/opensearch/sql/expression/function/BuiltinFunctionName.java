@@ -198,6 +198,7 @@ public enum BuiltinFunctionName {
   TAKE(FunctionName.of("take")),
   // t-digest percentile which is used in OpenSearch core by default.
   PERCENTILE_APPROX(FunctionName.of("percentile_approx")),
+  MEDIAN(FunctionName.of("median")),
   EARLIEST(FunctionName.of("earliest")),
   LATEST(FunctionName.of("latest")),
   DISTINCT_COUNT_APPROX(FunctionName.of("distinct_count_approx")),
@@ -355,6 +356,7 @@ public enum BuiltinFunctionName {
           .put("take", BuiltinFunctionName.TAKE)
           .put("percentile", BuiltinFunctionName.PERCENTILE_APPROX)
           .put("percentile_approx", BuiltinFunctionName.PERCENTILE_APPROX)
+          .put("median", BuiltinFunctionName.MEDIAN)
           .put("earliest", BuiltinFunctionName.EARLIEST)
           .put("latest", BuiltinFunctionName.LATEST)
           .put("distinct_count_approx", BuiltinFunctionName.DISTINCT_COUNT_APPROX)

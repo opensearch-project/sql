@@ -503,6 +503,24 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testSimpleSortExpressionPushDownExplain() throws Exception {
+    String query =
+        "source=opensearch-sql_test_index_bank| eval age2 = age + 2 | sort age2 | fields age, age2";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_simple_sort_expr_push.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testSimpleSortExpressionPushDownWithOnlyExprProjected() throws Exception {
+    String query =
+        "source=opensearch-sql_test_index_bank| eval b = balance + 1 | sort b | fields b";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_simple_sort_expr_single_expr_output_push.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
   public void testPushdownLimitIntoAggregation() throws IOException {
     Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
     String expected = loadExpectedPlan("explain_limit_agg_pushdown.json");
