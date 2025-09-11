@@ -47,6 +47,10 @@ public class PPLOperandTypes {
       UDFOperandMetadata.wrap(
           (CompositeOperandTypeChecker)
               OperandTypes.ANY.or(OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.INTEGER)));
+  public static final UDFOperandMetadata ANY_OPTIONAL_TIMESTAMP =
+      UDFOperandMetadata.wrap(
+          (CompositeOperandTypeChecker)
+              OperandTypes.ANY.or(OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.TIMESTAMP)));
   public static final UDFOperandMetadata INTEGER_INTEGER =
       UDFOperandMetadata.wrap((FamilyOperandTypeChecker) OperandTypes.INTEGER_INTEGER);
   public static final UDFOperandMetadata STRING_STRING =
