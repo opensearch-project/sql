@@ -66,6 +66,7 @@ import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
@@ -284,7 +285,7 @@ public class AggregateAnalyzer {
         String fieldName = helper.inferNamedField(args.getFirst()).getRootName();
         ExprType fieldType = helper.fieldTypes.get(fieldName);
 
-        if (fieldType instanceof OpenSearchTextType) {
+        if (isStringType(fieldType)) {
           yield Pair.of(
               AggregationBuilders.topHits(aggFieldName)
                   .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)
@@ -304,7 +305,7 @@ public class AggregateAnalyzer {
         String fieldName = helper.inferNamedField(args.getFirst()).getRootName();
         ExprType fieldType = helper.fieldTypes.get(fieldName);
 
-        if (fieldType instanceof OpenSearchTextType) {
+        if (isStringType(fieldType)) {
           yield Pair.of(
               AggregationBuilders.topHits(aggFieldName)
                   .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)
@@ -397,6 +398,14 @@ public class AggregateAnalyzer {
       default -> throw new AggregateAnalyzerException(
           String.format("unsupported aggregator %s", aggCall.getAggregation()));
     };
+  }
+
+  /**
+   * Check if the field type is a string-like type that requires TopHits aggregation
+   * for lexicographical sorting instead of native OpenSearch min/max aggregations.
+   */
+  private static boolean isStringType(ExprType fieldType) {
+    return fieldType instanceof OpenSearchTextType || fieldType == ExprCoreType.STRING;
   }
 
   private static List<CompositeValuesSourceBuilder<?>> createCompositeBuckets(

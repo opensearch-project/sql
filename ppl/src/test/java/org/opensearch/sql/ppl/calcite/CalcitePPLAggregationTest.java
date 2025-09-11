@@ -725,6 +725,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
 
     String expectedResult = "max_name=WARD\n";
     verifyResult(root, expectedResult);
+
+    String expectedSparkSql = "SELECT MAX(`ENAME`) `max_name`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
@@ -740,6 +743,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
 
     String expectedResult = "min_name=ADAMS\n";
     verifyResult(root, expectedResult);
+
+    String expectedSparkSql = "SELECT MIN(`ENAME`) `min_name`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
@@ -755,6 +761,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
 
     String expectedResult = "max_hire_date=1987-05-23\n";
     verifyResult(root, expectedResult);
+
+    String expectedSparkSql = "SELECT MAX(`HIREDATE`) `max_hire_date`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
@@ -770,5 +779,8 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
 
     String expectedResult = "min_hire_date=1980-12-17\n";
     verifyResult(root, expectedResult);
+
+    String expectedSparkSql = "SELECT MIN(`HIREDATE`) `min_hire_date`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }

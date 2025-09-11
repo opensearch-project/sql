@@ -1176,4 +1176,20 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     verifySchema(actual, schema("median(balance)", "bigint"));
     verifyDataRows(actual, rows(32838));
   }
+
+  @Test
+  public void testStatsMaxOnStringField() throws IOException {
+    JSONObject actual =
+        executeQuery(String.format("source=%s | stats max(firstname)", TEST_INDEX_BANK));
+    verifySchema(actual, schema("max(firstname)", "string"));
+    verifyDataRows(actual, rows("Virginia"));
+  }
+
+  @Test
+  public void testStatsMinOnStringField() throws IOException {
+    JSONObject actual =
+        executeQuery(String.format("source=%s | stats min(firstname)", TEST_INDEX_BANK));
+    verifySchema(actual, schema("min(firstname)", "string"));
+    verifyDataRows(actual, rows("Amber JOHnny"));
+  }
 }
