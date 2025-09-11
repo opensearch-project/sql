@@ -32,7 +32,7 @@ public class YamlFormatter {
     return mapper;
   }
 
-  /** Formats any object into YAML */
+  /** Formats any object into YAML. It will always use LF as line break regardless of OS. */
   public static String formatToYaml(Object object) {
     try {
       return YAML_MAPPER.writer().withDefaultPrettyPrinter().writeValueAsString(object);
