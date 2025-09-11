@@ -20,6 +20,7 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Rule;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
@@ -282,6 +283,10 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   public boolean isPushdownEnabled() throws IOException {
     return Boolean.parseBoolean(
         getClusterSetting(Settings.Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(), "transient"));
+  }
+
+  protected void enabledOnlyWhenPushdownIsEnabled() throws IOException {
+    Assume.assumeTrue("This test is only for when push down is enabled", isPushdownEnabled());
   }
 
   public void updatePushdownSettings() throws IOException {
