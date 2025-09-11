@@ -8,7 +8,8 @@ package org.opensearch.sql.ppl;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_ENGINE_ENABLED;
-import static org.opensearch.sql.legacy.TestsConstants.*;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STRINGS;
 
 import java.io.IOException;
@@ -147,6 +148,22 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
             error.getString("details"), containsString("unsupported function name: regex_match"));
       }
     }
+  }
+
+  @Test
+  public void testAppend() throws IOException {
+    JSONObject result;
+    try {
+      result =
+          executeQuery(
+              String.format(
+                  "search source=%s | stats count() by span(age, 10) | append [ search source=%s |"
+                      + " stats avg(balance) by span(age, 10) ]",
+                  TEST_INDEX_BANK, TEST_INDEX_BANK));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+    verifyQuery(result);
   }
 
   private void verifyQuery(JSONObject result) throws IOException {

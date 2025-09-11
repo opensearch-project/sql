@@ -83,9 +83,20 @@ public class AstBuilderTest {
 
   @Rule public ExpectedException exceptionRule = ExpectedException.none();
 
+  private final Settings settings = Mockito.mock(Settings.class);
+
   private final PPLSyntaxParser parser = new PPLSyntaxParser();
 
-  private final Settings settings = Mockito.mock(Settings.class);
+  @Test
+  public void testDynamicSourceClauseThrowsUnsupportedException() {
+    String query = "source=[myindex, logs, fieldIndex=\"test\"]";
+
+    UnsupportedOperationException exception =
+        assertThrows(UnsupportedOperationException.class, () -> plan(query));
+
+    assertEquals(
+        "Dynamic source clause with metadata filters is not supported.", exception.getMessage());
+  }
 
   @Test
   public void testSearchCommand() {
@@ -248,6 +259,18 @@ public class AstBuilderTest {
         agg(
             relation("t"),
             exprList(alias("c()", aggregate("count", AstDSL.allFields()))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+  }
+
+  @Test
+  public void testStatsCommandWithCountAlias() {
+    assertEqual(
+        "source=t | stats count",
+        agg(
+            relation("t"),
+            exprList(alias("count", aggregate("count", AstDSL.allFields()))),
             emptyList(),
             emptyList(),
             defaultStatsArgs()));
@@ -499,6 +522,42 @@ public class AstBuilderTest {
             field(
                 "f1",
                 exprList(argument("asc", booleanLiteral(false)), argument("type", nullLiteral()))),
+            field(
+                "f2",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral())))));
+  }
+
+  @Test
+  public void testSortCommandWithAsc() {
+    assertEqual(
+        "source=t | sort f1 asc",
+        sort(
+            relation("t"),
+            field(
+                "f1",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral())))));
+  }
+
+  @Test
+  public void testSortCommandWithA() {
+    assertEqual(
+        "source=t | sort f1 a",
+        sort(
+            relation("t"),
+            field(
+                "f1",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral())))));
+  }
+
+  @Test
+  public void testSortCommandWithMultipleFieldsAndAsc() {
+    assertEqual(
+        "source=t | sort f1, f2 asc",
+        sort(
+            relation("t"),
+            field(
+                "f1",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral()))),
             field(
                 "f2",
                 exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral())))));
@@ -1029,6 +1088,12 @@ public class AstBuilderTest {
   @Test(expected = IllegalArgumentException.class)
   public void testBinCommandDuplicateParameter() {
     // Test that duplicate parameters throw an exception
-    plan("search source=test | bin field span=10 span=20");
+    plan("search source=test | bin index_field span=10 span=20");
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testRexSedModeWithOffsetFieldThrowsException() {
+    // Test that SED mode and offset_field cannot be used together (align with Splunk behavior)
+    plan("source=test | rex field=email mode=sed offset_field=matchpos \"s/@.*/@company.com/\"");
   }
 }

@@ -9,10 +9,12 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
+import static org.opensearch.sql.calcite.utils.CalciteUtils.getOnlyForCalciteException;
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BinCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DescribeCommandContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DynamicSourceClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.HeadCommandContext;
@@ -42,6 +44,7 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.ast.EmptySourcePropagateVisitor;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
@@ -57,11 +60,13 @@ import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.PatternMethod;
 import org.opensearch.sql.ast.expression.PatternMode;
 import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.CountBin;
 import org.opensearch.sql.ast.tree.Dedupe;
@@ -84,14 +89,17 @@ import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RangeBin;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
+import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Reverse;
+import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Timechart;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
@@ -195,21 +203,40 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   @Override
   public UnresolvedPlan visitJoinCommand(OpenSearchPPLParser.JoinCommandContext ctx) {
-    Join.JoinType joinType = getJoinType(ctx.joinType());
-    if (ctx.joinCriteria() == null) {
-      joinType = Join.JoinType.CROSS;
+    // a sql-like syntax if join criteria existed
+    boolean sqlLike = ctx.joinCriteria() != null;
+    Join.JoinType joinType = null;
+    if (sqlLike) {
+      joinType = ArgumentFactory.getJoinType(ctx.sqlLikeJoinType());
     }
+    List<Argument> arguments =
+        ctx.joinOption().stream().map(o -> (Argument) expressionBuilder.visit(o)).toList();
+    Argument.ArgumentMap argumentMap = Argument.ArgumentMap.of(arguments);
+    if (argumentMap.get("type") != null) {
+      Join.JoinType joinTypeFromArgument = ArgumentFactory.getJoinType(argumentMap);
+      if (sqlLike && joinType != joinTypeFromArgument) {
+        throw new SemanticCheckException(
+            "Join type is ambiguous, remove either the join type before JOIN keyword or 'type='"
+                + " option.");
+      }
+      joinType = joinTypeFromArgument;
+    }
+    if (!sqlLike && argumentMap.get("type") == null) {
+      joinType = Join.JoinType.INNER;
+    }
+    validateJoinType(joinType);
+
     Join.JoinHint joinHint = getJoinHint(ctx.joinHintList());
-    Optional<String> leftAlias =
-        ctx.sideAlias().leftAlias != null
-            ? Optional.of(internalVisitExpression(ctx.sideAlias().leftAlias).toString())
-            : Optional.empty();
+    Optional<String> leftAlias = Optional.empty();
     Optional<String> rightAlias = Optional.empty();
+    if (ctx.sideAlias() != null && ctx.sideAlias().leftAlias != null) {
+      leftAlias = Optional.of(internalVisitExpression(ctx.sideAlias().leftAlias).toString());
+    }
     if (ctx.tableOrSubqueryClause().alias != null) {
       rightAlias =
           Optional.of(internalVisitExpression(ctx.tableOrSubqueryClause().alias).toString());
     }
-    if (ctx.sideAlias().rightAlias != null) {
+    if (ctx.sideAlias() != null && ctx.sideAlias().rightAlias != null) {
       rightAlias = Optional.of(internalVisitExpression(ctx.sideAlias().rightAlias).toString());
     }
 
@@ -228,8 +255,19 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         ctx.joinCriteria() == null
             ? Optional.empty()
             : Optional.of(expressionBuilder.visitJoinCriteria(ctx.joinCriteria()));
+    Optional<List<Field>> joinFields = Optional.empty();
+    if (ctx.fieldList() != null) {
+      joinFields = Optional.of(getFieldList(ctx.fieldList()));
+    }
     return new Join(
-        projectExceptMeta(right), leftAlias, rightAlias, joinType, joinCondition, joinHint);
+        projectExceptMeta(right),
+        leftAlias,
+        rightAlias,
+        joinType,
+        joinCondition,
+        joinHint,
+        joinFields,
+        argumentMap);
   }
 
   private Join.JoinHint getJoinHint(OpenSearchPPLParser.JoinHintListContext ctx) {
@@ -253,28 +291,16 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return joinHint;
   }
 
-  private Join.JoinType getJoinType(OpenSearchPPLParser.JoinTypeContext ctx) {
-    Join.JoinType joinType;
-    if (ctx == null) {
-      joinType = Join.JoinType.INNER;
-    } else if (ctx.INNER() != null) {
-      joinType = Join.JoinType.INNER;
-    } else if (ctx.SEMI() != null) {
-      joinType = Join.JoinType.SEMI;
-    } else if (ctx.ANTI() != null) {
-      joinType = Join.JoinType.ANTI;
-    } else if (ctx.LEFT() != null) {
-      joinType = Join.JoinType.LEFT;
-    } else if (ctx.RIGHT() != null) {
-      joinType = Join.JoinType.RIGHT;
-    } else if (ctx.CROSS() != null) {
-      joinType = Join.JoinType.CROSS;
-    } else if (ctx.FULL() != null) {
-      joinType = Join.JoinType.FULL;
-    } else {
-      joinType = Join.JoinType.INNER;
+  private void validateJoinType(Join.JoinType joinType) {
+    Object config = settings.getSettingValue(Key.CALCITE_SUPPORT_ALL_JOIN_TYPES);
+    if (config != null && !((Boolean) config)) {
+      if (Join.highCostJoinTypes().contains(joinType)) {
+        throw new SemanticCheckException(
+            String.format(
+                "Join type %s is performance sensitive. Set %s to true to enable it.",
+                joinType.name(), Key.CALCITE_SUPPORT_ALL_JOIN_TYPES.getKeyValue()));
+      }
     }
-    return joinType;
   }
 
   @Override
@@ -295,10 +321,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
                   : new Argument("exclude", new Literal(false, DataType.BOOLEAN)));
       return buildProjectCommand(ctx.fieldsCommandBody(), arguments);
     }
-    throw new UnsupportedOperationException(
-        "Table command is supported only when "
-            + Key.CALCITE_ENGINE_ENABLED.getKeyValue()
-            + "=true");
+    throw getOnlyForCalciteException("Table command");
   }
 
   private UnresolvedPlan buildProjectCommand(
@@ -309,10 +332,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     if (settings != null
         && Boolean.FALSE.equals(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED))) {
       if (hasEnhancedFieldFeatures(bodyCtx, fields)) {
-        throw new UnsupportedOperationException(
-            "Enhanced fields features are supported only when "
-                + Key.CALCITE_ENGINE_ENABLED.getKeyValue()
-                + "=true");
+        throw getOnlyForCalciteException("Enhanced fields feature");
       }
     }
 
@@ -572,6 +592,59 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return new Reverse();
   }
 
+  /** Timechart command. */
+  @Override
+  public UnresolvedPlan visitTimechartCommand(OpenSearchPPLParser.TimechartCommandContext ctx) {
+    UnresolvedExpression binExpression =
+        AstDSL.span(AstDSL.field("@timestamp"), AstDSL.intLiteral(1), SpanUnit.of("m"));
+    Integer limit = 10;
+    Boolean useOther = true;
+
+    // Process timechart parameters
+    for (OpenSearchPPLParser.TimechartParameterContext paramCtx : ctx.timechartParameter()) {
+      if (paramCtx.spanClause() != null) {
+        binExpression = internalVisitExpression(paramCtx.spanClause());
+      } else if (paramCtx.spanLiteral() != null) {
+        // Convert span=1h to span(@timestamp, 1h)
+        binExpression = internalVisitExpression(paramCtx.spanLiteral());
+      } else if (paramCtx.timechartArg() != null) {
+        OpenSearchPPLParser.TimechartArgContext argCtx = paramCtx.timechartArg();
+        if (argCtx.LIMIT() != null && argCtx.integerLiteral() != null) {
+          limit = Integer.parseInt(argCtx.integerLiteral().getText());
+          if (limit < 0) {
+            throw new IllegalArgumentException("Limit must be a non-negative number");
+          }
+        } else if (argCtx.USEOTHER() != null) {
+          if (argCtx.booleanLiteral() != null) {
+            useOther = Boolean.parseBoolean(argCtx.booleanLiteral().getText());
+          } else if (argCtx.ident() != null) {
+            String useOtherValue = argCtx.ident().getText().toLowerCase();
+            if ("true".equals(useOtherValue) || "t".equals(useOtherValue)) {
+              useOther = true;
+            } else if ("false".equals(useOtherValue) || "f".equals(useOtherValue)) {
+              useOther = false;
+            } else {
+              throw new IllegalArgumentException(
+                  "Invalid useOther value: "
+                      + argCtx.ident().getText()
+                      + ". Expected true/false or t/f");
+            }
+          }
+        }
+      }
+    }
+
+    UnresolvedExpression aggregateFunction = internalVisitExpression(ctx.statsFunction());
+    UnresolvedExpression byField =
+        ctx.fieldExpression() != null ? internalVisitExpression(ctx.fieldExpression()) : null;
+
+    return new Timechart(null, aggregateFunction)
+        .span(binExpression)
+        .by(byField)
+        .limit(limit)
+        .useOther(useOther);
+  }
+
   /** Eval command. */
   @Override
   public UnresolvedPlan visitEvalCommand(EvalCommandContext ctx) {
@@ -767,6 +840,12 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   }
 
   @Override
+  public UnresolvedPlan visitDynamicSourceClause(DynamicSourceClauseContext ctx) {
+    throw new UnsupportedOperationException(
+        "Dynamic source clause with metadata filters is not supported.");
+  }
+
+  @Override
   public UnresolvedPlan visitTableFunction(TableFunctionContext ctx) {
     ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
     ctx.namedFunctionArgs()
@@ -904,6 +983,84 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       throw new SemanticCheckException("subsearch should not be empty");
     }
     return new AppendCol(override, subsearch.get());
+  }
+
+  @Override
+  public UnresolvedPlan visitRegexCommand(OpenSearchPPLParser.RegexCommandContext ctx) {
+    UnresolvedExpression field = internalVisitExpression(ctx.regexExpr().field);
+    boolean negated = ctx.regexExpr().operator.getType() == OpenSearchPPLParser.NOT_EQUAL;
+    Literal pattern = (Literal) internalVisitExpression(ctx.regexExpr().pattern);
+
+    return new Regex(field, negated, pattern);
+  }
+
+  @Override
+  public UnresolvedPlan visitAppendCommand(OpenSearchPPLParser.AppendCommandContext ctx) {
+    UnresolvedPlan searchCommandInSubSearch =
+        ctx.searchCommand() != null
+            ? visit(ctx.searchCommand())
+            : EmptySourcePropagateVisitor
+                .EMPTY_SOURCE; // Represents 0 row * 0 col empty input syntax
+    UnresolvedPlan subsearch =
+        ctx.commands().stream()
+            .map(this::visit)
+            .reduce(searchCommandInSubSearch, (r, e) -> e.attach(r));
+
+    return new Append(subsearch);
+  }
+
+  @Override
+  public UnresolvedPlan visitRexCommand(OpenSearchPPLParser.RexCommandContext ctx) {
+    UnresolvedExpression field = internalVisitExpression(ctx.rexExpr().field);
+    Literal pattern = (Literal) internalVisitExpression(ctx.rexExpr().pattern);
+    Rex.RexMode mode = Rex.RexMode.EXTRACT;
+    Optional<Integer> maxMatch = Optional.empty();
+    Optional<String> offsetField = Optional.empty();
+
+    for (OpenSearchPPLParser.RexOptionContext optionCtx : ctx.rexExpr().rexOption()) {
+      if (optionCtx.maxMatch != null) {
+        maxMatch = Optional.of(Integer.parseInt(optionCtx.maxMatch.getText()));
+      }
+      if (optionCtx.EXTRACT() != null) {
+        mode = Rex.RexMode.EXTRACT;
+      }
+      if (optionCtx.SED() != null) {
+        mode = Rex.RexMode.SED;
+      }
+      if (optionCtx.offsetField != null) {
+        offsetField = Optional.of(optionCtx.offsetField.getText());
+      }
+    }
+
+    if (mode == Rex.RexMode.SED && offsetField.isPresent()) {
+      throw new IllegalArgumentException(
+          "Rex command: offset_field cannot be used with mode=sed. "
+              + "The offset_field option is only supported in extract mode.");
+    }
+
+    int maxMatchLimit =
+        (settings != null) ? settings.getSettingValue(Settings.Key.PPL_REX_MAX_MATCH_LIMIT) : 10;
+
+    int userMaxMatch = maxMatch.orElse(1);
+    int effectiveMaxMatch;
+
+    if (userMaxMatch == 0) {
+      effectiveMaxMatch = maxMatchLimit;
+    } else if (userMaxMatch > maxMatchLimit) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Rex command max_match value (%d) exceeds the configured limit (%d). "
+                  + "Consider using a smaller max_match value"
+                  + (settings != null
+                      ? " or adjust the plugins.ppl.rex.max_match.limit setting."
+                      : "."),
+              userMaxMatch,
+              maxMatchLimit));
+    } else {
+      effectiveMaxMatch = userMaxMatch;
+    }
+
+    return new Rex(field, pattern, mode, Optional.of(effectiveMaxMatch), offsetField);
   }
 
   /** Get original text in query. */

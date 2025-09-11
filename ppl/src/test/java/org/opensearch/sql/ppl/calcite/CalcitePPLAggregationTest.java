@@ -43,6 +43,19 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
 
     expectedSparkSql = "" + "SELECT COUNT(*) `count_emp`\n" + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
+
+    ppl = "source=EMP | stats count as cnt";
+    root = getRelNode(ppl);
+    expectedLogical =
+        ""
+            + "LogicalAggregate(group=[{}], cnt=[COUNT()])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    expectedResult = "cnt=14\n";
+    verifyResult(root, expectedResult);
+
+    expectedSparkSql = "" + "SELECT COUNT(*) `cnt`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
@@ -115,6 +128,24 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
+        "SELECT AVG(`SAL`) `avg_sal`, MAX(`SAL`) `max_sal`, MIN(`SAL`) `min_sal`, COUNT(*) `cnt`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+
+    ppl =
+        "source=EMP | stats avg(SAL) as avg_sal, max(SAL) as max_sal, min(SAL) as min_sal, count as"
+            + " cnt";
+    root = getRelNode(ppl);
+    expectedLogical =
+        "LogicalAggregate(group=[{}], avg_sal=[AVG($0)], max_sal=[MAX($0)], min_sal=[MIN($0)],"
+            + " cnt=[COUNT()])\n"
+            + "  LogicalProject(SAL=[$5])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    expectedResult = "avg_sal=2073.214285; max_sal=5000.00; min_sal=800.00; cnt=14\n";
+    verifyResult(root, expectedResult);
+
+    expectedSparkSql =
         "SELECT AVG(`SAL`) `avg_sal`, MAX(`SAL`) `max_sal`, MIN(`SAL`) `min_sal`, COUNT(*) `cnt`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -664,5 +695,20 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
   public void testPercentileShortcutInvalidDecimalValueAbove100() {
     String ppl = "source=EMP | stats perc100.1(SAL)";
     getRelNode(ppl);
+  }
+
+  @Test
+  public void testMedian() {
+    String ppl = "source=EMP | stats median(SAL)";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalAggregate(group=[{}], median(SAL)=[percentile_approx($0, $1, $2)])\n"
+            + "  LogicalProject(SAL=[$5], $f1=[50.0:DECIMAL(3, 1)], $f2=[FLAG(DECIMAL)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `percentile_approx`(`SAL`, 50.0, DECIMAL) `median(SAL)`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }

@@ -66,6 +66,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXPM1;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXTRACT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FILTER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.FIRST;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FLOOR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FORALL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FROM_DAYS;
@@ -83,6 +84,9 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNA
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PATTERN_PARSER;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_EXTRACT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_3;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_5;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_PG_4;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_TRANSLATE3;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_BLANK;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_EMPTY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NOT_NULL;
@@ -99,12 +103,14 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_KE
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_OBJECT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_SET;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_VALID;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LAST;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LAST_DAY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LATEST;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LEFT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LENGTH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LESS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LIKE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LIST;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOCALTIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOCALTIMESTAMP;
@@ -123,6 +129,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_P
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_PHRASE_PREFIX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MD5;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MEDIAN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MICROSECOND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE;
@@ -158,6 +165,9 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.REGEXP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REGEX_MATCH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REPLACE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REVERSE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.REX_EXTRACT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.REX_EXTRACT_MULTI;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.REX_OFFSET;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RIGHT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RINT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ROUND;
@@ -215,7 +225,6 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.XOR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.YEAR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.YEARWEEK;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -254,6 +263,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
@@ -662,7 +672,7 @@ public class PPLFuncImpTable {
       registerOperator(IFNULL, SqlStdOperatorTable.COALESCE);
       registerOperator(EARLIEST, PPLBuiltinOperators.EARLIEST);
       registerOperator(LATEST, PPLBuiltinOperators.LATEST);
-      registerOperator(COALESCE, SqlStdOperatorTable.COALESCE);
+      registerOperator(COALESCE, PPLBuiltinOperators.ENHANCED_COALESCE);
 
       // Register library operator
       registerOperator(REGEXP, SqlLibraryOperators.REGEXP);
@@ -678,6 +688,9 @@ public class PPLFuncImpTable {
       registerOperator(SHA1, SqlLibraryOperators.SHA1);
       registerOperator(INTERNAL_REGEXP_EXTRACT, SqlLibraryOperators.REGEXP_EXTRACT);
       registerOperator(INTERNAL_REGEXP_REPLACE_3, SqlLibraryOperators.REGEXP_REPLACE_3);
+      registerOperator(INTERNAL_REGEXP_REPLACE_PG_4, SqlLibraryOperators.REGEXP_REPLACE_PG_4);
+      registerOperator(INTERNAL_REGEXP_REPLACE_5, SqlLibraryOperators.REGEXP_REPLACE_5);
+      registerOperator(INTERNAL_TRANSLATE3, SqlLibraryOperators.TRANSLATE3);
 
       // Register PPL UDF operator
       registerOperator(COSH, PPLBuiltinOperators.COSH);
@@ -703,6 +716,9 @@ public class PPLFuncImpTable {
       registerOperator(SIMPLE_QUERY_STRING, PPLBuiltinOperators.SIMPLE_QUERY_STRING);
       registerOperator(QUERY_STRING, PPLBuiltinOperators.QUERY_STRING);
       registerOperator(MULTI_MATCH, PPLBuiltinOperators.MULTI_MATCH);
+      registerOperator(REX_EXTRACT, PPLBuiltinOperators.REX_EXTRACT);
+      registerOperator(REX_EXTRACT_MULTI, PPLBuiltinOperators.REX_EXTRACT_MULTI);
+      registerOperator(REX_OFFSET, PPLBuiltinOperators.REX_OFFSET);
 
       // Register PPL Datetime UDF operator
       registerOperator(TIMESTAMP, PPLBuiltinOperators.TIMESTAMP);
@@ -827,7 +843,8 @@ public class PPLFuncImpTable {
           SqlStdOperatorTable.PLUS,
           PPLTypeChecker.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC));
       // Replace with a custom CompositeOperandTypeChecker to check both operands as
-      // SqlStdOperatorTable.ITEM.getOperandTypeChecker() checks only the first operand instead
+      // SqlStdOperatorTable.ITEM.getOperandTypeChecker() checks only the first
+      // operand instead
       // of all operands.
       registerOperator(
           INTERNAL_ITEM,
@@ -841,14 +858,18 @@ public class PPLFuncImpTable {
           XOR,
           SqlStdOperatorTable.NOT_EQUALS,
           PPLTypeChecker.family(SqlTypeFamily.BOOLEAN, SqlTypeFamily.BOOLEAN));
-      // SqlStdOperatorTable.CASE.getOperandTypeChecker is null. We manually create a type checker
-      // for it. The second and third operands are required to be of the same type. If not,
-      // it will throw an IllegalArgumentException with information Can't find leastRestrictive type
+      // SqlStdOperatorTable.CASE.getOperandTypeChecker is null. We manually create a
+      // type checker
+      // for it. The second and third operands are required to be of the same type. If
+      // not,
+      // it will throw an IllegalArgumentException with information Can't find
+      // leastRestrictive type
       registerOperator(
           IF,
           SqlStdOperatorTable.CASE,
           PPLTypeChecker.family(SqlTypeFamily.BOOLEAN, SqlTypeFamily.ANY, SqlTypeFamily.ANY));
-      // Re-define the type checker for is not null, is present, and is null since their original
+      // Re-define the type checker for is not null, is present, and is null since
+      // their original
       // type checker ANY isn't compatible with struct types.
       registerOperator(
           IS_NOT_NULL,
@@ -901,7 +922,8 @@ public class PPLFuncImpTable {
           (FunctionImp2)
               (builder, arg1, arg2) -> builder.makeCall(SqlLibraryOperators.STRCMP, arg2, arg1),
           PPLTypeChecker.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER));
-      // SqlStdOperatorTable.SUBSTRING.getOperandTypeChecker is null. We manually create a type
+      // SqlStdOperatorTable.SUBSTRING.getOperandTypeChecker is null. We manually
+      // create a type
       // checker for it.
       register(
           SUBSTRING,
@@ -1027,6 +1049,7 @@ public class PPLFuncImpTable {
   }
 
   private static class AggBuilder {
+    private static final double MEDIAN_PERCENTILE = 50.0;
     private final Map<BuiltinFunctionName, Pair<CalciteFuncSignature, AggHandler>> map =
         new HashMap<>();
 
@@ -1051,6 +1074,21 @@ public class PPLFuncImpTable {
       register(functionName, handler, typeChecker);
     }
 
+    private static RexNode resolveTimeField(List<RexNode> argList, CalcitePlanContext ctx) {
+      if (argList.isEmpty()) {
+        // Try to find @timestamp field
+        var timestampField =
+            ctx.relBuilder.peek().getRowType().getField("@timestamp", false, false);
+        if (timestampField == null) {
+          throw new IllegalArgumentException(
+              "Default @timestamp field not found. Please specify a time field explicitly.");
+        }
+        return ctx.rexBuilder.makeInputRef(timestampField.getType(), timestampField.getIndex());
+      } else {
+        return PlanUtils.derefMapCall(argList.get(0));
+      }
+    }
+
     void populate() {
       registerOperator(MAX, SqlStdOperatorTable.MAX);
       registerOperator(MIN, SqlStdOperatorTable.MIN);
@@ -1061,6 +1099,7 @@ public class PPLFuncImpTable {
       registerOperator(STDDEV_POP, PPLBuiltinOperators.STDDEV_POP_NULLABLE);
       registerOperator(TAKE, PPLBuiltinOperators.TAKE);
       registerOperator(INTERNAL_PATTERN, PPLBuiltinOperators.INTERNAL_PATTERN);
+      registerOperator(LIST, PPLBuiltinOperators.LIST);
 
       register(
           AVG,
@@ -1070,15 +1109,24 @@ public class PPLFuncImpTable {
 
       register(
           COUNT,
-          (distinct, field, argList, ctx) ->
-              ctx.relBuilder.count(
-                  distinct, null, field == null ? ImmutableList.of() : ImmutableList.of(field)),
+          (distinct, field, argList, ctx) -> {
+            if (field == null) {
+              // count() without arguments should count all rows
+              return ctx.relBuilder.count(distinct, null);
+            } else {
+              // count(field) should count non-null values of the field
+              return ctx.relBuilder.count(distinct, null, field);
+            }
+          },
           wrapSqlOperandTypeChecker(
               SqlStdOperatorTable.COUNT.getOperandTypeChecker(), COUNT.name(), false));
 
       register(
           PERCENTILE_APPROX,
           (distinct, field, argList, ctx) -> {
+            if (field.getType() == null) {
+              throw new IllegalArgumentException("Field type cannot be null");
+            }
             List<RexNode> newArgList =
                 argList.stream().map(PlanUtils::derefMapCall).collect(Collectors.toList());
             newArgList.add(ctx.rexBuilder.makeFlag(field.getType().getSqlTypeName()));
@@ -1089,6 +1137,69 @@ public class PPLFuncImpTable {
               extractTypeCheckerFromUDF(PPLBuiltinOperators.PERCENTILE_APPROX),
               PERCENTILE_APPROX.name(),
               false));
+
+      register(
+          MEDIAN,
+          (distinct, field, argList, ctx) -> {
+            if (distinct) {
+              throw new IllegalArgumentException("MEDIAN does not support DISTINCT");
+            }
+            if (!argList.isEmpty()) {
+              throw new IllegalArgumentException("MEDIAN takes no additional arguments");
+            }
+            if (field.getType() == null) {
+              throw new IllegalArgumentException("Field type cannot be null");
+            }
+            List<RexNode> medianArgList =
+                List.of(
+                    ctx.rexBuilder.makeExactLiteral(BigDecimal.valueOf(MEDIAN_PERCENTILE)),
+                    ctx.rexBuilder.makeFlag(field.getType().getSqlTypeName()));
+            return UserDefinedFunctionUtils.makeAggregateCall(
+                PPLBuiltinOperators.PERCENTILE_APPROX,
+                List.of(field),
+                medianArgList,
+                ctx.relBuilder);
+          },
+          wrapSqlOperandTypeChecker(
+              PPLOperandTypes.NUMERIC.getInnerTypeChecker(), MEDIAN.name(), false));
+
+      register(
+          EARLIEST,
+          (distinct, field, argList, ctx) -> {
+            RexNode timeField = resolveTimeField(argList, ctx);
+            return ctx.relBuilder.aggregateCall(SqlStdOperatorTable.ARG_MIN, field, timeField);
+          },
+          wrapSqlOperandTypeChecker(
+              SqlStdOperatorTable.ARG_MIN.getOperandTypeChecker(), EARLIEST.name(), false));
+
+      register(
+          LATEST,
+          (distinct, field, argList, ctx) -> {
+            RexNode timeField = resolveTimeField(argList, ctx);
+            return ctx.relBuilder.aggregateCall(SqlStdOperatorTable.ARG_MAX, field, timeField);
+          },
+          wrapSqlOperandTypeChecker(
+              SqlStdOperatorTable.ARG_MAX.getOperandTypeChecker(), LATEST.name(), false));
+
+      // Register FIRST function - uses document order
+      register(
+          FIRST,
+          (distinct, field, argList, ctx) -> {
+            // Use our custom FirstAggFunction for document order aggregation
+            return ctx.relBuilder.aggregateCall(PPLBuiltinOperators.FIRST, field);
+          },
+          wrapSqlOperandTypeChecker(
+              PPLBuiltinOperators.FIRST.getOperandTypeChecker(), FIRST.name(), false));
+
+      // Register LAST function - uses document order
+      register(
+          LAST,
+          (distinct, field, argList, ctx) -> {
+            // Use our custom LastAggFunction for document order aggregation
+            return ctx.relBuilder.aggregateCall(PPLBuiltinOperators.LAST, field);
+          },
+          wrapSqlOperandTypeChecker(
+              PPLBuiltinOperators.LAST.getOperandTypeChecker(), LAST.name(), false));
     }
   }
 

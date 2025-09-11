@@ -198,11 +198,18 @@ public enum BuiltinFunctionName {
   TAKE(FunctionName.of("take")),
   // t-digest percentile which is used in OpenSearch core by default.
   PERCENTILE_APPROX(FunctionName.of("percentile_approx")),
+  MEDIAN(FunctionName.of("median")),
   EARLIEST(FunctionName.of("earliest")),
   LATEST(FunctionName.of("latest")),
   DISTINCT_COUNT_APPROX(FunctionName.of("distinct_count_approx")),
+
+  // Multivalue aggregation function
+  LIST(FunctionName.of("list")),
   // Not always an aggregation query
   NESTED(FunctionName.of("nested")),
+  // Document order aggregation functions
+  FIRST(FunctionName.of("first")),
+  LAST(FunctionName.of("last")),
 
   /** Text Functions. */
   ASCII(FunctionName.of("ascii")),
@@ -216,6 +223,9 @@ public enum BuiltinFunctionName {
   POSITION(FunctionName.of("position")),
   REGEXP(FunctionName.of("regexp")),
   REGEX_MATCH(FunctionName.of("regex_match")),
+  REX_EXTRACT(FunctionName.of("REX_EXTRACT")),
+  REX_EXTRACT_MULTI(FunctionName.of("REX_EXTRACT_MULTI")),
+  REX_OFFSET(FunctionName.of("REX_OFFSET")),
   REPLACE(FunctionName.of("replace")),
   REVERSE(FunctionName.of("reverse")),
   RIGHT(FunctionName.of("right")),
@@ -312,7 +322,10 @@ public enum BuiltinFunctionName {
   INTERNAL_UNCOLLECT_PATTERNS(FunctionName.of("uncollect_patterns")),
   INTERNAL_REGEXP_EXTRACT(FunctionName.of("regexp_extract"), true),
   INTERNAL_GROK(FunctionName.of("grok"), true),
-  INTERNAL_REGEXP_REPLACE_3(FunctionName.of("regexp_replace_3"), true);
+  INTERNAL_REGEXP_REPLACE_3(FunctionName.of("regexp_replace_3"), true),
+  INTERNAL_REGEXP_REPLACE_PG_4(FunctionName.of("regexp_replace_pg_4"), true),
+  INTERNAL_REGEXP_REPLACE_5(FunctionName.of("regexp_replace_5"), true),
+  INTERNAL_TRANSLATE3(FunctionName.of("translate3"), true);
 
   private final FunctionName name;
   private boolean isInternal;
@@ -344,10 +357,14 @@ public enum BuiltinFunctionName {
           .put("take", BuiltinFunctionName.TAKE)
           .put("percentile", BuiltinFunctionName.PERCENTILE_APPROX)
           .put("percentile_approx", BuiltinFunctionName.PERCENTILE_APPROX)
-          // .put("earliest", BuiltinFunctionName.EARLIEST)
-          // .put("latest", BuiltinFunctionName.LATEST)
+          .put("median", BuiltinFunctionName.MEDIAN)
+          .put("earliest", BuiltinFunctionName.EARLIEST)
+          .put("latest", BuiltinFunctionName.LATEST)
           .put("distinct_count_approx", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
+          .put("list", BuiltinFunctionName.LIST)
           .put("pattern", BuiltinFunctionName.INTERNAL_PATTERN)
+          .put("first", BuiltinFunctionName.FIRST)
+          .put("last", BuiltinFunctionName.LAST)
           .build();
 
   private static final Map<String, BuiltinFunctionName> WINDOW_FUNC_MAPPING =

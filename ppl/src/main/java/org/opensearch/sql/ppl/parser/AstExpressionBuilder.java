@@ -22,7 +22,36 @@ import java.util.stream.Stream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
 import org.opensearch.sql.ast.dsl.AstDSL;
-import org.opensearch.sql.ast.expression.*;
+import org.opensearch.sql.ast.expression.AggregateFunction;
+import org.opensearch.sql.ast.expression.Alias;
+import org.opensearch.sql.ast.expression.AllFields;
+import org.opensearch.sql.ast.expression.And;
+import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.Between;
+import org.opensearch.sql.ast.expression.Case;
+import org.opensearch.sql.ast.expression.Cast;
+import org.opensearch.sql.ast.expression.Compare;
+import org.opensearch.sql.ast.expression.DataType;
+import org.opensearch.sql.ast.expression.EqualTo;
+import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.In;
+import org.opensearch.sql.ast.expression.Interval;
+import org.opensearch.sql.ast.expression.IntervalUnit;
+import org.opensearch.sql.ast.expression.LambdaFunction;
+import org.opensearch.sql.ast.expression.Let;
+import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.ast.expression.Not;
+import org.opensearch.sql.ast.expression.Or;
+import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.RelevanceFieldList;
+import org.opensearch.sql.ast.expression.Span;
+import org.opensearch.sql.ast.expression.SpanUnit;
+import org.opensearch.sql.ast.expression.UnresolvedArgument;
+import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.expression.When;
+import org.opensearch.sql.ast.expression.WindowFunction;
+import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
@@ -36,11 +65,13 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BySpanClauseConte
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CompareExprContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ConvertedDataTypeContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CountAllFunctionCallContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CountEvalFunctionCallContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DataTypeFunctionCallContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DecimalLiteralContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DistinctCountFunctionCallContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DoubleLiteralContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalClauseContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalExpressionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalFunctionCallContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldExpressionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FloatLiteralContext;
@@ -55,6 +86,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalNotContext
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalOrContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalXorContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.MultiFieldRelevanceFunctionContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameFieldExpressionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SingleFieldRelevanceFunctionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SpanClauseContext;
@@ -208,6 +240,14 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   }
 
   @Override
+  public UnresolvedExpression visitRenameFieldExpression(RenameFieldExpressionContext ctx) {
+    if (ctx.STAR() != null) {
+      return new Field(QualifiedName.of("*"));
+    }
+    return new Field((QualifiedName) visit(ctx.wcQualifiedName()));
+  }
+
+  @Override
   public UnresolvedExpression visitSortField(SortFieldContext ctx) {
 
     UnresolvedExpression fieldExpression =
@@ -236,9 +276,25 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   }
 
   @Override
+  public UnresolvedExpression visitCountEvalFunctionCall(CountEvalFunctionCallContext ctx) {
+    return new AggregateFunction("count", visit(ctx.evalExpression()));
+  }
+
+  @Override
   public UnresolvedExpression visitDistinctCountFunctionCall(DistinctCountFunctionCallContext ctx) {
     String funcName = ctx.DISTINCT_COUNT_APPROX() != null ? "distinct_count_approx" : "count";
     return new AggregateFunction(funcName, visit(ctx.valueExpression()), true);
+  }
+
+  @Override
+  public UnresolvedExpression visitEvalExpression(EvalExpressionContext ctx) {
+    /*
+     * Rewrite "eval(p)" as "CASE WHEN p THEN 1 ELSE NULL END" so that COUNT or DISTINCT_COUNT
+     * can correctly perform filtered counting.
+     * Note: at present only eval(<predicate>) inside counting functions is supported.
+     */
+    UnresolvedExpression predicate = visit(ctx.logicalExpression());
+    return AstDSL.caseWhen(null, AstDSL.when(predicate, AstDSL.intLiteral(1)));
   }
 
   @Override
@@ -287,6 +343,30 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
         visit(ctx.valueExpression()),
         Collections.singletonList(
             new UnresolvedArgument("percent", AstDSL.doubleLiteral(percent))));
+  }
+
+  public UnresolvedExpression visitEarliestLatestFunctionCall(
+      OpenSearchPPLParser.EarliestLatestFunctionCallContext ctx) {
+    return visit(ctx.earliestLatestFunction());
+  }
+
+  @Override
+  public UnresolvedExpression visitEarliestLatestFunction(
+      OpenSearchPPLParser.EarliestLatestFunctionContext ctx) {
+    String functionName = ctx.EARLIEST() != null ? "earliest" : "latest";
+    UnresolvedExpression valueField = visit(ctx.valueExpression(0));
+
+    if (ctx.timeField != null) {
+      // Two parameters: earliest(field, time_field) or latest(field, time_field)
+      UnresolvedExpression timeField = visit(ctx.timeField);
+      return new AggregateFunction(
+          functionName,
+          valueField,
+          Collections.singletonList(new UnresolvedArgument("time_field", timeField)));
+    } else {
+      // Single parameter: earliest(field) or latest(field) - uses default @timestamp
+      return new AggregateFunction(functionName, valueField);
+    }
   }
 
   /** Case function. */
@@ -553,6 +633,27 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return new Span(visit(ctx.fieldExpression()), visit(ctx.value), SpanUnit.of(unit));
   }
 
+  // Handle new syntax: span=1h
+  @Override
+  public UnresolvedExpression visitSpanLiteral(OpenSearchPPLParser.SpanLiteralContext ctx) {
+    if (ctx.integerLiteral() != null && ctx.timespanUnit() != null) {
+      return new Span(
+          AstDSL.field("@timestamp"),
+          new Literal(Integer.parseInt(ctx.integerLiteral().getText()), DataType.INTEGER),
+          SpanUnit.of(ctx.timespanUnit().getText()));
+    }
+
+    if (ctx.integerLiteral() != null) {
+      return new Span(
+          AstDSL.field("@timestamp"),
+          new Literal(Integer.parseInt(ctx.integerLiteral().getText()), DataType.INTEGER),
+          SpanUnit.of(""));
+    }
+
+    return new Span(
+        AstDSL.field("@timestamp"), new Literal(ctx.getText(), DataType.STRING), SpanUnit.of(""));
+  }
+
   @Override
   public UnresolvedExpression visitLeftHint(OpenSearchPPLParser.LeftHintContext ctx) {
     return new EqualTo(
@@ -598,6 +699,21 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
         buildFunction(ctx.windowFunctionName().getText(), ctx.functionArgs().functionArg());
     // In PPL eventstats command, all window functions have the same partition and order spec.
     return new WindowFunction(f);
+  }
+
+  @Override
+  public UnresolvedExpression visitOverwriteOption(OpenSearchPPLParser.OverwriteOptionContext ctx) {
+    return new Argument("overwrite", (Literal) this.visit(ctx.booleanLiteral()));
+  }
+
+  @Override
+  public UnresolvedExpression visitJoinType(OpenSearchPPLParser.JoinTypeContext ctx) {
+    return ArgumentFactory.getArgumentValue(ctx);
+  }
+
+  @Override
+  public UnresolvedExpression visitMaxOption(OpenSearchPPLParser.MaxOptionContext ctx) {
+    return new Argument("max", (Literal) this.visit(ctx.integerLiteral()));
   }
 
   private QualifiedName visitIdentifiers(List<? extends ParserRuleContext> ctx) {

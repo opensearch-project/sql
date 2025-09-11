@@ -29,6 +29,7 @@ public abstract class Settings {
     PATTERN_MODE("plugins.ppl.pattern.mode"),
     PATTERN_MAX_SAMPLE_COUNT("plugins.ppl.pattern.max.sample.count"),
     PATTERN_BUFFER_LIMIT("plugins.ppl.pattern.buffer.limit"),
+    PPL_REX_MAX_MATCH_LIMIT("plugins.ppl.rex.max_match.limit"),
 
     /** Enable Calcite as execution engine */
     CALCITE_ENGINE_ENABLED("plugins.calcite.enabled"),
@@ -36,6 +37,7 @@ public abstract class Settings {
     CALCITE_PUSHDOWN_ENABLED("plugins.calcite.pushdown.enabled"),
     CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR(
         "plugins.calcite.pushdown.rowcount.estimation.factor"),
+    CALCITE_SUPPORT_ALL_JOIN_TYPES("plugins.calcite.all_join_types.allowed"),
 
     /** Query Settings. */
     FIELD_TYPE_TOLERANCE("plugins.query.field_type_tolerance"),
