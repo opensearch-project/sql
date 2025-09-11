@@ -448,7 +448,7 @@ integTest {
     testLogging {
         events "failed"
     }
-
+    
     dependsOn ':opensearch-sql-plugin:bundlePlugin'
     if(getOSFamilyType() != "windows") {
         dependsOn startPrometheus
@@ -516,8 +516,17 @@ integTest {
 
     // Exclude this IT, because they executed in another task (:integTestWithSecurity)
     exclude 'org/opensearch/sql/security/**'
+
+    finalizedBy 'printIntegTestPaths'
 }
 
+task printIntegTestPaths {
+    doLast {
+        println "Test report available at: file://${project.buildDir}/reports/tests/integTest/index.html"
+        println "integTest cluster logs available at: file://${project.buildDir}/testclusters/integTest-0/logs/integTest.log"
+        println "remoteCluster cluster logs available at: file://${project.buildDir}/testclusters/remoteCluster-0/logs/remoteCluster.log"
+    }
+}
 
 task comparisonTest(type: RestIntegTestTask) {
     testLogging {

@@ -1096,4 +1096,10 @@ public class AstBuilderTest {
     // Test that duplicate parameters throw an exception
     plan("search source=test | bin index_field span=10 span=20");
   }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testRexSedModeWithOffsetFieldThrowsException() {
+    // Test that SED mode and offset_field cannot be used together (align with Splunk behavior)
+    plan("source=test | rex field=email mode=sed offset_field=matchpos \"s/@.*/@company.com/\"");
+  }
 }

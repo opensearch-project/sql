@@ -8,7 +8,6 @@ package org.opensearch.sql.calcite.remote;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BEER;
 
 import java.io.IOException;
-import org.junit.Assume;
 import org.opensearch.sql.ppl.RelevanceFunctionIT;
 
 public class CalciteRelevanceFunctionIT extends RelevanceFunctionIT {
@@ -22,7 +21,7 @@ public class CalciteRelevanceFunctionIT extends RelevanceFunctionIT {
   // optimization rule `FilterProjectTransposeRule` to push down the filter through the project.
   @Override
   public void not_pushdown_throws_exception() throws IOException {
-    Assume.assumeTrue("This test is only for push down enabled", !isPushdownDisabled());
+    enabledOnlyWhenPushdownIsEnabled();
     String query1 =
         "SOURCE="
             + TEST_INDEX_BEER
