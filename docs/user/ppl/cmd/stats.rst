@@ -177,7 +177,7 @@ Description
 
 Usage: MAX(expr). Returns the maximum value of expr.
 
-For non-numeric fields, MAX performs lexicographical comparison. When fields contain mixed data types (strings and numbers), all values are converted to strings for consistent lexicographical ordering. For example, with values ["apple", 123, "banana", 45], the maximum would be "banana" since lexicographically: "123" < "45" < "apple" < "banana".
+For non-numeric fields, values are sorted lexicographically.
 
 Note: Non-numeric field support requires Calcite to be enabled (see `Configuration`_ section above). Available since version 3.3.0.
 
@@ -209,7 +209,7 @@ Description
 
 Usage: MIN(expr). Returns the minimum value of expr.
 
-For non-numeric fields, MIN performs lexicographical comparison. When fields contain mixed data types (strings and numbers), all values are converted to strings for consistent lexicographical ordering. For example, with values ["apple", 123, "banana", 45], the minimum would be "123" since lexicographically: "123" < "45" < "apple" < "banana".
+For non-numeric fields, values are sorted lexicographically.
 
 Note: Non-numeric field support requires Calcite to be enabled (see `Configuration`_ section above). Available since version 3.3.0.
 
