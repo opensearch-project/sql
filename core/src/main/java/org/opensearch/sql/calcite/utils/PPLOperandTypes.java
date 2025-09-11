@@ -23,6 +23,10 @@ public class PPLOperandTypes {
   private PPLOperandTypes() {}
 
   public static final UDFOperandMetadata NONE = UDFOperandMetadata.wrap(OperandTypes.family());
+  public static final UDFOperandMetadata OPTIONAL_ANY =
+      UDFOperandMetadata.wrap(
+          (CompositeOperandTypeChecker)
+              OperandTypes.family(SqlTypeFamily.ANY).or(OperandTypes.family()));
   public static final UDFOperandMetadata OPTIONAL_INTEGER =
       UDFOperandMetadata.wrap(
           (CompositeOperandTypeChecker) OperandTypes.INTEGER.or(OperandTypes.family()));
@@ -121,6 +125,12 @@ public class PPLOperandTypes {
           (CompositeOperandTypeChecker)
               OperandTypes.DATETIME.or(
                   OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER)));
+  public static final UDFOperandMetadata ANY_DATETIME_OR_STRING =
+      UDFOperandMetadata.wrap(
+          (CompositeOperandTypeChecker)
+              OperandTypes.family(SqlTypeFamily.ANY)
+                  .or(OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.DATETIME))
+                  .or(OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.STRING)));
 
   public static final UDFOperandMetadata DATETIME_DATETIME =
       UDFOperandMetadata.wrap(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME));

@@ -599,6 +599,6 @@ public interface PPLTypeChecker {
                         .map(t -> t == ExprCoreType.UNDEFINED ? "ANY" : t.toString())
                         .collect(Collectors.joining(","))
                     + "]")
-        .collect(Collectors.joining(","));
+        .collect(Collectors.joining("|"));
   }
 }
