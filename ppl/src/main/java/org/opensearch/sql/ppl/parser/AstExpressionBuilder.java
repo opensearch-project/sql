@@ -267,7 +267,16 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   /** Aggregation function. */
   @Override
   public UnresolvedExpression visitStatsFunctionCall(StatsFunctionCallContext ctx) {
-    return new AggregateFunction(ctx.statsFunctionName().getText(), visit(ctx.valueExpression()));
+    return buildAggregateFunction(
+        ctx.statsFunctionName().getText(), ctx.functionArgs().functionArg());
+  }
+
+  private AggregateFunction buildAggregateFunction(
+      String functionName, List<OpenSearchPPLParser.FunctionArgContext> args) {
+    List<UnresolvedExpression> unresolvedArgs =
+        args.stream().map(this::visitFunctionArg).collect(Collectors.toList());
+    return new AggregateFunction(
+        functionName, unresolvedArgs.get(0), unresolvedArgs.subList(1, unresolvedArgs.size()));
   }
 
   @Override
@@ -345,30 +354,6 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
             new UnresolvedArgument("percent", AstDSL.doubleLiteral(percent))));
   }
 
-  public UnresolvedExpression visitEarliestLatestFunctionCall(
-      OpenSearchPPLParser.EarliestLatestFunctionCallContext ctx) {
-    return visit(ctx.earliestLatestFunction());
-  }
-
-  @Override
-  public UnresolvedExpression visitEarliestLatestFunction(
-      OpenSearchPPLParser.EarliestLatestFunctionContext ctx) {
-    String functionName = ctx.EARLIEST() != null ? "earliest" : "latest";
-    UnresolvedExpression valueField = visit(ctx.valueExpression(0));
-
-    if (ctx.timeField != null) {
-      // Two parameters: earliest(field, time_field) or latest(field, time_field)
-      UnresolvedExpression timeField = visit(ctx.timeField);
-      return new AggregateFunction(
-          functionName,
-          valueField,
-          Collections.singletonList(new UnresolvedArgument("time_field", timeField)));
-    } else {
-      // Single parameter: earliest(field) or latest(field) - uses default @timestamp
-      return new AggregateFunction(functionName, valueField);
-    }
-  }
-
   /** Case function. */
   @Override
   public UnresolvedExpression visitCaseFunctionCall(
@@ -405,6 +390,12 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return buildFunction(mappedName, ctx.functionArgs().functionArg());
   }
 
+  private Function buildFunction(
+      String functionName, List<OpenSearchPPLParser.FunctionArgContext> args) {
+    return new Function(
+        functionName, args.stream().map(this::visitFunctionArg).collect(Collectors.toList()));
+  }
+
   /** Cast function. */
   @Override
   public UnresolvedExpression visitDataTypeFunctionCall(DataTypeFunctionCallContext ctx) {
@@ -414,12 +405,6 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitConvertedDataType(ConvertedDataTypeContext ctx) {
     return AstDSL.stringLiteral(ctx.getText());
-  }
-
-  private Function buildFunction(
-      String functionName, List<OpenSearchPPLParser.FunctionArgContext> args) {
-    return new Function(
-        functionName, args.stream().map(this::visitFunctionArg).collect(Collectors.toList()));
   }
 
   /**
@@ -697,10 +682,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   public UnresolvedExpression visitWindowFunction(OpenSearchPPLParser.WindowFunctionContext ctx) {
     Function f;
     if (ctx.windowFunctionName() != null) {
-      // Standard window function
       f = buildFunction(ctx.windowFunctionName().getText(), ctx.functionArgs().functionArg());
-    } else if (ctx.earliestLatestFunction() != null) {
-      f = handleEarliestLatestWindowFunction(ctx.earliestLatestFunction());
     } else {
       throw new SyntaxCheckException("Invalid window function");
     }
@@ -721,23 +703,6 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitMaxOption(OpenSearchPPLParser.MaxOptionContext ctx) {
     return new Argument("max", (Literal) this.visit(ctx.integerLiteral()));
-  }
-
-  private Function handleEarliestLatestWindowFunction(
-      OpenSearchPPLParser.EarliestLatestFunctionContext ctx) {
-    UnresolvedExpression earliestLatestExpr = visit(ctx);
-
-    if (earliestLatestExpr instanceof AggregateFunction) {
-      AggregateFunction aggFunc = (AggregateFunction) earliestLatestExpr;
-      ImmutableList<UnresolvedExpression> args =
-          ImmutableList.<UnresolvedExpression>builder()
-              .add(aggFunc.getField())
-              .addAll(aggFunc.getArgList())
-              .build();
-      return new Function(aggFunc.getFuncName(), args);
-    } else {
-      throw new SyntaxCheckException("Expected AggregateFunction for EARLIEST/LATEST");
-    }
   }
 
   private QualifiedName visitIdentifiers(List<? extends ParserRuleContext> ctx) {
