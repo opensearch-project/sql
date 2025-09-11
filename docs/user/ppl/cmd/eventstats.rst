@@ -93,7 +93,7 @@ Usage: Returns a count of the number of expr in the rows retrieved by a SELECT s
 
 Example::
 
-    PPL> source=accounts | eventstats count();
+    os> source=accounts | eventstats count();
     fetched rows / total rows = 4/4
     +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+---------+
     | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | count() |
@@ -114,7 +114,7 @@ Usage: SUM(expr). Returns the sum of expr.
 
 Example::
 
-    PPL> source=accounts | eventstats sum(age) by gender;
+    os> source=accounts | eventstats sum(age) by gender;
     fetched rows / total rows = 4/4
     +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+----------+
     | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | sum(age) |
@@ -135,7 +135,7 @@ Usage: AVG(expr). Returns the average value of expr.
 
 Example::
 
-    PPL> source=accounts | eventstats avg(age) by gender;
+    os> source=accounts | eventstats avg(age) by gender;
     fetched rows / total rows = 4/4
     +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+
     | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | avg(age)           |
@@ -156,7 +156,7 @@ Usage: MAX(expr). Returns the maximum value of expr.
 
 Example::
 
-    PPL> source=accounts | eventstats max(age);
+    os> source=accounts | eventstats max(age);
     fetched rows / total rows = 4/4
     +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+----------+
     | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | max(age) |
@@ -177,7 +177,7 @@ Usage: MIN(expr). Returns the minimum value of expr.
 
 Example::
 
-    PPL> source=accounts | eventstats min(age) by gender;
+    os> source=accounts | eventstats min(age) by gender;
     fetched rows / total rows = 4/4
     +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+----------+
     | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | min(age) |
@@ -199,7 +199,7 @@ Usage: VAR_SAMP(expr). Returns the sample variance of expr.
 
 Example::
 
-    PPL> source=accounts | eventstats var_samp(age);
+    os> source=accounts | eventstats var_samp(age);
     fetched rows / total rows = 4/4
     +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+
     | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | var_samp(age)      |
@@ -221,7 +221,7 @@ Usage: VAR_POP(expr). Returns the population standard variance of expr.
 
 Example::
 
-    PPL> source=accounts | eventstats var_pop(age);
+    os> source=accounts | eventstats var_pop(age);
     fetched rows / total rows = 4/4
     +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------+
     | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | var_pop(age) |
@@ -243,7 +243,7 @@ Usage: STDDEV_SAMP(expr). Return the sample standard deviation of expr.
 
 Example::
 
-    PPL> source=accounts | eventstats stddev_samp(age);
+    os> source=accounts | eventstats stddev_samp(age);
     fetched rows / total rows = 4/4
     +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+-------------------+
     | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | stddev_samp(age)  |
@@ -265,7 +265,7 @@ Usage: STDDEV_POP(expr). Return the population standard deviation of expr.
 
 Example::
 
-    PPL> source=accounts | eventstats stddev_pop(age);
+    os> source=accounts | eventstats stddev_pop(age);
     fetched rows / total rows = 4/4
     +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+
     | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | stddev_pop(age)    |
@@ -290,7 +290,7 @@ For details on algorithm accuracy and precision control, see the `OpenSearch Car
 
 Example::
 
-    PPL> source=accounts | eventstats dc(state) as distinct_states, distinct_count(state) as dc_states_alt by gender;
+    os> source=accounts | eventstats dc(state) as distinct_states, distinct_count(state) as dc_states_alt by gender;
     fetched rows / total rows = 4/4
     +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+-----------------+-----------------+
     | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | distinct_states | dc_states_alt   |
@@ -300,6 +300,86 @@ Example::
     | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 3               | 3               |
     | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    | 3               | 3               |
     +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+-----------------+-----------------+
+
+
+EARLIEST (Since 3.3)
+---------------------
+
+Description
+>>>>>>>>>>>
+
+Usage: EARLIEST(field [, time_field]). Return the earliest value of a field based on timestamp ordering. This function enriches each event with the earliest value found within the specified grouping.
+
+* field: mandatory. The field to return the earliest value for.
+* time_field: optional. The field to use for time-based ordering. Defaults to @timestamp if not specified.
+
+Note: This function requires Calcite to be enabled (see `Configuration`_ section above).
+
+Example::
+
+    os> source=events | eventstats earliest(message) by host;
+    fetched rows / total rows = 4/4
+    +------------+-------------------+---------+---------------------+
+    | event_id   | message           | host    | earliest(message)   |
+    |------------+-------------------+---------+---------------------|
+    | 1          | Starting up       | server1 | Starting up         |
+    | 2          | Processing data   | server1 | Starting up         |
+    | 3          | Initializing      | server2 | Initializing        |
+    | 4          | Ready to serve    | server2 | Initializing        |
+    +------------+-------------------+---------+---------------------+
+
+Example with custom time field::
+
+    os> source=events | eventstats earliest(status, event_time) by category;
+    fetched rows / total rows = 4/4
+    +------------+----------+----------+------------------------------+
+    | event_id   | status   | category | earliest(status, event_time) |
+    |------------+----------+----------+------------------------------|
+    | 1          | pending  | orders   | pending                      |
+    | 2          | active   | orders   | pending                      |
+    | 3          | active   | users    | active                       |
+    | 4          | inactive | users    | active                       |
+    +------------+----------+----------+------------------------------+
+
+
+LATEST (Since 3.3)
+-------------------
+
+Description
+>>>>>>>>>>>
+
+Usage: LATEST(field [, time_field]). Return the latest value of a field based on timestamp ordering. This function enriches each event with the latest value found within the specified grouping.
+
+* field: mandatory. The field to return the latest value for.
+* time_field: optional. The field to use for time-based ordering. Defaults to @timestamp if not specified.
+
+Note: This function requires Calcite to be enabled (see `Configuration`_ section above).
+
+Example::
+
+    os> source=events | eventstats latest(message) by host;
+    fetched rows / total rows = 4/4
+    +------------+-------------------+---------+------------------+
+    | event_id   | message           | host    | latest(message)  |
+    |------------+-------------------+---------+------------------|
+    | 1          | Starting up       | server1 | Shutting down    |
+    | 2          | Shutting down     | server1 | Shutting down    |
+    | 3          | Initializing      | server2 | Maintenance mode |
+    | 4          | Maintenance mode  | server2 | Maintenance mode |
+    +------------+-------------------+---------+------------------+
+
+Example with custom time field::
+
+    os> source=events | eventstats latest(status, event_time) by category;
+    fetched rows / total rows = 4/4
+    +------------+----------+----------+----------------------------+
+    | event_id   | status   | category | latest(status, event_time) |
+    |------------+----------+----------+----------------------------|
+    | 1          | pending  | orders   | cancelled                  |
+    | 2          | cancelled| orders   | cancelled                  |
+    | 3          | active   | users    | inactive                   |
+    | 4          | inactive | users    | inactive                   |
+    +------------+----------+----------+----------------------------+
 
 
 Configuration
@@ -348,7 +428,7 @@ The example show calculate the average age, sum age and count of events of all t
 
 PPL query::
 
-    PPL> source=accounts | eventstats avg(age), sum(age), count() by gender;
+    os> source=accounts | eventstats avg(age), sum(age), count() by gender;
     fetched rows / total rows = 4/4
     +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+----------+---------+
     | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | avg(age)           | sum(age) | count() |
@@ -367,7 +447,7 @@ The example gets the count of age by the interval of 10 years and group by gende
 
 PPL query::
 
-    PPL> source=accounts | eventstats count() as cnt by span(age, 5) as age_span, gender
+    os> source=accounts | eventstats count() as cnt by span(age, 5) as age_span, gender
     fetched rows / total rows = 4/4
     +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+-----+
     | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | cnt |
