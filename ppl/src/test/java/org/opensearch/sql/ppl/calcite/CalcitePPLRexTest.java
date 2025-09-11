@@ -226,4 +226,77 @@ public class CalcitePPLRexTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  @Test
+  public void testRexSedMode() {
+    String ppl = "source=EMP | rex field=ENAME mode=sed 's/([A-Z])([a-z]*)/\\1/' | fields ENAME";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(ENAME=[REGEXP_REPLACE($1, '([A-Z])([a-z]*)', '$1')])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT REGEXP_REPLACE(`ENAME`, '([A-Z])([a-z]*)', '$1') `ENAME`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testRexWithOffsetField() {
+    String ppl =
+        "source=EMP | rex field=ENAME '(?<first>[A-Z]).*' offset_field=offsets | fields ENAME,"
+            + " first, offsets";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(ENAME=[$1], first=[REX_EXTRACT($1, '(?<first>[A-Z]).*', 1)],"
+            + " offsets=[REX_OFFSET($1, '(?<first>[A-Z]).*')])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `ENAME`, `REX_EXTRACT`(`ENAME`, '(?<first>[A-Z]).*', 1) `first`,"
+            + " `REX_OFFSET`(`ENAME`, '(?<first>[A-Z]).*') `offsets`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testRexWithMultipleNamedGroupsAndOffsetField() {
+    String ppl =
+        "source=EMP | rex field=ENAME '(?<first>[A-Z])(?<rest>.*)' offset_field=positions | fields"
+            + " ENAME, first, rest, positions";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(ENAME=[$1], first=[REX_EXTRACT($1, '(?<first>[A-Z])(?<rest>.*)', 1)],"
+            + " rest=[REX_EXTRACT($1, '(?<first>[A-Z])(?<rest>.*)', 2)], positions=[REX_OFFSET($1,"
+            + " '(?<first>[A-Z])(?<rest>.*)')])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `ENAME`, `REX_EXTRACT`(`ENAME`, '(?<first>[A-Z])(?<rest>.*)', 1) `first`,"
+            + " `REX_EXTRACT`(`ENAME`, '(?<first>[A-Z])(?<rest>.*)', 2) `rest`,"
+            + " `REX_OFFSET`(`ENAME`, '(?<first>[A-Z])(?<rest>.*)') `positions`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testRexWithMaxMatchAndOffsetField() {
+    String ppl =
+        "source=EMP | rex field=ENAME '(?<letter>[A-Z])' max_match=3 offset_field=positions |"
+            + " fields ENAME, letter, positions";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(ENAME=[$1], letter=[REX_EXTRACT_MULTI($1, '(?<letter>[A-Z])', 1, 3)],"
+            + " positions=[REX_OFFSET($1, '(?<letter>[A-Z])')])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `ENAME`, `REX_EXTRACT_MULTI`(`ENAME`, '(?<letter>[A-Z])', 1, 3) `letter`,"
+            + " `REX_OFFSET`(`ENAME`, '(?<letter>[A-Z])') `positions`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
 }
