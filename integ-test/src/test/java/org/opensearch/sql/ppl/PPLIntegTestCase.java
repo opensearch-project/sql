@@ -20,6 +20,7 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Rule;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
@@ -289,15 +290,24 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     public static boolean enabled = true;
   }
 
-  public boolean isPushdownEnabled() throws IOException {
-    return Boolean.parseBoolean(
-        getClusterSetting(Settings.Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(), "transient"));
+  /**
+   * We check pushdown disabled instead enabled because enabled is the default value of pushdown
+   * config whatever calcite is enabled or not.
+   */
+  public boolean isPushdownDisabled() throws IOException {
+    return isCalciteEnabled()
+        && !Boolean.parseBoolean(
+            getClusterSetting(Settings.Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(), "transient"));
+  }
+
+  protected void enabledOnlyWhenPushdownIsEnabled() throws IOException {
+    Assume.assumeTrue("This test is only for when push down is enabled", !isPushdownDisabled());
   }
 
   public void updatePushdownSettings() throws IOException {
     String pushdownEnabled = String.valueOf(GlobalPushdownConfig.enabled);
     assert !pushdownEnabled.isBlank() : "Pushdown enabled setting cannot be empty";
-    if (isPushdownEnabled() != GlobalPushdownConfig.enabled) {
+    if (isPushdownDisabled() == GlobalPushdownConfig.enabled) {
       LOG.info(
           "Updating {} to {}",
           Settings.Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(),

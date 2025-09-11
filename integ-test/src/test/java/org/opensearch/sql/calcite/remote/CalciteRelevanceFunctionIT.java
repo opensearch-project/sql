@@ -22,7 +22,7 @@ public class CalciteRelevanceFunctionIT extends RelevanceFunctionIT {
   // optimization rule `FilterProjectTransposeRule` to push down the filter through the project.
   @Override
   public void not_pushdown_throws_exception() throws IOException {
-    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    enabledOnlyWhenPushdownIsEnabled();
     String query1 =
         "SOURCE="
             + TEST_INDEX_BEER

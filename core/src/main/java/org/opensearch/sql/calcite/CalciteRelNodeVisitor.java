@@ -41,6 +41,9 @@ import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.hint.HintStrategyTable;
+import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
@@ -847,6 +850,41 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     groupExprList.addAll(node.getGroupExprList());
     Pair<List<RexNode>, List<AggCall>> aggregationAttributes =
         aggregateWithTrimming(groupExprList, aggExprList, context);
+    // Add group by columns
+    List<RexNode> aliasedGroupByList =
+        aggregationAttributes.getLeft().stream()
+            .map(this::extractAliasLiteral)
+            .flatMap(Optional::stream)
+            .map(ref -> ((RexLiteral) ref).getValueAs(String.class))
+            .map(context.relBuilder::field)
+            .map(f -> (RexNode) f)
+            .collect(Collectors.toList());
+
+    // add stats hint to LogicalAggregation
+    Argument.ArgumentMap statsArgs = Argument.ArgumentMap.of(node.getArgExprList());
+    Boolean bucketNullable =
+        (Boolean) statsArgs.getOrDefault(Argument.BUCKET_NULLABLE, Literal.TRUE).getValue();
+    if (!bucketNullable && !aliasedGroupByList.isEmpty()) {
+      final RelHint statHits =
+          RelHint.builder("stats_args").hintOption(Argument.BUCKET_NULLABLE, "false").build();
+      assert context.relBuilder.peek() instanceof LogicalAggregate
+          : "Stats hits should be added to LogicalAggregate";
+      context.relBuilder.hints(statHits);
+      context
+          .relBuilder
+          .getCluster()
+          .setHintStrategies(
+              HintStrategyTable.builder()
+                  .hintStrategy(
+                      "stats_args",
+                      (hint, rel) -> {
+                        return rel instanceof LogicalAggregate;
+                      })
+                  .build());
+      context.relBuilder.filter(
+          aliasedGroupByList.stream().map(context.relBuilder::isNotNull)
+          .collect(Collectors.toList()));
+    }
 
     // schema reordering
     // As an example, in command `stats count() by colA, colB`,
@@ -859,15 +897,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<RexNode> aggRexList =
         outputFields.subList(numOfOutputFields - numOfAggList, numOfOutputFields);
     reordered.addAll(aggRexList);
-    // Add group by columns
-    List<RexNode> aliasedGroupByList =
-        aggregationAttributes.getLeft().stream()
-            .map(this::extractAliasLiteral)
-            .flatMap(Optional::stream)
-            .map(ref -> ((RexLiteral) ref).getValueAs(String.class))
-            .map(context.relBuilder::field)
-            .map(f -> (RexNode) f)
-                .collect(Collectors.toList());
     reordered.addAll(aliasedGroupByList);
     context.relBuilder.project(reordered);
 

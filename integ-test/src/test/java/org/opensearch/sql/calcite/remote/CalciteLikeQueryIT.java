@@ -20,7 +20,7 @@ public class CalciteLikeQueryIT extends LikeQueryIT {
   @Override
   @Test
   public void test_convert_field_text_to_keyword() throws IOException {
-    Assume.assumeTrue("Pushdown is not enabled, skipping this test.", isPushdownEnabled());
+    enabledOnlyWhenPushdownIsEnabled();
     super.test_convert_field_text_to_keyword();
   }
 }
