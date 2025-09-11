@@ -6,8 +6,6 @@
 package org.opensearch.sql.utils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.util.DefaultIndenter;
-import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -20,8 +18,6 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 public class YamlFormatter {
 
   private static final ObjectMapper YAML_MAPPER = initObjectMapper();
-  private static final String LINE_BREAK_LF = "\n";
-  private static final String DOUBLE_SPACE_INDENT = "  ";
 
   private static ObjectMapper initObjectMapper() {
     YAMLFactory yamlFactory = new YAMLFactory();
@@ -33,17 +29,7 @@ public class YamlFormatter {
 
     ObjectMapper mapper = new ObjectMapper(yamlFactory);
     mapper.enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
-    mapper.setDefaultPrettyPrinter(getLfPrettyPrinter());
     return mapper;
-  }
-
-  /** Use LF as line break regardless of OS */
-  private static DefaultPrettyPrinter getLfPrettyPrinter() {
-    DefaultIndenter lfIndenter = new DefaultIndenter(DOUBLE_SPACE_INDENT, LINE_BREAK_LF);
-    DefaultPrettyPrinter pp = new DefaultPrettyPrinter();
-    pp.indentObjectsWith(lfIndenter);
-    pp.indentArraysWith(lfIndenter);
-    return pp;
   }
 
   /** Formats any object into YAML */

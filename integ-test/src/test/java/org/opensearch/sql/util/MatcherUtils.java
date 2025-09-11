@@ -426,9 +426,20 @@ public class MatcherUtils {
     return s.replaceAll("pitId=[^,]+,", "pitId=*,");
   }
 
-  public static void assertYamlEqualsJsonIgnoreId(String expected, String actual) {
-    String cleanedYaml = cleanUpYaml(jsonToYaml(actual));
-    assertEquals(formatMessage(expected, cleanedYaml), expected, cleanedYaml);
+  public static void assertYamlEqualsJsonIgnoreId(String expectedYaml, String actualJson) {
+    String cleanedYaml = cleanUpYaml(jsonToYaml(actualJson));
+    assertYamlEquals(expectedYaml, cleanedYaml);
+  }
+
+  public static void assertYamlEquals(String expected, String actual) {
+    String normalizedExpected = normalizeLineBreaks(expected).trim();
+    String normalizedActual = normalizeLineBreaks(actual).trim();
+    assertEquals(
+        formatMessage(normalizedExpected, normalizedActual), normalizedExpected, normalizedActual);
+  }
+
+  private static String normalizeLineBreaks(String s) {
+    return s.replace("\r\n", "\n").replace("\r", "\n");
   }
 
   private static String cleanUpYaml(String s) {
