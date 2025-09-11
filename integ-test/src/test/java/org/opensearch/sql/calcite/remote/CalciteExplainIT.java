@@ -608,6 +608,25 @@ public class CalciteExplainIT extends ExplainIT {
                 + " head 100 | head 10 from 10 "));
   }
 
+  @Test
+  public void testExplainSortOnMetricsNoBucketNullable() throws IOException {
+    // TODO enhancement later: https://github.com/opensearch-project/sql/issues/4282
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_agg_sort_on_metrics1.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() by"
+                + " state | sort `count()`"));
+
+    expected = loadExpectedPlan("explain_agg_sort_on_metrics2.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() by"
+                + " gender, state | sort `count()`"));
+  }
+
   /**
    * Executes the PPL query and returns the result as a string with windows-style line breaks
    * replaced with Unix-style ones.
