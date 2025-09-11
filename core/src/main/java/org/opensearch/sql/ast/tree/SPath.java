@@ -110,7 +110,8 @@ public class SPath extends UnresolvedPlan {
           this.child,
           AstDSL.let(AstDSL.field(outField), AstDSL.field(AstDSL.qualifiedName(pathFieldParts))));
     }
-    // Since pathField must be on a segment line, there's a leftover leading dot if we didn't match the whole path.
+    // Since pathField must be on a segment line, there's a leftover leading dot if we didn't match
+    // the whole path.
     reducedPath = reducedPath.substring(1);
 
     return AstDSL.eval(
