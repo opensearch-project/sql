@@ -18,11 +18,14 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 
+import static org.opensearch.sql.common.utils.StringUtils.unquoteIdentifier;
+
 @ToString
 @EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
 @AllArgsConstructor
 public class SPath extends UnresolvedPlan {
+    private final char DOT = '.';
   private UnresolvedPlan child;
 
   private final String inField;
@@ -48,7 +51,7 @@ public class SPath extends UnresolvedPlan {
   }
 
   private String fullPath() {
-    return this.inField + "." + this.path;
+    return this.inField + DOT + this.path;
   }
 
   /**
@@ -61,12 +64,12 @@ public class SPath extends UnresolvedPlan {
    */
   private String computePathField(RelBuilder builder) {
     RelDataType rowType = builder.peek().getRowType();
-    List<String> fieldNames = rowType.getFieldNames();
+    List<String> rowFieldNames = rowType.getFieldNames();
 
     String result = this.inField;
-    String matchField = this.fullPath() + "."; // Trailing '.' simplifies checking for segments
+    String matchField = this.fullPath() + DOT; // Trailing '.' simplifies checking for segments
 
-    for (String name : fieldNames) {
+    for (String name : rowFieldNames) {
       if (!matchField.startsWith(name)) {
         continue;
       }
@@ -78,14 +81,6 @@ public class SPath extends UnresolvedPlan {
     return result;
   }
 
-  private String unescape(String s) {
-    if (s.startsWith("`") && s.endsWith("`")) {
-      return s.substring(1, s.length() - 1);
-    } else {
-      return s;
-    }
-  }
-
   /**
    * Convert this `spath` expression to an equivalent `json_extract` eval.
    *
@@ -95,13 +90,13 @@ public class SPath extends UnresolvedPlan {
   public Eval rewriteAsEval(CalcitePlanContext context) {
     String outField = this.outField;
     if (outField == null) {
-      outField = unescape(this.path);
+      outField = unquoteIdentifier(this.path);
     }
 
     String pathField = computePathField(context.relBuilder);
     String reducedPath = this.fullPath().substring(pathField.length());
 
-    String[] pathFieldParts = unescape(pathField).split("\\.");
+    String[] pathFieldParts = unquoteIdentifier(pathField).split("\\.");
 
     if (reducedPath.isEmpty()) {
       // Special case: We're spath-extracting a path that already exists in the data. This is just a
@@ -121,6 +116,6 @@ public class SPath extends UnresolvedPlan {
             AstDSL.function(
                 "json_extract",
                 AstDSL.field(AstDSL.qualifiedName(pathFieldParts)),
-                AstDSL.stringLiteral(unescape(reducedPath)))));
+                AstDSL.stringLiteral(unquoteIdentifier(reducedPath)))));
   }
 }
