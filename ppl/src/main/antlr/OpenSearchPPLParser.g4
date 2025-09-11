@@ -529,7 +529,7 @@ bySpanClause
    ;
 
 spanClause
-   : SPAN LT_PRTHS fieldExpression COMMA value = literalValue (unit = timespanUnit)? RT_PRTHS
+   : SPAN LT_PRTHS (fieldExpression COMMA)? value = literalValue (unit = timespanUnit)? RT_PRTHS
    ;
 
 sortbyClause
