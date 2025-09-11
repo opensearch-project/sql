@@ -175,7 +175,11 @@ MAX
 Description
 >>>>>>>>>>>
 
-Usage: MAX(expr). Returns the maximum value of expr.
+Usage: MAX(expr). Returns the maximum value of expr. For numeric fields, returns the largest numeric value. For non-numeric fields, returns the lexicographically largest value.
+
+MAX(*) calculates the maximum value across all numeric fields.
+
+Note: Non-numeric field support and MAX(*) require Calcite to be enabled (see `Configuration`_ section above) and are available since 3.3.0.
 
 Example::
 
@@ -187,13 +191,37 @@ Example::
     | 36       |
     +----------+
 
+Example with non-numeric field::
+
+    os> source=accounts | stats max(firstname);
+    fetched rows / total rows = 1/1
+    +----------------+
+    | max(firstname) |
+    |----------------|
+    | Nanette        |
+    +----------------+
+
+Example with all numeric fields::
+
+    os> source=accounts | stats max(*);
+    fetched rows / total rows = 1/1
+    +---------------------+--------------+----------+
+    | max(account_number) | max(balance) | max(age) |
+    |---------------------+--------------+----------|
+    | 18                  | 39225        | 36       |
+    +---------------------+--------------+----------+
+
 MIN
 ---
 
 Description
 >>>>>>>>>>>
 
-Usage: MIN(expr). Returns the minimum value of expr.
+Usage: MIN(expr). Returns the minimum value of expr. For numeric fields, returns the smallest numeric value. For non-numeric fields, returns the lexicographically smallest value.
+
+MIN(*) calculates the minimum value across all numeric fields.
+
+Note: Non-numeric field support and MIN(*) require Calcite to be enabled (see `Configuration`_ section above) and are available since 3.3.0.
 
 Example::
 
@@ -204,6 +232,26 @@ Example::
     |----------|
     | 28       |
     +----------+
+
+Example with non-numeric field::
+
+    os> source=accounts | stats min(firstname);
+    fetched rows / total rows = 1/1
+    +----------------+
+    | min(firstname) |
+    |----------------|
+    | Amber          |
+    +----------------+
+
+Example with all numeric fields::
+
+    os> source=accounts | stats min(*);
+    fetched rows / total rows = 1/1
+    +---------------------+--------------+----------+
+    | min(account_number) | min(balance) | min(age) |
+    |---------------------+--------------+----------|
+    | 1                   | 4180         | 28       |
+    +---------------------+--------------+----------+
 
 VAR_SAMP
 --------
