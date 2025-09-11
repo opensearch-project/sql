@@ -6,6 +6,8 @@
 package org.opensearch.sql.utils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.util.DefaultIndenter;
+import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -17,28 +19,37 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
  */
 public class YamlFormatter {
 
-  private static final ObjectMapper YAML_MAPPER;
+  private static final ObjectMapper YAML_MAPPER = initObjectMapper();
+  private static final String LINE_BREAK_LF = "\n";
+  private static final String DOUBLE_SPACE_INDENT = "  ";
 
-  static {
+  private static ObjectMapper initObjectMapper() {
     YAMLFactory yamlFactory = new YAMLFactory();
     yamlFactory.disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER);
     yamlFactory.enable(YAMLGenerator.Feature.MINIMIZE_QUOTES); // Enable smart quoting
     yamlFactory.enable(
         YAMLGenerator.Feature.ALWAYS_QUOTE_NUMBERS_AS_STRINGS); // Quote numeric strings
     yamlFactory.enable(YAMLGenerator.Feature.INDENT_ARRAYS_WITH_INDICATOR);
-    YAML_MAPPER = new ObjectMapper(yamlFactory);
-    YAML_MAPPER.enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
+
+    ObjectMapper mapper = new ObjectMapper(yamlFactory);
+    mapper.enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
+    mapper.setDefaultPrettyPrinter(getLfPrettyPrinter());
+    return mapper;
   }
 
-  /**
-   * Formats any object into YAML format.
-   *
-   * @param object the object to format
-   * @return YAML-formatted string representation
-   */
+  /** Use LF as line break regardless of OS */
+  private static DefaultPrettyPrinter getLfPrettyPrinter() {
+    DefaultIndenter lfIndenter = new DefaultIndenter(DOUBLE_SPACE_INDENT, LINE_BREAK_LF);
+    DefaultPrettyPrinter pp = new DefaultPrettyPrinter();
+    pp.indentObjectsWith(lfIndenter);
+    pp.indentArraysWith(lfIndenter);
+    return pp;
+  }
+
+  /** Formats any object into YAML */
   public static String formatToYaml(Object object) {
     try {
-      return YAML_MAPPER.writeValueAsString(object);
+      return YAML_MAPPER.writer().withDefaultPrettyPrinter().writeValueAsString(object);
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Failed to format object to YAML", e);
     }
