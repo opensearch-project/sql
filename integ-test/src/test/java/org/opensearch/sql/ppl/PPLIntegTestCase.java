@@ -20,6 +20,7 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Rule;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
@@ -81,6 +82,22 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
 
   protected String executeCsvQuery(String query) throws IOException {
     return executeCsvQuery(query, true);
+  }
+
+  protected void verifyExplainException(String query, String expectedErrorMessage) {
+    ResponseException e = assertThrows(ResponseException.class, () -> explainQueryToString(query));
+    try {
+      String responseBody = getResponseBody(e.getResponse(), true);
+      JSONObject errorResponse = new JSONObject(responseBody);
+      String actualErrorMessage = errorResponse.getJSONObject("error").getString("details");
+      assertEquals(expectedErrorMessage, actualErrorMessage);
+    } catch (IOException | JSONException ex) {
+      throw new RuntimeException("Failed to parse error response", ex);
+    }
+  }
+
+  protected static String source(String index, String query) {
+    return String.format("source=%s | %s", index, query);
   }
 
   protected void timing(MapBuilder<String, Long> builder, String query, String ppl)
@@ -168,6 +185,23 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
             "persistent", Settings.Key.CALCITE_ENGINE_ENABLED.getKeyValue(), "false"));
   }
 
+  public static void withCalciteEnabled(Runnable f) throws IOException {
+    boolean isCalciteEnabled = isCalciteEnabled();
+    if (isCalciteEnabled) f.run();
+    else {
+      try {
+        updateClusterSettings(
+            new SQLIntegTestCase.ClusterSetting(
+                "persistent", Key.CALCITE_ENGINE_ENABLED.getKeyValue(), "true"));
+        f.run();
+      } finally {
+        updateClusterSettings(
+            new SQLIntegTestCase.ClusterSetting(
+                "persistent", Settings.Key.CALCITE_ENGINE_ENABLED.getKeyValue(), "false"));
+      }
+    }
+  }
+
   public static void allowCalciteFallback() throws IOException {
     updateClusterSettings(
         new SQLIntegTestCase.ClusterSetting(
@@ -206,6 +240,12 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
         LOG.info("Reset {} back to disabled", Settings.Key.CALCITE_FALLBACK_ALLOWED.name());
       }
     }
+  }
+
+  public static void supportAllJoinTypes() throws IOException {
+    updateClusterSettings(
+        new SQLIntegTestCase.ClusterSetting(
+            "persistent", Key.CALCITE_SUPPORT_ALL_JOIN_TYPES.getKeyValue(), "true"));
   }
 
   public static void withSettings(Key setting, String value, Runnable f) throws IOException {
@@ -259,6 +299,10 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   public boolean isPushdownEnabled() throws IOException {
     return Boolean.parseBoolean(
         getClusterSetting(Settings.Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(), "transient"));
+  }
+
+  protected void enabledOnlyWhenPushdownIsEnabled() throws IOException {
+    Assume.assumeTrue("This test is only for when push down is enabled", isPushdownEnabled());
   }
 
   public void updatePushdownSettings() throws IOException {

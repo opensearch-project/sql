@@ -13,7 +13,6 @@ import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 
 import java.io.IOException;
 import java.util.Locale;
-import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.ppl.ExplainIT;
@@ -68,6 +67,39 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   // Only for Calcite
+  @Ignore("https://github.com/opensearch-project/OpenSearch/issues/3725")
+  public void testJoinWithCriteriaAndMaxOption() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_bank | join max=1 left=l right=r on"
+            + " l.account_number=r.account_number opensearch-sql_test_index_bank";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_join_with_criteria_max_option.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  // Only for Calcite
+  @Ignore("https://github.com/opensearch-project/OpenSearch/issues/3725")
+  public void testJoinWithFieldListAndMaxOption() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_bank | join type=inner max=1 account_number"
+            + " opensearch-sql_test_index_bank";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_join_with_fields_max_option.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  // Only for Calcite
+  @Test
+  public void testJoinWithFieldList() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_bank | join type=outer account_number"
+            + " opensearch-sql_test_index_bank";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_join_with_fields.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  // Only for Calcite
   @Test
   public void supportPushDownSortMergeJoin() throws IOException {
     String query =
@@ -82,7 +114,7 @@ public class CalciteExplainIT extends ExplainIT {
   @Ignore("We've supported script push down on text field")
   @Test
   public void supportPartialPushDown() throws IOException {
-    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    enabledOnlyWhenPushdownIsEnabled();
     // field `address` is text type without keyword subfield, so we cannot push it down.
     String query =
         "source=opensearch-sql_test_index_account | where (state = 'Seattle' or age < 10) and (age"
@@ -96,7 +128,7 @@ public class CalciteExplainIT extends ExplainIT {
   @Ignore("We've supported script push down on text field")
   @Test
   public void supportPartialPushDown_NoPushIfAllFailed() throws IOException {
-    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    enabledOnlyWhenPushdownIsEnabled();
     // field `address` is text type without keyword subfield, so we cannot push it down.
     String query =
         "source=opensearch-sql_test_index_account | where (address = '671 Bristol Street' or age <"
@@ -154,7 +186,7 @@ public class CalciteExplainIT extends ExplainIT {
   @Ignore("We've supported script push down on text field")
   @Test
   public void supportPartialPushDownScript() throws IOException {
-    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    enabledOnlyWhenPushdownIsEnabled();
     // field `address` is text type without keyword subfield, so we cannot push it down.
     // But the second condition can be translated to script, so the second one is pushed down.
     String query =
@@ -182,7 +214,7 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testSkipScriptEncodingOnExtendedFormat() throws IOException {
-    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    enabledOnlyWhenPushdownIsEnabled();
     String query =
         "source=opensearch-sql_test_index_account | where address = '671 Bristol Street' and age -"
             + " 2 = 30 | fields firstname, age, address";
@@ -254,7 +286,7 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void noPushDownForAggOnWindow() throws IOException {
-    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    enabledOnlyWhenPushdownIsEnabled();
     String query =
         "source=opensearch-sql_test_index_account | patterns address method=BRAIN  | stats count()"
             + " by patterns_field";
@@ -266,7 +298,7 @@ public class CalciteExplainIT extends ExplainIT {
   // Only for Calcite
   @Test
   public void supportPushDownScriptOnTextField() throws IOException {
-    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    enabledOnlyWhenPushdownIsEnabled();
     String result =
         explainQueryToString(
             "explain source=opensearch-sql_test_index_account | where length(address) > 0 | eval"
@@ -339,8 +371,9 @@ public class CalciteExplainIT extends ExplainIT {
     assertJsonEqualsIgnoreId(expected, result);
   }
 
+  @Test
   public void testEventstatsDistinctCountExplain() throws IOException {
-    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    enabledOnlyWhenPushdownIsEnabled();
     String query =
         "source=opensearch-sql_test_index_account | eventstats dc(state) as distinct_states";
     var result = explainQueryToString(query);
@@ -350,7 +383,7 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testEventstatsDistinctCountFunctionExplain() throws IOException {
-    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    enabledOnlyWhenPushdownIsEnabled();
     String query =
         "source=opensearch-sql_test_index_account | eventstats distinct_count(state) as"
             + " distinct_states by gender";
@@ -374,7 +407,7 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testExplainRegexMatchInWhereWithScriptPushdown() throws IOException {
-    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    enabledOnlyWhenPushdownIsEnabled();
     String query =
         String.format("source=%s | where regex_match(name, 'hello')", TEST_INDEX_STRINGS);
     var result = explainQueryToString(query);
@@ -384,7 +417,7 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testExplainRegexMatchInEvalWithOutScriptPushdown() throws IOException {
-    Assume.assumeTrue("This test is only for push down enabled", isPushdownEnabled());
+    enabledOnlyWhenPushdownIsEnabled();
     String query =
         String.format(
             "source=%s |eval has_hello = regex_match(name, 'hello') | fields has_hello",
@@ -417,6 +450,57 @@ public class CalciteExplainIT extends ExplainIT {
             String.format(
                 "source=%s | stats earliest(message, created_at) as earliest_message,"
                     + " latest(message, created_at) as latest_message by level",
+                TEST_INDEX_LOGS)));
+  }
+
+  // Only for Calcite
+  @Test
+  public void testExplainOnFirstLast() throws IOException {
+    String expected = loadExpectedPlan("explain_first_last.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | stats first(firstname) as first_name, last(firstname) as"
+                    + " last_name by gender",
+                TEST_INDEX_BANK)));
+  }
+
+  // Only for Calcite
+  public void testExplainOnEventstatsEarliestLatest() throws IOException {
+    String expected = loadExpectedPlan("explain_eventstats_earliest_latest.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | eventstats earliest(message) as earliest_message, latest(message) as"
+                    + " latest_message by server",
+                TEST_INDEX_LOGS)));
+  }
+
+  // Only for Calcite
+  @Test
+  public void testExplainOnEventstatsEarliestLatestWithCustomTimeField() throws IOException {
+    String expected = loadExpectedPlan("explain_eventstats_earliest_latest_custom_time.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | eventstats earliest(message, created_at) as earliest_message,"
+                    + " latest(message, created_at) as latest_message by level",
+                TEST_INDEX_LOGS)));
+  }
+
+  // Only for Calcite
+  @Test
+  public void testExplainOnEventstatsEarliestLatestNoGroupBy() throws IOException {
+    String expected = loadExpectedPlan("explain_eventstats_earliest_latest_no_group.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | eventstats earliest(message) as earliest_message, latest(message) as"
+                    + " latest_message",
                 TEST_INDEX_LOGS)));
   }
 
@@ -486,6 +570,43 @@ public class CalciteExplainIT extends ExplainIT {
                     + " count() as cnt ]",
                 TEST_INDEX_BANK,
                 TEST_INDEX_BANK)));
+  }
+
+  @Test
+  public void testPushdownLimitIntoAggregation() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_limit_agg_pushdown.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString("source=opensearch-sql_test_index_account | stats count() by state"));
+
+    expected = loadExpectedPlan("explain_limit_agg_pushdown2.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats count() by state | head 100"));
+
+    expected = loadExpectedPlan("explain_limit_agg_pushdown3.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats count() by state | head 100 | head 10"
+                + " from 10 "));
+
+    expected = loadExpectedPlan("explain_limit_agg_pushdown4.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats count() by state | sort state | head"
+                + " 100 | head 10 from 10 "));
+
+    // Don't pushdown the combination of limit and sort
+    expected = loadExpectedPlan("explain_limit_agg_pushdown5.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats count() by state | sort `count()` |"
+                + " head 100 | head 10 from 10 "));
   }
 
   /**
