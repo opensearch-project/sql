@@ -28,6 +28,7 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -56,9 +57,6 @@ import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.QueryExpression;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
-import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan.AggPushDownAction;
-import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan.PushDownAction;
-import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan.PushDownType;
 import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
 
 /** The logical relational operator representing a scan of an OpenSearchIndex type. */
@@ -387,15 +385,27 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     return null;
   }
 
-  public CalciteLogicalIndexScan pushDownLimit(Integer limit, Integer offset) {
+  public AbstractRelNode pushDownLimit(LogicalSort sort, Integer limit, Integer offset) {
     try {
-      CalciteLogicalIndexScan newScan = this.copyWithNewSchema(getRowType());
-      newScan.pushDownContext.add(
-          PushDownAction.of(
-              PushDownType.LIMIT,
-              limit,
-              requestBuilder -> requestBuilder.pushDownLimit(limit, offset)));
-      return newScan;
+      if (pushDownContext.isAggregatePushed()) {
+        // Push down the limit into the aggregation bucket
+        boolean pushed =
+            pushDownContext.getAggPushDownAction().pushDownLimitIntoBucketSize(limit + offset);
+        if (!pushed && offset > 0) return null;
+        CalciteLogicalIndexScan newScan = this.copyWithNewSchema(getRowType());
+        newScan.pushDownContext.add(
+            PushDownAction.of(
+                PushDownType.LIMIT, new LimitDigest(limit, offset), requestBuilder -> {}));
+        return offset > 0 ? sort.copy(sort.getTraitSet(), List.of(newScan)) : newScan;
+      } else {
+        CalciteLogicalIndexScan newScan = this.copyWithNewSchema(getRowType());
+        newScan.pushDownContext.add(
+            PushDownAction.of(
+                PushDownType.LIMIT,
+                new LimitDigest(limit, offset),
+                requestBuilder -> requestBuilder.pushDownLimit(limit, offset)));
+        return newScan;
+      }
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Cannot pushdown limit {} with offset {}", limit, offset, e);

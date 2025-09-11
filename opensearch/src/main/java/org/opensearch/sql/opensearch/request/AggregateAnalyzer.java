@@ -60,6 +60,7 @@ import org.opensearch.search.aggregations.bucket.composite.TermsValuesSourceBuil
 import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
 import org.opensearch.search.aggregations.metrics.ExtendedStats;
 import org.opensearch.search.aggregations.metrics.PercentilesAggregationBuilder;
+import org.opensearch.search.aggregations.metrics.TopHitsAggregationBuilder;
 import org.opensearch.search.aggregations.support.ValueType;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
 import org.opensearch.search.sort.SortOrder;
@@ -323,6 +324,25 @@ public class AggregateAnalyzer {
                   .size(helper.inferValue(args.getLast(), Integer.class))
                   .from(0),
               new TopHitsParser(aggFieldName));
+          case FIRST -> {
+            TopHitsAggregationBuilder firstBuilder =
+                AggregationBuilders.topHits(aggFieldName).size(1).from(0);
+            if (!args.isEmpty()) {
+              firstBuilder.fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null);
+            }
+            yield Pair.of(firstBuilder, new TopHitsParser(aggFieldName, true));
+          }
+          case LAST -> {
+            TopHitsAggregationBuilder lastBuilder =
+                AggregationBuilders.topHits(aggFieldName)
+                    .size(1)
+                    .from(0)
+                    .sort("_doc", org.opensearch.search.sort.SortOrder.DESC);
+            if (!args.isEmpty()) {
+              lastBuilder.fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null);
+            }
+            yield Pair.of(lastBuilder, new TopHitsParser(aggFieldName, true));
+          }
           case PERCENTILE_APPROX -> {
             PercentilesAggregationBuilder aggBuilder =
                 helper

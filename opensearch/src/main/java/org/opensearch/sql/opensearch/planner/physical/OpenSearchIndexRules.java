@@ -40,7 +40,8 @@ public class OpenSearchIndexRules {
           COUNT_STAR_INDEX_SCAN,
           LIMIT_INDEX_SCAN,
           SORT_INDEX_SCAN,
-          DEDUP_PUSH_DOWN,
+          // TODO enable if https://github.com/opensearch-project/OpenSearch/issues/3725 resolved
+          // DEDUP_PUSH_DOWN,
           SORT_PROJECT_EXPR_TRANSPOSE,
           EXPAND_COLLATION_ON_PROJECT_EXPR);
 
