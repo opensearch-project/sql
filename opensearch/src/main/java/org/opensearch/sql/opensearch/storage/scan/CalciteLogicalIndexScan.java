@@ -224,6 +224,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
 
     AbstractAction action;
     if (pushDownContext.isAggregatePushed()) {
+      // For aggregate, we do nothing on query builder but only change the schema of the scan.
       action = requestBuilder -> {};
     } else {
       Map<String, String> aliasMapping = this.osIndex.getAliasMapping();
@@ -235,10 +236,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       action = requestBuilder -> requestBuilder.pushDownProjectStream(projectedFields.stream());
     }
     newScan.pushDownContext.add(
-        PushDownAction.of(
-            PushDownType.PROJECT,
-            newSchema.getFieldNames(),
-            action));
+        PushDownAction.of(PushDownType.PROJECT, newSchema.getFieldNames(), action));
     return newScan;
   }
 

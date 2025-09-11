@@ -9,7 +9,6 @@ import static java.util.Objects.requireNonNull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import lombok.Getter;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelRule;
@@ -57,7 +56,6 @@ public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectInd
     final SelectedColumns selectedColumns = new SelectedColumns();
     final RexVisitorImpl<Void> visitor =
         new RexVisitorImpl<Void>(true) {
-
           @Override
           public Void visitInputRef(RexInputRef inputRef) {
             if (!selectedColumns.contains(inputRef.getIndex())) {
@@ -68,7 +66,8 @@ public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectInd
         };
     visitor.visitEach(project.getProjects());
     // Only do push down when an actual projection happens
-    if (!selectedColumns.isEmpty() && !selectedColumns.isIdentity(scan.getRowType().getFieldCount())) {
+    if (!selectedColumns.isEmpty()
+        && !selectedColumns.isIdentity(scan.getRowType().getFieldCount())) {
       Mapping mapping = Mappings.target(selectedColumns, scan.getRowType().getFieldCount());
       CalciteLogicalIndexScan newScan = scan.pushDownProject(selectedColumns);
       final List<RexNode> newProjectRexNodes = RexUtil.apply(mapping, project.getProjects());
@@ -108,10 +107,7 @@ public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectInd
             .withOperandSupplier(
                 b0 ->
                     b0.operand(LogicalProject.class)
-                        .oneInput(
-                            b1 ->
-                                b1.operand(CalciteLogicalIndexScan.class)
-                                    .noInputs()));
+                        .oneInput(b1 -> b1.operand(CalciteLogicalIndexScan.class).noInputs()));
 
     @Override
     default OpenSearchProjectIndexScanRule toRule() {
