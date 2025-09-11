@@ -666,6 +666,7 @@ statsFunctionName
    | PERCENTILE_APPROX
    | MEDIAN
    | LIST
+   | VALUES
    | FIRST
    | EARLIEST
    | LATEST

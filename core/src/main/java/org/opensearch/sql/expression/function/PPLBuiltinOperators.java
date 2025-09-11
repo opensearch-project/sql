@@ -36,6 +36,7 @@ import org.opensearch.sql.calcite.udf.udaf.LogPatternAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.NullableSqlAvgAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.PercentileApproxFunction;
 import org.opensearch.sql.calcite.udf.udaf.TakeAggFunction;
+import org.opensearch.sql.calcite.udf.udaf.ValuesAggFunction;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -450,6 +451,12 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlAggFunction LIST =
       createUserDefinedAggFunction(
           ListAggFunction.class, "LIST", PPLReturnTypes.STRING_ARRAY, PPLOperandTypes.ANY_SCALAR);
+  public static final SqlAggFunction VALUES =
+      createUserDefinedAggFunction(
+          ValuesAggFunction.class,
+          "VALUES",
+          PPLReturnTypes.STRING_ARRAY,
+          PPLOperandTypes.ANY_SCALAR);
 
   public static final SqlOperator ENHANCED_COALESCE =
       new EnhancedCoalesceFunction().toUDF("COALESCE");
