@@ -231,7 +231,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -264,7 +263,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.calcite.CalcitePlanContext;
-import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -411,25 +409,40 @@ public class PPLFuncImpTable {
     aggExternalFunctionRegistry.put(functionName, Pair.of(signature, handler));
   }
 
+  public void validateAggFunctionSignature(
+      BuiltinFunctionName functionName, RexNode field, List<RexNode> argList) {
+    var implementation = getImplementation(functionName);
+    validateFunctionArgs(implementation, functionName, field, argList);
+  }
+
   public RelBuilder.AggCall resolveAgg(
       BuiltinFunctionName functionName,
       boolean distinct,
       RexNode field,
       List<RexNode> argList,
       CalcitePlanContext context) {
-    var implementation = aggExternalFunctionRegistry.get(functionName);
-    if (implementation == null) {
-      implementation = aggFunctionRegistry.get(functionName);
-    }
-    if (implementation == null) {
-      throw new IllegalStateException(String.format("Cannot resolve function: %s", functionName));
-    }
+    var implementation = getImplementation(functionName);
+
+    // Validation is done based on original argument types to generate error from user perspective.
+    validateFunctionArgs(implementation, functionName, field, argList);
+
+    var handler = implementation.getValue();
+    return handler.apply(distinct, field, argList, context);
+  }
+
+  static void validateFunctionArgs(
+      Pair<CalciteFuncSignature, AggHandler> implementation,
+      BuiltinFunctionName functionName,
+      RexNode field,
+      List<RexNode> argList) {
     CalciteFuncSignature signature = implementation.getKey();
+
     List<RelDataType> argTypes = new ArrayList<>();
     if (field != null) {
       argTypes.add(field.getType());
     }
-    // Currently only PERCENTILE_APPROX and TAKE have additional arguments.
+
+    // Currently only PERCENTILE_APPROX, TAKE, EARLIEST, and LATEST have additional arguments.
     // Their additional arguments will always come as a map of <argName, value>
     List<RelDataType> additionalArgTypes =
         argList.stream().map(PlanUtils::derefMapCall).map(RexNode::getType).collect(Collectors.toList());
@@ -447,8 +460,18 @@ public class PPLFuncImpTable {
               signature.getTypeChecker().getAllowedSignatures(),
               getActualSignature(argTypes)));
     }
-    var handler = implementation.getValue();
-    return handler.apply(distinct, field, argList, context);
+  }
+
+  private Pair<CalciteFuncSignature, AggHandler> getImplementation(
+      BuiltinFunctionName functionName) {
+    var implementation = aggExternalFunctionRegistry.get(functionName);
+    if (implementation == null) {
+      implementation = aggFunctionRegistry.get(functionName);
+    }
+    if (implementation == null) {
+      throw new IllegalStateException(String.format("Cannot resolve function: %s", functionName));
+    }
+    return implementation;
   }
 
 
@@ -496,10 +519,10 @@ public class PPLFuncImpTable {
       }
     } catch (Exception e) {
       throw new ExpressionEvaluationException(
-              String.format(
-                      "Cannot resolve function: %s, arguments: %s, caused by: %s",
-                      functionName, getActualSignature(argTypes), e.getMessage()),
-              e);
+          String.format(
+              "Cannot resolve function: %s, arguments: %s, caused by: %s",
+              functionName, getActualSignature(argTypes), e.getMessage()),
+          e);
     }
     StringJoiner allowedSignatures = new StringJoiner(",");
     for (var implement : implementList) {
@@ -509,9 +532,9 @@ public class PPLFuncImpTable {
       }
     }
     throw new ExpressionEvaluationException(
-            String.format(
-                    "%s function expects {%s}, but got %s",
-                    functionName, allowedSignatures, getActualSignature(argTypes)));
+        String.format(
+            "%s function expects {%s}, but got %s",
+            functionName, allowedSignatures, getActualSignature(argTypes)));
   }
 
   /**
@@ -1079,21 +1102,6 @@ public class PPLFuncImpTable {
       register(functionName, handler, typeChecker);
     }
 
-    private static RexNode resolveTimeField(List<RexNode> argList, CalcitePlanContext ctx) {
-      if (argList.isEmpty()) {
-        // Try to find @timestamp field
-        var timestampField =
-            ctx.relBuilder.peek().getRowType().getField("@timestamp", false, false);
-        if (timestampField == null) {
-          throw new IllegalArgumentException(
-              "Default @timestamp field not found. Please specify a time field explicitly.");
-        }
-        return ctx.rexBuilder.makeInputRef(timestampField.getType(), timestampField.getIndex());
-      } else {
-        return PlanUtils.derefMapCall(argList.get(0));
-      }
-    }
-
     void populate() {
       registerOperator(MAX, SqlStdOperatorTable.MAX);
       registerOperator(MIN, SqlStdOperatorTable.MIN);
@@ -1123,8 +1131,7 @@ public class PPLFuncImpTable {
               return ctx.relBuilder.count(distinct, null, field);
             }
           },
-          wrapSqlOperandTypeChecker(
-              SqlStdOperatorTable.COUNT.getOperandTypeChecker(), COUNT.name(), false));
+          wrapSqlOperandTypeChecker(PPLOperandTypes.OPTIONAL_ANY, COUNT.name(), false));
 
       register(
           PERCENTILE_APPROX,
@@ -1171,20 +1178,22 @@ public class PPLFuncImpTable {
       register(
           EARLIEST,
           (distinct, field, argList, ctx) -> {
-            RexNode timeField = resolveTimeField(argList, ctx);
-            return ctx.relBuilder.aggregateCall(SqlStdOperatorTable.ARG_MIN, field, timeField);
+            List<RexNode> args = resolveTimeField(argList, ctx);
+            return UserDefinedFunctionUtils.makeAggregateCall(
+                SqlStdOperatorTable.ARG_MIN, List.of(field), args, ctx.relBuilder);
           },
           wrapSqlOperandTypeChecker(
-              SqlStdOperatorTable.ARG_MIN.getOperandTypeChecker(), EARLIEST.name(), false));
+              PPLOperandTypes.ANY_OPTIONAL_TIMESTAMP, EARLIEST.name(), false));
 
       register(
           LATEST,
           (distinct, field, argList, ctx) -> {
-            RexNode timeField = resolveTimeField(argList, ctx);
-            return ctx.relBuilder.aggregateCall(SqlStdOperatorTable.ARG_MAX, field, timeField);
+            List<RexNode> args = resolveTimeField(argList, ctx);
+            return UserDefinedFunctionUtils.makeAggregateCall(
+                SqlStdOperatorTable.ARG_MAX, List.of(field), args, ctx.relBuilder);
           },
           wrapSqlOperandTypeChecker(
-              SqlStdOperatorTable.ARG_MAX.getOperandTypeChecker(), LATEST.name(), false));
+              PPLOperandTypes.ANY_OPTIONAL_TIMESTAMP, EARLIEST.name(), false));
 
       // Register FIRST function - uses document order
       register(
@@ -1208,7 +1217,6 @@ public class PPLFuncImpTable {
     }
   }
 
-
   /**
    * Get a string representation of the argument types expressed in ExprType for error messages.
    *
@@ -1224,6 +1232,21 @@ public class PPLFuncImpTable {
         + "]";
   }
 
+  static List<RexNode> resolveTimeField(List<RexNode> argList, CalcitePlanContext ctx) {
+    if (argList.isEmpty()) {
+      // Try to find @timestamp field
+      var timestampField = ctx.relBuilder.peek().getRowType().getField("@timestamp", false, false);
+      if (timestampField == null) {
+        throw new IllegalArgumentException(
+            "Default @timestamp field not found. Please specify a time field explicitly.");
+      }
+      return List.of(
+          ctx.rexBuilder.makeInputRef(timestampField.getType(), timestampField.getIndex()));
+    } else {
+      return argList.stream().map(PlanUtils::derefMapCall).collect(Collectors.toList());
+    }
+  }
+
   /**
    * Wraps a {@link SqlOperandTypeChecker} into a {@link PPLTypeChecker} for use in function
    * signature validation.
@@ -1236,42 +1259,42 @@ public class PPLFuncImpTable {
   private static PPLTypeChecker wrapSqlOperandTypeChecker(
         SqlOperandTypeChecker typeChecker, String functionName, boolean isUserDefinedFunction) {
     PPLTypeChecker pplTypeChecker;
-    // Only the composite operand type checker for UDFs are concerned here.
-    if (isUserDefinedFunction
-            && typeChecker instanceof CompositeOperandTypeChecker) {
-        // UDFs implement their own composite type checkers, which always use OR logic for
-        // argument types. Verifying the composition type would require accessing a protected field in
-        // CompositeOperandTypeChecker. If access to this field is not allowed, type checking will
-        // be skipped, so we avoid checking the composition type here.
-        CompositeOperandTypeChecker compositeTypeChecker = (CompositeOperandTypeChecker) typeChecker;
-        pplTypeChecker = PPLTypeChecker.wrapComposite(compositeTypeChecker, false);
-    } else if (typeChecker instanceof ImplicitCastOperandTypeChecker) {
-        ImplicitCastOperandTypeChecker implicitCastTypeChecker = (ImplicitCastOperandTypeChecker) typeChecker;
-        pplTypeChecker = PPLTypeChecker.wrapFamily(implicitCastTypeChecker);
+    if (typeChecker instanceof ImplicitCastOperandTypeChecker) {
+      ImplicitCastOperandTypeChecker implicitCastTypeChecker = (ImplicitCastOperandTypeChecker) typeChecker;
+      pplTypeChecker = PPLTypeChecker.wrapFamily(implicitCastTypeChecker);
     } else if (typeChecker instanceof CompositeOperandTypeChecker) {
-        // If compositeTypeChecker contains operand checkers other than family type checkers or
-        // other than OR compositions, the function with be registered with a null type checker,
-        // which means the function will not be type checked.
-        CompositeOperandTypeChecker compositeTypeChecker = (CompositeOperandTypeChecker) typeChecker;
-        try {
-            pplTypeChecker = PPLTypeChecker.wrapComposite(compositeTypeChecker, true);
-        } catch (IllegalArgumentException | UnsupportedOperationException e) {
-            logger.debug(
-                    String.format(
-                            "Failed to create composite type checker for operator: %s. Will skip its type"
-                                    + " checking",
-                            functionName),
-                    e);
-            pplTypeChecker = null;
-        }
+      CompositeOperandTypeChecker compositeTypeChecker = (CompositeOperandTypeChecker) typeChecker;
+      // UDFs implement their own composite type checkers, which always use OR logic for
+      // argument
+      // types. Verifying the composition type would require accessing a protected field in
+      // CompositeOperandTypeChecker. If access to this field is not allowed, type checking will
+      // be skipped, so we avoid checking the composition type here.
+
+      // If compositeTypeChecker contains operand checkers other than family type checkers or
+      // other than OR compositions, the function with be registered with a null type checker,
+      // which means the function will not be type checked.
+      try {
+        pplTypeChecker = PPLTypeChecker.wrapComposite(compositeTypeChecker, !isUserDefinedFunction);
+      } catch (IllegalArgumentException | UnsupportedOperationException e) {
+        logger.debug(
+            String.format(
+                "Failed to create composite type checker for operator: %s. Will skip its type"
+                    + " checking",
+                functionName),
+            e);
+        pplTypeChecker = null;
+      }
     } else if (typeChecker instanceof SameOperandTypeChecker) {
-        // Comparison operators like EQUAL, GREATER_THAN, LESS_THAN, etc.
-        // SameOperandTypeCheckers like COALESCE, IFNULL, etc.
-        SameOperandTypeChecker comparableTypeChecker = (SameOperandTypeChecker) typeChecker;
-        pplTypeChecker = PPLTypeChecker.wrapComparable(comparableTypeChecker);
+      SameOperandTypeChecker comparableTypeChecker = (SameOperandTypeChecker) typeChecker;
+      // Comparison operators like EQUAL, GREATER_THAN, LESS_THAN, etc.
+      // SameOperandTypeCheckers like COALESCE, IFNULL, etc.
+      pplTypeChecker = PPLTypeChecker.wrapComparable(comparableTypeChecker);
     } else if (typeChecker instanceof UDFOperandMetadata.UDTOperandMetadata) {
-        UDFOperandMetadata.UDTOperandMetadata udtOperandMetadata = (UDFOperandMetadata.UDTOperandMetadata) typeChecker;
-        pplTypeChecker = PPLTypeChecker.wrapUDT(udtOperandMetadata.getAllowSignatures());
+      UDFOperandMetadata.UDTOperandMetadata udtOperandMetadata =
+          (UDFOperandMetadata.UDTOperandMetadata) typeChecker;
+      pplTypeChecker = PPLTypeChecker.wrapUDT(udtOperandMetadata.allowedParamTypes());
+    } else if (typeChecker != null) {
+      pplTypeChecker = PPLTypeChecker.wrapDefault(typeChecker);
     } else {
         logger.info(
                 "Cannot create type checker for function: {}. Will skip its type checking", functionName);
