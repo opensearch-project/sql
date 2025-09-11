@@ -18,6 +18,7 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasItems;
 import static org.junit.Assert.assertEquals;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import com.google.gson.JsonParser;
 import java.math.BigDecimal;
@@ -37,10 +38,12 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
+import org.opensearch.sql.utils.YamlFormatter;
 
 public class MatcherUtils {
 
   private static final Logger LOG = LogManager.getLogger();
+  private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
 
   /**
    * Assert field value in object by a custom matcher and getter to access the field.
@@ -421,5 +424,30 @@ public class MatcherUtils {
 
   private static String eliminatePid(String s) {
     return s.replaceAll("pitId=[^,]+,", "pitId=*,");
+  }
+
+  public static void assertYamlEqualsJsonIgnoreId(String expected, String actual) {
+    String cleanedYaml = cleanUpYaml(jsonToYaml(actual));
+    assertEquals(formatMessage(expected, cleanedYaml), expected, cleanedYaml);
+  }
+
+  private static String cleanUpYaml(String s) {
+    return s.replaceAll("\"utcTimestamp\":\\d+", "\"utcTimestamp\": 0")
+        .replaceAll("rel#\\d+", "rel#")
+        .replaceAll("RelSubset#\\d+", "RelSubset#")
+        .replaceAll("pitId=[^,]+,", "pitId=*,");
+  }
+
+  private static String jsonToYaml(String json) {
+    try {
+      Object jsonObject = JSON_MAPPER.readValue(json, Object.class);
+      return YamlFormatter.formatToYaml(jsonObject);
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to convert JSON to YAML", e);
+    }
+  }
+
+  private static String formatMessage(String expected, String actual) {
+    return String.format("### Expected ###\n%s\n### Actual###\n%s\n", expected, actual);
   }
 }
