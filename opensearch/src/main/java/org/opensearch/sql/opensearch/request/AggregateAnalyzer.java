@@ -423,7 +423,7 @@ public class AggregateAnalyzer {
   private static boolean isStringType(ExprType fieldType) {
     return fieldType instanceof OpenSearchTextType || fieldType == ExprCoreType.STRING;
   }
-  
+
   private static ValuesSourceAggregationBuilder<?> createBucketAggregation(
       Integer group, Project project, AggregateAnalyzer.AggregateBuilderHelper helper) {
     return createBucket(group, project, helper);

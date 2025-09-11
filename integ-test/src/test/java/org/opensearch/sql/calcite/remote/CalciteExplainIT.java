@@ -624,7 +624,7 @@ public class CalciteExplainIT extends ExplainIT {
         expected,
         explainQueryToString("source=opensearch-sql_test_index_account | stats min(firstname)"));
   }
-  
+
   @Test
   public void testExplainSortOnMetricsNoBucketNullable() throws IOException {
     // TODO enhancement later: https://github.com/opensearch-project/sql/issues/4282
