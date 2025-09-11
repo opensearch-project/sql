@@ -52,7 +52,7 @@ public interface PPLTypeChecker {
 
   /**
    * Get a string representation of the allowed signatures. The format is like {@code
-   * [STRING,STRING],[INTEGER,INTEGER]}.
+   * [STRING,STRING]|[INTEGER,INTEGER]}.
    *
    * @return a string representation of the allowed signatures
    */
@@ -227,8 +227,8 @@ public interface PPLTypeChecker {
       for (SqlOperandTypeChecker rule : allowedRules) {
         if (rule instanceof FamilyOperandTypeChecker) {
             FamilyOperandTypeChecker familyOperandTypeChecker = (FamilyOperandTypeChecker) rule;
-            if (builder.length() > 0) {
-            builder.append(",");
+          if (builder.length() > 0) {
+            builder.append("|");
           }
           builder.append(PPLTypeChecker.getFamilySignatures(familyOperandTypeChecker));
         } else {
@@ -352,6 +352,87 @@ public interface PPLTypeChecker {
     }
   }
 
+  class PPLDefaultTypeChecker implements PPLTypeChecker {
+    private final SqlOperandTypeChecker internal;
+
+    public PPLDefaultTypeChecker(SqlOperandTypeChecker typeChecker) {
+      internal = typeChecker;
+    }
+
+    @Override
+    public boolean checkOperandTypes(List<RelDataType> types) {
+      // Basic operand count validation
+      if (!internal.getOperandCountRange().isValidCount(types.size())) {
+        return false;
+      }
+
+      // If the internal checker is a FamilyOperandTypeChecker, use type family validation
+      if (internal instanceof FamilyOperandTypeChecker) {
+        FamilyOperandTypeChecker familyChecker = (FamilyOperandTypeChecker) internal;
+        List<SqlTypeFamily> families =
+            IntStream.range(0, types.size())
+                .mapToObj(familyChecker::getOperandSqlTypeFamily)
+                .collect(Collectors.toList());
+        return validateOperands(families, types);
+      }
+
+      // For other types of checkers, we can only validate operand count
+      // This is a fallback - we assume the types are valid if count is correct
+      return true;
+    }
+
+    @Override
+    public String getAllowedSignatures() {
+      if (internal instanceof FamilyOperandTypeChecker) {
+        FamilyOperandTypeChecker familyChecker = (FamilyOperandTypeChecker) internal;
+        return getFamilySignatures(familyChecker);
+      } else {
+        // Generate a generic signature based on operand count range
+        int min = internal.getOperandCountRange().getMin();
+        int max = internal.getOperandCountRange().getMax();
+
+        if (min == -1 || max == -1) {
+          return "[ANY...]";
+        } else if (min == max) {
+          return "[" + String.join(",", Collections.nCopies(min, "ANY")) + "]";
+        } else {
+          List<String> signatures = new ArrayList<>();
+          final int MAX_ARGS = 10;
+          max = Math.min(MAX_ARGS, max);
+          for (int i = min; i <= max; i++) {
+            signatures.add("[" + String.join(",", Collections.nCopies(i, "ANY")) + "]");
+          }
+          return String.join("|", signatures);
+        }
+      }
+    }
+
+    @Override
+    public List<List<ExprType>> getParameterTypes() {
+      if (internal instanceof FamilyOperandTypeChecker) {
+        FamilyOperandTypeChecker familyChecker = (FamilyOperandTypeChecker) internal;
+        return getExprSignatures(familyChecker);
+      } else {
+        // For unknown type checkers, return UNKNOWN types
+        int min = internal.getOperandCountRange().getMin();
+        int max = internal.getOperandCountRange().getMax();
+
+        if (min == -1 || max == -1) {
+          // Variable arguments - return a single signature with UNKNOWN
+          return List.of(List.of(ExprCoreType.UNKNOWN));
+        } else {
+          List<List<ExprType>> parameterTypes = new ArrayList<>();
+          final int MAX_ARGS = 10;
+          max = Math.min(MAX_ARGS, max);
+          for (int i = min; i <= max; i++) {
+            parameterTypes.add(Collections.nCopies(i, ExprCoreType.UNKNOWN));
+          }
+          return parameterTypes;
+        }
+      }
+    }
+  }
+
   /**
    * Creates a {@link PPLFamilyTypeChecker} with a fixed operand count, validating that each operand
    * belongs to its corresponding {@link SqlTypeFamily}.
@@ -425,6 +506,22 @@ public interface PPLTypeChecker {
 
   static PPLComparableTypeChecker wrapComparable(SameOperandTypeChecker typeChecker) {
     return new PPLComparableTypeChecker(typeChecker);
+  }
+
+  /**
+   * Creates a {@link PPLDefaultTypeChecker} that wraps any {@link SqlOperandTypeChecker} and
+   * provides basic type checking functionality when specialized PPL type checkers cannot be used.
+   *
+   * <p>This is a fallback wrapper that provides basic operand count validation and attempts to
+   * extract type family information when possible. It should be used when other specialized PPL
+   * type checkers (like {@link PPLFamilyTypeChecker}, {@link PPLCompositeTypeChecker}, etc.) are
+   * not applicable.
+   *
+   * @param typeChecker the Calcite type checker to wrap
+   * @return a {@link PPLDefaultTypeChecker} that provides basic type checking functionality
+   */
+  static PPLDefaultTypeChecker wrapDefault(SqlOperandTypeChecker typeChecker) {
+    return new PPLDefaultTypeChecker(typeChecker);
   }
 
   /**
@@ -616,6 +713,6 @@ public interface PPLTypeChecker {
                         .map(t -> t == ExprCoreType.UNDEFINED ? "ANY" : t.toString())
                         .collect(Collectors.joining(","))
                     + "]")
-        .collect(Collectors.joining(","));
+        .collect(Collectors.joining("|"));
   }
 }
