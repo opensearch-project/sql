@@ -33,7 +33,8 @@ public class MaxMinParser implements MetricParser {
       return Collections.singletonMap(agg.getName(), null);
     } else {
       Object value = source.values().iterator().next();
-      // Convert all values to strings to handle mixed types consistently with lexicographical sorting
+      // Convert all values to strings to handle mixed types consistently with lexicographical
+      // sorting
       String stringValue = value != null ? value.toString() : null;
       return Collections.singletonMap(agg.getName(), stringValue);
     }

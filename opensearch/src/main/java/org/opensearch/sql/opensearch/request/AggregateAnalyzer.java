@@ -401,8 +401,8 @@ public class AggregateAnalyzer {
   }
 
   /**
-   * Check if the field type is a string-like type that requires TopHits aggregation
-   * for lexicographical sorting instead of native OpenSearch min/max aggregations.
+   * Check if the field type is a string-like type that requires TopHits aggregation for
+   * lexicographical sorting instead of native OpenSearch min/max aggregations.
    */
   private static boolean isStringType(ExprType fieldType) {
     return fieldType instanceof OpenSearchTextType || fieldType == ExprCoreType.STRING;
