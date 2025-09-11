@@ -274,4 +274,120 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
     verifySchema(response, schema("arithmetic_list", "array"));
     verifyDataRows(response, rows(List.of("9", "14", "3")));
   }
+
+  // ==================== VALUES Function Tests ====================
+
+  @Test
+  public void testValuesFunctionWithBoolean() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats values(boolean_value) as bool_values",
+                TEST_INDEX_DATATYPE_NONNUMERIC));
+    verifySchema(response, schema("bool_values", "array"));
+    // VALUES returns unique values sorted lexicographically
+    verifyDataRows(response, rows(List.of("true")));
+  }
+
+  @Test
+  public void testValuesFunctionWithInteger() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats values(integer_number) as int_values",
+                TEST_INDEX_DATATYPE_NUMERIC));
+    verifySchema(response, schema("int_values", "array"));
+    verifyDataRows(response, rows(List.of("2")));
+  }
+
+  @Test
+  public void testValuesFunctionWithString() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats values(keyword_value) as keyword_values",
+                TEST_INDEX_DATATYPE_NONNUMERIC));
+    verifySchema(response, schema("keyword_values", "array"));
+    verifyDataRows(response, rows(List.of("keyword")));
+  }
+
+  @Test
+  public void testValuesFunctionWithDuplicates() throws IOException {
+    // Test that VALUES deduplicates values
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | head 10 | stats values(bool0) as unique_bool_values",
+                TEST_INDEX_CALCS));
+    verifySchema(response, schema("unique_bool_values", "array"));
+    // VALUES should return unique values only, sorted lexicographically
+    // The actual values depend on the test data - bool0 contains true/false values
+    assert response.has("datarows");
+    // Verify that we get at most 2 unique boolean values (true/false)
+    assert response.getJSONArray("datarows").getJSONArray(0).getJSONArray(0).length() <= 2;
+  }
+
+  @Test
+  public void testValuesFunctionWithNullValues() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | head 5 | stats values(int0) as int_values", TEST_INDEX_CALCS));
+    verifySchema(response, schema("int_values", "array"));
+    // Nulls are filtered out by values function
+    // VALUES returns sorted unique values
+    verifyDataRows(response, rows(List.of("1", "7")));
+  }
+
+  @Test
+  public void testValuesFunctionGroupBy() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | head 5 | stats values(num0) as num_values by str0", TEST_INDEX_CALCS));
+    verifySchema(response, schema("num_values", "array"), schema("str0", null, "string"));
+
+    // Group by str0 field - should have different groups with their respective unique num0 values
+    assert response.has("datarows");
+  }
+
+  @Test
+  public void testValuesFunctionMultipleFields() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | head 3 | stats values(str2) as str_values, values(int2) as int_values",
+                TEST_INDEX_CALCS));
+    verifySchema(response, schema("str_values", "array"), schema("int_values", "array"));
+
+    // VALUES should return unique sorted values for each field
+    assert response.has("datarows");
+    // Values should be unique and sorted lexicographically
+    verifyDataRows(response, rows(List.of("one", "three", "two"), List.of("-4", "5")));
+  }
+
+  @Test
+  public void testValuesFunctionWithObjectField() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats values(object_value.first) as object_field_values",
+                TEST_INDEX_DATATYPE_NONNUMERIC));
+    verifySchema(response, schema("object_field_values", "array"));
+    verifyDataRows(response, rows(List.of("Dale")));
+  }
+
+  @Test
+  public void testValuesFunctionEmptyResult() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | where str0 = 'NONEXISTENT' | stats values(num0) as empty_values",
+                TEST_INDEX_CALCS));
+    verifySchema(response, schema("empty_values", "array"));
+
+    assert response.has("datarows");
+    // When no records match, VALUES returns null (not an empty list)
+    verifyDataRows(response, rows((List<Object>) null));
+  }
 }

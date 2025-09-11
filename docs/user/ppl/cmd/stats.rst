@@ -34,6 +34,8 @@ The following table dataSources the aggregation functions and also indicates how
 +----------+-------------+-------------+
 | LIST     | Ignore      | Ignore      |
 +----------+-------------+-------------+
+| VALUES   | Ignore      | Ignore      |
++----------+-------------+-------------+
 
 
 Syntax
@@ -577,6 +579,52 @@ Example with result field rename::
     | ["Amber","Hattie","Nanette","Dale"] |
     +-------------------------------------+
 
+VALUES
+------
+
+Description
+>>>>>>>>>>>
+
+Version: 3.3.0 (Calcite engine only)
+
+Usage: VALUES(expr). Collects all unique values from the specified expression into a sorted array. Values are converted to strings, nulls are filtered, and duplicates are removed.
+The function returns up to 10,000 unique values sorted in lexicographical order.
+
+* expr: The field expression to collect unique values from.
+* This aggregation function doesn't support Array, Struct, Object field types.
+* Returns distinct values only (no duplicates)
+* Values are sorted in lexicographical order
+
+Example with string fields::
+
+    PPL> source=accounts | stats values(firstname);
+    fetched rows / total rows = 1/1
+    +-------------------------------------+
+    | values(firstname)                   |
+    |-------------------------------------|
+    | ["Amber","Dale","Hattie","Nanette"] |
+    +-------------------------------------+
+
+Example with numeric fields (sorted as strings)::
+
+    PPL> source=accounts | stats values(age);
+    fetched rows / total rows = 1/1
+    +---------------------------+
+    | values(age)               |
+    |---------------------------|
+    | ["28","32","33","36","39"] |
+    +---------------------------+
+
+Example with result field rename::
+
+    PPL> source=accounts | stats values(firstname) as unique_names;
+    fetched rows / total rows = 1/1
+    +-------------------------------------+
+    | unique_names                        |
+    |-------------------------------------|
+    | ["Amber","Dale","Hattie","Nanette"] |
+    +-------------------------------------+
+
 Example 1: Calculate the count of events
 ========================================
 
@@ -833,3 +881,17 @@ PPL query::
     | 1   | hattiebond@netagy.com |
     +-----+-----------------------+
 
+Example 16: Collect unique values in a field using VALUES
+==========================================================
+
+The example shows how to collect all unique firstname values, sorted lexicographically with duplicates removed.
+
+PPL query::
+
+    PPL> source=accounts | stats values(firstname);
+    fetched rows / total rows = 1/1
+    +-------------------------------------+
+    | values(firstname)                   |
+    |-------------------------------------|
+    | ["Amber","Dale","Hattie","Nanette"] |
+    +-------------------------------------+

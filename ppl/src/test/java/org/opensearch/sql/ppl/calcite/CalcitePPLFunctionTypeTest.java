@@ -175,4 +175,26 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
         "source=EMP | eval log2 = log2(ENAME, JOB) | fields log2",
         "LOG2 function expects {[INTEGER]|[DOUBLE]}, but got [STRING,STRING]");
   }
+
+  @Test
+  public void testValuesFunctionWithScalarTypes() {
+    // Test VALUES function with supported scalar types
+    Assert.assertNotNull(getRelNode("source=EMP | stats values(ENAME) as unique_names"));
+    Assert.assertNotNull(getRelNode("source=EMP | stats values(EMPNO) as unique_ids"));
+    Assert.assertNotNull(getRelNode("source=EMP | stats values(SAL) as unique_salaries"));
+  }
+
+  @Test
+  public void testValuesFunctionWithArrayArgType() {
+    // Test VALUES function with array expression (which is not a supported scalar type)
+    Exception e =
+        Assert.assertThrows(
+            ExpressionEvaluationException.class,
+            () -> getRelNode("source=EMP | stats values(array(ENAME, JOB)) as unique_values"));
+    verifyErrorMessageContains(
+        e,
+        "Aggregation function VALUES expects field type"
+            + " {[BYTE],[SHORT],[INTEGER],[LONG],[FLOAT],[DOUBLE],[STRING],[BOOLEAN],[DATE],[TIME],[TIMESTAMP],[IP],[BINARY]},"
+            + " but got [ARRAY]");
+  }
 }
