@@ -68,6 +68,7 @@ import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
 import org.opensearch.sql.opensearch.response.agg.ArgMaxMinParser;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
@@ -278,12 +279,46 @@ public class AggregateAnalyzer {
           helper.build(
               !args.isEmpty() ? args.getFirst() : null, AggregationBuilders.count(aggFieldName)),
           new SingleValueParser(aggFieldName));
-      case MIN -> Pair.of(
-          helper.build(args.getFirst(), AggregationBuilders.min(aggFieldName)),
-          new SingleValueParser(aggFieldName));
-      case MAX -> Pair.of(
-          helper.build(args.getFirst(), AggregationBuilders.max(aggFieldName)),
-          new SingleValueParser(aggFieldName));
+      case MIN -> {
+        String fieldName = helper.inferNamedField(args.getFirst()).getRootName();
+        ExprType fieldType = helper.fieldTypes.get(fieldName);
+
+        if (fieldType instanceof OpenSearchTextType) {
+          yield Pair.of(
+                  AggregationBuilders.topHits(aggFieldName)
+                          .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)
+                          .size(1)
+                          .from(0)
+                          .sort(
+                                  helper.inferNamedField(args.getFirst()).getReferenceForTermQuery(),
+                                  SortOrder.ASC),
+                  new ArgMaxMinParser(aggFieldName));
+        } else {
+          yield Pair.of(
+                  helper.build(args.getFirst(), AggregationBuilders.min(aggFieldName)),
+                  new SingleValueParser(aggFieldName));
+        }
+      }
+      case MAX -> {
+        String fieldName = helper.inferNamedField(args.getFirst()).getRootName();
+        ExprType fieldType = helper.fieldTypes.get(fieldName);
+
+        if (fieldType instanceof OpenSearchTextType) {
+          yield Pair.of(
+                  AggregationBuilders.topHits(aggFieldName)
+                          .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)
+                          .size(1)
+                          .from(0)
+                          .sort(
+                                  helper.inferNamedField(args.getFirst()).getReferenceForTermQuery(),
+                                  SortOrder.DESC),
+                  new ArgMaxMinParser(aggFieldName));
+        } else {
+          yield Pair.of(
+                  helper.build(args.getFirst(), AggregationBuilders.max(aggFieldName)),
+                  new SingleValueParser(aggFieldName));
+        }
+      }
       case VAR_SAMP -> Pair.of(
           helper.build(args.getFirst(), AggregationBuilders.extendedStats(aggFieldName)),
           new StatsParser(ExtendedStats::getVarianceSampling, aggFieldName));

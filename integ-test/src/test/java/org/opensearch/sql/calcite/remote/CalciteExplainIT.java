@@ -556,6 +556,22 @@ public class CalciteExplainIT extends ExplainIT {
                 + " head 100 | head 10 from 10 "));
   }
 
+  @Test
+  public void testExplainMaxOnStringField() throws IOException {
+    String expected = loadExpectedPlan("explain_max_string_field.json");
+    assertJsonEqualsIgnoreId(
+            expected,
+            explainQueryToString("source=opensearch-sql_test_index_account | stats max(firstname)"));
+  }
+
+  @Test
+  public void testExplainMinOnStringField() throws IOException {
+    String expected = loadExpectedPlan("explain_min_string_field.json");
+    assertJsonEqualsIgnoreId(
+            expected,
+            explainQueryToString("source=opensearch-sql_test_index_account | stats min(firstname)"));
+  }
+
   /**
    * Executes the PPL query and returns the result as a string with windows-style line breaks
    * replaced with Unix-style ones.
