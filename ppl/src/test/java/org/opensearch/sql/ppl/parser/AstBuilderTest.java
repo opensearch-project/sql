@@ -60,7 +60,6 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.mockito.Mockito;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.DataType;
@@ -74,29 +73,13 @@ import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
-import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
-import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
+import org.opensearch.sql.ppl.AstPlanningTest;
 import org.opensearch.sql.utils.SystemIndexUtils;
 
-public class AstBuilderTest {
+public class AstBuilderTest extends AstPlanningTest {
 
   @Rule public ExpectedException exceptionRule = ExpectedException.none();
-
-  private final Settings settings = Mockito.mock(Settings.class);
-
-  private final PPLSyntaxParser parser = new PPLSyntaxParser();
-
-  @Test
-  public void testDynamicSourceClauseThrowsUnsupportedException() {
-    String query = "source=[myindex, logs, fieldIndex=\"test\"]";
-
-    UnsupportedOperationException exception =
-        assertThrows(UnsupportedOperationException.class, () -> plan(query));
-
-    assertEquals(
-        "Dynamic source clause with metadata filters is not supported.", exception.getMessage());
-  }
 
   @Test
   public void testSearchCommand() {
@@ -1074,11 +1057,6 @@ public class AstBuilderTest {
   protected void assertEqual(String query, String expected) {
     Node expectedPlan = plan(expected);
     assertEqual(query, expectedPlan);
-  }
-
-  private Node plan(String query) {
-    AstBuilder astBuilder = new AstBuilder(query, settings);
-    return astBuilder.visit(parser.parse(query));
   }
 
   private String mappingTable(String indexName) {
