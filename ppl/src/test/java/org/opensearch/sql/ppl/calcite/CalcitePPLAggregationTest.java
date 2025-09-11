@@ -718,9 +718,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
-            "LogicalAggregate(group=[{}], max_name=[MAX($0)])\n"
-                    + "  LogicalProject(ENAME=[$1])\n"
-                    + "    LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalAggregate(group=[{}], max_name=[MAX($0)])\n"
+            + "  LogicalProject(ENAME=[$1])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedResult = "max_name=WARD\n";
@@ -733,9 +733,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
-            "LogicalAggregate(group=[{}], min_name=[MIN($0)])\n"
-                    + "  LogicalProject(ENAME=[$1])\n"
-                    + "    LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalAggregate(group=[{}], min_name=[MIN($0)])\n"
+            + "  LogicalProject(ENAME=[$1])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedResult = "min_name=ADAMS\n";
@@ -748,9 +748,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
-            "LogicalAggregate(group=[{}], max_hire_date=[MAX($0)])\n"
-                    + "  LogicalProject(HIREDATE=[$4])\n"
-                    + "    LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalAggregate(group=[{}], max_hire_date=[MAX($0)])\n"
+            + "  LogicalProject(HIREDATE=[$4])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedResult = "max_hire_date=1987-05-23\n";
@@ -763,9 +763,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
-            "LogicalAggregate(group=[{}], min_hire_date=[MIN($0)])\n"
-                    + "  LogicalProject(HIREDATE=[$4])\n"
-                    + "    LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalAggregate(group=[{}], min_hire_date=[MIN($0)])\n"
+            + "  LogicalProject(HIREDATE=[$4])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedResult = "min_hire_date=1980-12-17\n";

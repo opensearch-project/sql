@@ -560,16 +560,16 @@ public class CalciteExplainIT extends ExplainIT {
   public void testExplainMaxOnStringField() throws IOException {
     String expected = loadExpectedPlan("explain_max_string_field.json");
     assertJsonEqualsIgnoreId(
-            expected,
-            explainQueryToString("source=opensearch-sql_test_index_account | stats max(firstname)"));
+        expected,
+        explainQueryToString("source=opensearch-sql_test_index_account | stats max(firstname)"));
   }
 
   @Test
   public void testExplainMinOnStringField() throws IOException {
     String expected = loadExpectedPlan("explain_min_string_field.json");
     assertJsonEqualsIgnoreId(
-            expected,
-            explainQueryToString("source=opensearch-sql_test_index_account | stats min(firstname)"));
+        expected,
+        explainQueryToString("source=opensearch-sql_test_index_account | stats min(firstname)"));
   }
 
   /**

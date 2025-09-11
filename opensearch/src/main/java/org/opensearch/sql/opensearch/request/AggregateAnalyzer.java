@@ -72,6 +72,7 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
 import org.opensearch.sql.opensearch.response.agg.ArgMaxMinParser;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
+import org.opensearch.sql.opensearch.response.agg.MaxMinParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParser;
 import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
@@ -285,18 +286,18 @@ public class AggregateAnalyzer {
 
         if (fieldType instanceof OpenSearchTextType) {
           yield Pair.of(
-                  AggregationBuilders.topHits(aggFieldName)
-                          .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)
-                          .size(1)
-                          .from(0)
-                          .sort(
-                                  helper.inferNamedField(args.getFirst()).getReferenceForTermQuery(),
-                                  SortOrder.ASC),
-                  new ArgMaxMinParser(aggFieldName));
+              AggregationBuilders.topHits(aggFieldName)
+                  .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)
+                  .size(1)
+                  .from(0)
+                  .sort(
+                      helper.inferNamedField(args.getFirst()).getReferenceForTermQuery(),
+                      SortOrder.ASC),
+              new MaxMinParser(aggFieldName));
         } else {
           yield Pair.of(
-                  helper.build(args.getFirst(), AggregationBuilders.min(aggFieldName)),
-                  new SingleValueParser(aggFieldName));
+              helper.build(args.getFirst(), AggregationBuilders.min(aggFieldName)),
+              new SingleValueParser(aggFieldName));
         }
       }
       case MAX -> {
@@ -305,18 +306,18 @@ public class AggregateAnalyzer {
 
         if (fieldType instanceof OpenSearchTextType) {
           yield Pair.of(
-                  AggregationBuilders.topHits(aggFieldName)
-                          .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)
-                          .size(1)
-                          .from(0)
-                          .sort(
-                                  helper.inferNamedField(args.getFirst()).getReferenceForTermQuery(),
-                                  SortOrder.DESC),
-                  new ArgMaxMinParser(aggFieldName));
+              AggregationBuilders.topHits(aggFieldName)
+                  .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)
+                  .size(1)
+                  .from(0)
+                  .sort(
+                      helper.inferNamedField(args.getFirst()).getReferenceForTermQuery(),
+                      SortOrder.DESC),
+              new MaxMinParser(aggFieldName));
         } else {
           yield Pair.of(
-                  helper.build(args.getFirst(), AggregationBuilders.max(aggFieldName)),
-                  new SingleValueParser(aggFieldName));
+              helper.build(args.getFirst(), AggregationBuilders.max(aggFieldName)),
+              new SingleValueParser(aggFieldName));
         }
       }
       case VAR_SAMP -> Pair.of(
