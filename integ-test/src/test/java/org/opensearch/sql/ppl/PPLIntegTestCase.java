@@ -31,6 +31,7 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.util.RetryProcessor;
+import org.opensearch.sql.utils.YamlFormatter;
 
 /** OpenSearch Rest integration test base for PPL testing. */
 public abstract class PPLIntegTestCase extends SQLIntegTestCase {
@@ -57,6 +58,12 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
 
   protected String explainQueryToString(String query) throws IOException {
     return explainQueryToString(query, false);
+  }
+
+  protected String explainQueryToYaml(String query) throws IOException {
+    String jsonResponse = explainQueryToString(query);
+    JSONObject jsonObject = jsonify(jsonResponse);
+    return YamlFormatter.formatToYaml(jsonObject);
   }
 
   protected String explainQueryToString(String query, boolean extended) throws IOException {
