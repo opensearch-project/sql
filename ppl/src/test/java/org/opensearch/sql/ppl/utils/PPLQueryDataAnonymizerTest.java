@@ -366,6 +366,30 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testAppend() {
+    assertEquals(
+        "source=t | stats count() by b | append [ | stats sum(c) by b ]",
+        anonymize("source=t | stats count() by b | append [ | stats sum(c) by b ]"));
+    assertEquals(
+        "source=t | stats count() by b | append [ | stats sum(c) by b ]",
+        anonymize("source=t | stats count() by b | append [ | stats sum(c) by b ]"));
+    assertEquals(
+        "source=t | append [ | where a = *** ]", anonymize("source=t | append [ | where a = 1 ]"));
+    assertEquals(
+        "source=t | stats count() by b | append [source=a | stats sum(c) by b ]",
+        anonymize("source=t | stats count() by b | append [source=a | stats sum(c) by b ]"));
+    assertEquals(
+        "source=t | append [source=b | where a = *** ]",
+        anonymize("source=t | append [source=b | where a = 1 ]"));
+    assertEquals(
+        "source=t | stats count() by b | append [source=a ]",
+        anonymize("source=t | stats count() by b | append [ source=a ]"));
+    assertEquals(
+        "source=t | stats count() by b | append [ ]",
+        anonymize("source=t | stats count() by b | append [ ]"));
+  }
+
+  @Test
   public void testSubqueryAlias() {
     assertEquals("source=t as t1", anonymize("source=t as t1"));
   }
@@ -373,30 +397,53 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testJoin() {
     assertEquals(
-        "source=t | cross join on true s | fields + id",
-        anonymize("source=t | cross join s | fields id"));
+        "source=t | cross join max=0 on *** = *** s | fields + id",
+        anonymize("source=t | cross join on 1=1 s | fields id"));
     assertEquals(
-        "source=t | inner join on id = uid s | fields + id",
+        "source=t | inner join max=0 on id = uid s | fields + id",
         anonymize("source=t | inner join on id = uid s | fields id"));
     assertEquals(
-        "source=t as l | inner join left = l right = r on id = uid s as r | fields + id",
+        "source=t as l | inner join max=0 left = l right = r on id = uid s as r | fields + id",
         anonymize("source=t | join left = l right = r on id = uid s | fields id"));
     assertEquals(
-        "source=t | left join right = r on id = uid s as r | fields + id",
+        "source=t | left join max=0 right = r on id = uid s as r | fields + id",
         anonymize("source=t | left join right = r on id = uid s | fields id"));
     assertEquals(
-        "source=t as t1 | inner join left = t1 right = t2 on id = uid s as t2 | fields + t1.id",
+        "source=t as t1 | inner join max=0 left = t1 right = t2 on id = uid s as t2 | fields +"
+            + " t1.id",
         anonymize("source=t as t1 | inner join on id = uid s as t2 | fields t1.id"));
     assertEquals(
-        "source=t as t1 | right join left = t1 right = t2 on t1.id = t2.id s as t2 | fields +"
+        "source=t as t1 | right join max=0 left = t1 right = t2 on t1.id = t2.id s as t2 | fields +"
             + " t1.id",
-        anonymize("source=t as t1 | right join on t1.id = t2.id s as t2 | fields t1.id"));
+        anonymize("source=t as t1 | right join max=0 on t1.id = t2.id s as t2 | fields t1.id"));
     assertEquals(
-        "source=t as t1 | right join left = t1 right = t2 on t1.id = t2.id [ source=s | fields + id"
-            + " ] as t2 | fields + t1.id",
+        "source=t as t1 | right join max=0 left = t1 right = t2 on t1.id = t2.id [ source=s |"
+            + " fields + id ] as t2 | fields + t1.id",
         anonymize(
-            "source=t as t1 | right join on t1.id = t2.id [ source=s | fields id] as t2 | fields"
-                + " t1.id"));
+            "source=t as t1 | right join max=0 on t1.id = t2.id [ source=s | fields id] as t2 |"
+                + " fields t1.id"));
+    assertEquals(
+        "source=t | inner join max=2 on id = uid s | fields + id",
+        anonymize("source=t | inner join max=2 on id = uid s | fields id"));
+  }
+
+  @Test
+  public void testJoinWithFieldList() {
+    assertEquals(
+        "source=t | join type=inner overwrite=true max=0  s | fields + id",
+        anonymize("source=t | join s | fields id"));
+    assertEquals(
+        "source=t | join type=inner overwrite=true max=0 id s | fields + id",
+        anonymize("source=t | join id s | fields id"));
+    assertEquals(
+        "source=t | join type=left overwrite=false max=0 id1,id2 s | fields + id1",
+        anonymize("source=t | join type=left overwrite=false id1,id2 s | fields id1"));
+    assertEquals(
+        "source=t | join type=left overwrite=false max=0 id1,id2 s | fields + id1",
+        anonymize("source=t | join type=outer overwrite=false id1 id2 s | fields id1"));
+    assertEquals(
+        "source=t | join type=left overwrite=true max=2 id1,id2 s | fields + id1",
+        anonymize("source=t | join type=outer max=2 id1 id2 s | fields id1"));
   }
 
   @Test
