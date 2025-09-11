@@ -65,6 +65,8 @@ task startPrometheus(type: SpawnProcessTask) {
 
 //evaluationDependsOn(':')
 task startOpenSearch(type: SpawnProcessTask) {
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
+
     if( getOSFamilyType() == "windows") {
         command "${path}\\gradlew.bat -p ${plugin_path} runRestTestCluster"
     }
@@ -75,13 +77,39 @@ task startOpenSearch(type: SpawnProcessTask) {
 }
 
 task doctest(type: Exec, dependsOn: ['bootstrap']) {
-
-    commandLine "$projectDir/bin/test-docs"
+    description = 'Run doctest for all files, or specific files if provided'
+    
+    def docs = project.findProperty('docs')
+    def verbose = project.findProperty('verbose')
+    def endpoint = project.findProperty('endpoint')
+    def debug = project.findProperty('debug')
+    
+    // Set environment variables for debug mode
+    if (debug == 'true') {
+        environment 'DOCTEST_DEBUG', 'true'
+    }
+    
+    if (docs) {
+        def args = ['.venv/bin/python', 'test_docs.py']
+        
+        args.addAll(docs.split(',').collect { it.trim() })
+        
+        if (verbose == 'true') {
+            args.add('--verbose')
+        }
+        if (endpoint) {
+            args.addAll(['--endpoint', endpoint])
+        }
+        
+        commandLine args
+    } else {
+        // Full test suite mode (original behavior)
+        commandLine "$projectDir/bin/test-docs"
+    }
 
     doLast {
         // remove the cloned sql-cli folder
         file("$projectDir/sql-cli").deleteDir()
-        println("Doctest Done")
     }
 }
 

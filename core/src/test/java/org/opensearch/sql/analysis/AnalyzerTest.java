@@ -1929,4 +1929,31 @@ class AnalyzerTest extends AnalyzerTestBase {
 
     assertAnalyzeEqual(expectedPlan, patterns);
   }
+
+  @Test
+  public void regex_command_throws_unsupported_exception_with_legacy_engine() {
+    UnsupportedOperationException exception =
+        assertThrows(
+            UnsupportedOperationException.class,
+            () ->
+                analyze(
+                    new org.opensearch.sql.ast.tree.Regex(
+                            field("lastname"), false, stringLiteral("^[A-Z][a-z]+$"))
+                        .attach(relation("schema"))));
+    assertEquals(
+        "Regex is supported only when plugins.calcite.enabled=true", exception.getMessage());
+  }
+
+  @Test
+  public void rex_command_throws_unsupported_operation_exception_in_legacy_engine() {
+    UnsupportedOperationException exception =
+        assertThrows(
+            UnsupportedOperationException.class,
+            () ->
+                analyze(
+                    new org.opensearch.sql.ast.tree.Rex(
+                            field("email"), stringLiteral("(?<user>[^@]+)@(?<domain>.+)"))
+                        .attach(relation("schema"))));
+    assertEquals("Rex is supported only when plugins.calcite.enabled=true", exception.getMessage());
+  }
 }

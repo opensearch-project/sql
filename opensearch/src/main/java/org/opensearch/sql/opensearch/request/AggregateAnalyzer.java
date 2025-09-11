@@ -61,6 +61,7 @@ import org.opensearch.search.aggregations.bucket.composite.TermsValuesSourceBuil
 import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
 import org.opensearch.search.aggregations.metrics.ExtendedStats;
 import org.opensearch.search.aggregations.metrics.PercentilesAggregationBuilder;
+import org.opensearch.search.aggregations.metrics.TopHitsAggregationBuilder;
 import org.opensearch.search.aggregations.support.ValueType;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
 import org.opensearch.search.sort.SortOrder;
@@ -69,6 +70,7 @@ import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
+import org.opensearch.sql.opensearch.response.agg.ArgMaxMinParser;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParser;
 import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
@@ -117,10 +119,10 @@ public class AggregateAnalyzer {
   private AggregateAnalyzer() {}
 
   @RequiredArgsConstructor
-  private static class AggregateBuilderHelper {
-    private final RelDataType rowType;
-    private final Map<String, ExprType> fieldTypes;
-    private final RelOptCluster cluster;
+  static class AggregateBuilderHelper {
+    final RelDataType rowType;
+    final Map<String, ExprType> fieldTypes;
+    final RelOptCluster cluster;
 
     <T extends ValuesSourceAggregationBuilder<T>> T build(RexNode node, T aggBuilder) {
       return build(node, aggBuilder::field, aggBuilder::script);
@@ -208,9 +210,11 @@ public class AggregateAnalyzer {
       List<String> aggFieldNames,
       List<AggregateCall> aggCalls,
       Project project,
-      AggregateBuilderHelper helper) {
+      AggregateBuilderHelper helper)
+      throws PredicateAnalyzer.ExpressionNotAnalyzableException {
     Builder metricBuilder = new AggregatorFactories.Builder();
     List<MetricParser> metricParserList = new ArrayList<>();
+    AggregateFilterAnalyzer aggFilterAnalyzer = new AggregateFilterAnalyzer(helper, project);
 
     for (int i = 0; i < aggCalls.size(); i++) {
       AggregateCall aggCall = aggCalls.get(i);
@@ -219,6 +223,7 @@ public class AggregateAnalyzer {
 
       Pair<AggregationBuilder, MetricParser> builderAndParser =
           createAggregationBuilderAndParser(aggCall, args, aggFieldName, helper);
+      builderAndParser = aggFilterAnalyzer.analyze(builderAndParser, aggCall, aggFieldName);
       metricBuilder.addAggregator(builderAndParser.getLeft());
       metricParserList.add(builderAndParser.getRight());
     }
@@ -305,6 +310,26 @@ public class AggregateAnalyzer {
         return Pair.of(
             helper.build(args.get(0), AggregationBuilders.extendedStats(aggFieldName)),
             new StatsParser(ExtendedStats::getStdDeviationPopulation, aggFieldName));
+      case ARG_MAX:
+        return Pair.of(
+          AggregationBuilders.topHits(aggFieldName)
+              .fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null)
+              .size(1)
+              .from(0)
+              .sort(
+                  helper.inferNamedField(args.get(1)).getRootName(),
+                  org.opensearch.search.sort.SortOrder.DESC),
+          new ArgMaxMinParser(aggFieldName));
+      case ARG_MIN:
+        return Pair.of(
+          AggregationBuilders.topHits(aggFieldName)
+              .fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null)
+              .size(1)
+              .from(0)
+              .sort(
+                  helper.inferNamedField(args.get(1)).getRootName(),
+                  org.opensearch.search.sort.SortOrder.ASC),
+          new ArgMaxMinParser(aggFieldName));
       case OTHER_FUNCTION:
         BuiltinFunctionName functionName =
             BuiltinFunctionName.ofAggregation(aggCall.getAggregation().getName()).get();
@@ -316,6 +341,23 @@ public class AggregateAnalyzer {
                     .size(helper.inferValue(args.get(1), Integer.class))
                     .from(0),
                 new TopHitsParser(aggFieldName));
+          case FIRST:
+            TopHitsAggregationBuilder firstBuilder =
+                AggregationBuilders.topHits(aggFieldName).size(1).from(0);
+            if (!args.isEmpty()) {
+              firstBuilder.fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null);
+            }
+            return Pair.of(firstBuilder, new TopHitsParser(aggFieldName, true));
+          case LAST:
+            TopHitsAggregationBuilder lastBuilder =
+                AggregationBuilders.topHits(aggFieldName)
+                    .size(1)
+                    .from(0)
+                    .sort("_doc", org.opensearch.search.sort.SortOrder.DESC);
+            if (!args.isEmpty()) {
+              lastBuilder.fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null);
+            }
+            return Pair.of(lastBuilder, new TopHitsParser(aggFieldName, true));
           case PERCENTILE_APPROX:
             PercentilesAggregationBuilder aggBuilder =
                 helper

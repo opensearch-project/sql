@@ -17,6 +17,7 @@ EXPLAIN:                            'EXPLAIN';
 FROM:                               'FROM';
 WHERE:                              'WHERE';
 FIELDS:                             'FIELDS';
+FIELD:                              'FIELD';
 TABLE:                              'TABLE';  // Alias for FIELDS command
 RENAME:                             'RENAME';
 STATS:                              'STATS';
@@ -25,11 +26,13 @@ DEDUP:                              'DEDUP';
 SORT:                               'SORT';
 EVAL:                               'EVAL';
 HEAD:                               'HEAD';
+BIN:                                'BIN';
 TOP:                                'TOP';
 RARE:                               'RARE';
 PARSE:                              'PARSE';
 SPATH:                              'SPATH';
 REGEX:                              'REGEX';
+REX:                                'REX';
 PUNCT:                              'PUNCT';
 GROK:                               'GROK';
 PATTERN:                            'PATTERN';
@@ -41,6 +44,7 @@ ML:                                 'ML';
 FILLNULL:                           'FILLNULL';
 FLATTEN:                            'FLATTEN';
 TRENDLINE:                          'TRENDLINE';
+TIMECHART:                          'TIMECHART';
 APPENDCOL:                          'APPENDCOL';
 EXPAND:                             'EXPAND';
 SIMPLE_PATTERN:                     'SIMPLE_PATTERN';
@@ -49,6 +53,7 @@ VARIABLE_COUNT_THRESHOLD:           'VARIABLE_COUNT_THRESHOLD';
 FREQUENCY_THRESHOLD_PERCENTAGE:     'FREQUENCY_THRESHOLD_PERCENTAGE';
 METHOD:                             'METHOD';
 MAX_SAMPLE_COUNT:                   'MAX_SAMPLE_COUNT';
+MAX_MATCH:                          'MAX_MATCH';
 BUFFER_LIMIT:                       'BUFFER_LIMIT';
 LABEL:                              'LABEL';
 AGGREGATION:                        'AGGREGATION';
@@ -71,6 +76,8 @@ AS:                                 'AS';
 BY:                                 'BY';
 SOURCE:                             'SOURCE';
 INDEX:                              'INDEX';
+A:                                  'A';
+ASC:                                'ASC';
 D:                                  'D';
 DESC:                               'DESC';
 DATASOURCES:                        'DATASOURCES';
@@ -81,6 +88,7 @@ STANDARD:                           'STANDARD';
 COST:                               'COST';
 EXTENDED:                           'EXTENDED';
 OVERRIDE:                           'OVERRIDE';
+OVERWRITE:                          'OVERWRITE';
 
 // SORT FIELD KEYWORDS
 // TODO #3180: Fix broken sort functionality
@@ -116,6 +124,8 @@ ANOMALY_SCORE_THRESHOLD:            'ANOMALY_SCORE_THRESHOLD';
 APPEND:                             'APPEND';
 COUNTFIELD:                         'COUNTFIELD';
 SHOWCOUNT:                          'SHOWCOUNT';
+LIMIT:                              'LIMIT';
+USEOTHER:                           'USEOTHER';
 INPUT:                              'INPUT';
 OUTPUT:                             'OUTPUT';
 PATH:                               'PATH';
@@ -192,6 +202,7 @@ PIPE:                               '|';
 COMMA:                              ',';
 DOT:                                '.';
 EQUAL:                              '=';
+DOUBLE_EQUAL:                       '==';
 GREATER:                            '>';
 LESS:                               '<';
 NOT_GREATER:                        '<' '=';
@@ -242,6 +253,7 @@ VAR_SAMP:                           'VAR_SAMP';
 VAR_POP:                            'VAR_POP';
 STDDEV_SAMP:                        'STDDEV_SAMP';
 STDDEV_POP:                         'STDDEV_POP';
+PERC:                               'PERC';
 PERCENTILE:                         'PERCENTILE';
 PERCENTILE_APPROX:                  'PERCENTILE_APPROX';
 EARLIEST:                           'EARLIEST';
@@ -288,8 +300,7 @@ EXPM1:                              'EXPM1';
 FLOOR:                              'FLOOR';
 LN:                                 'LN';
 LOG:                                'LOG';
-LOG10:                              'LOG10';
-LOG2:                               'LOG2';
+LOG_WITH_BASE:                      ([0-9]+ ('.' [0-9]+)?)? ('LOG' | 'log') [0-9]+ ('.' [0-9]+)?;
 MOD:                                'MOD';
 MODULUS:                            'MODULUS';
 PI:                                 'PI';
@@ -478,6 +489,11 @@ ZERO_TERMS_QUERY:                   'ZERO_TERMS_QUERY';
 
 // SPAN KEYWORDS
 SPAN:                               'SPAN';
+BINS:                               'BINS';
+MINSPAN:                            'MINSPAN';
+START:                              'START';
+END:                                'END';
+ALIGNTIME:                          'ALIGNTIME';
 MS:                                 'MS';
 S:                                  'S';
 M:                                  'M';
@@ -486,6 +502,26 @@ W:                                  'W';
 Q:                                  'Q';
 Y:                                  'Y';
 
+// Extended timescale units
+SEC:                                'SEC';
+SECS:                               'SECS';
+SECONDS:                            'SECONDS';
+MINS:                               'MINS';
+MINUTES:                            'MINUTES';
+HR:                                 'HR';
+HRS:                                'HRS';
+HOURS:                              'HOURS';
+DAYS:                               'DAYS';
+MON:                                'MON';
+MONTHS:                             'MONTHS';
+US:                                 'US';
+CS:                                 'CS';
+DS:                                 'DS';
+
+
+// PERCENTILE SHORTCUT FUNCTIONS
+// Must precede ID to avoid conflicts with identifier matching
+PERCENTILE_SHORTCUT:                PERC(INTEGER_LITERAL | DECIMAL_LITERAL) | 'P'(INTEGER_LITERAL | DECIMAL_LITERAL);
 
 // LITERALS AND VALUES
 //STRING_LITERAL:                     DQUOTA_STRING | SQUOTA_STRING | BQUOTA_STRING;

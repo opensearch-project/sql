@@ -899,7 +899,7 @@ Check `introduce v3 engine <../../../dev/intro-v3-engine.md>`_ for more details.
 Check `join doc <../../ppl/cmd/join.rst>`_ for example.
 
 plugins.calcite.fallback.allowed
-=======================
+================================
 
 Description
 -----------
@@ -911,7 +911,7 @@ If Calcite is enabled, you can use this setting to decide whether to allow fallb
 3. This setting can be updated dynamically.
 
 plugins.calcite.pushdown.enabled
-=======================
+================================
 
 Description
 -----------
@@ -923,7 +923,7 @@ If Calcite is enabled, you can use this setting to decide whether to enable the 
 3. This setting can be updated dynamically.
 
 plugins.calcite.pushdown.rowcount.estimation.factor
-=======================
+===================================================
 
 Description
 -----------
@@ -931,5 +931,17 @@ Description
 If Calcite pushdown optimization is enabled, this setting is used to estimate the row count of the query plan. The value is a factor to multiply the row count of the table scan to get the estimated row count.
 
 1. The default value is 0.9 since 3.1.0.
+2. This setting is node scope.
+3. This setting can be updated dynamically.
+
+plugins.calcite.all_join_types.allowed
+======================================
+
+Description
+-----------
+
+Join types ``inner``, ``left``, ``outer`` (alias of ``left``), ``semi`` and ``anti`` are supported by default. ``right``, ``full``, ``cross`` are performance sensitive join types which are disabled by default. Set config ``plugins.calcite.all_join_types.allowed = true`` to enable.
+
+1. The default value is false since 3.3.0.
 2. This setting is node scope.
 3. This setting can be updated dynamically.

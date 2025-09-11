@@ -28,6 +28,12 @@ The following table dataSources the aggregation functions and also indicates how
 +----------+-------------+-------------+
 | MIN      | Ignore      | Ignore      |
 +----------+-------------+-------------+
+| FIRST    | Ignore      | Ignore      |
++----------+-------------+-------------+
+| LAST     | Ignore      | Ignore      |
++----------+-------------+-------------+
+| LIST     | Ignore      | Ignore      |
++----------+-------------+-------------+
 
 
 Syntax
@@ -49,6 +55,7 @@ stats <aggregation>... [by-clause]
  * Description: The unit of the interval expression is the natural unit by default. If the field is a date and time type field, and the interval is in date/time units, you will need to specify the unit in the interval expression. For example, to split the field ``age`` into buckets by 10 years, it looks like ``span(age, 10)``. And here is another example of time span, the span to split a ``timestamp`` field into hourly intervals, it looks like ``span(timestamp, 1h)``.
 
 * Available time unit:
+
 +----------------------------+
 | Span Interval Units        |
 +============================+
@@ -71,6 +78,18 @@ stats <aggregation>... [by-clause]
 | year (y)                   |
 +----------------------------+
 
+Configuration
+=============
+Some aggregation functions require Calcite to be enabled for proper functionality. To enable Calcite, use the following command:
+
+Enable Calcite::
+
+    >> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
+      "persistent" : {
+        "plugins.calcite.enabled" : true
+      }
+    }'
+
 Aggregation Functions
 =====================
 
@@ -80,17 +99,37 @@ COUNT
 Description
 >>>>>>>>>>>
 
-Usage: Returns a count of the number of expr in the rows retrieved by a SELECT statement.
+Usage: Returns a count of the number of expr in the rows retrieved. The ``C()`` function, ``c``, and ``count`` can be used as abbreviations for ``COUNT()``. To perform a filtered counting, wrap the condition to satisfy in an `eval` expression.
 
 Example::
 
-    os> source=accounts | stats count();
+    os> source=accounts | stats count(), c(), count, c;
     fetched rows / total rows = 1/1
-    +---------+
-    | count() |
-    |---------|
-    | 4       |
-    +---------+
+    +---------+-----+-------+---+
+    | count() | c() | count | c |
+    |---------+-----+-------+---|
+    | 4       | 4   | 4     | 4 |
+    +---------+-----+-------+---+
+
+Example of filtered counting::
+
+    os> source=accounts | stats count(eval(age > 30)) as mature_users;
+    fetched rows / total rows = 1/1
+    +--------------+
+    | mature_users |
+    |--------------|
+    | 3            |
+    +--------------+
+
+Example of filtered counting with complex conditions::
+
+    os> source=accounts | stats count(eval(age > 30 and balance > 25000)) as high_value_users;
+    fetched rows / total rows = 1/1
+    +------------------+
+    | high_value_users |
+    |------------------|
+    | 1                |
+    +------------------+
 
 SUM
 ---
@@ -239,7 +278,7 @@ Example::
     +--------------------+
 
 DISTINCT_COUNT_APPROX
-----------
+---------------------
 
 Description
 >>>>>>>>>>>
@@ -300,6 +339,236 @@ Example::
     | 36                  | M      |
     +---------------------+--------+
 
+Percentile Shortcut Functions
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+Version: 3.3.0
+
+For convenience, OpenSearch PPL provides shortcut functions for common percentiles:
+
+- ``PERC<percent>(expr)`` - Equivalent to ``PERCENTILE(expr, <percent>)``
+- ``P<percent>(expr)`` - Equivalent to ``PERCENTILE(expr, <percent>)``
+
+Both integer and decimal percentiles from 0 to 100 are supported (e.g., ``PERC95``, ``P99.5``).
+
+Example::
+
+    ppl> source=accounts | stats perc99.5(age);
+    fetched rows / total rows = 1/1
+    +---------------+
+    | perc99.5(age) |
+    |---------------|
+    | 36            |
+    +---------------+
+
+    ppl> source=accounts | stats p50(age);
+    fetched rows / total rows = 1/1
+    +---------+
+    | p50(age) |
+    |---------|
+    | 32      |
+    +---------+
+
+MEDIAN
+------
+
+Description
+>>>>>>>>>>>
+
+Version: 3.3.0
+
+Usage: MEDIAN(expr). Returns the median (50th percentile) value of `expr`. This is equivalent to ``PERCENTILE(expr, 50)``.
+
+Note: This function requires Calcite to be enabled (see `Configuration`_ section above).
+
+Example::
+
+    os> source=accounts | stats median(age);
+    fetched rows / total rows = 1/1
+    +-------------+
+    | median(age) |
+    |-------------|
+    | 32          |
+    +-------------+
+
+EARLIEST
+--------
+
+Description
+>>>>>>>>>>>
+
+Version: 3.3.0
+
+Usage: EARLIEST(field [, time_field]). Return the earliest value of a field based on timestamp ordering.
+
+* field: mandatory. The field to return the earliest value for.
+* time_field: optional. The field to use for time-based ordering. Defaults to @timestamp if not specified.
+
+Note: This function requires Calcite to be enabled (see `Configuration`_ section above).
+
+Example::
+
+    os> source=events | stats earliest(message) by host | sort host;
+    fetched rows / total rows = 2/2
+    +-------------------+---------+
+    | earliest(message) | host    |
+    |-------------------+---------|
+    | Starting up       | server1 |
+    | Initializing      | server2 |
+    +-------------------+---------+
+
+Example with custom time field::
+
+    os> source=events | stats earliest(status, event_time) by category | sort category;
+    fetched rows / total rows = 2/2
+    +------------------------------+----------+
+    | earliest(status, event_time) | category |
+    |------------------------------+----------|
+    | pending                      | orders   |
+    | active                       | users    |
+    +------------------------------+----------+
+
+LATEST
+------
+
+Description
+>>>>>>>>>>>
+
+Version: 3.3.0
+
+Usage: LATEST(field [, time_field]). Return the latest value of a field based on timestamp ordering.
+
+* field: mandatory. The field to return the latest value for.
+* time_field: optional. The field to use for time-based ordering. Defaults to @timestamp if not specified.
+
+Note: This function requires Calcite to be enabled (see `Configuration`_ section above).
+
+Example::
+
+    os> source=events | stats latest(message) by host | sort host;
+    fetched rows / total rows = 2/2
+    +------------------+---------+
+    | latest(message)  | host    |
+    |------------------+---------|
+    | Shutting down    | server1 |
+    | Maintenance mode | server2 |
+    +------------------+---------+
+
+Example with custom time field::
+
+    os> source=events | stats latest(status, event_time) by category | sort category;
+    fetched rows / total rows = 2/2
+    +----------------------------+----------+
+    | latest(status, event_time) | category |
+    |----------------------------+----------|
+    | cancelled                  | orders   |
+    | inactive                   | users    |
+    +----------------------------+----------+
+
+FIRST
+-----
+
+Description
+>>>>>>>>>>>
+
+Version: 3.3.0
+
+Usage: FIRST(field). Return the first non-null value of a field based on natural document order. Returns NULL if no records exist, or if all records have NULL values for the field.
+
+* field: mandatory. The field to return the first value for.
+
+Note: This function requires Calcite to be enabled (see `Configuration`_ section above).
+
+Example::
+
+    os> source=accounts | stats first(firstname) by gender;
+    fetched rows / total rows = 2/2
+    +------------------+--------+
+    | first(firstname) | gender |
+    |------------------+--------|
+    | Nanette          | F      |
+    | Amber            | M      |
+    +------------------+--------+
+
+Example with count aggregation::
+
+    os> source=accounts | stats first(firstname), count() by gender;
+    fetched rows / total rows = 2/2
+    +------------------+---------+--------+
+    | first(firstname) | count() | gender |
+    |------------------+---------+--------|
+    | Nanette          | 1       | F      |
+    | Amber            | 3       | M      |
+    +------------------+---------+--------+
+
+LAST
+----
+
+Description
+>>>>>>>>>>>
+
+Version: 3.3.0
+
+Usage: LAST(field). Return the last non-null value of a field based on natural document order. Returns NULL if no records exist, or if all records have NULL values for the field.
+
+* field: mandatory. The field to return the last value for.
+
+Note: This function requires Calcite to be enabled (see `Configuration`_ section above).
+
+Example::
+
+    os> source=accounts | stats last(firstname) by gender;
+    fetched rows / total rows = 2/2
+    +-----------------+--------+
+    | last(firstname) | gender |
+    |-----------------+--------|
+    | Nanette         | F      |
+    | Dale            | M      |
+    +-----------------+--------+
+
+Example with different fields::
+
+    os> source=accounts | stats first(account_number), last(balance), first(age);
+    fetched rows / total rows = 1/1
+    +-----------------------+---------------+------------+
+    | first(account_number) | last(balance) | first(age) |
+    |-----------------------+---------------+------------|
+    | 1                     | 4180          | 32         |
+    +-----------------------+---------------+------------+
+
+LIST
+----
+
+Description
+>>>>>>>>>>>
+
+Version: 3.3.0 (Calcite engine only)
+
+Usage: LIST(expr). Collects all values from the specified expression into an array. Values are converted to strings, nulls are filtered, and duplicates are preserved. 
+The function returns up to 100 values with no guaranteed ordering.
+
+* expr: The field expression to collect values from.
+* This aggregation function doesn't support Array, Struct, Object field types.
+
+Example with string fields::
+
+    PPL> source=accounts | stats list(firstname);
+    fetched rows / total rows = 1/1
+    +-------------------------------------+
+    | list(firstname)                     |
+    |-------------------------------------|`
+    | ["Amber","Hattie","Nanette","Dale"] |
+    +-------------------------------------+
+
+Example with result field rename::
+
+    PPL> source=accounts | stats list(firstname) as names;
+    fetched rows / total rows = 1/1
+    +-------------------------------------+
+    | names                               |
+    |-------------------------------------|
+    | ["Amber","Hattie","Nanette","Dale"] |
+    +-------------------------------------+
 Example 1: Calculate the count of events
 ========================================
 
@@ -523,3 +792,17 @@ PPL query::
     | 36  | 30       | M      |
     +-----+----------+--------+
 
+Example 14: Collect all values in a field using LIST
+=====================================================
+
+The example shows how to collect all firstname values, preserving duplicates and order.
+
+PPL query::
+
+    PPL> source=accounts | stats list(firstname);
+    fetched rows / total rows = 1/1
+    +-------------------------------------+
+    | list(firstname)                     |
+    |-------------------------------------|
+    | ["Amber","Hattie","Nanette","Dale"] |
+    +-------------------------------------+

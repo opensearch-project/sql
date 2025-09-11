@@ -292,7 +292,8 @@ public OpenSearchExecutionEngine(
         UserDefinedFunctionUtils.createUserDefinedAggFunction(
             DistinctCountApproxAggFunction.class,
             "APPROX_DISTINCT_COUNT",
-            ReturnTypes.BIGINT_FORCE_NULLABLE);
+            ReturnTypes.BIGINT_FORCE_NULLABLE,
+            null);
     PPLFuncImpTable.INSTANCE.registerExternalAggOperator(
         BuiltinFunctionName.DISTINCT_COUNT_APPROX, approxDistinctCountFunction);
   }

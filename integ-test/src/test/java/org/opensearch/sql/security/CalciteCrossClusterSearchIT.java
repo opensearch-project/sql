@@ -5,11 +5,14 @@
 
 package org.opensearch.sql.security;
 
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
+import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
@@ -35,6 +38,7 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
   }
 
   public static final String REMOTE_CLUSTER;
+  private static final String TEST_INDEX_ACCOUNT_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_ACCOUNT;
   private static final String TEST_INDEX_DOG_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_DOG;
   private static final String TEST_INDEX_BANK_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_BANK;
   private static boolean initialized = false;
@@ -53,8 +57,12 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
     configureMultiClusters(REMOTE_CLUSTER);
     loadIndex(Index.BANK);
     loadIndex(Index.BANK, remoteClient());
+    loadIndex(Index.ACCOUNT);
+    loadIndex(Index.ACCOUNT, remoteClient());
     loadIndex(Index.DOG);
     loadIndex(Index.DOG, remoteClient());
+    loadIndex(Index.TIME_TEST_DATA);
+    loadIndex(Index.TIME_TEST_DATA, remoteClient());
     enableCalcite();
   }
 
@@ -145,5 +153,174 @@ public class CalciteCrossClusterSearchIT extends PPLIntegTestCase {
     verifyColumn(tableResult, columnName("dog_name"), columnName("age"));
     verifySchema(fieldsResult, schema("dog_name", "string"), schema("age", "bigint"));
     verifySchema(tableResult, schema("dog_name", "string"), schema("age", "bigint"));
+  }
+
+  @Test
+  public void testDefaultBinCrossCluster() throws IOException {
+    // Default bin without any parameters
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | bin age | stats count() by age | sort age | head 3",
+                TEST_INDEX_ACCOUNT_REMOTE));
+    verifySchema(result, schema("count()", null, "bigint"), schema("age", null, "string"));
+
+    verifyDataRows(result, rows(451L, "20-30"), rows(504L, "30-40"), rows(45L, "40-50"));
+  }
+
+  @Test
+  public void testSpanBinCrossCluster() throws IOException {
+    // Span-based binning
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | bin age span=10 | stats count() by age | sort age | head 3",
+                TEST_INDEX_ACCOUNT_REMOTE));
+    verifySchema(result, schema("count()", null, "bigint"), schema("age", null, "string"));
+
+    verifyDataRows(result, rows(451L, "20-30"), rows(504L, "30-40"), rows(45L, "40-50"));
+  }
+
+  @Test
+  public void testCountBinCrossCluster() throws IOException {
+    // Count-based binning (bins parameter)
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | bin age bins=5 | stats count() by age | sort age | head 3",
+                TEST_INDEX_ACCOUNT_REMOTE));
+    verifySchema(result, schema("count()", null, "bigint"), schema("age", null, "string"));
+
+    verifyDataRows(result, rows(451L, "20-30"), rows(504L, "30-40"), rows(45L, "40-50"));
+  }
+
+  @Test
+  public void testMinSpanBinCrossCluster() throws IOException {
+    // MinSpan-based binning
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | bin age minspan=5 start=0 end=100 | stats count() by age | sort age |"
+                    + " head 3",
+                TEST_INDEX_ACCOUNT_REMOTE));
+    verifySchema(result, schema("count()", null, "bigint"), schema("age", null, "string"));
+
+    verifyDataRows(result, rows(451L, "20-30"), rows(504L, "30-40"), rows(45L, "40-50"));
+  }
+
+  @Test
+  public void testRangeBinCrossCluster() throws IOException {
+    // Range-based binning (start/end only)
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | bin age start=0 end=100 | stats count() by age | sort age | head 3",
+                TEST_INDEX_ACCOUNT_REMOTE));
+    verifySchema(result, schema("count()", null, "bigint"), schema("age", null, "string"));
+
+    verifyDataRows(result, rows(1000L, "0-100"));
+  }
+
+  @Test
+  public void testTimeBinCrossCluster() throws IOException {
+    // Time-based binning with span
+    JSONObject result =
+        executeQuery(
+            REMOTE_CLUSTER
+                + ":opensearch-sql_test_index_time_data"
+                + " | bin @timestamp span=1h"
+                + " | fields `@timestamp`, value | sort `@timestamp` | head 3");
+    verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
+
+    // With 1-hour spans
+    verifyDataRows(
+        result,
+        rows("2025-07-28 00:00:00", 8945),
+        rows("2025-07-28 01:00:00", 7623),
+        rows("2025-07-28 02:00:00", 9187));
+  }
+
+  @Test
+  public void testCrossClusterRegexBasic() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | regex firstname='.*att.*' | fields firstname",
+                TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(result, rows("Hattie"));
+  }
+
+  @Test
+  public void testCrossClusterRegexWithNegation() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | regex firstname!='.*att.*' | fields firstname",
+                TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(
+        result,
+        rows("Virginia"),
+        rows("Elinor"),
+        rows("Dillard"),
+        rows("Dale"),
+        rows("Amber JOHnny"),
+        rows("Nanette"));
+  }
+
+  @Test
+  public void testCrossClusterRexBasic() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | rex field=firstname \\\"(?<initial>^[A-Z])\\\" | fields"
+                    + " firstname, initial | head 3",
+                TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(result, rows("Amber JOHnny", "A"), rows("Hattie", "H"), rows("Nanette", "N"));
+  }
+
+  @Test
+  public void testCrossClusterRexMultipleGroups() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | rex field=lastname \\\"(?<first>[A-Z])(?<rest>[a-z]+)\\\" |"
+                    + " fields lastname, first, rest | head 2",
+                TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(result, rows("Duke Willmington", "D", "uke"), rows("Bond", "B", "ond"));
+  }
+
+  @Test
+  public void testCrossClusterRexSedMode() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | rex field=firstname mode=sed \\\"s/^[A-Z]/X/\\\" | fields"
+                    + " firstname | head 3",
+                TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(result, rows("Xmber JOHnny"), rows("Xattie"), rows("Xanette"));
+  }
+
+  @Test
+  public void testCrossClusterRexWithMaxMatch() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | rex field=firstname \\\"(?<letter>[A-Z])\\\" max_match=2 |"
+                    + " fields firstname, letter | head 2",
+                TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(
+        result, rows("Amber JOHnny", new String[] {"A", "J"}), rows("Hattie", new String[] {"H"}));
+  }
+
+  @Test
+  public void testCrossClusterRexWithOffsetField() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | rex field=lastname \\\"(?<vowel>[aeiou])\\\" offset_field=pos |"
+                    + " fields lastname, vowel, pos | head 2",
+                TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(
+        result, rows("Duke Willmington", "u", "vowel=1-1"), rows("Bond", "o", "vowel=1-1"));
   }
 }

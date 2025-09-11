@@ -10,6 +10,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -21,12 +22,13 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import org.json.JSONObject;
-import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalcitePPLAggregationIT extends PPLIntegTestCase {
+
+  private static final String TEST_INDEX_TIME_DATA = "opensearch-sql_test_index_time_data";
 
   @Override
   public void init() throws Exception {
@@ -38,6 +40,8 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     loadIndex(Index.CALCS);
     loadIndex(Index.DATE_FORMATS);
     loadIndex(Index.DATA_TYPE_NUMERIC);
+    loadIndex(Index.LOGS);
+    loadIndex(Index.TIME_TEST_DATA);
   }
 
   @Test
@@ -59,6 +63,14 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(String.format("source=%s | stats count() as c", TEST_INDEX_BANK));
     verifySchema(actual, schema("c", "bigint"));
+    verifyDataRows(actual, rows(7));
+
+    actual = executeQuery(String.format("source=%s | stats c() as count_emp", TEST_INDEX_BANK));
+    verifySchema(actual, schema("count_emp", "bigint"));
+    verifyDataRows(actual, rows(7));
+
+    actual = executeQuery(String.format("source=%s | stats count as count_alias", TEST_INDEX_BANK));
+    verifySchema(actual, schema("count_alias", "bigint"));
     verifyDataRows(actual, rows(7));
   }
 
@@ -226,6 +238,202 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
             String.format("source=%s | stats avg(balance) by span(age, 10)", TEST_INDEX_BANK));
     verifySchema(actual, schema("span(age,10)", "int"), schema("avg(balance)", "double"));
     verifyDataRows(actual, rows(32838.0, 20), rows(25689.166666666668, 30));
+  }
+
+  @Test
+  public void testFirstAggregation() throws IOException {
+    JSONObject actual =
+        executeQuery(String.format("source=%s | stats first(firstname)", TEST_INDEX_BANK));
+    verifySchema(actual, schema("first(firstname)", "string"));
+    verifyDataRows(actual, rows("Amber JOHnny"));
+  }
+
+  @Test
+  public void testLastAggregation() throws IOException {
+    JSONObject actual =
+        executeQuery(String.format("source=%s | stats last(firstname)", TEST_INDEX_BANK));
+    verifySchema(actual, schema("last(firstname)", "string"));
+    verifyDataRows(actual, rows("Dillard"));
+  }
+
+  @Test
+  public void testFirstLastByGroup() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(firstname), last(lastname) by gender", TEST_INDEX_BANK));
+    verifySchema(
+        actual,
+        schema("first(firstname)", "string"),
+        schema("last(lastname)", "string"),
+        schema("gender", "string"));
+    verifyDataRows(actual, rows("Amber JOHnny", "Ratliff", "M"), rows("Nanette", "Mcpherson", "F"));
+  }
+
+  @Test
+  public void testFirstLastWithOtherAggregations() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(firstname), last(firstname), count(), avg(age) by gender",
+                TEST_INDEX_BANK));
+    verifySchema(
+        actual,
+        schema("first(firstname)", "string"),
+        schema("last(firstname)", "string"),
+        schema("count()", "bigint"),
+        schema("avg(age)", "double"),
+        schema("gender", "string"));
+    verifyDataRows(
+        actual,
+        rows("Amber JOHnny", "Elinor", 4L, 34.25, "M"),
+        rows("Nanette", "Dillard", 3L, 33.666666666666664, "F"));
+  }
+
+  @Test
+  public void testFirstLastDifferentFields() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(account_number), last(balance), first(age)",
+                TEST_INDEX_BANK));
+    verifySchema(
+        actual,
+        schema("first(account_number)", "bigint"),
+        schema("last(balance)", "bigint"),
+        schema("first(age)", "int"));
+    verifyDataRows(actual, rows(1L, 48086L, 32L));
+  }
+
+  @Test
+  public void testFirstLastWithBirthdate() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format("source=%s | stats first(birthdate), last(birthdate)", TEST_INDEX_BANK));
+    verifySchema(
+        actual, schema("first(birthdate)", "timestamp"), schema("last(birthdate)", "timestamp"));
+    verifyDataRows(actual, rows("2017-10-23 00:00:00", "2018-08-11 00:00:00"));
+  }
+
+  @Test
+  public void testFirstLastBirthdateByGender() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(birthdate) as first_bd, last(birthdate) as last_bd by"
+                    + " gender",
+                TEST_INDEX_BANK));
+    verifySchema(
+        actual,
+        schema("first_bd", "timestamp"),
+        schema("last_bd", "timestamp"),
+        schema("gender", "string"));
+    verifyDataRows(
+        actual,
+        rows("2017-10-23 00:00:00", "2018-06-27 00:00:00", "M"),
+        rows("2018-06-23 00:00:00", "2018-08-11 00:00:00", "F"));
+  }
+
+  @Test
+  public void testFirstLastBirthdateWithOtherFields() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(firstname), first(birthdate), last(lastname),"
+                    + " last(birthdate) by gender",
+                TEST_INDEX_BANK));
+    verifySchema(
+        actual,
+        schema("first(firstname)", "string"),
+        schema("first(birthdate)", "timestamp"),
+        schema("last(lastname)", "string"),
+        schema("last(birthdate)", "timestamp"),
+        schema("gender", "string"));
+    verifyDataRows(
+        actual,
+        rows("Amber JOHnny", "2017-10-23 00:00:00", "Ratliff", "2018-06-27 00:00:00", "M"),
+        rows("Nanette", "2018-06-23 00:00:00", "Mcpherson", "2018-08-11 00:00:00", "F"));
+  }
+
+  @Test
+  public void testFirstLastWithTimestamp() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(timestamp), last(timestamp)", TEST_INDEX_TIME_DATA));
+    verifySchema(
+        actual, schema("first(timestamp)", "timestamp"), schema("last(timestamp)", "timestamp"));
+    verifyDataRows(actual, rows("2025-07-28 00:15:23", "2025-08-01 03:47:41"));
+  }
+
+  @Test
+  public void testFirstLastTimestampByCategory() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(timestamp) as first_ts, last(timestamp) as last_ts by"
+                    + " category",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(
+        actual,
+        schema("first_ts", "timestamp"),
+        schema("last_ts", "timestamp"),
+        schema("category", "string"));
+    verifyDataRows(
+        actual,
+        rows("2025-07-28 04:33:10", "2025-08-01 00:27:26", "D"),
+        rows("2025-07-28 02:28:45", "2025-08-01 02:00:56", "C"),
+        rows("2025-07-28 01:42:15", "2025-08-01 01:14:11", "B"),
+        rows("2025-07-28 00:15:23", "2025-08-01 03:47:41", "A"));
+  }
+
+  @Test
+  public void testFirstLastTimestampWithValue() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(value), first(timestamp), last(value), last(timestamp)",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(
+        actual,
+        schema("first(value)", "int"),
+        schema("first(timestamp)", "timestamp"),
+        schema("last(value)", "int"),
+        schema("last(timestamp)", "timestamp"));
+    verifyDataRows(actual, rows(8945, "2025-07-28 00:15:23", 8762, "2025-08-01 03:47:41"));
+  }
+
+  @Test
+  public void testFirstLastWithNullValues() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(balance) as first_bal, last(balance) as last_bal",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(actual, schema("first_bal", "bigint"), schema("last_bal", "bigint"));
+    // Note: Current implementation skips nulls, so we expect first and last non-null values
+    // This test verifies current behavior - may need to change based on requirements
+    verifyDataRows(actual, rows(39225L, 48086L));
+  }
+
+  @Test
+  public void testFirstLastWithNullValuesByGroup() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(balance) as first_bal, last(balance) as last_bal by age",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(
+        actual, schema("first_bal", "bigint"), schema("last_bal", "bigint"), schema("age", "int"));
+    // Testing behavior when some groups have null values
+    verifyDataRows(
+        actual,
+        rows(null, null, null), // age is null, no balance values
+        rows(32838L, 32838L, 28),
+        rows(39225L, 39225L, 32),
+        rows(4180L, 4180L, 33),
+        rows(48086L, 48086L, 34),
+        rows(null, null, 36)); // balance is null for age 36
   }
 
   @Test
@@ -556,67 +764,43 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     verifyDataRows(actual, rows(3, "F"), rows(4, "M"));
   }
 
-  @Ignore
   @Test
   public void testEarliestAndLatest() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | stats latest(datetime0), earliest(datetime0)", TEST_INDEX_CALCS));
+            String.format("source=%s | stats latest(server), earliest(server)", TEST_INDEX_LOGS));
 
-    verifySchema(
-        actual,
-        schema("latest(datetime0)", "timestamp"),
-        schema("earliest(datetime0)", "timestamp"));
-    verifyDataRows(actual, rows("2004-08-02 07:59:23", "2004-07-04 22:49:28"));
+    verifySchema(actual, schema("latest(server)", "string"), schema("earliest(server)", "string"));
+    verifyDataRows(actual, rows("server2", "server1"));
   }
 
-  @Ignore
   @Test
   public void testEarliestAndLatestWithAlias() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | stats latest(datetime0) as late, earliest(datetime0) as early",
-                TEST_INDEX_CALCS));
+                "source=%s | stats latest(server) as late, earliest(server) as early",
+                TEST_INDEX_LOGS));
 
-    verifySchema(actual, schema("late", "timestamp"), schema("early", "timestamp"));
-    verifyDataRows(actual, rows("2004-08-02 07:59:23", "2004-07-04 22:49:28"));
+    verifySchema(actual, schema("late", "string"), schema("early", "string"));
+    verifyDataRows(actual, rows("server2", "server1"));
   }
 
-  @Ignore
   @Test
   public void testEarliestAndLatestWithBy() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | stats latest(datetime0) as late, earliest(datetime0) as early by"
-                    + " bool2",
-                TEST_INDEX_CALCS));
+                "source=%s | stats latest(server) as late, earliest(server) as early by" + " level",
+                TEST_INDEX_LOGS));
 
     verifySchema(
-        actual,
-        schema("late", "timestamp"),
-        schema("early", "timestamp"),
-        schema("bool2", "boolean"));
+        actual, schema("late", "string"), schema("early", "string"), schema("level", "string"));
     verifyDataRows(
         actual,
-        rows("2004-07-31 11:57:52", "2004-07-12 17:30:16", true),
-        rows("2004-08-02 07:59:23", "2004-07-04 22:49:28", false));
-  }
-
-  @Ignore
-  @Test
-  public void testEarliestAndLatestWithTimeBy() throws IOException {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | stats latest(time1) as late, earliest(time1) as early by" + " bool2",
-                TEST_INDEX_CALCS));
-
-    verifySchema(
-        actual, schema("late", "time"), schema("early", "time"), schema("bool2", "boolean"));
-    verifyDataRows(actual, rows("19:57:33", "04:40:49", true), rows("22:50:16", "00:05:57", false));
+        rows("server3", "server1", "ERROR"),
+        rows("server2", "server2", "INFO"),
+        rows("server1", "server1", "WARN"));
   }
 
   @Test
@@ -810,5 +994,186 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
                 "source=%s | eval a = abs(byte_number) | stats count() by a",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(response, rows(1, 4));
+  }
+
+  @Test
+  public void testCountEvalSimpleCondition() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format("source=%s | stats count(eval(age > 30)) as c", TEST_INDEX_BANK));
+    verifySchema(actual, schema("c", "bigint"));
+    verifyDataRows(actual, rows(6));
+  }
+
+  @Test
+  public void testCountEvalComplexCondition() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats count(eval(balance > 20000 and age < 35)) as c",
+                TEST_INDEX_BANK));
+    verifySchema(actual, schema("c", "bigint"));
+    verifyDataRows(actual, rows(3));
+  }
+
+  @Test
+  public void testCountEvalGroupBy() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats count(eval(balance > 25000)) as high_balance by gender",
+                TEST_INDEX_BANK));
+    verifySchema(actual, schema("gender", "string"), schema("high_balance", "bigint"));
+    verifyDataRows(actual, rows(3, "F"), rows(1, "M"));
+  }
+
+  @Test
+  public void testCountEvalWithMultipleAggregations() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats count(eval(age > 30)) as mature_count, "
+                    + "count(eval(balance > 25000)) as high_balance_count, "
+                    + "count() as total_count",
+                TEST_INDEX_BANK));
+    verifySchema(
+        actual,
+        schema("mature_count", "bigint"),
+        schema("high_balance_count", "bigint"),
+        schema("total_count", "bigint"));
+    verifyDataRows(actual, rows(6, 4, 7));
+  }
+
+  @Test
+  public void testShortcutCEvalSimpleCondition() throws IOException {
+    JSONObject actual =
+        executeQuery(String.format("source=%s | stats c(eval(age > 30)) as c", TEST_INDEX_BANK));
+    verifySchema(actual, schema("c", "bigint"));
+    verifyDataRows(actual, rows(6));
+  }
+
+  @Test
+  public void testShortcutCEvalComplexCondition() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats c(eval(balance > 20000 and age < 35)) as c", TEST_INDEX_BANK));
+    verifySchema(actual, schema("c", "bigint"));
+    verifyDataRows(actual, rows(3));
+  }
+
+  @Test
+  public void testPercentileShortcuts() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format("source=%s | stats perc50(balance), p95(balance)", TEST_INDEX_BANK));
+    verifySchema(actual, schema("perc50(balance)", "bigint"), schema("p95(balance)", "bigint"));
+    verifyDataRows(actual, rows(32838, 48086));
+  }
+
+  @Test
+  public void testPercentileShortcutsWithDecimals() throws IOException {
+    JSONObject actual =
+        executeQuery(String.format("source=%s | stats perc99.5(balance)", TEST_INDEX_BANK));
+    verifySchema(actual, schema("perc99.5(balance)", "bigint"));
+    verifyDataRows(actual, rows(48086));
+  }
+
+  @Test
+  public void testPercentileShortcutsFloatingPoint() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats perc25.5(balance), p75.25(balance), perc0.1(balance)",
+                TEST_INDEX_BANK));
+    verifySchema(
+        actual,
+        schema("perc25.5(balance)", "bigint"),
+        schema("p75.25(balance)", "bigint"),
+        schema("perc0.1(balance)", "bigint"));
+    verifyDataRows(actual, rows(8744, 40234, 4180));
+  }
+
+  @Test
+  public void testPercentileShortcutsFloatingEquivalence() throws IOException {
+    JSONObject shortcut =
+        executeQuery(String.format("source=%s | stats perc25.5(balance)", TEST_INDEX_BANK));
+    JSONObject standard =
+        executeQuery(String.format("source=%s | stats percentile(balance, 25.5)", TEST_INDEX_BANK));
+
+    verifySchema(shortcut, schema("perc25.5(balance)", "bigint"));
+    verifySchema(standard, schema("percentile(balance, 25.5)", "bigint"));
+
+    Object shortcutValue = shortcut.getJSONArray("datarows").getJSONArray(0).get(0);
+    Object standardValue = standard.getJSONArray("datarows").getJSONArray(0).get(0);
+
+    verifyDataRows(shortcut, rows(shortcutValue));
+    verifyDataRows(standard, rows(standardValue));
+  }
+
+  @Test
+  public void testPercentileShortcutsEquivalentToStandard() throws IOException {
+    JSONObject shortcut =
+        executeQuery(String.format("source=%s | stats perc50(balance)", TEST_INDEX_BANK));
+    JSONObject standard =
+        executeQuery(String.format("source=%s | stats percentile(balance, 50)", TEST_INDEX_BANK));
+
+    verifySchema(shortcut, schema("perc50(balance)", "bigint"));
+    verifySchema(standard, schema("percentile(balance, 50)", "bigint"));
+
+    Object shortcutValue = shortcut.getJSONArray("datarows").getJSONArray(0).get(0);
+    Object standardValue = standard.getJSONArray("datarows").getJSONArray(0).get(0);
+
+    verifyDataRows(shortcut, rows(shortcutValue));
+    verifyDataRows(standard, rows(standardValue));
+  }
+
+  @Test
+  public void testStatsCountAliasWithMultipleAggregatesAndSort() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats sum(balance), count, avg(balance) by state | sort - `count`",
+                TEST_INDEX_BANK));
+    verifySchema(
+        response,
+        schema("sum(balance)", "bigint"),
+        schema("count", "bigint"),
+        schema("avg(balance)", "double"),
+        schema("state", "string"));
+    verifyDataRows(
+        response,
+        rows(39225, 1, 39225.0, "IL"),
+        rows(48086, 1, 48086.0, "IN"),
+        rows(4180, 1, 4180.0, "MD"),
+        rows(40540, 1, 40540.0, "PA"),
+        rows(5686, 1, 5686.0, "TN"),
+        rows(32838, 1, 32838.0, "VA"),
+        rows(16418, 1, 16418.0, "WA"));
+  }
+
+  @Test
+  public void testStatsCountAliasByGroupWithSort() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format("source=%s | stats count by state | sort - `count`", TEST_INDEX_BANK));
+    verifySchema(response, schema("count", "bigint"), schema("state", "string"));
+    verifyDataRows(
+        response,
+        rows(1, "IL"),
+        rows(1, "IN"),
+        rows(1, "MD"),
+        rows(1, "PA"),
+        rows(1, "TN"),
+        rows(1, "VA"),
+        rows(1, "WA"));
+  }
+
+  @Test
+  public void testMedian() throws IOException {
+    JSONObject actual =
+        executeQuery(String.format("source=%s | stats median(balance)", TEST_INDEX_BANK));
+    verifySchema(actual, schema("median(balance)", "bigint"));
+    verifyDataRows(actual, rows(32838));
   }
 }

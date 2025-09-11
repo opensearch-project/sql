@@ -32,6 +32,7 @@ import static org.opensearch.sql.legacy.TestUtils.getHobbiesIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getJoinTypeIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getJsonTestIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getLocationIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getLogsIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getMappingFile;
 import static org.opensearch.sql.legacy.TestUtils.getNestedSimpleIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getNestedTypeIndexMapping;
@@ -905,7 +906,27 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         TestsConstants.TEST_INDEX_HDFS_LOGS,
         "hdfs_logs",
         getHdfsLogsIndexMapping(),
-        "src/test/resources/hdfs_logs.json");
+        "src/test/resources/hdfs_logs.json"),
+    LOGS(
+        TestsConstants.TEST_INDEX_LOGS,
+        "logs",
+        getLogsIndexMapping(),
+        "src/test/resources/logs.json"),
+    TIME_TEST_DATA(
+        "opensearch-sql_test_index_time_data",
+        "time_data",
+        getMappingFile("time_test_data_index_mapping.json"),
+        "src/test/resources/time_test_data.json"),
+    EVENTS(
+        "events",
+        "events",
+        "{\"mappings\":{\"properties\":{\"@timestamp\":{\"type\":\"date\"},\"host\":{\"type\":\"text\"},\"service\":{\"type\":\"keyword\"},\"response_time\":{\"type\":\"integer\"},\"status_code\":{\"type\":\"integer\"},\"bytes_sent\":{\"type\":\"long\"},\"cpu_usage\":{\"type\":\"double\"},\"memory_usage\":{\"type\":\"double\"},\"region\":{\"type\":\"keyword\"},\"environment\":{\"type\":\"keyword\"}}}}",
+        "src/test/resources/events_test.json"),
+    EVENTS_NULL(
+        "events_null",
+        "events_null",
+        "{\"mappings\":{\"properties\":{\"@timestamp\":{\"type\":\"date\"},\"host\":{\"type\":\"text\"},\"cpu_usage\":{\"type\":\"double\"},\"region\":{\"type\":\"keyword\"}}}}",
+        "src/test/resources/events_null.json");
 
     private final String name;
     private final String type;

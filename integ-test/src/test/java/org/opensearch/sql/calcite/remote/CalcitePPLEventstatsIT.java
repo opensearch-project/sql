@@ -13,8 +13,6 @@ import java.util.List;
 import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
-import org.opensearch.client.Request;
-import org.opensearch.sql.legacy.TestsConstants;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
@@ -297,28 +295,6 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
                           "source=%s | eventstats %s(age)", TEST_INDEX_STATE_COUNTRY, u)));
       verifyErrorMessageContains(e, "Unexpected window function: " + u);
     }
-  }
-
-  @Ignore("DC should fail in window function")
-  public void testDistinctCountShouldFail() throws IOException {
-    Request request1 =
-        new Request("PUT", "/" + TestsConstants.TEST_INDEX_STATE_COUNTRY + "/_doc/5?refresh=true");
-    request1.setJsonEntity(
-        "{\"name\":\"Jim\",\"age\":27,\"state\":\"Ontario\",\"country\":\"Canada\",\"year\":2023,\"month\":4}");
-    client().performRequest(request1);
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | eventstats distinct_count(state) by country",
-                TEST_INDEX_STATE_COUNTRY));
-
-    verifyDataRows(
-        actual,
-        rows("John", "Canada", "Ontario", 4, 2023, 25, 3),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 3),
-        rows("Jim", "Canada", "Ontario", 4, 2023, 27, 3),
-        rows("Jake", "USA", "California", 4, 2023, 70, 2),
-        rows("Hello", "USA", "New York", 4, 2023, 30, 2));
   }
 
   @Test
@@ -615,6 +591,111 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
             38.88888888888888,
             58.333333333333314),
         rows("Hello", "USA", "New York", 4, 2023, 30, 20, 28.284271247461902, 400, 800));
+  }
+
+  @Test
+  public void testEventstatDistinctCount() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eventstats dc(state) as dc_state | fields name, country, state, month, year, age, dc_state", TEST_INDEX_STATE_COUNTRY));
+
+    verifySchemaInOrder(
+        actual,
+        schema("name", "string"),
+        schema("country", "string"),
+        schema("state", "string"),
+        schema("month", "int"),
+        schema("year", "int"),
+        schema("age", "int"),
+        schema("dc_state", "bigint"));
+
+    verifyDataRows(
+        actual,
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 4),
+        rows("Jake", "USA", "California", 4, 2023, 70, 4),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 4),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 4));
+  }
+
+  @Test
+  public void testEventstatDistinctCountByCountry() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eventstats dc(state) as dc_state by country | fields name, country, state, month, year, age, dc_state",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchemaInOrder(
+        actual,
+        schema("name", "string"),
+        schema("country", "string"),
+        schema("state", "string"),
+        schema("month", "int"),
+        schema("year", "int"),
+        schema("age", "int"),
+        schema("dc_state", "bigint"));
+
+    verifyDataRows(
+        actual,
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 2),
+        rows("Jake", "USA", "California", 4, 2023, 70, 2),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 2),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 2));
+  }
+
+  @Test
+  public void testEventstatDistinctCountFunction() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eventstats distinct_count(country) as dc_country | fields name, country, state, month, year, age, dc_country",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchemaInOrder(
+        actual,
+        schema("name", "string"),
+        schema("country", "string"),
+        schema("state", "string"),
+        schema("month", "int"),
+        schema("year", "int"),
+        schema("age", "int"),
+        schema("dc_country", "bigint"));
+
+    verifyDataRows(
+        actual,
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 2),
+        rows("Jake", "USA", "California", 4, 2023, 70, 2),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 2),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 2));
+  }
+
+  @Test
+  public void testEventstatDistinctCountWithNull() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eventstats dc(state) as dc_state | fields name, country, state, month, year, age, dc_state",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchemaInOrder(
+        actual,
+        schema("name", "string"),
+        schema("country", "string"),
+        schema("state", "string"),
+        schema("month", "int"),
+        schema("year", "int"),
+        schema("age", "int"),
+        schema("dc_state", "bigint"));
+
+    verifyDataRows(
+        actual,
+        rows(null, "Canada", null, 4, 2023, 10, 4),
+        rows("Kevin", null, null, 4, 2023, null, 4),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 4),
+        rows("Jake", "USA", "California", 4, 2023, 70, 4),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 4),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 4));
   }
 
   @Ignore
