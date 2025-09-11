@@ -695,8 +695,26 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitWindowFunction(OpenSearchPPLParser.WindowFunctionContext ctx) {
-    Function f =
-        buildFunction(ctx.windowFunctionName().getText(), ctx.functionArgs().functionArg());
+    Function f;
+    if (ctx.windowFunctionName() != null) {
+      // Standard window function
+      f = buildFunction(ctx.windowFunctionName().getText(), ctx.functionArgs().functionArg());
+    } else if (ctx.earliestLatestFunction() != null) {
+      // EARLIEST/LATEST function
+      UnresolvedExpression earliestLatestExpr = visit(ctx.earliestLatestFunction());
+      if (earliestLatestExpr instanceof AggregateFunction) {
+        AggregateFunction aggFunc = (AggregateFunction) earliestLatestExpr;
+        // Create arguments list from field and argList
+        List<UnresolvedExpression> args = new java.util.ArrayList<>();
+        args.add(aggFunc.getField());
+        args.addAll(aggFunc.getArgList());
+        f = new Function(aggFunc.getFuncName(), args);
+      } else {
+        throw new SyntaxCheckException("Expected AggregateFunction for EARLIEST/LATEST");
+      }
+    } else {
+      throw new SyntaxCheckException("Invalid window function");
+    }
     // In PPL eventstats command, all window functions have the same partition and order spec.
     return new WindowFunction(f);
   }

@@ -451,6 +451,44 @@ public class CalciteExplainIT extends ExplainIT {
                 TEST_INDEX_BANK)));
   }
 
+  // Only for Calcite
+  public void testExplainOnEventstatsEarliestLatest() throws IOException {
+    String expected = loadExpectedPlan("explain_eventstats_earliest_latest.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | eventstats earliest(message) as earliest_message, latest(message) as"
+                    + " latest_message by server",
+                TEST_INDEX_LOGS)));
+  }
+
+  // Only for Calcite
+  @Test
+  public void testExplainOnEventstatsEarliestLatestWithCustomTimeField() throws IOException {
+    String expected = loadExpectedPlan("explain_eventstats_earliest_latest_custom_time.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | eventstats earliest(message, created_at) as earliest_message,"
+                    + " latest(message, created_at) as latest_message by level",
+                TEST_INDEX_LOGS)));
+  }
+
+  // Only for Calcite
+  @Test
+  public void testExplainOnEventstatsEarliestLatestNoGroupBy() throws IOException {
+    String expected = loadExpectedPlan("explain_eventstats_earliest_latest_no_group.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | eventstats earliest(message) as earliest_message, latest(message) as"
+                    + " latest_message",
+                TEST_INDEX_LOGS)));
+  }
+
   @Test
   public void testListAggregationExplain() throws IOException {
     String expected = loadExpectedPlan("explain_list_aggregation.json");

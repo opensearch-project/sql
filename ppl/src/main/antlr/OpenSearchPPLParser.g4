@@ -545,6 +545,7 @@ eventstatsAggTerm
 
 windowFunction
    : windowFunctionName LT_PRTHS functionArgs RT_PRTHS
+   | earliestLatestFunction
    ;
 
 windowFunctionName
