@@ -232,9 +232,9 @@ public class CalcitePPLReverseTest extends CalcitePPLAbstractTest {
     // Should NOT be optimized to preserve "take first 5, then sort" semantics
     String ppl = "source=EMP | head 5 | sort + SAL | reverse";
     RelNode root = getRelNode(ppl);
-    
+
     // Should have three LogicalSort nodes: fetch=5, sort SAL, reverse
-    // This demonstrates that SortDirectionOptRule skips optimization when inner sort has fetch
+    // Calcite's built-in optimization will handle the physical plan optimization
     String expectedLogical =
         "LogicalSort(sort0=[$5], dir0=[DESC-nulls-last])\n"
             + "  LogicalSort(sort0=[$5], dir0=[ASC-nulls-first])\n"

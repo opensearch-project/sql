@@ -33,11 +33,6 @@ public abstract class OpenSearchTableScan extends TableScan implements Enumerabl
       planner.addRule(rule);
     }
 
-    // Register post-aggregation rules (run after aggregate optimizations)
-    for (RelOptRule rule : OpenSearchRules.OPEN_SEARCH_POST_AGG_RULES) {
-      planner.addRule(rule);
-    }
-
     // remove this rule otherwise opensearch can't correctly interpret approx_count_distinct()
     // it is converted to cardinality aggregation in OpenSearch
     planner.removeRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES);
