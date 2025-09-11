@@ -113,6 +113,10 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator JSON_APPEND = new JsonAppendFunctionImpl().toUDF("JSON_APPEND");
   public static final SqlOperator JSON_EXTEND = new JsonExtendFunctionImpl().toUDF("JSON_EXTEND");
 
+  // Map functions
+  public static final SqlOperator MAP_MERGE =
+      new org.opensearch.sql.expression.function.mapUDF.MapMergeFunctionImpl().toUDF("MAP_MERGE");
+
   // Math functions
   public static final SqlOperator SPAN = new SpanFunction().toUDF("SPAN");
   public static final SqlOperator E = new EulerFunction().toUDF("E");
