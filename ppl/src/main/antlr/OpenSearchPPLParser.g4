@@ -156,7 +156,31 @@ renameCommand
    ;
 
 statsCommand
-   : STATS (PARTITIONS EQUAL partitions = integerLiteral)? (ALLNUM EQUAL allnum = booleanLiteral)? (DELIM EQUAL delim = stringLiteral)? statsAggTerm (COMMA statsAggTerm)* (statsByClause)? (DEDUP_SPLITVALUES EQUAL dedupsplit = booleanLiteral)?
+   : STATS statsArgs statsAggTerm (COMMA statsAggTerm)* (statsByClause)? (dedupSplitArg)?
+   ;
+
+statsArgs
+   : (partitionsArg | allnumArg | delimArg | bucketNullableArg)*
+   ;
+
+partitionsArg
+   : PARTITIONS EQUAL partitions = integerLiteral
+   ;
+
+allnumArg
+   : ALLNUM EQUAL allnum = booleanLiteral
+   ;
+
+delimArg
+   : DELIM EQUAL delim = stringLiteral
+   ;
+
+bucketNullableArg
+   : BUCKET_NULLABLE EQUAL bucket_nullable = booleanLiteral
+   ;
+
+dedupSplitArg
+   : DEDUP_SPLITVALUES EQUAL dedupsplit = booleanLiteral
    ;
 
 eventstatsCommand
@@ -1364,6 +1388,7 @@ keywordsCanBeId
    | PARTITIONS
    | ALLNUM
    | DELIM
+   | BUCKET_NULLABLE
    | CENTROIDS
    | ITERATIONS
    | DISTANCE_TYPE
