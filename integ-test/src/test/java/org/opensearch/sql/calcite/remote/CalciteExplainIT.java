@@ -11,6 +11,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STRINGS;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
+import static org.opensearch.sql.util.MatcherUtils.assertYamlEqualsJsonIgnoreId;
 
 import java.io.IOException;
 import java.util.Locale;
@@ -41,8 +42,8 @@ public class CalciteExplainIT extends ExplainIT {
     String query =
         "source=opensearch-sql_test_index_account | where age >= 1.0 and age < 10 | fields age";
     var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_sarg_filter_push_single_range.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    String expected = loadExpectedPlan("explain_sarg_filter_push_single_range.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
   }
 
   // Only for Calcite
