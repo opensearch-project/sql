@@ -146,7 +146,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                               rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest)) * 1.1;
                           break;
                         case LIMIT:
-                          estimated = Math.min(rowCount, (Integer) action.digest);
+                          estimated = Math.min(rowCount, ((LimitDigest) action.digest).limit());
                           break;
                         default:
                           throw new IllegalStateException("Unexpected value: " + action.type);
@@ -181,7 +181,8 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
   // TODO: should we consider equivalent among PushDownContexts with different push down sequence?
   public static class PushDownContext extends ArrayDeque<PushDownAction> {
 
-    private boolean isAggregatePushed = false;
+    @Getter private boolean isAggregatePushed = false;
+    @Getter private AggPushDownAction aggPushDownAction;
     @Getter private boolean isLimitPushed = false;
     @Getter private boolean isProjectPushed = false;
 
@@ -194,6 +195,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     public boolean add(PushDownAction pushDownAction) {
       if (pushDownAction.type == PushDownType.AGGREGATION) {
         isAggregatePushed = true;
+        this.aggPushDownAction = (AggPushDownAction) pushDownAction.action;
       }
       if (pushDownAction.type == PushDownType.LIMIT) {
         isLimitPushed = true;
@@ -202,12 +204,6 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
         isProjectPushed = true;
       }
       return super.add(pushDownAction);
-    }
-
-    public boolean isAggregatePushed() {
-      if (isAggregatePushed) return true;
-      isAggregatePushed = !isEmpty() && super.peekLast().type == PushDownType.AGGREGATION;
-      return isAggregatePushed;
     }
   }
 
@@ -304,8 +300,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
       Object digest;
       if (pushDownContext.isAggregatePushed) {
         // Push down the sort into the aggregation bucket
-        ((AggPushDownAction) requireNonNull(pushDownContext.peekLast()).action)
-            .pushDownSortIntoAggBucket(collations);
+        this.pushDownContext.aggPushDownAction.pushDownSortIntoAggBucket(collations);
         action = requestBuilder -> {};
         digest = collations;
       } else {
@@ -413,6 +408,13 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     void apply(OpenSearchRequestBuilder requestBuilder);
   }
 
+  public record LimitDigest(int limit, int offset) {
+    @Override
+    public String toString() {
+      return offset == 0 ? String.valueOf(limit) : "[" + limit + " from " + offset + "]";
+    }
+  }
+
   public static class AggPushDownAction implements AbstractAction {
 
     private Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder;
@@ -483,6 +485,16 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                       .subAggregations(newAggBuilder)
                       .size(AGGREGATION_BUCKET_SIZE)),
               aggregationBuilder.getRight());
+    }
+
+    public boolean pushDownLimitIntoBucketSize(Integer size) {
+      CompositeAggregationBuilder compositeAggregationBuilder =
+          (CompositeAggregationBuilder) aggregationBuilder.getLeft().getFirst();
+      if (size < compositeAggregationBuilder.size()) {
+        compositeAggregationBuilder.size(size);
+        return true;
+      }
+      return false;
     }
   }
 }
