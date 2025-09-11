@@ -231,6 +231,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -263,6 +264,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -1292,7 +1294,7 @@ public class PPLFuncImpTable {
     } else if (typeChecker instanceof UDFOperandMetadata.UDTOperandMetadata) {
       UDFOperandMetadata.UDTOperandMetadata udtOperandMetadata =
           (UDFOperandMetadata.UDTOperandMetadata) typeChecker;
-      pplTypeChecker = PPLTypeChecker.wrapUDT(udtOperandMetadata.allowedParamTypes());
+      pplTypeChecker = PPLTypeChecker.wrapUDT(udtOperandMetadata.getAllowSignatures());
     } else if (typeChecker != null) {
       pplTypeChecker = PPLTypeChecker.wrapDefault(typeChecker);
     } else {

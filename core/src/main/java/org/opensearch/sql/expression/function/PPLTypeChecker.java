@@ -367,7 +367,8 @@ public interface PPLTypeChecker {
       }
 
       // If the internal checker is a FamilyOperandTypeChecker, use type family validation
-      if (internal instanceof FamilyOperandTypeChecker familyChecker) {
+      if (internal instanceof FamilyOperandTypeChecker) {
+        FamilyOperandTypeChecker familyChecker = (FamilyOperandTypeChecker) internal;
         List<SqlTypeFamily> families =
             IntStream.range(0, types.size())
                 .mapToObj(familyChecker::getOperandSqlTypeFamily)
@@ -382,7 +383,8 @@ public interface PPLTypeChecker {
 
     @Override
     public String getAllowedSignatures() {
-      if (internal instanceof FamilyOperandTypeChecker familyChecker) {
+      if (internal instanceof FamilyOperandTypeChecker) {
+        FamilyOperandTypeChecker familyChecker = (FamilyOperandTypeChecker) internal;
         return getFamilySignatures(familyChecker);
       } else {
         // Generate a generic signature based on operand count range
@@ -407,7 +409,8 @@ public interface PPLTypeChecker {
 
     @Override
     public List<List<ExprType>> getParameterTypes() {
-      if (internal instanceof FamilyOperandTypeChecker familyChecker) {
+      if (internal instanceof FamilyOperandTypeChecker) {
+        FamilyOperandTypeChecker familyChecker = (FamilyOperandTypeChecker) internal;
         return getExprSignatures(familyChecker);
       } else {
         // For unknown type checkers, return UNKNOWN types
