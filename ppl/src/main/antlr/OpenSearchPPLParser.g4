@@ -1389,6 +1389,7 @@ keywordsCanBeId
    | PATH
    | INPUT
    | OUTPUT
+   | FIELD
 
    // AGGREGATIONS AND WINDOW
    | statsFunctionName
