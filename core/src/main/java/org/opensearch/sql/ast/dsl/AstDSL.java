@@ -449,6 +449,7 @@ public class AstDSL {
         argument("partitions", intLiteral(1)),
         argument("allnum", booleanLiteral(false)),
         argument("delim", stringLiteral(" ")),
+        argument(Argument.BUCKET_NULLABLE, booleanLiteral(true)),
         argument("dedupsplit", booleanLiteral(false)));
   }
 

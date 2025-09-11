@@ -135,40 +135,6 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
     };
   }
 
-  protected Settings enablePushdown() {
-    System.out.println(Settings.Key.CALCITE_PUSHDOWN_ENABLED.name() + " enabled");
-    return new Settings() {
-      private final Map<Key, Object> defaultSettings =
-          new ImmutableMap.Builder<Key, Object>()
-              .put(Key.QUERY_SIZE_LIMIT, 200)
-              .put(Key.SQL_CURSOR_KEEP_ALIVE, TimeValue.timeValueMinutes(1))
-              .put(Key.FIELD_TYPE_TOLERANCE, true)
-              .put(Key.CALCITE_ENGINE_ENABLED, true)
-              .put(Key.CALCITE_FALLBACK_ALLOWED, false)
-              .put(Key.CALCITE_PUSHDOWN_ENABLED, true)
-              .put(Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR, 0.9)
-              .put(Key.PATTERN_METHOD, "SIMPLE_PATTERN")
-              .put(Key.PATTERN_MODE, "LABEL")
-              .put(Key.PATTERN_MAX_SAMPLE_COUNT, 10)
-              .put(Key.PATTERN_BUFFER_LIMIT, 100000)
-              .build();
-
-      @Override
-      public <T> T getSettingValue(Key key) {
-        return (T) defaultSettings.get(key);
-      }
-
-      @Override
-      public List<?> getSettings() {
-        return (List<?>) defaultSettings;
-      }
-    };
-  }
-
-  public boolean isPushdownEnabled() {
-    return getSettings().getSettingValue(Settings.Key.CALCITE_PUSHDOWN_ENABLED);
-  }
-
   protected String execute(String query) {
     AtomicReference<String> actual = new AtomicReference<>();
     pplService.execute(

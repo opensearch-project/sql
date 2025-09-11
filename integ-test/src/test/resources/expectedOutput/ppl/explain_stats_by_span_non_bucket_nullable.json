@@ -1,0 +1,15 @@
+{
+  "root": {
+    "name": "ProjectOperator",
+    "description": {
+      "fields": "[count(), span(age,10)]"
+    },
+    "children": [{
+      "name": "OpenSearchIndexScan",
+      "description": {
+        "request": "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_bank, sourceBuilder={\"from\":0,\"size\":0,\"timeout\":\"1m\",\"aggregations\":{\"span(age,10)\":{\"histogram\":{\"field\":\"age\",\"interval\":10.0,\"offset\":0.0,\"order\":{\"_key\":\"asc\"},\"keyed\":false,\"min_doc_count\":0},\"aggregations\":{\"count()\":{\"value_count\":{\"field\":\"_index\"}}}}}}, needClean=true, searchDone=false, pitId=*, cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
+      },
+      "children": []
+    }]
+  }
+}
