@@ -49,5 +49,6 @@ public class Literal extends UnresolvedExpression {
 
   public static Literal TRUE = new Literal(true, DataType.BOOLEAN);
   public static Literal FALSE = new Literal(false, DataType.BOOLEAN);
-  public static Literal ZERO = new Literal(Integer.valueOf("0"), DataType.INTEGER);
+  public static Literal ZERO = new Literal(0, DataType.INTEGER);
+  public static Literal ONE = new Literal(1, DataType.INTEGER);
 }

@@ -253,7 +253,7 @@ public class CalciteExplainIT extends ExplainIT {
   public void testExplainWithTimechartAvg() throws IOException {
     var result = explainQueryToString("source=events | timechart span=1m avg(cpu_usage) by host");
     String expected =
-        isPushdownEnabled()
+        !isPushdownDisabled()
             ? loadFromFile("expectedOutput/calcite/explain_timechart.json")
             : loadFromFile("expectedOutput/calcite/explain_timechart_no_pushdown.json");
     assertJsonEqualsIgnoreId(expected, result);
@@ -263,7 +263,7 @@ public class CalciteExplainIT extends ExplainIT {
   public void testExplainWithTimechartCount() throws IOException {
     var result = explainQueryToString("source=events | timechart span=1m count() by host");
     String expected =
-        isPushdownEnabled()
+        !isPushdownDisabled()
             ? loadFromFile("expectedOutput/calcite/explain_timechart_count.json")
             : loadFromFile("expectedOutput/calcite/explain_timechart_count_no_pushdown.json");
     assertJsonEqualsIgnoreId(expected, result);
@@ -585,6 +585,20 @@ public class CalciteExplainIT extends ExplainIT {
             "source=opensearch-sql_test_index_account | stats count() by state | sort state | head"
                 + " 100 | head 10 from 10 "));
 
+    expected = loadExpectedPlan("explain_limit_agg_pushdown_bucket_nullable1.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() by"
+                + " state | head 100 | head 10 from 10 "));
+
+    expected = loadExpectedPlan("explain_limit_agg_pushdown_bucket_nullable2.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() by"
+                + " state | sort state | head 100 | head 10 from 10 "));
+
     // Don't pushdown the combination of limit and sort
     expected = loadExpectedPlan("explain_limit_agg_pushdown5.json");
     assertJsonEqualsIgnoreId(
@@ -592,6 +606,25 @@ public class CalciteExplainIT extends ExplainIT {
         explainQueryToString(
             "source=opensearch-sql_test_index_account | stats count() by state | sort `count()` |"
                 + " head 100 | head 10 from 10 "));
+  }
+
+  @Test
+  public void testExplainSortOnMetricsNoBucketNullable() throws IOException {
+    // TODO enhancement later: https://github.com/opensearch-project/sql/issues/4282
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_agg_sort_on_metrics1.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() by"
+                + " state | sort `count()`"));
+
+    expected = loadExpectedPlan("explain_agg_sort_on_metrics2.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() by"
+                + " gender, state | sort `count()`"));
   }
 
   /**
