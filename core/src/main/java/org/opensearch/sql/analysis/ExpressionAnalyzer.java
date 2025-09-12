@@ -153,6 +153,13 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
 
   @Override
   public Expression visitNot(Not node, AnalysisContext context) {
+    // Handle double negation: NOT(NOT(X)) -> X
+    if (node.getExpression() instanceof Not) {
+      Not innerNot = (Not) node.getExpression();
+      // Double negation detected: return the inner expression directly
+      return innerNot.getExpression().accept(this, context);
+    }
+
     return DSL.not(node.getExpression().accept(this, context));
   }
 
