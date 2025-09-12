@@ -155,7 +155,7 @@ wcFieldList
    ;
 
 renameCommand
-   : RENAME renameClasue (COMMA renameClasue)*
+   : RENAME renameClasue (COMMA? renameClasue)*
    ;
 
 statsCommand
@@ -516,7 +516,7 @@ joinOption
    ;
 
 renameClasue
-   : orignalField = wcFieldExpression AS renamedField = wcFieldExpression
+   : orignalField = renameFieldExpression AS renamedField = renameFieldExpression
    ;
 
 byClause
@@ -737,6 +737,11 @@ wcFieldExpression
    ;
 
 selectFieldExpression
+   : wcQualifiedName
+   | STAR
+   ;
+
+renameFieldExpression
    : wcQualifiedName
    | STAR
    ;
