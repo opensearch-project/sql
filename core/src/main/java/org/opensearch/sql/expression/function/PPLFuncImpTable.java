@@ -124,6 +124,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.LTE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LTRIM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAKEDATE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAKETIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAP_MERGE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_BOOL_PREFIX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_PHRASE;
@@ -862,6 +863,9 @@ public class PPLFuncImpTable {
       registerOperator(JSON_DELETE, PPLBuiltinOperators.JSON_DELETE);
       registerOperator(JSON_APPEND, PPLBuiltinOperators.JSON_APPEND);
       registerOperator(JSON_EXTEND, PPLBuiltinOperators.JSON_EXTEND);
+
+      // Register Map functions
+      registerOperator(MAP_MERGE, PPLBuiltinOperators.MAP_MERGE);
 
       // Register operators with a different type checker
 

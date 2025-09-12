@@ -447,8 +447,8 @@ integTest {
 
     testLogging {
         events "failed"
-    }
-    
+    } 
+
     dependsOn ':opensearch-sql-plugin:bundlePlugin'
     if(getOSFamilyType() != "windows") {
         dependsOn startPrometheus

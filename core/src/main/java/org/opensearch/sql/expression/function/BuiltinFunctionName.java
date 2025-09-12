@@ -251,6 +251,9 @@ public enum BuiltinFunctionName {
   JSON_APPEND(FunctionName.of("json_append")),
   JSON_EXTEND(FunctionName.of("json_extend")),
 
+  /** Map Functions. */
+  MAP_MERGE(FunctionName.of("map_merge")),
+
   /** GEOSPATIAL Functions. */
   GEOIP(FunctionName.of("geoip")),
 

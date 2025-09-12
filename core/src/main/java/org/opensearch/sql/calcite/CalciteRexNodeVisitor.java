@@ -291,12 +291,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     }
     List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
 
-    // DEBUG: Add logging for dynamic columns debugging
-    System.out.println("=== DEBUG visitQualifiedName ===");
-    System.out.println("Resolving field: " + qualifiedName);
-    System.out.println("Current fields: " + currentFields);
-    System.out.println("In coalesce function: " + context.isInCoalesceFunction());
-
     if (!currentFields.contains(qualifiedName) && context.isInCoalesceFunction()) {
       return context.rexBuilder.makeNullLiteral(
           context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR));
@@ -306,11 +300,9 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       // 2.1 resolve QualifiedName from stack top
       // Note: QualifiedName with multiple parts also could be applied in step 2.1,
       // for example `n2.n_name` or `nation2.n_name` in the output of join can be resolved here.
-      System.out.println("Field found in current fields, returning direct field reference");
       return context.relBuilder.field(qualifiedName);
     } else if (tryResolveDynamicField(qualifiedName, currentFields, context)) {
       // 2.1.5 Try to resolve unknown field as dynamic column access
-      System.out.println("Resolving as dynamic field");
       return resolveDynamicField(qualifiedName, context);
     } else if (node.getParts().size() == 2) {
       // 2.2 resolve QualifiedName with an alias or table name
@@ -702,34 +694,22 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
    */
   private boolean tryResolveDynamicField(
       String fieldName, List<String> currentFields, CalcitePlanContext context) {
-    System.out.println("=== DEBUG tryResolveDynamicField ===");
-    System.out.println("Field name: " + fieldName);
-    System.out.println("Current fields: " + currentFields);
-    System.out.println("In coalesce function: " + context.isInCoalesceFunction());
-    System.out.println("Dynamic columns available: " + context.isDynamicColumnsAvailable());
-
     // Don't resolve dynamic fields in coalesce function (it has special null handling)
     if (context.isInCoalesceFunction()) {
-      System.out.println("Skipping dynamic field resolution - in coalesce function");
       return false;
     }
 
     // Check if field is not in current schema
     if (currentFields.contains(fieldName)) {
-      System.out.println("Field found in current schema - not a dynamic field");
       return false;
     }
 
     // CRITICAL FIX: Check if _dynamic_columns field exists in current schema
     // This is more reliable than the flag approach
     boolean hasDynamicColumnsField = currentFields.contains("_dynamic_columns");
-    System.out.println("_dynamic_columns field exists in schema: " + hasDynamicColumnsField);
 
     // Check if dynamic columns are available (either by flag or by field presence)
     boolean hasDynamicColumns = context.isDynamicColumnsAvailable() || hasDynamicColumnsField;
-    System.out.println("Dynamic columns available (flag): " + context.isDynamicColumnsAvailable());
-    System.out.println("Dynamic columns available (field): " + hasDynamicColumnsField);
-    System.out.println("Final result: " + hasDynamicColumns);
 
     return hasDynamicColumns;
   }
@@ -743,25 +723,17 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
    * commands: Use direct MAP access preserving original types
    */
   private RexNode resolveDynamicField(String fieldName, CalcitePlanContext context) {
-    System.out.println("=== DEBUG resolveDynamicField ===");
-    System.out.println("Resolving dynamic field: " + fieldName);
-    System.out.println("Context inFieldsCommand: " + context.isInFieldsCommand());
-    System.out.println("Context inGroupByContext: " + context.isInGroupByContext());
-
     // Access the _dynamic_columns MAP field
     RexNode dynamicColumnsField = context.relBuilder.field("_dynamic_columns");
-    System.out.println("Dynamic columns field: " + dynamicColumnsField);
 
     // Create MAP access: _dynamic_columns[fieldName]
     RexNode mapAccess =
         MapAccessOperations.mapGet(context.rexBuilder, dynamicColumnsField, fieldName);
-    System.out.println("MAP access expression: " + mapAccess);
 
     // SELECTIVE VARCHAR CASTING: Only apply in GROUP BY contexts to avoid UNDEFINED type issues
     // For other contexts, preserve original types (int, double, etc.) for better type inference
     RexNode finalMapAccess;
     if (context.isInGroupByContext()) {
-      System.out.println("In GROUP BY context - applying VARCHAR cast to avoid UNDEFINED type");
       finalMapAccess =
           context.rexBuilder.makeCast(
               context
@@ -770,16 +742,13 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
                   .createSqlType(org.apache.calcite.sql.type.SqlTypeName.VARCHAR),
               mapAccess);
     } else {
-      System.out.println("Not in GROUP BY context - preserving original MAP access type");
       finalMapAccess = mapAccess;
     }
 
     // CONDITIONAL ALIASING: Apply aliasing when in fields command context
     if (context.isInFieldsCommand()) {
-      System.out.println("In fields command - applying alias");
       return context.relBuilder.alias(finalMapAccess, fieldName);
     } else {
-      System.out.println("Not in fields command - returning MAP access without alias");
       return finalMapAccess;
     }
   }

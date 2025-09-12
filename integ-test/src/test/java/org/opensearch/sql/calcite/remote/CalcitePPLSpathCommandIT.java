@@ -70,6 +70,20 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
             + " {\\\"age\\\": 35, \\\"location\\\": \\\"Portland\\\"}}, \\\"settings\\\":"
             + " {\\\"theme\\\": \\\"dark\\\", \\\"notifications\\\": true}}\"}");
     client().performRequest(complexRequest2);
+
+    // Create test data for multiple spath overwrite issue testing
+    Request overwriteRequest1 = new Request("PUT", "/test_overwrite/_doc/1?refresh=true");
+    overwriteRequest1.setJsonEntity(
+        "{\"id\": 1, \"json_data1\": \"{\\\"name\\\": \\\"John\\\", \\\"age\\\": 30}\","
+            + " \"json_data2\": \"{\\\"city\\\": \\\"New York\\\", \\\"country\\\":"
+            + " \\\"USA\\\"}\"}");
+    client().performRequest(overwriteRequest1);
+
+    Request overwriteRequest2 = new Request("PUT", "/test_overwrite/_doc/2?refresh=true");
+    overwriteRequest2.setJsonEntity(
+        "{\"id\": 2, \"json_data1\": \"{\\\"name\\\": \\\"Jane\\\", \\\"age\\\": 25}\", "
+            + "\"json_data2\": \"{\\\"city\\\": \\\"Boston\\\", \\\"country\\\": \\\"USA\\\"}\"}");
+    client().performRequest(overwriteRequest2);
   }
 
   @Test
@@ -257,5 +271,326 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
     System.out.println("=== EXPLAIN OUTPUT FOR SPATH DYNAMIC COLUMNS ===");
     System.out.println(explainResult.toString(2));
     System.out.println("=== END EXPLAIN OUTPUT ===");
+  }
+
+  @Test
+  public void testSpathMultipleInputsOverwriteIssue() throws IOException {
+    // Test multiple spath calls with different input sources to check for overwrite issue
+    // This should extract name,age from json_data1 AND city,country from json_data2
+    // But if there's an overwrite issue, the second spath will overwrite the first
+    JSONObject result =
+        executeQuery(
+            "source=test_overwrite | "
+                + "spath input=json_data1 | " // Should extract name, age
+                + "spath input=json_data2 | " // Should extract city, country (but might overwrite
+                // name, age)
+                + "fields id, name, age, city, country");
+
+    System.out.println("=== MULTIPLE SPATH OVERWRITE TEST ===");
+    System.out.println(result.toString(2));
+    System.out.println("=== END TEST ===");
+
+    // Expected: All fields should be accessible
+    // If there's an overwrite issue: name and age will be null because they were overwritten
+    verifySchema(
+        result,
+        schema("id", "bigint"),
+        schema("name", "string"), // From json_data1
+        schema("age", "int"), // From json_data1
+        schema("city", "string"), // From json_data2
+        schema("country", "string")); // From json_data2
+
+    verifyDataRows(
+        result,
+        rows(1L, "John", 30, "New York", "USA"), // All fields should be present
+        rows(2L, "Jane", 25, "Boston", "USA")); // All fields should be present
+  }
+
+  @Test
+  public void testMultipleSpathWithWhereClause() throws IOException {
+    // Test multiple spath operations followed by where clause filtering
+    JSONObject result =
+        executeQuery(
+            "source=test_overwrite | "
+                + "spath input=json_data1 | "
+                + "spath input=json_data2 | "
+                + "where name = 'John' | "
+                + "fields id, name, age, city, country");
+
+    verifySchema(
+        result,
+        schema("id", "bigint"),
+        schema("name", "string"),
+        schema("age", "int"),
+        schema("city", "string"),
+        schema("country", "string"));
+
+    verifyDataRows(
+        result, rows(1L, "John", 30, "New York", "USA")); // Only John's record should match
+  }
+
+  @Test
+  public void testMultipleSpathWithStatsAggregation() throws IOException {
+    // Test multiple spath operations followed by stats aggregation
+    // Simplified to avoid UNDEFINED type issues with AVG function
+    JSONObject result =
+        executeQuery(
+            "source=test_overwrite | "
+                + "spath input=json_data1 | "
+                + "spath input=json_data2 | "
+                + "stats count() as total by country");
+
+    verifySchema(result, schema("total", "bigint"), schema("country", "string"));
+
+    verifyDataRows(result, rows(2L, "USA")); // Both records are from USA
+  }
+
+  @Test
+  public void testMultipleSpathWithAvgAggregation() throws IOException {
+    // Test multiple spath operations with AVG aggregation on dynamic fields
+    // This tests that dynamic fields maintain proper numeric types for aggregation
+    JSONObject result =
+        executeQuery(
+            "source=test_overwrite | "
+                + "spath input=json_data1 | "
+                + "spath input=json_data2 | "
+                + "stats avg(age) as avg_age by country");
+
+    verifySchema(result, schema("avg_age", "double"), schema("country", "string"));
+
+    verifyDataRows(
+        result, rows(27.5, "USA")); // Both records are from USA, avg age = (30+25)/2 = 27.5
+  }
+
+  @Test
+  public void testMultipleSpathWithSortCommand() throws IOException {
+    // Test multiple spath operations followed by sort command
+    JSONObject result =
+        executeQuery(
+            "source=test_overwrite | "
+                + "spath input=json_data1 | "
+                + "spath input=json_data2 | "
+                + "sort age desc | "
+                + "fields id, name, age, city");
+
+    verifySchema(
+        result,
+        schema("id", "bigint"),
+        schema("name", "string"),
+        schema("age", "int"),
+        schema("city", "string"));
+
+    verifyDataRows(
+        result,
+        rows(1L, "John", 30, "New York"), // John first (age 30)
+        rows(2L, "Jane", 25, "Boston")); // Jane second (age 25)
+  }
+
+  @Test
+  public void testMultipleSpathWithEvalCommand() throws IOException {
+    // Test multiple spath operations followed by eval command
+    // Simplified to avoid complex nested MAP_MERGE issues in eval context
+    JSONObject result =
+        executeQuery(
+            "source=test_overwrite | "
+                + "spath input=json_data1 | "
+                + "spath input=json_data2 | "
+                + "eval age_plus_ten = age + 10 | "
+                + "fields id, name, age, age_plus_ten");
+
+    verifySchema(
+        result,
+        schema("id", "bigint"),
+        schema("name", "string"),
+        schema("age", "int"),
+        schema("age_plus_ten", "int"));
+
+    verifyDataRows(result, rows(1L, "John", 30, 40), rows(2L, "Jane", 25, 35));
+  }
+
+  @Test
+  public void testMultipleSpathWithConcatEval() throws IOException {
+    // Test multiple spath operations with concat function in eval command
+    JSONObject result =
+        executeQuery(
+            "source=test_overwrite | "
+                + "spath input=json_data1 | "
+                + "spath input=json_data2 | "
+                + "eval full_location = concat(city, ', ', country) | "
+                + "fields id, name, age, full_location");
+
+    verifySchema(
+        result,
+        schema("id", "bigint"),
+        schema("name", "string"),
+        schema("age", "int"),
+        schema("full_location", "string"));
+
+    verifyDataRows(
+        result, rows(1L, "John", 30, "New York, USA"), rows(2L, "Jane", 25, "Boston, USA"));
+  }
+
+  @Test
+  public void testMultipleSpathWithComplexFiltering() throws IOException {
+    // Test multiple spath operations with complex where conditions
+    JSONObject result =
+        executeQuery(
+            "source=test_overwrite | "
+                + "spath input=json_data1 | "
+                + "spath input=json_data2 | "
+                + "where age > 25 and country = 'USA' | "
+                + "fields id, name, age, city, country");
+
+    verifySchema(
+        result,
+        schema("id", "bigint"),
+        schema("name", "string"),
+        schema("age", "int"),
+        schema("city", "string"),
+        schema("country", "string"));
+
+    verifyDataRows(result, rows(1L, "John", 30, "New York", "USA")); // Only John matches (age > 25)
+  }
+
+  @Test
+  public void testMultipleSpathWithGroupByMultipleFields() throws IOException {
+    // Test multiple spath operations with group by on multiple dynamic fields
+    JSONObject result =
+        executeQuery(
+            "source=test_overwrite | "
+                + "spath input=json_data1 | "
+                + "spath input=json_data2 | "
+                + "stats count() as count_per_country_city by country, city");
+
+    verifySchema(
+        result,
+        schema("count_per_country_city", "bigint"),
+        schema("country", "string"),
+        schema("city", "string"));
+
+    verifyDataRows(result, rows(1L, "USA", "Boston"), rows(1L, "USA", "New York"));
+  }
+
+  @Test
+  public void testMultipleSpathWithLimitAndOffset() throws IOException {
+    // Test multiple spath operations with limit
+    JSONObject result =
+        executeQuery(
+            "source=test_overwrite | "
+                + "spath input=json_data1 | "
+                + "spath input=json_data2 | "
+                + "sort id | "
+                + "head 1 | "
+                + "fields id, name, age, city, country");
+
+    verifySchema(
+        result,
+        schema("id", "bigint"),
+        schema("name", "string"),
+        schema("age", "int"),
+        schema("city", "string"),
+        schema("country", "string"));
+
+    verifyDataRows(result, rows(1L, "John", 30, "New York", "USA")); // Only first record
+  }
+
+  @Test
+  public void testMultipleSpathWithDedupCommand() throws IOException {
+    // Test multiple spath operations with dedup command
+    JSONObject result =
+        executeQuery(
+            "source=test_overwrite | "
+                + "spath input=json_data1 | "
+                + "spath input=json_data2 | "
+                + "dedup country | "
+                + "fields id, name, country");
+
+    verifySchema(
+        result, schema("id", "bigint"), schema("name", "string"), schema("country", "string"));
+
+    // Should return only one record since both have country = "USA"
+    verifyDataRows(result, rows(1L, "John", "USA")); // First occurrence of USA
+  }
+
+  @Test
+  public void testTripleSpathOperations() throws IOException {
+    // Test three spath operations to ensure MAP_MERGE works with multiple merges
+    // First, let's create test data with three JSON fields
+    Request tripleRequest1 = new Request("PUT", "/test_triple_spath/_doc/1?refresh=true");
+    tripleRequest1.setJsonEntity(
+        "{\"id\": 1, "
+            + "\"json1\": \"{\\\"name\\\": \\\"Alice\\\", \\\"age\\\": 28}\", "
+            + "\"json2\": \"{\\\"city\\\": \\\"Seattle\\\", \\\"state\\\": \\\"WA\\\"}\", "
+            + "\"json3\": \"{\\\"job\\\": \\\"Engineer\\\", \\\"salary\\\": 75000}\"}");
+    client().performRequest(tripleRequest1);
+
+    Request tripleRequest2 = new Request("PUT", "/test_triple_spath/_doc/2?refresh=true");
+    tripleRequest2.setJsonEntity(
+        "{\"id\": 2, "
+            + "\"json1\": \"{\\\"name\\\": \\\"Bob\\\", \\\"age\\\": 32}\", "
+            + "\"json2\": \"{\\\"city\\\": \\\"Portland\\\", \\\"state\\\": \\\"OR\\\"}\", "
+            + "\"json3\": \"{\\\"job\\\": \\\"Designer\\\", \\\"salary\\\": 68000}\"}");
+    client().performRequest(tripleRequest2);
+
+    JSONObject result =
+        executeQuery(
+            "source=test_triple_spath | "
+                + "spath input=json1 | " // Extract name, age
+                + "spath input=json2 | " // Extract city, state
+                + "spath input=json3 | " // Extract job, salary
+                + "fields id, name, age, city, state, job, salary");
+
+    verifySchema(
+        result,
+        schema("id", "bigint"),
+        schema("name", "string"),
+        schema("age", "int"),
+        schema("city", "string"),
+        schema("state", "string"),
+        schema("job", "string"),
+        schema("salary", "int"));
+
+    verifyDataRows(
+        result,
+        rows(1L, "Alice", 28, "Seattle", "WA", "Engineer", 75000),
+        rows(2L, "Bob", 32, "Portland", "OR", "Designer", 68000));
+  }
+
+  @Test
+  public void testMultipleSpathWithFieldsSubset() throws IOException {
+    // Test that we can select only a subset of fields from multiple spath operations
+    JSONObject result =
+        executeQuery(
+            "source=test_overwrite | "
+                + "spath input=json_data1 | "
+                + "spath input=json_data2 | "
+                + "fields name, city"); // Only select name and city, not age or country
+
+    verifySchema(result, schema("name", "string"), schema("city", "string"));
+
+    verifyDataRows(result, rows("John", "New York"), rows("Jane", "Boston"));
+  }
+
+  @Test
+  public void testMultipleSpathWithRename() throws IOException {
+    // Test multiple spath operations with field renaming
+    JSONObject result =
+        executeQuery(
+            "source=test_overwrite | "
+                + "spath input=json_data1 | "
+                + "spath input=json_data2 | "
+                + "eval person_name = name, location = city | "
+                + "fields id, person_name, age, location, country");
+
+    verifySchema(
+        result,
+        schema("id", "bigint"),
+        schema("person_name", "string"),
+        schema("age", "int"),
+        schema("location", "string"),
+        schema("country", "string"));
+
+    verifyDataRows(
+        result, rows(1L, "John", 30, "New York", "USA"), rows(2L, "Jane", 25, "Boston", "USA"));
   }
 }
