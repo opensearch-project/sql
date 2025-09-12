@@ -22,6 +22,7 @@ TABLE:                              'TABLE';  // Alias for FIELDS command
 RENAME:                             'RENAME';
 STATS:                              'STATS';
 EVENTSTATS:                         'EVENTSTATS';
+STREAMSTATS:                        'STREAMSTATS';
 DEDUP:                              'DEDUP';
 SORT:                               'SORT';
 EVAL:                               'EVAL';
@@ -105,6 +106,8 @@ DEDUP_SPLITVALUES:                  'DEDUP_SPLITVALUES';
 PARTITIONS:                         'PARTITIONS';
 ALLNUM:                             'ALLNUM';
 DELIM:                              'DELIM';
+CURRENT:                            'CURRENT';
+WINDOW:                             'WINDOW';
 CENTROIDS:                          'CENTROIDS';
 ITERATIONS:                         'ITERATIONS';
 DISTANCE_TYPE:                      'DISTANCE_TYPE';

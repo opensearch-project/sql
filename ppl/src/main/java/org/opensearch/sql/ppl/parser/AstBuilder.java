@@ -62,6 +62,7 @@ import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.expression.WindowFrame;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
@@ -96,6 +97,7 @@ import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SpanBin;
+import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Timechart;
@@ -398,6 +400,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return aggregation;
   }
 
+  /** Eventstats command. */
   public UnresolvedPlan visitEventstatsCommand(OpenSearchPPLParser.EventstatsCommandContext ctx) {
     ImmutableList.Builder<UnresolvedExpression> windownFunctionListBuilder =
         new ImmutableList.Builder<>();
@@ -417,6 +420,83 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     }
 
     return new Window(windownFunctionListBuilder.build());
+  }
+
+  /** Streamstats command. */
+  public UnresolvedPlan visitStreamstatsCommand(OpenSearchPPLParser.StreamstatsCommandContext ctx) {
+    ImmutableList.Builder<UnresolvedExpression> windowFunctionListBuilder =
+        new ImmutableList.Builder<>();
+
+    // 1. Parse arguments from the streamstats command
+    List<Argument> argExprList = ArgumentFactory.getArgumentList(ctx);
+
+    // 2. Build a WindowFrame from the provided arguments (window, current, etc.)
+    WindowFrame frame = buildFrameFromArgs(argExprList);
+
+    // 3. Build each window function in the command
+    for (OpenSearchPPLParser.StreamstatsAggTermContext aggCtx : ctx.streamstatsAggTerm()) {
+      UnresolvedExpression windowFunction = internalVisitExpression(aggCtx.windowFunction());
+
+      if (windowFunction instanceof WindowFunction wf) {
+        // Attach PARTITION BY clause expressions (if any)
+        wf.setPartitionByList(getPartitionExprList(ctx.statsByClause()));
+        // Inject the frame
+        wf.setWindowFrame(frame);
+      }
+      String name =
+          aggCtx.alias == null
+              ? getTextInQuery(aggCtx)
+              : StringUtils.unquoteIdentifier(aggCtx.alias.getText());
+      Alias alias = new Alias(name, windowFunction);
+      windowFunctionListBuilder.add(alias);
+    }
+
+    return new StreamWindow(windowFunctionListBuilder.build(), argExprList);
+  }
+
+  private WindowFrame buildFrameFromArgs(List<Argument> args) {
+    int windowSize = 0; // default means unbounded
+    boolean current = true;
+
+    for (Argument arg : args) {
+      String name = arg.getArgName().toLowerCase();
+      String value = arg.getValue().toString();
+      switch (name) {
+        case "window":
+          try {
+            windowSize = Integer.parseInt(value);
+          } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid window size: " + value, e);
+          }
+          break;
+        case "current":
+          current = Boolean.parseBoolean(value);
+          break;
+        default:
+          throw new IllegalArgumentException("Unsupported streamstats argument: " + name);
+      }
+    }
+
+    if (windowSize < 0) {
+      throw new IllegalArgumentException("Window size must be >= 0, but got: " + windowSize);
+    }
+    if (windowSize > 0) {
+      if (current) {
+        // N PRECEDING to CURRENT ROW
+        return WindowFrame.of(WindowFrame.FrameType.ROWS, windowSize + " PRECEDING", "CURRENT ROW");
+      } else {
+        // N PRECEDING to 1 PRECEDING
+        return WindowFrame.of(WindowFrame.FrameType.ROWS, windowSize + " PRECEDING", "1 PRECEDING");
+      }
+    } else {
+      // Default: running total
+      if (current) {
+        return WindowFrame.of(WindowFrame.FrameType.ROWS, "UNBOUNDED PRECEDING", "CURRENT ROW");
+      } else {
+        // Default: running total excluding current row
+        return WindowFrame.of(WindowFrame.FrameType.ROWS, "UNBOUNDED PRECEDING", "1 PRECEDING");
+      }
+    }
   }
 
   /** Dedup command. */

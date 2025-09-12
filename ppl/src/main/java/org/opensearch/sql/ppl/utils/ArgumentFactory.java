@@ -29,6 +29,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLiteralCon
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StreamstatsCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
 
 /** Util class to get all arguments as a list from the PPL command. */
@@ -67,6 +68,22 @@ public class ArgumentFactory {
         ctx.dedupsplit != null
             ? new Argument("dedupsplit", getArgumentValue(ctx.dedupsplit))
             : new Argument("dedupsplit", new Literal(false, DataType.BOOLEAN)));
+  }
+
+  /**
+   * Get list of {@link Argument}.
+   *
+   * @param ctx StreamstatsCommandContext instance
+   * @return the list of arguments fetched from the streamstats command
+   */
+  public static List<Argument> getArgumentList(StreamstatsCommandContext ctx) {
+    return Arrays.asList(
+        ctx.current != null
+            ? new Argument("current", getArgumentValue(ctx.current))
+            : new Argument("current", new Literal(true, DataType.BOOLEAN)),
+        ctx.window != null
+            ? new Argument("window", getArgumentValue(ctx.window))
+            : new Argument("window", new Literal(0, DataType.INTEGER)));
   }
 
   /**

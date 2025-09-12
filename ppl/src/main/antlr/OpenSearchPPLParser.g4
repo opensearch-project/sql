@@ -52,6 +52,7 @@ commands
    | renameCommand
    | statsCommand
    | eventstatsCommand
+   | streamstatsCommand
    | dedupCommand
    | sortCommand
    | evalCommand
@@ -90,6 +91,7 @@ commandName
    | RENAME
    | STATS
    | EVENTSTATS
+   | STREAMSTATS
    | DEDUP
    | SORT
    | EVAL
@@ -160,6 +162,10 @@ statsCommand
 
 eventstatsCommand
    : EVENTSTATS eventstatsAggTerm (COMMA eventstatsAggTerm)* (statsByClause)?
+   ;
+
+streamstatsCommand
+   : STREAMSTATS (CURRENT EQUAL current = booleanLiteral)? (WINDOW EQUAL window = integerLiteral)? streamstatsAggTerm (COMMA streamstatsAggTerm)* (statsByClause)?
    ;
 
 dedupCommand
@@ -501,8 +507,14 @@ eventstatsAggTerm
    : windowFunction (AS alias = wcFieldExpression)?
    ;
 
+streamstatsAggTerm
+   : windowFunction (AS alias = wcFieldExpression)?
+   ;
+
 windowFunction
    : windowFunctionName LT_PRTHS functionArgs RT_PRTHS
+   | (COUNT | C) LT_PRTHS evalExpression RT_PRTHS
+   | (COUNT | C) (LT_PRTHS RT_PRTHS)?
    ;
 
 windowFunctionName
@@ -1318,6 +1330,8 @@ keywordsCanBeId
    | PARTITIONS
    | ALLNUM
    | DELIM
+   | CURRENT
+   | WINDOW
    | CENTROIDS
    | ITERATIONS
    | DISTANCE_TYPE

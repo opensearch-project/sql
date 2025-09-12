@@ -88,6 +88,7 @@ import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Timechart;
@@ -730,6 +731,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     return new LogicalTrendline(
         buildSort(child, context, 0, Collections.singletonList(node.getSortByField().get())),
         computationsAndTypes.build());
+  }
+
+  @Override
+  public LogicalPlan visitStreamWindow(StreamWindow node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Streamstats");
   }
 
   @Override
