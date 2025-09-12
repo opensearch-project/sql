@@ -102,7 +102,9 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
                 addParsedHitsToBuilder(builder, hit);
                 addMetaDataFieldsToBuilder(builder, hit);
                 addHighlightsToBuilder(builder, hit);
-                return (ExprValue) ExprTupleValue.fromExprValueMap(builder.build());
+                // Dedup collapse pushdown will return duplicate keys in both source hits and document fields
+                // To avoid conflicts exception, pick last one as the values should be the same.
+                return (ExprValue) ExprTupleValue.fromExprValueMap(builder.buildKeepingLast());
               })
           .iterator();
     }

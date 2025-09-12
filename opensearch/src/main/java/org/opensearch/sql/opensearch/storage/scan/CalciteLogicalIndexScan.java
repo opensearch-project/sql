@@ -212,6 +212,15 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     // figure out the RexCall in projects
     List<org.apache.calcite.util.Pair<RexNode, String>> calls =
         project.getNamedProjects().stream().filter(pair -> pair.left instanceof RexCall).toList();
+    // If nested RexCall output RelDataType is UDT or any operands contain UDT, don't push down it because deserialization can't recognize UDT
+    calls.forEach(
+        call -> {
+          if (OpenSearchRelOptUtil.findUDTType(call.left)) {
+            throw new IllegalStateException("Cannot pushdown the RexCall containing UDT to script project.");
+          }
+        }
+    );
+
     List<String> fieldNames =
         project.getNamedProjects().stream()
             .filter(pair -> !(pair.left instanceof RexCall))

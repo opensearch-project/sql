@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.util;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
@@ -19,12 +20,17 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil.RexFinder;
+import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.Util;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.calcite.type.ExprSqlType;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
+import org.opensearch.sql.data.type.ExprType;
 
 @UtilityClass
 public class OpenSearchRelOptUtil {
@@ -33,15 +39,15 @@ public class OpenSearchRelOptUtil {
       EnumSet.of(ExprUDT.EXPR_TIMESTAMP, ExprUDT.EXPR_DATE, ExprUDT.EXPR_TIME);
   private static final List<DslTypeMappingRule> DSL_TYPE_MAPPING_RULES =
       Arrays.asList(
+          // Not support time related UDT yet because derived field expects date to be Long but our UDT is actually a STRING
           new DslTypeMappingRule(
               t -> (t instanceof ExprSqlType) && ((ExprSqlType) t).getUdt() == ExprUDT.EXPR_IP,
               "ip"),
-          new DslTypeMappingRule(
-              t -> (t instanceof ExprSqlType) && DATE_UDT_SET.contains(((ExprSqlType) t).getUdt()),
-              "date"),
           new DslTypeMappingRule(t -> SqlTypeName.INT_TYPES.contains(t.getSqlTypeName()), "long"),
+          // Float is not supported well in OpenSearch core. See reported bug: https://github.com/opensearch-project/OpenSearch/issues/19271
+          // TODO: Support BigDecimal and other complex objects. A workaround is to wrap it in JSON object so that response can parse it
           new DslTypeMappingRule(
-              t -> SqlTypeName.FRACTIONAL_TYPES.contains(t.getSqlTypeName()), "double"),
+              t -> SqlTypeName.DOUBLE.equals(t.getSqlTypeName()), "double"),
           new DslTypeMappingRule(
               t -> SqlTypeName.BOOLEAN_TYPES.contains(t.getSqlTypeName()), "boolean"),
           new DslTypeMappingRule(
@@ -143,6 +149,26 @@ public class OpenSearchRelOptUtil {
       this.condition = condition;
       this.result = result;
     }
+  }
+
+  public static boolean findUDTType(RexNode node) {
+    return node.accept(
+        new RexVisitorImpl<>(true) {
+          @Override
+          public Boolean visitInputRef(RexInputRef inputRef) {
+            return OpenSearchTypeFactory.isUserDefinedType(inputRef.getType());
+          }
+
+          @Override
+          public Boolean visitLiteral(RexLiteral literal) {
+            return OpenSearchTypeFactory.isUserDefinedType(literal.getType());
+          }
+
+          @Override
+          public Boolean visitCall(RexCall call) {
+            return OpenSearchTypeFactory.isUserDefinedType(call.getType());
+          }
+        });
   }
 
   private static boolean isOrderPreservingCast(RelDataType src, RelDataType dst) {
