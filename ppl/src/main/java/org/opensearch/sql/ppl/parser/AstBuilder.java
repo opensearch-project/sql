@@ -413,7 +413,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
             Collections.emptyList(),
             groupList,
             span,
-            ArgumentFactory.getArgumentList(ctx));
+            ArgumentFactory.getArgumentList(ctx, settings));
     return aggregation;
   }
 
