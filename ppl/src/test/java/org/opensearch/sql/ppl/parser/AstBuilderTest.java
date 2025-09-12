@@ -42,6 +42,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 import static org.opensearch.sql.ast.dsl.AstDSL.rename;
 import static org.opensearch.sql.ast.dsl.AstDSL.sort;
 import static org.opensearch.sql.ast.dsl.AstDSL.span;
+import static org.opensearch.sql.ast.dsl.AstDSL.spath;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.tableFunction;
 import static org.opensearch.sql.ast.dsl.AstDSL.trendline;
@@ -756,6 +757,51 @@ public class AstBuilderTest {
             field("raw"),
             stringLiteral("pattern"),
             ImmutableMap.of()));
+  }
+
+  @Test
+  public void testBasicSpathCommand() {
+    assertEqual(
+        "source=t | spath input=f path=simple.nested",
+        spath(
+            relation("t"),
+            "f",
+            null, // no output field specified
+            "simple.nested"));
+  }
+
+  @Test
+  public void testSpathWithOutput() {
+    assertEqual(
+        "source=t | spath input=f output=o path=simple.nested",
+        spath(relation("t"), "f", "o", "simple.nested"));
+  }
+
+  @Test
+  public void testSpathWithArrayWildcard() {
+    assertEqual(
+        "source=t | spath input=f path=array{}.nested",
+        spath(relation("t"), "f", null, "array{}.nested"));
+  }
+
+  @Test
+  public void testSpathWithArrayIndex() {
+    assertEqual(
+        "source=t | spath input=f path=array{1}.nested",
+        spath(relation("t"), "f", null, "array{1}.nested"));
+  }
+
+  @Test
+  public void testSpathWithMultipleArrays() {
+    assertEqual(
+        "source=t | spath input=f path=outer{}.middle{2}.inner",
+        spath(relation("t"), "f", null, "outer{}.middle{2}.inner"));
+  }
+
+  @Test
+  public void testSpathWithNoPathKeyword() {
+    assertEqual(
+        "source=t | spath input=f simple.nested", spath(relation("t"), "f", null, "simple.nested"));
   }
 
   @Test
