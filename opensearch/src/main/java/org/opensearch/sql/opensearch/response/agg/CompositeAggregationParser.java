@@ -51,7 +51,20 @@ public class CompositeAggregationParser implements OpenSearchAggregationResponse
   private Map<String, Object> parse(CompositeAggregation.Bucket bucket) {
     Map<String, Object> resultMap = new HashMap<>();
     resultMap.putAll(bucket.getKey());
+    
+    // Parse regular metric aggregations
     resultMap.putAll(metricsParser.parse(bucket.getAggregations()));
+    
+    // Handle DocCountParser for optimized count aggregations
+    for (MetricParser parser : metricsParser.getMetricParserList()) {
+      if (parser instanceof DocCountParser) {
+        DocCountParser docCountParser = (DocCountParser) parser;
+        Map<String, Object> bucketMap = new HashMap<>();
+        bucketMap.put("doc_count", bucket.getDocCount());
+        resultMap.putAll(docCountParser.parseBucket(bucketMap));
+      }
+    }
+    
     return resultMap;
   }
 }

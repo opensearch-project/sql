@@ -588,6 +588,134 @@ class AggregationQueryBuilderTest {
   }
 
   @Test
+  void should_optimize_count_with_date_histogram() {
+    // When count aggregation is used with date histogram (span), 
+    // count should be optimized to use bucket doc_count instead of value_count
+    assertEquals(
+        format(
+            "{%n"
+                + "  \"composite_buckets\" : {%n"
+                + "    \"composite\" : {%n"
+                + "      \"size\" : 1000,%n"
+                + "      \"sources\" : [ {%n"
+                + "        \"SpanExpression(field=timestamp, value=1, unit=H)\" : {%n"
+                + "          \"date_histogram\" : {%n"
+                + "            \"field\" : \"timestamp\",%n"
+                + "            \"missing_bucket\" : true,%n"
+                + "            \"missing_order\" : \"first\",%n"
+                + "            \"order\" : \"asc\",%n"
+                + "            \"fixed_interval\" : \"1h\"%n"
+                + "          }%n"
+                + "        }%n"
+                + "      } ]%n"
+                + "    }%n"
+                + "  }%n"
+                + "}"),
+        buildQuery(
+            Arrays.asList(
+                named("count(*)", new CountAggregator(Arrays.asList(literal("*")), INTEGER))),
+            Arrays.asList(named(span(ref("timestamp", TIMESTAMP), literal(1), "h")))));
+  }
+
+  @Test
+  void should_not_optimize_count_field_with_date_histogram() {
+    // When count(field_name) is used with date histogram, 
+    // it should NOT be optimized because it needs to count non-null values of that field
+    assertEquals(
+        format(
+            "{%n"
+                + "  \"composite_buckets\" : {%n"
+                + "    \"composite\" : {%n"
+                + "      \"size\" : 1000,%n"
+                + "      \"sources\" : [ {%n"
+                + "        \"SpanExpression(field=timestamp, value=1, unit=H)\" : {%n"
+                + "          \"date_histogram\" : {%n"
+                + "            \"field\" : \"timestamp\",%n"
+                + "            \"missing_bucket\" : true,%n"
+                + "            \"missing_order\" : \"first\",%n"
+                + "            \"order\" : \"asc\",%n"
+                + "            \"fixed_interval\" : \"1h\"%n"
+                + "          }%n"
+                + "        }%n"
+                + "      } ]%n"
+                + "    },%n"
+                + "    \"aggregations\" : {%n"
+                + "      \"count(age)\" : {%n"
+                + "        \"value_count\" : {%n"
+                + "          \"field\" : \"age\"%n"
+                + "        }%n"
+                + "      }%n"
+                + "    }%n"
+                + "  }%n"
+                + "}"),
+        buildQuery(
+            Arrays.asList(
+                named("count(age)", new CountAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER))),
+            Arrays.asList(named(span(ref("timestamp", TIMESTAMP), literal(1), "h")))));
+  }
+
+  @Test
+  void should_optimize_count_with_date_histogram_bucket_nullable_false() {
+    // When count aggregation is used with date histogram (span) and bucket_nullable is false,
+    // count should be optimized to use bucket doc_count instead of value_count
+    assertEquals(
+        format(
+            "{%n"
+                + "  \"SpanExpression(field=timestamp, value=1, unit=H)\" : {%n"
+                + "    \"date_histogram\" : {%n"
+                + "      \"field\" : \"timestamp\",%n"
+                + "      \"fixed_interval\" : \"1h\",%n"
+                + "      \"offset\" : 0,%n"
+                + "      \"order\" : {%n"
+                + "        \"_key\" : \"asc\"%n"
+                + "      },%n"
+                + "      \"keyed\" : false,%n"
+                + "      \"min_doc_count\" : 0%n"
+                + "    }%n"
+                + "  }%n"
+                + "}"),
+        buildQuery(
+            Arrays.asList(
+                named("count(*)", new CountAggregator(Arrays.asList(literal("*")), INTEGER))),
+            Arrays.asList(named(span(ref("timestamp", TIMESTAMP), literal(1), "h"))),
+            false));
+  }
+
+  @Test
+  void should_not_optimize_count_field_with_date_histogram_missing_bucket_false() {
+    // When count(field_name) is used with date histogram and missing_bucket is false,
+    // it should NOT be optimized because it needs to count non-null values of that field
+    assertEquals(
+        format(
+            "{%n"
+                + "  \"SpanExpression(field=timestamp, value=1, unit=H)\" : {%n"
+                + "    \"date_histogram\" : {%n"
+                + "      \"field\" : \"timestamp\",%n"
+                + "      \"fixed_interval\" : \"1h\",%n"
+                + "      \"offset\" : 0,%n"
+                + "      \"order\" : {%n"
+                + "        \"_key\" : \"asc\"%n"
+                + "      },%n"
+                + "      \"keyed\" : false,%n"
+                + "      \"min_doc_count\" : 0%n"
+                + "    },%n"
+                + "    \"aggregations\" : {%n"
+                + "      \"count(age)\" : {%n"
+                + "        \"value_count\" : {%n"
+                + "          \"field\" : \"age\"%n"
+                + "        }%n"
+                + "      }%n"
+                + "    }%n"
+                + "  }%n"
+                + "}"),
+        buildQuery(
+            Arrays.asList(
+                named("count(age)", new CountAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER))),
+            Arrays.asList(named(span(ref("timestamp", TIMESTAMP), literal(1), "h"))),
+            false));
+  }
+
+  @Test
   void fixed_interval_time_span() {
     assertEquals(
         format(

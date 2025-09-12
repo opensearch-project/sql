@@ -146,6 +146,37 @@ class MetricAggregationBuilderTest {
   }
 
   @Test
+  void should_skip_count_aggregation_when_optimized() {
+    // When optimization is enabled, count aggregations should be skipped
+    // and DocCountParser should be used instead
+    assertEquals(
+        "{ }",
+        buildQueryWithOptimization(
+            Arrays.asList(
+                named("count(*)", new CountAggregator(Arrays.asList(literal("*")), INTEGER))),
+            true));
+  }
+
+  @Test
+  void should_not_skip_count_field_aggregation_when_optimized() {
+    // When optimization is enabled, count(field_name) should NOT be skipped
+    // because it needs to count non-null values of that specific field
+    assertEquals(
+        format(
+            "{%n"
+                + "  \"count(age)\" : {%n"
+                + "    \"value_count\" : {%n"
+                + "      \"field\" : \"age\"%n"
+                + "    }%n"
+                + "  }%n"
+                + "}"),
+        buildQueryWithOptimization(
+            Arrays.asList(
+                named("count(age)", new CountAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER))),
+            true));
+  }
+
+  @Test
   void should_build_min_aggregation() {
     assertEquals(
         format(
@@ -512,6 +543,14 @@ class MetricAggregationBuilderTest {
     ObjectMapper objectMapper = new ObjectMapper();
     return objectMapper
         .readTree(aggregationBuilder.build(namedAggregatorList).getLeft().toString())
+        .toPrettyString();
+  }
+
+  @SneakyThrows
+  private String buildQueryWithOptimization(List<NamedAggregator> namedAggregatorList, boolean optimizeCount) {
+    ObjectMapper objectMapper = new ObjectMapper();
+    return objectMapper
+        .readTree(aggregationBuilder.build(namedAggregatorList, optimizeCount).getLeft().toString())
         .toPrettyString();
   }
 }
