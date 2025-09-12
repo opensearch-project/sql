@@ -175,4 +175,14 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
         "source=EMP | eval log2 = log2(ENAME, JOB) | fields log2",
         "LOG2 function expects {[INTEGER]|[DOUBLE]}, but got [STRING,STRING]");
   }
+
+  // Test VALUES function with array expression (which is not a supported scalar type)
+  @Test
+  public void testValuesFunctionWithArrayArgType() {
+    verifyQueryThrowsException(
+        "source=EMP | stats values(array(ENAME, JOB)) as unique_values",
+        "Aggregation function VALUES expects field type"
+            + " {[BYTE],[SHORT],[INTEGER],[LONG],[FLOAT],[DOUBLE],[STRING],[BOOLEAN],[DATE],[TIME],[TIMESTAMP],[IP],[BINARY]},"
+            + " but got [ARRAY]");
+  }
 }
