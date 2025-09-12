@@ -22,6 +22,7 @@ import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.opensearch.search.aggregations.metrics.ExtendedStats;
+import org.opensearch.sql.opensearch.response.agg.BucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.FilterParser;
 import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
@@ -64,24 +65,19 @@ class OpenSearchAggregationResponseParserTest {
   void one_bucket_one_metric_should_pass() {
     String response =
         "{\n"
-            + "  \"composite#composite_buckets\": {\n"
-            + "    \"after_key\": {\n"
-            + "      \"type\": \"sale\"\n"
-            + "    },\n"
+            + "  \"sterms#type\": {\n"
+            + "    \"doc_count_error_upper_bound\": 0,\n"
+            + "    \"sum_other_doc_count\": 0,\n"
             + "    \"buckets\": [\n"
             + "      {\n"
-            + "        \"key\": {\n"
-            + "          \"type\": \"cost\"\n"
-            + "        },\n"
+            + "        \"key\": \"cost\",\n"
             + "        \"doc_count\": 2,\n"
             + "        \"avg#avg\": {\n"
             + "          \"value\": 20\n"
             + "        }\n"
             + "      },\n"
             + "      {\n"
-            + "        \"key\": {\n"
-            + "          \"type\": \"sale\"\n"
-            + "        },\n"
+            + "        \"key\": \"sale\",\n"
             + "        \"doc_count\": 2,\n"
             + "        \"avg#avg\": {\n"
             + "          \"value\": 105\n"
@@ -92,7 +88,7 @@ class OpenSearchAggregationResponseParserTest {
             + "}";
 
     OpenSearchAggregationResponseParser parser =
-        new CompositeAggregationParser(new SingleValueParser("avg"));
+        new BucketAggregationParser(new SingleValueParser("avg"));
     assertThat(
         parse(parser, response),
         containsInAnyOrder(
@@ -182,15 +178,12 @@ class OpenSearchAggregationResponseParserTest {
   void filter_aggregation_group_by_should_pass() {
     String response =
         "{\n"
-            + "  \"composite#composite_buckets\":{\n"
-            + "    \"after_key\":{\n"
-            + "      \"gender\":\"m\"\n"
-            + "    },\n"
+            + "  \"sterms#gender\": {\n"
+            + "    \"doc_count_error_upper_bound\": 0,\n"
+            + "    \"sum_other_doc_count\": 0,\n"
             + "    \"buckets\":[\n"
             + "      {\n"
-            + "        \"key\":{\n"
-            + "          \"gender\":\"f\"\n"
-            + "        },\n"
+            + "        \"key\":\"f\",\n"
             + "        \"doc_count\":3,\n"
             + "        \"filter#filter\":{\n"
             + "          \"doc_count\":1,\n"
@@ -200,9 +193,7 @@ class OpenSearchAggregationResponseParserTest {
             + "        }\n"
             + "      },\n"
             + "      {\n"
-            + "        \"key\":{\n"
-            + "          \"gender\":\"m\"\n"
-            + "        },\n"
+            + "        \"key\":\"m\",\n"
             + "        \"doc_count\":4,\n"
             + "        \"filter#filter\":{\n"
             + "          \"doc_count\":2,\n"
@@ -215,7 +206,7 @@ class OpenSearchAggregationResponseParserTest {
             + "  }\n"
             + "}";
     OpenSearchAggregationResponseParser parser =
-        new CompositeAggregationParser(
+        new BucketAggregationParser(
             FilterParser.builder()
                 .name("filter")
                 .metricsParser(new SingleValueParser("avg"))
@@ -352,15 +343,12 @@ class OpenSearchAggregationResponseParserTest {
   void one_bucket_one_metric_percentile_should_pass() {
     String response =
         "{\n"
-            + "  \"composite#composite_buckets\": {\n"
-            + "    \"after_key\": {\n"
-            + "      \"type\": \"sale\"\n"
-            + "    },\n"
+            + "  \"sterms#type\": {\n"
+            + "    \"doc_count_error_upper_bound\": 0,\n"
+            + "    \"sum_other_doc_count\": 0,\n"
             + "    \"buckets\": [\n"
             + "      {\n"
-            + "        \"key\": {\n"
-            + "          \"type\": \"cost\"\n"
-            + "        },\n"
+            + "        \"key\": \"cost\",\n"
             + "        \"doc_count\": 2,\n"
             + "        \"percentiles#percentile\": {\n"
             + "          \"values\": {\n"
@@ -369,9 +357,7 @@ class OpenSearchAggregationResponseParserTest {
             + "        }\n"
             + "      },\n"
             + "      {\n"
-            + "        \"key\": {\n"
-            + "          \"type\": \"sale\"\n"
-            + "        },\n"
+            + "        \"key\": \"sale\",\n"
             + "        \"doc_count\": 2,\n"
             + "        \"percentiles#percentile\": {\n"
             + "          \"values\": {\n"
@@ -384,7 +370,7 @@ class OpenSearchAggregationResponseParserTest {
             + "}";
 
     OpenSearchAggregationResponseParser parser =
-        new CompositeAggregationParser(new SinglePercentileParser("percentile"));
+        new BucketAggregationParser(new SinglePercentileParser("percentile"));
     assertThat(
         parse(parser, response),
         containsInAnyOrder(
@@ -470,15 +456,12 @@ class OpenSearchAggregationResponseParserTest {
   void one_bucket_percentiles_should_pass() {
     String response =
         "{\n"
-            + "  \"composite#composite_buckets\": {\n"
-            + "    \"after_key\": {\n"
-            + "      \"type\": \"sale\"\n"
-            + "    },\n"
+            + "  \"sterms#type\": {\n"
+            + "    \"doc_count_error_upper_bound\": 0,\n"
+            + "    \"sum_other_doc_count\": 0,\n"
             + "    \"buckets\": [\n"
             + "      {\n"
-            + "        \"key\": {\n"
-            + "          \"type\": \"cost\"\n"
-            + "        },\n"
+            + "        \"key\": \"cost\",\n"
             + "        \"doc_count\": 2,\n"
             + "        \"percentiles#percentiles\": {\n"
             + "          \"values\": {\n"
@@ -493,9 +476,7 @@ class OpenSearchAggregationResponseParserTest {
             + "        }\n"
             + "      },\n"
             + "      {\n"
-            + "        \"key\": {\n"
-            + "          \"type\": \"sale\"\n"
-            + "        },\n"
+            + "        \"key\": \"sale\",\n"
             + "        \"doc_count\": 2,\n"
             + "        \"percentiles#percentiles\": {\n"
             + "          \"values\": {\n"
@@ -514,7 +495,7 @@ class OpenSearchAggregationResponseParserTest {
             + "}";
 
     OpenSearchAggregationResponseParser parser =
-        new CompositeAggregationParser(new PercentilesParser("percentiles"));
+        new BucketAggregationParser(new PercentilesParser("percentiles"));
     assertThat(
         parse(parser, response),
         containsInAnyOrder(

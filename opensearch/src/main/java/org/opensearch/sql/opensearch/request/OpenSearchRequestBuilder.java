@@ -195,6 +195,10 @@ public class OpenSearchRequestBuilder {
     aggregationBuilder.getLeft().forEach(sourceBuilder::aggregation);
     sourceBuilder.size(0);
     exprValueFactory.setParser(aggregationBuilder.getRight());
+    // no need to sort docs for aggregation
+    if (sourceBuilder.sorts() != null) {
+      sourceBuilder.sorts().clear();
+    }
   }
 
   /**

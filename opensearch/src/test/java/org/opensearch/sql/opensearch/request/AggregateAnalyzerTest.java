@@ -579,6 +579,7 @@ class AggregateAnalyzerTest {
     Aggregate agg = mock(Aggregate.class);
     when(agg.getGroupSet()).thenReturn(groups);
     when(agg.getAggCallList()).thenReturn(calls);
+    when(agg.getHints()).thenReturn(ImmutableList.of());
     return agg;
   }
 
