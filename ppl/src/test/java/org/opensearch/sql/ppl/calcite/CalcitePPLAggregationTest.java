@@ -756,4 +756,76 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
         "SELECT `percentile_approx`(`SAL`, 50.0, DECIMAL) `median(SAL)`\n" + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  @Test
+  public void testMaxOnStringField() {
+    String ppl = "source=EMP | stats max(ENAME) as max_name";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalAggregate(group=[{}], max_name=[MAX($0)])\n"
+            + "  LogicalProject(ENAME=[$1])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedResult = "max_name=WARD\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql = "SELECT MAX(`ENAME`) `max_name`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMinOnStringField() {
+    String ppl = "source=EMP | stats min(ENAME) as min_name";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalAggregate(group=[{}], min_name=[MIN($0)])\n"
+            + "  LogicalProject(ENAME=[$1])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedResult = "min_name=ADAMS\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql = "SELECT MIN(`ENAME`) `min_name`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMaxOnTimeField() {
+    String ppl = "source=EMP | stats max(HIREDATE) as max_hire_date";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalAggregate(group=[{}], max_hire_date=[MAX($0)])\n"
+            + "  LogicalProject(HIREDATE=[$4])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedResult = "max_hire_date=1987-05-23\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql = "SELECT MAX(`HIREDATE`) `max_hire_date`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMinOnTimeField() {
+    String ppl = "source=EMP | stats min(HIREDATE) as min_hire_date";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalAggregate(group=[{}], min_hire_date=[MIN($0)])\n"
+            + "  LogicalProject(HIREDATE=[$4])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedResult = "min_hire_date=1980-12-17\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql = "SELECT MIN(`HIREDATE`) `min_hire_date`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
 }

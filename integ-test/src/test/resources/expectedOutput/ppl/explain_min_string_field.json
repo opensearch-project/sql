@@ -1,0 +1,23 @@
+{
+  "root": {
+    "type": "OpenSearchPlan",
+    "children": [
+      {
+        "type": "LogicalAggregate",
+        "description": "group=[{}], min(firstname)=[MIN($0)]",
+        "children": [
+          {
+            "type": "LogicalProject",
+            "description": "firstname=[$3]",
+            "children": [
+              {
+                "type": "LogicalTableScan",
+                "description": "table=[[opensearch-sql_test_index_account]]"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
