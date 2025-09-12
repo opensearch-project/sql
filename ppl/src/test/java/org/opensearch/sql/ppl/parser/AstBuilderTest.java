@@ -40,6 +40,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.rareTopN;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 import static org.opensearch.sql.ast.dsl.AstDSL.rename;
+import static org.opensearch.sql.ast.dsl.AstDSL.search;
 import static org.opensearch.sql.ast.dsl.AstDSL.sort;
 import static org.opensearch.sql.ast.dsl.AstDSL.span;
 import static org.opensearch.sql.ast.dsl.AstDSL.spath;
@@ -106,8 +107,7 @@ public class AstBuilderTest {
 
   @Test
   public void testSearchCommand() {
-    assertEqual(
-        "search source=t a=1", filter(relation("t"), compare("=", field("a"), intLiteral(1))));
+    assertEqual("search source=t a=1", search(relation("t"), "a:1"));
   }
 
   @Test
@@ -168,20 +168,18 @@ public class AstBuilderTest {
 
   @Test
   public void testSearchCommandString() {
-    assertEqual(
-        "search source=t a=\"a\"",
-        filter(relation("t"), compare("=", field("a"), stringLiteral("a"))));
+    assertEqual("search source=t a=\"a\"", search(relation("t"), "a:a"));
   }
 
   @Test
   public void testSearchCommandWithoutSearch() {
-    assertEqual("source=t a=1", filter(relation("t"), compare("=", field("a"), intLiteral(1))));
+    assertEqual(
+        "source=t | where a=1", filter(relation("t"), compare("=", field("a"), intLiteral(1))));
   }
 
   @Test
   public void testSearchCommandWithFilterBeforeSource() {
-    assertEqual(
-        "search a=1 source=t", filter(relation("t"), compare("=", field("a"), intLiteral(1))));
+    assertEqual("search a=1 source=t", search(relation("t"), "a:1"));
   }
 
   @Test
@@ -579,7 +577,7 @@ public class AstBuilderTest {
   @Test
   public void testIndexName() {
     assertEqual(
-        "source=`log.2020.04.20.` a=1",
+        "source=`log.2020.04.20.` | where a=1",
         filter(relation("log.2020.04.20."), compare("=", field("a"), intLiteral(1))));
     assertEqual("describe `log.2020.04.20.`", describe(mappingTable("log.2020.04.20.")));
   }
