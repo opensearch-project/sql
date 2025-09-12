@@ -233,8 +233,6 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testSortThenAggregatePushDownExplain() throws IOException {
-    // TODO: Remove pushed-down sort in DSL in expectedOutput/ppl/explain_sort_then_agg_push.json
-    //  existing collations should be eliminated when pushing down aggregations (v2)
     String expected = loadExpectedPlan("explain_sort_then_agg_push.json");
     assertJsonEqualsIgnoreId(
         expected,
@@ -465,6 +463,18 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testStatsBySpanNonBucketNullable() throws IOException {
+    // TODO isNotNull(Span) pushdown to script, can be optimized to exist()
+    String expected = loadExpectedPlan("explain_stats_by_span_non_bucket_nullable.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | stats bucket_nullable=false count() by span(age,10)",
+                TEST_INDEX_BANK)));
+  }
+
+  @Test
   public void testStatsByTimeSpan() throws IOException {
     String expected = loadExpectedPlan("explain_stats_by_timespan.json");
     assertJsonEqualsIgnoreId(
@@ -511,11 +521,7 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testSingleFieldRelevanceQueryFunctionExplain() throws IOException {
-    // This test is only applicable if pushdown is enabled
-    if (!isPushdownEnabled()) {
-      return;
-    }
-
+    enabledOnlyWhenPushdownIsEnabled();
     String expected =
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_single_field_relevance_push.json")
@@ -530,11 +536,7 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testMultiFieldsRelevanceQueryFunctionExplain() throws IOException {
-    // This test is only applicable if pushdown is enabled
-    if (!isPushdownEnabled()) {
-      return;
-    }
-
+    enabledOnlyWhenPushdownIsEnabled();
     String expected =
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_multi_fields_relevance_push.json")
@@ -637,10 +639,10 @@ public class ExplainIT extends PPLIntegTestCase {
   protected String loadExpectedPlan(String fileName) throws IOException {
     String prefix;
     if (isCalciteEnabled()) {
-      if (isPushdownEnabled()) {
-        prefix = "expectedOutput/calcite/";
-      } else {
+      if (isPushdownDisabled()) {
         prefix = "expectedOutput/calcite_no_pushdown/";
+      } else {
+        prefix = "expectedOutput/calcite/";
       }
     } else {
       prefix = "expectedOutput/ppl/";

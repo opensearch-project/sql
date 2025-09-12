@@ -413,7 +413,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
             Collections.emptyList(),
             groupList,
             span,
-            ArgumentFactory.getArgumentList(ctx));
+            ArgumentFactory.getArgumentList(ctx, settings));
     return aggregation;
   }
 
@@ -1015,6 +1015,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     Literal pattern = (Literal) internalVisitExpression(ctx.rexExpr().pattern);
     Rex.RexMode mode = Rex.RexMode.EXTRACT;
     Optional<Integer> maxMatch = Optional.empty();
+    Optional<String> offsetField = Optional.empty();
 
     for (OpenSearchPPLParser.RexOptionContext optionCtx : ctx.rexExpr().rexOption()) {
       if (optionCtx.maxMatch != null) {
@@ -1023,6 +1024,18 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       if (optionCtx.EXTRACT() != null) {
         mode = Rex.RexMode.EXTRACT;
       }
+      if (optionCtx.SED() != null) {
+        mode = Rex.RexMode.SED;
+      }
+      if (optionCtx.offsetField != null) {
+        offsetField = Optional.of(optionCtx.offsetField.getText());
+      }
+    }
+
+    if (mode == Rex.RexMode.SED && offsetField.isPresent()) {
+      throw new IllegalArgumentException(
+          "Rex command: offset_field cannot be used with mode=sed. "
+              + "The offset_field option is only supported in extract mode.");
     }
 
     int maxMatchLimit =
@@ -1047,7 +1060,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       effectiveMaxMatch = userMaxMatch;
     }
 
-    return new Rex(field, pattern, mode, Optional.of(effectiveMaxMatch));
+    return new Rex(field, pattern, mode, Optional.of(effectiveMaxMatch), offsetField);
   }
 
   /** Get original text in query. */

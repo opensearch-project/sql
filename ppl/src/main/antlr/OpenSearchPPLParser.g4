@@ -156,7 +156,31 @@ renameCommand
    ;
 
 statsCommand
-   : STATS (PARTITIONS EQUAL partitions = integerLiteral)? (ALLNUM EQUAL allnum = booleanLiteral)? (DELIM EQUAL delim = stringLiteral)? statsAggTerm (COMMA statsAggTerm)* (statsByClause)? (DEDUP_SPLITVALUES EQUAL dedupsplit = booleanLiteral)?
+   : STATS statsArgs statsAggTerm (COMMA statsAggTerm)* (statsByClause)? (dedupSplitArg)?
+   ;
+
+statsArgs
+   : (partitionsArg | allnumArg | delimArg | bucketNullableArg)*
+   ;
+
+partitionsArg
+   : PARTITIONS EQUAL partitions = integerLiteral
+   ;
+
+allnumArg
+   : ALLNUM EQUAL allnum = booleanLiteral
+   ;
+
+delimArg
+   : DELIM EQUAL delim = stringLiteral
+   ;
+
+bucketNullableArg
+   : BUCKET_NULLABLE EQUAL bucket_nullable = booleanLiteral
+   ;
+
+dedupSplitArg
+   : DEDUP_SPLITVALUES EQUAL dedupsplit = booleanLiteral
    ;
 
 eventstatsCommand
@@ -287,7 +311,8 @@ rexExpr
 
 rexOption
     : MAX_MATCH EQUAL maxMatch=integerLiteral
-    | MODE EQUAL EXTRACT
+    | MODE EQUAL (EXTRACT | SED)
+    | OFFSET_FIELD EQUAL offsetField=qualifiedName
     ;
 patternsMethod
    : PUNCT
@@ -573,14 +598,13 @@ statsAggTerm
 
 // aggregation functions
 statsFunction
-   : statsFunctionName LT_PRTHS valueExpression RT_PRTHS        # statsFunctionCall
-   | (COUNT | C) LT_PRTHS evalExpression RT_PRTHS               # countEvalFunctionCall
+   : (COUNT | C) LT_PRTHS evalExpression RT_PRTHS               # countEvalFunctionCall
    | (COUNT | C) (LT_PRTHS RT_PRTHS)?                           # countAllFunctionCall
    | PERCENTILE_SHORTCUT LT_PRTHS valueExpression RT_PRTHS      # percentileShortcutFunctionCall
    | (DISTINCT_COUNT | DC | DISTINCT_COUNT_APPROX) LT_PRTHS valueExpression RT_PRTHS    # distinctCountFunctionCall
    | takeAggFunction                                            # takeAggFunctionCall
    | percentileApproxFunction                                   # percentileApproxFunctionCall
-   | earliestLatestFunction                                     # earliestLatestFunctionCall
+   | statsFunctionName LT_PRTHS functionArgs RT_PRTHS           # statsFunctionCall
    ;
 
 statsFunctionName
@@ -598,15 +622,10 @@ statsFunctionName
    | MEDIAN
    | LIST
    | FIRST
+   | EARLIEST
+   | LATEST
    | LAST
    ;
-
-earliestLatestFunction
-   : (EARLIEST | LATEST) LT_PRTHS valueExpression (COMMA timeField = valueExpression)? RT_PRTHS
-   ;
-
-
-
 
 takeAggFunction
    : TAKE LT_PRTHS fieldExpression (COMMA size = integerLiteral)? RT_PRTHS
@@ -1369,6 +1388,7 @@ keywordsCanBeId
    | PARTITIONS
    | ALLNUM
    | DELIM
+   | BUCKET_NULLABLE
    | CENTROIDS
    | ITERATIONS
    | DISTANCE_TYPE

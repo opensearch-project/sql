@@ -45,9 +45,12 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
 import org.opensearch.search.aggregations.AggregatorFactories.Builder;
+import org.opensearch.search.aggregations.BucketOrder;
 import org.opensearch.search.aggregations.bucket.composite.CompositeAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.composite.CompositeValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
+import org.opensearch.search.aggregations.bucket.terms.MultiTermsAggregationBuilder;
+import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
 import org.opensearch.search.sort.ScoreSortBuilder;
 import org.opensearch.search.sort.SortBuilder;
@@ -425,53 +428,88 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     }
 
     public void pushDownSortIntoAggBucket(List<RelFieldCollation> collations) {
-      // It will always use a single CompositeAggregationBuilder for the aggregation with GroupBy
-      // See {@link AggregateAnalyzer}
-      CompositeAggregationBuilder compositeAggregationBuilder =
-          (CompositeAggregationBuilder) aggregationBuilder.getLeft().getFirst();
-      List<CompositeValuesSourceBuilder<?>> buckets =
-          ((CompositeAggregationBuilder) aggregationBuilder.getLeft().getFirst()).sources();
-      List<CompositeValuesSourceBuilder<?>> newBuckets = new ArrayList<>(buckets.size());
+      AggregationBuilder builder = aggregationBuilder.getLeft().getFirst();
       List<Integer> selected = new ArrayList<>(collations.size());
-      // Have to put the collation required buckets first, then the rest of buckets.
-      collations.forEach(
-          collation -> {
-            CompositeValuesSourceBuilder<?> bucket = buckets.get(collation.getFieldIndex());
-            Direction direction = collation.getDirection();
-            NullDirection nullDirection = collation.nullDirection;
-            SortOrder order =
-                Direction.DESCENDING.equals(direction) ? SortOrder.DESC : SortOrder.ASC;
-            MissingOrder missingOrder =
-                switch (nullDirection) {
-                  case FIRST -> MissingOrder.FIRST;
-                  case LAST -> MissingOrder.LAST;
-                  default -> MissingOrder.DEFAULT;
-                };
-            newBuckets.add(bucket.order(order).missingOrder(missingOrder));
-            selected.add(collation.getFieldIndex());
-          });
-      IntStream.range(0, buckets.size())
-          .filter(i -> !selected.contains(i))
-          .forEach(i -> newBuckets.add(buckets.get(i)));
-      Builder newAggBuilder = new Builder();
-      compositeAggregationBuilder.getSubAggregations().forEach(newAggBuilder::addAggregator);
-      aggregationBuilder =
-          Pair.of(
-              Collections.singletonList(
-                  AggregationBuilders.composite("composite_buckets", newBuckets)
-                      .subAggregations(newAggBuilder)
-                      .size(AGGREGATION_BUCKET_SIZE)),
-              aggregationBuilder.getRight());
+      if (builder instanceof CompositeAggregationBuilder compositeAggBuilder) {
+        // It will always use a single CompositeAggregationBuilder for the aggregation with GroupBy
+        // See {@link AggregateAnalyzer}
+        List<CompositeValuesSourceBuilder<?>> buckets = compositeAggBuilder.sources();
+        List<CompositeValuesSourceBuilder<?>> newBuckets = new ArrayList<>(buckets.size());
+        // Have to put the collation required buckets first, then the rest of buckets.
+        collations.forEach(
+            collation -> {
+              CompositeValuesSourceBuilder<?> bucket = buckets.get(collation.getFieldIndex());
+              Direction direction = collation.getDirection();
+              NullDirection nullDirection = collation.nullDirection;
+              SortOrder order =
+                  Direction.DESCENDING.equals(direction) ? SortOrder.DESC : SortOrder.ASC;
+              MissingOrder missingOrder =
+                  switch (nullDirection) {
+                    case FIRST -> MissingOrder.FIRST;
+                    case LAST -> MissingOrder.LAST;
+                    default -> MissingOrder.DEFAULT;
+                  };
+              newBuckets.add(bucket.order(order).missingOrder(missingOrder));
+              selected.add(collation.getFieldIndex());
+            });
+        IntStream.range(0, buckets.size())
+            .filter(i -> !selected.contains(i))
+            .forEach(i -> newBuckets.add(buckets.get(i)));
+        Builder newAggBuilder = new Builder();
+        compositeAggBuilder.getSubAggregations().forEach(newAggBuilder::addAggregator);
+        aggregationBuilder =
+            Pair.of(
+                Collections.singletonList(
+                    AggregationBuilders.composite("composite_buckets", newBuckets)
+                        .subAggregations(newAggBuilder)
+                        .size(AGGREGATION_BUCKET_SIZE)),
+                aggregationBuilder.getRight());
+      }
+      if (builder instanceof TermsAggregationBuilder termsAggBuilder) {
+        termsAggBuilder.order(
+            BucketOrder.key(!collations.getFirst().getDirection().isDescending()));
+      }
+      // TODO for MultiTermsAggregationBuilder
     }
 
+    /**
+     * Check if the limit can be pushed down into aggregation bucket when the limit size is less
+     * than bucket number.
+     */
     public boolean pushDownLimitIntoBucketSize(Integer size) {
-      CompositeAggregationBuilder compositeAggregationBuilder =
-          (CompositeAggregationBuilder) aggregationBuilder.getLeft().getFirst();
-      if (size < compositeAggregationBuilder.size()) {
-        compositeAggregationBuilder.size(size);
+      AggregationBuilder builder = aggregationBuilder.getLeft().getFirst();
+      if (builder instanceof CompositeAggregationBuilder compositeAggBuilder) {
+        if (size < compositeAggBuilder.size()) {
+          compositeAggBuilder.size(size);
+          return true;
+        } else {
+          return false;
+        }
+      }
+      if (builder instanceof TermsAggregationBuilder termsAggBuilder) {
+        if (size < termsAggBuilder.size()) {
+          termsAggBuilder.size(size);
+          return true;
+        } else {
+          return false;
+        }
+      }
+      if (builder instanceof MultiTermsAggregationBuilder multiTermsAggBuilder) {
+        if (size < multiTermsAggBuilder.size()) {
+          multiTermsAggBuilder.size(size);
+          return true;
+        } else {
+          return false;
+        }
+      }
+      // now we only have Composite, Terms and MultiTerms bucket aggregations,
+      // add code here when we could support more in the future.
+      if (builder instanceof ValuesSourceAggregationBuilder.LeafOnly<?, ?>) {
+        // Note: all metric aggregations will be treated as pushed since it generates only one row.
         return true;
       }
-      return false;
+      throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
+          "Unknown aggregation builder " + builder.getClass().getSimpleName());
     }
   }
 }

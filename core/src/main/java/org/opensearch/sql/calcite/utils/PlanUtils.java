@@ -14,6 +14,8 @@ import static org.apache.calcite.rex.RexWindowBounds.preceding;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
@@ -21,6 +23,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -391,6 +394,21 @@ public interface PlanUtils {
         };
     visitor.visitEach(rexNodes);
     return selectedColumns;
+  }
+
+  /**
+   * Get a string representation of the argument types expressed in ExprType for error messages.
+   *
+   * @param argTypes the list of argument types as {@link RelDataType}
+   * @return a string in the format [type1,type2,...] representing the argument types
+   */
+  public static String getActualSignature(List<RelDataType> argTypes) {
+    return "["
+        + argTypes.stream()
+            .map(OpenSearchTypeFactory::convertRelDataTypeToExprType)
+            .map(Objects::toString)
+            .collect(Collectors.joining(","))
+        + "]";
   }
 
   static boolean containsRexLiteral(LogicalProject project) {
