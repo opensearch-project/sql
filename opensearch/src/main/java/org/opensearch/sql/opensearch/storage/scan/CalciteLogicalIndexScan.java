@@ -6,9 +6,12 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import com.google.common.collect.ImmutableList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import org.apache.calcite.plan.Convention;
@@ -25,16 +28,24 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.script.Script;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.common.setting.Settings;
@@ -54,6 +65,19 @@ import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 @Getter
 public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
   private static final Logger LOG = LogManager.getLogger(CalciteLogicalIndexScan.class);
+
+  private static final List<DslTypeMappingRule> DSL_TYPE_MAPPING_RULES =
+      Arrays.asList(
+          new DslTypeMappingRule(t -> SqlTypeName.INT_TYPES.contains(t.getSqlTypeName()), "long"),
+          // Float is not supported well in OpenSearch core. See reported bug:
+          // https://github.com/opensearch-project/OpenSearch/issues/19271
+          // TODO: Support BigDecimal and other complex objects. A workaround is to wrap it in JSON
+          // object so that response can parse it
+          new DslTypeMappingRule(t -> SqlTypeName.DOUBLE.equals(t.getSqlTypeName()), "double"),
+          new DslTypeMappingRule(
+              t -> SqlTypeName.BOOLEAN_TYPES.contains(t.getSqlTypeName()), "boolean"),
+          new DslTypeMappingRule(
+              t -> SqlTypeName.CHAR_TYPES.contains(t.getSqlTypeName()), "keyword"));
 
   public CalciteLogicalIndexScan(
       RelOptCluster cluster, RelOptTable table, OpenSearchIndex osIndex) {
@@ -100,8 +124,8 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
 
   @Override
   public void register(RelOptPlanner planner) {
-    super.register(planner);
     planner.addRule(EnumerableIndexScanRule.DEFAULT_CONFIG.toRule());
+    super.register(planner);
     if (osIndex.getSettings().getSettingValue(Settings.Key.CALCITE_PUSHDOWN_ENABLED)) {
       for (RelOptRule rule : OpenSearchIndexRules.OPEN_SEARCH_INDEX_SCAN_RULES) {
         planner.addRule(rule);
@@ -111,9 +135,9 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
 
   public AbstractRelNode pushDownFilter(Filter filter) {
     try {
-      RelDataType rowType = filter.getRowType();
+      RelDataType rowType = this.getRowType();
       CalciteLogicalIndexScan newScan = this.copyWithNewSchema(filter.getRowType());
-      List<String> schema = this.getRowType().getFieldNames();
+      List<String> schema = rowType.getFieldNames();
       Map<String, ExprType> fieldTypes =
           this.osIndex.getFieldTypes().entrySet().stream()
               .filter(entry -> schema.contains(entry.getKey()))
@@ -191,6 +215,84 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
             PushDownType.COLLAPSE,
             fieldName,
             requestBuilder -> requestBuilder.pushDownCollapse(field)));
+    return newScan;
+  }
+
+  public CalciteLogicalIndexScan pushDownScriptProject(
+      LogicalProject project,
+      List<String> uniquifiedCallNames,
+      Map<String, String> uniquifiedCallNamesMap) {
+    Map<String, ExprType> fieldTypes =
+        this.osIndex.getFieldTypes().entrySet().stream()
+            .filter(entry -> this.schema.getFieldNames().contains(entry.getKey()))
+            .collect(Collectors.toMap(Map.Entry::getKey, java.util.Map.Entry::getValue));
+
+    // figure out the RexCall in projects
+    List<org.apache.calcite.util.Pair<RexNode, String>> calls =
+        project.getNamedProjects().stream().filter(pair -> pair.left instanceof RexCall).toList();
+    // If nested RexCall output RelDataType is UDT or any operands contain UDT, don't push down it
+    // because deserialization can't recognize UDT
+    calls.forEach(
+        call -> {
+          if (findUDTType(call.left)) {
+            throw new IllegalStateException(
+                "Cannot pushdown the RexCall containing UDT to script project.");
+          }
+        });
+
+    List<String> fieldNames =
+        project.getNamedProjects().stream()
+            .filter(pair -> !(pair.left instanceof RexCall))
+            .map(call -> call.getValue())
+            .toList();
+
+    final RelDataTypeFactory.Builder builder = getCluster().getTypeFactory().builder();
+    final List<RelDataTypeField> fieldList = project.getRowType().getFieldList();
+    for (int i = 0; i < fieldList.size(); i++) {
+      String fieldName = fieldList.get(i).getName();
+      if (uniquifiedCallNamesMap.containsKey(fieldName)) {
+        builder.add(
+            new RelDataTypeFieldImpl(
+                uniquifiedCallNamesMap.get(fieldName), i, fieldList.get(i).getType()));
+      } else {
+        builder.add(fieldList.get(i));
+      }
+    }
+    RelDataType newSchema = builder.build();
+    CalciteLogicalIndexScan newScan =
+        new CalciteLogicalIndexScan(
+            getCluster(),
+            project.getTraitSet(),
+            hints,
+            table,
+            osIndex,
+            newSchema,
+            cloneWithoutProject(pushDownContext));
+
+    // push down the RexCall to script fields
+    List<Script> scripts =
+        calls.stream()
+            .map(
+                call ->
+                    new PredicateAnalyzer.ScriptQueryExpression(
+                            call.left, project.getInput().getRowType(), fieldTypes, getCluster())
+                        .getScript())
+            .toList();
+    newScan.pushDownContext.add(
+        PushDownAction.of(
+            PushDownType.PROJECT,
+            fieldNames,
+            requestBuilder -> requestBuilder.pushDownProjectStream(fieldNames.stream())));
+    newScan.pushDownContext.add(
+        PushDownAction.of(
+            PushDownType.SCRIPT_PROJECT,
+            uniquifiedCallNames,
+            requestBuilder ->
+                requestBuilder.pushDownScriptProjects(
+                    uniquifiedCallNames,
+                    calls.stream().map(call -> toDslType(call.left.getType())).toList(),
+                    scripts)));
+    newScan.pushDownContext.setDerivedFieldNames(uniquifiedCallNames);
     return newScan;
   }
 
@@ -319,5 +421,52 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       }
     }
     return null;
+  }
+
+  private static String toDslType(RelDataType relDataType) {
+    return DSL_TYPE_MAPPING_RULES.stream()
+        .filter(rule -> rule.condition.test(relDataType))
+        .findFirst()
+        .map(DslTypeMappingRule::getResult)
+        .orElseThrow(
+            () ->
+                new IllegalArgumentException(
+                    String.format(
+                        Locale.ROOT,
+                        "Unsupported RelDataType for derived field: %s",
+                        relDataType)));
+  }
+
+  private static class DslTypeMappingRule {
+    @Getter private final Predicate<RelDataType> condition;
+    @Getter private final String result;
+
+    public DslTypeMappingRule(Predicate<RelDataType> condition, String result) {
+      this.condition = condition;
+      this.result = result;
+    }
+  }
+
+  // Not support UDT RelDataType because RelJson deserialization doesn't recognize it.
+  // Time related UDT is not supported because derived field expects date to be Long but our UDT is
+  // actually a STRING
+  private static boolean findUDTType(RexNode node) {
+    return node.accept(
+        new RexVisitorImpl<>(true) {
+          @Override
+          public Boolean visitInputRef(RexInputRef inputRef) {
+            return OpenSearchTypeFactory.isUserDefinedType(inputRef.getType());
+          }
+
+          @Override
+          public Boolean visitLiteral(RexLiteral literal) {
+            return OpenSearchTypeFactory.isUserDefinedType(literal.getType());
+          }
+
+          @Override
+          public Boolean visitCall(RexCall call) {
+            return OpenSearchTypeFactory.isUserDefinedType(call.getType());
+          }
+        });
   }
 }

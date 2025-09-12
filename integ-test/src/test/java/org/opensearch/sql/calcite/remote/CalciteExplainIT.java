@@ -402,7 +402,7 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testExplainRegexMatchInEvalWithOutScriptPushdown() throws IOException {
+  public void testExplainRegexMatchInEvalWithScriptPushdown() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String query =
         String.format(
