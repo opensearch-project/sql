@@ -191,6 +191,10 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
       }
       return super.add(pushDownAction);
     }
+
+    public boolean containsDigest(Object digest) {
+      return this.stream().anyMatch(action -> action.digest.equals(digest));
+    }
   }
 
   protected abstract AbstractCalciteIndexScan buildScan(

@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Predicate;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelCollation;
@@ -129,8 +130,9 @@ public class SortProjectExprTransposeRule extends RelRule<SortProjectExprTranspo
                         .oneInput(
                             b1 ->
                                 b1.operand(LogicalProject.class)
-                                    .predicate(OpenSearchIndexScanRule::projectContainsExpr)
-                                    .predicate(p -> !p.containsOver())
+                                    .predicate(
+                                        Predicate.not(LogicalProject::containsOver)
+                                            .and(OpenSearchIndexScanRule::projectContainsExpr))
                                     .anyInputs()));
 
     @Override
