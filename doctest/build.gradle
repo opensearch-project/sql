@@ -29,7 +29,7 @@ task cloneSqlCli(type: Exec) {
         commandLine 'git', '-C', repoDir.absolutePath, 'checkout', 'origin/1.0-legacy'
     } else {
         // Repository doesn't exist, clone it
-        commandLine 'git', 'clone', 'https://github.com/opensearch-project/sql-cli.git', repoDir.absolutePath
+        commandLine 'git', 'clone', '-b', '1.0-legacy', 'https://github.com/opensearch-project/sql-cli.git', repoDir.absolutePath
     }
 }
 
