@@ -95,7 +95,7 @@ public class OpenSearchAggregateIndexScanRule
                                         .allMatch(
                                             call ->
                                                 call.getAggregation().kind == SqlKind.COUNT
-                                                    && call.getArgList().isEmpty()))
+                                                    && call.getArgList().isEmpty() && !call.hasFilter()))
                         .oneInput(
                             b1 ->
                                 b1.operand(CalciteLogicalIndexScan.class)
