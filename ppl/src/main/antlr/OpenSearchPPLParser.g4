@@ -287,7 +287,7 @@ indexablePath
    ;
 
 pathElement
-   : ident pathArrayAccess?
+   : ident pathArrayAccess*
    ;
 
 pathArrayAccess
@@ -1408,6 +1408,7 @@ keywordsCanBeId
    | PATH
    | INPUT
    | OUTPUT
+   | FIELD
 
    // AGGREGATIONS AND WINDOW
    | statsFunctionName
