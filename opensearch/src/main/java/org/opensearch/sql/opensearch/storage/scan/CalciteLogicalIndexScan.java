@@ -206,6 +206,12 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     }
     RelDataType newSchema = builder.build();
 
+    // To prevent circular pushdown for some edge cases where plan has pattern(see TPCH Q1):
+    // `Project($1, $0) -> Sort(sort0=[1]) -> Project($1, $0) -> Aggregate(group={0},...)...`
+    // We don't support pushing down the duplicated project here otherwise it will cause dead-loop.
+    // `ProjectMergeRule` will help merge the duplicated projects.
+    if (this.getPushDownContext().containsDigest(newSchema.getFieldNames())) return null;
+
     // Projection may alter indicies in the collations.
     // E.g. When sorting age
     // `Project(age) - TableScan(schema=[name, age], collation=[$1 ASC])` should become

@@ -70,12 +70,14 @@ public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectInd
         && !selectedColumns.isIdentity(scan.getRowType().getFieldCount())) {
       Mapping mapping = Mappings.target(selectedColumns, scan.getRowType().getFieldCount());
       CalciteLogicalIndexScan newScan = scan.pushDownProject(selectedColumns);
-      final List<RexNode> newProjectRexNodes = RexUtil.apply(mapping, project.getProjects());
+      if (newScan != null) {
+        final List<RexNode> newProjectRexNodes = RexUtil.apply(mapping, project.getProjects());
 
-      if (RexUtil.isIdentity(newProjectRexNodes, newScan.getRowType())) {
-        call.transformTo(newScan);
-      } else {
-        call.transformTo(call.builder().push(newScan).project(newProjectRexNodes).build());
+        if (RexUtil.isIdentity(newProjectRexNodes, newScan.getRowType())) {
+          call.transformTo(newScan);
+        } else {
+          call.transformTo(call.builder().push(newScan).project(newProjectRexNodes).build());
+        }
       }
     }
   }
