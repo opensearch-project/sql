@@ -50,9 +50,31 @@ public class MetricAggregationBuilder
    */
   public Pair<AggregatorFactories.Builder, List<MetricParser>> build(
       List<NamedAggregator> aggregatorList) {
+    return build(aggregatorList, false);
+  }
+
+  /**
+   * Build AggregatorFactories.Builder from {@link NamedAggregator} with optimization context.
+   *
+   * @param aggregatorList aggregator list
+   * @param optimizeCount whether to optimize count aggregations by using bucket doc_count
+   * @return AggregatorFactories.Builder
+   */
+  public Pair<AggregatorFactories.Builder, List<MetricParser>> build(
+      List<NamedAggregator> aggregatorList, boolean optimizeCount) {
     AggregatorFactories.Builder builder = new AggregatorFactories.Builder();
     List<MetricParser> metricParserList = new ArrayList<>();
     for (NamedAggregator aggregator : aggregatorList) {
+      String functionName = aggregator.getFunctionName().getFunctionName().toLowerCase(Locale.ROOT);
+      
+      // Skip count aggregations when optimization is enabled and it's count(*) or count(literal)
+      if (optimizeCount && "count".equals(functionName) && !aggregator.getDelegated().distinct() 
+          && isCountStarOrLiteral(aggregator)) {
+        // Add a parser that will extract doc_count from bucket response
+        metricParserList.add(new DocCountParser(aggregator.getName()));
+        continue;
+      }
+      
       Pair<AggregationBuilder, MetricParser> pair = aggregator.accept(this, null);
       builder.addAggregator(pair.getLeft());
       metricParserList.add(pair.getRight());
@@ -262,6 +284,15 @@ public class MetricAggregationBuilder
       return new ReferenceExpression("_index", INTEGER);
     }
     return countArg;
+  }
+
+  /**
+   * Check if count aggregation is count(*) or count(literal) which can be optimized.
+   * Only these cases can use bucket doc_count instead of value_count.
+   */
+  private boolean isCountStarOrLiteral(NamedAggregator aggregator) {
+    Expression arg = aggregator.getArguments().get(0);
+    return arg instanceof LiteralExpression;
   }
 
   /**

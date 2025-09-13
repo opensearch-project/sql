@@ -32,7 +32,10 @@ public class MetricParserHelper {
 
   private final Map<String, MetricParser> metricParserMap;
 
+  private final List<MetricParser> metricParserList;
+
   public MetricParserHelper(List<MetricParser> metricParserList) {
+    this.metricParserList = metricParserList;
     metricParserMap =
         metricParserList.stream().collect(Collectors.toMap(MetricParser::getName, m -> m));
   }
