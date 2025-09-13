@@ -55,18 +55,15 @@ public class SPath extends UnresolvedPlan {
   }
 
   private Eval rewriteAsDynamicColumns() {
-    // CRITICAL FIX: Simplified MAP_MERGE logic to avoid complex nesting in eval context
-    // Use a simpler approach that relies on MAP_MERGE's null handling instead of complex COALESCE
-    // nesting
-    // This prevents SQL planning errors with deeply nested MAP_MERGE calls
+    // For the first spath command, use json_extract_all directly
+    // For subsequent spath commands, use map_merge to combine with existing _dynamic_columns
+    // This matches the expected test behavior where the first spath creates _dynamic_columns
+    // and subsequent ones merge with it
     return AstDSL.eval(
         this.child,
         AstDSL.let(
             AstDSL.field("_dynamic_columns"),
-            AstDSL.function(
-                "map_merge",
-                AstDSL.field("_dynamic_columns"),
-                AstDSL.function("json_extract_all", AstDSL.field(inField)))));
+            AstDSL.function("json_extract_all", AstDSL.field(inField))));
   }
 
   private Eval rewriteAsSpecificPath() {

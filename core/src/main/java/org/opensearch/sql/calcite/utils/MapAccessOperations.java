@@ -9,6 +9,7 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
 /**
  * Utility class for creating MAP access operations in Calcite. This class provides helper methods
@@ -18,16 +19,16 @@ import org.apache.calcite.sql.type.SqlTypeName;
 public class MapAccessOperations {
 
   /**
-   * Creates a MAP access expression: mapExpr[key]
+   * Creates a MAP access expression: MAP_GET(mapExpr, key)
    *
    * @param rexBuilder The RexBuilder to create expressions
    * @param mapExpr The MAP expression to access
    * @param key The key to access in the MAP
-   * @return RexNode representing MAP access operation
+   * @return RexNode representing MAP_GET operation
    */
   public static RexNode mapGet(RexBuilder rexBuilder, RexNode mapExpr, String key) {
     RexNode keyLiteral = rexBuilder.makeLiteral(key);
-    return rexBuilder.makeCall(SqlStdOperatorTable.ITEM, mapExpr, keyLiteral);
+    return rexBuilder.makeCall(PPLBuiltinOperators.MAP_GET, mapExpr, keyLiteral);
   }
 
   /**

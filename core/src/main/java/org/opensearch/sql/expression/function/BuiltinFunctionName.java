@@ -253,6 +253,7 @@ public enum BuiltinFunctionName {
 
   /** Map Functions. */
   MAP_MERGE(FunctionName.of("map_merge")),
+  MAP_GET(FunctionName.of("map_get")),
 
   /** GEOSPATIAL Functions. */
   GEOIP(FunctionName.of("geoip")),

@@ -119,6 +119,8 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   // Map functions
   public static final SqlOperator MAP_MERGE =
       new org.opensearch.sql.expression.function.mapUDF.MapMergeFunctionImpl().toUDF("MAP_MERGE");
+  public static final SqlOperator MAP_GET =
+      new org.opensearch.sql.expression.function.mapUDF.MapGetFunctionImpl().toUDF("MAP_GET");
 
   // Math functions
   public static final SqlOperator SPAN = new SpanFunction().toUDF("SPAN");
