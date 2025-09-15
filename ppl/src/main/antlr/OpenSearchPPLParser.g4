@@ -513,8 +513,6 @@ streamstatsAggTerm
 
 windowFunction
    : windowFunctionName LT_PRTHS functionArgs RT_PRTHS
-   | (COUNT | C) LT_PRTHS evalExpression RT_PRTHS
-   | (COUNT | C) (LT_PRTHS RT_PRTHS)?
    ;
 
 windowFunctionName

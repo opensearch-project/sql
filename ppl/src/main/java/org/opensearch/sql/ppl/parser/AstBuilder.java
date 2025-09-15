@@ -49,6 +49,7 @@ import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.Argument.ArgumentMap;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
@@ -436,7 +437,6 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     // 3. Build each window function in the command
     for (OpenSearchPPLParser.StreamstatsAggTermContext aggCtx : ctx.streamstatsAggTerm()) {
       UnresolvedExpression windowFunction = internalVisitExpression(aggCtx.windowFunction());
-
       if (windowFunction instanceof WindowFunction wf) {
         // Attach PARTITION BY clause expressions (if any)
         wf.setPartitionByList(getPartitionExprList(ctx.statsByClause()));
@@ -455,35 +455,43 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   }
 
   private WindowFrame buildFrameFromArgs(List<Argument> args) {
-    int windowSize = 0; // default means unbounded
+    ArgumentMap arguments = ArgumentMap.of(args);
+
+    // Default values
+    int windowSize = 0; // 0 means unbounded
     boolean current = true;
 
-    for (Argument arg : args) {
-      String name = arg.getArgName().toLowerCase();
-      String value = arg.getValue().toString();
-      switch (name) {
-        case "window":
-          try {
-            windowSize = Integer.parseInt(value);
-          } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid window size: " + value, e);
-          }
-          break;
-        case "current":
-          current = Boolean.parseBoolean(value);
-          break;
-        default:
-          throw new IllegalArgumentException("Unsupported streamstats argument: " + name);
+    // Window argument
+    Literal windowArg = arguments.get("window");
+    if (windowArg != null) {
+      Object value = windowArg.getValue();
+      try {
+        windowSize = ((Number) value).intValue();
+        if (windowSize < 0) {
+          throw new IllegalArgumentException("Window size must be >= 0, but got: " + windowSize);
+        }
+      } catch (NumberFormatException e) {
+        throw new IllegalArgumentException("Invalid window size: " + value, e);
       }
     }
 
-    if (windowSize < 0) {
-      throw new IllegalArgumentException("Window size must be >= 0, but got: " + windowSize);
+    // Current argument
+    Literal currentArg = arguments.get("current");
+    if (currentArg != null) {
+      Object value = currentArg.getValue();
+      try {
+        current = (Boolean) value;
+      } catch (Exception e) {
+        throw new IllegalArgumentException("Invalid current flag: " + value, e);
+      }
     }
+
+    // Build the frame
     if (windowSize > 0) {
       if (current) {
-        // N PRECEDING to CURRENT ROW
-        return WindowFrame.of(WindowFrame.FrameType.ROWS, windowSize + " PRECEDING", "CURRENT ROW");
+        // N-1 PRECEDING to CURRENT ROW
+        return WindowFrame.of(
+            WindowFrame.FrameType.ROWS, (windowSize - 1) + " PRECEDING", "CURRENT ROW");
       } else {
         // N PRECEDING to 1 PRECEDING
         return WindowFrame.of(WindowFrame.FrameType.ROWS, windowSize + " PRECEDING", "1 PRECEDING");
