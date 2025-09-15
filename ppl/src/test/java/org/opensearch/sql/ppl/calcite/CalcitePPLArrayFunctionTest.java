@@ -40,26 +40,6 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
   }
 
   @Test
-  public void testMvjoinWithSingleStringValue() {
-    String ppl = "source=EMP | eval joined = mvjoin('hello', ',') | head 1 | fields joined";
-    RelNode root = getRelNode(ppl);
-
-    String expectedLogical =
-        "LogicalProject(joined=[$8])\n"
-            + "  LogicalSort(fetch=[1])\n"
-            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], joined=['hello':VARCHAR])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
-    verifyLogical(root, expectedLogical);
-
-    String expectedResult = "joined=hello\n";
-    verifyResult(root, expectedResult);
-
-    String expectedSparkSql = "SELECT 'hello' `joined`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
-    verifyPPLToSparkSQL(root, expectedSparkSql);
-  }
-
-  @Test
   public void testMvjoinWithDifferentDelimiter() {
     String ppl =
         "source=EMP | eval joined = mvjoin(array('apple', 'banana', 'cherry'), ' | ') | head 1 |"

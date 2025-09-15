@@ -818,14 +818,7 @@ public class PPLFuncImpTable {
 
       registerOperator(INTERNAL_PATTERN_PARSER, PPLBuiltinOperators.PATTERN_PARSER);
 
-      // Register MVJOIN with two different implementations
-      // For single string values - just return the string (register this first so it's checked
-      // first)
-      register(
-          MVJOIN,
-          (FunctionImp2) (builder, value, delimiter) -> value,
-          PPLTypeChecker.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER));
-      // For arrays - use Calcite's ARRAY_JOIN
+      // Register MVJOIN to use Calcite's ARRAY_JOIN
       register(
           MVJOIN,
           (FunctionImp2)

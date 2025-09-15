@@ -298,18 +298,6 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testMvjoinWithSingleStringValue() throws IOException {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval result = mvjoin('hello', ',') | fields result | head 1",
-                TEST_INDEX_BANK));
-
-    verifySchema(actual, schema("result", "string"));
-    verifyDataRows(actual, rows("hello"));
-  }
-
-  @Test
   public void testMvjoinWithStringBooleans() throws IOException {
     // mvjoin only supports string arrays
     JSONObject actual =
