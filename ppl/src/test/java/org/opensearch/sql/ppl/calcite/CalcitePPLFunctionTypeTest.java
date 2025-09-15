@@ -308,4 +308,12 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
             + " {[BYTE],[SHORT],[INTEGER],[LONG],[FLOAT],[DOUBLE],[STRING],[BOOLEAN],[DATE],[TIME],[TIMESTAMP],[IP],[BINARY]},"
             + " but got [ARRAY]");
   }
+
+  // mvjoin should reject non-string single values
+  @Test
+  public void testMvjoinRejectsNonStringValues() {
+    verifyQueryThrowsException(
+        "source=EMP | eval result = mvjoin(42, ',') | fields result | head 1",
+        "MVJOIN function expects {[ARRAY,STRING]}, but got [INTEGER,STRING]");
+  }
 }
