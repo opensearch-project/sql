@@ -28,6 +28,9 @@ import org.opensearch.sql.prometheus.model.MetricMetadata;
 import org.opensearch.sql.prometheus.model.PrometheusOptions;
 import org.opensearch.sql.prometheus.model.PrometheusQueryType;
 
+/*
+ * @opensearch.experimental
+ */
 public class PrometheusQueryHandler implements QueryHandler<PrometheusClient> {
   private static final Logger LOG = LogManager.getLogger(PrometheusQueryHandler.class);
 

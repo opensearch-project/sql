@@ -13,6 +13,9 @@ import org.json.JSONObject;
 import org.opensearch.sql.datasource.client.DataSourceClient;
 import org.opensearch.sql.prometheus.model.MetricMetadata;
 
+/*
+ * @opensearch.experimental
+ */
 public interface PrometheusClient extends DataSourceClient {
 
   JSONObject queryRange(String query, Long start, Long end, String step) throws IOException;

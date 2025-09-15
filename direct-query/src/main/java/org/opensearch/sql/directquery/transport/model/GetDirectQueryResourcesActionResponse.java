@@ -17,6 +17,9 @@ import org.opensearch.core.common.io.stream.StreamOutput;
  */
 @Getter
 @RequiredArgsConstructor
+/*
+ * @opensearch.experimental
+ */
 public class GetDirectQueryResourcesActionResponse extends ActionResponse {
 
   private final String result;

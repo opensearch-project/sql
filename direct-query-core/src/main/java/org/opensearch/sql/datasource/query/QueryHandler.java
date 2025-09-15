@@ -18,6 +18,8 @@ import org.opensearch.sql.directquery.rest.model.WriteDirectQueryResourcesRespon
  * Interface for handling queries for specific data source types.
  *
  * @param <T> The client type this handler works with, extending DataSourceClient
+ *
+ * @opensearch.experimental
  */
 public interface QueryHandler<T extends DataSourceClient> {
 

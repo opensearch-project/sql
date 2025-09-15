@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
+import org.opensearch.common.annotation.ExperimentalApi;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
@@ -39,6 +40,10 @@ import org.opensearch.sql.opensearch.util.RestRequestUtil;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.transport.client.node.NodeClient;
 
+/*
+ * @opensearch.experimental
+ */
+@ExperimentalApi
 @RequiredArgsConstructor
 public class RestDirectQueryManagementAction extends BaseRestHandler {
 

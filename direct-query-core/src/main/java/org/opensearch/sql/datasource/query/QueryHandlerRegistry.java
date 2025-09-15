@@ -10,7 +10,11 @@ import java.util.Optional;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.sql.datasource.client.DataSourceClient;
 
-/** Registry for all query handlers. */
+/**
+ * Registry for all query handlers.
+ *
+ * @opensearch.experimental
+ */
 public class QueryHandlerRegistry {
 
   private final List<QueryHandler<?>> handlers;

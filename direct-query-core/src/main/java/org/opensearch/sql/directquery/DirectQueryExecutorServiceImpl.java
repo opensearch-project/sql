@@ -19,6 +19,9 @@ import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesResponse
 import org.opensearch.sql.directquery.rest.model.WriteDirectQueryResourcesRequest;
 import org.opensearch.sql.directquery.rest.model.WriteDirectQueryResourcesResponse;
 
+/*
+ * @opensearch.experimental
+ */
 public class DirectQueryExecutorServiceImpl implements DirectQueryExecutorService {
 
   private final DataSourceClientFactory dataSourceClientFactory;

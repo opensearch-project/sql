@@ -15,7 +15,11 @@ import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.prometheus.utils.PrometheusClientUtils;
 
-/** Factory for creating data source clients based on the data source type. */
+/**
+ * Factory for creating data source clients based on the data source type.
+ *
+ * @opensearch.experimental
+ */
 public class DataSourceClientFactory {
 
   private static final Logger LOG = LogManager.getLogger();

@@ -21,6 +21,9 @@ import lombok.Setter;
 @NoArgsConstructor
 @EqualsAndHashCode
 @JsonIgnoreProperties(ignoreUnknown = true)
+/*
+ * @opensearch.experimental
+ */
 public class MetricMetadata {
   private String type;
   private String help;

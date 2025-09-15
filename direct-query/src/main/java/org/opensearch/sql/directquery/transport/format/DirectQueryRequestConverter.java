@@ -19,6 +19,9 @@ import org.opensearch.sql.spark.rest.model.LangType;
  * @opensearch.experimental
  */
 @UtilityClass
+/*
+ * @opensearch.experimental
+ */
 public class DirectQueryRequestConverter {
 
   public static ExecuteDirectQueryRequest fromXContentParser(XContentParser parser)
