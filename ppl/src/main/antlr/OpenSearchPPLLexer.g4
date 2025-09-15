@@ -17,6 +17,7 @@ EXPLAIN:                            'EXPLAIN';
 FROM:                               'FROM';
 WHERE:                              'WHERE';
 FIELDS:                             'FIELDS';
+FIELD:                              'FIELD';
 TABLE:                              'TABLE';  // Alias for FIELDS command
 RENAME:                             'RENAME';
 STATS:                              'STATS';
@@ -31,6 +32,8 @@ RARE:                               'RARE';
 PARSE:                              'PARSE';
 SPATH:                              'SPATH';
 REGEX:                              'REGEX';
+REX:                                'REX';
+SED:                                'SED';
 PUNCT:                              'PUNCT';
 GROK:                               'GROK';
 PATTERN:                            'PATTERN';
@@ -51,6 +54,8 @@ VARIABLE_COUNT_THRESHOLD:           'VARIABLE_COUNT_THRESHOLD';
 FREQUENCY_THRESHOLD_PERCENTAGE:     'FREQUENCY_THRESHOLD_PERCENTAGE';
 METHOD:                             'METHOD';
 MAX_SAMPLE_COUNT:                   'MAX_SAMPLE_COUNT';
+MAX_MATCH:                          'MAX_MATCH';
+OFFSET_FIELD:                       'OFFSET_FIELD';
 BUFFER_LIMIT:                       'BUFFER_LIMIT';
 LABEL:                              'LABEL';
 AGGREGATION:                        'AGGREGATION';
@@ -84,6 +89,7 @@ STANDARD:                           'STANDARD';
 COST:                               'COST';
 EXTENDED:                           'EXTENDED';
 OVERRIDE:                           'OVERRIDE';
+OVERWRITE:                          'OVERWRITE';
 
 // SORT FIELD KEYWORDS
 // TODO #3180: Fix broken sort functionality
@@ -102,6 +108,7 @@ DEDUP_SPLITVALUES:                  'DEDUP_SPLITVALUES';
 PARTITIONS:                         'PARTITIONS';
 ALLNUM:                             'ALLNUM';
 DELIM:                              'DELIM';
+BUCKET_NULLABLE:                    'BUCKET_NULLABLE';
 CENTROIDS:                          'CENTROIDS';
 ITERATIONS:                         'ITERATIONS';
 DISTANCE_TYPE:                      'DISTANCE_TYPE';

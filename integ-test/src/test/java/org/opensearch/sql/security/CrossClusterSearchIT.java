@@ -246,4 +246,20 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
                 TEST_INDEX_BANK_REMOTE));
     verifyDataRows(result, rows("Hattie"));
   }
+
+  @Test
+  public void testCrossClusterAppend() throws IOException {
+    // TODO: We should enable calcite by default in CrossClusterSearchIT?
+    enableCalcite();
+
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | stats count() as cnt by gender | append [ search source=%s |"
+                    + " stats count() as cnt ]",
+                TEST_INDEX_BANK_REMOTE, TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(result, rows(3, "F"), rows(4, "M"), rows(7, null));
+
+    disableCalcite();
+  }
 }

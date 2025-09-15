@@ -26,11 +26,11 @@ task cloneSqlCli(type: Exec) {
     
     if (repoDir.exists()) {
         // Repository already exists, fetch and checkout latest
-        commandLine 'git', '-C', repoDir.absolutePath, 'fetch', 'origin', 'main'
-        commandLine 'git', '-C', repoDir.absolutePath, 'checkout', 'origin/main'
+        commandLine 'git', '-C', repoDir.absolutePath, 'fetch', 'origin', '1.0-legacy'
+        commandLine 'git', '-C', repoDir.absolutePath, 'checkout', 'origin/1.0-legacy'
     } else {
         // Repository doesn't exist, clone it
-        commandLine 'git', 'clone', 'https://github.com/opensearch-project/sql-cli.git', repoDir.absolutePath
+        commandLine 'git', 'clone', '-b', '1.0-legacy', 'https://github.com/opensearch-project/sql-cli.git', repoDir.absolutePath
     }
 }
 
@@ -66,6 +66,8 @@ task startPrometheus(type: SpawnProcessTask) {
 
 //evaluationDependsOn(':')
 task startOpenSearch(type: SpawnProcessTask) {
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
+
     if( getOSFamilyType() == "windows") {
         command "${path}\\gradlew.bat -p ${plugin_path} runRestTestCluster"
     }
