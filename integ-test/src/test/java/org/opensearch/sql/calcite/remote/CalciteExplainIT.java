@@ -561,6 +561,16 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testMvjoinExplain() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | eval result = mvjoin(array('a', 'b', 'c'), ',')"
+            + " | fields result | head 1";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_mvjoin.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
   public void testPushdownLimitIntoAggregation() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String expected = loadExpectedPlan("explain_limit_agg_pushdown.json");
