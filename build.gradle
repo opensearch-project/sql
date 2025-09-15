@@ -6,7 +6,7 @@
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "3.2.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "2.19.0")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
         version_tokens = opensearch_version.tokenize('-')
@@ -67,8 +67,8 @@ buildscript {
     repositories {
         mavenLocal()
         mavenCentral()
-        maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
-        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/" }
+        // maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
+        // maven { url "https://ci.opensearch.org/ci/dbc/snapshots/" }
     }
 
     dependencies {
@@ -87,15 +87,15 @@ plugins {
 // import versions defined in https://github.com/opensearch-project/OpenSearch/blob/main/buildSrc/src/main/java/org/opensearch/gradle/OpenSearchJavaPlugin.java#L94
 // versions https://github.com/opensearch-project/OpenSearch/blob/main/buildSrc/version.properties
 apply plugin: 'opensearch.java'
-apply plugin: 'opensearch.java-agent'
+// apply plugin: 'opensearch.java-agent'  // Not available in 2.19.0
 
 // Repository on root level is for dependencies that project code depends on. And this block must be placed after plugins{}
 repositories {
     mavenLocal()
     mavenCentral() // For Elastic Libs that you can use to get started coding until open OpenSearch libs are available
-    maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
+    // maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
     maven { url 'https://jitpack.io' }
-    maven { url "https://ci.opensearch.org/ci/dbc/snapshots/" }
+    // maven { url "https://ci.opensearch.org/ci/dbc/snapshots/" }
 }
 
 spotless {
@@ -158,9 +158,9 @@ subprojects {
     repositories {
         mavenLocal()
         mavenCentral()
-        maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
+        // maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
         maven { url 'https://jitpack.io' }
-        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/" }
+        // maven { url "https://ci.opensearch.org/ci/dbc/snapshots/" }
     }
 }
 
