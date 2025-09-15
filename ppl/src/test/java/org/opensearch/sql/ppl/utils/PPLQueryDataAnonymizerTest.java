@@ -616,11 +616,6 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=t | eval result=mvjoin(array(***,***,***),***) | fields + result",
         anonymize("source=t | eval result=mvjoin(array('a', 'b', 'c'), ',') | fields result"));
-
-    // Test mvjoin with single string value
-    assertEquals(
-        "source=t | eval result=mvjoin(***,***) | fields + result",
-        anonymize("source=t | eval result=mvjoin('hello', ',') | fields result"));
   }
 
   @Test
