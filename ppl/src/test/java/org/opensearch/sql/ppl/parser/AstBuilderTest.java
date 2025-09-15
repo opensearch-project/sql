@@ -78,6 +78,7 @@ import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.utils.SystemIndexUtils;
 
@@ -1105,5 +1106,102 @@ public class AstBuilderTest {
   public void testRexSedModeWithOffsetFieldThrowsException() {
     // Test that SED mode and offset_field cannot be used together (align with Splunk behavior)
     plan("source=test | rex field=email mode=sed offset_field=matchpos \"s/@.*/@company.com/\"");
+  }
+
+  // Multisearch streaming validation tests
+
+  @Test
+  public void testBasicMultisearchParsing() {
+    // Test basic multisearch parsing first
+    plan("multisearch [ search source=test1 ] [ search source=test2 ]");
+  }
+
+  @Test
+  public void testMultisearchWithValidStreamingCommands() {
+    // Test multisearch with only streaming commands - should succeed
+    plan(
+        "multisearch [ search source=test1 | where age > 30 | fields name, age ] "
+            + "[ search source=test2 | eval category=\"young\" | rename id as user_id ]");
+  }
+
+  @Test(expected = SemanticCheckException.class)
+  public void testMultisearchWithStatsCommandThrowsException() {
+    // Test multisearch with stats command - should throw exception
+    plan(
+        "multisearch [ search source=test1 | stats count() by gender ] "
+            + "[ search source=test2 | fields name, age ]");
+  }
+
+  @Test(expected = SemanticCheckException.class)
+  public void testMultisearchWithSortCommandThrowsException() {
+    // Test multisearch with sort command - should throw exception
+    plan(
+        "multisearch [ search source=test1 | sort age ] "
+            + "[ search source=test2 | fields name, age ]");
+  }
+
+  @Test(expected = SemanticCheckException.class)
+  public void testMultisearchWithBinCommandThrowsException() {
+    // Test multisearch with bin command - should throw exception
+    plan(
+        "multisearch [ search source=test1 | bin age span=10 ] "
+            + "[ search source=test2 | fields name, age ]");
+  }
+
+  @Test(expected = SemanticCheckException.class)
+  public void testMultisearchWithTimechartCommandThrowsException() {
+    // Test multisearch with timechart command - should throw exception
+    plan(
+        "multisearch [ search source=test1 | timechart count() by age ] "
+            + "[ search source=test2 | fields name, age ]");
+  }
+
+  @Test(expected = SemanticCheckException.class)
+  public void testMultisearchWithRareCommandThrowsException() {
+    // Test multisearch with rare command - should throw exception
+    plan(
+        "multisearch [ search source=test1 | rare gender ] "
+            + "[ search source=test2 | fields name, age ]");
+  }
+
+  @Test(expected = SemanticCheckException.class)
+  public void testMultisearchWithDedupeCommandThrowsException() {
+    // Test multisearch with dedupe command - should throw exception
+    plan(
+        "multisearch [ search source=test1 | dedupe name ] "
+            + "[ search source=test2 | fields name, age ]");
+  }
+
+  @Test(expected = SemanticCheckException.class)
+  public void testMultisearchWithJoinCommandThrowsException() {
+    // Test multisearch with join command - should throw exception
+    plan(
+        "multisearch [ search source=test1 | join left=l right=r where l.id = r.id test2 ] "
+            + "[ search source=test3 | fields name, age ]");
+  }
+
+  @Test
+  public void testMultisearchWithComplexStreamingPipeline() {
+    // Test multisearch with complex but valid streaming pipeline
+    plan(
+        "multisearch [ search source=test1 | where age > 30 | eval category=\"adult\" | "
+            + "fields name, age, category | rex field=name \"(?<first_name>\\\\w+)\" | "
+            + "rename age as years_old | head 100 ] "
+            + "[ search source=test2 | where status=\"active\" | expand tags | "
+            + "flatten nested_data | fillnull with \"unknown\" | reverse ]");
+  }
+
+  @Test(expected = SemanticCheckException.class)
+  public void testMultisearchMixedStreamingAndNonStreaming() {
+    // Test multisearch with mix of streaming and non-streaming - should fail on first non-streaming
+    plan(
+        "multisearch [ search source=test1 | where age > 30 | stats count() ] "
+            + "[ search source=test2 | where status=\"active\" | sort name ]");
+  }
+
+  @Test(expected = SemanticCheckException.class)
+  public void testMultisearchSingleSubsearchThrowsException() {
+    // Test multisearch with only one subsearch - should throw exception
+    plan("multisearch [ search source=test1 | fields name, age ]");
   }
 }
