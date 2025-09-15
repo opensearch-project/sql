@@ -107,7 +107,7 @@ public class CalcitePPLScalarSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source = %s id > [ source = %s | stats count(department) ] + 999"
+                "source = %s | where id > [ source = %s | stats count(department) ] + 999"
                     + "| eval count_dept = ["
                     + "    source = %s | stats count(department)"
                     + "  ]"
@@ -193,7 +193,7 @@ public class CalcitePPLScalarSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source = %s id = [ source = %s | where id = uid | stats max(uid) ]"
+                "source = %s | where id = [ source = %s | where id = uid | stats max(uid) ]"
                     + "| fields id, name",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("id", "int"), schema("name", "string"));
