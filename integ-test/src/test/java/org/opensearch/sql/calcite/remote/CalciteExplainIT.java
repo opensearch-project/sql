@@ -651,4 +651,15 @@ public class CalciteExplainIT extends ExplainIT {
     var result = executeQueryToString(ppl);
     return result.replace("\\r\\n", "\\n");
   }
+
+  @Test
+  public void testStrftimeFunctionExplain() throws IOException {
+    // Test explain for strftime function
+    String query =
+        "source=opensearch-sql_test_index_account | eval formatted_date = strftime(1521467703,"
+            + " '%Y-%m-%d') | fields formatted_date | head 1";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_strftime_function.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
 }
