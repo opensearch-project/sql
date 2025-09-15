@@ -20,6 +20,8 @@ import org.opensearch.sql.datasource.query.QueryHandler;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesResponse;
+import org.opensearch.sql.directquery.rest.model.WriteDirectQueryResourcesRequest;
+import org.opensearch.sql.directquery.rest.model.WriteDirectQueryResourcesResponse;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
 import org.opensearch.sql.prometheus.exception.PrometheusClientException;
 import org.opensearch.sql.prometheus.model.MetricMetadata;
@@ -188,5 +190,35 @@ public class PrometheusQueryHandler implements QueryHandler<PrometheusClient> {
                         request.getResourceType(), e.getMessage()));
               }
             });
+  }
+  @Override
+  public WriteDirectQueryResourcesResponse<?> writeResources(
+          PrometheusClient client, WriteDirectQueryResourcesRequest request) {
+    return AccessController.doPrivileged(
+        (PrivilegedAction<WriteDirectQueryResourcesResponse<?>>)
+                () -> {
+                  try {
+                    if (request.getResourceType() == null) {
+                      throw new IllegalArgumentException("Resource type cannot be null");
+                    }
+
+                    switch (request.getResourceType()) {
+                      case ALERTMANAGER_SILENCES:
+                      {
+                        String createdSilence = client.createAlertmanagerSilences(request.getRequest());
+                        return WriteDirectQueryResourcesResponse.withList(List.of(createdSilence));
+                      }
+                      default:
+                        throw new IllegalArgumentException(
+                                "Invalid prometheus resource type: " + request.getResourceType());
+                    }
+                  } catch (IOException e) {
+                    LOG.error("Error getting resources", e);
+                    throw new org.opensearch.sql.prometheus.exception.PrometheusClientException(
+                            String.format(
+                                    "Error while getting resources for %s: %s",
+                                    request.getResourceType(), e.getMessage()));
+                  }
+                });
   }
 }

@@ -126,12 +126,13 @@ public class RestDirectQueryResourcesManagementActionTest {
   public void testRoutes() {
     List<RestDirectQueryResourcesManagementAction.Route> routes = unit.routes();
     Assertions.assertNotNull(routes);
-    Assertions.assertEquals(4, routes.size());
+    Assertions.assertEquals(5, routes.size());
 
     boolean foundResourceTypeRoute = false;
     boolean foundResourceValuesRoute = false;
     boolean foundAlertmanagerResourceRoute = false;
     boolean foundAlertmanagerAlertGroupsRoute = false;
+    boolean foundPostAlertmanagerRoute = false;
 
     for (RestDirectQueryResourcesManagementAction.Route route : routes) {
       if (RestRequest.Method.GET.equals(route.getMethod())
@@ -174,6 +175,16 @@ public class RestDirectQueryResourcesManagementActionTest {
                       RestDirectQueryResourcesManagementAction.BASE_DIRECT_QUERY_RESOURCES_URL))) {
         foundAlertmanagerAlertGroupsRoute = true;
       }
+      if (RestRequest.Method.POST.equals(route.getMethod())
+          && route
+          .getPath()
+          .equals(
+              String.format(
+                  Locale.ROOT,
+                  "%s/alertmanager/api/v2/{resourceType}",
+                  RestDirectQueryResourcesManagementAction.BASE_DIRECT_QUERY_RESOURCES_URL))) {
+        foundPostAlertmanagerRoute = true;
+      }
     }
 
     Assertions.assertTrue(foundResourceTypeRoute, "Resource type route not found");
@@ -182,6 +193,8 @@ public class RestDirectQueryResourcesManagementActionTest {
         foundAlertmanagerResourceRoute, "Alertmanager resource type route not found");
     Assertions.assertTrue(
         foundAlertmanagerAlertGroupsRoute, "Alertmanager alert groups route not found");
+    Assertions.assertTrue(
+        foundPostAlertmanagerRoute, "Post Alertmanager route not found");
   }
 
   @Test

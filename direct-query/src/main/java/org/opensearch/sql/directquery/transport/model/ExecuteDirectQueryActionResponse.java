@@ -20,6 +20,9 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.sql.directquery.transport.model.datasource.DataSourceResult;
 import org.opensearch.sql.directquery.transport.model.datasource.PrometheusResult;
 
+/*
+ * @opensearch.experimental
+ */
 @RequiredArgsConstructor
 public class ExecuteDirectQueryActionResponse extends ActionResponse {
 

@@ -13,6 +13,9 @@ import org.opensearch.sql.directquery.model.DataSourceOptions;
 import org.opensearch.sql.prometheus.model.PrometheusOptions;
 import org.opensearch.sql.spark.rest.model.LangType;
 
+/*
+ * @opensearch.experimental
+ */
 @Data
 @NoArgsConstructor
 public class ExecuteDirectQueryRequest {

@@ -12,6 +12,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
+ *
+ * @opensearch.experimental
+ *
  * Response class for direct query resources.
  *
  * @param <T> The type of data contained in the response

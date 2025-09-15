@@ -33,7 +33,7 @@ public class DirectQueryResourcesRequestConverterTest {
   }
 
   @Test
-  public void testFromRestRequestForStandardEndpoint() {
+  public void testToGetDirectRestRequestForStandardEndpoint() {
     // Setup
     when(request.param("dataSource")).thenReturn("testDataSource");
     when(request.param("resourceType")).thenReturn("labels");
@@ -58,7 +58,7 @@ public class DirectQueryResourcesRequestConverterTest {
 
     // Execute
     GetDirectQueryResourcesRequest result =
-        DirectQueryResourcesRequestConverter.fromRestRequest(request);
+        DirectQueryResourcesRequestConverter.toGetDirectRestRequest(request);
 
     // Verify
     assertEquals("testDataSource", result.getDataSource());
@@ -68,7 +68,7 @@ public class DirectQueryResourcesRequestConverterTest {
   }
 
   @Test
-  public void testFromRestRequestForAlertmanagerAlertsEndpoint() {
+  public void testToGetDirectRestRequestForAlertmanagerAlertsEndpoint() {
     // Setup
     when(request.param("dataSource")).thenReturn("testDataSource");
     when(request.param("resourceType")).thenReturn("alerts");
@@ -89,7 +89,7 @@ public class DirectQueryResourcesRequestConverterTest {
 
     // Execute
     GetDirectQueryResourcesRequest result =
-        DirectQueryResourcesRequestConverter.fromRestRequest(request);
+        DirectQueryResourcesRequestConverter.toGetDirectRestRequest(request);
 
     // Verify
     assertEquals("testDataSource", result.getDataSource());
@@ -98,7 +98,7 @@ public class DirectQueryResourcesRequestConverterTest {
   }
 
   @Test
-  public void testFromRestRequestForAlertmanagerAlertGroupsEndpoint() {
+  public void testToGetDirectRestRequestForAlertmanagerAlertGroupsEndpoint() {
     // Setup
     when(request.param("dataSource")).thenReturn("testDataSource");
     when(request.param("silenced")).thenReturn("false");
@@ -118,7 +118,7 @@ public class DirectQueryResourcesRequestConverterTest {
 
     // Execute
     GetDirectQueryResourcesRequest result =
-        DirectQueryResourcesRequestConverter.fromRestRequest(request);
+        DirectQueryResourcesRequestConverter.toGetDirectRestRequest(request);
 
     // Verify
     assertEquals("testDataSource", result.getDataSource());
@@ -127,7 +127,7 @@ public class DirectQueryResourcesRequestConverterTest {
   }
 
   @Test
-  public void testFromRestRequestForAlertmanagerReceiversEndpoint() {
+  public void testToGetDirectRestRequestForAlertmanagerReceiversEndpoint() {
     // Setup
     when(request.param("dataSource")).thenReturn("testDataSource");
     when(request.param("resourceType")).thenReturn("receivers");
@@ -145,7 +145,7 @@ public class DirectQueryResourcesRequestConverterTest {
 
     // Execute
     GetDirectQueryResourcesRequest result =
-        DirectQueryResourcesRequestConverter.fromRestRequest(request);
+        DirectQueryResourcesRequestConverter.toGetDirectRestRequest(request);
 
     // Verify
     assertEquals("testDataSource", result.getDataSource());
@@ -154,7 +154,7 @@ public class DirectQueryResourcesRequestConverterTest {
   }
 
   @Test
-  public void testFromRestRequestForAlertmanagerSilencesEndpoint() {
+  public void testToGetDirectRestRequestForAlertmanagerSilencesEndpoint() {
     // Setup
     when(request.param("dataSource")).thenReturn("testDataSource");
     when(request.param("resourceType")).thenReturn("silences");
@@ -174,7 +174,7 @@ public class DirectQueryResourcesRequestConverterTest {
 
     // Execute
     GetDirectQueryResourcesRequest result =
-        DirectQueryResourcesRequestConverter.fromRestRequest(request);
+        DirectQueryResourcesRequestConverter.toGetDirectRestRequest(request);
 
     // Verify
     assertEquals("testDataSource", result.getDataSource());

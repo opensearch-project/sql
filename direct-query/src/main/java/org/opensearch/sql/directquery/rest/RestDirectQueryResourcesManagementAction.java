@@ -8,6 +8,7 @@ package org.opensearch.sql.directquery.rest;
 import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
 import static org.opensearch.core.rest.RestStatus.INTERNAL_SERVER_ERROR;
 import static org.opensearch.rest.RestRequest.Method.GET;
+import static org.opensearch.rest.RestRequest.Method.POST;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -27,10 +28,14 @@ import org.opensearch.sql.datasource.client.exceptions.DataSourceClientException
 import org.opensearch.sql.datasources.exceptions.ErrorMessage;
 import org.opensearch.sql.datasources.utils.Scheduler;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
+import org.opensearch.sql.directquery.rest.model.WriteDirectQueryResourcesRequest;
 import org.opensearch.sql.directquery.transport.TransportGetDirectQueryResourcesRequestAction;
+import org.opensearch.sql.directquery.transport.TransportWriteDirectQueryResourcesRequestAction;
 import org.opensearch.sql.directquery.transport.format.DirectQueryResourcesRequestConverter;
 import org.opensearch.sql.directquery.transport.model.GetDirectQueryResourcesActionRequest;
 import org.opensearch.sql.directquery.transport.model.GetDirectQueryResourcesActionResponse;
+import org.opensearch.sql.directquery.transport.model.WriteDirectQueryResourcesActionRequest;
+import org.opensearch.sql.directquery.transport.model.WriteDirectQueryResourcesActionResponse;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.util.RestRequestUtil;
 import org.opensearch.transport.client.node.NodeClient;
@@ -51,6 +56,7 @@ public class RestDirectQueryResourcesManagementAction extends BaseRestHandler {
     return DIRECT_QUERY_RESOURCES_ACTIONS;
   }
 
+  //TODO: Update these routes to be more generic and move away from prometheus
   @Override
   public List<Route> routes() {
     return ImmutableList.of(
@@ -75,6 +81,13 @@ public class RestDirectQueryResourcesManagementAction extends BaseRestHandler {
             String.format(
                 Locale.ROOT,
                 "%s/alertmanager/api/v2/{resourceType}",
+                BASE_DIRECT_QUERY_RESOURCES_URL)),
+        // Only support creating alert silences for prometheus for now
+        new Route(
+            POST,
+            String.format(
+                Locale.ROOT,
+                "%s/alertmanager/api/v2/{resourceType}",
                 BASE_DIRECT_QUERY_RESOURCES_URL)));
   }
 
@@ -87,6 +100,8 @@ public class RestDirectQueryResourcesManagementAction extends BaseRestHandler {
     switch (restRequest.method()) {
       case GET:
         return executeGetResourcesRequest(restRequest, nodeClient);
+      case POST:
+        return executeWriteResourcesRequest(restRequest, nodeClient);
       default:
         return restChannel ->
             restChannel.sendResponse(
@@ -98,7 +113,7 @@ public class RestDirectQueryResourcesManagementAction extends BaseRestHandler {
   private RestChannelConsumer executeGetResourcesRequest(
       RestRequest restRequest, NodeClient nodeClient) {
     GetDirectQueryResourcesRequest directQueryRequest =
-        DirectQueryResourcesRequestConverter.fromRestRequest(restRequest);
+        DirectQueryResourcesRequestConverter.toGetDirectRestRequest(restRequest);
 
     return restChannel ->
         Scheduler.schedule(
@@ -110,6 +125,35 @@ public class RestDirectQueryResourcesManagementAction extends BaseRestHandler {
                     new ActionListener<>() {
                       @Override
                       public void onResponse(GetDirectQueryResourcesActionResponse response) {
+                        restChannel.sendResponse(
+                            new BytesRestResponse(
+                                RestStatus.OK,
+                                "application/json; charset=UTF-8",
+                                response.getResult()));
+                      }
+
+                      @Override
+                      public void onFailure(Exception e) {
+                        handleException(e, restChannel, restRequest.method());
+                      }
+                    }));
+  }
+
+  private RestChannelConsumer executeWriteResourcesRequest(
+          RestRequest restRequest, NodeClient nodeClient) {
+    WriteDirectQueryResourcesRequest directQueryRequest =
+            DirectQueryResourcesRequestConverter.toWriteDirectRestRequest(restRequest);
+
+    return restChannel ->
+        Scheduler.schedule(
+            nodeClient,
+            () ->
+                nodeClient.execute(
+                    TransportWriteDirectQueryResourcesRequestAction.ACTION_TYPE,
+                    new WriteDirectQueryResourcesActionRequest(directQueryRequest),
+                    new ActionListener<>() {
+                      @Override
+                      public void onResponse(WriteDirectQueryResourcesActionResponse response) {
                         restChannel.sendResponse(
                             new BytesRestResponse(
                                 RestStatus.OK,

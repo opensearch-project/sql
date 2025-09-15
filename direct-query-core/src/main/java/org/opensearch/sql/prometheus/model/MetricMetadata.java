@@ -12,6 +12,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/*
+ * @opensearch.experimental
+ */
 @Getter
 @Setter
 @AllArgsConstructor

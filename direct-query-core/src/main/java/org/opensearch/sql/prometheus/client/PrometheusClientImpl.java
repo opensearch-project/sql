@@ -19,6 +19,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -278,11 +279,37 @@ public class PrometheusClientImpl implements PrometheusClient {
     String baseUrl = alertmanagerUri.toString().replaceAll("/$", "");
     String queryUrl = String.format("%s/api/v2/silences", baseUrl);
 
-    logger.debug("Making Alertmanager silences request: {}", queryUrl);
+    logger.debug("Making Get Alertmanager silences request: {}", queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
     Response response = this.alertmanagerHttpClient.newCall(request).execute();
 
     return readAlertmanagerResponse(response);
+  }
+
+  @Override
+  public String createAlertmanagerSilences(String silenceJson) throws IOException {
+    String baseUrl = alertmanagerUri.toString().replaceAll("/$", "");
+    String queryUrl = String.format("%s/api/v2/silences", baseUrl);
+
+    logger.debug("Making Create Alertmanager silences request: {}", queryUrl);
+    Request request = new Request.Builder()
+            .url(queryUrl)
+            .header("Content-Type", "application/json")
+            .post(RequestBody.create(silenceJson.getBytes(StandardCharsets.UTF_8)))
+            .build();
+    Response response = this.alertmanagerHttpClient.newCall(request).execute();
+
+    if (response.isSuccessful()) {
+      return Objects.requireNonNull(response.body()).string();
+    } else {
+      String errorBody = response.body() != null ? response.body().string() : "No response body";
+      logger.error(
+              "create Alertmanager Silence request failed with code: {}, error body: {}", response.code(), errorBody);
+      throw new org.opensearch.sql.prometheus.exception.PrometheusClientException(
+              String.format(
+                      "Alertmanager request failed with code: %s. Error details: %s",
+                      response.code(), errorBody));
+    }
   }
 
   /**

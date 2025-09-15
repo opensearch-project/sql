@@ -16,6 +16,8 @@ import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryResponse;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesResponse;
+import org.opensearch.sql.directquery.rest.model.WriteDirectQueryResourcesRequest;
+import org.opensearch.sql.directquery.rest.model.WriteDirectQueryResourcesResponse;
 
 public class DirectQueryExecutorServiceImpl implements DirectQueryExecutorService {
 
@@ -85,6 +87,32 @@ public class DirectQueryExecutorServiceImpl implements DirectQueryExecutorServic
         .orElseThrow(
             () ->
                 new IllegalArgumentException(
-                    "Unsupported data source type: " + request.getDataSource()));
+                    "Unsupported data source type: " + request.getDataSource())
+        );
   }
+
+    @Override
+    public WriteDirectQueryResourcesResponse<?> writeDirectQueryResources(
+            WriteDirectQueryResourcesRequest request) {
+        DataSourceClient client = dataSourceClientFactory.createClient(request.getDataSource());
+        return queryHandlerRegistry
+            .getQueryHandler(client)
+            .map(
+                handler -> {
+                    try {
+                        return handler.writeResources(client, request);
+                    } catch (IOException e) {
+                        throw new DataSourceClientException(
+                            String.format(
+                                "Error writing resources for data source type: %s",
+                                request.getDataSource()),
+                            e);
+                    }
+                        })
+            .orElseThrow(
+                () ->
+                    new IllegalArgumentException(
+                        "Unsupported data source type: " + request.getDataSource())
+            );
+    }
 }

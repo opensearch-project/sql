@@ -13,7 +13,12 @@ import java.util.Map;
 import lombok.Getter;
 import lombok.Setter;
 
-/** Represents a Prometheus query result. */
+/**
+ *
+ * @opensearch.experimental
+ *
+ * Represents a Prometheus query result.
+ */
 @Getter
 @Setter
 @JsonTypeName("prometheus")
