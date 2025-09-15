@@ -69,6 +69,13 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  public static final Setting<?> PPL_SYNTAX_LEGACY_PREFERRED_SETTING =
+      Setting.boolSetting(
+          Key.PPL_SYNTAX_LEGACY_PREFERRED.getKeyValue(),
+          true,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
   public static final Setting<?> DEFAULT_PATTERN_METHOD_SETTING =
       Setting.simpleString(
           Key.PATTERN_METHOD.getKeyValue(),
@@ -132,6 +139,13 @@ public class OpenSearchSettings extends Settings {
       Setting.doubleSetting(
           Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR.getKeyValue(),
           0.9,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<?> CALCITE_SUPPORT_ALL_JOIN_TYPES_SETTING =
+      Setting.boolSetting(
+          Key.CALCITE_SUPPORT_ALL_JOIN_TYPES.getKeyValue(),
+          false,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
@@ -314,6 +328,12 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
+        Key.PPL_SYNTAX_LEGACY_PREFERRED,
+        PPL_SYNTAX_LEGACY_PREFERRED_SETTING,
+        new Updater(Key.PPL_SYNTAX_LEGACY_PREFERRED));
+    register(
+        settingBuilder,
+        clusterSettings,
         Key.PATTERN_METHOD,
         DEFAULT_PATTERN_METHOD_SETTING,
         new Updater(Key.PATTERN_METHOD));
@@ -365,6 +385,12 @@ public class OpenSearchSettings extends Settings {
         Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR,
         CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR_SETTING,
         new Updater(Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.CALCITE_SUPPORT_ALL_JOIN_TYPES,
+        CALCITE_SUPPORT_ALL_JOIN_TYPES_SETTING,
+        new Updater(Key.CALCITE_SUPPORT_ALL_JOIN_TYPES));
     register(
         settingBuilder,
         clusterSettings,
@@ -537,10 +563,12 @@ public class OpenSearchSettings extends Settings {
         .add(SQL_SLOWLOG_SETTING)
         .add(SQL_CURSOR_KEEP_ALIVE_SETTING)
         .add(PPL_ENABLED_SETTING)
+        .add(PPL_SYNTAX_LEGACY_PREFERRED_SETTING)
         .add(CALCITE_ENGINE_ENABLED_SETTING)
         .add(CALCITE_FALLBACK_ALLOWED_SETTING)
         .add(CALCITE_PUSHDOWN_ENABLED_SETTING)
         .add(CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR_SETTING)
+        .add(CALCITE_SUPPORT_ALL_JOIN_TYPES_SETTING)
         .add(DEFAULT_PATTERN_METHOD_SETTING)
         .add(DEFAULT_PATTERN_MODE_SETTING)
         .add(DEFAULT_PATTERN_MAX_SAMPLE_COUNT_SETTING)

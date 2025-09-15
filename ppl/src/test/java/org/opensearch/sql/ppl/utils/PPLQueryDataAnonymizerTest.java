@@ -402,30 +402,53 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testJoin() {
     assertEquals(
-        "source=t | cross join on true s | fields + id",
-        anonymize("source=t | cross join s | fields id"));
+        "source=t | cross join max=0 on *** = *** s | fields + id",
+        anonymize("source=t | cross join on 1=1 s | fields id"));
     assertEquals(
-        "source=t | inner join on id = uid s | fields + id",
+        "source=t | inner join max=0 on id = uid s | fields + id",
         anonymize("source=t | inner join on id = uid s | fields id"));
     assertEquals(
-        "source=t as l | inner join left = l right = r on id = uid s as r | fields + id",
+        "source=t as l | inner join max=0 left = l right = r on id = uid s as r | fields + id",
         anonymize("source=t | join left = l right = r on id = uid s | fields id"));
     assertEquals(
-        "source=t | left join right = r on id = uid s as r | fields + id",
+        "source=t | left join max=0 right = r on id = uid s as r | fields + id",
         anonymize("source=t | left join right = r on id = uid s | fields id"));
     assertEquals(
-        "source=t as t1 | inner join left = t1 right = t2 on id = uid s as t2 | fields + t1.id",
+        "source=t as t1 | inner join max=0 left = t1 right = t2 on id = uid s as t2 | fields +"
+            + " t1.id",
         anonymize("source=t as t1 | inner join on id = uid s as t2 | fields t1.id"));
     assertEquals(
-        "source=t as t1 | right join left = t1 right = t2 on t1.id = t2.id s as t2 | fields +"
+        "source=t as t1 | right join max=0 left = t1 right = t2 on t1.id = t2.id s as t2 | fields +"
             + " t1.id",
-        anonymize("source=t as t1 | right join on t1.id = t2.id s as t2 | fields t1.id"));
+        anonymize("source=t as t1 | right join max=0 on t1.id = t2.id s as t2 | fields t1.id"));
     assertEquals(
-        "source=t as t1 | right join left = t1 right = t2 on t1.id = t2.id [ source=s | fields + id"
-            + " ] as t2 | fields + t1.id",
+        "source=t as t1 | right join max=0 left = t1 right = t2 on t1.id = t2.id [ source=s |"
+            + " fields + id ] as t2 | fields + t1.id",
         anonymize(
-            "source=t as t1 | right join on t1.id = t2.id [ source=s | fields id] as t2 | fields"
-                + " t1.id"));
+            "source=t as t1 | right join max=0 on t1.id = t2.id [ source=s | fields id] as t2 |"
+                + " fields t1.id"));
+    assertEquals(
+        "source=t | inner join max=2 on id = uid s | fields + id",
+        anonymize("source=t | inner join max=2 on id = uid s | fields id"));
+  }
+
+  @Test
+  public void testJoinWithFieldList() {
+    assertEquals(
+        "source=t | join type=inner overwrite=true max=0  s | fields + id",
+        anonymize("source=t | join s | fields id"));
+    assertEquals(
+        "source=t | join type=inner overwrite=true max=0 id s | fields + id",
+        anonymize("source=t | join id s | fields id"));
+    assertEquals(
+        "source=t | join type=left overwrite=false max=0 id1,id2 s | fields + id1",
+        anonymize("source=t | join type=left overwrite=false id1,id2 s | fields id1"));
+    assertEquals(
+        "source=t | join type=left overwrite=false max=0 id1,id2 s | fields + id1",
+        anonymize("source=t | join type=outer overwrite=false id1 id2 s | fields id1"));
+    assertEquals(
+        "source=t | join type=left overwrite=true max=2 id1,id2 s | fields + id1",
+        anonymize("source=t | join type=outer max=2 id1 id2 s | fields id1"));
   }
 
   @Test
@@ -573,6 +596,28 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=t | rex field=name mode=extract \"(?<first>[A-Z])\" max_match=3",
         anonymize("source=t | rex field=name \"(?<first>[A-Z])\" max_match=3"));
+  }
+
+  @Test
+  public void testRexSedMode() {
+    when(settings.getSettingValue(Key.PPL_REX_MAX_MATCH_LIMIT)).thenReturn(10);
+
+    assertEquals(
+        "source=t | rex field=lastname mode=sed \"s/^[A-Z]/X/\" max_match=1",
+        anonymize("source=t | rex field=lastname mode=sed \"s/^[A-Z]/X/\""));
+    assertEquals(
+        "source=t | rex field=data mode=sed \"s/sensitive/clean/g\" max_match=1 | fields + data",
+        anonymize("source=t | rex field=data mode=sed \"s/sensitive/clean/g\" | fields data"));
+  }
+
+  @Test
+  public void testRexWithOffsetField() {
+    when(settings.getSettingValue(Key.PPL_REX_MAX_MATCH_LIMIT)).thenReturn(10);
+
+    assertEquals(
+        "source=t | rex field=message mode=extract \"(?<word>[a-z]+)\" max_match=1"
+            + " offset_field=pos",
+        anonymize("source=t | rex field=message \"(?<word>[a-z]+)\" offset_field=pos"));
   }
 
   private String anonymize(String query) {
