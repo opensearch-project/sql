@@ -33,7 +33,7 @@ public class PPLQueryDataAnonymizerTest {
 
   @Test
   public void testSearchCommand() {
-    assertEquals("source=t | where a = ***", anonymize("search source=t a=1"));
+    assertEquals("source=t a:***", anonymize("search source=t a=1"));
   }
 
   @Test
@@ -499,7 +499,8 @@ public class PPLQueryDataAnonymizerTest {
         anonymize("source=t |  eval id = [ source=s | stats max(b) ] | fields id"));
     assertEquals(
         "source=t | where id > [ source=s | where id = uid | stats max(b) ] | fields + id",
-        anonymize("source=t id > [ source=s | where id = uid | stats max(b) ] | fields id"));
+        anonymize(
+            "source=t | where id > [ source=s | where id = uid | stats max(b) ] | fields id"));
   }
 
   @Test

@@ -80,6 +80,7 @@ public class TestsConstants {
   public static final String TEST_INDEX_ARRAY = TEST_INDEX + "_array";
   public static final String TEST_INDEX_HDFS_LOGS = TEST_INDEX + "_hdfs_logs";
   public static final String TEST_INDEX_LOGS = TEST_INDEX + "_logs";
+  public static final String TEST_INDEX_OTEL_LOGS = TEST_INDEX + "_otel_logs";
 
   public static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
   public static final String TS_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";

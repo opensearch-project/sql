@@ -106,7 +106,7 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testFilterInSubquery() {
     String ppl =
-        "source=EMP (DEPTNO, ENAME) in [ source=DEPT | fields DEPTNO, DNAME ]\n"
+        "source=EMP | where (DEPTNO, ENAME) in [ source=DEPT | fields DEPTNO, DNAME ]\n"
             + "| sort - EMPNO | fields EMPNO, ENAME\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
