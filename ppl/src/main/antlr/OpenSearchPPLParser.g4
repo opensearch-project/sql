@@ -913,6 +913,7 @@ mathematicalFunctionName
 collectionFunctionName
     : ARRAY
     | ARRAY_LENGTH
+    | MVJOIN
     | FORALL
     | EXISTS
     | FILTER

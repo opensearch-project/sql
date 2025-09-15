@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.junit.Assert.assertTrue;
 import static org.opensearch.sql.legacy.TestUtils.*;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
@@ -518,6 +519,16 @@ public class CalciteExplainIT extends ExplainIT {
         "source=opensearch-sql_test_index_bank| eval b = balance + 1 | sort b | fields b";
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_simple_sort_expr_single_expr_output_push.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testMvjoinExplain() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | eval result = mvjoin(array('a', 'b', 'c'), ',')"
+            + " | fields result | head 1";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_mvjoin.json");
     assertJsonEqualsIgnoreId(expected, result);
   }
 
