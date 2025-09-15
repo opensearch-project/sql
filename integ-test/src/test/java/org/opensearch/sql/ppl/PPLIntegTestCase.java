@@ -31,6 +31,7 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.util.RetryProcessor;
+import org.opensearch.sql.utils.YamlFormatter;
 
 /** OpenSearch Rest integration test base for PPL testing. */
 public abstract class PPLIntegTestCase extends SQLIntegTestCase {
@@ -57,6 +58,12 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
 
   protected String explainQueryToString(String query) throws IOException {
     return explainQueryToString(query, false);
+  }
+
+  protected String explainQueryToYaml(String query) throws IOException {
+    String jsonResponse = explainQueryToString(query);
+    JSONObject jsonObject = jsonify(jsonResponse);
+    return YamlFormatter.formatToYaml(jsonObject);
   }
 
   protected String explainQueryToString(String query, boolean extended) throws IOException {
@@ -306,9 +313,18 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     public static boolean enabled = true;
   }
 
-  public boolean isPushdownEnabled() throws IOException {
-    return Boolean.parseBoolean(
-        getClusterSetting(Settings.Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(), "transient"));
+  /**
+   * We check pushdown disabled instead enabled because enabled is the default value of pushdown
+   * config whatever calcite is enabled or not.
+   */
+  public boolean isPushdownDisabled() throws IOException {
+    return isCalciteEnabled()
+        && !Boolean.parseBoolean(
+            getClusterSetting(Settings.Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(), "transient"));
+  }
+
+  protected void enabledOnlyWhenPushdownIsEnabled() throws IOException {
+    Assume.assumeTrue("This test is only for when push down is enabled", !isPushdownDisabled());
   }
 
   protected void enabledOnlyWhenPushdownIsEnabled() throws IOException {
@@ -318,7 +334,7 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   public void updatePushdownSettings() throws IOException {
     String pushdownEnabled = String.valueOf(GlobalPushdownConfig.enabled);
     assert !pushdownEnabled.isBlank() : "Pushdown enabled setting cannot be empty";
-    if (isPushdownEnabled() != GlobalPushdownConfig.enabled) {
+    if (isPushdownDisabled() == GlobalPushdownConfig.enabled) {
       LOG.info(
           "Updating {} to {}",
           Settings.Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(),

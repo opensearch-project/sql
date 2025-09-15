@@ -41,6 +41,9 @@ import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.hint.HintStrategyTable;
+import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
@@ -216,6 +219,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RexNode fieldRex = rexVisitor.analyze(node.getField(), context);
     String patternStr = (String) node.getPattern().getValue();
 
+    if (node.getMode() == Rex.RexMode.SED) {
+      RexNode sedCall = createOptimizedSedCall(fieldRex, patternStr, context);
+      String fieldName = node.getField().toString();
+      projectPlusOverriding(List.of(sedCall), List.of(fieldName), context);
+      return context.relBuilder.peek();
+    }
+
     List<String> namedGroups = RegexCommonUtils.getNamedGroupCandidates(patternStr);
 
     if (namedGroups.isEmpty()) {
@@ -248,6 +258,17 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       }
       newFields.add(extractCall);
       newFieldNames.add(namedGroups.get(i));
+    }
+
+    if (node.getOffsetField().isPresent()) {
+      RexNode offsetCall =
+          PPLFuncImpTable.INSTANCE.resolve(
+              context.rexBuilder,
+              BuiltinFunctionName.REX_OFFSET,
+              fieldRex,
+              context.rexBuilder.makeLiteral(patternStr));
+      newFields.add(offsetCall);
+      newFieldNames.add(node.getOffsetField().get());
     }
 
     projectPlusOverriding(newFields, newFieldNames, context);
@@ -829,6 +850,41 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     groupExprList.addAll(node.getGroupExprList());
     Pair<List<RexNode>, List<AggCall>> aggregationAttributes =
         aggregateWithTrimming(groupExprList, aggExprList, context);
+    // Add group by columns
+    List<RexNode> aliasedGroupByList =
+        aggregationAttributes.getLeft().stream()
+            .map(this::extractAliasLiteral)
+            .flatMap(Optional::stream)
+            .map(ref -> ((RexLiteral) ref).getValueAs(String.class))
+            .map(context.relBuilder::field)
+            .map(f -> (RexNode) f)
+            .collect(Collectors.toList());
+
+    // add stats hint to LogicalAggregation
+    Argument.ArgumentMap statsArgs = Argument.ArgumentMap.of(node.getArgExprList());
+    Boolean bucketNullable =
+        (Boolean) statsArgs.getOrDefault(Argument.BUCKET_NULLABLE, Literal.TRUE).getValue();
+    if (!bucketNullable && !aliasedGroupByList.isEmpty()) {
+      final RelHint statHits =
+          RelHint.builder("stats_args").hintOption(Argument.BUCKET_NULLABLE, "false").build();
+      assert context.relBuilder.peek() instanceof LogicalAggregate
+          : "Stats hits should be added to LogicalAggregate";
+      context.relBuilder.hints(statHits);
+      context
+          .relBuilder
+          .getCluster()
+          .setHintStrategies(
+              HintStrategyTable.builder()
+                  .hintStrategy(
+                      "stats_args",
+                      (hint, rel) -> {
+                        return rel instanceof LogicalAggregate;
+                      })
+                  .build());
+      context.relBuilder.filter(
+          aliasedGroupByList.stream().map(context.relBuilder::isNotNull)
+          .collect(Collectors.toList()));
+    }
 
     // schema reordering
     // As an example, in command `stats count() by colA, colB`,
@@ -841,15 +897,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<RexNode> aggRexList =
         outputFields.subList(numOfOutputFields - numOfAggList, numOfOutputFields);
     reordered.addAll(aggRexList);
-    // Add group by columns
-    List<RexNode> aliasedGroupByList =
-        aggregationAttributes.getLeft().stream()
-            .map(this::extractAliasLiteral)
-            .flatMap(Optional::stream)
-            .map(ref -> ((RexLiteral) ref).getValueAs(String.class))
-            .map(context.relBuilder::field)
-            .map(f -> (RexNode) f)
-                .collect(Collectors.toList());
     reordered.addAll(aliasedGroupByList);
     context.relBuilder.project(reordered);
 
@@ -2218,6 +2265,117 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       List<String> names = new ArrayList<>(context.relBuilder.peek().getRowType().getFieldNames());
       names.set(expandedField.getIndex(), alias);
       context.relBuilder.rename(names);
+    }
+  }
+
+  /** Creates an optimized sed call using native Calcite functions */
+  private RexNode createOptimizedSedCall(
+      RexNode fieldRex, String sedExpression, CalcitePlanContext context) {
+    if (sedExpression.startsWith("s/")) {
+      return createOptimizedSubstitution(fieldRex, sedExpression, context);
+    } else if (sedExpression.startsWith("y/")) {
+      return createOptimizedTransliteration(fieldRex, sedExpression, context);
+    } else {
+      throw new RuntimeException("Unsupported sed pattern: " + sedExpression);
+    }
+  }
+
+  /** Creates optimized substitution calls for s/pattern/replacement/flags syntax. */
+  private RexNode createOptimizedSubstitution(
+      RexNode fieldRex, String sedExpression, CalcitePlanContext context) {
+    try {
+      // Parse sed substitution: s/pattern/replacement/flags
+      if (!sedExpression.matches("s/.+/.*/.*")) {
+        throw new IllegalArgumentException("Invalid sed substitution format");
+      }
+
+      // Find the delimiters - sed format is s/pattern/replacement/flags
+      int firstDelimiter = sedExpression.indexOf('/', 2); // First '/' after 's/'
+      int secondDelimiter = sedExpression.indexOf('/', firstDelimiter + 1); // Second '/'
+      int thirdDelimiter = sedExpression.indexOf('/', secondDelimiter + 1); // Third '/' (optional)
+
+      if (firstDelimiter == -1 || secondDelimiter == -1) {
+        throw new IllegalArgumentException("Invalid sed substitution format");
+      }
+
+      String pattern = sedExpression.substring(2, firstDelimiter);
+      String replacement = sedExpression.substring(firstDelimiter + 1, secondDelimiter);
+      String flags =
+          secondDelimiter + 1 < sedExpression.length()
+              ? sedExpression.substring(secondDelimiter + 1)
+              : "";
+
+      // Convert sed backreferences (\1, \2) to Java style ($1, $2)
+      String javaReplacement = replacement.replaceAll("\\\\(\\d+)", "\\$$1");
+
+      if (flags.isEmpty()) {
+        // 3-parameter REGEXP_REPLACE
+        return PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder,
+            BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_3,
+            fieldRex,
+            context.rexBuilder.makeLiteral(pattern),
+            context.rexBuilder.makeLiteral(javaReplacement));
+      } else if (flags.matches("[gi]+")) {
+        // 4-parameter REGEXP_REPLACE with flags
+        return PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder,
+            BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_PG_4,
+            fieldRex,
+            context.rexBuilder.makeLiteral(pattern),
+            context.rexBuilder.makeLiteral(javaReplacement),
+            context.rexBuilder.makeLiteral(flags));
+      } else if (flags.matches("\\d+")) {
+        // 5-parameter REGEXP_REPLACE with occurrence
+        int occurrence = Integer.parseInt(flags);
+        return PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder,
+            BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_5,
+            fieldRex,
+            context.rexBuilder.makeLiteral(pattern),
+            context.rexBuilder.makeLiteral(javaReplacement),
+            context.relBuilder.literal(1), // start position
+            context.relBuilder.literal(occurrence));
+      } else {
+        throw new RuntimeException(
+            "Unsupported sed flags: " + flags + " in expression: " + sedExpression);
+      }
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to optimize sed expression: " + sedExpression, e);
+    }
+  }
+
+  /** Creates optimized transliteration calls for y/from/to/ syntax. */
+  private RexNode createOptimizedTransliteration(
+      RexNode fieldRex, String sedExpression, CalcitePlanContext context) {
+    try {
+      // Parse sed transliteration: y/from/to/
+      if (!sedExpression.matches("y/.+/.*/.*")) {
+        throw new IllegalArgumentException("Invalid sed transliteration format");
+      }
+
+      int firstSlash = sedExpression.indexOf('/', 1);
+      int secondSlash = sedExpression.indexOf('/', firstSlash + 1);
+      int thirdSlash = sedExpression.indexOf('/', secondSlash + 1);
+
+      if (firstSlash == -1 || secondSlash == -1) {
+        throw new IllegalArgumentException("Invalid sed transliteration format");
+      }
+
+      String from = sedExpression.substring(firstSlash + 1, secondSlash);
+      String to =
+          sedExpression.substring(
+              secondSlash + 1, thirdSlash != -1 ? thirdSlash : sedExpression.length());
+
+      // Use Calcite's native TRANSLATE3 function
+      return PPLFuncImpTable.INSTANCE.resolve(
+          context.rexBuilder,
+          BuiltinFunctionName.INTERNAL_TRANSLATE3,
+          fieldRex,
+          context.rexBuilder.makeLiteral(from),
+          context.rexBuilder.makeLiteral(to));
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to optimize sed expression: " + sedExpression, e);
     }
   }
 }

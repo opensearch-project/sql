@@ -32,6 +32,7 @@ public abstract class Settings {
     PATTERN_MAX_SAMPLE_COUNT("plugins.ppl.pattern.max.sample.count"),
     PATTERN_BUFFER_LIMIT("plugins.ppl.pattern.buffer.limit"),
     PPL_REX_MAX_MATCH_LIMIT("plugins.ppl.rex.max_match.limit"),
+    PPL_SYNTAX_LEGACY_PREFERRED("plugins.ppl.syntax.legacy.preferred"),
 
     /** Enable Calcite as execution engine */
     CALCITE_ENGINE_ENABLED("plugins.calcite.enabled"),
