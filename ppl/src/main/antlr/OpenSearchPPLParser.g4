@@ -580,14 +580,13 @@ statsAggTerm
 
 // aggregation functions
 statsFunction
-   : statsFunctionName LT_PRTHS valueExpression RT_PRTHS        # statsFunctionCall
-   | (COUNT | C) LT_PRTHS evalExpression RT_PRTHS               # countEvalFunctionCall
+   : (COUNT | C) LT_PRTHS evalExpression RT_PRTHS               # countEvalFunctionCall
    | (COUNT | C) (LT_PRTHS RT_PRTHS)?                           # countAllFunctionCall
    | PERCENTILE_SHORTCUT LT_PRTHS valueExpression RT_PRTHS      # percentileShortcutFunctionCall
    | (DISTINCT_COUNT | DC | DISTINCT_COUNT_APPROX) LT_PRTHS valueExpression RT_PRTHS    # distinctCountFunctionCall
    | takeAggFunction                                            # takeAggFunctionCall
    | percentileApproxFunction                                   # percentileApproxFunctionCall
-   | earliestLatestFunction                                     # earliestLatestFunctionCall
+   | statsFunctionName LT_PRTHS functionArgs RT_PRTHS           # statsFunctionCall
    ;
 
 statsFunctionName
@@ -607,15 +606,10 @@ statsFunctionName
    | LATEST
    | LIST
    | FIRST
+   | EARLIEST
+   | LATEST
    | LAST
    ;
-
-earliestLatestFunction
-   : (EARLIEST | LATEST) LT_PRTHS valueExpression (COMMA timeField = valueExpression)? RT_PRTHS
-   ;
-
-
-
 
 takeAggFunction
    : TAKE LT_PRTHS fieldExpression (COMMA size = integerLiteral)? RT_PRTHS

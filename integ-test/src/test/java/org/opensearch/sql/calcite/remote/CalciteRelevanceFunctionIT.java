@@ -8,7 +8,6 @@ package org.opensearch.sql.calcite.remote;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BEER;
 
 import java.io.IOException;
-import org.junit.Assume;
 import org.opensearch.sql.ppl.RelevanceFunctionIT;
 
 public class CalciteRelevanceFunctionIT extends RelevanceFunctionIT {

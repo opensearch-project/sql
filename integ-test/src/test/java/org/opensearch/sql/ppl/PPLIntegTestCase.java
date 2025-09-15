@@ -91,6 +91,22 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     return executeCsvQuery(query, true);
   }
 
+  protected void verifyExplainException(String query, String expectedErrorMessage) {
+    ResponseException e = assertThrows(ResponseException.class, () -> explainQueryToString(query));
+    try {
+      String responseBody = getResponseBody(e.getResponse(), true);
+      JSONObject errorResponse = new JSONObject(responseBody);
+      String actualErrorMessage = errorResponse.getJSONObject("error").getString("details");
+      assertEquals(expectedErrorMessage, actualErrorMessage);
+    } catch (IOException | JSONException ex) {
+      throw new RuntimeException("Failed to parse error response", ex);
+    }
+  }
+
+  protected static String source(String index, String query) {
+    return String.format("source=%s | %s", index, query);
+  }
+
   protected void timing(MapBuilder<String, Long> builder, String query, String ppl)
       throws IOException {
     executeQuery(ppl); // warm-up

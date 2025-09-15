@@ -16,7 +16,6 @@ import static org.opensearch.sql.util.MatcherUtils.assertYamlEqualsJsonIgnoreId;
 
 import java.io.IOException;
 import java.util.Locale;
-import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.ppl.ExplainIT;
@@ -296,46 +295,6 @@ public class CalciteExplainIT extends ExplainIT {
     assertJsonEqualsIgnoreId(expected, result);
   }
 
-  @Test
-  public void testExplainCountEval() throws IOException {
-    String query =
-            "source=opensearch-sql_test_index_bank | stats count(eval(age > 30)) as mature_count";
-    var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_count_eval_push.json");
-    assertJsonEqualsIgnoreId(expected, result);
-  }
-
-  @Test
-  public void testExplainCountEvalComplex() throws IOException {
-    String query =
-            "source=opensearch-sql_test_index_bank | stats count(eval(age > 30 and age < 50)) as"
-                    + " mature_count";
-    var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_count_eval_complex_push.json");
-    assertJsonEqualsIgnoreId(expected, result);
-  }
-
-  @Test
-  public void testEventstatsDistinctCountExplain() throws IOException {
-    enabledOnlyWhenPushdownIsEnabled();
-    String query =
-        "source=opensearch-sql_test_index_account | eventstats dc(state) as distinct_states";
-    var result = explainQueryToString(query);
-    String expected = loadFromFile("expectedOutput/calcite/explain_eventstats_dc.json");
-    assertJsonEqualsIgnoreId(expected, result);
-  }
-
-  @Test
-  public void testEventstatsDistinctCountFunctionExplain() throws IOException {
-    enabledOnlyWhenPushdownIsEnabled();
-    String query =
-            "source=opensearch-sql_test_index_account | eventstats distinct_count(state) as"
-                    + " distinct_states by gender";
-    var result = explainQueryToString(query);
-    String expected = loadFromFile("expectedOutput/calcite/explain_eventstats_distinct_count.json");
-    assertJsonEqualsIgnoreId(expected, result);
-  }
-
   public void testExplainBinWithBins() throws IOException {
     String expected = loadExpectedPlan("explain_bin_bins.json");
     assertJsonEqualsIgnoreId(
@@ -378,6 +337,46 @@ public class CalciteExplainIT extends ExplainIT {
         explainQueryToString(
             "source=opensearch-sql_test_index_time_data | bin @timestamp span=2h aligntime=latest |"
                 + " head 5"));
+  }
+
+  @Test
+  public void testExplainCountEval() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_bank | stats count(eval(age > 30)) as mature_count";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_count_eval_push.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testExplainCountEvalComplex() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_bank | stats count(eval(age > 30 and age < 50)) as"
+            + " mature_count";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_count_eval_complex_push.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testEventstatsDistinctCountExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        "source=opensearch-sql_test_index_account | eventstats dc(state) as distinct_states";
+    var result = explainQueryToString(query);
+    String expected = loadFromFile("expectedOutput/calcite/explain_eventstats_dc.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testEventstatsDistinctCountFunctionExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        "source=opensearch-sql_test_index_account | eventstats distinct_count(state) as"
+            + " distinct_states by gender";
+    var result = explainQueryToString(query);
+    String expected = loadFromFile("expectedOutput/calcite/explain_eventstats_distinct_count.json");
+    assertJsonEqualsIgnoreId(expected, result);
   }
 
   // Only for Calcite, as v2 gets unstable serialized string for function
@@ -469,6 +468,44 @@ public class CalciteExplainIT extends ExplainIT {
                 "source=%s | stats first(firstname) as first_name, last(firstname) as"
                     + " last_name by gender",
                 TEST_INDEX_BANK)));
+  }
+
+  // Only for Calcite
+  public void testExplainOnEventstatsEarliestLatest() throws IOException {
+    String expected = loadExpectedPlan("explain_eventstats_earliest_latest.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | eventstats earliest(message) as earliest_message, latest(message) as"
+                    + " latest_message by server",
+                TEST_INDEX_LOGS)));
+  }
+
+  // Only for Calcite
+  @Test
+  public void testExplainOnEventstatsEarliestLatestWithCustomTimeField() throws IOException {
+    String expected = loadExpectedPlan("explain_eventstats_earliest_latest_custom_time.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | eventstats earliest(message, created_at) as earliest_message,"
+                    + " latest(message, created_at) as latest_message by level",
+                TEST_INDEX_LOGS)));
+  }
+
+  // Only for Calcite
+  @Test
+  public void testExplainOnEventstatsEarliestLatestNoGroupBy() throws IOException {
+    String expected = loadExpectedPlan("explain_eventstats_earliest_latest_no_group.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | eventstats earliest(message) as earliest_message, latest(message) as"
+                    + " latest_message",
+                TEST_INDEX_LOGS)));
   }
 
   @Test

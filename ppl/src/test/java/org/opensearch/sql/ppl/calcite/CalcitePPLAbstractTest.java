@@ -33,6 +33,7 @@ import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelRunners;
 import org.apache.commons.lang3.StringUtils;
+import org.junit.Assert;
 import org.junit.Before;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.statement.Query;
@@ -40,6 +41,7 @@ import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.parser.AstBuilder;
 import org.opensearch.sql.ppl.parser.AstStatementBuilder;
@@ -181,5 +183,10 @@ public class CalcitePPLAbstractTest {
   public void verifyErrorMessageContains(Throwable t, String msg) {
     String stackTrace = getStackTrace(t);
     assertThat(String.format("Actual stack trace was:\n%s", stackTrace), stackTrace.contains(msg));
+  }
+
+  protected void verifyQueryThrowsException(String query, String expectedErrorMessage) {
+    Exception e = Assert.assertThrows(ExpressionEvaluationException.class, () -> getRelNode(query));
+    verifyErrorMessageContains(e, expectedErrorMessage);
   }
 }
