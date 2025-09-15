@@ -11,6 +11,7 @@ import org.opensearch.common.inject.Provides;
 import org.opensearch.common.inject.Singleton;
 import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.analysis.ExpressionAnalyzer;
+import org.opensearch.sql.calcite.udf.udaf.SettingsHolder;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.executor.ExecutionEngine;
@@ -54,6 +55,8 @@ public class OpenSearchPluginModule extends AbstractModule {
 
   @Provides
   public StorageEngine storageEngine(OpenSearchClient client, Settings settings) {
+    // Initialize SettingsHolder when StorageEngine is created
+    SettingsHolder.setSettings(settings);
     return new OpenSearchStorageEngine(client, settings);
   }
 

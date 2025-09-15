@@ -20,15 +20,13 @@ import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
  *   <li>Returns unique values only (no duplicates)
  *   <li>Values are sorted in lexicographical order
  *   <li>Processes field values as strings (casts all inputs to strings)
- *   <li>Limit of 10,000 values for performance optimization
+ *   <li>Configurable limit via plugins.ppl.values.max.limit setting (0 = unlimited)
  *   <li>Supports only scalar data types (rejects STRUCT/ARRAY types)
  *   <li>Implementation uses TreeSet for automatic sorting and deduplication
  * </ul>
  */
 public class ValuesAggFunction
     implements UserDefinedAggFunction<ValuesAggFunction.ValuesAccumulator> {
-
-  private static final int MAX_VALUES_LIMIT = 10000;
 
   @Override
   public ValuesAccumulator init() {
@@ -50,10 +48,11 @@ public class ValuesAggFunction
     Object value = values[0];
 
     // Filter out null values and check limit
-    if (value != null && acc.size() < MAX_VALUES_LIMIT) {
+    int limit = getMaxValuesLimit();
+    if (value != null && (limit == 0 || acc.size() < limit)) {
       // Convert value to string, handling all types safely
       String stringValue = convertToString(value);
-      acc.add(stringValue);
+      acc.add(stringValue, limit);
     }
 
     return acc;
@@ -79,8 +78,8 @@ public class ValuesAggFunction
       return new ArrayList<>(values); // Return List<String> to match expected type
     }
 
-    public void add(String value) {
-      if (values.size() < MAX_VALUES_LIMIT) {
+    public void add(String value, int limit) {
+      if (limit == 0 || values.size() < limit) {
         values.add(value);
       }
     }
@@ -88,5 +87,14 @@ public class ValuesAggFunction
     public int size() {
       return values.size();
     }
+  }
+
+  /**
+   * Get the maximum limit for values from settings.
+   *
+   * @return Maximum limit (0 means unlimited)
+   */
+  private int getMaxValuesLimit() {
+    return SettingsHolder.getValuesMaxLimit();
   }
 }

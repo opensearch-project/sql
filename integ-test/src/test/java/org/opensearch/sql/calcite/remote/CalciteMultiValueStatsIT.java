@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NONNUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
@@ -15,6 +17,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
 import java.util.List;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
@@ -389,5 +392,82 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
     assert response.has("datarows");
     // When no records match, VALUES returns null (not an empty list)
     verifyDataRows(response, rows((List<Object>) null));
+  }
+
+  @Test
+  public void testValuesFunctionWithUnlimitedValues() throws IOException {
+    // This test verifies that when the limit is set to 0 (unlimited),
+    // all unique values are returned
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | head 100 | stats values(int2) as all_values", TEST_INDEX_CALCS));
+    verifySchema(response, schema("all_values", "array"));
+
+    // With the default setting of 0 (unlimited), all unique values should be returned
+    // The actual number depends on the test data
+    assert response.has("datarows");
+    JSONArray rows = response.getJSONArray("datarows");
+    assertNotNull(rows);
+    assertTrue(rows.length() > 0);
+  }
+
+  @Test
+  public void testValuesFunctionRespectsConfiguredLimit() throws IOException, InterruptedException {
+    // Test 1: Set limit to 3 and verify only 3 values are returned
+    updateClusterSettings(new ClusterSetting(TRANSIENT, "plugins.ppl.values.max.limit", "3"));
+
+    // Wait a moment for the setting to propagate
+    Thread.sleep(1000);
+
+    JSONObject response =
+        executeQuery(
+            String.format("source=%s | stats values(int2) as limited_values", TEST_INDEX_CALCS));
+    verifySchema(response, schema("limited_values", "array"));
+
+    assert response.has("datarows");
+    JSONArray rows = response.getJSONArray("datarows");
+    assertNotNull(rows);
+    assertTrue(rows.length() > 0);
+
+    if (!rows.isNull(0)) {
+      JSONArray values = rows.getJSONArray(0).getJSONArray(0);
+      assertNotNull(values);
+      // With limit set to 3, should have at most 3 values
+      assertTrue(
+          "Expected at most 3 values with limit=3, but got " + values.length() + ": " + values,
+          values.length() <= 3);
+
+      // Verify values are in lexicographical order
+      for (int i = 1; i < values.length(); i++) {
+        String prev = values.getString(i - 1);
+        String curr = values.getString(i);
+        assertTrue(prev.compareTo(curr) <= 0);
+      }
+    }
+
+    // Test 2: Set limit to 0 (unlimited) and verify more values are returned
+    updateClusterSettings(new ClusterSetting(TRANSIENT, "plugins.ppl.values.max.limit", "0"));
+
+    response =
+        executeQuery(
+            String.format("source=%s | stats values(int2) as unlimited_values", TEST_INDEX_CALCS));
+    verifySchema(response, schema("unlimited_values", "array"));
+
+    rows = response.getJSONArray("datarows");
+    assertNotNull(rows);
+
+    if (!rows.isNull(0)) {
+      JSONArray unlimitedValues = rows.getJSONArray(0).getJSONArray(0);
+      assertNotNull(unlimitedValues);
+      // With limit 0 (unlimited), should have all unique values from the dataset
+      // The test data has more than 3 unique values, so this should be > 3
+      assertTrue(
+          "Expected more than 3 values with unlimited setting, but got " + unlimitedValues.length(),
+          unlimitedValues.length() > 3);
+    }
+
+    // Reset the setting to default
+    updateClusterSettings(new ClusterSetting(TRANSIENT, "plugins.ppl.values.max.limit", null));
   }
 }
