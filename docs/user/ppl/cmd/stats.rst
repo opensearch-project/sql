@@ -588,7 +588,11 @@ Description
 Version: 3.3.0 (Calcite engine only)
 
 Usage: VALUES(expr). Collects all unique values from the specified expression into a sorted array. Values are converted to strings, nulls are filtered, and duplicates are removed.
-The function returns up to 10,000 unique values sorted in lexicographical order.
+
+The maximum number of unique values returned is controlled by the ``plugins.ppl.values.max.limit`` setting:
+* Default value is 0, which means unlimited values are returned
+* Can be configured to any positive integer to limit the number of unique values
+* See the `PPL Settings <../admin/settings.rst#plugins-ppl-values-max-limit>`_ documentation for more details
 
 * expr: The field expression to collect unique values from.
 * This aggregation function doesn't support Array, Struct, Object field types.

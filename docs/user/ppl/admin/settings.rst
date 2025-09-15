@@ -226,3 +226,85 @@ PPL query::
         }
       }
     }
+
+plugins.ppl.values.max.limit
+============================
+
+Description
+-----------
+
+This setting controls the maximum number of unique values that the ``VALUES`` aggregation function can return. When set to 0 (the default), there is no limit on the number of unique values returned. When set to a positive integer, the function will return at most that many unique values.
+
+1. The default value is 0 (unlimited).
+2. This setting is node scope.
+3. This setting can be updated dynamically.
+
+The ``VALUES`` function collects all unique values from a field and returns them in lexicographical order. This setting helps manage memory usage by limiting the number of values collected.
+
+Example 1
+---------
+
+Set the limit to 1000 unique values:
+
+PPL query::
+
+    sh$ curl -sS -H 'Content-Type: application/json' \
+    ... -X PUT localhost:9200/_plugins/_query/settings \
+    ... -d '{"transient" : {"plugins.ppl.values.max.limit" : "1000"}}'
+    {
+      "acknowledged": true,
+      "persistent": {},
+      "transient": {
+        "plugins": {
+          "ppl": {
+            "values": {
+              "max": {
+                "limit": "1000"
+              }
+            }
+          }
+        }
+      }
+    }
+
+Example 2
+---------
+
+Reset to default (unlimited) by setting to null:
+
+PPL query::
+
+    sh$ curl -sS -H 'Content-Type: application/json' \
+    ... -X PUT localhost:9200/_plugins/_query/settings \
+    ... -d '{"transient" : {"plugins.ppl.values.max.limit" : null}}'
+    {
+      "acknowledged": true,
+      "persistent": {},
+      "transient": {}
+    }
+
+Example 3
+---------
+
+Set to 0 explicitly for unlimited values:
+
+PPL query::
+
+    sh$ curl -sS -H 'Content-Type: application/json' \
+    ... -X PUT localhost:9200/_plugins/_query/settings \
+    ... -d '{"transient" : {"plugins.ppl.values.max.limit" : "0"}}'
+    {
+      "acknowledged": true,
+      "persistent": {},
+      "transient": {
+        "plugins": {
+          "ppl": {
+            "values": {
+              "max": {
+                "limit": "0"
+              }
+            }
+          }
+        }
+      }
+    }
