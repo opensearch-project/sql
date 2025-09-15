@@ -188,6 +188,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.SQRT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.STDDEV_POP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.STDDEV_SAMP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.STRCMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.STRFTIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.STR_TO_DATE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBDATE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBSTR;
@@ -755,6 +756,7 @@ public class PPLFuncImpTable {
       registerOperator(YEARWEEK, PPLBuiltinOperators.YEARWEEK);
       registerOperator(WEEKDAY, PPLBuiltinOperators.WEEKDAY);
       registerOperator(UNIX_TIMESTAMP, PPLBuiltinOperators.UNIX_TIMESTAMP);
+      registerOperator(STRFTIME, PPLBuiltinOperators.STRFTIME);
       registerOperator(TO_SECONDS, PPLBuiltinOperators.TO_SECONDS);
       registerOperator(TO_DAYS, PPLBuiltinOperators.TO_DAYS);
       registerOperator(ADDTIME, PPLBuiltinOperators.ADDTIME);
