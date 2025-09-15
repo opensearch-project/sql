@@ -612,6 +612,14 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testMvjoin() {
+    // Test mvjoin with array of strings
+    assertEquals(
+        "source=t | eval result=mvjoin(array(***,***,***),***) | fields + result",
+        anonymize("source=t | eval result=mvjoin(array('a', 'b', 'c'), ',') | fields result"));
+  }
+
+  @Test
   public void testRexWithOffsetField() {
     when(settings.getSettingValue(Key.PPL_REX_MAX_MATCH_LIMIT)).thenReturn(10);
 

@@ -175,4 +175,12 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
         "source=EMP | eval log2 = log2(ENAME, JOB) | fields log2",
         "LOG2 function expects {[INTEGER]|[DOUBLE]}, but got [STRING,STRING]");
   }
+
+  // mvjoin should reject non-string single values
+  @Test
+  public void testMvjoinRejectsNonStringValues() {
+    verifyQueryThrowsException(
+        "source=EMP | eval result = mvjoin(42, ',') | fields result | head 1",
+        "MVJOIN function expects {[ARRAY,STRING]}, but got [INTEGER,STRING]");
+  }
 }
