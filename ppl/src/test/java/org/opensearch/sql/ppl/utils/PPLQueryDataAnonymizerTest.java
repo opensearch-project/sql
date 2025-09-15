@@ -238,6 +238,13 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testEvalCommandWithStrftime() {
+    assertEquals(
+        "source=t | eval formatted=strftime(timestamp,***)",
+        anonymize("source=t | eval formatted=strftime(timestamp, '%Y-%m-%d %H:%M:%S')"));
+  }
+
+  @Test
   public void testFillNullSameValue() {
     assertEquals(
         "source=t | fillnull with *** in f1, f2",

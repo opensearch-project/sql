@@ -125,6 +125,7 @@ public enum BuiltinFunctionName {
   UTC_TIME(FunctionName.of("utc_time")),
   UTC_TIMESTAMP(FunctionName.of("utc_timestamp")),
   UNIX_TIMESTAMP(FunctionName.of("unix_timestamp")),
+  STRFTIME(FunctionName.of("strftime")),
   WEEK(FunctionName.of("week")),
   WEEKDAY(FunctionName.of("weekday")),
   WEEKOFYEAR(FunctionName.of("weekofyear")),
