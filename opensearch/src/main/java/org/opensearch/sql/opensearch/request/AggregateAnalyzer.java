@@ -72,7 +72,7 @@ import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
-import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
 import org.opensearch.sql.opensearch.response.agg.ArgMaxMinParser;
 import org.opensearch.sql.opensearch.response.agg.BucketAggregationParser;
@@ -419,17 +419,16 @@ public class AggregateAnalyzer {
     };
   }
 
-  private static boolean isStringType(ExprType fieldType) {
-    return fieldType instanceof OpenSearchTextType
-        || fieldType == ExprCoreType.STRING
-        || fieldType == ExprCoreType.IP;
-  }
-
   private static boolean supportsMaxMinAggregation(ExprType fieldType) {
-    return ExprCoreType.numberTypes().contains(fieldType)
-        || fieldType == ExprCoreType.DATE
-        || fieldType == ExprCoreType.TIME
-        || fieldType == ExprCoreType.TIMESTAMP;
+    ExprType coreType =
+        (fieldType instanceof OpenSearchDataType)
+            ? ((OpenSearchDataType) fieldType).getExprType()
+            : fieldType;
+
+    return ExprCoreType.numberTypes().contains(coreType)
+        || coreType == ExprCoreType.DATE
+        || coreType == ExprCoreType.TIME
+        || coreType == ExprCoreType.TIMESTAMP;
   }
 
   private static ValuesSourceAggregationBuilder<?> createBucketAggregation(
