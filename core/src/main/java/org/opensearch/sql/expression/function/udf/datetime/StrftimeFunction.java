@@ -100,13 +100,15 @@ public class StrftimeFunction extends ImplementorUDF {
    */
   private static Double extractUnixSecondsWithFraction(ExprValue unixTime) {
     // 1. Handle TIMESTAMP types (from now(), from_unixtime(), timestamp(), etc.)
-    if (unixTime instanceof ExprTimestampValue timestamp) {
+    if (unixTime instanceof ExprTimestampValue) {
+      ExprTimestampValue timestamp = (ExprTimestampValue) unixTime;
       Instant instant = timestamp.timestampValue();
       return instant.getEpochSecond() + instant.getNano() / (double) NANOS_PER_SECOND;
     }
 
     // 2. Handle DATE types (convert to timestamp at midnight UTC)
-    if (unixTime instanceof ExprDateValue date) {
+    if (unixTime instanceof ExprDateValue) {
+      ExprDateValue date = (ExprDateValue) unixTime;
       // DATE converts to timestamp at midnight UTC
       Instant instant = date.timestampValue();
       return instant.getEpochSecond() + instant.getNano() / (double) NANOS_PER_SECOND;
