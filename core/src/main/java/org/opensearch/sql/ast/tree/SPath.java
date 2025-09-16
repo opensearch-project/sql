@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.ast.tree;
 
+import static org.opensearch.sql.common.utils.StringUtils.unquoteIdentifier;
+
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -18,14 +20,12 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 
-import static org.opensearch.sql.common.utils.StringUtils.unquoteIdentifier;
-
 @ToString
 @EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
 @AllArgsConstructor
 public class SPath extends UnresolvedPlan {
-    private final char DOT = '.';
+  private final char DOT = '.';
   private UnresolvedPlan child;
 
   private final String inField;
