@@ -631,7 +631,6 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testSearchCommandWithAbsoluteTimeRange() throws IOException {
-    Assume.assumeTrue("Generated script not stable in v2", isCalciteEnabled());
     String expected = loadExpectedPlan("explain_search_with_absolute_time_range.json");
     assertJsonEqualsIgnoreId(
         expected,
@@ -639,6 +638,14 @@ public class ExplainIT extends PPLIntegTestCase {
             String.format(
                 "source=%s earliest='2022-12-10 13:11:04' latest='2025-09-03 15:10:00'",
                 TEST_INDEX_TIME_DATA)));
+  }
+
+  @Test
+  public void testSearchCommandWithRelativeTimeRange() throws IOException {
+    String expected = loadExpectedPlan("explain_search_with_relative_time_range.json");
+    assertJsonEqualsIgnoreId(
+            expected,
+            explainQueryToString(String.format("source=%s earliest='-1q@year' latest=now", TEST_INDEX_TIME_DATA)));
   }
 
   protected String loadExpectedPlan(String fileName) throws IOException {
