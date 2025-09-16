@@ -189,3 +189,40 @@ PPL query::
         }
       }
     }
+
+plugins.ppl.syntax.legacy.preferred
+===================================
+
+Description
+-----------
+
+This configuration is introduced since 3.3.0 which is used to switch some behaviours in PPL syntax. The current default value is ``true``.
+The behaviours it controlled includes:
+
+- The default value of argument ``bucket_nullable`` in ``stats`` command. Check `stats command <../cmd/stats.rst>`_ for details.
+
+Example
+-------
+
+You can update the setting with a new value like this.
+
+PPL query::
+
+    sh$ curl -sS -H 'Content-Type: application/json' \
+    ... -X PUT localhost:9200/_plugins/_query/settings \
+    ... -d '{"transient" : {"plugins.ppl.syntax.legacy.preferred" : "false"}}'
+    {
+      "acknowledged": true,
+      "persistent": {},
+      "transient": {
+        "plugins": {
+          "ppl": {
+            "syntax": {
+              "legacy": {
+                "preferred": "false"
+              }
+            }
+          }
+        }
+      }
+    }
