@@ -25,6 +25,7 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -102,9 +103,13 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     super.register(planner);
     planner.addRule(EnumerableIndexScanRule.DEFAULT_CONFIG.toRule());
     if (osIndex.getSettings().getSettingValue(Settings.Key.CALCITE_PUSHDOWN_ENABLED)) {
+      // When pushdown is enabled, use normal rules (they handle everything including relevance
+      // functions)
       for (RelOptRule rule : OpenSearchIndexRules.OPEN_SEARCH_INDEX_SCAN_RULES) {
         planner.addRule(rule);
       }
+    } else {
+      planner.addRule(OpenSearchIndexRules.RELEVANCE_FUNCTION_PUSHDOWN);
     }
   }
 
@@ -291,15 +296,27 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     return null;
   }
 
-  public CalciteLogicalIndexScan pushDownLimit(Integer limit, Integer offset) {
+  public AbstractRelNode pushDownLimit(LogicalSort sort, Integer limit, Integer offset) {
     try {
-      CalciteLogicalIndexScan newScan = this.copyWithNewSchema(getRowType());
-      newScan.pushDownContext.add(
-          PushDownAction.of(
-              PushDownType.LIMIT,
-              limit,
-              requestBuilder -> requestBuilder.pushDownLimit(limit, offset)));
-      return newScan;
+      if (pushDownContext.isAggregatePushed()) {
+        // Push down the limit into the aggregation bucket
+        boolean pushed =
+            pushDownContext.getAggPushDownAction().pushDownLimitIntoBucketSize(limit + offset);
+        if (!pushed && offset > 0) return null;
+        CalciteLogicalIndexScan newScan = this.copyWithNewSchema(getRowType());
+        newScan.pushDownContext.add(
+            PushDownAction.of(
+                PushDownType.LIMIT, new LimitDigest(limit, offset), requestBuilder -> {}));
+        return offset > 0 ? sort.copy(sort.getTraitSet(), List.of(newScan)) : newScan;
+      } else {
+        CalciteLogicalIndexScan newScan = this.copyWithNewSchema(getRowType());
+        newScan.pushDownContext.add(
+            PushDownAction.of(
+                PushDownType.LIMIT,
+                new LimitDigest(limit, offset),
+                requestBuilder -> requestBuilder.pushDownLimit(limit, offset)));
+        return newScan;
+      }
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Cannot pushdown limit {} with offset {}", limit, offset, e);

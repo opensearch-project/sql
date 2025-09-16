@@ -40,6 +40,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.rareTopN;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 import static org.opensearch.sql.ast.dsl.AstDSL.rename;
+import static org.opensearch.sql.ast.dsl.AstDSL.search;
 import static org.opensearch.sql.ast.dsl.AstDSL.sort;
 import static org.opensearch.sql.ast.dsl.AstDSL.span;
 import static org.opensearch.sql.ast.dsl.AstDSL.spath;
@@ -56,6 +57,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.tuple.Pair;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -83,14 +85,29 @@ public class AstBuilderTest {
 
   @Rule public ExpectedException exceptionRule = ExpectedException.none();
 
+  private final Settings settings = Mockito.mock(Settings.class);
+
   private final PPLSyntaxParser parser = new PPLSyntaxParser();
 
-  private final Settings settings = Mockito.mock(Settings.class);
+  @Test
+  public void testDynamicSourceClauseThrowsUnsupportedException() {
+    String query = "source=[myindex, logs, fieldIndex=\"test\"]";
+
+    UnsupportedOperationException exception =
+        assertThrows(UnsupportedOperationException.class, () -> plan(query));
+
+    assertEquals(
+        "Dynamic source clause with metadata filters is not supported.", exception.getMessage());
+  }
+
+  @Before
+  public void setup() {
+    when(settings.getSettingValue(Key.PPL_SYNTAX_LEGACY_PREFERRED)).thenReturn(true);
+  }
 
   @Test
   public void testSearchCommand() {
-    assertEqual(
-        "search source=t a=1", filter(relation("t"), compare("=", field("a"), intLiteral(1))));
+    assertEqual("search source=t a=1", search(relation("t"), "a:1"));
   }
 
   @Test
@@ -151,20 +168,18 @@ public class AstBuilderTest {
 
   @Test
   public void testSearchCommandString() {
-    assertEqual(
-        "search source=t a=\"a\"",
-        filter(relation("t"), compare("=", field("a"), stringLiteral("a"))));
+    assertEqual("search source=t a=\"a\"", search(relation("t"), "a:a"));
   }
 
   @Test
   public void testSearchCommandWithoutSearch() {
-    assertEqual("source=t a=1", filter(relation("t"), compare("=", field("a"), intLiteral(1))));
+    assertEqual(
+        "source=t | where a=1", filter(relation("t"), compare("=", field("a"), intLiteral(1))));
   }
 
   @Test
   public void testSearchCommandWithFilterBeforeSource() {
-    assertEqual(
-        "search a=1 source=t", filter(relation("t"), compare("=", field("a"), intLiteral(1))));
+    assertEqual("search a=1 source=t", search(relation("t"), "a:1"));
   }
 
   @Test
@@ -562,7 +577,7 @@ public class AstBuilderTest {
   @Test
   public void testIndexName() {
     assertEqual(
-        "source=`log.2020.04.20.` a=1",
+        "source=`log.2020.04.20.` | where a=1",
         filter(relation("log.2020.04.20."), compare("=", field("a"), intLiteral(1))));
     assertEqual("describe `log.2020.04.20.`", describe(mappingTable("log.2020.04.20.")));
   }
@@ -1077,6 +1092,12 @@ public class AstBuilderTest {
   @Test(expected = IllegalArgumentException.class)
   public void testBinCommandDuplicateParameter() {
     // Test that duplicate parameters throw an exception
-    plan("search source=test | bin field span=10 span=20");
+    plan("search source=test | bin index_field span=10 span=20");
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testRexSedModeWithOffsetFieldThrowsException() {
+    // Test that SED mode and offset_field cannot be used together (align with Splunk behavior)
+    plan("source=test | rex field=email mode=sed offset_field=matchpos \"s/@.*/@company.com/\"");
   }
 }

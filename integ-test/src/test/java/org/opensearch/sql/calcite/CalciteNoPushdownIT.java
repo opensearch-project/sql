@@ -20,6 +20,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+  CalciteExplainIT.class,
   CalciteArrayFunctionIT.class,
   CalciteBinCommandIT.class,
   CalciteConvertTZFunctionIT.class,
@@ -31,7 +32,6 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalciteDedupCommandIT.class,
   CalciteDescribeCommandIT.class,
   CalciteExpandCommandIT.class,
-  CalciteExplainIT.class,
   CalciteFieldsCommandIT.class,
   CalciteFillNullCommandIT.class,
   CalciteFlattenCommandIT.class,
@@ -54,6 +54,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalciteParseCommandIT.class,
   CalcitePPLAggregationIT.class,
   CalcitePPLAppendcolIT.class,
+  CalcitePPLAppendCommandIT.class,
   CalcitePPLBasicIT.class,
   CalcitePPLBuiltinDatetimeFunctionInvalidIT.class,
   CalcitePPLBuiltinFunctionIT.class,
@@ -85,6 +86,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalciteQueryAnalysisIT.class,
   CalciteRareCommandIT.class,
   CalciteRegexCommandIT.class,
+  CalciteRexCommandIT.class,
   CalciteRenameCommandIT.class,
   CalciteResourceMonitorIT.class,
   CalciteSearchCommandIT.class,

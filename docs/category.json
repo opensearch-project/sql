@@ -20,7 +20,6 @@
     "user/ppl/cmd/parse.rst",
     "user/ppl/cmd/patterns.rst",
     "user/ppl/cmd/rare.rst",
-    "user/ppl/cmd/rename.rst",
     "user/ppl/cmd/search.rst",
     "user/ppl/cmd/sort.rst",
     "user/ppl/cmd/syntax.rst",
@@ -56,10 +55,14 @@
     "user/dql/metadata.rst"
   ],
   "ppl_cli_calcite": [
-    "user/ppl/cmd/stats.rst",
+    "user/ppl/cmd/append.rst",
+    "user/ppl/cmd/eventstats.rst",
     "user/ppl/cmd/fields.rst",
     "user/ppl/cmd/regex.rst",
+    "user/ppl/cmd/rename.rst",
+    "user/ppl/cmd/rex.rst",
     "user/ppl/cmd/stats.rst",
-    "user/ppl/cmd/timechart.rst"
+    "user/ppl/cmd/timechart.rst",
+    "user/ppl/cmd/search.rst"
   ]
 }

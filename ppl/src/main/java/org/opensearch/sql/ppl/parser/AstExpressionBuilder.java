@@ -6,39 +6,6 @@
 package org.opensearch.sql.ppl.parser;
 
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.*;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BinaryArithmeticContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BySpanClauseContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CompareExprContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ConvertedDataTypeContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CountAllFunctionCallContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CountEvalFunctionCallContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DataTypeFunctionCallContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DecimalLiteralContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DistinctCountFunctionCallContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DoubleLiteralContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalClauseContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalFunctionCallContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldExpressionContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FloatLiteralContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsQualifiedNameContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsTableQualifiedNameContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsWildcardQualifiedNameContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.InExprContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLiteralContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntervalLiteralContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalAndContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalNotContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalOrContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalXorContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.MultiFieldRelevanceFunctionContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SingleFieldRelevanceFunctionContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SpanClauseContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsFunctionCallContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StringLiteralContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WcFieldExpressionContext;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -55,35 +22,7 @@ import java.util.stream.Stream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
 import org.opensearch.sql.ast.dsl.AstDSL;
-import org.opensearch.sql.ast.expression.AggregateFunction;
-import org.opensearch.sql.ast.expression.Alias;
-import org.opensearch.sql.ast.expression.AllFields;
-import org.opensearch.sql.ast.expression.And;
-import org.opensearch.sql.ast.expression.Between;
-import org.opensearch.sql.ast.expression.Case;
-import org.opensearch.sql.ast.expression.Cast;
-import org.opensearch.sql.ast.expression.Compare;
-import org.opensearch.sql.ast.expression.DataType;
-import org.opensearch.sql.ast.expression.EqualTo;
-import org.opensearch.sql.ast.expression.Field;
-import org.opensearch.sql.ast.expression.Function;
-import org.opensearch.sql.ast.expression.In;
-import org.opensearch.sql.ast.expression.Interval;
-import org.opensearch.sql.ast.expression.IntervalUnit;
-import org.opensearch.sql.ast.expression.LambdaFunction;
-import org.opensearch.sql.ast.expression.Let;
-import org.opensearch.sql.ast.expression.Literal;
-import org.opensearch.sql.ast.expression.Not;
-import org.opensearch.sql.ast.expression.Or;
-import org.opensearch.sql.ast.expression.QualifiedName;
-import org.opensearch.sql.ast.expression.RelevanceFieldList;
-import org.opensearch.sql.ast.expression.Span;
-import org.opensearch.sql.ast.expression.SpanUnit;
-import org.opensearch.sql.ast.expression.UnresolvedArgument;
-import org.opensearch.sql.ast.expression.UnresolvedExpression;
-import org.opensearch.sql.ast.expression.When;
-import org.opensearch.sql.ast.expression.WindowFunction;
-import org.opensearch.sql.ast.expression.Xor;
+import org.opensearch.sql.ast.expression.*;
 import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
@@ -97,6 +36,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BySpanClauseConte
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CompareExprContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ConvertedDataTypeContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CountAllFunctionCallContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CountEvalFunctionCallContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DataTypeFunctionCallContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DecimalLiteralContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DistinctCountFunctionCallContext;
@@ -117,6 +57,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalNotContext
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalOrContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalXorContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.MultiFieldRelevanceFunctionContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameFieldExpressionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SingleFieldRelevanceFunctionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SpanClauseContext;
@@ -270,6 +211,14 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   }
 
   @Override
+  public UnresolvedExpression visitRenameFieldExpression(RenameFieldExpressionContext ctx) {
+    if (ctx.STAR() != null) {
+      return new Field(QualifiedName.of("*"));
+    }
+    return new Field((QualifiedName) visit(ctx.wcQualifiedName()));
+  }
+
+  @Override
   public UnresolvedExpression visitSortField(SortFieldContext ctx) {
 
     UnresolvedExpression fieldExpression =
@@ -289,7 +238,16 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   /** Aggregation function. */
   @Override
   public UnresolvedExpression visitStatsFunctionCall(StatsFunctionCallContext ctx) {
-    return new AggregateFunction(ctx.statsFunctionName().getText(), visit(ctx.valueExpression()));
+    return buildAggregateFunction(
+        ctx.statsFunctionName().getText(), ctx.functionArgs().functionArg());
+  }
+
+  private AggregateFunction buildAggregateFunction(
+      String functionName, List<OpenSearchPPLParser.FunctionArgContext> args) {
+    List<UnresolvedExpression> unresolvedArgs =
+        args.stream().map(this::visitFunctionArg).collect(Collectors.toList());
+    return new AggregateFunction(
+        functionName, unresolvedArgs.get(0), unresolvedArgs.subList(1, unresolvedArgs.size()));
   }
 
   @Override
@@ -367,30 +325,6 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
             new UnresolvedArgument("percent", AstDSL.doubleLiteral(percent))));
   }
 
-  public UnresolvedExpression visitEarliestLatestFunctionCall(
-      OpenSearchPPLParser.EarliestLatestFunctionCallContext ctx) {
-    return visit(ctx.earliestLatestFunction());
-  }
-
-  @Override
-  public UnresolvedExpression visitEarliestLatestFunction(
-      OpenSearchPPLParser.EarliestLatestFunctionContext ctx) {
-    String functionName = ctx.EARLIEST() != null ? "earliest" : "latest";
-    UnresolvedExpression valueField = visit(ctx.valueExpression(0));
-
-    if (ctx.timeField != null) {
-      // Two parameters: earliest(field, time_field) or latest(field, time_field)
-      UnresolvedExpression timeField = visit(ctx.timeField);
-      return new AggregateFunction(
-          functionName,
-          valueField,
-          Collections.singletonList(new UnresolvedArgument("time_field", timeField)));
-    } else {
-      // Single parameter: earliest(field) or latest(field) - uses default @timestamp
-      return new AggregateFunction(functionName, valueField);
-    }
-  }
-
   /** Case function. */
   @Override
   public UnresolvedExpression visitCaseFunctionCall(
@@ -427,6 +361,12 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return buildFunction(mappedName, ctx.functionArgs().functionArg());
   }
 
+  private Function buildFunction(
+      String functionName, List<OpenSearchPPLParser.FunctionArgContext> args) {
+    return new Function(
+        functionName, args.stream().map(this::visitFunctionArg).collect(Collectors.toList()));
+  }
+
   /** Cast function. */
   @Override
   public UnresolvedExpression visitDataTypeFunctionCall(DataTypeFunctionCallContext ctx) {
@@ -436,12 +376,6 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitConvertedDataType(ConvertedDataTypeContext ctx) {
     return AstDSL.stringLiteral(ctx.getText());
-  }
-
-  private Function buildFunction(
-      String functionName, List<OpenSearchPPLParser.FunctionArgContext> args) {
-    return new Function(
-        functionName, args.stream().map(this::visitFunctionArg).collect(Collectors.toList()));
   }
 
   /**
@@ -719,8 +653,24 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   public UnresolvedExpression visitWindowFunction(OpenSearchPPLParser.WindowFunctionContext ctx) {
     Function f =
         buildFunction(ctx.windowFunctionName().getText(), ctx.functionArgs().functionArg());
+
     // In PPL eventstats command, all window functions have the same partition and order spec.
     return new WindowFunction(f);
+  }
+
+  @Override
+  public UnresolvedExpression visitOverwriteOption(OpenSearchPPLParser.OverwriteOptionContext ctx) {
+    return new Argument("overwrite", (Literal) this.visit(ctx.booleanLiteral()));
+  }
+
+  @Override
+  public UnresolvedExpression visitJoinType(OpenSearchPPLParser.JoinTypeContext ctx) {
+    return ArgumentFactory.getArgumentValue(ctx);
+  }
+
+  @Override
+  public UnresolvedExpression visitMaxOption(OpenSearchPPLParser.MaxOptionContext ctx) {
+    return new Argument("max", (Literal) this.visit(ctx.integerLiteral()));
   }
 
   private QualifiedName visitIdentifiers(List<? extends ParserRuleContext> ctx) {
@@ -811,5 +761,117 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitLogWithBaseSpan(OpenSearchPPLParser.LogWithBaseSpanContext ctx) {
     return org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(ctx.getText());
+  }
+
+  // Visitor methods for search expressions
+  @Override
+  public SearchExpression visitGroupedExpression(OpenSearchPPLParser.GroupedExpressionContext ctx) {
+    return new SearchGroup((SearchExpression) visit(ctx.searchExpression()));
+  }
+
+  @Override
+  public SearchExpression visitNotExpression(OpenSearchPPLParser.NotExpressionContext ctx) {
+    return new SearchNot((SearchExpression) visit(ctx.searchExpression()));
+  }
+
+  @Override
+  public SearchExpression visitAndExpression(OpenSearchPPLParser.AndExpressionContext ctx) {
+    SearchExpression left = (SearchExpression) visit(ctx.searchExpression(0));
+    SearchExpression right = (SearchExpression) visit(ctx.searchExpression(1));
+    // Wrap the entire AND expression in parentheses
+    return new SearchGroup(new SearchAnd(left, right));
+  }
+
+  @Override
+  public SearchExpression visitOrExpression(OpenSearchPPLParser.OrExpressionContext ctx) {
+    SearchExpression left = (SearchExpression) visit(ctx.searchExpression(0));
+    SearchExpression right = (SearchExpression) visit(ctx.searchExpression(1));
+    // Wrap the entire OR expression in parentheses
+    return new SearchGroup(new SearchOr(left, right));
+  }
+
+  @Override
+  public SearchExpression visitTermExpression(OpenSearchPPLParser.TermExpressionContext ctx) {
+    return (SearchExpression) visit(ctx.searchTerm());
+  }
+
+  @Override
+  public SearchExpression visitSearchLiteralTerm(OpenSearchPPLParser.SearchLiteralTermContext ctx) {
+    return visitSearchLiteral(ctx.searchLiteral());
+  }
+
+  @Override
+  public SearchExpression visitSearchComparisonTerm(
+      OpenSearchPPLParser.SearchComparisonTermContext ctx) {
+    OpenSearchPPLParser.SearchFieldCompareContext fieldComp =
+        (OpenSearchPPLParser.SearchFieldCompareContext) ctx.searchFieldComparison();
+
+    Field field = (Field) visit(fieldComp.fieldExpression());
+    SearchComparison.Operator op =
+        visitSearchComparisonOperator(fieldComp.searchComparisonOperator());
+
+    // Use SearchLiteral directly
+    SearchLiteral searchLit = visitSearchLiteral(fieldComp.searchLiteral());
+
+    return new SearchComparison(field, op, searchLit);
+  }
+
+  @Override
+  public SearchExpression visitSearchInListTerm(OpenSearchPPLParser.SearchInListTermContext ctx) {
+    OpenSearchPPLParser.SearchFieldInValuesContext fieldIn =
+        (OpenSearchPPLParser.SearchFieldInValuesContext) ctx.searchFieldInList();
+
+    Field field = (Field) visit(fieldIn.fieldExpression());
+    OpenSearchPPLParser.SearchLiteralsContext valueList =
+        (OpenSearchPPLParser.SearchLiteralsContext) fieldIn.searchLiteralList();
+    List<SearchLiteral> values =
+        valueList.searchLiteral().stream()
+            .map(this::visitSearchLiteral)
+            .collect(Collectors.toList());
+
+    return new SearchIn(field, values);
+  }
+
+  // Helper method to determine the comparison operator
+  private SearchComparison.Operator visitSearchComparisonOperator(
+      OpenSearchPPLParser.SearchComparisonOperatorContext ctx) {
+    if (ctx instanceof OpenSearchPPLParser.EqualsContext) {
+      return SearchComparison.Operator.EQUALS;
+    } else if (ctx instanceof OpenSearchPPLParser.NotEqualsContext) {
+      return SearchComparison.Operator.NOT_EQUALS;
+    } else if (ctx instanceof OpenSearchPPLParser.LessThanContext) {
+      return SearchComparison.Operator.LESS_THAN;
+    } else if (ctx instanceof OpenSearchPPLParser.LessOrEqualContext) {
+      return SearchComparison.Operator.LESS_OR_EQUAL;
+    } else if (ctx instanceof OpenSearchPPLParser.GreaterThanContext) {
+      return SearchComparison.Operator.GREATER_THAN;
+    } else if (ctx instanceof OpenSearchPPLParser.GreaterOrEqualContext) {
+      return SearchComparison.Operator.GREATER_OR_EQUAL;
+    }
+    return SearchComparison.Operator.EQUALS; // Default to equals
+  }
+
+  @Override
+  public SearchLiteral visitSearchLiteral(OpenSearchPPLParser.SearchLiteralContext ctx) {
+    if (ctx.stringLiteral() != null) {
+      // Use visit method to properly handle escaping
+      Literal stringLit = (Literal) visit(ctx.stringLiteral());
+      String content = (String) stringLit.getValue();
+      return new SearchLiteral(new Literal(content, DataType.STRING), content.contains(" "));
+    } else if (ctx.numericLiteral() != null) {
+      Literal numericLiteral = (Literal) visit(ctx.numericLiteral());
+      return new SearchLiteral(numericLiteral, false);
+    } else if (ctx.booleanLiteral() != null) {
+      // Boolean literal
+      Literal booleanLiteral = (Literal) visit(ctx.booleanLiteral());
+      return new SearchLiteral(booleanLiteral, false);
+    } else if (ctx.ID() != null) {
+      return new SearchLiteral(new Literal(ctx.ID().getText(), DataType.STRING), false);
+    } else if (ctx.searchableKeyWord() != null) {
+      return new SearchLiteral(
+          new Literal(ctx.searchableKeyWord().getText(), DataType.STRING), false);
+    }
+    // Default
+    return new SearchLiteral(new Literal(ctx.getText(), DataType.STRING), false);
   }
 }

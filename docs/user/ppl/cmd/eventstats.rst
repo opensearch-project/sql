@@ -93,16 +93,16 @@ Usage: Returns a count of the number of expr in the rows retrieved by a SELECT s
 
 Example::
 
-    PPL> source=accounts | eventstats count();
+    os> source=accounts | fields account_number, gender, age | eventstats count() | sort account_number;
     fetched rows / total rows = 4/4
-    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+---------+
-    | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | count() |
-    |----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+---------|
-    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | 4       |
-    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 4       |
-    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | 4       |
-    | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    | 4       |
-    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+---------+
+    +----------------+--------+-----+---------+
+    | account_number | gender | age | count() |
+    |----------------+--------+-----+---------|
+    | 1              | M      | 32  | 4       |
+    | 6              | M      | 36  | 4       |
+    | 13             | F      | 28  | 4       |
+    | 18             | M      | 33  | 4       |
+    +----------------+--------+-----+---------+
 
 SUM
 ---
@@ -114,16 +114,16 @@ Usage: SUM(expr). Returns the sum of expr.
 
 Example::
 
-    PPL> source=accounts | eventstats sum(age) by gender;
+    os> source=accounts | fields account_number, gender, age | eventstats sum(age) by gender | sort account_number;
     fetched rows / total rows = 4/4
-    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+----------+
-    | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | sum(age) |
-    |----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+----------|
-    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | 28       |
-    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | 101      |
-    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 101      |
-    | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    | 101      |
-    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+----------+
+    +----------------+--------+-----+----------+
+    | account_number | gender | age | sum(age) |
+    |----------------+--------+-----+----------|
+    | 1              | M      | 32  | 101      |
+    | 6              | M      | 36  | 101      |
+    | 13             | F      | 28  | 28       |
+    | 18             | M      | 33  | 101      |
+    +----------------+--------+-----+----------+
 
 AVG
 ---
@@ -135,16 +135,16 @@ Usage: AVG(expr). Returns the average value of expr.
 
 Example::
 
-    PPL> source=accounts | eventstats avg(age) by gender;
+    os> source=accounts | fields account_number, gender, age | eventstats avg(age) by gender | sort account_number;
     fetched rows / total rows = 4/4
-    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+
-    | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | avg(age)           |
-    |----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------|
-    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | 28.0               |
-    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | 33.666666666666664 |
-    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 33.666666666666664 |
-    | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    | 33.666666666666664 |
-    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+
+    +----------------+--------+-----+--------------------+
+    | account_number | gender | age | avg(age)           |
+    |----------------+--------+-----+--------------------|
+    | 1              | M      | 32  | 33.666666666666664 |
+    | 6              | M      | 36  | 33.666666666666664 |
+    | 13             | F      | 28  | 28.0               |
+    | 18             | M      | 33  | 33.666666666666664 |
+    +----------------+--------+-----+--------------------+
 
 MAX
 ---
@@ -156,16 +156,16 @@ Usage: MAX(expr). Returns the maximum value of expr.
 
 Example::
 
-    PPL> source=accounts | eventstats max(age);
+    os> source=accounts | fields account_number, gender, age | eventstats max(age) | sort account_number;
     fetched rows / total rows = 4/4
-    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+----------+
-    | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | max(age) |
-    |----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+----------|
-    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | 36       |
-    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 36       |
-    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | 36       |
-    | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    | 36       |
-    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+----------+
+    +----------------+--------+-----+----------+
+    | account_number | gender | age | max(age) |
+    |----------------+--------+-----+----------|
+    | 1              | M      | 32  | 36       |
+    | 6              | M      | 36  | 36       |
+    | 13             | F      | 28  | 36       |
+    | 18             | M      | 33  | 36       |
+    +----------------+--------+-----+----------+
 
 MIN
 ---
@@ -177,16 +177,16 @@ Usage: MIN(expr). Returns the minimum value of expr.
 
 Example::
 
-    PPL> source=accounts | eventstats min(age) by gender;
+    os> source=accounts | fields account_number, gender, age | eventstats min(age) by gender | sort account_number;
     fetched rows / total rows = 4/4
-    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+----------+
-    | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | min(age) |
-    |----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+----------|
-    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | 28       |
-    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | 32       |
-    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 32       |
-    | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    | 32       |
-    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+----------+
+    +----------------+--------+-----+----------+
+    | account_number | gender | age | min(age) |
+    |----------------+--------+-----+----------|
+    | 1              | M      | 32  | 32       |
+    | 6              | M      | 36  | 32       |
+    | 13             | F      | 28  | 28       |
+    | 18             | M      | 33  | 32       |
+    +----------------+--------+-----+----------+
 
 
 VAR_SAMP
@@ -199,16 +199,16 @@ Usage: VAR_SAMP(expr). Returns the sample variance of expr.
 
 Example::
 
-    PPL> source=accounts | eventstats var_samp(age);
+    os> source=accounts | fields account_number, gender, age | eventstats var_samp(age) | sort account_number;
     fetched rows / total rows = 4/4
-    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+
-    | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | var_samp(age)      |
-    |----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------|
-    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | 10.916666666666666 |
-    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | 10.916666666666666 |
-    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 10.916666666666666 |
-    | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    | 10.916666666666666 |
-    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+
+    +----------------+--------+-----+--------------------+
+    | account_number | gender | age | var_samp(age)      |
+    |----------------+--------+-----+--------------------|
+    | 1              | M      | 32  | 10.916666666666666 |
+    | 6              | M      | 36  | 10.916666666666666 |
+    | 13             | F      | 28  | 10.916666666666666 |
+    | 18             | M      | 33  | 10.916666666666666 |
+    +----------------+--------+-----+--------------------+
 
 
 VAR_POP
@@ -221,17 +221,16 @@ Usage: VAR_POP(expr). Returns the population standard variance of expr.
 
 Example::
 
-    PPL> source=accounts | eventstats var_pop(age);
+    os> source=accounts | fields account_number, gender, age | eventstats var_pop(age) | sort account_number;
     fetched rows / total rows = 4/4
-    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------+
-    | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | var_pop(age) |
-    |----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------|
-    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | 8.1875       |
-    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | 8.1875       |
-    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 8.1875       |
-    | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    | 8.1875       |
-    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------+
-
+    +----------------+--------+-----+--------------+
+    | account_number | gender | age | var_pop(age) |
+    |----------------+--------+-----+--------------|
+    | 1              | M      | 32  | 8.1875       |
+    | 6              | M      | 36  | 8.1875       |
+    | 13             | F      | 28  | 8.1875       |
+    | 18             | M      | 33  | 8.1875       |
+    +----------------+--------+-----+--------------+
 
 STDDEV_SAMP
 -----------
@@ -243,16 +242,16 @@ Usage: STDDEV_SAMP(expr). Return the sample standard deviation of expr.
 
 Example::
 
-    PPL> source=accounts | eventstats stddev_samp(age);
+    os> source=accounts | fields account_number, gender, age | eventstats stddev_samp(age) | sort account_number;
     fetched rows / total rows = 4/4
-    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+-------------------+
-    | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | stddev_samp(age)  |
-    |----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+-------------------|
-    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | 3.304037933599835 |
-    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | 3.304037933599835 |
-    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 3.304037933599835 |
-    | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    | 3.304037933599835 |
-    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+-------------------+
+    +----------------+--------+-----+-------------------+
+    | account_number | gender | age | stddev_samp(age)  |
+    |----------------+--------+-----+-------------------|
+    | 1              | M      | 32  | 3.304037933599835 |
+    | 6              | M      | 36  | 3.304037933599835 |
+    | 13             | F      | 28  | 3.304037933599835 |
+    | 18             | M      | 33  | 3.304037933599835 |
+    +----------------+--------+-----+-------------------+
 
 
 STDDEV_POP
@@ -265,16 +264,16 @@ Usage: STDDEV_POP(expr). Return the population standard deviation of expr.
 
 Example::
 
-    PPL> source=accounts | eventstats stddev_pop(age);
+    os> source=accounts | fields account_number, gender, age | eventstats stddev_pop(age) | sort account_number;
     fetched rows / total rows = 4/4
-    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+
-    | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | stddev_pop(age)    |
-    |----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------|
-    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | 2.8613807855648994 |
-    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | 2.8613807855648994 |
-    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 2.8613807855648994 |
-    | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    | 2.8613807855648994 |
-    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+
+    +----------------+--------+-----+--------------------+
+    | account_number | gender | age | stddev_pop(age)    |
+    |----------------+--------+-----+--------------------|
+    | 1              | M      | 32  | 2.8613807855648994 |
+    | 6              | M      | 36  | 2.8613807855648994 |
+    | 13             | F      | 28  | 2.8613807855648994 |
+    | 18             | M      | 33  | 2.8613807855648994 |
+    +----------------+--------+-----+--------------------+
 
 
 DISTINCT_COUNT, DC(Since 3.3)
@@ -283,20 +282,118 @@ DISTINCT_COUNT, DC(Since 3.3)
 Description
 >>>>>>>>>>>
 
-Usage: DISTINCT_COUNT(expr), DC(expr). Returns the approximate number of distinct values of expr using HyperLogLog++ algorithm. Both ``DISTINCT_COUNT`` and ``DC`` are equivalent and provide the same functionality.
+Usage: DISTINCT_COUNT(expr), DC(expr). Returns the approximate number of distinct values using the HyperLogLog++ algorithm. Both functions are equivalent.
+
+For details on algorithm accuracy and precision control, see the `OpenSearch Cardinality Aggregation documentation <https://docs.opensearch.org/latest/aggregations/metric/cardinality/#controlling-precision>`_.
+
 
 Example::
 
-    PPL> source=accounts | eventstats dc(state) as distinct_states, distinct_count(state) as dc_states_alt by gender;
+    os> source=accounts | fields account_number, gender, state, age | eventstats dc(state) as distinct_states, distinct_count(state) as dc_states_alt by gender | sort account_number;
     fetched rows / total rows = 4/4
-    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+-----------------+-----------------+
-    | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | distinct_states | dc_states_alt   |
-    |----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+-----------------|-----------------|
-    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | 1               | 1               |
-    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | 3               | 3               |
-    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 3               | 3               |
-    | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    | 3               | 3               |
-    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+-----------------+-----------------+
+    +----------------+--------+-------+-----+-----------------+---------------+
+    | account_number | gender | state | age | distinct_states | dc_states_alt |
+    |----------------+--------+-------+-----+-----------------+---------------|
+    | 1              | M      | IL    | 32  | 3               | 3             |
+    | 6              | M      | TN    | 36  | 3               | 3             |
+    | 13             | F      | VA    | 28  | 1               | 1             |
+    | 18             | M      | MD    | 33  | 3               | 3             |
+    +----------------+--------+-------+-----+-----------------+---------------+
+
+EARLIEST (Since 3.3)
+---------------------
+
+Description
+>>>>>>>>>>>
+
+Usage: EARLIEST(field [, time_field]). Return the earliest value of a field based on timestamp ordering. This function enriches each event with the earliest value found within the specified grouping.
+
+* field: mandatory. The field to return the earliest value for.
+* time_field: optional. The field to use for time-based ordering. Defaults to @timestamp if not specified.
+
+Note: This function requires Calcite to be enabled (see `Configuration`_ section above).
+
+Example::
+
+    os> source=events | fields @timestamp, host, message | eventstats earliest(message) by host | sort @timestamp;
+    fetched rows / total rows = 8/8
+    +---------------------+---------+----------------------+-------------------+
+    | @timestamp          | host    | message              | earliest(message) |
+    |---------------------+---------+----------------------+-------------------|
+    | 2023-01-01 10:00:00 | server1 | Starting up          | Starting up       |
+    | 2023-01-01 10:05:00 | server2 | Initializing         | Initializing      |
+    | 2023-01-01 10:10:00 | server1 | Ready to serve       | Starting up       |
+    | 2023-01-01 10:15:00 | server2 | Ready                | Initializing      |
+    | 2023-01-01 10:20:00 | server1 | Processing requests  | Starting up       |
+    | 2023-01-01 10:25:00 | server2 | Handling connections | Initializing      |
+    | 2023-01-01 10:30:00 | server1 | Shutting down        | Starting up       |
+    | 2023-01-01 10:35:00 | server2 | Maintenance mode     | Initializing      |
+    +---------------------+---------+----------------------+-------------------+
+
+Example with custom time field::
+
+    os> source=events | fields event_time, status, category | eventstats earliest(status, event_time) by category | sort event_time;
+    fetched rows / total rows = 8/8
+    +---------------------+------------+----------+------------------------------+
+    | event_time          | status     | category | earliest(status, event_time) |
+    |---------------------+------------+----------+------------------------------|
+    | 2023-01-01 09:55:00 | pending    | orders   | pending                      |
+    | 2023-01-01 10:00:00 | active     | users    | active                       |
+    | 2023-01-01 10:05:00 | processing | orders   | pending                      |
+    | 2023-01-01 10:10:00 | inactive   | users    | active                       |
+    | 2023-01-01 10:15:00 | completed  | orders   | pending                      |
+    | 2023-01-01 10:20:00 | pending    | users    | active                       |
+    | 2023-01-01 10:25:00 | cancelled  | orders   | pending                      |
+    | 2023-01-01 10:30:00 | inactive   | users    | active                       |
+    +---------------------+------------+----------+------------------------------+
+
+
+LATEST (Since 3.3)
+-------------------
+
+Description
+>>>>>>>>>>>
+
+Usage: LATEST(field [, time_field]). Return the latest value of a field based on timestamp ordering. This function enriches each event with the latest value found within the specified grouping.
+
+* field: mandatory. The field to return the latest value for.
+* time_field: optional. The field to use for time-based ordering. Defaults to @timestamp if not specified.
+
+Note: This function requires Calcite to be enabled (see `Configuration`_ section above).
+
+Example::
+
+    os> source=events | fields @timestamp, host, message | eventstats latest(message) by host | sort @timestamp;
+    fetched rows / total rows = 8/8
+    +---------------------+---------+----------------------+------------------+
+    | @timestamp          | host    | message              | latest(message)  |
+    |---------------------+---------+----------------------+------------------|
+    | 2023-01-01 10:00:00 | server1 | Starting up          | Shutting down    |
+    | 2023-01-01 10:05:00 | server2 | Initializing         | Maintenance mode |
+    | 2023-01-01 10:10:00 | server1 | Ready to serve       | Shutting down    |
+    | 2023-01-01 10:15:00 | server2 | Ready                | Maintenance mode |
+    | 2023-01-01 10:20:00 | server1 | Processing requests  | Shutting down    |
+    | 2023-01-01 10:25:00 | server2 | Handling connections | Maintenance mode |
+    | 2023-01-01 10:30:00 | server1 | Shutting down        | Shutting down    |
+    | 2023-01-01 10:35:00 | server2 | Maintenance mode     | Maintenance mode |
+    +---------------------+---------+----------------------+------------------+
+
+Example with custom time field::
+
+    os> source=events | fields event_time, status message, category | eventstats latest(status, event_time) by category | sort event_time;
+    fetched rows / total rows = 8/8
+    +---------------------+------------+----------------------+----------+----------------------------+
+    | event_time          | status     | message              | category | latest(status, event_time) |
+    |---------------------+------------+----------------------+----------+----------------------------|
+    | 2023-01-01 09:55:00 | pending    | Starting up          | orders   | cancelled                  |
+    | 2023-01-01 10:00:00 | active     | Initializing         | users    | inactive                   |
+    | 2023-01-01 10:05:00 | processing | Ready to serve       | orders   | cancelled                  |
+    | 2023-01-01 10:10:00 | inactive   | Ready                | users    | inactive                   |
+    | 2023-01-01 10:15:00 | completed  | Processing requests  | orders   | cancelled                  |
+    | 2023-01-01 10:20:00 | pending    | Handling connections | users    | inactive                   |
+    | 2023-01-01 10:25:00 | cancelled  | Shutting down        | orders   | cancelled                  |
+    | 2023-01-01 10:30:00 | inactive   | Maintenance mode     | users    | inactive                   |
+    +---------------------+------------+----------------------+----------+----------------------------+
 
 
 Configuration
@@ -345,17 +442,16 @@ The example show calculate the average age, sum age and count of events of all t
 
 PPL query::
 
-    PPL> source=accounts | eventstats avg(age), sum(age), count() by gender;
+    os> source=accounts | fields account_number, gender, age | eventstats avg(age), sum(age), count() by gender | sort account_number;
     fetched rows / total rows = 4/4
-    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+----------+---------+
-    | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | avg(age)           | sum(age) | count() |
-    |----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+----------+---------|
-    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | 28.0               | 28       | 1       |
-    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | 33.666666666666664 | 101      | 3       |
-    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 33.666666666666664 | 101      | 3       |
-    | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    | 33.666666666666664 | 101      | 3       |
-    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+----------+---------+
-
+    +----------------+--------+-----+--------------------+----------+---------+
+    | account_number | gender | age | avg(age)           | sum(age) | count() |
+    |----------------+--------+-----+--------------------+----------+---------|
+    | 1              | M      | 32  | 33.666666666666664 | 101      | 3       |
+    | 6              | M      | 36  | 33.666666666666664 | 101      | 3       |
+    | 13             | F      | 28  | 28.0               | 28       | 1       |
+    | 18             | M      | 33  | 33.666666666666664 | 101      | 3       |
+    +----------------+--------+-----+--------------------+----------+---------+
 
 Example 2: Calculate the count by a gender and span
 ===================================================
@@ -364,14 +460,13 @@ The example gets the count of age by the interval of 10 years and group by gende
 
 PPL query::
 
-    PPL> source=accounts | eventstats count() as cnt by span(age, 5) as age_span, gender
+    os> source=accounts | fields account_number, gender, age | eventstats count() as cnt by span(age, 5) as age_span, gender | sort account_number;
     fetched rows / total rows = 4/4
-    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+-----+
-    | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | cnt |
-    |----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+-----|
-    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | 2   |
-    | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    | 2   |
-    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | 1   |
-    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 1   |
-    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+-----+
-
+    +----------------+--------+-----+-----+
+    | account_number | gender | age | cnt |
+    |----------------+--------+-----+-----|
+    | 1              | M      | 32  | 2   |
+    | 6              | M      | 36  | 1   |
+    | 13             | F      | 28  | 1   |
+    | 18             | M      | 33  | 2   |
+    +----------------+--------+-----+-----+

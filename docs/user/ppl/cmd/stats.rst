@@ -28,16 +28,25 @@ The following table dataSources the aggregation functions and also indicates how
 +----------+-------------+-------------+
 | MIN      | Ignore      | Ignore      |
 +----------+-------------+-------------+
+| FIRST    | Ignore      | Ignore      |
++----------+-------------+-------------+
+| LAST     | Ignore      | Ignore      |
++----------+-------------+-------------+
 | LIST     | Ignore      | Ignore      |
 +----------+-------------+-------------+
 
 
 Syntax
 ============
-stats <aggregation>... [by-clause]
+stats [bucket_nullable=bool] <aggregation>... [by-clause]
 
 
 * aggregation: mandatory. A aggregation function. The argument of aggregation must be field.
+
+* bucket_nullable: optional (since 3.3.0). Controls whether the stats command includes null buckets in group-by aggregations. When set to ``false``, the aggregation ignores records where the group-by field is null, resulting in faster performance by excluding null bucket. The default value of ``bucket_nullable`` is determined by ``plugins.ppl.syntax.legacy.preferred``:
+
+ * When ``plugins.ppl.syntax.legacy.preferred=true``, ``bucket_nullable`` defaults to ``true``
+ * When ``plugins.ppl.syntax.legacy.preferred=false``, ``bucket_nullable`` defaults to ``false``
 
 * by-clause: optional.
 
@@ -51,6 +60,7 @@ stats <aggregation>... [by-clause]
  * Description: The unit of the interval expression is the natural unit by default. If the field is a date and time type field, and the interval is in date/time units, you will need to specify the unit in the interval expression. For example, to split the field ``age`` into buckets by 10 years, it looks like ``span(age, 10)``. And here is another example of time span, the span to split a ``timestamp`` field into hourly intervals, it looks like ``span(timestamp, 1h)``.
 
 * Available time unit:
+
 +----------------------------+
 | Span Interval Units        |
 +============================+
@@ -273,7 +283,7 @@ Example::
     +--------------------+
 
 DISTINCT_COUNT_APPROX
-----------
+---------------------
 
 Description
 >>>>>>>>>>>
@@ -335,6 +345,58 @@ Example::
     | 28                  | F      |
     | 36                  | M      |
     +---------------------+--------+
+
+Percentile Shortcut Functions
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+Version: 3.3.0
+
+For convenience, OpenSearch PPL provides shortcut functions for common percentiles:
+
+- ``PERC<percent>(expr)`` - Equivalent to ``PERCENTILE(expr, <percent>)``
+- ``P<percent>(expr)`` - Equivalent to ``PERCENTILE(expr, <percent>)``
+
+Both integer and decimal percentiles from 0 to 100 are supported (e.g., ``PERC95``, ``P99.5``).
+
+Example::
+
+    ppl> source=accounts | stats perc99.5(age);
+    fetched rows / total rows = 1/1
+    +---------------+
+    | perc99.5(age) |
+    |---------------|
+    | 36            |
+    +---------------+
+
+    ppl> source=accounts | stats p50(age);
+    fetched rows / total rows = 1/1
+    +---------+
+    | p50(age) |
+    |---------|
+    | 32      |
+    +---------+
+
+MEDIAN
+------
+
+Description
+>>>>>>>>>>>
+
+Version: 3.3.0
+
+Usage: MEDIAN(expr). Returns the median (50th percentile) value of `expr`. This is equivalent to ``PERCENTILE(expr, 50)``.
+
+Note: This function requires Calcite to be enabled (see `Configuration`_ section above).
+
+Example::
+
+    os> source=accounts | stats median(age);
+    fetched rows / total rows = 1/1
+    +-------------+
+    | median(age) |
+    |-------------|
+    | 33          |
+    +-------------+
 
 EARLIEST
 --------
@@ -410,13 +472,83 @@ Example with custom time field::
     | inactive                   | users    |
     +----------------------------+----------+
 
+FIRST
+-----
+
+Description
+>>>>>>>>>>>
+
+Version: 3.3.0
+
+Usage: FIRST(field). Return the first non-null value of a field based on natural document order. Returns NULL if no records exist, or if all records have NULL values for the field.
+
+* field: mandatory. The field to return the first value for.
+
+Note: This function requires Calcite to be enabled (see `Configuration`_ section above).
+
+Example::
+
+    os> source=accounts | stats first(firstname) by gender;
+    fetched rows / total rows = 2/2
+    +------------------+--------+
+    | first(firstname) | gender |
+    |------------------+--------|
+    | Nanette          | F      |
+    | Amber            | M      |
+    +------------------+--------+
+
+Example with count aggregation::
+
+    os> source=accounts | stats first(firstname), count() by gender;
+    fetched rows / total rows = 2/2
+    +------------------+---------+--------+
+    | first(firstname) | count() | gender |
+    |------------------+---------+--------|
+    | Nanette          | 1       | F      |
+    | Amber            | 3       | M      |
+    +------------------+---------+--------+
+
+LAST
+----
+
+Description
+>>>>>>>>>>>
+
+Version: 3.3.0
+
+Usage: LAST(field). Return the last non-null value of a field based on natural document order. Returns NULL if no records exist, or if all records have NULL values for the field.
+
+* field: mandatory. The field to return the last value for.
+
+Note: This function requires Calcite to be enabled (see `Configuration`_ section above).
+
+Example::
+
+    os> source=accounts | stats last(firstname) by gender;
+    fetched rows / total rows = 2/2
+    +-----------------+--------+
+    | last(firstname) | gender |
+    |-----------------+--------|
+    | Nanette         | F      |
+    | Dale            | M      |
+    +-----------------+--------+
+
+Example with different fields::
+
+    os> source=accounts | stats first(account_number), last(balance), first(age);
+    fetched rows / total rows = 1/1
+    +-----------------------+---------------+------------+
+    | first(account_number) | last(balance) | first(age) |
+    |-----------------------+---------------+------------|
+    | 1                     | 4180          | 32         |
+    +-----------------------+---------------+------------+
+
 LIST
 ----
 
 Description
 >>>>>>>>>>>
 
-=======
 Version: 3.3.0 (Calcite engine only)
 
 Usage: LIST(expr). Collects all values from the specified expression into an array. Values are converted to strings, nulls are filtered, and duplicates are preserved. 
@@ -669,7 +801,7 @@ PPL query::
     +-----+----------+--------+
 
 Example 14: Collect all values in a field using LIST
-=====================================================
+====================================================
 
 The example shows how to collect all firstname values, preserving duplicates and order.
 
@@ -682,3 +814,22 @@ PPL query::
     |-------------------------------------|
     | ["Amber","Hattie","Nanette","Dale"] |
     +-------------------------------------+
+
+
+Example 15: Ignore null bucket
+==============================
+
+Note: This argument requires version 3.3.0 or above.
+
+PPL query::
+
+    PPL> source=accounts | stats bucket_nullable=false count() as cnt by email;
+    fetched rows / total rows = 3/3
+    +-----+-----------------------+
+    | cnt | email                 |
+    |-----+-----------------------|
+    | 1   | amberduke@pyrami.com  |
+    | 1   | daleadams@boink.com   |
+    | 1   | hattiebond@netagy.com |
+    +-----+-----------------------+
+
