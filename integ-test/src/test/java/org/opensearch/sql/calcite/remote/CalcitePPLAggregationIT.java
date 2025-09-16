@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import org.json.JSONObject;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
@@ -1182,10 +1183,28 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     JSONObject response =
         executeQuery(
             String.format(
-                "source=%s | eval t = unix_timestamp(birthdate) | stats count() by t | sort t |"
-                    + " head 3",
+                "source=%s | eval t = unix_timestamp(birthdate) | stats count() by t | sort -t",
                 TEST_INDEX_BANK));
     verifySchema(response, schema("count()", "bigint"), schema("t", "double"));
-    verifyDataRows(response, rows(1, 1508716800), rows(1, 1511136000), rows(1, 1529712000));
+    verifyDataRows(
+        response,
+        rows(1, 1542152000),
+        rows(1, 1534636800),
+        rows(1, 1533945600),
+        rows(1, 1530057600),
+        rows(1, 1529712000),
+        rows(1, 1511136000),
+        rows(1, 1508716800));
+  }
+
+  @Ignore("Enable after fixing https://github.com/opensearch-project/sql/issues/4296")
+  @Test
+  public void testLimitAfterAggregation() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats count() by age | sort -age | head 3", TEST_INDEX_BANK));
+    verifySchema(response, schema("count()", "bigint"), schema("age", "int"));
+    verifyDataRows(response, rows(1, 39), rows(2, 36), rows(1, 34));
   }
 }
