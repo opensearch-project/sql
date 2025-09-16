@@ -56,10 +56,13 @@
   ],
   "ppl_cli_calcite": [
     "user/ppl/cmd/append.rst",
+    "user/ppl/cmd/eventstats.rst",
     "user/ppl/cmd/fields.rst",
     "user/ppl/cmd/regex.rst",
+    "user/ppl/cmd/rename.rst",
     "user/ppl/cmd/rex.rst",
     "user/ppl/cmd/rename.rst",
+    "user/ppl/cmd/stats.rst",
     "user/ppl/cmd/timechart.rst"
   ]
 }

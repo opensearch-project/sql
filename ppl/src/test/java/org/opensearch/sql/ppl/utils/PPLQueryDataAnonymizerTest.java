@@ -238,6 +238,13 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testEvalCommandWithStrftime() {
+    assertEquals(
+        "source=t | eval formatted=strftime(timestamp,***)",
+        anonymize("source=t | eval formatted=strftime(timestamp, '%Y-%m-%d %H:%M:%S')"));
+  }
+
+  @Test
   public void testFillNullSameValue() {
     assertEquals(
         "source=t | fillnull with *** in f1, f2",
@@ -596,6 +603,36 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=t | rex field=name mode=extract \"(?<first>[A-Z])\" max_match=3",
         anonymize("source=t | rex field=name \"(?<first>[A-Z])\" max_match=3"));
+  }
+
+  @Test
+  public void testRexSedMode() {
+    when(settings.getSettingValue(Key.PPL_REX_MAX_MATCH_LIMIT)).thenReturn(10);
+
+    assertEquals(
+        "source=t | rex field=lastname mode=sed \"s/^[A-Z]/X/\" max_match=1",
+        anonymize("source=t | rex field=lastname mode=sed \"s/^[A-Z]/X/\""));
+    assertEquals(
+        "source=t | rex field=data mode=sed \"s/sensitive/clean/g\" max_match=1 | fields + data",
+        anonymize("source=t | rex field=data mode=sed \"s/sensitive/clean/g\" | fields data"));
+  }
+
+  @Test
+  public void testMvjoin() {
+    // Test mvjoin with array of strings
+    assertEquals(
+        "source=t | eval result=mvjoin(array(***,***,***),***) | fields + result",
+        anonymize("source=t | eval result=mvjoin(array('a', 'b', 'c'), ',') | fields result"));
+  }
+
+  @Test
+  public void testRexWithOffsetField() {
+    when(settings.getSettingValue(Key.PPL_REX_MAX_MATCH_LIMIT)).thenReturn(10);
+
+    assertEquals(
+        "source=t | rex field=message mode=extract \"(?<word>[a-z]+)\" max_match=1"
+            + " offset_field=pos",
+        anonymize("source=t | rex field=message \"(?<word>[a-z]+)\" offset_field=pos"));
   }
 
   private String anonymize(String query) {

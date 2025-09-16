@@ -1298,4 +1298,16 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         SyntaxCheckException.class,
         () -> assertEqual("source=t | stats perc100.1(a)", (Node) null));
   }
+
+  @Test
+  public void testMedianAggFuncExpr() {
+    assertEqual(
+        "source=t | stats median(a)",
+        agg(
+            relation("t"),
+            exprList(alias("median(a)", aggregate("median", field("a")))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+  }
 }

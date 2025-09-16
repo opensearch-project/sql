@@ -20,6 +20,7 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Rule;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
@@ -30,6 +31,7 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.util.RetryProcessor;
+import org.opensearch.sql.utils.YamlFormatter;
 
 /** OpenSearch Rest integration test base for PPL testing. */
 public abstract class PPLIntegTestCase extends SQLIntegTestCase {
@@ -58,6 +60,12 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     return explainQueryToString(query, false);
   }
 
+  protected String explainQueryToYaml(String query) throws IOException {
+    String jsonResponse = explainQueryToString(query);
+    JSONObject jsonObject = jsonify(jsonResponse);
+    return YamlFormatter.formatToYaml(jsonObject);
+  }
+
   protected String explainQueryToString(String query, boolean extended) throws IOException {
     Response response =
         client()
@@ -81,6 +89,22 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
 
   protected String executeCsvQuery(String query) throws IOException {
     return executeCsvQuery(query, true);
+  }
+
+  protected void verifyExplainException(String query, String expectedErrorMessage) {
+    ResponseException e = assertThrows(ResponseException.class, () -> explainQueryToString(query));
+    try {
+      String responseBody = getResponseBody(e.getResponse(), true);
+      JSONObject errorResponse = new JSONObject(responseBody);
+      String actualErrorMessage = errorResponse.getJSONObject("error").getString("details");
+      assertEquals(expectedErrorMessage, actualErrorMessage);
+    } catch (IOException | JSONException ex) {
+      throw new RuntimeException("Failed to parse error response", ex);
+    }
+  }
+
+  protected static String source(String index, String query) {
+    return String.format("source=%s | %s", index, query);
   }
 
   protected void timing(MapBuilder<String, Long> builder, String query, String ppl)
@@ -289,15 +313,24 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     public static boolean enabled = true;
   }
 
-  public boolean isPushdownEnabled() throws IOException {
-    return Boolean.parseBoolean(
-        getClusterSetting(Settings.Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(), "transient"));
+  /**
+   * We check pushdown disabled instead enabled because enabled is the default value of pushdown
+   * config whatever calcite is enabled or not.
+   */
+  public boolean isPushdownDisabled() throws IOException {
+    return isCalciteEnabled()
+        && !Boolean.parseBoolean(
+            getClusterSetting(Settings.Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(), "transient"));
+  }
+
+  protected void enabledOnlyWhenPushdownIsEnabled() throws IOException {
+    Assume.assumeTrue("This test is only for when push down is enabled", !isPushdownDisabled());
   }
 
   public void updatePushdownSettings() throws IOException {
     String pushdownEnabled = String.valueOf(GlobalPushdownConfig.enabled);
     assert !pushdownEnabled.isBlank() : "Pushdown enabled setting cannot be empty";
-    if (isPushdownEnabled() != GlobalPushdownConfig.enabled) {
+    if (isPushdownDisabled() == GlobalPushdownConfig.enabled) {
       LOG.info(
           "Updating {} to {}",
           Settings.Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(),

@@ -56,20 +56,25 @@ import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
 import org.opensearch.search.aggregations.AggregatorFactories;
 import org.opensearch.search.aggregations.AggregatorFactories.Builder;
+import org.opensearch.search.aggregations.BucketOrder;
 import org.opensearch.search.aggregations.bucket.composite.CompositeValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.composite.TermsValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
+import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.ExtendedStats;
 import org.opensearch.search.aggregations.metrics.PercentilesAggregationBuilder;
+import org.opensearch.search.aggregations.metrics.TopHitsAggregationBuilder;
 import org.opensearch.search.aggregations.support.ValueType;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
 import org.opensearch.search.sort.SortOrder;
+import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
 import org.opensearch.sql.opensearch.response.agg.ArgMaxMinParser;
+import org.opensearch.sql.opensearch.response.agg.BucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParser;
 import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
@@ -79,6 +84,7 @@ import org.opensearch.sql.opensearch.response.agg.SingleValueParser;
 import org.opensearch.sql.opensearch.response.agg.StatsParser;
 import org.opensearch.sql.opensearch.response.agg.TopHitsParser;
 import org.opensearch.sql.opensearch.storage.script.aggregation.dsl.BucketAggregationBuilder;
+import org.opensearch.sql.opensearch.storage.script.aggregation.dsl.CompositeAggregationBuilder;
 
 /**
  * Aggregate analyzer. Convert aggregate to AggregationBuilder {@link AggregationBuilder} and its
@@ -176,6 +182,13 @@ public class AggregateAnalyzer {
       throws ExpressionNotAnalyzableException {
     requireNonNull(aggregate, "aggregate");
     try {
+      boolean bucketNullable =
+          Boolean.parseBoolean(
+              aggregate.getHints().stream()
+                  .filter(hits -> hits.hintName.equals("stats_args"))
+                  .map(hint -> hint.kvOptions.getOrDefault(Argument.BUCKET_NULLABLE, "true"))
+                  .findFirst()
+                  .orElseGet(() -> "true"));
       List<Integer> groupList = aggregate.getGroupSet().asList();
       AggregateBuilderHelper helper = new AggregateBuilderHelper(rowType, fieldTypes, cluster);
       List<String> aggFieldNames = outputFields.subList(groupList.size(), outputFields.size());
@@ -189,6 +202,14 @@ public class AggregateAnalyzer {
         return Pair.of(
             ImmutableList.copyOf(metricBuilder.getAggregatorFactories()),
             new NoBucketAggregationParser(metricParserList));
+      } else if (aggregate.getGroupSet().length() == 1 && !bucketNullable) {
+        // one bucket, use values source bucket builder for getting better performance
+        // TODO for multiple buckets, use MultiTermsAggregationBuilder
+        ValuesSourceAggregationBuilder<?> bucketBuilder =
+            createBucketAggregation(groupList.get(0), project, helper);
+        return Pair.of(
+            Collections.singletonList(bucketBuilder.subAggregations(metricBuilder)),
+            new BucketAggregationParser(metricParserList));
       } else {
         List<CompositeValuesSourceBuilder<?>> buckets =
             createCompositeBuckets(groupList, project, helper);
@@ -340,6 +361,23 @@ public class AggregateAnalyzer {
                     .size(helper.inferValue(args.get(1), Integer.class))
                     .from(0),
                 new TopHitsParser(aggFieldName));
+          case FIRST:
+            TopHitsAggregationBuilder firstBuilder =
+                AggregationBuilders.topHits(aggFieldName).size(1).from(0);
+            if (!args.isEmpty()) {
+              firstBuilder.fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null);
+            }
+            return Pair.of(firstBuilder, new TopHitsParser(aggFieldName, true));
+          case LAST:
+            TopHitsAggregationBuilder lastBuilder =
+                AggregationBuilders.topHits(aggFieldName)
+                    .size(1)
+                    .from(0)
+                    .sort("_doc", org.opensearch.search.sort.SortOrder.DESC);
+            if (!args.isEmpty()) {
+              lastBuilder.fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null);
+            }
+            return Pair.of(lastBuilder, new TopHitsParser(aggFieldName, true));
           case PERCENTILE_APPROX:
             PercentilesAggregationBuilder aggBuilder =
                 helper
@@ -360,15 +398,21 @@ public class AggregateAnalyzer {
     }
   }
 
+  private static ValuesSourceAggregationBuilder<?> createBucketAggregation(
+      Integer group, Project project, AggregateAnalyzer.AggregateBuilderHelper helper) {
+    return createBucket(group, project, helper);
+  }
+
   private static List<CompositeValuesSourceBuilder<?>> createCompositeBuckets(
       List<Integer> groupList, Project project, AggregateAnalyzer.AggregateBuilderHelper helper) {
     ImmutableList.Builder<CompositeValuesSourceBuilder<?>> resultBuilder = ImmutableList.builder();
-    groupList.forEach(groupIndex -> resultBuilder.add(createBucket(groupIndex, project, helper)));
+    groupList.forEach(
+        groupIndex -> resultBuilder.add(createCompositeBucket(groupIndex, project, helper)));
     return resultBuilder.build();
   }
 
-  private static CompositeValuesSourceBuilder<?> createBucket(
-      Integer groupIndex, Project project, AggregateAnalyzer.AggregateBuilderHelper helper) {
+  private static ValuesSourceAggregationBuilder<?> createBucket(
+      Integer groupIndex, Project project, AggregateBuilderHelper helper) {
     RexNode rex = project.getProjects().get(groupIndex);
     String bucketName = project.getRowType().getFieldList().get(groupIndex).getName();
     if (rex instanceof RexCall
@@ -379,6 +423,27 @@ public class AggregateAnalyzer {
         && ((RexCall) rex).getOperands().get(1) instanceof RexLiteral
         && ((RexCall) rex).getOperands().get(2) instanceof RexLiteral) {
       return BucketAggregationBuilder.buildHistogram(
+          bucketName,
+          helper.inferNamedField(((RexCall) rex).getOperands().get(0)).getRootName(),
+          ((RexLiteral)((RexCall) rex).getOperands().get(1)).getValueAs(Double.class),
+          SpanUnit.of(((RexLiteral)((RexCall) rex).getOperands().get(2)).getValueAs(String.class)));
+    } else {
+      return createTermsAggregationBuilder(bucketName, rex, helper);
+    }
+  }
+
+  private static CompositeValuesSourceBuilder<?> createCompositeBucket(
+      Integer groupIndex, Project project, AggregateBuilderHelper helper) {
+    RexNode rex = project.getProjects().get(groupIndex);
+    String bucketName = project.getRowType().getFieldList().get(groupIndex).getName();
+    if (rex instanceof RexCall
+        && rex.getKind() == SqlKind.OTHER_FUNCTION
+        && ((RexCall) rex).getOperator().getName().equalsIgnoreCase(BuiltinFunctionName.SPAN.name())
+        && ((RexCall) rex).getOperands().size() == 3
+        && ((RexCall) rex).getOperands().get(0) instanceof RexInputRef
+        && ((RexCall) rex).getOperands().get(1) instanceof RexLiteral
+        && ((RexCall) rex).getOperands().get(2) instanceof RexLiteral) {
+      return CompositeAggregationBuilder.buildHistogram(
           bucketName,
           helper.inferNamedField(((RexCall) rex).getOperands().get(0)).getRootName(),
           ((RexLiteral)((RexCall) rex).getOperands().get(1)).getValueAs(Double.class),
@@ -403,6 +468,23 @@ public class AggregateAnalyzer {
     if (List.of(TIMESTAMP, TIME, DATE)
         .contains(OpenSearchTypeFactory.convertRelDataTypeToExprType(group.getType()))) {
       sourceBuilder.userValuetypeHint(ValueType.LONG);
+    }
+
+    return sourceBuilder;
+  }
+
+  private static ValuesSourceAggregationBuilder<?> createTermsAggregationBuilder(
+      String bucketName, RexNode group, AggregateBuilderHelper helper) {
+    TermsAggregationBuilder sourceBuilder =
+        helper.build(
+            group,
+            new TermsAggregationBuilder(bucketName)
+                .size(AGGREGATION_BUCKET_SIZE)
+                .order(BucketOrder.key(true)));
+    // Time types values are converted to LONG in ExpressionAggregationScript::execute
+    if (List.of(TIMESTAMP, TIME, DATE)
+        .contains(OpenSearchTypeFactory.convertRelDataTypeToExprType(group.getType()))) {
+      sourceBuilder.userValueTypeHint(ValueType.LONG);
     }
 
     return sourceBuilder;

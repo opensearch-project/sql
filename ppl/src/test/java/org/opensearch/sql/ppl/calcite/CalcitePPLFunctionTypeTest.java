@@ -5,6 +5,10 @@
 
 package org.opensearch.sql.ppl.calcite;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Assert;
 import org.junit.Test;
@@ -18,9 +22,9 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testLowerWithIntegerType() {
-    String ppl = "source=EMP | eval lower_name = lower(EMPNO) | fields lower_name";
-    Throwable t = Assert.assertThrows(ExpressionEvaluationException.class, () -> getRelNode(ppl));
-    verifyErrorMessageContains(t, "LOWER function expects {[STRING]}, but got [SHORT]");
+    verifyQueryThrowsException(
+        "source=EMP | eval lower_name = lower(EMPNO) | fields lower_name",
+        "LOWER function expects {[STRING]}, but got [SHORT]");
   }
 
   @Test
@@ -30,26 +34,23 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
     String timePpl =
         "source=EMP | eval time_diff = timediff(time('13:00:00'), time('12:00:06')) | fields"
             + " time_diff";
-    String wrongPpl = "source=EMP | eval time_diff = timediff(12, '2009-12-10') | fields time_diff";
     getRelNode(strPpl);
     getRelNode(timePpl);
-    Throwable t = Assert.assertThrows(Exception.class, () -> getRelNode(wrongPpl));
-    verifyErrorMessageContains(
-        t, "TIMEDIFF function expects {[TIME,TIME]}, but got [INTEGER,STRING]");
+    verifyQueryThrowsException(
+        "source=EMP | eval time_diff = timediff(12, '2009-12-10') | fields time_diff",
+        "TIMEDIFF function expects {[TIME,TIME]}, but got [INTEGER,STRING]");
   }
 
   @Test
   public void testComparisonWithDifferentType() {
     getRelNode("source=EMP | where EMPNO > 6 | fields ENAME");
     getRelNode("source=EMP | where ENAME <= 'Jack' | fields ENAME");
-    String ppl = "source=EMP | where ENAME < 6 | fields ENAME";
-    Throwable t = Assert.assertThrows(ExpressionEvaluationException.class, () -> getRelNode(ppl));
-    verifyErrorMessageContains(
-        t,
+    verifyQueryThrowsException(
+        "source=EMP | where ENAME < 6 | fields ENAME",
         // Temporary fix for the error message as LESS function has two variants. Will remove
         // [IP,IP] when merging the two variants.
-        "LESS function expects {[IP,IP],[COMPARABLE_TYPE,COMPARABLE_TYPE]},"
-            + " but got [STRING,INTEGER]");
+        "LESS function expects {[IP,IP],[COMPARABLE_TYPE,COMPARABLE_TYPE]}, but got"
+            + " [STRING,INTEGER]");
   }
 
   @Test
@@ -70,11 +71,9 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
   public void testSubstringWithWrongType() {
     getRelNode("source=EMP | eval sub_name = substring(ENAME, 1, 3) | fields sub_name");
     getRelNode("source=EMP | eval sub_name = substring(ENAME, 1) | fields sub_name");
-    String ppl = "source=EMP | eval sub_name = substring(ENAME, 1, '3') | fields sub_name";
-    Throwable t = Assert.assertThrows(ExpressionEvaluationException.class, () -> getRelNode(ppl));
-    verifyErrorMessageContains(
-        t,
-        "SUBSTRING function expects {[STRING,INTEGER],[STRING,INTEGER,INTEGER]}, but got"
+    verifyQueryThrowsException(
+        "source=EMP | eval sub_name = substring(ENAME, 1, '3') | fields sub_name",
+        "SUBSTRING function expects {[STRING,INTEGER]|[STRING,INTEGER,INTEGER]}, but got"
             + " [STRING,INTEGER,STRING]");
   }
 
@@ -82,230 +81,220 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
   public void testIfWithWrongType() {
     getRelNode("source=EMP | eval if_name = if(EMPNO > 6, 'Jack', ENAME) | fields if_name");
     getRelNode("source=EMP | eval if_name = if(EMPNO > 6, EMPNO, DEPTNO) | fields if_name");
-    String pplWrongCondition = "source=EMP | eval if_name = if(EMPNO, 1, DEPTNO) | fields if_name";
-    Throwable t1 =
-        Assert.assertThrows(
-            ExpressionEvaluationException.class, () -> getRelNode(pplWrongCondition));
-    verifyErrorMessageContains(
-        t1, "IF function expects {[BOOLEAN,ANY,ANY]}, but got [SHORT,INTEGER,BYTE]");
-    String pplIncompatibleType =
-        "source=EMP | eval if_name = if(EMPNO > 6, 'Jack', 1) | fields if_name";
-    Throwable t2 =
-        Assert.assertThrows(
-            ExpressionEvaluationException.class, () -> getRelNode(pplIncompatibleType));
-    verifyErrorMessageContains(
-        t2,
+    verifyQueryThrowsException(
+        "source=EMP | eval if_name = if(EMPNO, 1, DEPTNO) | fields if_name",
+        "IF function expects {[BOOLEAN,ANY,ANY]}, but got [SHORT,INTEGER,BYTE]");
+    verifyQueryThrowsException(
+        "source=EMP | eval if_name = if(EMPNO > 6, 'Jack', 1) | fields if_name",
         "Cannot resolve function: IF, arguments: [BOOLEAN,STRING,INTEGER], caused by: Can't find"
             + " leastRestrictive type for [VARCHAR, INTEGER]");
   }
 
   @Test
   public void testTimestampWithWrongArg() {
-    String ppl =
+    verifyQueryThrowsException(
         "source=EMP | eval timestamp = timestamp('2020-08-26 13:49:00', 2009) | fields timestamp |"
-            + " head 1";
-    Throwable t = Assert.assertThrows(ExpressionEvaluationException.class, () -> getRelNode(ppl));
-    verifyErrorMessageContains(
-        t,
-        "TIMESTAMP function expects {"
-            + "[STRING],[TIMESTAMP],[DATE],[TIME],[STRING,STRING],[TIMESTAMP,TIMESTAMP],[TIMESTAMP,DATE],"
-            + "[TIMESTAMP,TIME],[DATE,TIMESTAMP],[DATE,DATE],[DATE,TIME],[TIME,TIMESTAMP],[TIME,DATE],"
-            + "[TIME,TIME],[STRING,TIMESTAMP],[STRING,DATE],[STRING,TIME],[TIMESTAMP,STRING],[DATE,STRING],[TIME,STRING]},"
+            + " head 1",
+        "TIMESTAMP function expects"
+            + " {[STRING]|[TIMESTAMP]|[DATE]|[TIME]|[STRING,STRING]|[TIMESTAMP,TIMESTAMP]|[TIMESTAMP,DATE]|[TIMESTAMP,TIME]|[DATE,TIMESTAMP]|[DATE,DATE]|[DATE,TIME]|[TIME,TIMESTAMP]|[TIME,DATE]|[TIME,TIME]|[STRING,TIMESTAMP]|[STRING,DATE]|[STRING,TIME]|[TIMESTAMP,STRING]|[DATE,STRING]|[TIME,STRING]},"
             + " but got [STRING,INTEGER]");
   }
 
   @Test
   public void testCurDateWithArg() {
-    Throwable t =
-        Assert.assertThrows(
-            ExpressionEvaluationException.class,
-            () -> getRelNode("source=EMP | eval curdate = CURDATE(1) | fields curdate | head 1"));
-    verifyErrorMessageContains(t, "CURDATE function expects {[]}, but got [INTEGER]");
+    verifyQueryThrowsException(
+        "source=EMP | eval curdate = CURDATE(1) | fields curdate | head 1",
+        "CURDATE function expects {[]}, but got [INTEGER]");
   }
 
   // Test directly registered UDF: register(funcname, FuncImp)
   @Test
   public void testLtrimWrongArg() {
-    Exception e =
-        Assert.assertThrows(
-            ExpressionEvaluationException.class,
-            () -> getRelNode("source=EMP | where ltrim(EMPNO, DEPTNO) = 'Jim' | fields name, age"));
-    verifyErrorMessageContains(e, "LTRIM function expects {[STRING]}, but got [SHORT,BYTE]");
+    verifyQueryThrowsException(
+        "source=EMP | where ltrim(EMPNO, DEPTNO) = 'Jim' | fields name, age",
+        "LTRIM function expects {[STRING]}, but got [SHORT,BYTE]");
   }
 
   // Test udf registered via sql library operator: registerOperator(REVERSE,
   // SqlLibraryOperators.REVERSE);
   @Test
   public void testReverseWrongArgShouldThrow() {
-    Exception e =
-        Assert.assertThrows(
-            ExpressionEvaluationException.class,
-            () -> getRelNode("source=EMP | where reverse(EMPNO) = '3202' | fields year"));
-    verifyErrorMessageContains(e, "REVERSE function expects {[STRING]}, but got [SHORT]");
+    verifyQueryThrowsException(
+        "source=EMP | where reverse(EMPNO) = '3202' | fields year",
+        "REVERSE function expects {[STRING]}, but got [SHORT]");
   }
 
   // test type checking on UDF with direct registration: register(funcname, FuncImp)
   @Test
   public void testStrCmpWrongArgShouldThrow() {
-    Exception e =
-        Assert.assertThrows(
-            ExpressionEvaluationException.class,
-            () -> getRelNode("source=EMP | where strcmp(10, 'Jane') = 0 | fields name, age"));
-    verifyErrorMessageContains(
-        e, "STRCMP function expects {[STRING,STRING]}, but got [INTEGER,STRING]");
+    verifyQueryThrowsException(
+        "source=EMP | where strcmp(10, 'Jane') = 0 | fields name, age",
+        "STRCMP function expects {[STRING,STRING]}, but got [INTEGER,STRING]");
   }
 
   // Test registered Sql Std Operator: registerOperator(funcName, SqlStdOperatorTable.OPERATOR)
   @Test
   public void testLowerWrongArgShouldThrow() {
-    Exception e =
-        Assert.assertThrows(
-            ExpressionEvaluationException.class,
-            () -> getRelNode("source=EMP | where lower(EMPNO) = 'hello' | fields name, age"));
-    verifyErrorMessageContains(e, "LOWER function expects {[STRING]}, but got [SHORT]");
+    verifyQueryThrowsException(
+        "source=EMP | where lower(EMPNO) = 'hello' | fields name, age",
+        "LOWER function expects {[STRING]}, but got [SHORT]");
   }
 
   @Test
   public void testSha2WrongArgShouldThrow() {
-    Throwable e =
-        Assert.assertThrows(
-            ExpressionEvaluationException.class,
-            () ->
-                getRelNode(
-                    "source=EMP | head 1 | eval sha256 = SHA2('hello', '256') | fields sha256"));
-    verifyErrorMessageContains(
-        e, "SHA2 function expects {[STRING,INTEGER]}, but got [STRING,STRING]");
+    verifyQueryThrowsException(
+        "source=EMP | head 1 | eval sha256 = SHA2('hello', '256') | fields sha256",
+        "SHA2 function expects {[STRING,INTEGER]}, but got [STRING,STRING]");
   }
 
   // Test type checking on udf with direct registration: register(SQRT, funcImp)
   @Test
   public void testSqrtWithWrongArg() {
-    Exception nanException =
-        Assert.assertThrows(
-            ExpressionEvaluationException.class,
-            () ->
-                getRelNode(
-                    "source=EMP | head 1 | eval sqrt_name = sqrt(ENAME) | fields sqrt_name"));
-    verifyErrorMessageContains(
-        nanException, "SQRT function expects {[INTEGER],[DOUBLE]}, but got [STRING]");
+    verifyQueryThrowsException(
+        "source=EMP | head 1 | eval sqrt_name = sqrt(ENAME) | fields sqrt_name",
+        "SQRT function expects {[INTEGER]|[DOUBLE]}, but got [STRING]");
   }
 
   // Test UDF registered with PPL builtin operators: registerOperator(MOD, PPLBuiltinOperators.MOD);
   @Test
   public void testModWithWrongArg() {
-    Exception wrongArgException =
-        Assert.assertThrows(
-            ExpressionEvaluationException.class,
-            () -> getRelNode("source=EMP | eval z = mod(0.5, 1, 2) | fields z"));
-    verifyErrorMessageContains(
-        wrongArgException,
+    verifyQueryThrowsException(
+        "source=EMP | eval z = mod(0.5, 1, 2) | fields z",
         "MOD function expects"
-            + " {[INTEGER,INTEGER],[INTEGER,DOUBLE],[DOUBLE,INTEGER],[DOUBLE,DOUBLE]}, but got"
+            + " {[INTEGER,INTEGER]|[INTEGER,DOUBLE]|[DOUBLE,INTEGER]|[DOUBLE,DOUBLE]}, but got"
             + " [DOUBLE,INTEGER,INTEGER]");
   }
 
   // Test UDF registered with sql std operators: registerOperator(PI, SqlStdOperatorTable.PI)
   @Test
   public void testPiWithArg() {
-    Exception wrongArgException =
-        Assert.assertThrows(
-            ExpressionEvaluationException.class,
-            () -> getRelNode("source=EMP | eval pi = pi(1) | fields pi"));
-    verifyErrorMessageContains(wrongArgException, "PI function expects {[]}, but got [INTEGER]");
+    verifyQueryThrowsException(
+        "source=EMP | eval pi = pi(1) | fields pi", "PI function expects {[]}, but got [INTEGER]");
   }
 
   // Test UDF registered with sql library operators: registerOperator(LOG2,
   // SqlLibraryOperators.LOG2)
   @Test
   public void testLog2WithWrongArgShouldThrow() {
-    Exception wrongArgException =
-        Assert.assertThrows(
-            ExpressionEvaluationException.class,
-            () -> getRelNode("source=EMP | eval log2 = log2(ENAME, JOB) | fields log2"));
-    verifyErrorMessageContains(
-        wrongArgException, "LOG2 function expects {[INTEGER],[DOUBLE]}, but got [STRING,STRING]");
+    verifyQueryThrowsException(
+        "source=EMP | eval log2 = log2(ENAME, JOB) | fields log2",
+        "LOG2 function expects {[INTEGER]|[DOUBLE]}, but got [STRING,STRING]");
   }
 
   @Test
-  public void testAvgWithWrongArgType() {
+  public void testStrftimeWithCorrectTypes() {
+    // Test with integer timestamp and string format
+    getRelNode("source=EMP | eval formatted = strftime(1521467703, '%Y-%m-%d') | fields formatted");
+    // Test with double timestamp and string format
+    getRelNode(
+        "source=EMP | eval formatted = strftime(1521467703.0, '%Y-%m-%d %H:%M:%S') | fields"
+            + " formatted");
+    // Test with expression that returns numeric type
+    getRelNode(
+        "source=EMP | eval formatted = strftime(EMPNO * 1000000, '%F %T') | fields formatted");
+    // Test with timestamp from now()
+    getRelNode("source=EMP | eval formatted = strftime(now(), '%Y-%m-%d') | fields formatted");
+    // Test with timestamp from from_unixtime()
+    getRelNode(
+        "source=EMP | eval formatted = strftime(from_unixtime(1521467703), '%Y-%m-%d') | fields"
+            + " formatted");
+  }
+
+  @Test
+  public void testStrftimeWithWrongFirstArgType() {
+    // First argument should be numeric/timestamp, not boolean
+    String ppl = "source=EMP | eval formatted = strftime(EMPNO > 5, '%Y-%m-%d') | fields formatted";
+    Throwable t = Assert.assertThrows(ExpressionEvaluationException.class, () -> getRelNode(ppl));
+    verifyErrorMessageContains(
+        t,
+        "STRFTIME function expects {[INTEGER,STRING]|[DOUBLE,STRING]|[TIMESTAMP,STRING]}, but got"
+            + " [BOOLEAN,STRING]");
+  }
+
+  @Test
+  public void testStrftimeAcceptsDateInput() {
+    // DATE values are automatically converted to TIMESTAMP by Calcite
+    // This test verifies that DATE inputs work via auto-conversion
+    String ppl =
+        "source=EMP | eval formatted = strftime(date('2020-09-16'), '%Y-%m-%d') | fields formatted";
+    RelNode relNode = getRelNode(ppl);
+    assertNotNull(relNode);
+    // The plan should show TIMESTAMP(DATE(...)) indicating auto-conversion
+    String planString = relNode.explain();
+    assertTrue(planString.contains("STRFTIME") && planString.contains("TIMESTAMP"));
+  }
+
+  @Test
+  public void testStrftimeWithDateReturningFunctions() {
+    // Test strftime with various functions that return DATE/TIMESTAMP types
+
+    // Test with NOW() function
+    String ppl1 =
+        "source=EMP | eval formatted = strftime(now(), '%Y-%m-%d %H:%M:%S') | fields formatted";
+    RelNode relNode1 = getRelNode(ppl1);
+    assertNotNull(relNode1);
+
+    // Test with TIMESTAMP function
+    String ppl2 =
+        "source=EMP | eval formatted = strftime(timestamp('2020-09-16 10:30:45'), '%Y-%m-%d"
+            + " %H:%M:%S') | fields formatted";
+    RelNode relNode2 = getRelNode(ppl2);
+    assertNotNull(relNode2);
+
+    // Test with FROM_UNIXTIME (returns TIMESTAMP)
+    String ppl3 =
+        "source=EMP | eval formatted = strftime(from_unixtime(1521467703), '%Y-%m-%d %H:%M:%S') |"
+            + " fields formatted";
+    RelNode relNode3 = getRelNode(ppl3);
+    assertNotNull(relNode3);
+
+    // Test with chained date functions
+    String ppl4 =
+        "source=EMP | eval ts = timestamp('2020-09-16 10:30:45') | eval formatted = strftime(ts,"
+            + " '%F %T') | fields formatted";
+    RelNode relNode4 = getRelNode(ppl4);
+    assertNotNull(relNode4);
+  }
+
+  @Test
+  public void testStrftimeWithWrongSecondArgType() {
+    // Second argument should be string, not numeric
+    String ppl = "source=EMP | eval formatted = strftime(1521467703, 123) | fields formatted";
+    Throwable t = Assert.assertThrows(ExpressionEvaluationException.class, () -> getRelNode(ppl));
+    verifyErrorMessageContains(
+        t,
+        "STRFTIME function expects {[INTEGER,STRING]|[DOUBLE,STRING]|[TIMESTAMP,STRING]}, but got"
+            + " [INTEGER,INTEGER]");
+  }
+
+  @Test
+  public void testStrftimeWithWrongNumberOfArgs() {
+    // strftime requires exactly 2 arguments
+    String ppl1 = "source=EMP | eval formatted = strftime(1521467703) | fields formatted";
+    Throwable t1 = Assert.assertThrows(ExpressionEvaluationException.class, () -> getRelNode(ppl1));
+    verifyErrorMessageContains(
+        t1,
+        "STRFTIME function expects {[INTEGER,STRING]|[DOUBLE,STRING]|[TIMESTAMP,STRING]}, but got"
+            + " [INTEGER]");
+
+    String ppl2 =
+        "source=EMP | eval formatted = strftime(1521467703, '%Y', 'extra') | fields formatted";
+    Throwable t2 = Assert.assertThrows(ExpressionEvaluationException.class, () -> getRelNode(ppl2));
+    verifyErrorMessageContains(
+        t2,
+        "STRFTIME function expects {[INTEGER,STRING]|[DOUBLE,STRING]|[TIMESTAMP,STRING]}, but got"
+            + " [INTEGER,STRING,STRING]");
+  }
+
+  // mvjoin should reject non-string single values
+  @Test
+  public void testMvjoinRejectsNonStringValues() {
     Exception e =
         Assert.assertThrows(
             ExpressionEvaluationException.class,
-            () -> getRelNode("source=EMP | stats avg(ENAME) as avg_name"));
+            () ->
+                getRelNode("source=EMP | eval result = mvjoin(42, ',') | fields result | head 1"));
     verifyErrorMessageContains(
-        e, "Aggregation function AVG expects field type {[INTEGER],[DOUBLE]}, but got [STRING]");
-  }
-
-  @Test
-  public void testVarsampWithWrongArgType() {
-    Exception e =
-        Assert.assertThrows(
-            ExpressionEvaluationException.class,
-            () -> getRelNode("source=EMP | stats var_samp(ENAME) as varsamp_name"));
-    verifyErrorMessageContains(
-        e,
-        "Aggregation function VARSAMP expects field type {[INTEGER],[DOUBLE]}, but got [STRING]");
-  }
-
-  @Test
-  public void testVarpopWithWrongArgType() {
-    Exception e =
-        Assert.assertThrows(
-            ExpressionEvaluationException.class,
-            () -> getRelNode("source=EMP | stats var_pop(ENAME) as varpop_name"));
-    verifyErrorMessageContains(
-        e, "Aggregation function VARPOP expects field type {[INTEGER],[DOUBLE]}, but got [STRING]");
-  }
-
-  @Test
-  public void testStddevSampWithWrongArgType() {
-    Exception e =
-        Assert.assertThrows(
-            ExpressionEvaluationException.class,
-            () -> getRelNode("source=EMP | stats stddev_samp(ENAME) as stddev_name"));
-    verifyErrorMessageContains(
-        e,
-        "Aggregation function STDDEV_SAMP expects field type {[INTEGER],[DOUBLE]}, but got"
-            + " [STRING]");
-  }
-
-  @Test
-  public void testStddevPopWithWrongArgType() {
-    Exception e =
-        Assert.assertThrows(
-            ExpressionEvaluationException.class,
-            () -> getRelNode("source=EMP | stats stddev_pop(ENAME) as stddev_name"));
-    verifyErrorMessageContains(
-        e,
-        "Aggregation function STDDEV_POP expects field type {[INTEGER],[DOUBLE]}, but got"
-            + " [STRING]");
-  }
-
-  @Test
-  public void testPercentileApproxWithWrongArgType() {
-    // First argument should be numeric
-    Exception e1 =
-        Assert.assertThrows(
-            ExpressionEvaluationException.class,
-            () -> getRelNode("source=EMP | stats percentile_approx(ENAME, 50) as percentile"));
-    verifyErrorMessageContains(
-        e1,
-        "Aggregation function PERCENTILE_APPROX expects field type and additional arguments"
-            + " {[INTEGER,INTEGER],[INTEGER,DOUBLE],[DOUBLE,INTEGER],[DOUBLE,DOUBLE],[INTEGER,INTEGER,INTEGER],[INTEGER,INTEGER,DOUBLE],[INTEGER,DOUBLE,INTEGER],[INTEGER,DOUBLE,DOUBLE],[DOUBLE,INTEGER,INTEGER],[DOUBLE,INTEGER,DOUBLE],[DOUBLE,DOUBLE,INTEGER],[DOUBLE,DOUBLE,DOUBLE]},"
-            + " but got [STRING,INTEGER]");
-  }
-
-  @Test
-  public void testListFunctionWithArrayArgType() {
-    // Test LIST function with array expression (which is not a supported scalar type)
-    Exception e =
-        Assert.assertThrows(
-            ExpressionEvaluationException.class,
-            () -> getRelNode("source=EMP | stats list(array(ENAME, JOB)) as name_list"));
-    verifyErrorMessageContains(
-        e,
-        "Aggregation function LIST expects field type"
-            + " {[BYTE],[SHORT],[INTEGER],[LONG],[FLOAT],[DOUBLE],[STRING],[BOOLEAN],[DATE],[TIME],[TIMESTAMP],[IP],[BINARY]},"
-            + " but got [ARRAY]");
+        e, "MVJOIN function expects {[ARRAY,STRING]}, but got [INTEGER,STRING]");
   }
 }

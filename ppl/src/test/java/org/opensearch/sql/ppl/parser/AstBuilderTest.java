@@ -55,6 +55,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.tuple.Pair;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -95,6 +96,11 @@ public class AstBuilderTest {
 
     assertEquals(
         "Dynamic source clause with metadata filters is not supported.", exception.getMessage());
+  }
+
+  @Before
+  public void setup() {
+    when(settings.getSettingValue(Key.PPL_SYNTAX_LEGACY_PREFERRED)).thenReturn(true);
   }
 
   @Test
@@ -1043,5 +1049,11 @@ public class AstBuilderTest {
   public void testBinCommandDuplicateParameter() {
     // Test that duplicate parameters throw an exception
     plan("search source=test | bin index_field span=10 span=20");
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testRexSedModeWithOffsetFieldThrowsException() {
+    // Test that SED mode and offset_field cannot be used together (align with Splunk behavior)
+    plan("source=test | rex field=email mode=sed offset_field=matchpos \"s/@.*/@company.com/\"");
   }
 }
