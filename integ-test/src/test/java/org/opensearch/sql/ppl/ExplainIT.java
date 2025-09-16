@@ -644,8 +644,9 @@ public class ExplainIT extends PPLIntegTestCase {
   public void testSearchCommandWithRelativeTimeRange() throws IOException {
     String expected = loadExpectedPlan("explain_search_with_relative_time_range.json");
     assertJsonEqualsIgnoreId(
-            expected,
-            explainQueryToString(String.format("source=%s earliest='-1q@year' latest=now", TEST_INDEX_TIME_DATA)));
+        expected,
+        explainQueryToString(
+            String.format("source=%s earliest='-1q@year' latest=now", TEST_INDEX_TIME_DATA)));
   }
 
   protected String loadExpectedPlan(String fileName) throws IOException {

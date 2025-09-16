@@ -923,11 +923,11 @@ public class SearchCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testSearchWithEarliest() throws IOException {
+  public void testSearchWithAbsoluteEarliestAndNow() throws IOException {
     JSONObject result1 =
         executeQuery(
             String.format(
-                "search source=%s earliest='2025-08-01 03:47:41' | fields @timestamp",
+                "search source=%s earliest='2025-08-01 03:47:41' latest=now | fields @timestamp",
                 TEST_INDEX_TIME_DATA));
     verifySchema(result1, schema("@timestamp", "timestamp"));
     verifyDataRows(result1, rows("2025-08-01 03:47:41"));
@@ -935,7 +935,7 @@ public class SearchCommandIT extends PPLIntegTestCase {
     JSONObject result0 =
         executeQuery(
             String.format(
-                "search source=%s earliest='2025-08-01 03:47:42' | fields @timestamp",
+                "search source=%s earliest='2025-08-01 03:47:42' latest=now() | fields @timestamp",
                 TEST_INDEX_TIME_DATA));
     verifyNumOfRows(result0, 0);
 
@@ -945,5 +945,17 @@ public class SearchCommandIT extends PPLIntegTestCase {
                 "search source=%s earliest='2025-08-01 02:00:55' | fields @timestamp",
                 TEST_INDEX_TIME_DATA));
     verifyDataRows(result2, rows("2025-08-01 02:00:56"), rows("2025-08-01 03:47:41"));
+  }
+
+  @Test
+  public void testSearchWithChainedRelativeTimeRange() throws IOException {
+    JSONObject result1 =
+        executeQuery(
+            String.format(
+                "search source=%s earliest='2025-08-01 03:47:41' latest='+10months@year' | fields"
+                    + " @timestamp",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(result1, schema("@timestamp", "timestamp"));
+    verifyDataRows(result1, rows("2025-08-01 03:47:41"));
   }
 }
