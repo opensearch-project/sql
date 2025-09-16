@@ -25,7 +25,9 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
@@ -56,6 +58,7 @@ import org.opensearch.sql.expression.function.jsonUDF.JsonExtractFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonKeysFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonSetFunctionImpl;
+import org.opensearch.sql.expression.function.mapUDF.InternalPivotAggregateFunction;
 import org.opensearch.sql.expression.function.udf.CryptographicFunction;
 import org.opensearch.sql.expression.function.udf.GrokFunction;
 import org.opensearch.sql.expression.function.udf.RelevanceQueryFunction;
@@ -457,6 +460,12 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlAggFunction LIST =
       createUserDefinedAggFunction(
           ListAggFunction.class, "LIST", PPLReturnTypes.STRING_ARRAY, PPLOperandTypes.ANY_SCALAR);
+  public static final SqlAggFunction INTERNAL_PIVOT =
+      createUserDefinedAggFunction(
+          InternalPivotAggregateFunction.class,
+          "INTERNAL_PIVOT",
+          PPLReturnTypes.MAP_STRING_ANY_FORCE_NULLABLE,
+          UDFOperandMetadata.wrap(OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.CHARACTER)));
 
   public static final SqlOperator ENHANCED_COALESCE =
       new EnhancedCoalesceFunction().toUDF("COALESCE");

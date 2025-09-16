@@ -82,6 +82,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNA
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_ITEM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PATTERN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PATTERN_PARSER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PIVOT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_EXTRACT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_3;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_5;
@@ -1126,6 +1127,7 @@ public class PPLFuncImpTable {
       registerOperator(TAKE, PPLBuiltinOperators.TAKE);
       registerOperator(INTERNAL_PATTERN, PPLBuiltinOperators.INTERNAL_PATTERN);
       registerOperator(LIST, PPLBuiltinOperators.LIST);
+      registerOperator(INTERNAL_PIVOT, PPLBuiltinOperators.INTERNAL_PIVOT);
 
       register(
           AVG,

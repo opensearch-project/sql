@@ -331,7 +331,8 @@ public enum BuiltinFunctionName {
   INTERNAL_REGEXP_REPLACE_3(FunctionName.of("regexp_replace_3"), true),
   INTERNAL_REGEXP_REPLACE_PG_4(FunctionName.of("regexp_replace_pg_4"), true),
   INTERNAL_REGEXP_REPLACE_5(FunctionName.of("regexp_replace_5"), true),
-  INTERNAL_TRANSLATE3(FunctionName.of("translate3"), true);
+  INTERNAL_TRANSLATE3(FunctionName.of("translate3"), true),
+  INTERNAL_PIVOT(FunctionName.of("internal_pivot"), true);
 
   private final FunctionName name;
   private boolean isInternal;
