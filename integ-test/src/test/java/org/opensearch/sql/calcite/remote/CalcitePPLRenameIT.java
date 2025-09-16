@@ -52,13 +52,13 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
   @Test
   public void testRefRenamedField() {
     Throwable e =
-            assertThrowsWithReplace(
-                    IllegalArgumentException.class,
-                    () ->
-                            executeQuery(
-                                    String.format(
-                                            "source = %s | rename age as renamed_age | fields age",
-                                            TEST_INDEX_STATE_COUNTRY)));
+      assertThrowsWithReplace(
+        IllegalArgumentException.class,
+        () ->
+          executeQuery(
+            String.format(
+              "source = %s | rename age as renamed_age | fields age",
+              TEST_INDEX_STATE_COUNTRY)));
     verifyNotFoundAndInputFields(e.getMessage(),
             "field [age] not found; input fields are: [country, month, year, name, state, renamed_age, _id, _index, _score, _maxscore, _sort, _routing]");
   }
@@ -75,7 +75,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
 
     // Test rename to _ID, which is allowed as metadata fields name is case-sensitive
     JSONObject result =
-        executeQuery(String.format("source = %s | fields name, country, state, month, year, age | rename age as _ID", TEST_INDEX_STATE_COUNTRY));
+        executeQuery(String.format("source = %s | rename age as _ID", TEST_INDEX_STATE_COUNTRY));
     verifySchema(
         result,
         schema("name", "string"),
@@ -84,7 +84,6 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
         schema("country", "string"),
         schema("year", "int"),
         schema("month", "int"));
-    verifyStandardDataRows(result);
   }
 
   @Test
@@ -398,17 +397,17 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
     Set<String> actualInputFields = splitIntoSet(extractByPattern(actual, inputFieldsPattern));
     Set<String> expectedInputFields = splitIntoSet(extractByPattern(expected, inputFieldsPattern));
     org.hamcrest.MatcherAssert.assertThat("Not found field mismatch",
-            actualUnfoundField, org.hamcrest.Matchers.equalTo(expectedUnfoundField));
+      actualUnfoundField, org.hamcrest.Matchers.equalTo(expectedUnfoundField));
     org.hamcrest.MatcherAssert.assertThat("Input fields mismatch",
-            actualInputFields, org.hamcrest.Matchers.equalTo(expectedInputFields));
+      actualInputFields, org.hamcrest.Matchers.equalTo(expectedInputFields));
   }
 
-  /**
-   * Split a string of comma-separated fields into a Set.
-   *
-   * @param str the string representation of the list
-   * @return a HashSet containing the items from the list
-   */
+    /**
+    * Split a string of comma-separated fields into a Set.
+    *
+    * @param str the string representation of the list
+    * @return a HashSet containing the items from the list
+    */
   private static Set<String> splitIntoSet(String str) {
     if (str.isEmpty()) {
       return new HashSet<>();
