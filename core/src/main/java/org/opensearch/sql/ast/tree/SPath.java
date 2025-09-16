@@ -63,7 +63,13 @@ public class SPath extends UnresolvedPlan {
         this.child,
         AstDSL.let(
             AstDSL.field("_dynamic_columns"),
-            AstDSL.function("json_extract_all", AstDSL.field(inField))));
+            AstDSL.function(
+                "coalesce",
+                AstDSL.function(
+                    "map_merge",
+                    AstDSL.field("_dynamic_columns"),
+                    AstDSL.function("json_extract_all", AstDSL.field(inField))),
+                AstDSL.function("json_extract_all", AstDSL.field(inField)))));
   }
 
   private Eval rewriteAsSpecificPath() {

@@ -75,20 +75,40 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
       }
 
       Map<String, Object> resultMap = new HashMap<>();
-      Iterator<Map.Entry<String, JsonNode>> fields = jsonNode.fields();
-
-      while (fields.hasNext()) {
-        Map.Entry<String, JsonNode> field = fields.next();
-        String key = field.getKey();
-        JsonNode value = field.getValue();
-
-        Object extractedValue = extractJsonValue(value);
-        resultMap.put(key, extractedValue);
-      }
-
+      extractJsonValueRecursively(jsonNode, "", resultMap);
       return resultMap;
     } catch (JsonProcessingException e) {
       return null;
+    }
+  }
+
+  /**
+   * Recursively extracts all attributes from a JSON node, creating path-based field names for
+   * nested attributes.
+   *
+   * @param node The JSON node to extract from
+   * @param pathPrefix The current path prefix (empty for root level)
+   * @param resultMap The map to store extracted key-value pairs
+   */
+  private static void extractJsonValueRecursively(
+      JsonNode node, String pathPrefix, Map<String, Object> resultMap) {
+    if (node.isObject()) {
+      Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
+      while (fields.hasNext()) {
+        Map.Entry<String, JsonNode> field = fields.next();
+        String fieldName = field.getKey();
+        String fullPath = pathPrefix.isEmpty() ? fieldName : pathPrefix + "." + fieldName;
+        JsonNode value = field.getValue();
+
+        if (value.isObject()) {
+          // Recursively extract nested object
+          extractJsonValueRecursively(value, fullPath, resultMap);
+        } else {
+          // Extract primitive value or array
+          Object extractedValue = extractJsonValue(value);
+          resultMap.put(fullPath, extractedValue);
+        }
+      }
     }
   }
 
@@ -105,10 +125,39 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
       return node.doubleValue();
     } else if (node.isTextual()) {
       return node.textValue();
-    } else if (node.isArray() || node.isObject()) {
+    } else if (node.isArray()) {
+      // Extract array as array (not flattened)
+      return extractArrayValue(node);
+    } else if (node.isObject()) {
+      // For objects that are values (not recursively extracted), return as JSON string
       return node.toString();
     } else {
       return node.asText();
     }
+  }
+
+  /**
+   * Extracts array values, preserving the array structure.
+   *
+   * @param arrayNode The JSON array node
+   * @return List containing the array elements
+   */
+  private static Object extractArrayValue(JsonNode arrayNode) {
+    java.util.List<Object> arrayList = new java.util.ArrayList<>();
+    for (JsonNode element : arrayNode) {
+      if (element.isObject()) {
+        // For objects in arrays, convert to Map instead of JSON string
+        Map<String, Object> objectMap = new HashMap<>();
+        Iterator<Map.Entry<String, JsonNode>> fields = element.fields();
+        while (fields.hasNext()) {
+          Map.Entry<String, JsonNode> field = fields.next();
+          objectMap.put(field.getKey(), extractJsonValue(field.getValue()));
+        }
+        arrayList.add(objectMap);
+      } else {
+        arrayList.add(extractJsonValue(element));
+      }
+    }
+    return arrayList;
   }
 }

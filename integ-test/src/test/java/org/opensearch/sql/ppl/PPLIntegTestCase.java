@@ -31,7 +31,7 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.util.RetryProcessor;
-import org.opensearch.sql.utils.YamlFormatter;
+import org.opensearch.sql.utils.JsonToYamlConverter;
 
 /** OpenSearch Rest integration test base for PPL testing. */
 public abstract class PPLIntegTestCase extends SQLIntegTestCase {
@@ -39,6 +39,7 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
       "/_plugins/_ppl/_explain?format=extended";
   private static final Logger LOG = LogManager.getLogger();
   @Rule public final RetryProcessor retryProcessor = new RetryProcessor();
+  private static final boolean DEBUG_EXPLAIN = true;
 
   @Override
   protected void init() throws Exception {
@@ -47,13 +48,45 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   }
 
   protected JSONObject executeQuery(String query) throws IOException {
-    return jsonify(executeQueryToString(query));
+    return jsonify(executeQueryToString(debugExplain(query)));
+  }
+
+  protected String debugExplain(String ppl) throws IOException {
+    if (DEBUG_EXPLAIN) {
+      try {
+        System.out.println("=== QUERY ===");
+        System.out.println(ppl);
+        System.out.println("=== EXPLAIN OUTPUT ===");
+        System.out.println(explainQueryToYaml(ppl));
+      } catch (Exception e) {
+        System.out.println("Failed to convert explain output to YAML format.");
+        // won't raise error
+      } finally {
+        System.out.println("=== END EXPLAIN OUTPUT ===");
+      }
+    }
+    return ppl;
   }
 
   protected String executeQueryToString(String query) throws IOException {
     Response response = client().performRequest(buildRequest(query, QUERY_API_ENDPOINT));
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-    return getResponseBody(response, true);
+    return debugResponse(getResponseBody(response, true));
+  }
+
+  protected String debugResponse(String response) {
+    if (DEBUG_EXPLAIN) {
+      try {
+        System.out.println("=== QUERY RESPONSE ===");
+        System.out.println(JsonToYamlConverter.convertJsonToYaml(response));
+      } catch (Exception e) {
+        System.out.println("Failed to convert response to YAML format. raw response:" + response);
+        // won't raise error
+      } finally {
+        System.out.println("=== END QUERY RESPONSE ===");
+      }
+    }
+    return response;
   }
 
   protected String explainQueryToString(String query) throws IOException {
@@ -62,8 +95,8 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
 
   protected String explainQueryToYaml(String query) throws IOException {
     String jsonResponse = explainQueryToString(query);
-    JSONObject jsonObject = jsonify(jsonResponse);
-    return YamlFormatter.formatToYaml(jsonObject);
+    // Use JsonToYamlConverter to properly convert JSON string to YAML
+    return JsonToYamlConverter.convertJsonToYaml(jsonResponse);
   }
 
   protected String explainQueryToString(String query, boolean extended) throws IOException {
