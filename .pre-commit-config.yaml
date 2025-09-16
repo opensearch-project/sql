@@ -1,0 +1,8 @@
+repos:
+  - repo: local
+    hooks:
+      - id: spotless-check
+        name: Spotless Check
+        entry: bash -c 'files=$(echo "$@" | tr " " ","); ./gradlew spotlessCheck -PspotlessFiles="$files"' --
+        language: system
+        pass_filenames: true
