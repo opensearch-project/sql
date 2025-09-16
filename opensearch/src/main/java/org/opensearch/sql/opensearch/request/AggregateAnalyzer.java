@@ -304,7 +304,7 @@ public class AggregateAnalyzer {
         String fieldName = helper.inferNamedField(args.getFirst()).getRootName();
         ExprType fieldType = helper.fieldTypes.get(fieldName);
 
-        if (isNativeMaxMinSupportedType(fieldType)) {
+        if (supportsMaxMinAggregation(fieldType)) {
           yield Pair.of(
               helper.build(args.getFirst(), AggregationBuilders.min(aggFieldName)),
               new SingleValueParser(aggFieldName));
@@ -324,7 +324,7 @@ public class AggregateAnalyzer {
         String fieldName = helper.inferNamedField(args.getFirst()).getRootName();
         ExprType fieldType = helper.fieldTypes.get(fieldName);
 
-        if (isNativeMaxMinSupportedType(fieldType)) {
+        if (supportsMaxMinAggregation(fieldType)) {
           yield Pair.of(
               helper.build(args.getFirst(), AggregationBuilders.max(aggFieldName)),
               new SingleValueParser(aggFieldName));
@@ -425,7 +425,7 @@ public class AggregateAnalyzer {
         || fieldType == ExprCoreType.IP;
   }
 
-  private static boolean isNativeMaxMinSupportedType(ExprType fieldType) {
+  private static boolean supportsMaxMinAggregation(ExprType fieldType) {
     return ExprCoreType.numberTypes().contains(fieldType)
         || fieldType == ExprCoreType.DATE
         || fieldType == ExprCoreType.TIME
