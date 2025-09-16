@@ -26,6 +26,7 @@ import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.calcite.CalcitePPLAbstractTest;
@@ -142,6 +143,47 @@ public class SPathRewriteTest extends CalcitePPLAbstractTest {
     CalcitePlanContext ctx = createTestFieldContext(new String[] {"data.inner_extended"});
     SPath sp = (SPath) plan("source = t | spath input=data output=output inner.field");
     Eval ev = (Eval) plan("source = t | eval output=json_extract(data, \"inner.field\")");
+    assertEquals(ev, sp.rewriteAsEval(ctx));
+  }
+
+  @Test
+  public void testEmptyPathMatch() {
+    CalcitePlanContext ctx = createTestFieldContext(new String[] {""});
+    SPath sp = (SPath) plan("source = t | spath input=data output=output field");
+    Eval ev = (Eval) plan("source = t | eval output=json_extract(data, \"field\")");
+    assertEquals(ev, sp.rewriteAsEval(ctx));
+  }
+
+  @Test
+  public void testSamePathLengthDifferentContent() {
+    CalcitePlanContext ctx = createTestFieldContext(new String[] {"data.test", "data.best"});
+    SPath sp = (SPath) plan("source = t | spath input=data output=output test.field");
+    Eval ev = (Eval) plan("source = t | eval output=json_extract(data.test, \"field\")");
+    assertEquals(ev, sp.rewriteAsEval(ctx));
+  }
+
+  @Test(expected = SyntaxCheckException.class)
+  public void testMultipleDotsInPath() {
+    CalcitePlanContext ctx = createTestFieldContext(new String[] {"data.nested..field"});
+    SPath sp = (SPath) plan("source = t | spath input=data output=output nested..field.value");
+    Eval ev = (Eval) plan("source = t | eval output=json_extract(data.nested..field, \"value\")");
+    assertEquals(ev, sp.rewriteAsEval(ctx));
+  }
+
+  @Test
+  public void testCaseSensitivePathMatch() {
+    CalcitePlanContext ctx = createTestFieldContext(new String[] {"Data.Nested", "data.nested"});
+    SPath sp = (SPath) plan("source = t | spath input=data output=output nested.field");
+    Eval ev = (Eval) plan("source = t | eval output=json_extract(data.nested, \"field\")");
+    assertEquals(ev, sp.rewriteAsEval(ctx));
+  }
+
+  @Test
+  public void testOverlappingFieldNames() {
+    CalcitePlanContext ctx =
+        createTestFieldContext(new String[] {"data.nested", "data.nested_extended"});
+    SPath sp = (SPath) plan("source = t | spath input=data output=output nested.field");
+    Eval ev = (Eval) plan("source = t | eval output=json_extract(data.nested, \"field\")");
     assertEquals(ev, sp.rewriteAsEval(ctx));
   }
 }

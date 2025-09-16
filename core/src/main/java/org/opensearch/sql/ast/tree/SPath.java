@@ -55,6 +55,27 @@ public class SPath extends UnresolvedPlan {
   }
 
   /**
+   * Determine whether a provided match string is better than the current best match available, for path matching.
+   *
+   * @param maybeMatch A field name that we're testing for path matching
+   * @param currentRecordMatch Our best field match so far. Should at least be as good as `this.inField`
+   * @return The better match between the two provided options
+   */
+  private String preferredPathMatch(String maybeMatch, String currentRecordMatch) {
+      String path = this.fullPath();
+      // If the provided match isn't even a match, skip it
+      if (!path.startsWith(maybeMatch) || maybeMatch.length() <= currentRecordMatch.length()) {
+          return currentRecordMatch;
+      }
+      // Ensure the match is on a proper segment boundary (either dot-delimited, or exactly matches the path)
+      if (path.length() == maybeMatch.length() || path.charAt(maybeMatch.length()) == '.') {
+          return maybeMatch;
+      }
+      // We had a match, but it wasn't better than our current record
+      return currentRecordMatch;
+  }
+
+  /**
    * We want input=outer, path=inner.data to match records like `{ "outer": { "inner": "{\"data\":
    * 0}" }}`. To rewrite this as eval, that means we need to detect the longest prefix match in the
    * fields (`outer.inner`) and parse `data` out of it. We need to match on segments, so
@@ -65,17 +86,10 @@ public class SPath extends UnresolvedPlan {
   private String computePathField(RelBuilder builder) {
     RelDataType rowType = builder.peek().getRowType();
     List<String> rowFieldNames = rowType.getFieldNames();
-
     String result = this.inField;
-    String matchField = this.fullPath() + DOT; // Trailing '.' simplifies checking for segments
 
     for (String name : rowFieldNames) {
-      if (!matchField.startsWith(name)) {
-        continue;
-      }
-      if (name.length() > result.length() && matchField.charAt(name.length()) == '.') {
-        result = name;
-      }
+      result = this.preferredPathMatch(name, result);
     }
 
     return result;
