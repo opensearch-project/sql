@@ -144,6 +144,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTH_O
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLYFUNCTION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTI_MATCH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVJOIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOTEQUAL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOW;
@@ -187,6 +188,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.SQRT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.STDDEV_POP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.STDDEV_SAMP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.STRCMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.STRFTIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.STR_TO_DATE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBDATE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBSTR;
@@ -754,6 +756,7 @@ public class PPLFuncImpTable {
       registerOperator(YEARWEEK, PPLBuiltinOperators.YEARWEEK);
       registerOperator(WEEKDAY, PPLBuiltinOperators.WEEKDAY);
       registerOperator(UNIX_TIMESTAMP, PPLBuiltinOperators.UNIX_TIMESTAMP);
+      registerOperator(STRFTIME, PPLBuiltinOperators.STRFTIME);
       registerOperator(TO_SECONDS, PPLBuiltinOperators.TO_SECONDS);
       registerOperator(TO_DAYS, PPLBuiltinOperators.TO_DAYS);
       registerOperator(ADDTIME, PPLBuiltinOperators.ADDTIME);
@@ -816,6 +819,15 @@ public class PPLFuncImpTable {
       registerOperator(WEEKOFYEAR, PPLBuiltinOperators.WEEK);
 
       registerOperator(INTERNAL_PATTERN_PARSER, PPLBuiltinOperators.PATTERN_PARSER);
+
+      // Register MVJOIN to use Calcite's ARRAY_JOIN
+      register(
+          MVJOIN,
+          (FunctionImp2)
+              (builder, array, delimiter) ->
+                  builder.makeCall(SqlLibraryOperators.ARRAY_JOIN, array, delimiter),
+          PPLTypeChecker.family(SqlTypeFamily.ARRAY, SqlTypeFamily.CHARACTER));
+
       registerOperator(ARRAY, PPLBuiltinOperators.ARRAY);
       registerOperator(ARRAY_LENGTH, SqlLibraryOperators.ARRAY_LENGTH);
       registerOperator(FORALL, PPLBuiltinOperators.FORALL);
