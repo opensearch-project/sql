@@ -456,7 +456,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
           ValuesAggFunction.class,
           "VALUES",
           PPLReturnTypes.STRING_ARRAY,
-          PPLOperandTypes.ANY_SCALAR);
+          PPLOperandTypes.ANY_SCALAR_OPTIONAL_INTEGER);
 
   public static final SqlOperator ENHANCED_COALESCE =
       new EnhancedCoalesceFunction().toUDF("COALESCE");

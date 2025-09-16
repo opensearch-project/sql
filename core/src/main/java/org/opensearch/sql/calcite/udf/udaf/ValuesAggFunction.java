@@ -47,23 +47,53 @@ public class ValuesAggFunction
 
     Object value = values[0];
 
+    // Get limit from second argument (passed from PPLFuncImpTable)
+    int limit = 0; // Default to unlimited
+    if (values.length > 1 && values[1] != null) {
+      limit = (Integer) values[1];
+    }
+
     // Filter out null values and check limit
-    int limit = getMaxValuesLimit();
     if (value != null && (limit == 0 || acc.size() < limit)) {
-      // Convert value to string, handling all types safely
-      String stringValue = convertToString(value);
+      // Skip non-scalar types (arrays, collections, maps)
+      if (isNonScalarType(value)) {
+        return acc; // Silently ignore non-scalar values
+      }
+
+      // Convert value to string
+      String stringValue = String.valueOf(value);
       acc.add(stringValue, limit);
     }
 
     return acc;
   }
 
-  /** Converts any value to its string representation. */
-  private String convertToString(Object value) {
+  /**
+   * Check if the value is a non-scalar type that should be skipped. This includes arrays,
+   * collections, maps, and other complex types.
+   */
+  private boolean isNonScalarType(Object value) {
     if (value == null) {
-      return null;
+      return false;
     }
-    return String.valueOf(value);
+
+    // Check for array types
+    if (value.getClass().isArray()) {
+      return true;
+    }
+
+    // Check for collection types (List, Set, etc.)
+    if (value instanceof java.util.Collection) {
+      return true;
+    }
+
+    // Check for map types
+    if (value instanceof java.util.Map) {
+      return true;
+    }
+
+    // All other types are considered scalar and can be converted to string
+    return false;
   }
 
   public static class ValuesAccumulator implements Accumulator {
@@ -87,14 +117,5 @@ public class ValuesAggFunction
     public int size() {
       return values.size();
     }
-  }
-
-  /**
-   * Get the maximum limit for values from settings.
-   *
-   * @return Maximum limit (0 means unlimited)
-   */
-  private int getMaxValuesLimit() {
-    return SettingsHolder.getValuesMaxLimit();
   }
 }

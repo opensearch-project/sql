@@ -10,6 +10,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.*;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -246,6 +247,29 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
       String functionName, List<OpenSearchPPLParser.FunctionArgContext> args) {
     List<UnresolvedExpression> unresolvedArgs =
         args.stream().map(this::visitFunctionArg).collect(Collectors.toList());
+
+    // Special handling for VALUES function to add limit from settings
+    if ("values".equalsIgnoreCase(functionName)) {
+      int limit = 0; // Default to unlimited
+      if (astBuilder.getSettings() != null) {
+        Integer settingValue =
+            astBuilder
+                .getSettings()
+                .getSettingValue(
+                    org.opensearch.sql.common.setting.Settings.Key.PPL_VALUES_MAX_LIMIT);
+        if (settingValue != null) {
+          limit = settingValue;
+        }
+      }
+
+      // Add limit as an UnresolvedArgument to the argument list
+      List<UnresolvedExpression> argsWithLimit =
+          new ArrayList<>(unresolvedArgs.subList(1, unresolvedArgs.size()));
+      argsWithLimit.add(new UnresolvedArgument("limit", AstDSL.intLiteral(limit)));
+
+      return new AggregateFunction(functionName, unresolvedArgs.get(0), argsWithLimit);
+    }
+
     return new AggregateFunction(
         functionName, unresolvedArgs.get(0), unresolvedArgs.subList(1, unresolvedArgs.size()));
   }
