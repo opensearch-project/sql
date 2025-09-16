@@ -35,7 +35,7 @@ import java.util.stream.Collectors
 
 plugins {
     id "de.undercouch.download" version "5.3.0"
-    id 'com.diffplug.spotless' version '6.22.0'
+    id 'com.diffplug.spotless'
 }
 
 apply plugin: 'opensearch.build'

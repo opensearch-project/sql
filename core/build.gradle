@@ -28,7 +28,7 @@ plugins {
     id 'jacoco'
     id 'info.solidsoft.pitest' version '1.9.0'
     id 'java-test-fixtures'
-    id 'com.diffplug.spotless' version '6.22.0'
+    id 'com.diffplug.spotless'
 
 }
 
