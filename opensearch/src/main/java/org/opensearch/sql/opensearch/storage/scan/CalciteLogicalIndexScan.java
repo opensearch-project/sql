@@ -44,6 +44,8 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.planner.physical.EnumerableIndexScanRule;
 import org.opensearch.sql.opensearch.planner.physical.OpenSearchIndexRules;
+import org.opensearch.sql.opensearch.planner.physical.RexPermuteIdentShuttle.Ident;
+import org.opensearch.sql.opensearch.planner.physical.RexPermuteIdentShuttle.IdentTargetMapping;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.QueryExpression;
@@ -202,11 +204,12 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
    * When pushing down a project, we need to create a new CalciteLogicalIndexScan with the updated
    * schema since we cannot override getRowType() which is defined to be final.
    */
-  public CalciteLogicalIndexScan pushDownProject(List<Integer> selectedColumns) {
+  public CalciteLogicalIndexScan pushDownProject(
+      List<Ident> selectedColumns, IdentTargetMapping mapping) {
     final RelDataTypeFactory.Builder builder = getCluster().getTypeFactory().builder();
     final List<RelDataTypeField> fieldList = this.getRowType().getFieldList();
-    for (int project : selectedColumns) {
-      builder.add(fieldList.get(project));
+    for (Ident project : selectedColumns) {
+      builder.add(project.constructFieldDataType(fieldList));
     }
     RelDataType newSchema = builder.build();
 
@@ -214,7 +217,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     // E.g. When sorting age
     // `Project(age) - TableScan(schema=[name, age], collation=[$1 ASC])` should become
     // `TableScan(schema=[age], collation=[$0 ASC])` after pushing down project.
-    RelTraitSet traitSetWithReIndexedCollations = reIndexCollations(selectedColumns);
+    RelTraitSet traitSetWithReIndexedCollations = reIndexCollations(mapping);
 
     CalciteLogicalIndexScan newScan =
         new CalciteLogicalIndexScan(
@@ -241,16 +244,19 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     return newScan;
   }
 
-  private RelTraitSet reIndexCollations(List<Integer> selectedColumns) {
+  private RelTraitSet reIndexCollations(IdentTargetMapping mapping) {
     RelTraitSet newTraitSet;
     RelCollation relCollation = getTraitSet().getCollation();
     if (!Objects.isNull(relCollation) && !relCollation.getFieldCollations().isEmpty()) {
       List<RelFieldCollation> newCollations =
           relCollation.getFieldCollations().stream()
-              .filter(collation -> selectedColumns.contains(collation.getFieldIndex()))
               .map(
-                  collation ->
-                      collation.withFieldIndex(selectedColumns.indexOf(collation.getFieldIndex())))
+                  collation -> {
+                    int targetIndex =
+                        mapping.getTargetByIdent(new Ident(null, collation.getFieldIndex(), null));
+                    return targetIndex != -1 ? collation.withFieldIndex(targetIndex) : null;
+                  })
+              .filter(Objects::nonNull)
               .collect(Collectors.toList());
       newTraitSet = getTraitSet().plus(RelCollations.of(newCollations));
     } else {

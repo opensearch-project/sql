@@ -293,7 +293,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
               String entryKey = entry.getKey();
               var nextPrefix =
                   prefix.isEmpty() ? entryKey : String.format("%s.%s", prefix, entryKey);
-              result.put(nextPrefix, entry.getValue().cloneEmpty());
+              result.put(nextPrefix, entry.getValue());
               var nextSubtree = entry.getValue().getProperties();
               if (!nextSubtree.isEmpty()) {
                 accept(nextSubtree, nextPrefix);

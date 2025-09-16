@@ -244,9 +244,45 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     return context.rexBuilder.equals(left, right);
   }
 
+  static final int namespace_max_length = 1;
+
   /** Resolve qualified name. Note, the name should be case-sensitive. */
   @Override
   public RexNode visitQualifiedName(QualifiedName node, CalcitePlanContext context) {
+    for (int i = 0; i <= namespace_max_length; ++i) {
+      RexNode result = visitQualifiedNameInner(node, context, i);
+      if (result != null) {
+        return result;
+      }
+    }
+    throw new IllegalArgumentException(
+        String.format(
+            "Cannot resolve field [%s]; input fields are: %s",
+            node, context.relBuilder.peek().getRowType().getFieldNames()));
+  }
+
+  private RexNode visitQualifiedNameInner(
+      QualifiedName node, CalcitePlanContext context, int namespaceLen) {
+    int rootIdentSize = namespaceLen + 1;
+    QualifiedName rootFieldName =
+        QualifiedName.of(node.getParts().stream().limit(rootIdentSize).toList());
+    RexNode rootField = visitRootQualifiedName(rootFieldName, context);
+    if (rootField == null) {
+      // If the root field is not found, return null
+      return null;
+    }
+    return node.getParts().size() > rootIdentSize
+        ?
+        // Provide alias for RexFieldAccess, otherwise it will be auto-generated name
+        context.relBuilder.alias(
+            node.getParts().stream()
+                .skip(rootIdentSize)
+                .reduce(rootField, context.relBuilder::dot, (rex1, rex2) -> rex1),
+            node.toString())
+        : rootField;
+  }
+
+  private RexNode visitRootQualifiedName(QualifiedName node, CalcitePlanContext context) {
     // 1. resolve QualifiedName in join condition
     if (context.isResolvingJoinCondition()) {
       List<String> parts = node.getParts();
@@ -275,14 +311,13 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
               // field("nation2", "n_name"); // do nothing when fail (n_name is field of nation1)
             }
           }
-          throw new UnsupportedOperationException("Unsupported qualified name: " + node);
+          return null;
         }
       } else if (parts.size() == 3) {
-        throw new UnsupportedOperationException("Unsupported qualified name: " + node);
+        return null;
       }
     }
 
-    // TODO: Need to support nested fields https://github.com/opensearch-project/sql/issues/3459
     // 2. resolve QualifiedName in non-join condition
     String qualifiedName = node.toString();
     if (context.getRexLambdaRefMap().containsKey(qualifiedName)) {
@@ -338,11 +373,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
           .peekCorrelVar()
           .map(correlVar -> context.relBuilder.field(correlVar, qualifiedName))
           .orElseGet(() -> context.relBuilder.field(qualifiedName));
-    } else {
-      throw new IllegalArgumentException(
-          String.format(
-              "field [%s] not found; input fields are: %s", qualifiedName, currentFields));
     }
+    return null;
   }
 
   @Override

@@ -231,11 +231,10 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       // Loop through each column
       for (int i = 1; i <= columnCount; i++) {
         String columnName = metaData.getColumnName(i);
-        int sqlType = metaData.getColumnType(i);
         RelDataType fieldType = fieldTypes.get(i - 1);
         ExprValue exprValue =
-            JdbcOpenSearchDataTypeConvertor.getExprValueFromSqlType(
-                resultSet, i, sqlType, fieldType, columnName);
+            JdbcOpenSearchDataTypeConvertor.getExprValueFromRelDataType(
+                getObject(resultSet, i, columnName, fieldType.getSqlTypeName()), fieldType);
         row.put(columnName, exprValue);
       }
       values.add(ExprTupleValue.fromExprValueMap(row));
@@ -264,6 +263,13 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     Schema schema = new Schema(columns);
     QueryResponse response = new QueryResponse(schema, values, null);
     listener.onResponse(response);
+  }
+
+  private static Object getObject(ResultSet rs, int i, String columnName, SqlTypeName type)
+      throws SQLException {
+    // For GEOMETRY, use getObject by name instead of index to avoid Avatica's transformation on
+    // the accessor. Otherwise, Avatica will transform Geometry to String.
+    return type == SqlTypeName.GEOMETRY ? rs.getObject(columnName) : rs.getObject(i);
   }
 
   /** Registers opensearch-dependent functions */

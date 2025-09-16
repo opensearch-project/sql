@@ -996,16 +996,18 @@ class OpenSearchExprValueFactoryTest {
 
   @Test
   public void testPopulateValueRecursive() {
-    ExprTupleValue tupleValue = ExprTupleValue.empty();
+    ExprTupleValue tupleValue = ExprTupleValue.empty(null);
+    OpenSearchExprValueFactory factory = new OpenSearchExprValueFactory(null, true);
 
-    OpenSearchExprValueFactory.populateValueRecursive(
-        tupleValue, new JsonPath("log.json.time"), ExprValueUtils.integerValue(100));
+    factory.populateValueRecursive(
+        "", tupleValue, new JsonPath("log.json.time"), ExprValueUtils.integerValue(100));
     ExprValue expectedValue =
         ExprValueUtils.tupleValue(
             Map.of("log", Map.of("json", new LinkedHashMap<>(Map.of("time", 100)))));
     assertEquals(expectedValue, tupleValue);
 
-    OpenSearchExprValueFactory.populateValueRecursive(
+    factory.populateValueRecursive(
+        "",
         tupleValue,
         new JsonPath("log.json"),
         ExprValueUtils.tupleValue(new LinkedHashMap<>(Map.of("status", "SUCCESS"))));
@@ -1024,8 +1026,8 @@ class OpenSearchExprValueFactoryTest {
     assertEquals(expectedValue, tupleValue);
 
     // update the conflict value with the latest
-    OpenSearchExprValueFactory.populateValueRecursive(
-        tupleValue, new JsonPath("log.json.status"), ExprValueUtils.stringValue("FAILED"));
+    factory.populateValueRecursive(
+        "", tupleValue, new JsonPath("log.json.status"), ExprValueUtils.stringValue("FAILED"));
     expectedValue =
         ExprValueUtils.tupleValue(
             Map.of(
