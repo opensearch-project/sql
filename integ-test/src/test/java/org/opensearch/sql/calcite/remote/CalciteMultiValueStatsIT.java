@@ -351,7 +351,14 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
     verifySchema(response, schema("num_values", "array"), schema("str0", null, "string"));
 
     // Group by str0 field - should have different groups with their respective unique num0 values
-    assert response.has("datarows");
+    // First 5 rows have:
+    // - FURNITURE: num0 values are 12.3, -12.3
+    // - OFFICE SUPPLIES: num0 values are 15.7, -15.7, 3.5
+    // VALUES returns unique values sorted lexicographically as strings
+    verifyDataRows(
+        response,
+        rows(List.of("-12.3", "12.3"), "FURNITURE"),
+        rows(List.of("-15.7", "15.7", "3.5"), "OFFICE SUPPLIES"));
   }
 
   @Test
