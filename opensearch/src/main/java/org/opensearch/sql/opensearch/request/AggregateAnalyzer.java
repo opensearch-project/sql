@@ -77,7 +77,6 @@ import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpress
 import org.opensearch.sql.opensearch.response.agg.ArgMaxMinParser;
 import org.opensearch.sql.opensearch.response.agg.BucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
-import org.opensearch.sql.opensearch.response.agg.MaxMinParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParser;
 import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
@@ -314,7 +313,7 @@ public class AggregateAnalyzer {
                   .sort(
                       helper.inferNamedField(args.getFirst()).getReferenceForTermQuery(),
                       SortOrder.ASC),
-              new MaxMinParser(aggFieldName));
+              new TopHitsParser(aggFieldName, true));
         } else {
           yield Pair.of(
               helper.build(args.getFirst(), AggregationBuilders.min(aggFieldName)),
@@ -334,7 +333,7 @@ public class AggregateAnalyzer {
                   .sort(
                       helper.inferNamedField(args.getFirst()).getReferenceForTermQuery(),
                       SortOrder.DESC),
-              new MaxMinParser(aggFieldName));
+              new TopHitsParser(aggFieldName, true));
         } else {
           yield Pair.of(
               helper.build(args.getFirst(), AggregationBuilders.max(aggFieldName)),
