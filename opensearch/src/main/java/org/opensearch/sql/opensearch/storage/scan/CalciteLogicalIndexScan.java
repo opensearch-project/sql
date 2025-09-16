@@ -290,7 +290,11 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
                           OpenSearchDataType.of(
                               OpenSearchTypeFactory.convertRelDataTypeToExprType(
                                   field.getType()))));
-      AggPushDownAction action = new AggPushDownAction(aggregationBuilder, extendedTypeMapping);
+      AggPushDownAction action =
+          new AggPushDownAction(
+              aggregationBuilder,
+              extendedTypeMapping,
+              outputFields.subList(0, aggregate.getGroupSet().length()));
       newScan.pushDownContext.add(PushDownAction.of(PushDownType.AGGREGATION, aggregate, action));
       return newScan;
     } catch (Exception e) {
