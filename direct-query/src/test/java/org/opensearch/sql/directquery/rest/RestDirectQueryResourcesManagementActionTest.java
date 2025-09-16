@@ -23,6 +23,7 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.MockSettings;
 import org.mockito.Mockito;
 import org.opensearch.OpenSearchException;
+import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
@@ -32,6 +33,8 @@ import org.opensearch.sql.datasource.client.exceptions.DataSourceClientException
 import org.opensearch.sql.directquery.rest.model.DirectQueryResourceType;
 import org.opensearch.sql.directquery.transport.model.GetDirectQueryResourcesActionRequest;
 import org.opensearch.sql.directquery.transport.model.GetDirectQueryResourcesActionResponse;
+import org.opensearch.sql.directquery.transport.model.WriteDirectQueryResourcesActionRequest;
+import org.opensearch.sql.directquery.transport.model.WriteDirectQueryResourcesActionResponse;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.node.NodeClient;
@@ -430,6 +433,144 @@ public class RestDirectQueryResourcesManagementActionTest {
     Assertions.assertEquals(
         "Data source client error",
         actualResponseJson.getAsJsonObject("error").get("details").getAsString());
+  }
+
+  @Test
+  @SneakyThrows
+  public void testPostMethodForWriteResources() {
+    setDataSourcesEnabled(true);
+    String requestBody = "{\"matchers\":[{\"name\":\"alertname\",\"value\":\"TestAlert\"}],\"comment\":\"Test silence\"}";
+
+    Mockito.when(request.method()).thenReturn(RestRequest.Method.POST);
+    Mockito.when(request.path())
+        .thenReturn("/_plugins/_directquery/_resources/testDataSource/alertmanager/api/v2/silences");
+    Map<String, String> requestParams =
+        Map.of(
+            "dataSource", "testDataSource",
+            "resourceType", "silences");
+    Mockito.when(request.param(Mockito.anyString()))
+        .thenAnswer(i -> requestParams.get(i.getArgument(0)));
+    Mockito.when(request.consumedParams()).thenReturn(List.of("dataSource", "resourceType"));
+    Mockito.when(request.params()).thenReturn(ImmutableMap.copyOf(requestParams));
+    Mockito.when(request.hasContent()).thenReturn(true);
+    Mockito.when(request.content()).thenReturn(new BytesArray(requestBody));
+
+    unit.handleRequest(request, channel, nodeClient);
+
+    Mockito.verify(threadPool, Mockito.times(1))
+        .schedule(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any());
+    Mockito.verifyNoInteractions(channel);
+  }
+
+  @Test
+  @SneakyThrows
+  public void testSuccessfulWriteResourceResponse() {
+    setDataSourcesEnabled(true);
+    String successResponse = "{\"result\":\"silence created\"}";
+    WriteDirectQueryResourcesActionResponse response =
+        new WriteDirectQueryResourcesActionResponse(successResponse);
+    String requestBody = "{\"matchers\":[{\"name\":\"alertname\",\"value\":\"TestAlert\"}],\"comment\":\"Test silence\"}";
+
+    Mockito.when(request.method()).thenReturn(RestRequest.Method.POST);
+    Mockito.when(request.path())
+        .thenReturn("/_plugins/_directquery/_resources/testDataSource/alertmanager/api/v2/silences");
+    Map<String, String> requestParams =
+        Map.of(
+            "dataSource", "testDataSource",
+            "resourceType", "silences");
+    Mockito.when(request.param(Mockito.anyString()))
+        .thenAnswer(i -> requestParams.get(i.getArgument(0)));
+    Mockito.when(request.consumedParams()).thenReturn(List.of("dataSource", "resourceType"));
+    Mockito.when(request.params()).thenReturn(ImmutableMap.copyOf(requestParams));
+    Mockito.when(request.hasContent()).thenReturn(true);
+    Mockito.when(request.content()).thenReturn(new BytesArray(requestBody));
+
+    ArgumentCaptor<ActionListener> listenerCaptor = ArgumentCaptor.forClass(ActionListener.class);
+
+    Mockito.doAnswer(
+            invocation -> {
+              Runnable runnable = invocation.getArgument(0);
+              runnable.run();
+              return null;
+            })
+        .when(threadPool)
+        .schedule(Mockito.any(Runnable.class), Mockito.any(), Mockito.any());
+
+    Mockito.doAnswer(
+            invocation -> {
+              WriteDirectQueryResourcesActionRequest request = invocation.getArgument(1);
+              Assertions.assertEquals(
+                  "testDataSource", request.getDirectQueryRequest().getDataSource());
+              Assertions.assertEquals(
+                  DirectQueryResourceType.ALERTMANAGER_SILENCES,
+                  request.getDirectQueryRequest().getResourceType());
+              Assertions.assertEquals(
+                  requestBody, request.getDirectQueryRequest().getRequest());
+              return null;
+            })
+        .when(nodeClient)
+        .execute(Mockito.any(), Mockito.any(), listenerCaptor.capture());
+
+    unit.handleRequest(request, channel, nodeClient);
+
+    ActionListener listener = listenerCaptor.getValue();
+    listener.onResponse(response);
+
+    ArgumentCaptor<RestResponse> responseCaptor = ArgumentCaptor.forClass(RestResponse.class);
+    Mockito.verify(channel).sendResponse(responseCaptor.capture());
+
+    RestResponse capturedResponse = responseCaptor.getValue();
+    Assertions.assertEquals(200, capturedResponse.status().getStatus());
+    Assertions.assertEquals("application/json; charset=UTF-8", capturedResponse.contentType());
+    Assertions.assertEquals(successResponse, capturedResponse.content().utf8ToString());
+  }
+
+  @Test
+  @SneakyThrows
+  public void testWriteResourceFailureResponse() {
+    setDataSourcesEnabled(true);
+    RuntimeException serverError = new RuntimeException("Write operation failed");
+    String requestBody = "{\"matchers\":[{\"name\":\"alertname\",\"value\":\"TestAlert\"}],\"comment\":\"Test silence\"}";
+
+    Mockito.when(request.method()).thenReturn(RestRequest.Method.POST);
+    Mockito.when(request.path())
+        .thenReturn("/_plugins/_directquery/_resources/testDataSource/alertmanager/api/v2/silences");
+    Map<String, String> requestParams =
+        Map.of(
+            "dataSource", "testDataSource",
+            "resourceType", "silences");
+    Mockito.when(request.param(Mockito.anyString()))
+        .thenAnswer(i -> requestParams.get(i.getArgument(0)));
+    Mockito.when(request.consumedParams()).thenReturn(List.of("dataSource", "resourceType"));
+    Mockito.when(request.params()).thenReturn(ImmutableMap.copyOf(requestParams));
+    Mockito.when(request.hasContent()).thenReturn(true);
+    Mockito.when(request.content()).thenReturn(new BytesArray(requestBody));
+
+    ArgumentCaptor<ActionListener> listenerCaptor = ArgumentCaptor.forClass(ActionListener.class);
+
+    Mockito.doAnswer(
+            invocation -> {
+              Runnable runnable = invocation.getArgument(0);
+              runnable.run();
+              return null;
+            })
+        .when(threadPool)
+        .schedule(Mockito.any(Runnable.class), Mockito.any(), Mockito.any());
+
+    Mockito.doAnswer(invocation -> null)
+        .when(nodeClient)
+        .execute(Mockito.any(), Mockito.any(), listenerCaptor.capture());
+
+    unit.handleRequest(request, channel, nodeClient);
+
+    ActionListener listener = listenerCaptor.getValue();
+    listener.onFailure(serverError);
+
+    ArgumentCaptor<RestResponse> responseCaptor = ArgumentCaptor.forClass(RestResponse.class);
+    Mockito.verify(channel).sendResponse(responseCaptor.capture());
+
+    RestResponse capturedResponse = responseCaptor.getValue();
+    Assertions.assertEquals(500, capturedResponse.status().getStatus());
   }
 
   private void setDataSourcesEnabled(boolean value) {

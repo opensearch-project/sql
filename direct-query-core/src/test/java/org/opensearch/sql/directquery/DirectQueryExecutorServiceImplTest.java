@@ -32,6 +32,8 @@ import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryResponse;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesResponse;
+import org.opensearch.sql.directquery.rest.model.WriteDirectQueryResourcesRequest;
+import org.opensearch.sql.directquery.rest.model.WriteDirectQueryResourcesResponse;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
 import org.opensearch.sql.prometheus.model.PrometheusOptions;
 import org.opensearch.sql.prometheus.model.PrometheusQueryType;
@@ -284,5 +286,83 @@ public class DirectQueryExecutorServiceImplTest {
     JSONObject result = new JSONObject(response.getResult());
     assertTrue(result.has("error"));
     assertEquals("Unsupported data source type", result.getString("error"));
+  }
+
+  @Test
+  public void testWriteDirectQueryResourcesSuccessful() throws IOException {
+    // Setup
+    String dataSource = "prometheusDataSource";
+
+    WriteDirectQueryResourcesRequest request = new WriteDirectQueryResourcesRequest();
+    request.setDataSource(dataSource);
+    request.setResourceType(DirectQueryResourceType.ALERTMANAGER_SILENCES);
+    request.setRequest("{\"matchers\":[{\"name\":\"alertname\",\"value\":\"TestAlert\"}],\"comment\":\"Test silence\"}");
+
+    when(dataSourceClientFactory.createClient(dataSource)).thenReturn(prometheusClient);
+    when(queryHandlerRegistry.getQueryHandler(prometheusClient))
+        .thenReturn(Optional.of(queryHandler));
+
+    WriteDirectQueryResourcesResponse<java.util.List<String>> expectedResponse =
+        WriteDirectQueryResourcesResponse.withStringList(java.util.Arrays.asList("silence-123456"));
+
+    when(queryHandler.writeResources(eq(prometheusClient), eq(request)))
+        .thenReturn((WriteDirectQueryResourcesResponse) expectedResponse);
+
+    // Test
+    WriteDirectQueryResourcesResponse<?> response = executorService.writeDirectQueryResources(request);
+
+    // Verify
+    assertNotNull(response);
+    assertEquals(expectedResponse.getData(), response.getData());
+  }
+
+  @Test
+  public void testWriteDirectQueryResourcesWithUnregisteredHandler() {
+    // Setup
+    String dataSource = "unsupportedDataSource";
+
+    WriteDirectQueryResourcesRequest request = new WriteDirectQueryResourcesRequest();
+    request.setDataSource(dataSource);
+    request.setResourceType(DirectQueryResourceType.ALERTMANAGER_SILENCES);
+
+    when(dataSourceClientFactory.createClient(dataSource)).thenReturn(prometheusClient);
+    when(queryHandlerRegistry.getQueryHandler(prometheusClient)).thenReturn(Optional.empty());
+
+    // Test - should throw exception
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class, () -> executorService.writeDirectQueryResources(request));
+
+    // Verify exception message
+    assertEquals("Unsupported data source type: " + dataSource, exception.getMessage());
+  }
+
+  @Test
+  public void testWriteDirectQueryResourcesWithIOError() throws IOException {
+    // Setup
+    String dataSource = "prometheusDataSource";
+
+    WriteDirectQueryResourcesRequest request = new WriteDirectQueryResourcesRequest();
+    request.setDataSource(dataSource);
+    request.setResourceType(DirectQueryResourceType.ALERTMANAGER_SILENCES);
+
+    when(dataSourceClientFactory.createClient(dataSource)).thenReturn(prometheusClient);
+    when(queryHandlerRegistry.getQueryHandler(prometheusClient))
+        .thenReturn(Optional.of(queryHandler));
+    when(queryHandler.writeResources(eq(prometheusClient), eq(request)))
+        .thenThrow(new IOException("Failed to write resources"));
+
+    // Test
+    DataSourceClientException exception =
+        assertThrows(
+            DataSourceClientException.class,
+            () -> executorService.writeDirectQueryResources(request));
+
+    // Verify
+    assertNotNull(exception);
+    assertEquals(
+        "Error writing resources for data source type: " + dataSource, exception.getMessage());
+    assertTrue(exception.getCause() instanceof IOException);
+    assertEquals("Failed to write resources", exception.getCause().getMessage());
   }
 }
