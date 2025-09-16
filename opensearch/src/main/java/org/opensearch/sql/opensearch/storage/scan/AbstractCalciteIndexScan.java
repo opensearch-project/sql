@@ -7,7 +7,6 @@ package org.opensearch.sql.opensearch.storage.scan;
 
 import static java.util.Objects.requireNonNull;
 import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR;
-import static org.opensearch.sql.opensearch.request.AggregateAnalyzer.AGGREGATION_BUCKET_SIZE;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -459,7 +458,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                 Collections.singletonList(
                     AggregationBuilders.composite("composite_buckets", newBuckets)
                         .subAggregations(newAggBuilder)
-                        .size(AGGREGATION_BUCKET_SIZE)),
+                        .size(compositeAggBuilder.size())),
                 aggregationBuilder.getRight());
         bucketNames = newBucketNames;
       }
