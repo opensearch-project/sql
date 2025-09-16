@@ -55,24 +55,27 @@ public class SPath extends UnresolvedPlan {
   }
 
   /**
-   * Determine whether a provided match string is better than the current best match available, for path matching.
+   * Determine whether a provided match string is better than the current best match available, for
+   * path matching.
    *
    * @param maybeMatch A field name that we're testing for path matching
-   * @param currentRecordMatch Our best field match so far. Should at least be as good as `this.inField`
+   * @param currentRecordMatch Our best field match so far. Should at least be as good as
+   *     `this.inField`
    * @return The better match between the two provided options
    */
   private String preferredPathMatch(String maybeMatch, String currentRecordMatch) {
-      String path = this.fullPath();
-      // If the provided match isn't even a match, skip it
-      if (!path.startsWith(maybeMatch) || maybeMatch.length() <= currentRecordMatch.length()) {
-          return currentRecordMatch;
-      }
-      // Ensure the match is on a proper segment boundary (either dot-delimited, or exactly matches the path)
-      if (path.length() == maybeMatch.length() || path.charAt(maybeMatch.length()) == '.') {
-          return maybeMatch;
-      }
-      // We had a match, but it wasn't better than our current record
+    String path = this.fullPath();
+    // If the provided match isn't even a match, skip it
+    if (!path.startsWith(maybeMatch) || maybeMatch.length() <= currentRecordMatch.length()) {
       return currentRecordMatch;
+    }
+    // Ensure the match is on a proper segment boundary (either dot-delimited, or exactly matches
+    // the path)
+    if (path.length() == maybeMatch.length() || path.charAt(maybeMatch.length()) == '.') {
+      return maybeMatch;
+    }
+    // We had a match, but it wasn't better than our current record
+    return currentRecordMatch;
   }
 
   /**
