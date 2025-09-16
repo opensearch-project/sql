@@ -255,11 +255,24 @@ Argument type: all the supported data type. Supports mixed data types with autom
 Return type: determined by the least restrictive common type among all arguments, with fallback to string if no common type can be determined
 
 Behavior:
+
 - Returns the first value that is not null and not missing (missing includes non-existent fields)
 - Empty strings ("") and whitespace strings (" ") are considered valid values
 - If all arguments are null or missing, returns null
 - Automatic type coercion is applied to match the determined return type
 - If type conversion fails, the value is converted to string representation
+- For best results, use arguments of the same data type to avoid unexpected type conversions
+
+Performance Considerations:
+
+- Optimized for multiple field evaluation, more efficient than nested IFNULL patterns
+- Evaluates arguments sequentially, stopping at the first non-null value
+- Consider field order based on likelihood of containing values to minimize evaluation overhead
+
+Limitations:
+
+- Type coercion may result in unexpected string conversions for incompatible types
+- Performance may degrade with very large numbers of arguments
 
 Example::
 
@@ -323,6 +336,47 @@ Non-existent Field Handling::
     | Nanette | Nanette   |
     | Dale    | Dale      |
     +---------+-----------+
+
+Pre-3.1 Alternative: Nested IFNULL Pattern
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+Version: Pre-3.1
+
+For OpenSearch versions prior to 3.1, COALESCE-like functionality can be achieved using nested IFNULL statements. This pattern is particularly useful in observability use cases where field names may vary across different data sources.
+
+Usage: ifnull(field1, ifnull(field2, ifnull(field3, default_value)))
+
+Example - HTTP Status Code Fallback::
+
+    PPL> source=http_logs | eval status_code = ifnull(cast(attributes.http.response.status_code as int), ifnull(cast(attributes.http.status_code as int), -1)) | fields status_code, attributes.http.response.status_code, attributes.http.status_code
+    fetched rows / total rows = 3/3
+    +-------------+--------------------------------------+---------------------------+
+    | status_code | attributes.http.response.status_code | attributes.http.status_code |
+    |-------------+--------------------------------------+---------------------------|
+    | 200         | 200                                  | null                      |
+    | 404         | null                                 | 404                       |
+    | -1          | null                                 | null                      |
+    +-------------+--------------------------------------+---------------------------+
+
+Example - Multiple Field Fallback::
+
+    PPL> source=accounts | eval result = ifnull(employer, ifnull(firstname, lastname)) | fields result, employer, firstname, lastname
+    fetched rows / total rows = 4/4
+    +---------+----------+-----------+----------+
+    | result  | employer | firstname | lastname |
+    |---------+----------+-----------+----------|
+    | Pyrami  | Pyrami   | Amber     | Duke     |
+    | Netagy  | Netagy   | Hattie    | Bond     |
+    | Quility | Quility  | Nanette   | Bates    |
+    | Dale    | null     | Dale      | Adams    |
+    +---------+----------+-----------+----------+
+
+Notes:
+
+- No automatic type coercion (requires explicit casting as shown in HTTP status code example)
+- More verbose syntax compared to native COALESCE
+- Nested structure can become complex with many fallback fields
+- Upgrade to OpenSearch 3.1+ for native COALESCE support with better performance and cleaner syntax
 
 ISPRESENT
 ---------
