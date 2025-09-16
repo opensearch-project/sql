@@ -87,6 +87,7 @@ spotless {
                 " * Copyright OpenSearch Contributors\n" +
                 " * SPDX-License-Identifier: Apache-2.0\n" +
                 " */\n\n")
+                .onlyIfContentMatches("^((?!\\(original license below\\))[\\s\\S])*\$")
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()
