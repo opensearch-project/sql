@@ -292,7 +292,8 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
     verifyQueryThrowsException(
         "source=EMP | stats values(array(ENAME, JOB)) as unique_values",
         "Aggregation function VALUES expects field type"
-            + " {[BYTE]|[SHORT]|[INTEGER]|[LONG]|[FLOAT]|[DOUBLE]|[STRING]|[BOOLEAN]|[DATE]|[TIME]|[TIMESTAMP]|[IP]|[BINARY]},"
+            + " {[BYTE]|[SHORT]|[INTEGER]|[LONG]|[FLOAT]|[DOUBLE]|[STRING]|[BOOLEAN]|[DATE]|[TIME]|[TIMESTAMP]|[IP]|[BINARY]|[BYTE,INTEGER]"
+            + "|[SHORT,INTEGER]|[INTEGER,INTEGER]|[LONG,INTEGER]|[FLOAT,INTEGER]|[DOUBLE,INTEGER]|[STRING,INTEGER]|[BOOLEAN,INTEGER]|[DATE,INTEGER]|[TIME,INTEGER]|[TIMESTAMP,INTEGER]|[IP,INTEGER]|[BINARY,INTEGER]},"
             + " but got [ARRAY]");
   }
 

@@ -47,7 +47,7 @@ public class ValuesAggFunction
 
     Object value = values[0];
 
-    // Get limit from second argument (passed from PPLFuncImpTable)
+    // Get limit from second argument (passed from AST)
     int limit = 0; // Default to unlimited
     if (values.length > 1 && values[1] != null) {
       limit = (Integer) values[1];
@@ -55,45 +55,12 @@ public class ValuesAggFunction
 
     // Filter out null values and check limit
     if (value != null && (limit == 0 || acc.size() < limit)) {
-      // Skip non-scalar types (arrays, collections, maps)
-      if (isNonScalarType(value)) {
-        return acc; // Silently ignore non-scalar values
-      }
-
       // Convert value to string
       String stringValue = String.valueOf(value);
       acc.add(stringValue, limit);
     }
 
     return acc;
-  }
-
-  /**
-   * Check if the value is a non-scalar type that should be skipped. This includes arrays,
-   * collections, maps, and other complex types.
-   */
-  private boolean isNonScalarType(Object value) {
-    if (value == null) {
-      return false;
-    }
-
-    // Check for array types
-    if (value.getClass().isArray()) {
-      return true;
-    }
-
-    // Check for collection types (List, Set, etc.)
-    if (value instanceof java.util.Collection) {
-      return true;
-    }
-
-    // Check for map types
-    if (value instanceof java.util.Map) {
-      return true;
-    }
-
-    // All other types are considered scalar and can be converted to string
-    return false;
   }
 
   public static class ValuesAccumulator implements Accumulator {
