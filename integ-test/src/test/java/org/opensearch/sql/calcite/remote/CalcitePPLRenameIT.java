@@ -38,7 +38,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
   public void testRename() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format("source = %s | rename age as renamed_age", TEST_INDEX_STATE_COUNTRY));
+            String.format("source = %s | fields name, country, state, month, year, age | rename age as renamed_age", TEST_INDEX_STATE_COUNTRY));
     verifySchema(
         result,
         schema("name", "string"),
@@ -58,7 +58,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
             () ->
                 executeQuery(
                     String.format(
-                        "source = %s | rename age as renamed_age | fields age",
+                        "source = %s | fields name, country, state, month, year, age, _id, _index, _score, _maxscore, _sort, _routing | rename age as renamed_age | fields age",
                         TEST_INDEX_STATE_COUNTRY)));
     verifyErrorMessageContains(
         e,
@@ -78,7 +78,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
 
     // Test rename to _ID, which is allowed as metadata fields name is case-sensitive
     JSONObject result =
-        executeQuery(String.format("source = %s | rename age as _ID", TEST_INDEX_STATE_COUNTRY));
+        executeQuery(String.format("source = %s | fields name, country, state, month, year, age | rename age as _ID", TEST_INDEX_STATE_COUNTRY));
     verifySchema(
         result,
         schema("name", "string"),
@@ -157,7 +157,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
   @Test
   public void testRenameWildcardFields() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source = %s | rename *ame as *AME", TEST_INDEX_STATE_COUNTRY));
+        executeQuery(String.format("source = %s | fields name, country, state, month, year, age | rename *ame as *AME", TEST_INDEX_STATE_COUNTRY));
     verifySchema(
         result,
         schema("nAME", "string"),
@@ -172,7 +172,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
   @Test
   public void testRenameMultipleWildcardFields() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source = %s | rename *nt* as *NT*", TEST_INDEX_STATE_COUNTRY));
+        executeQuery(String.format("source = %s | fields name, country, state, month, year, age | rename *nt* as *NT*", TEST_INDEX_STATE_COUNTRY));
     verifySchema(
         result,
         schema("name", "string"),
@@ -187,7 +187,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
   @Test
   public void testRenameWildcardPrefix() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source = %s | rename *me as new_*", TEST_INDEX_STATE_COUNTRY));
+        executeQuery(String.format("source = %s | fields name, country, state, month, year, age | rename *me as new_*", TEST_INDEX_STATE_COUNTRY));
     verifySchema(
         result,
         schema("new_na", "string"),
@@ -213,7 +213,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
   public void testRenameMultipleWildcards() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format("source = %s | rename m*n*h as M*N*H", TEST_INDEX_STATE_COUNTRY));
+            String.format("source = %s | fields name, country, state, month, year, age | rename m*n*h as M*N*H", TEST_INDEX_STATE_COUNTRY));
     verifySchema(
         result,
         schema("name", "string"),
@@ -263,7 +263,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
   @Test
   public void testRenamingToExistingField() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source = %s | rename name as age", TEST_INDEX_STATE_COUNTRY));
+        executeQuery(String.format("source = %s | fields name, country, state, month, year | rename name as age", TEST_INDEX_STATE_COUNTRY));
     verifySchema(
         result,
         schema("age", "string"),
@@ -283,7 +283,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
   public void testRenamingNonExistentField() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format("source = %s | rename none as nothing", TEST_INDEX_STATE_COUNTRY));
+            String.format("source = %s | fields name, country, state, month, year, age | rename none as nothing", TEST_INDEX_STATE_COUNTRY));
     verifySchema(
         result,
         schema("name", "string"),
@@ -298,7 +298,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
   @Test
   public void testRenamingNonExistentFieldToExistingField() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source = %s | rename none as age", TEST_INDEX_STATE_COUNTRY));
+        executeQuery(String.format("source = %s | fields name, country, state, month, year | rename none as age", TEST_INDEX_STATE_COUNTRY));
     verifySchema(
         result,
         schema("name", "string"),
@@ -328,7 +328,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
   @Test
   public void testRenameSameField() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source = %s | rename age as age", TEST_INDEX_STATE_COUNTRY));
+        executeQuery(String.format("source = %s | fields name, country, state, month, year, age | rename age as age", TEST_INDEX_STATE_COUNTRY));
     verifySchema(
         result,
         schema("name", "string"),
@@ -345,7 +345,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source = %s | rename name as user_name age as user_age country as location",
+                "source = %s | fields name, country, state, month, year, age | rename name as user_name age as user_age country as location",
                 TEST_INDEX_STATE_COUNTRY));
     verifySchema(
         result,
@@ -363,7 +363,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source = %s | rename name as user_name, age as user_age country as location",
+                "source = %s | fields name, country, state, month, year, age | rename name as user_name, age as user_age country as location",
                 TEST_INDEX_STATE_COUNTRY));
     verifySchema(
         result,
