@@ -106,6 +106,8 @@ The query start with search command and then flowing a set of command delimited 
 
   - `sort command <cmd/sort.rst>`_
 
+  - `spath command <cmd/spath.rst>`_
+
   - `stats command <cmd/stats.rst>`_
 
   - `subquery (aka subsearch) command <cmd/subquery.rst>`_

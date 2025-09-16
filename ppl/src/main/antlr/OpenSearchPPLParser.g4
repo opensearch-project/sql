@@ -62,6 +62,7 @@ commands
    | rareCommand
    | grokCommand
    | parseCommand
+   | spathCommand
    | patternsCommand
    | lookupCommand
    | kmeansCommand
@@ -275,6 +276,28 @@ parseCommand
    : PARSE (source_field = expression) (pattern = stringLiteral)
    ;
 
+spathCommand
+   : SPATH spathParameter*
+   ;
+
+spathParameter
+   : (INPUT EQUAL input = expression)
+   | (OUTPUT EQUAL output = expression)
+   | ((PATH EQUAL)? path = indexablePath)
+   ;
+
+indexablePath
+   : pathElement (DOT pathElement)*
+   ;
+
+pathElement
+   : ident pathArrayAccess?
+   ;
+
+pathArrayAccess
+   : LT_CURLY (INTEGER_LITERAL)? RT_CURLY
+   ;
+
 regexCommand
     : REGEX regexExpr
     ;
@@ -296,6 +319,7 @@ rexOption
     | MODE EQUAL (EXTRACT | SED)
     | OFFSET_FIELD EQUAL offsetField=qualifiedName
     ;
+
 patternsMethod
    : PUNCT
    | REGEX
@@ -1423,6 +1447,10 @@ keywordsCanBeId
    | ANOMALY_SCORE_THRESHOLD
    | COUNTFIELD
    | SHOWCOUNT
+   | PATH
+   | INPUT
+   | OUTPUT
+
    // AGGREGATIONS AND WINDOW
    | statsFunctionName
    | windowFunctionName

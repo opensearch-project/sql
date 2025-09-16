@@ -94,6 +94,7 @@ import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Rex;
+import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
@@ -712,6 +713,34 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     Literal pattern = (Literal) internalVisitExpression(ctx.pattern);
 
     return new Parse(ParseMethod.REGEX, sourceField, pattern, ImmutableMap.of());
+  }
+
+  @Override
+  public UnresolvedPlan visitSpathCommand(OpenSearchPPLParser.SpathCommandContext ctx) {
+    String inField = null;
+    String outField = null;
+    String path = null;
+
+    for (OpenSearchPPLParser.SpathParameterContext param : ctx.spathParameter()) {
+      if (param.input != null) {
+        inField = param.input.getText();
+      }
+      if (param.output != null) {
+        outField = param.output.getText();
+      }
+      if (param.path != null) {
+        path = param.path.getText();
+      }
+    }
+
+    if (inField == null) {
+      throw new IllegalArgumentException("`input` parameter is required for `spath`");
+    }
+    if (path == null) {
+      throw new IllegalArgumentException("`path` parameter is required for `spath`");
+    }
+
+    return new SPath(inField, outField, path);
   }
 
   @Override

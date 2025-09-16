@@ -75,6 +75,7 @@ import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Timechart;
@@ -243,6 +244,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitParse(Parse node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitSpath(SPath node, C context) {
     return visitChildren(node, context);
   }
 
