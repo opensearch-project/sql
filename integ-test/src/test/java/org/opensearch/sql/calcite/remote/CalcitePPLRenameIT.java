@@ -64,19 +64,6 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testRenameNotExistedField() throws IOException {
-    Throwable e =
-        assertThrowsWithReplace(
-            IllegalArgumentException.class,
-            () ->
-                executeQuery(
-                    String.format(
-                        "source = %s | rename renamed_age as age", TEST_INDEX_STATE_COUNTRY)));
-      verifyNotFoundAndInputFields(e.getMessage(),
-              "field [renamed_age] not found; input fields are: [country, month, year, name, state, age, _id, _index, _score, _maxscore, _sort, _routing]");
-  }
-
-  @Test
   public void testRenameToMetaField() throws IOException {
     Throwable e =
         assertThrowsWithReplace(
@@ -161,6 +148,237 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
                 TEST_INDEX_STATE_COUNTRY));
     verifySchemaInOrder(result, schema("avg(`user_age`)", "double"), schema("country", "string"));
     verifyDataRows(result, rows(22.5, "Canada"), rows(50.0, "USA"));
+  }
+
+  @Test
+  public void testRenameWildcardFields() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source = %s | fields name, country, state, month, year, age | rename *ame as *AME", TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        result,
+        schema("nAME", "string"),
+        schema("age", "int"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("year", "int"),
+        schema("month", "int"));
+    verifyStandardDataRows(result);
+  }
+
+  @Test
+  public void testRenameMultipleWildcardFields() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source = %s | fields name, country, state, month, year, age | rename *nt* as *NT*", TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("age", "int"),
+        schema("state", "string"),
+        schema("couNTry", "string"),
+        schema("year", "int"),
+        schema("moNTh", "int"));
+    verifyStandardDataRows(result);
+  }
+
+  @Test
+  public void testRenameWildcardPrefix() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source = %s | fields name, country, state, month, year, age | rename *me as new_*", TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        result,
+        schema("new_na", "string"),
+        schema("age", "int"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("year", "int"),
+        schema("month", "int"));
+    verifyStandardDataRows(result);
+  }
+
+  @Test
+  public void testRenameFullWildcard() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | fields name, age | rename * as old_*", TEST_INDEX_STATE_COUNTRY));
+    verifySchema(result, schema("old_name", "string"), schema("old_age", "int"));
+    verifyDataRows(result, rows("Jake", 70), rows("Hello", 30), rows("John", 25), rows("Jane", 20));
+  }
+
+  @Test
+  public void testRenameMultipleWildcards() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source = %s | fields name, country, state, month, year, age | rename m*n*h as M*N*H", TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("age", "int"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("year", "int"),
+        schema("MoNtH", "int"));
+    verifyStandardDataRows(result);
+  }
+
+  @Test
+  public void testMultipleRenameWithWildcard() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | fields name, age | rename name as user_name | rename user_name as"
+                    + " final_name",
+                TEST_INDEX_STATE_COUNTRY));
+    verifySchema(result, schema("final_name", "string"), schema("age", "int"));
+    verifyDataRows(result, rows("Jake", 70), rows("Hello", 30), rows("John", 25), rows("Jane", 20));
+  }
+
+  @Test
+  public void testChainedRename() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | fields name, age | rename name as user_name, user_name as"
+                    + " final_name",
+                TEST_INDEX_STATE_COUNTRY));
+    verifySchema(result, schema("final_name", "string"), schema("age", "int"));
+    verifyDataRows(result, rows("Jake", 70), rows("Hello", 30), rows("John", 25), rows("Jane", 20));
+  }
+
+  @Test
+  public void testChainedRenameWithWildcard() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | fields name, age | rename *ame as *_ame, *_ame as *_AME",
+                TEST_INDEX_STATE_COUNTRY));
+    verifySchema(result, schema("n_AME", "string"), schema("age", "int"));
+    verifyDataRows(result, rows("Jake", 70), rows("Hello", 30), rows("John", 25), rows("Jane", 20));
+  }
+
+  @Test
+  public void testRenamingToExistingField() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source = %s | fields name, country, state, month, year | rename name as age", TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        result,
+        schema("age", "string"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("year", "int"),
+        schema("month", "int"));
+    verifyDataRows(
+        result,
+        rows("Jake", "USA", "California", 4, 2023),
+        rows("Hello", "USA", "New York", 4, 2023),
+        rows("John", "Canada", "Ontario", 4, 2023),
+        rows("Jane", "Canada", "Quebec", 4, 2023));
+  }
+
+  @Test
+  public void testRenamingNonExistentField() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source = %s | fields name, country, state, month, year, age | rename none as nothing", TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("age", "int"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("year", "int"),
+        schema("month", "int"));
+    verifyStandardDataRows(result);
+  }
+
+  @Test
+  public void testRenamingNonExistentFieldToExistingField() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source = %s | fields name, country, state, month, year | rename none as age", TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("year", "int"),
+        schema("month", "int"));
+    verifyDataRows(
+        result,
+        rows("Jake", "USA", "California", 4, 2023),
+        rows("Hello", "USA", "New York", 4, 2023),
+        rows("John", "Canada", "Ontario", 4, 2023),
+        rows("Jane", "Canada", "Quebec", 4, 2023));
+  }
+
+  @Test
+  public void testWildcardPatternDifferentCounts() {
+    Throwable e =
+        assertThrowsWithReplace(
+            IllegalArgumentException.class,
+            () ->
+                executeQuery(
+                    String.format("source = %s | rename *a*e as *new", TEST_INDEX_STATE_COUNTRY)));
+    verifyErrorMessageContains(e, "Source and target patterns have different wildcard counts");
+  }
+
+  @Test
+  public void testRenameSameField() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source = %s | fields name, country, state, month, year, age | rename age as age", TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("age", "int"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("year", "int"),
+        schema("month", "int"));
+    verifyStandardDataRows(result);
+  }
+
+  @Test
+  public void testMultipleRenameWithoutComma() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | fields name, country, state, month, year, age | rename name as user_name age as user_age country as location",
+                TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        result,
+        schema("user_name", "string"),
+        schema("user_age", "int"),
+        schema("state", "string"),
+        schema("location", "string"),
+        schema("year", "int"),
+        schema("month", "int"));
+    verifyStandardDataRows(result);
+  }
+
+  @Test
+  public void testRenameMixedCommaAndSpace() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | fields name, country, state, month, year, age | rename name as user_name, age as user_age country as location",
+                TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        result,
+        schema("user_name", "string"),
+        schema("user_age", "int"),
+        schema("state", "string"),
+        schema("location", "string"),
+        schema("year", "int"),
+        schema("month", "int"));
+    verifyStandardDataRows(result);
+  }
+
+  private void verifyStandardDataRows(JSONObject result) {
+    verifyDataRows(
+        result,
+        rows("Jake", "USA", "California", 4, 2023, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30),
+        rows("John", "Canada", "Ontario", 4, 2023, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20));
   }
 
   /**

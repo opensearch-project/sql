@@ -138,6 +138,7 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.expression.parse.RegexCommonUtils;
 import org.opensearch.sql.utils.ParseUtils;
+import org.opensearch.sql.utils.WildcardRenameUtils;
 
 public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalcitePlanContext> {
 
@@ -487,25 +488,50 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     visitChildren(node, context);
     List<String> originalNames = context.relBuilder.peek().getRowType().getFieldNames();
     List<String> newNames = new ArrayList<>(originalNames);
+
     for (org.opensearch.sql.ast.expression.Map renameMap : node.getRenameList()) {
-      if (renameMap.getTarget() instanceof Field) {
-        Field t = (Field) renameMap.getTarget();
-        String newName = t.getField().toString();
-        RexNode check = rexVisitor.analyze(renameMap.getOrigin(), context);
-        if (check instanceof RexInputRef) {
-          RexInputRef ref = (RexInputRef) check;
-          newNames.set(ref.getIndex(), newName);
-        } else {
-          throw new SemanticCheckException(
-              String.format("the original field %s cannot be resolved", renameMap.getOrigin()));
-        }
-      } else {
+      if (!(renameMap.getTarget() instanceof Field)) {
         throw new SemanticCheckException(
             String.format("the target expected to be field, but is %s", renameMap.getTarget()));
+      }
+
+      String sourcePattern = ((Field) renameMap.getOrigin()).getField().toString();
+      String targetPattern = ((Field) renameMap.getTarget()).getField().toString();
+
+      if (WildcardRenameUtils.isWildcardPattern(sourcePattern)
+          && !WildcardRenameUtils.validatePatternCompatibility(sourcePattern, targetPattern)) {
+        throw new SemanticCheckException(
+            "Source and target patterns have different wildcard counts");
+      }
+
+      List<String> matchingFields = WildcardRenameUtils.matchFieldNames(sourcePattern, newNames);
+
+      for (String fieldName : matchingFields) {
+        String newName =
+            WildcardRenameUtils.applyWildcardTransformation(
+                sourcePattern, targetPattern, fieldName);
+        if (newNames.contains(newName) && !newName.equals(fieldName)) {
+          removeFieldIfExists(newName, newNames, context);
+        }
+        int fieldIndex = newNames.indexOf(fieldName);
+        if (fieldIndex != -1) {
+          newNames.set(fieldIndex, newName);
+        }
+      }
+
+      if (matchingFields.isEmpty() && newNames.contains(targetPattern)) {
+        removeFieldIfExists(targetPattern, newNames, context);
+        context.relBuilder.rename(newNames);
       }
     }
     context.relBuilder.rename(newNames);
     return context.relBuilder.peek();
+  }
+
+  private void removeFieldIfExists(
+      String fieldName, List<String> newNames, CalcitePlanContext context) {
+    newNames.remove(fieldName);
+    context.relBuilder.projectExcept(context.relBuilder.field(fieldName));
   }
 
   @Override
