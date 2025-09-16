@@ -421,7 +421,9 @@ public class AggregateAnalyzer {
   }
 
   private static boolean isStringType(ExprType fieldType) {
-    return fieldType instanceof OpenSearchTextType || fieldType == ExprCoreType.STRING;
+    return fieldType instanceof OpenSearchTextType || 
+           fieldType == ExprCoreType.STRING ||
+           fieldType == ExprCoreType.IP;
   }
 
   private static ValuesSourceAggregationBuilder<?> createBucketAggregation(
