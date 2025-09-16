@@ -304,7 +304,11 @@ public class AggregateAnalyzer {
         String fieldName = helper.inferNamedField(args.getFirst()).getRootName();
         ExprType fieldType = helper.fieldTypes.get(fieldName);
 
-        if (isStringType(fieldType)) {
+        if (isNativeMaxMinSupportedType(fieldType)) {
+          yield Pair.of(
+              helper.build(args.getFirst(), AggregationBuilders.min(aggFieldName)),
+              new SingleValueParser(aggFieldName));
+        } else {
           yield Pair.of(
               AggregationBuilders.topHits(aggFieldName)
                   .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)
@@ -314,17 +318,17 @@ public class AggregateAnalyzer {
                       helper.inferNamedField(args.getFirst()).getReferenceForTermQuery(),
                       SortOrder.ASC),
               new TopHitsParser(aggFieldName, true));
-        } else {
-          yield Pair.of(
-              helper.build(args.getFirst(), AggregationBuilders.min(aggFieldName)),
-              new SingleValueParser(aggFieldName));
         }
       }
       case MAX -> {
         String fieldName = helper.inferNamedField(args.getFirst()).getRootName();
         ExprType fieldType = helper.fieldTypes.get(fieldName);
 
-        if (isStringType(fieldType)) {
+        if (isNativeMaxMinSupportedType(fieldType)) {
+          yield Pair.of(
+              helper.build(args.getFirst(), AggregationBuilders.max(aggFieldName)),
+              new SingleValueParser(aggFieldName));
+        } else {
           yield Pair.of(
               AggregationBuilders.topHits(aggFieldName)
                   .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)
@@ -334,10 +338,6 @@ public class AggregateAnalyzer {
                       helper.inferNamedField(args.getFirst()).getReferenceForTermQuery(),
                       SortOrder.DESC),
               new TopHitsParser(aggFieldName, true));
-        } else {
-          yield Pair.of(
-              helper.build(args.getFirst(), AggregationBuilders.max(aggFieldName)),
-              new SingleValueParser(aggFieldName));
         }
       }
       case VAR_SAMP -> Pair.of(
@@ -423,6 +423,13 @@ public class AggregateAnalyzer {
     return fieldType instanceof OpenSearchTextType
         || fieldType == ExprCoreType.STRING
         || fieldType == ExprCoreType.IP;
+  }
+
+  private static boolean isNativeMaxMinSupportedType(ExprType fieldType) {
+    return ExprCoreType.numberTypes().contains(fieldType)
+        || fieldType == ExprCoreType.DATE
+        || fieldType == ExprCoreType.TIME
+        || fieldType == ExprCoreType.TIMESTAMP;
   }
 
   private static ValuesSourceAggregationBuilder<?> createBucketAggregation(
