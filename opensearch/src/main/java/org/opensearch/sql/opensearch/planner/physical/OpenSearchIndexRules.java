@@ -31,6 +31,10 @@ public class OpenSearchIndexRules {
   private static final ExpandCollationOnProjectExprRule EXPAND_COLLATION_ON_PROJECT_EXPR =
       ExpandCollationOnProjectExprRule.Config.DEFAULT.toRule();
 
+  // Rule that always pushes down relevance functions regardless of pushdown settings
+  public static final OpenSearchRelevanceFunctionPushdownRule RELEVANCE_FUNCTION_PUSHDOWN =
+      OpenSearchRelevanceFunctionPushdownRule.Config.DEFAULT.toRule();
+
   public static final List<RelOptRule> OPEN_SEARCH_INDEX_SCAN_RULES =
       ImmutableList.of(
           PROJECT_INDEX_SCAN,

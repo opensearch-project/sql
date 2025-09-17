@@ -131,7 +131,7 @@ public class SortProjectExprTransposeRule extends RelRule<SortProjectExprTranspo
                             b1 ->
                                 b1.operand(LogicalProject.class)
                                     .predicate(
-                                        Predicate.not(Project::containsOver)
+                                        Predicate.not(LogicalProject::containsOver)
                                             .and(OpenSearchIndexScanRule::projectContainsExpr))
                                     .anyInputs()));
 

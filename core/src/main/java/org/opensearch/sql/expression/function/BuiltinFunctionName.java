@@ -62,6 +62,7 @@ public enum BuiltinFunctionName {
   /** Collection functions */
   ARRAY(FunctionName.of("array")),
   ARRAY_LENGTH(FunctionName.of("array_length")),
+  MVJOIN(FunctionName.of("mvjoin")),
   FORALL(FunctionName.of("forall")),
   EXISTS(FunctionName.of("exists")),
   FILTER(FunctionName.of("filter")),
@@ -124,6 +125,7 @@ public enum BuiltinFunctionName {
   UTC_TIME(FunctionName.of("utc_time")),
   UTC_TIMESTAMP(FunctionName.of("utc_timestamp")),
   UNIX_TIMESTAMP(FunctionName.of("unix_timestamp")),
+  STRFTIME(FunctionName.of("strftime")),
   WEEK(FunctionName.of("week")),
   WEEKDAY(FunctionName.of("weekday")),
   WEEKOFYEAR(FunctionName.of("weekofyear")),
@@ -205,6 +207,7 @@ public enum BuiltinFunctionName {
 
   // Multivalue aggregation function
   LIST(FunctionName.of("list")),
+  VALUES(FunctionName.of("values")),
   // Not always an aggregation query
   NESTED(FunctionName.of("nested")),
   // Document order aggregation functions
@@ -362,6 +365,7 @@ public enum BuiltinFunctionName {
           .put("latest", BuiltinFunctionName.LATEST)
           .put("distinct_count_approx", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
           .put("list", BuiltinFunctionName.LIST)
+          .put("values", BuiltinFunctionName.VALUES)
           .put("pattern", BuiltinFunctionName.INTERNAL_PATTERN)
           .put("first", BuiltinFunctionName.FIRST)
           .put("last", BuiltinFunctionName.LAST)

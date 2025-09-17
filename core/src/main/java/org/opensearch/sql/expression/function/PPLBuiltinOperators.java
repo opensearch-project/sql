@@ -36,6 +36,7 @@ import org.opensearch.sql.calcite.udf.udaf.LogPatternAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.NullableSqlAvgAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.PercentileApproxFunction;
 import org.opensearch.sql.calcite.udf.udaf.TakeAggFunction;
+import org.opensearch.sql.calcite.udf.udaf.ValuesAggFunction;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -76,6 +77,7 @@ import org.opensearch.sql.expression.function.udf.datetime.FromUnixTimeFunction;
 import org.opensearch.sql.expression.function.udf.datetime.LastDayFunction;
 import org.opensearch.sql.expression.function.udf.datetime.PeriodNameFunction;
 import org.opensearch.sql.expression.function.udf.datetime.SecToTimeFunction;
+import org.opensearch.sql.expression.function.udf.datetime.StrftimeFunction;
 import org.opensearch.sql.expression.function.udf.datetime.SysdateFunction;
 import org.opensearch.sql.expression.function.udf.datetime.TimestampAddFunction;
 import org.opensearch.sql.expression.function.udf.datetime.TimestampDiffFunction;
@@ -170,6 +172,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator WEEKDAY = new WeekdayFunction().toUDF("WEEKDAY");
   public static final SqlOperator UNIX_TIMESTAMP =
       new UnixTimestampFunction().toUDF("UNIX_TIMESTAMP");
+  public static final SqlOperator STRFTIME = new StrftimeFunction().toUDF("STRFTIME");
   public static final SqlOperator TO_SECONDS = new ToSecondsFunction().toUDF("TO_SECONDS");
   public static final SqlOperator ADDTIME =
       adaptExprMethodWithPropertiesToUDF(
@@ -448,6 +451,12 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlAggFunction LIST =
       createUserDefinedAggFunction(
           ListAggFunction.class, "LIST", PPLReturnTypes.STRING_ARRAY, PPLOperandTypes.ANY_SCALAR);
+  public static final SqlAggFunction VALUES =
+      createUserDefinedAggFunction(
+          ValuesAggFunction.class,
+          "VALUES",
+          PPLReturnTypes.STRING_ARRAY,
+          PPLOperandTypes.ANY_SCALAR_OPTIONAL_INTEGER);
 
   public static final SqlOperator ENHANCED_COALESCE =
       new EnhancedCoalesceFunction().toUDF("COALESCE");

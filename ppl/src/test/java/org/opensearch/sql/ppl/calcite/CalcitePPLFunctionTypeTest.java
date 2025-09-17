@@ -5,9 +5,14 @@
 
 package org.opensearch.sql.ppl.calcite;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Assert;
 import org.junit.Test;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 
 public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
 
@@ -174,5 +179,129 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
     verifyQueryThrowsException(
         "source=EMP | eval log2 = log2(ENAME, JOB) | fields log2",
         "LOG2 function expects {[INTEGER]|[DOUBLE]}, but got [STRING,STRING]");
+  }
+
+  @Test
+  public void testStrftimeWithCorrectTypes() {
+    // Test with integer timestamp and string format
+    getRelNode("source=EMP | eval formatted = strftime(1521467703, '%Y-%m-%d') | fields formatted");
+    // Test with double timestamp and string format
+    getRelNode(
+        "source=EMP | eval formatted = strftime(1521467703.0, '%Y-%m-%d %H:%M:%S') | fields"
+            + " formatted");
+    // Test with expression that returns numeric type
+    getRelNode(
+        "source=EMP | eval formatted = strftime(EMPNO * 1000000, '%F %T') | fields formatted");
+    // Test with timestamp from now()
+    getRelNode("source=EMP | eval formatted = strftime(now(), '%Y-%m-%d') | fields formatted");
+    // Test with timestamp from from_unixtime()
+    getRelNode(
+        "source=EMP | eval formatted = strftime(from_unixtime(1521467703), '%Y-%m-%d') | fields"
+            + " formatted");
+  }
+
+  @Test
+  public void testStrftimeWithWrongFirstArgType() {
+    // First argument should be numeric/timestamp, not boolean
+    String ppl = "source=EMP | eval formatted = strftime(EMPNO > 5, '%Y-%m-%d') | fields formatted";
+    Throwable t = Assert.assertThrows(ExpressionEvaluationException.class, () -> getRelNode(ppl));
+    verifyErrorMessageContains(
+        t,
+        "STRFTIME function expects {[INTEGER,STRING]|[DOUBLE,STRING]|[TIMESTAMP,STRING]}, but got"
+            + " [BOOLEAN,STRING]");
+  }
+
+  @Test
+  public void testStrftimeAcceptsDateInput() {
+    // DATE values are automatically converted to TIMESTAMP by Calcite
+    // This test verifies that DATE inputs work via auto-conversion
+    String ppl =
+        "source=EMP | eval formatted = strftime(date('2020-09-16'), '%Y-%m-%d') | fields formatted";
+    RelNode relNode = getRelNode(ppl);
+    assertNotNull(relNode);
+    // The plan should show TIMESTAMP(DATE(...)) indicating auto-conversion
+    String planString = relNode.explain();
+    assertTrue(planString.contains("STRFTIME") && planString.contains("TIMESTAMP"));
+  }
+
+  @Test
+  public void testStrftimeWithDateReturningFunctions() {
+    // Test strftime with various functions that return DATE/TIMESTAMP types
+
+    // Test with NOW() function
+    String ppl1 =
+        "source=EMP | eval formatted = strftime(now(), '%Y-%m-%d %H:%M:%S') | fields formatted";
+    RelNode relNode1 = getRelNode(ppl1);
+    assertNotNull(relNode1);
+
+    // Test with TIMESTAMP function
+    String ppl2 =
+        "source=EMP | eval formatted = strftime(timestamp('2020-09-16 10:30:45'), '%Y-%m-%d"
+            + " %H:%M:%S') | fields formatted";
+    RelNode relNode2 = getRelNode(ppl2);
+    assertNotNull(relNode2);
+
+    // Test with FROM_UNIXTIME (returns TIMESTAMP)
+    String ppl3 =
+        "source=EMP | eval formatted = strftime(from_unixtime(1521467703), '%Y-%m-%d %H:%M:%S') |"
+            + " fields formatted";
+    RelNode relNode3 = getRelNode(ppl3);
+    assertNotNull(relNode3);
+
+    // Test with chained date functions
+    String ppl4 =
+        "source=EMP | eval ts = timestamp('2020-09-16 10:30:45') | eval formatted = strftime(ts,"
+            + " '%F %T') | fields formatted";
+    RelNode relNode4 = getRelNode(ppl4);
+    assertNotNull(relNode4);
+  }
+
+  @Test
+  public void testStrftimeWithWrongSecondArgType() {
+    // Second argument should be string, not numeric
+    String ppl = "source=EMP | eval formatted = strftime(1521467703, 123) | fields formatted";
+    Throwable t = Assert.assertThrows(ExpressionEvaluationException.class, () -> getRelNode(ppl));
+    verifyErrorMessageContains(
+        t,
+        "STRFTIME function expects {[INTEGER,STRING]|[DOUBLE,STRING]|[TIMESTAMP,STRING]}, but got"
+            + " [INTEGER,INTEGER]");
+  }
+
+  @Test
+  public void testStrftimeWithWrongNumberOfArgs() {
+    // strftime requires exactly 2 arguments
+    String ppl1 = "source=EMP | eval formatted = strftime(1521467703) | fields formatted";
+    Throwable t1 = Assert.assertThrows(ExpressionEvaluationException.class, () -> getRelNode(ppl1));
+    verifyErrorMessageContains(
+        t1,
+        "STRFTIME function expects {[INTEGER,STRING]|[DOUBLE,STRING]|[TIMESTAMP,STRING]}, but got"
+            + " [INTEGER]");
+
+    String ppl2 =
+        "source=EMP | eval formatted = strftime(1521467703, '%Y', 'extra') | fields formatted";
+    Throwable t2 = Assert.assertThrows(ExpressionEvaluationException.class, () -> getRelNode(ppl2));
+    verifyErrorMessageContains(
+        t2,
+        "STRFTIME function expects {[INTEGER,STRING]|[DOUBLE,STRING]|[TIMESTAMP,STRING]}, but got"
+            + " [INTEGER,STRING,STRING]");
+  }
+
+  // Test VALUES function with array expression (which is not a supported scalar type)
+  @Test
+  public void testValuesFunctionWithArrayArgType() {
+    verifyQueryThrowsException(
+        "source=EMP | stats values(array(ENAME, JOB)) as unique_values",
+        "Aggregation function VALUES expects field type"
+            + " {[BYTE]|[SHORT]|[INTEGER]|[LONG]|[FLOAT]|[DOUBLE]|[STRING]|[BOOLEAN]|[DATE]|[TIME]|[TIMESTAMP]|[IP]|[BINARY]|[BYTE,INTEGER]"
+            + "|[SHORT,INTEGER]|[INTEGER,INTEGER]|[LONG,INTEGER]|[FLOAT,INTEGER]|[DOUBLE,INTEGER]|[STRING,INTEGER]|[BOOLEAN,INTEGER]|[DATE,INTEGER]|[TIME,INTEGER]|[TIMESTAMP,INTEGER]|[IP,INTEGER]|[BINARY,INTEGER]},"
+            + " but got [ARRAY]");
+  }
+
+  // mvjoin should reject non-string single values
+  @Test
+  public void testMvjoinRejectsNonStringValues() {
+    verifyQueryThrowsException(
+        "source=EMP | eval result = mvjoin(42, ',') | fields result | head 1",
+        "MVJOIN function expects {[ARRAY,STRING]}, but got [INTEGER,STRING]");
   }
 }

@@ -8,6 +8,7 @@ package org.opensearch.sql.ppl;
 import static org.hamcrest.Matchers.containsString;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OTEL_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 
@@ -28,6 +29,7 @@ public class ExplainIT extends PPLIntegTestCase {
     loadIndex(Index.BANK);
     loadIndex(Index.DATE_FORMATS);
     loadIndex(Index.WEBLOG);
+    loadIndex(Index.OTELLOGS);
   }
 
   @Test
@@ -648,5 +650,36 @@ public class ExplainIT extends PPLIntegTestCase {
       prefix = "expectedOutput/ppl/";
     }
     return loadFromFile(prefix + fileName);
+  }
+
+  // Search command explain examples - 3 core use cases
+
+  @Test
+  public void testExplainSearchBasicText() throws IOException {
+    // Example 1: Basic text search without field specification
+    String expected = loadExpectedPlan("explain_search_basic_text.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(String.format("search source=%s ERROR", TEST_INDEX_OTEL_LOGS)));
+  }
+
+  @Test
+  public void testExplainSearchNumericComparison() throws IOException {
+    // Example 2: Numeric field comparison with greater than
+    String expected = loadExpectedPlan("explain_search_numeric_comparison.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format("search source=%s severityNumber>15", TEST_INDEX_OTEL_LOGS)));
+  }
+
+  @Test
+  public void testExplainSearchWildcardStar() throws IOException {
+    // Example 3: Wildcard search with asterisk for pattern matching
+    String expected = loadExpectedPlan("explain_search_wildcard_star.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format("search source=%s severityText=ERR*", TEST_INDEX_OTEL_LOGS)));
   }
 }

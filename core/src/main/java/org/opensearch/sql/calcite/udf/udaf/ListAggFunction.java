@@ -21,9 +21,8 @@ import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
  *   <li>Order of values in the result is non-deterministic
  * </ul>
  *
- * <p>Note: Similar to the TAKE function, LIST does not guarantee any specific order of values in
- * the result array. The order may vary between executions and depends on the underlying query
- * execution plan and optimizations.
+ * <p>LIST does not guarantee any specific order of values in the result array. The order may vary
+ * between executions and depends on the underlying query execution plan and optimizations.
  */
 public class ListAggFunction implements UserDefinedAggFunction<ListAggFunction.ListAccumulator> {
 
