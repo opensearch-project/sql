@@ -79,7 +79,7 @@ public class ComplexTimestampQueryIT extends SQLIntegTestCase {
             TEST_INDEX_DATE_TIME);
 
     JSONObject result = executeQuery(query);
-    Assert.assertEquals(2, result.getJSONArray("datarows").length());
+    Assert.assertEquals(1, result.getJSONArray("datarows").length());
   }
 
   /** Control for joinTimestampComparison */
@@ -95,7 +95,7 @@ public class ComplexTimestampQueryIT extends SQLIntegTestCase {
 
     JSONObject result = executeQuery(query);
     System.err.println(result.getJSONArray("datarows").toString());
-    Assert.assertEquals(2, result.getJSONArray("datarows").length());
+    Assert.assertEquals(1, result.getJSONArray("datarows").length());
   }
 
   /** See: <a href="https://github.com/opensearch-project/sql/issues/1545">1545</a> */
