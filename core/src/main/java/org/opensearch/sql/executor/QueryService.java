@@ -265,7 +265,11 @@ public class QueryService {
 
   private boolean isCalciteFallbackAllowed() {
     if (settings != null) {
-      return settings.getSettingValue(Settings.Key.CALCITE_FALLBACK_ALLOWED);
+      Boolean fallback_allowed = settings.getSettingValue(Settings.Key.CALCITE_FALLBACK_ALLOWED);
+      if (fallback_allowed == null) {
+        return false;
+      }
+      return fallback_allowed;
     } else {
       return true;
     }
