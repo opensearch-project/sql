@@ -21,6 +21,8 @@ import org.opensearch.sql.data.type.ExprCoreType;
 public final class PPLReturnTypes {
   private PPLReturnTypes() {}
 
+  public static final SqlReturnTypeInference ANY_FORCE_NULLABLE =
+      ReturnTypes.explicit(UserDefinedFunctionUtils.NULLABLE_ANY);
   public static final SqlReturnTypeInference DATE_FORCE_NULLABLE =
       ReturnTypes.explicit(UserDefinedFunctionUtils.NULLABLE_DATE_UDT);
   public static final SqlReturnTypeInference TIME_FORCE_NULLABLE =

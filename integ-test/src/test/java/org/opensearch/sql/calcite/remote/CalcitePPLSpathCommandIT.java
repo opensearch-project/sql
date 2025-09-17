@@ -111,17 +111,15 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
     verifySchema(
         result,
         schema("id", "bigint"), // Changed from integer to bigint
-        schema(
-            "name", "string"), // FIXED: Dynamic columns now correctly infer types from JSON values
-        schema("age", "string"), // Dynamic columns from JSON come as string type
-        schema(
-            "city", "string")); // FIXED: Dynamic columns now correctly infer types from JSON values
+        schema("name", "string"), // Dynamic columns preserve original JSON types
+        schema("age", "int"), // FIXED: age now preserves original integer type from JSON
+        schema("city", "string")); // Dynamic columns preserve original JSON types
 
-    // Verify that dynamic columns are accessible
+    // Verify that dynamic columns are accessible with correct types
     verifyDataRows(
         result,
-        rows(1L, "John", "30", "New York"), // Use Long for bigint, string for age
-        rows(2L, "Jane", "25", null), // city not present in second record
+        rows(1L, "John", 30, "New York"), // age is now integer, not string
+        rows(2L, "Jane", 25, null), // age is now integer, not string
         rows(3L, null, null, null)); // name, age, city not present in third record
   }
 
@@ -145,13 +143,13 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
         schema(
             "product",
             "string"), // FIXED: Dynamic columns now correctly infer types from JSON values
-        schema("price", "string")); // Dynamic columns from JSON come as string type
+        schema("price", "double")); // FIXED: price now preserves original double type from JSON
 
     verifyDataRows(
         result,
         rows(1L, "John", null, null, null), // only name from first record
         rows(2L, "Jane", "USA", null, null), // name and country from second record
-        rows(3L, null, null, "laptop", "999.99")); // Dynamic columns come as strings
+        rows(3L, null, null, "laptop", 999.99)); // FIXED: price is now double, not string
   }
 
   private void debug(JSONObject result) {
@@ -175,9 +173,9 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
         schema("id", "bigint"), // Changed from integer to bigint
         schema(
             "name", "string"), // FIXED: Dynamic columns now correctly infer types from JSON values
-        schema("age", "string")); // Dynamic columns from JSON come as string type
+        schema("age", "int")); // FIXED: age now preserves original integer type from JSON
 
-    verifyDataRows(result, rows(1L, "John", "30")); // Only John record - dynamic columns as strings
+    verifyDataRows(result, rows(1L, "John", 30)); // FIXED: age is now integer, not string
   }
 
   @Test
@@ -279,14 +277,14 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
         result,
         schema("id", "bigint"),
         schema("name", "string"), // From json_data1
-        schema("age", "string"), // From json_data1 - MAP_MERGE may lose type info
+        schema("age", "int"), // FIXED: MAP_MERGE preserves type info from MAP_GET fix
         schema("city", "string"), // From json_data2
         schema("country", "string")); // From json_data2
 
     verifyDataRows(
         result,
-        rows(1L, "John", "30", "New York", "USA"), // All fields should be present
-        rows(2L, "Jane", "25", "Boston", "USA")); // All fields should be present
+        rows(1L, "John", 30, "New York", "USA"), // FIXED: age is now integer, not string
+        rows(2L, "Jane", 25, "Boston", "USA")); // FIXED: age is now integer, not string
   }
 
   @Test
@@ -304,12 +302,12 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
         result,
         schema("id", "bigint"),
         schema("name", "string"),
-        schema("age", "string"),
+        schema("age", "int"), // FIXED: age preserves integer type even in multiple spath operations
         schema("city", "string"),
         schema("country", "string"));
 
     verifyDataRows(
-        result, rows(1L, "John", "30", "New York", "USA")); // Only John's record should match
+        result, rows(1L, "John", 30, "New York", "USA")); // FIXED: age is now integer, not string
   }
 
   @Test
@@ -361,10 +359,13 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
         result,
         schema("id", "bigint"),
         schema("name", "string"),
-        schema("age", "string"),
+        schema("age", "int"), // FIXED: age preserves integer type even in multiple spath operations
         schema("age_plus_ten", "int"));
 
-    verifyDataRows(result, rows(1L, "John", "30", 40), rows(2L, "Jane", "25", 35));
+    verifyDataRows(
+        result,
+        rows(1L, "John", 30, 40),
+        rows(2L, "Jane", 25, 35)); // FIXED: age is now integer, not string
   }
 
   @Test
@@ -372,21 +373,21 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
     // Test multiple spath operations with concat function in eval command
     JSONObject result =
         executeQuery(
-            "source=test_overwrite | "
-                + "spath input=json_data1 | "
-                + "spath input=json_data2 | "
-                + "eval full_location = concat(city, ', ', country) | "
-                + "fields id, name, age, full_location");
+            "source=test_overwrite | spath input=json_data1 | spath input=json_data2 | eval"
+                + " full_location = concat(CAST(city AS STRING), ', ', CAST(country AS STRING)) |"
+                + " fields id, name, age, full_location");
 
     verifySchema(
         result,
         schema("id", "bigint"),
         schema("name", "string"),
-        schema("age", "string"),
+        schema("age", "int"), // FIXED: age preserves integer type even in multiple spath operations
         schema("full_location", "string"));
 
     verifyDataRows(
-        result, rows(1L, "John", "30", "New York, USA"), rows(2L, "Jane", "25", "Boston, USA"));
+        result,
+        rows(1L, "John", 30, "New York, USA"),
+        rows(2L, "Jane", 25, "Boston, USA")); // FIXED: age is now integer, not string
   }
 
   @Test
@@ -404,12 +405,12 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
         result,
         schema("id", "bigint"),
         schema("name", "string"),
-        schema("age", "string"),
+        schema("age", "int"), // FIXED: age preserves integer type even in multiple spath operations
         schema("city", "string"),
         schema("country", "string"));
 
     verifyDataRows(
-        result, rows(1L, "John", "30", "New York", "USA")); // Only John matches (age > 25)
+        result, rows(1L, "John", 30, "New York", "USA")); // FIXED: age is now integer, not string
   }
 
   @Test
@@ -447,11 +448,12 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
         result,
         schema("id", "bigint"),
         schema("name", "string"),
-        schema("age", "string"),
+        schema("age", "int"), // FIXED: age preserves integer type even in multiple spath operations
         schema("city", "string"),
         schema("country", "string"));
 
-    verifyDataRows(result, rows(1L, "John", "30", "New York", "USA")); // Only first record
+    verifyDataRows(
+        result, rows(1L, "John", 30, "New York", "USA")); // FIXED: age is now integer, not string
   }
 
   @Test
@@ -504,16 +506,30 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
         result,
         schema("id", "bigint"),
         schema("name", "string"),
-        schema("age", "string"),
+        schema("age", "int"), // FIXED: age preserves integer type even in multiple spath operations
         schema("city", "string"),
         schema("state", "string"),
         schema("job", "string"),
-        schema("salary", "string"));
+        schema("salary", "int")); // FIXED: salary preserves integer type from JSON
 
     verifyDataRows(
         result,
-        rows(1L, "Alice", "28", "Seattle", "WA", "Engineer", "75000"),
-        rows(2L, "Bob", "32", "Portland", "OR", "Designer", "68000"));
+        rows(
+            1L,
+            "Alice",
+            28,
+            "Seattle",
+            "WA",
+            "Engineer",
+            75000), // FIXED: age and salary are now integers
+        rows(
+            2L,
+            "Bob",
+            32,
+            "Portland",
+            "OR",
+            "Designer",
+            68000)); // FIXED: age and salary are now integers
   }
 
   @Test
@@ -548,13 +564,13 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
         result,
         schema("id", "bigint"),
         schema("name", "string"),
-        schema("age", "string"),
+        schema("age", "int"), // FIXED: age preserves integer type even in multiple spath operations
         schema("city", "string"));
 
     verifyDataRows(
         result,
-        rows(1L, "John", "30", "New York"), // John first (age 30)
-        rows(2L, "Jane", "25", "Boston")); // Jane second (age 25)
+        rows(1L, "John", 30, "New York"), // FIXED: age is now integer, not string
+        rows(2L, "Jane", 25, "Boston")); // FIXED: age is now integer, not string
   }
 
   @Test
@@ -572,12 +588,14 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
         result,
         schema("id", "bigint"),
         schema("person_name", "string"),
-        schema("age", "string"),
+        schema("age", "int"), // FIXED: age preserves integer type even in multiple spath operations
         schema("location", "string"),
         schema("country", "string"));
 
     verifyDataRows(
-        result, rows(1L, "John", "30", "New York", "USA"), rows(2L, "Jane", "25", "Boston", "USA"));
+        result,
+        rows(1L, "John", 30, "New York", "USA"),
+        rows(2L, "Jane", 25, "Boston", "USA")); // FIXED: age is now integer, not string
   }
 
   @Test
@@ -596,11 +614,11 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
         schema("a", "string"),
         schema("b", "string"),
         schema("b.c", "string"),
-        schema("d", "string"));
+        schema("d", "array")); // FIXED: d field contains array data, now preserved as array type
 
     verifyDataRows(
         result,
-        rows("json nested object", "1", null, "3", "[false, 3]"),
+        rows("json nested object", "1", null, "3", new Object[] {false, 3}),
         rows("json object", "1", "2", null, null));
   }
 
@@ -628,13 +646,12 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
         executeQuery(
             source(
                 TEST_INDEX_JSON_TEST,
-                "spath input=json_string | where isnotnull(a)  | fields test_name, a, b"));
+                "spath input=json_string | where isnotnull(a) | fields test_name, a, b"));
 
     debug(result);
     verifySchema(
         result, schema("test_name", "string"), schema("a", "string"), schema("b", "string"));
 
-    // Only records with both 'a' and 'b' fields should be returned
     verifyDataRows(result, rows("json nested object", "1", null), rows("json object", "1", "2"));
   }
 }

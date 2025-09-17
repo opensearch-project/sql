@@ -188,6 +188,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitFilter(Filter node, CalcitePlanContext context) {
+    System.out.println("=== DEBUG visitFilter === node=" + node);
     visitChildren(node, context);
     boolean containsSubqueryExpression = containsSubqueryExpression(node.getCondition());
     final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
@@ -196,12 +197,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       context.pushCorrelVar(v.get());
     }
     RexNode condition = rexVisitor.analyze(node.getCondition(), context);
+    System.out.println("=== DEBUG condition === condition=" + condition);
     if (containsSubqueryExpression) {
+      System.out.println("=== DEBUG containsSubqueryExpression ===");
       context.relBuilder.filter(ImmutableList.of(v.get().id), condition);
       context.popCorrelVar();
     } else {
+      System.out.println("=== DEBUG !containsSubqueryExpression ===");
       context.relBuilder.filter(condition);
     }
+    System.out.println("=== DEBUG " + context.relBuilder.toString());
     return context.relBuilder.peek();
   }
 

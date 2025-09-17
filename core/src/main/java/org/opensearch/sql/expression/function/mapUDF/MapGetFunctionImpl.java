@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.expression.function.mapUDF;
 
+import static org.opensearch.sql.calcite.utils.PPLReturnTypes.ANY_FORCE_NULLABLE;
+
 import java.util.List;
 import java.util.Map;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
@@ -16,7 +18,6 @@ import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.sql.type.OperandTypes;
-import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.opensearch.sql.expression.function.ImplementorUDF;
@@ -40,7 +41,7 @@ public class MapGetFunctionImpl extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return ReturnTypes.VARCHAR_NULLABLE;
+    return ANY_FORCE_NULLABLE;
   }
 
   @Override

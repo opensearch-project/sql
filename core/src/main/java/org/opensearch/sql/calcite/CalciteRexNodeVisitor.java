@@ -248,6 +248,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   /** Resolve qualified name. Note, the name should be case-sensitive. */
   @Override
   public RexNode visitQualifiedName(QualifiedName node, CalcitePlanContext context) {
+    System.out.println("=== DEBUG visitQualifiedName === node=" + node);
     // 1. resolve QualifiedName in join condition
     if (context.isResolvingJoinCondition()) {
       List<String> parts = node.getParts();
@@ -291,7 +292,9 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     }
     List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
 
-    if (!currentFields.contains(qualifiedName) && context.isInCoalesceFunction()) {
+    if (!currentFields.contains(qualifiedName)
+        && context.isInCoalesceFunction()
+        && !context.isDynamicColumnsAvailable()) {
       return context.rexBuilder.makeNullLiteral(
           context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR));
     }
@@ -478,6 +481,11 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     List<RexNode> arguments = new ArrayList<>();
 
     boolean isCoalesce = "coalesce".equalsIgnoreCase(node.getFuncName());
+    // boolean isNotNull = "is not null".equalsIgnoreCase(node.getFuncName()) ||
+    //                    "isnotnull".equalsIgnoreCase(node.getFuncName());
+    // System.out.println("=== DEBUG visitFunction === node=" + node + ", isCoalesce=" + isCoalesce
+    // + ", isNotNull=" + isNotNull);
+
     if (isCoalesce) {
       context.setInCoalesceFunction(true);
     }
@@ -723,6 +731,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
    * commands: Use direct MAP access preserving original types
    */
   private RexNode resolveDynamicField(String fieldName, CalcitePlanContext context) {
+    System.out.println("=== DEBUG resolveDynamicField === fieldName=" + fieldName);
     // Access the _dynamic_columns MAP field
     RexNode dynamicColumnsField = context.relBuilder.field("_dynamic_columns");
 
