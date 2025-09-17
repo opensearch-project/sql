@@ -70,8 +70,10 @@ import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
 import org.opensearch.sql.opensearch.response.agg.ArgMaxMinParser;
 import org.opensearch.sql.opensearch.response.agg.BucketAggregationParser;
@@ -306,14 +308,46 @@ public class AggregateAnalyzer {
             helper.build(
                 !args.isEmpty() ? args.get(0) : null, AggregationBuilders.count(aggFieldName)),
             new SingleValueParser(aggFieldName));
-      case MIN:
-        return Pair.of(
-            helper.build(args.get(0), AggregationBuilders.min(aggFieldName)),
-            new SingleValueParser(aggFieldName));
-      case MAX:
-        return Pair.of(
-            helper.build(args.get(0), AggregationBuilders.max(aggFieldName)),
-            new SingleValueParser(aggFieldName));
+      case MIN: {
+        String fieldName = helper.inferNamedField(args.get(0)).getRootName();
+        ExprType fieldType = helper.fieldTypes.get(fieldName);
+
+        if (supportsMaxMinAggregation(fieldType)) {
+          return Pair.of(
+              helper.build(args.get(0), AggregationBuilders.min(aggFieldName)),
+              new SingleValueParser(aggFieldName));
+        } else {
+          return Pair.of(
+              AggregationBuilders.topHits(aggFieldName)
+                  .fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null)
+                  .size(1)
+                  .from(0)
+                  .sort(
+                      helper.inferNamedField(args.get(0)).getReferenceForTermQuery(),
+                      SortOrder.ASC),
+              new TopHitsParser(aggFieldName, true));
+        }
+      }
+      case MAX: {
+        String fieldName = helper.inferNamedField(args.get(0)).getRootName();
+        ExprType fieldType = helper.fieldTypes.get(fieldName);
+
+        if (supportsMaxMinAggregation(fieldType)) {
+          return Pair.of(
+              helper.build(args.get(0), AggregationBuilders.max(aggFieldName)),
+              new SingleValueParser(aggFieldName));
+        } else {
+          return Pair.of(
+              AggregationBuilders.topHits(aggFieldName)
+                  .fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null)
+                  .size(1)
+                  .from(0)
+                  .sort(
+                      helper.inferNamedField(args.get(0)).getReferenceForTermQuery(),
+                      SortOrder.DESC),
+              new TopHitsParser(aggFieldName, true));
+        }
+      }
       case VAR_SAMP:
         return Pair.of(
             helper.build(args.get(0), AggregationBuilders.extendedStats(aggFieldName)),
@@ -396,6 +430,18 @@ public class AggregateAnalyzer {
         throw new AggregateAnalyzerException(
             String.format("unsupported aggregator %s", aggCall.getAggregation()));
     }
+  }
+
+  private static boolean supportsMaxMinAggregation(ExprType fieldType) {
+    ExprType coreType =
+        (fieldType instanceof OpenSearchDataType)
+            ? ((OpenSearchDataType) fieldType).getExprType()
+            : fieldType;
+
+    return ExprCoreType.numberTypes().contains(coreType)
+        || coreType == ExprCoreType.DATE
+        || coreType == ExprCoreType.TIME
+        || coreType == ExprCoreType.TIMESTAMP;
   }
 
   private static ValuesSourceAggregationBuilder<?> createBucketAggregation(
