@@ -518,6 +518,15 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testValuesAggregationExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_values_aggregation.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats values(age) as age_values"));
+  }
+
+  @Test
   public void testRexExplain() throws IOException {
     String query =
         "source=opensearch-sql_test_index_account | rex field=lastname \\\"(?<initial>^[A-Z])\\\" |"

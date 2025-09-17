@@ -286,6 +286,17 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
             + " [INTEGER,STRING,STRING]");
   }
 
+  // Test VALUES function with array expression (which is not a supported scalar type)
+  @Test
+  public void testValuesFunctionWithArrayArgType() {
+    verifyQueryThrowsException(
+        "source=EMP | stats values(array(ENAME, JOB)) as unique_values",
+        "Aggregation function VALUES expects field type"
+            + " {[BYTE]|[SHORT]|[INTEGER]|[LONG]|[FLOAT]|[DOUBLE]|[STRING]|[BOOLEAN]|[DATE]|[TIME]|[TIMESTAMP]|[IP]|[BINARY]|[BYTE,INTEGER]"
+            + "|[SHORT,INTEGER]|[INTEGER,INTEGER]|[LONG,INTEGER]|[FLOAT,INTEGER]|[DOUBLE,INTEGER]|[STRING,INTEGER]|[BOOLEAN,INTEGER]|[DATE,INTEGER]|[TIME,INTEGER]|[TIMESTAMP,INTEGER]|[IP,INTEGER]|[BINARY,INTEGER]},"
+            + " but got [ARRAY]");
+  }
+
   // mvjoin should reject non-string single values
   @Test
   public void testMvjoinRejectsNonStringValues() {
