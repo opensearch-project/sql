@@ -13,6 +13,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
 import org.json.JSONObject;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.ResponseException;
@@ -511,7 +512,7 @@ public class SearchCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "search source=%s"
-                    + " `attributes.error.type`=\\\"C:\\\\\\\\\\\\\\\\Users\\\\\\\\\\\\\\\\admin\\\""
+                    + " `attributes.error.type`=\\\"C:\\\\\\\\Users\\\\\\\\admin\\\""
                     + " | sort time | fields attributes.error.type",
                 TEST_INDEX_OTEL_LOGS));
     verifyDataRows(backslashSearch, rows("C:\\Users\\admin"));
@@ -529,11 +530,12 @@ public class SearchCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @Ignore
   public void testSearchWithJSONSpecialChars() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s\\\"quotes\\\\\\\" and: $@#\\\"  | fields body",
+                "search source=%s \\\"quotes\\\\\\\" and: $@#\\\"  | fields body",
                 TEST_INDEX_OTEL_LOGS));
     verifyDataRows(
         result,

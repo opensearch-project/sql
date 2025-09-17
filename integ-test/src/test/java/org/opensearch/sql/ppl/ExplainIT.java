@@ -688,7 +688,7 @@ public class ExplainIT extends PPLIntegTestCase {
     String expected = loadExpectedPlan("explain_search_basic_text.json");
     assertJsonEqualsIgnoreId(
         expected,
-        explainQueryToString(String.format("search source=%s ERROR", TEST_INDEX_OTEL_LOGS)));
+        explainQueryToString(String.format("search source=%s ERROR | fields body", TEST_INDEX_OTEL_LOGS)));
   }
 
   @Test
@@ -698,7 +698,7 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            String.format("search source=%s severityNumber>15", TEST_INDEX_OTEL_LOGS)));
+            String.format("search source=%s severityNumber>15 | fields severityNumber ", TEST_INDEX_OTEL_LOGS)));
   }
 
   @Test
@@ -708,6 +708,6 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            String.format("search source=%s severityText=ERR*", TEST_INDEX_OTEL_LOGS)));
+            String.format("search source=%s severityText=ERR* | fields severityText ", TEST_INDEX_OTEL_LOGS)));
   }
 }
