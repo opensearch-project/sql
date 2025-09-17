@@ -8,6 +8,12 @@ Date and Time Functions
    :local:
    :depth: 1
 
+.. note::
+
+    All PPL date and time functions use the UTC time zone. Both input and output values are interpreted as UTC.
+    For instance, an input timestamp literal like '2020-08-26 01:01:01' is assumed to be in UTC, and the now()
+    function also returns the current date and time in UTC.
+
 ADDDATE
 -------
 
@@ -112,7 +118,7 @@ Description
 
 Usage: convert_tz(timestamp, from_timezone, to_timezone) constructs a local timestamp converted from the from_timezone to the to_timezone. CONVERT_TZ returns null when any of the three function arguments are invalid, i.e. timestamp is not in the format yyyy-MM-dd HH:mm:ss or the timeszone is not in (+/-)HH:mm. It also is invalid for invalid dates, such as February 30th and invalid timezones, which are ones outside of -13:59 and +14:00.
 
-Argument type: TIMESTAMP, STRING, STRING
+Argument type: TIMESTAMP/STRING, STRING, STRING
 
 Return type: TIMESTAMP
 
@@ -244,8 +250,9 @@ CURDATE
 Description
 >>>>>>>>>>>
 
-Returns the current time as a value in 'YYYY-MM-DD'.
-CURDATE() returns the time at which it executes as `SYSDATE() <#sysdate>`_ does.
+Returns the current date as a value in 'YYYY-MM-DD' format.
+CURDATE() returns the current date in UTC at the time the statement is executed.
+
 
 Return type: DATE
 
@@ -268,7 +275,7 @@ CURRENT_DATE
 Description
 >>>>>>>>>>>
 
-`CURRENT_DATE()` are synonyms for `CURDATE() <#curdate>`_.
+`CURRENT_DATE()` is a synonym for `CURDATE() <#curdate>`_.
 
 Example::
 
@@ -287,7 +294,7 @@ CURRENT_TIME
 Description
 >>>>>>>>>>>
 
-`CURRENT_TIME()` are synonyms for `CURTIME() <#curtime>`_.
+`CURRENT_TIME()` is a synonym for `CURTIME() <#curtime>`_.
 
 Example::
 
@@ -306,7 +313,7 @@ CURRENT_TIMESTAMP
 Description
 >>>>>>>>>>>
 
-`CURRENT_TIMESTAMP()` are synonyms for `NOW() <#now>`_.
+`CURRENT_TIMESTAMP()` is a synonym for `NOW() <#now>`_.
 
 Example::
 
@@ -325,7 +332,7 @@ CURTIME
 Description
 >>>>>>>>>>>
 
-Returns the current time as a value in 'hh:mm:ss'.
+Returns the current time as a value in 'hh:mm:ss' format in the UTC time zone.
 CURTIME() returns the time at which the statement began to execute as `NOW() <#now>`_ does.
 
 Return type: TIME
@@ -1177,7 +1184,7 @@ Example::
 
 
 MINUTE_OF_DAY
-------
+-------------
 
 Description
 >>>>>>>>>>>
@@ -1303,7 +1310,7 @@ NOW
 Description
 >>>>>>>>>>>
 
-Returns the current date and time as a value in 'YYYY-MM-DD hh:mm:ss' format. The value is expressed in the cluster time zone.
+Returns the current date and time as a value in 'YYYY-MM-DD hh:mm:ss' format. The value is expressed in the UTC time zone.
 `NOW()` returns a constant time that indicates the time at which the statement began to execute. This differs from the behavior for `SYSDATE() <#sysdate>`_, which returns the exact time at which it executes.
 
 Return type: TIMESTAMP
@@ -1466,6 +1473,172 @@ Example::
     +------------------------------------+
 
 
+STRFTIME
+--------
+
+**Version: 3.3.0**
+
+Description
+>>>>>>>>>>>
+
+Usage: strftime(time, format) takes a UNIX timestamp (in seconds) and renders it as a string using the format specified. For numeric inputs, the UNIX time must be in seconds. Values greater than 100000000000 are automatically treated as milliseconds and converted to seconds.
+You can use time format variables with the strftime function. This function performs the reverse operation of `UNIX_TIMESTAMP`_ and is similar to `FROM_UNIXTIME`_ but with POSIX-style format specifiers.
+
+.. note::
+    - **Available only when Calcite engine is enabled**
+    - All timestamps are interpreted as UTC timezone
+    - Text formatting uses language-neutral Locale.ROOT (weekday and month names appear in abbreviated form)
+    - String inputs are NOT supported - use `unix_timestamp()` to convert strings first
+    - Functions that return date/time values (like `date()`, `now()`, `timestamp()`) are supported
+
+Argument type: INTEGER/LONG/DOUBLE/TIMESTAMP, STRING
+
+Return type: STRING
+
+Format specifiers:
+
+.. list-table:: The following table describes the available specifier arguments.
+   :widths: 20 80
+   :header-rows: 1
+
+   * - Specifier
+     - Description
+   * - %a
+     - Abbreviated weekday name (Mon..Sun)
+   * - %A
+     - Weekday name (Mon..Sun) - Note: Locale.ROOT uses abbreviated form
+   * - %b
+     - Abbreviated month name (Jan..Dec)
+   * - %B
+     - Month name (Jan..Dec) - Note: Locale.ROOT uses abbreviated form
+   * - %c
+     - Date and time (e.g., Mon Jul 18 09:30:00 2019)
+   * - %C
+     - Century as 2-digit decimal number
+   * - %d
+     - Day of the month, zero-padded (01..31)
+   * - %e
+     - Day of the month, space-padded ( 1..31)
+   * - %Ez
+     - Timezone offset in minutes from UTC (e.g., +0 for UTC, +330 for IST, -300 for EST)
+   * - %f
+     - Microseconds as decimal number (000000..999999)
+   * - %F
+     - ISO 8601 date format (%Y-%m-%d)
+   * - %g
+     - ISO 8601 year without century (00..99)
+   * - %G
+     - ISO 8601 year with century
+   * - %H
+     - Hour (24-hour clock) (00..23)
+   * - %I
+     - Hour (12-hour clock) (01..12)
+   * - %j
+     - Day of year (001..366)
+   * - %k
+     - Hour (24-hour clock), space-padded ( 0..23)
+   * - %m
+     - Month as decimal number (01..12)
+   * - %M
+     - Minute (00..59)
+   * - %N
+     - Subsecond digits (default %9N = nanoseconds). Accepts any precision value from 1-9 (e.g., %3N = 3 digits, %5N = 5 digits, %9N = 9 digits). The precision directly controls the number of digits displayed
+   * - %p
+     - AM or PM
+   * - %Q
+     - Subsecond component (default milliseconds). Can specify precision: %3Q = milliseconds, %6Q = microseconds, %9Q = nanoseconds. Other precision values (e.g., %5Q) default to %3Q
+   * - %s
+     - UNIX Epoch timestamp in seconds
+   * - %S
+     - Second (00..59)
+   * - %T
+     - Time in 24-hour notation (%H:%M:%S)
+   * - %U
+     - Week of year starting from 0 (00..53)
+   * - %V
+     - ISO week number (01..53)
+   * - %w
+     - Weekday as decimal (0=Sunday..6=Saturday)
+   * - %x
+     - Date in MM/dd/yyyy format (e.g., 07/13/2019)
+   * - %X
+     - Time in HH:mm:ss format (e.g., 09:30:00)
+   * - %y
+     - Year without century (00..99)
+   * - %Y
+     - Year with century
+   * - %z
+     - Timezone offset (+hhmm or -hhmm)
+   * - %:z
+     - Timezone offset with colon (+hh:mm or -hh:mm)
+   * - %::z
+     - Timezone offset with colons (+hh:mm:ss)
+   * - %:::z
+     - Timezone offset hour only (+hh or -hh)
+   * - %Z
+     - Timezone abbreviation (e.g., EST, PDT)
+   * - %%
+     - Literal % character
+
+Examples::
+
+    #os> source=people | eval `strftime(1521467703, "%Y-%m-%dT%H:%M:%S")` = strftime(1521467703, "%Y-%m-%dT%H:%M:%S") | fields `strftime(1521467703, "%Y-%m-%dT%H:%M:%S")`
+    fetched rows / total rows = 1/1
+    +-------------------------------------------+
+    | strftime(1521467703, "%Y-%m-%dT%H:%M:%S") |
+    |-------------------------------------------|
+    | 2018-03-19T13:55:03                       |
+    +-------------------------------------------+
+
+    #os> source=people | eval `strftime(1521467703, "%F %T")` = strftime(1521467703, "%F %T") | fields `strftime(1521467703, "%F %T")`
+    fetched rows / total rows = 1/1
+    +-------------------------------+
+    | strftime(1521467703, "%F %T") |
+    |-------------------------------|
+    | 2018-03-19 13:55:03           |
+    +-------------------------------+
+
+    #os> source=people | eval `strftime(1521467703, "%a %b %d, %Y")` = strftime(1521467703, "%a %b %d, %Y") | fields `strftime(1521467703, "%a %b %d, %Y")`
+    fetched rows / total rows = 1/1
+    +--------------------------------------+
+    | strftime(1521467703, "%a %b %d, %Y") |
+    |--------------------------------------|
+    | Mon Mar 19, 2018                     |
+    +--------------------------------------+
+
+    #os> source=people | eval `strftime(1521467703, "%%Y")` = strftime(1521467703, "%%Y") | fields `strftime(1521467703, "%%Y")`
+    fetched rows / total rows = 1/1
+    +---------------------------+
+    | strftime(1521467703, "%%Y") |
+    |---------------------------|
+    | %Y                        |
+    +---------------------------+
+
+    #os> source=people | eval `strftime(date('2020-09-16'), "%Y-%m-%d")` = strftime(date('2020-09-16'), "%Y-%m-%d") | fields `strftime(date('2020-09-16'), "%Y-%m-%d")`
+    fetched rows / total rows = 1/1
+    +----------------------------------------+
+    | strftime(date('2020-09-16'), "%Y-%m-%d") |
+    |-----------------------------------------|
+    | 2020-09-16                             |
+    +----------------------------------------+
+
+    #os> source=people | eval `strftime(timestamp('2020-09-16 14:30:00'), "%F %T")` = strftime(timestamp('2020-09-16 14:30:00'), "%F %T") | fields `strftime(timestamp('2020-09-16 14:30:00'), "%F %T")`
+    fetched rows / total rows = 1/1
+    +--------------------------------------------------+
+    | strftime(timestamp('2020-09-16 14:30:00'), "%F %T") |
+    |---------------------------------------------------|
+    | 2020-09-16 14:30:00                              |
+    +--------------------------------------------------+
+
+    #os> source=people | eval `strftime(now(), "%Y-%m-%d %H:%M:%S")` = strftime(now(), "%Y-%m-%d %H:%M:%S") | fields `strftime(now(), "%Y-%m-%d %H:%M:%S")`
+    fetched rows / total rows = 1/1
+    +------------------------------------+
+    | strftime(now(), "%Y-%m-%d %H:%M:%S") |
+    |-------------------------------------|
+    | 2025-09-03 12:30:45                |
+    +------------------------------------+
+
+
 STR_TO_DATE
 -----------
 
@@ -1594,8 +1767,8 @@ Description
 >>>>>>>>>>>
 
 Returns the current date and time as a value in 'YYYY-MM-DD hh:mm:ss[.nnnnnn]'.
-SYSDATE() returns the time at which it executes. This differs from the behavior for `NOW() <#now>`_, which returns a constant time that indicates the time at which the statement began to execute.
-If the argument is given, it specifies a fractional seconds precision from 0 to 6, the return value includes a fractional seconds part of that many digits.
+SYSDATE() returns the date and time at which it executes in UTC. This differs from the behavior for `NOW() <#now>`_, which returns a constant time that indicates the time at which the statement began to execute.
+If an argument is given, it specifies a fractional seconds precision from 0 to 6, the return value includes a fractional seconds part of that many digits.
 
 Optional argument type: INTEGER
 

@@ -16,8 +16,10 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 /**
  * Convert number x from base a to base b<br>
@@ -35,6 +37,11 @@ public class ConvFunction extends ImplementorUDF {
     return PPLReturnTypes.STRING_FORCE_NULLABLE;
   }
 
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+    return PPLOperandTypes.STRING_OR_INTEGER_INTEGER_INTEGER;
+  }
+
   public static class ConvImplementor implements NotNullImplementor {
     @Override
     public Expression implement(
@@ -45,7 +52,7 @@ public class ConvFunction extends ImplementorUDF {
       Expression toBase = translatedOperands.get(2);
       if (numberType.getFamily() == SqlTypeFamily.NUMERIC) {
         // Convert the first operand to String
-        number = Expressions.call(Object.class, "toString", number);
+        number = Expressions.call(Expressions.box(number), "toString");
       }
       return Expressions.call(ConvImplementor.class, "conv", number, fromBase, toBase);
     }

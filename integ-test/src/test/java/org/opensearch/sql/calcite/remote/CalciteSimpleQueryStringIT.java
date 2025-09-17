@@ -12,8 +12,5 @@ public class CalciteSimpleQueryStringIT extends SimpleQueryStringIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    // Search Functions are not supported
-    // TODO: "https://github.com/opensearch-project/sql/issues/3462"
-    // disallowCalciteFallback();
   }
 }

@@ -35,6 +35,7 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.search.collapse.CollapseBuilder;
 import org.opensearch.search.fetch.subphase.FetchSourceContext;
 import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.opensearch.search.sort.SortBuilder;
@@ -68,13 +69,23 @@ public class OpenSearchRequestBuilder {
   @EqualsAndHashCode.Exclude @ToString.Exclude
   private final OpenSearchExprValueFactory exprValueFactory;
 
+  @EqualsAndHashCode.Exclude @ToString.Exclude private final int maxResultWindow;
+
   private int startFrom = 0;
 
   @ToString.Exclude private final Settings settings;
 
+  public static class PushDownUnSupportedException extends RuntimeException {
+    public PushDownUnSupportedException(String message) {
+      super(message);
+    }
+  }
+
   /** Constructor. */
-  public OpenSearchRequestBuilder(OpenSearchExprValueFactory exprValueFactory, Settings settings) {
+  public OpenSearchRequestBuilder(
+      OpenSearchExprValueFactory exprValueFactory, int maxResultWindow, Settings settings) {
     this.settings = settings;
+    this.maxResultWindow = maxResultWindow;
     this.sourceBuilder =
         new SearchSourceBuilder()
             .from(startFrom)
@@ -89,16 +100,12 @@ public class OpenSearchRequestBuilder {
    * @return query request with PIT or scroll request
    */
   public OpenSearchRequest build(
-      OpenSearchRequest.IndexName indexName,
-      int maxResultWindow,
-      TimeValue cursorKeepAlive,
-      OpenSearchClient client) {
-    return build(indexName, maxResultWindow, cursorKeepAlive, client, false);
+      OpenSearchRequest.IndexName indexName, TimeValue cursorKeepAlive, OpenSearchClient client) {
+    return build(indexName, cursorKeepAlive, client, false);
   }
 
   public OpenSearchRequest build(
       OpenSearchRequest.IndexName indexName,
-      int maxResultWindow,
       TimeValue cursorKeepAlive,
       OpenSearchClient client,
       boolean isMappingEmpty) {
@@ -109,14 +116,11 @@ public class OpenSearchRequestBuilder {
     if (sourceBuilder.size() == 0 || isMappingEmpty) {
       return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory, List.of());
     }
-    return buildRequestWithPit(indexName, maxResultWindow, cursorKeepAlive, client);
+    return buildRequestWithPit(indexName, cursorKeepAlive, client);
   }
 
   private OpenSearchRequest buildRequestWithPit(
-      OpenSearchRequest.IndexName indexName,
-      int maxResultWindow,
-      TimeValue cursorKeepAlive,
-      OpenSearchClient client) {
+      OpenSearchRequest.IndexName indexName, TimeValue cursorKeepAlive, OpenSearchClient client) {
     int size = requestedTotalSize;
     FetchSourceContext fetchSource = this.sourceBuilder.fetchSource();
     List<String> includes = fetchSource != null ? Arrays.asList(fetchSource.includes()) : List.of();
@@ -191,6 +195,10 @@ public class OpenSearchRequestBuilder {
     aggregationBuilder.getLeft().forEach(sourceBuilder::aggregation);
     sourceBuilder.size(0);
     exprValueFactory.setParser(aggregationBuilder.getRight());
+    // no need to sort docs for aggregation
+    if (sourceBuilder.sorts() != null) {
+      sourceBuilder.sorts().clear();
+    }
   }
 
   /**
@@ -218,10 +226,20 @@ public class OpenSearchRequestBuilder {
     // Besides, there may be cases when the existing requestedTotalSize does not satisfy the
     // new limit and offset. E.g. for `head 11 | head 10 from 2`, the new requested total size
     // is 9. We need to adjust it accordingly.
-    requestedTotalSize = Math.min(limit, requestedTotalSize - offset);
+    int newRequestedTotalSize = Math.min(limit, requestedTotalSize - offset);
     // If there are multiple offset, we aggregate the offset
     // E.g. for `head 10 from 1 | head 5 from 2` equals to `head 5 from 3`
-    startFrom += offset;
+    int newStartFrom = startFrom + offset;
+
+    if (newStartFrom >= maxResultWindow) {
+      throw new PushDownUnSupportedException(
+          String.format(
+              "Requested offset %d should be less than the max result window %d",
+              newStartFrom, maxResultWindow));
+    }
+
+    requestedTotalSize = newRequestedTotalSize;
+    startFrom = newStartFrom;
     sourceBuilder.from(startFrom).size(requestedTotalSize);
   }
 
@@ -282,6 +300,10 @@ public class OpenSearchRequestBuilder {
 
   public void pushTypeMapping(Map<String, OpenSearchDataType> typeMapping) {
     exprValueFactory.extendTypeMapping(typeMapping);
+  }
+
+  public void pushDownCollapse(String field) {
+    sourceBuilder.collapse(new CollapseBuilder(field));
   }
 
   private boolean isSortByDocOnly() {

@@ -17,7 +17,9 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.data.model.ExprIpValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
 import org.opensearch.sql.expression.ip.IPFunctions;
 
 /**
@@ -40,6 +42,17 @@ public class CidrMatchFunction extends ImplementorUDF {
     return ReturnTypes.BOOLEAN_FORCE_NULLABLE;
   }
 
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+    // EXPR_IP is mapped to SqlTypeFamily.OTHER in
+    // UserDefinedFunctionUtils.convertRelDataTypeToSqlTypeName
+    // We use a specific type checker to serve
+    return UDFOperandMetadata.wrapUDT(
+        List.of(
+            List.of(ExprCoreType.IP, ExprCoreType.STRING),
+            List.of(ExprCoreType.STRING, ExprCoreType.STRING)));
+  }
+
   public static class CidrMatchImplementor implements NotNullImplementor {
     @Override
     public Expression implement(
@@ -47,9 +60,16 @@ public class CidrMatchFunction extends ImplementorUDF {
       return Expressions.call(CidrMatchImplementor.class, "cidrMatch", translatedOperands);
     }
 
-    public static boolean cidrMatch(ExprIpValue ip, String cidr) {
+    public static boolean cidrMatch(Object ip, String cidr) {
+      ExprValue ipValue;
+      if (ip instanceof ExprIpValue) {
+        ipValue = (ExprIpValue) ip;
+      } else {
+        // Deserialization workaround
+        ipValue = new ExprIpValue((String) ip);
+      }
       ExprValue cidrValue = ExprValueUtils.stringValue(cidr);
-      return (boolean) IPFunctions.exprCidrMatch(ip, cidrValue).valueForCalcite();
+      return (boolean) IPFunctions.exprCidrMatch(ipValue, cidrValue).valueForCalcite();
     }
 
     public static boolean cidrMatch(String ip, String cidr) {

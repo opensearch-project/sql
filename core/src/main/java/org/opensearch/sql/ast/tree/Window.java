@@ -21,7 +21,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 public class Window extends UnresolvedPlan {
 
   private final List<UnresolvedExpression> windowFunctionList;
-  private UnresolvedPlan child;
+  @ToString.Exclude private UnresolvedPlan child;
 
   @Override
   public Window attach(UnresolvedPlan child) {
@@ -31,7 +31,7 @@ public class Window extends UnresolvedPlan {
 
   @Override
   public List<UnresolvedPlan> getChild() {
-    return ImmutableList.of(this.child);
+    return this.child == null ? ImmutableList.of() : ImmutableList.of(this.child);
   }
 
   @Override

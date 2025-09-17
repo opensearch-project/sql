@@ -30,6 +30,32 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql = "" + "SELECT COUNT(*) `c`\n" + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
+
+    ppl = "source=EMP | stats c() as count_emp";
+    root = getRelNode(ppl);
+    expectedLogical =
+        ""
+            + "LogicalAggregate(group=[{}], count_emp=[COUNT()])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    expectedResult = "count_emp=14\n";
+    verifyResult(root, expectedResult);
+
+    expectedSparkSql = "" + "SELECT COUNT(*) `count_emp`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+
+    ppl = "source=EMP | stats count as cnt";
+    root = getRelNode(ppl);
+    expectedLogical =
+        ""
+            + "LogicalAggregate(group=[{}], cnt=[COUNT()])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    expectedResult = "cnt=14\n";
+    verifyResult(root, expectedResult);
+
+    expectedSparkSql = "" + "SELECT COUNT(*) `cnt`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
@@ -37,8 +63,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | stats take(JOB, 2) as c";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        ""
-            + "LogicalAggregate(group=[{}], c=[TAKE($0, $1)])\n"
+        "LogicalAggregate(group=[{}], c=[TAKE($0, $1)])\n"
             + "  LogicalProject(JOB=[$2], $f1=[2])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
@@ -59,7 +84,24 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
             + "  LogicalProject(SAL=[$5])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "avg(SAL)=2073.21\n";
+    String expectedResult = "avg(SAL)=2073.214285\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql = "" + "SELECT AVG(`SAL`) `avg(SAL)`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testNonBucketNullableShouldNotImpactAggregateWithoutGroupBy() {
+    String ppl = "source=EMP | stats bucket_nullable=false avg(SAL)";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        ""
+            + "LogicalAggregate(group=[{}], avg(SAL)=[AVG($0)])\n"
+            + "  LogicalProject(SAL=[$5])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    String expectedResult = "avg(SAL)=2073.214285\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql = "" + "SELECT AVG(`SAL`) `avg(SAL)`\n" + "FROM `scott`.`EMP`";
@@ -78,10 +120,49 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
             + "  LogicalProject(SAL=[$5])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "avg_sal=2073.21; max_sal=5000.00; min_sal=800.00; cnt=14\n";
+    String expectedResult = "avg_sal=2073.214285; max_sal=5000.00; min_sal=800.00; cnt=14\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
+        "SELECT AVG(`SAL`) `avg_sal`, MAX(`SAL`) `max_sal`, MIN(`SAL`) `min_sal`, COUNT(*) `cnt`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMultipleAggregatesWithCountAbbreviation() {
+    String ppl =
+        "source=EMP | stats avg(SAL) as avg_sal, max(SAL) as max_sal, min(SAL) as min_sal, c()"
+            + " as cnt";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalAggregate(group=[{}], avg_sal=[AVG($0)], max_sal=[MAX($0)], min_sal=[MIN($0)],"
+            + " cnt=[COUNT()])\n"
+            + "  LogicalProject(SAL=[$5])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    String expectedResult = "avg_sal=2073.214285; max_sal=5000.00; min_sal=800.00; cnt=14\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT AVG(`SAL`) `avg_sal`, MAX(`SAL`) `max_sal`, MIN(`SAL`) `min_sal`, COUNT(*) `cnt`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+
+    ppl =
+        "source=EMP | stats avg(SAL) as avg_sal, max(SAL) as max_sal, min(SAL) as min_sal, count as"
+            + " cnt";
+    root = getRelNode(ppl);
+    expectedLogical =
+        "LogicalAggregate(group=[{}], avg_sal=[AVG($0)], max_sal=[MAX($0)], min_sal=[MIN($0)],"
+            + " cnt=[COUNT()])\n"
+            + "  LogicalProject(SAL=[$5])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    expectedResult = "avg_sal=2073.214285; max_sal=5000.00; min_sal=800.00; cnt=14\n";
+    verifyResult(root, expectedResult);
+
+    expectedSparkSql =
         "SELECT AVG(`SAL`) `avg_sal`, MAX(`SAL`) `max_sal`, MIN(`SAL`) `min_sal`, COUNT(*) `cnt`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -103,9 +184,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     String expectedResult =
         ""
-            + "avg_sal=2175.00; max_sal=3000.00; min_sal=800.00; cnt=5; DEPTNO=20\n"
-            + "avg_sal=2916.66; max_sal=5000.00; min_sal=1300.00; cnt=3; DEPTNO=10\n"
-            + "avg_sal=1566.66; max_sal=2850.00; min_sal=950.00; cnt=6; DEPTNO=30\n";
+            + "avg_sal=2175.; max_sal=3000.00; min_sal=800.00; cnt=5; DEPTNO=20\n"
+            + "avg_sal=2916.666666; max_sal=5000.00; min_sal=1300.00; cnt=3; DEPTNO=10\n"
+            + "avg_sal=1566.666666; max_sal=2850.00; min_sal=950.00; cnt=6; DEPTNO=30\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
@@ -129,9 +210,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     String expectedResult =
         ""
-            + "avg(SAL)=2175.00; DEPTNO=20\n"
-            + "avg(SAL)=2916.66; DEPTNO=10\n"
-            + "avg(SAL)=1566.66; DEPTNO=30\n";
+            + "avg(SAL)=2175.; DEPTNO=20\n"
+            + "avg(SAL)=2916.666666; DEPTNO=10\n"
+            + "avg(SAL)=1566.666666; DEPTNO=30\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
@@ -139,6 +220,34 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
             + "SELECT AVG(`SAL`) `avg(SAL)`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `DEPTNO`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testAvgByFieldNonBucketNullable() {
+    String ppl = "source=EMP | stats bucket_nullable=false avg(SAL) by DEPTNO";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        ""
+            + "LogicalProject(avg(SAL)=[$1], DEPTNO=[$0])\n"
+            + "  LogicalFilter(condition=[IS NOT NULL($0)])\n"
+            + "    LogicalAggregate(group=[{0}], avg(SAL)=[AVG($1)])\n"
+            + "      LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+            + "        LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    String expectedResult =
+        ""
+            + "avg(SAL)=2175.; DEPTNO=20\n"
+            + "avg(SAL)=2916.666666; DEPTNO=10\n"
+            + "avg(SAL)=1566.666666; DEPTNO=30\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        ""
+            + "SELECT AVG(`SAL`) `avg(SAL)`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "GROUP BY `DEPTNO`\n"
+            + "HAVING `DEPTNO` IS NOT NULL";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -192,13 +301,13 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     String expectedResult =
         ""
-            + "avg(SAL)=2050.00; empno_span=7600\n"
-            + "avg(SAL)=800.00; empno_span=7300\n"
-            + "avg(SAL)=2725.00; empno_span=7700\n"
-            + "avg(SAL)=1600.00; empno_span=7400\n"
-            + "avg(SAL)=2533.33; empno_span=7800\n"
-            + "avg(SAL)=2112.50; empno_span=7500\n"
-            + "avg(SAL)=1750.00; empno_span=7900\n";
+            + "avg(SAL)=2050.; empno_span=7600\n"
+            + "avg(SAL)=800.; empno_span=7300\n"
+            + "avg(SAL)=2725.; empno_span=7700\n"
+            + "avg(SAL)=1600.; empno_span=7400\n"
+            + "avg(SAL)=2533.333333; empno_span=7800\n"
+            + "avg(SAL)=2112.5; empno_span=7500\n"
+            + "avg(SAL)=1750.; empno_span=7900\n";
     verifyResult(root, expectedResult);
   }
 
@@ -209,8 +318,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
             + " empno_span";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        ""
-            + "LogicalSort(sort0=[$2], sort1=[$1], dir0=[ASC], dir1=[ASC])\n"
+        "LogicalSort(sort0=[$2], sort1=[$1], dir0=[ASC-nulls-first], dir1=[ASC-nulls-first])\n"
             + "  LogicalProject(avg(SAL)=[$2], empno_span=[$1], DEPTNO=[$0])\n"
             + "    LogicalAggregate(group=[{0, 2}], avg(SAL)=[AVG($1)])\n"
             + "      LogicalProject(DEPTNO=[$7], SAL=[$5], empno_span=[SPAN($0, 500, null:NULL)])\n"
@@ -218,11 +326,11 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     String expectedResult =
         ""
-            + "avg(SAL)=2916.66; empno_span=7500; DEPTNO=10\n"
-            + "avg(SAL)=800.00; empno_span=7000; DEPTNO=20\n"
-            + "avg(SAL)=2518.75; empno_span=7500; DEPTNO=20\n"
-            + "avg(SAL)=1600.00; empno_span=7000; DEPTNO=30\n"
-            + "avg(SAL)=1560.00; empno_span=7500; DEPTNO=30\n";
+            + "avg(SAL)=2916.666666; empno_span=7500; DEPTNO=10\n"
+            + "avg(SAL)=800.; empno_span=7000; DEPTNO=20\n"
+            + "avg(SAL)=2518.750000; empno_span=7500; DEPTNO=20\n"
+            + "avg(SAL)=1600.; empno_span=7000; DEPTNO=30\n"
+            + "avg(SAL)=1560.; empno_span=7500; DEPTNO=30\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
@@ -230,11 +338,10 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
             + "SELECT AVG(`SAL`) `avg(SAL)`, `SPAN`(`EMPNO`, 500, NULL) `empno_span`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `DEPTNO`, `SPAN`(`EMPNO`, 500, NULL)\n"
-            + "ORDER BY `DEPTNO` NULLS LAST, 2 NULLS LAST";
+            + "ORDER BY `DEPTNO`, 2";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
-  @Ignore("Span doesn't support type of calcite date")
   @Test
   public void testAvgByTimeSpanAndFields() {
     String ppl =
@@ -242,30 +349,18 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
             + " DEPTNO, hiredate_span";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalSort(sort0=[$2], sort1=[$1], dir0=[ASC], dir1=[ASC])\n"
+        "LogicalSort(sort0=[$2], sort1=[$1], dir0=[ASC-nulls-first], dir1=[ASC-nulls-first])\n"
             + "  LogicalProject(avg(SAL)=[$2], hiredate_span=[$1], DEPTNO=[$0])\n"
-            + "    LogicalAggregate(group=[{1, 2}], avg(SAL)=[AVG($0)])\n"
-            + "      LogicalProject(SAL=[$5], DEPTNO=[$7], hiredate_span=[SPAN($4, 'DATE', 1,"
-            + " 'y')])\n"
+            + "    LogicalAggregate(group=[{0, 2}], avg(SAL)=[AVG($1)])\n"
+            + "      LogicalProject(DEPTNO=[$7], SAL=[$5], hiredate_span=[SPAN($4, 1, 'y')])\n"
             + "        LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
-    String expectedResult =
-        ""
-            + "avg(SAL)=3725.00; hiredate_span=1981-01-01; DEPTNO=10\n"
-            + "avg(SAL)=1300.00; hiredate_span=1982-01-01; DEPTNO=10\n"
-            + "avg(SAL)=800.00; hiredate_span=1980-01-01; DEPTNO=20\n"
-            + "avg(SAL)=2987.50; hiredate_span=1981-01-01; DEPTNO=20\n"
-            + "avg(SAL)=2050.00; hiredate_span=1987-01-01; DEPTNO=20\n"
-            + "avg(SAL)=1566.66; hiredate_span=1981-01-01; DEPTNO=30\n";
-    verifyResult(root, expectedResult);
-
     String expectedSparkSql =
-        "SELECT AVG(`SAL`) `avg(SAL)`, `SPAN`(`HIREDATE`, 'DATE', 1, 'y') `hiredate_span`,"
-            + " `DEPTNO`\n"
+        "SELECT AVG(`SAL`) `avg(SAL)`, `SPAN`(`HIREDATE`, 1, 'y') `hiredate_span`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`\n"
-            + "GROUP BY `DEPTNO`, `SPAN`(`HIREDATE`, 'DATE', 1, 'y')\n"
-            + "ORDER BY `DEPTNO` NULLS LAST, 2 NULLS LAST";
+            + "GROUP BY `DEPTNO`, `SPAN`(`HIREDATE`, 1, 'y')\n"
+            + "ORDER BY `DEPTNO`, 2";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -354,9 +449,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     String expectedResult =
         ""
-            + "stddev_samp(SAL)=1123.33; DEPTNO=20\n"
-            + "stddev_samp(SAL)=1893.62; DEPTNO=10\n"
-            + "stddev_samp(SAL)=668.33; DEPTNO=30\n";
+            + "stddev_samp(SAL)=1123.332096; DEPTNO=20\n"
+            + "stddev_samp(SAL)=1893.629671; DEPTNO=10\n"
+            + "stddev_samp(SAL)=668.331255; DEPTNO=30\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
@@ -380,13 +475,13 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     String expectedResult =
         ""
-            + "samp=1131.37; empno_span=7600\n"
+            + "samp=1131.370849; empno_span=7600\n"
             + "samp=null; empno_span=7300\n"
-            + "samp=388.90; empno_span=7700\n"
+            + "samp=388.908729; empno_span=7700\n"
             + "samp=null; empno_span=7400\n"
-            + "samp=2145.53; empno_span=7800\n"
-            + "samp=1219.75; empno_span=7500\n"
-            + "samp=1096.58; empno_span=7900\n";
+            + "samp=2145.538005; empno_span=7800\n"
+            + "samp=1219.759197; empno_span=7500\n"
+            + "samp=1096.585609; empno_span=7900\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
@@ -410,9 +505,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     String expectedResult =
         ""
-            + "stddev_pop(SAL)=1004.73; DEPTNO=20\n"
-            + "stddev_pop(SAL)=1546.14; DEPTNO=10\n"
-            + "stddev_pop(SAL)=610.10; DEPTNO=30\n";
+            + "stddev_pop(SAL)=1004.738772; DEPTNO=20\n"
+            + "stddev_pop(SAL)=1546.142152; DEPTNO=10\n"
+            + "stddev_pop(SAL)=610.100173; DEPTNO=30\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
@@ -435,7 +530,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
-        "pop=1004.73; DEPTNO=20\npop=1546.14; DEPTNO=10\npop=610.10; DEPTNO=30\n";
+        "pop=1004.738772; DEPTNO=20\npop=1546.142152; DEPTNO=10\npop=610.100173; DEPTNO=30\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
@@ -492,7 +587,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
             + "  LogicalProject(SAL=[$5])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "avg_sal=2073.21\n";
+    String expectedResult = "avg_sal=2073.214285\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql = "" + "SELECT AVG(`SAL`) `avg_sal`\n" + "FROM `scott`.`EMP`";
@@ -511,7 +606,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
-    String expectedResult = "avg_avg_sal=2073.21\n";
+    String expectedResult = "avg_avg_sal=2073.2142850000\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
@@ -540,13 +635,13 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
 
     String expectedResult =
         ""
-            + "avg_avg_sal=5000.00; MGR=null\n"
-            + "avg_avg_sal=1310.00; MGR=7698\n"
-            + "avg_avg_sal=1300.00; MGR=7782\n"
-            + "avg_avg_sal=1100.00; MGR=7788\n"
-            + "avg_avg_sal=800.00; MGR=7902\n"
-            + "avg_avg_sal=3000.00; MGR=7566\n"
-            + "avg_avg_sal=2758.33; MGR=7839\n";
+            + "avg_avg_sal=5000.; MGR=null\n"
+            + "avg_avg_sal=1310.; MGR=7698\n"
+            + "avg_avg_sal=1300.; MGR=7782\n"
+            + "avg_avg_sal=1100.; MGR=7788\n"
+            + "avg_avg_sal=800.; MGR=7902\n"
+            + "avg_avg_sal=3000.; MGR=7566\n"
+            + "avg_avg_sal=2758.3333333333; MGR=7839\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
@@ -556,6 +651,181 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `DEPTNO`, `MGR`) `t1`\n"
             + "GROUP BY `MGR`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testPercentileShortcuts() {
+    String ppl = "source=EMP | stats perc50(SAL), p95(SAL)";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalAggregate(group=[{}], perc50(SAL)=[percentile_approx($0, $1, $2)],"
+            + " p95(SAL)=[percentile_approx($0, $3, $2)])\n"
+            + "  LogicalProject(SAL=[$5], $f2=[50.0E0:DOUBLE], $f3=[FLAG(DECIMAL)],"
+            + " $f4=[95.0E0:DOUBLE])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `percentile_approx`(`SAL`, 5.00E1, DECIMAL) `perc50(SAL)`,"
+            + " `percentile_approx`(`SAL`, 9.50E1, DECIMAL) `p95(SAL)`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testPercentileShortcutsWithDecimals() {
+    String ppl = "source=EMP | stats perc25.5(SAL), p99.9(SAL)";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalAggregate(group=[{}], perc25.5(SAL)=[percentile_approx($0, $1, $2)],"
+            + " p99.9(SAL)=[percentile_approx($0, $3, $2)])\n"
+            + "  LogicalProject(SAL=[$5], $f2=[25.5E0:DOUBLE], $f3=[FLAG(DECIMAL)],"
+            + " $f4=[99.9E0:DOUBLE])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `percentile_approx`(`SAL`, 2.55E1, DECIMAL) `perc25.5(SAL)`,"
+            + " `percentile_approx`(`SAL`, 9.99E1, DECIMAL) `p99.9(SAL)`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testPercentileShortcutsByField() {
+    String ppl = "source=EMP | stats perc75(SAL) by DEPTNO";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(perc75(SAL)=[$1], DEPTNO=[$0])\n"
+            + "  LogicalAggregate(group=[{0}], perc75(SAL)=[percentile_approx($1, $2, $3)])\n"
+            + "    LogicalProject(DEPTNO=[$7], SAL=[$5], $f2=[75.0E0:DOUBLE],"
+            + " $f3=[FLAG(DECIMAL)])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `percentile_approx`(`SAL`, 7.50E1, DECIMAL) `perc75(SAL)`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "GROUP BY `DEPTNO`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testPercentileShortcutsBoundaryValues() {
+    String ppl = "source=EMP | stats perc0(SAL), p100(SAL)";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalAggregate(group=[{}], perc0(SAL)=[percentile_approx($0, $1, $2)],"
+            + " p100(SAL)=[percentile_approx($0, $3, $2)])\n"
+            + "  LogicalProject(SAL=[$5], $f2=[0.0E0:DOUBLE], $f3=[FLAG(DECIMAL)],"
+            + " $f4=[100.0E0:DOUBLE])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `percentile_approx`(`SAL`, 0E0, DECIMAL) `perc0(SAL)`,"
+            + " `percentile_approx`(`SAL`, 1.000E2, DECIMAL) `p100(SAL)`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test(expected = Exception.class)
+  public void testPercentileShortcutInvalidValueAbove100() {
+    String ppl = "source=EMP | stats p101(SAL)";
+    getRelNode(ppl);
+  }
+
+  @Test(expected = Exception.class)
+  public void testPercentileShortcutInvalidDecimalValueAbove100() {
+    String ppl = "source=EMP | stats perc100.1(SAL)";
+    getRelNode(ppl);
+  }
+
+  @Test
+  public void testMedian() {
+    String ppl = "source=EMP | stats median(SAL)";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalAggregate(group=[{}], median(SAL)=[percentile_approx($0, $1, $2)])\n"
+            + "  LogicalProject(SAL=[$5], $f1=[50.0:DECIMAL(3, 1)], $f2=[FLAG(DECIMAL)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `percentile_approx`(`SAL`, 50.0, DECIMAL) `median(SAL)`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMaxOnStringField() {
+    String ppl = "source=EMP | stats max(ENAME) as max_name";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalAggregate(group=[{}], max_name=[MAX($0)])\n"
+            + "  LogicalProject(ENAME=[$1])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedResult = "max_name=WARD\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql = "SELECT MAX(`ENAME`) `max_name`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMinOnStringField() {
+    String ppl = "source=EMP | stats min(ENAME) as min_name";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalAggregate(group=[{}], min_name=[MIN($0)])\n"
+            + "  LogicalProject(ENAME=[$1])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedResult = "min_name=ADAMS\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql = "SELECT MIN(`ENAME`) `min_name`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMaxOnTimeField() {
+    String ppl = "source=EMP | stats max(HIREDATE) as max_hire_date";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalAggregate(group=[{}], max_hire_date=[MAX($0)])\n"
+            + "  LogicalProject(HIREDATE=[$4])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedResult = "max_hire_date=1987-05-23\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql = "SELECT MAX(`HIREDATE`) `max_hire_date`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMinOnTimeField() {
+    String ppl = "source=EMP | stats min(HIREDATE) as min_hire_date";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalAggregate(group=[{}], min_hire_date=[MIN($0)])\n"
+            + "  LogicalProject(HIREDATE=[$4])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedResult = "min_hire_date=1980-12-17\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql = "SELECT MIN(`HIREDATE`) `min_hire_date`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }

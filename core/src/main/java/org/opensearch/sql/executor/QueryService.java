@@ -1,9 +1,6 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
  */
 
 package org.opensearch.sql.executor;
@@ -23,7 +20,6 @@ import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalSort;
-import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.tools.FrameworkConfig;
@@ -36,11 +32,14 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
 import org.opensearch.sql.calcite.OpenSearchSchema;
+import org.opensearch.sql.calcite.plan.LogicalSystemLimit;
+import org.opensearch.sql.calcite.plan.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
+import org.opensearch.sql.exception.NonFallbackCalciteException;
 import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.Planner;
 import org.opensearch.sql.planner.logical.LogicalPaginate;
@@ -97,25 +96,26 @@ public class QueryService {
               () -> {
                 CalcitePlanContext context =
                     CalcitePlanContext.create(
-                        buildFrameworkConfig(),
-                        settings.getSettingValue(Key.QUERY_SIZE_LIMIT),
-                        queryType);
+                        buildFrameworkConfig(), getQuerySizeLimit(), queryType);
                 RelNode relNode = analyze(plan, context);
-                RelNode optimized = optimize(relNode);
+                RelNode optimized = optimize(relNode, context);
                 RelNode calcitePlan = convertToCalcitePlan(optimized);
                 executionEngine.execute(calcitePlan, context, listener);
                 return null;
               });
     } catch (Throwable t) {
-      if (isCalciteFallbackAllowed()) {
+      if (isCalciteFallbackAllowed() && !(t instanceof NonFallbackCalciteException)) {
         log.warn("Fallback to V2 query engine since got exception", t);
         executeWithLegacy(plan, queryType, listener, Optional.of(t));
       } else {
-        if (t instanceof Error) {
-          // Calcite may throw AssertError during query execution.
-          listener.onFailure(new CalciteUnsupportedException(t.getMessage()));
-        } else {
+        if (t instanceof Exception) {
           listener.onFailure((Exception) t);
+        } else if (t instanceof VirtualMachineError) {
+          // throw and fast fail the VM errors such as OOM (same with v2).
+          throw t;
+        } else {
+          // Calcite may throw AssertError during query execution.
+          listener.onFailure(new CalciteUnsupportedException(t.getMessage(), t));
         }
       }
     }
@@ -134,7 +134,7 @@ public class QueryService {
                     CalcitePlanContext.create(
                         buildFrameworkConfig(), getQuerySizeLimit(), queryType);
                 RelNode relNode = analyze(plan, context);
-                RelNode optimized = optimize(relNode);
+                RelNode optimized = optimize(relNode, context);
                 RelNode calcitePlan = convertToCalcitePlan(optimized);
                 executionEngine.explain(calcitePlan, format, context, listener);
                 return null;
@@ -251,13 +251,22 @@ public class QueryService {
     return planner.plan(plan);
   }
 
-  public RelNode optimize(RelNode plan) {
-    return planner.customOptimize(plan);
+  /**
+   * Try to optimize the plan by appending a limit operator for QUERY_SIZE_LIMIT Don't add for
+   * `EXPLAIN` to avoid changing its output plan.
+   */
+  public RelNode optimize(RelNode plan, CalcitePlanContext context) {
+    return LogicalSystemLimit.create(
+        SystemLimitType.QUERY_SIZE_LIMIT, plan, context.relBuilder.literal(context.querySizeLimit));
   }
 
   private boolean isCalciteFallbackAllowed() {
     if (settings != null) {
-      return settings.getSettingValue(Settings.Key.CALCITE_FALLBACK_ALLOWED);
+      Boolean fallback_allowed = settings.getSettingValue(Settings.Key.CALCITE_FALLBACK_ALLOWED);
+      if (fallback_allowed == null) {
+        return false;
+      }
+      return fallback_allowed;
     } else {
       return true;
     }
@@ -292,7 +301,7 @@ public class QueryService {
             .parserConfig(SqlParser.Config.DEFAULT) // TODO check
             .defaultSchema(opensearchSchema)
             .traitDefs((List<RelTraitDef>) null)
-            .programs(Programs.calc(DefaultRelMetadataProvider.INSTANCE))
+            .programs(Programs.standard())
             .typeSystem(OpenSearchTypeSystem.INSTANCE);
     return configBuilder.build();
   }

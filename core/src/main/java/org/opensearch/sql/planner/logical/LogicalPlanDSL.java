@@ -38,9 +38,19 @@ public class LogicalPlanDSL {
     return new LogicalWrite(input, table, columns);
   }
 
+  /** Build a logical aggregation with nullable bucket always true. */
   public static LogicalPlan aggregation(
       LogicalPlan input, List<NamedAggregator> aggregatorList, List<NamedExpression> groupByList) {
-    return new LogicalAggregation(input, aggregatorList, groupByList);
+    return new LogicalAggregation(input, aggregatorList, groupByList, true);
+  }
+
+  /** Build a logical aggregation with nullable bucket parameter */
+  public static LogicalPlan aggregation(
+      LogicalPlan input,
+      List<NamedAggregator> aggregatorList,
+      List<NamedExpression> groupByList,
+      boolean bucketNullable) {
+    return new LogicalAggregation(input, aggregatorList, groupByList, bucketNullable);
   }
 
   public static LogicalPlan filter(LogicalPlan input, Expression expression) {
@@ -99,6 +109,11 @@ public class LogicalPlanDSL {
 
   public static LogicalPlan sort(LogicalPlan input, Pair<SortOption, Expression>... sorts) {
     return new LogicalSort(input, Arrays.asList(sorts));
+  }
+
+  public static LogicalPlan sort(
+      LogicalPlan input, Integer count, Pair<SortOption, Expression>... sorts) {
+    return new LogicalSort(input, count, Arrays.asList(sorts));
   }
 
   public static LogicalPlan dedupe(LogicalPlan input, Expression... fields) {

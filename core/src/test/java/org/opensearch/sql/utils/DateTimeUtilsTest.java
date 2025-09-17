@@ -6,25 +6,174 @@
 package org.opensearch.sql.utils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.opensearch.sql.utils.DateTimeUtils.getRelativeZonedDateTime;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.planner.physical.collector.Rounding.DateTimeUnit;
 
 public class DateTimeUtilsTest {
   @Test
   void round() {
     long actual =
         LocalDateTime.parse("2021-09-28T23:40:00")
-            .atZone(ZoneId.systemDefault())
+            .atZone(ZoneOffset.UTC)
             .toInstant()
             .toEpochMilli();
     long rounded = DateTimeUtils.roundFloor(actual, TimeUnit.HOURS.toMillis(1));
     assertEquals(
         LocalDateTime.parse("2021-09-28T23:00:00")
-            .atZone(ZoneId.systemDefault())
+            .atZone(ZoneOffset.UTC)
+            .toInstant()
+            .toEpochMilli(),
+        Instant.ofEpochMilli(rounded).toEpochMilli());
+  }
+
+  @Test
+  void testRelativeZonedDateTimeWithNow() {
+    ZonedDateTime now = ZonedDateTime.ofInstant(Instant.now(), ZoneOffset.UTC);
+    assertEquals(getRelativeZonedDateTime("now", now), now);
+    assertEquals(getRelativeZonedDateTime("now()", now), now);
+  }
+
+  @Test
+  void testRelativeZonedDateTimeWithSnap() {
+    String dateTimeString = "2025-10-22 10:32:12";
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    LocalDateTime localDateTime = LocalDateTime.parse(dateTimeString, formatter);
+    ZonedDateTime zonedDateTime = localDateTime.atZone(ZoneOffset.UTC);
+    ZonedDateTime snap1 = getRelativeZonedDateTime("-1d@d", zonedDateTime);
+    ZonedDateTime snap2 = getRelativeZonedDateTime("-3d-2h@h", zonedDateTime);
+    assertEquals(snap1.toLocalDateTime().toString(), "2025-10-21T00:00");
+    assertEquals(snap2.toLocalDateTime().toString(), "2025-10-19T08:00");
+  }
+
+  @Test
+  void testRelativeZonedDateTimeWithOffset() {
+    String dateTimeString = "2025-10-22 10:32:12";
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    LocalDateTime localDateTime = LocalDateTime.parse(dateTimeString, formatter);
+    ZonedDateTime zonedDateTime = localDateTime.atZone(ZoneOffset.UTC);
+    ZonedDateTime snap1 = getRelativeZonedDateTime("-1d+1y@mon", zonedDateTime);
+    ZonedDateTime snap2 = getRelativeZonedDateTime("-3d@d-2h+10m@h", zonedDateTime);
+    assertEquals(snap1.toLocalDateTime().toString(), "2026-10-01T00:00");
+    assertEquals(snap2.toLocalDateTime().toString(), "2025-10-18T22:00");
+  }
+
+  @Test
+  void testRelativeZonedDateTimeWithAlias() {
+    String dateTimeString = "2025-10-22 10:32:12";
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    LocalDateTime localDateTime = LocalDateTime.parse(dateTimeString, formatter);
+    ZonedDateTime zonedDateTime = localDateTime.atZone(ZoneOffset.UTC);
+    ZonedDateTime snap1 = getRelativeZonedDateTime("-1d+1y@Month", zonedDateTime);
+    ZonedDateTime snap2 = getRelativeZonedDateTime("-3d@d-2h+10m@hours", zonedDateTime);
+    assertEquals(snap1.toLocalDateTime().toString(), "2026-10-01T00:00");
+    assertEquals(snap2.toLocalDateTime().toString(), "2025-10-18T22:00");
+  }
+
+  @Test
+  void testRelativeZonedDateTimeWithWeekDayAndQuarter() {
+    String dateTimeString = "2025-10-22 10:32:12";
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    LocalDateTime localDateTime = LocalDateTime.parse(dateTimeString, formatter);
+    ZonedDateTime zonedDateTime = localDateTime.atZone(ZoneOffset.UTC);
+    ZonedDateTime snap1 = getRelativeZonedDateTime("-1d+1y@W5", zonedDateTime);
+    ZonedDateTime snap2 = getRelativeZonedDateTime("-3d@d-2q+10m@quarter", zonedDateTime);
+    assertEquals(snap1.toLocalDateTime().toString(), "2026-10-16T00:00");
+    assertEquals(snap2.toLocalDateTime().toString(), "2025-04-01T00:00");
+  }
+
+  @Test
+  void testRelativeZonedDateTimeWithWrongInput() {
+    String dateTimeString = "2025-10-22 10:32:12";
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    LocalDateTime localDateTime = LocalDateTime.parse(dateTimeString, formatter);
+    ZonedDateTime zonedDateTime = localDateTime.atZone(ZoneOffset.UTC);
+    IllegalArgumentException e =
+        assertThrows(
+            IllegalArgumentException.class, () -> getRelativeZonedDateTime("1d+1y", zonedDateTime));
+    assertEquals(e.getMessage(), "Unexpected character '1' at position 0 in input: 1d+1y");
+  }
+
+  @Test
+  void testRoundOnTimestampBeforeEpoch() {
+    long actual =
+        LocalDateTime.parse("1961-05-12T23:40:05")
+            .atZone(ZoneOffset.UTC)
+            .toInstant()
+            .toEpochMilli();
+    long rounded = DateTimeUnit.MINUTE.round(actual, 1);
+    assertEquals(
+        LocalDateTime.parse("1961-05-12T23:40:00")
+            .atZone(ZoneOffset.UTC)
+            .toInstant()
+            .toEpochMilli(),
+        Instant.ofEpochMilli(rounded).toEpochMilli());
+
+    rounded = DateTimeUnit.HOUR.round(actual, 1);
+    assertEquals(
+        LocalDateTime.parse("1961-05-12T23:00:00")
+            .atZone(ZoneOffset.UTC)
+            .toInstant()
+            .toEpochMilli(),
+        Instant.ofEpochMilli(rounded).toEpochMilli());
+
+    rounded = DateTimeUnit.DAY.round(actual, 1);
+    assertEquals(
+        LocalDateTime.parse("1961-05-12T00:00:00")
+            .atZone(ZoneOffset.UTC)
+            .toInstant()
+            .toEpochMilli(),
+        Instant.ofEpochMilli(rounded).toEpochMilli());
+
+    rounded = DateTimeUnit.DAY.round(actual, 3);
+    assertEquals(
+        LocalDateTime.parse("1961-05-12T00:00:00")
+            .atZone(ZoneOffset.UTC)
+            .toInstant()
+            .toEpochMilli(),
+        Instant.ofEpochMilli(rounded).toEpochMilli());
+
+    rounded = DateTimeUnit.WEEK.round(actual, 1);
+    assertEquals(
+        LocalDateTime.parse("1961-05-08T00:00:00")
+            .atZone(ZoneOffset.UTC)
+            .toInstant()
+            .toEpochMilli(),
+        Instant.ofEpochMilli(rounded).toEpochMilli());
+
+    rounded = DateTimeUnit.MONTH.round(actual, 1);
+    assertEquals(
+        LocalDateTime.parse("1961-05-01T00:00:00")
+            .atZone(ZoneOffset.UTC)
+            .toInstant()
+            .toEpochMilli(),
+        Instant.ofEpochMilli(rounded).toEpochMilli());
+
+    rounded = DateTimeUnit.QUARTER.round(actual, 1);
+    assertEquals(
+        LocalDateTime.parse("1961-04-01T00:00:00")
+            .atZone(ZoneOffset.UTC)
+            .toInstant()
+            .toEpochMilli(),
+        Instant.ofEpochMilli(rounded).toEpochMilli());
+
+    rounded = DateTimeUnit.YEAR.round(actual, 2);
+    assertEquals(
+        LocalDateTime.parse("1960-01-01T00:00:00")
+            .atZone(ZoneOffset.UTC)
             .toInstant()
             .toEpochMilli(),
         Instant.ofEpochMilli(rounded).toEpochMilli());

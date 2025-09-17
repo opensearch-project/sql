@@ -7,6 +7,7 @@ package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -14,6 +15,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.ast.expression.PatternMethod;
+import org.opensearch.sql.ast.expression.PatternMode;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
 /**
@@ -28,7 +32,14 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 @AllArgsConstructor
 public class Patterns extends UnresolvedPlan {
 
-  private final UnresolvedExpression windowFunction;
+  private final UnresolvedExpression sourceField;
+  private final List<UnresolvedExpression> partitionByList;
+  private final String alias;
+  private final PatternMethod patternMethod;
+  private final PatternMode patternMode;
+  private final UnresolvedExpression patternMaxSampleCount;
+  private final UnresolvedExpression patternBufferLimit;
+  private final Map<String, Literal> arguments;
   private UnresolvedPlan child;
 
   @Override
@@ -39,7 +50,7 @@ public class Patterns extends UnresolvedPlan {
 
   @Override
   public List<UnresolvedPlan> getChild() {
-    return ImmutableList.of(this.child);
+    return this.child == null ? ImmutableList.of() : ImmutableList.of(this.child);
   }
 
   @Override

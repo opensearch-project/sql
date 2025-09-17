@@ -35,7 +35,7 @@ Example 1: Show All Indices Information
 SQL query::
 
     os> SHOW TABLES LIKE '%'
-    fetched rows / total rows = 15/15
+    fetched rows / total rows = 17/17
     +----------------+-------------+------------------+------------+---------+----------+------------+-----------+---------------------------+----------------+
     | TABLE_CAT      | TABLE_SCHEM | TABLE_NAME       | TABLE_TYPE | REMARKS | TYPE_CAT | TYPE_SCHEM | TYPE_NAME | SELF_REFERENCING_COL_NAME | REF_GENERATION |
     |----------------+-------------+------------------+------------+---------+----------+------------+-----------+---------------------------+----------------|
@@ -44,10 +44,12 @@ SQL query::
     | docTestCluster | null        | accounts         | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | apache           | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | books            | BASE TABLE | null    | null     | null       | null      | null                      | null           |
+    | docTestCluster | null        | events           | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | json_test        | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | nested           | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | nyc_taxi         | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | occupation       | BASE TABLE | null    | null     | null       | null      | null                      | null           |
+    | docTestCluster | null        | otellogs         | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | people           | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | state_country    | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | weblogs          | BASE TABLE | null    | null     | null       | null      | null                      | null           |

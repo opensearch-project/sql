@@ -51,14 +51,12 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
     String ppl = "source=scott.products_temporal | where SUPPLIER > 0 AND ID = '1000'";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        ""
-            + "LogicalFilter(condition=[AND(>($1, 0), =($0, '1000':VARCHAR))])\n"
+        "LogicalFilter(condition=[AND(>($1, 0), =($0, '1000':VARCHAR))])\n"
             + "  LogicalTableScan(table=[[scott, products_temporal]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        ""
-            + "SELECT *\n"
+        "SELECT *\n"
             + "FROM `scott`.`products_temporal`\n"
             + "WHERE `SUPPLIER` > 0 AND `ID` = '1000'";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -69,15 +67,13 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | where DEPTNO between 20 and 30 | fields EMPNO, ENAME";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        ""
-            + "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
+        "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
             + "  LogicalFilter(condition=[SEARCH($7, Sarg[[20..30]])])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        ""
-            + "SELECT `EMPNO`, `ENAME`\n"
+        "SELECT `EMPNO`, `ENAME`\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE `DEPTNO` >= 20 AND `DEPTNO` <= 30";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -89,16 +85,15 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
-            + "  LogicalFilter(condition=[SEARCH($7,"
-            + " Sarg[[20.0E0:DOUBLE..30.0E0:DOUBLE]]:DOUBLE)])\n"
+            + "  LogicalFilter(condition=[SEARCH($7, Sarg[[20.0:DECIMAL(11, 1)..30.0:DECIMAL(11,"
+            + " 1)]]:DECIMAL(11, 1))])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        ""
-            + "SELECT `EMPNO`, `ENAME`\n"
+        "SELECT `EMPNO`, `ENAME`\n"
             + "FROM `scott`.`EMP`\n"
-            + "WHERE `DEPTNO` >= 2.00E1 AND `DEPTNO` <= 3.00E1";
+            + "WHERE `DEPTNO` >= 20.0 AND `DEPTNO` <= 30.0";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -108,15 +103,13 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
         "source=EMP | where (DEPTNO = 20 or MGR = 30) and SAL > 1000 | fields EMPNO, ENAME";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        ""
-            + "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
+        "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
             + "  LogicalFilter(condition=[AND(OR(=($7, 20), =($3, 30)), >($5, 1000))])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        ""
-            + "SELECT `EMPNO`, `ENAME`\n"
+        "SELECT `EMPNO`, `ENAME`\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE (`DEPTNO` = 20 OR `MGR` = 30) AND `SAL` > 1000";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -124,18 +117,17 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testFilterQueryWithOr2() {
-    String ppl = "source=EMP (DEPTNO = 20 or MGR = 30) and SAL > 1000 | fields EMPNO, ENAME";
+    String ppl =
+        "source=EMP | where (DEPTNO = 20 or MGR = 30) and SAL > 1000 | fields EMPNO, ENAME";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        ""
-            + "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
+        "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
             + "  LogicalFilter(condition=[AND(OR(=($7, 20), =($3, 30)), >($5, 1000))])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        ""
-            + "SELECT `EMPNO`, `ENAME`\n"
+        "SELECT `EMPNO`, `ENAME`\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE (`DEPTNO` = 20 OR `MGR` = 30) AND `SAL` > 1000";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -161,11 +153,12 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP |  where DEPTNO in (20, 30.0)";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalFilter(condition=[SEARCH($7, Sarg[20.0E0:DOUBLE, 30.0E0:DOUBLE]:DOUBLE)])\n"
+        "LogicalFilter(condition=[SEARCH($7, Sarg[20.0:DECIMAL(11, 1), 30.0:DECIMAL(11,"
+            + " 1)]:DECIMAL(11, 1))])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
-    String expectedSparkSql = "SELECT *\nFROM `scott`.`EMP`\nWHERE `DEPTNO` IN (2.00E1, 3.00E1)";
+    String expectedSparkSql = "SELECT *\nFROM `scott`.`EMP`\nWHERE `DEPTNO` IN (20.0, 30.0)";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -174,12 +167,11 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
     String ppl = "source=products_temporal | fields SUPPLIER, ID";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        ""
-            + "LogicalProject(SUPPLIER=[$1], ID=[$0])\n"
+        "LogicalProject(SUPPLIER=[$1], ID=[$0])\n"
             + "  LogicalTableScan(table=[[scott, products_temporal]])\n";
     verifyLogical(root, expectedLogical);
 
-    String expectedSparkSql = "" + "SELECT `SUPPLIER`, `ID`\n" + "FROM `scott`.`products_temporal`";
+    String expectedSparkSql = "SELECT `SUPPLIER`, `ID`\n" + "FROM `scott`.`products_temporal`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -188,13 +180,12 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
     String ppl = "source=products_temporal | fields - SUPPLIER, ID";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        ""
-            + "LogicalProject(SYS_START=[$2], SYS_END=[$3])\n"
+        "LogicalProject(SYS_START=[$2], SYS_END=[$3])\n"
             + "  LogicalTableScan(table=[[scott, products_temporal]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "" + "SELECT `SYS_START`, `SYS_END`\n" + "FROM `scott`.`products_temporal`";
+        "SELECT `SYS_START`, `SYS_END`\n" + "FROM `scott`.`products_temporal`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -203,7 +194,7 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | fields + EMPNO, DEPTNO, SAL | fields - DEPTNO, SAL";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "" + "LogicalProject(EMPNO=[$0])\n" + "  LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(EMPNO=[$0])\n" + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
   }
 
@@ -238,7 +229,7 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
             + " COMM=null; DEPTNO=20\n";
     verifyResult(root, expectedResult);
 
-    String expectedSparkSql = "" + "SELECT *\n" + "FROM `scott`.`EMP`\n" + "WHERE `DEPTNO` = 20";
+    String expectedSparkSql = "SELECT *\n" + "FROM `scott`.`EMP`\n" + "WHERE `DEPTNO` = 20";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -247,7 +238,8 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | sort DEPTNO";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "" + "LogicalSort(sort0=[$7], dir0=[ASC])\n" + "  LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalSort(sort0=[$7], dir0=[ASC-nulls-first])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
   }
 
@@ -256,8 +248,7 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | sort DEPTNO, SAL";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        ""
-            + "LogicalSort(sort0=[$7], sort1=[$5], dir0=[ASC], dir1=[ASC])\n"
+        "LogicalSort(sort0=[$7], sort1=[$5], dir0=[ASC-nulls-first], dir1=[ASC-nulls-first])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
   }
@@ -267,14 +258,13 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | sort + DEPTNO, - SAL | fields EMPNO, DEPTNO, SAL";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        ""
-            + "LogicalProject(EMPNO=[$0], DEPTNO=[$7], SAL=[$5])\n"
-            + "  LogicalSort(sort0=[$7], sort1=[$5], dir0=[ASC], dir1=[DESC])\n"
+        "LogicalProject(EMPNO=[$0], DEPTNO=[$7], SAL=[$5])\n"
+            + "  LogicalSort(sort0=[$7], sort1=[$5], dir0=[ASC-nulls-first],"
+            + " dir1=[DESC-nulls-last])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
-        ""
-            + "EMPNO=7839; DEPTNO=10; SAL=5000.00\n"
+        "EMPNO=7839; DEPTNO=10; SAL=5000.00\n"
             + "EMPNO=7782; DEPTNO=10; SAL=2450.00\n"
             + "EMPNO=7934; DEPTNO=10; SAL=1300.00\n"
             + "EMPNO=7788; DEPTNO=20; SAL=3000.00\n"
@@ -296,17 +286,55 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | sort - SAL | fields EMPNO, DEPTNO, SAL | head 3";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        ""
-            + "LogicalProject(EMPNO=[$0], DEPTNO=[$7], SAL=[$5])\n"
-            + "  LogicalSort(sort0=[$5], dir0=[DESC], fetch=[3])\n"
+        "LogicalProject(EMPNO=[$0], DEPTNO=[$7], SAL=[$5])\n"
+            + "  LogicalSort(sort0=[$5], dir0=[DESC-nulls-last], fetch=[3])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
-        ""
-            + "EMPNO=7839; DEPTNO=10; SAL=5000.00\n"
+        "EMPNO=7839; DEPTNO=10; SAL=5000.00\n"
             + "EMPNO=7788; DEPTNO=20; SAL=3000.00\n"
             + "EMPNO=7902; DEPTNO=20; SAL=3000.00\n";
     verifyResult(root, expectedResult);
+  }
+
+  @Test
+  public void testSortWithCountLimit() {
+    String ppl = "source=EMP | sort 3 DEPTNO";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(sort0=[$7], dir0=[ASC-nulls-first], fetch=[3])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  @Test
+  public void testSortWithCountZero() {
+    String ppl = "source=EMP | sort 0 DEPTNO";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(sort0=[$7], dir0=[ASC-nulls-first])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  @Test
+  public void testSortWithDescReversal() {
+    String ppl = "source=EMP | sort + DEPTNO, - SAL desc";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(sort0=[$7], sort1=[$5], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  @Test
+  public void testSortWithDReversal() {
+    String ppl = "source=EMP | sort + DEPTNO, - SAL d";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(sort0=[$7], sort1=[$5], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
   }
 
   @Test
@@ -338,14 +366,12 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
     String ppl2 = "source=products_temporal  // this is a comment";
     verifyLogical(getRelNode(ppl2), "LogicalTableScan(table=[[scott, products_temporal]])\n");
     String ppl3 =
-        ""
-            + "// test is a new line comment\n"
+        "// test is a new line comment\n"
             + "source=products_temporal  // this is a comment\n"
             + "| fields SUPPLIER, ID  // this is line comment inner ppl command\n"
             + "////this is a new line comment";
     String expectedLogical =
-        ""
-            + "LogicalProject(SUPPLIER=[$1], ID=[$0])\n"
+        "LogicalProject(SUPPLIER=[$1], ID=[$0])\n"
             + "  LogicalTableScan(table=[[scott, products_temporal]])\n";
     verifyLogical(getRelNode(ppl3), expectedLogical);
   }
@@ -356,13 +382,11 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
     verifyLogical(getRelNode(ppl1), "LogicalTableScan(table=[[scott, products_temporal]])\n");
     String ppl2 = "source=products_temporal | /*this is a block comment*/ fields SUPPLIER, ID";
     String expectedLogical2 =
-        ""
-            + "LogicalProject(SUPPLIER=[$1], ID=[$0])\n"
+        "LogicalProject(SUPPLIER=[$1], ID=[$0])\n"
             + "  LogicalTableScan(table=[[scott, products_temporal]])\n";
     verifyLogical(getRelNode(ppl2), expectedLogical2);
     String ppl3 =
-        ""
-            + "/*\n"
+        "/*\n"
             + " * This is a\n"
             + " *   multiple\n"
             + " * line\n"
@@ -378,8 +402,7 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
             + "         comment */ fields SUPPLIER, ID /* block comment */\n"
             + "/* block comment */";
     String expectedLogical3 =
-        ""
-            + "LogicalProject(SUPPLIER=[$1], ID=[$0])\n"
+        "LogicalProject(SUPPLIER=[$1], ID=[$0])\n"
             + "  LogicalFilter(condition=[=($0, 0)])\n"
             + "    LogicalTableScan(table=[[scott, products_temporal]])\n";
     verifyLogical(getRelNode(ppl3), expectedLogical3);
@@ -392,15 +415,13 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
             + " e.ENAME";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        ""
-            + "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
+        "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
             + "  LogicalFilter(condition=[AND(OR(=($7, 20), =($3, 30)), >($5, 1000))])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        ""
-            + "SELECT `EMPNO`, `ENAME`\n"
+        "SELECT `EMPNO`, `ENAME`\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE (`DEPTNO` = 20 OR `MGR` = 30) AND `SAL` > 1000";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -411,17 +432,19 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP as e | join on e.DEPTNO = d.DEPTNO [ source=DEPT | head 10 ] as d";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        ""
-            + "LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n"
-            + "  LogicalSort(fetch=[10])\n"
-            + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], d.DEPTNO=[$8], DNAME=[$9], LOC=[$10])\n"
+            + "  LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalSort(fetch=[10])\n"
+            + "      LogicalTableScan(table=[[scott, DEPT]])\n";
     verifyLogical(root, expectedLogical);
     verifyResultCount(root, 14);
 
     String expectedSparkSql =
-        ""
-            + "SELECT *\n"
+        "SELECT `EMP`.`EMPNO`, `EMP`.`ENAME`, `EMP`.`JOB`, `EMP`.`MGR`, `EMP`.`HIREDATE`,"
+            + " `EMP`.`SAL`, `EMP`.`COMM`, `EMP`.`DEPTNO`, `t`.`DEPTNO` `d.DEPTNO`, `t`.`DNAME`,"
+            + " `t`.`LOC`\n"
             + "FROM `scott`.`EMP`\n"
             + "INNER JOIN (SELECT `DEPTNO`, `DNAME`, `LOC`\n"
             + "FROM `scott`.`DEPT`\n"
@@ -442,6 +465,44 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO` `DEPTNO_E`\n"
             + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testDecimalLiteral() {
+    String ppl =
+        "source=EMP | eval r1 = 22 / 7.0, r2 = 22 / 7.0d, r3 = 22.0 / 7, r4 = 22.0d / 7,"
+            + " r5 = 0.1 * 0.2, r6 = 0.1d * 0.2d, r7 = 0.1 + 0.2, r8 = 0.1d + 0.2d,"
+            + " r9 = 0.06 - 0.01, r10 = 0.06d - 0.01d, r11 = 0.1 / 0.3 * 0.3,"
+            + " r12 = 0.1d / 0.3d * 0.3d, r13 = pow(sqrt(2.0), 2), r14 = pow(sqrt(2.0d), 2),"
+            + " r15 = 7.0 / 0, r16 = 7 / 0.0"
+            + " | fields r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, r16"
+            + " | head 1";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(fetch=[1])\n"
+            + "  LogicalProject(r1=[DIVIDE(22, 7.0:DECIMAL(2, 1))], r2=[DIVIDE(22, 7.0E0:DOUBLE)],"
+            + " r3=[DIVIDE(22.0:DECIMAL(3, 1), 7)], r4=[DIVIDE(22.0E0:DOUBLE, 7)],"
+            + " r5=[*(0.1:DECIMAL(2, 1), 0.2:DECIMAL(2, 1))], r6=[*(0.1E0:DOUBLE, 0.2E0:DOUBLE)],"
+            + " r7=[+(0.1:DECIMAL(2, 1), 0.2:DECIMAL(2, 1))], r8=[+(0.1E0:DOUBLE, 0.2E0:DOUBLE)],"
+            + " r9=[-(0.06:DECIMAL(3, 2), 0.01:DECIMAL(3, 2))], r10=[-(0.06E0:DOUBLE,"
+            + " 0.01E0:DOUBLE)], r11=[*(DIVIDE(0.1:DECIMAL(2, 1), 0.3:DECIMAL(2, 1)),"
+            + " 0.3:DECIMAL(2, 1))], r12=[*(DIVIDE(0.1E0:DOUBLE, 0.3E0:DOUBLE), 0.3E0)],"
+            + " r13=[POWER(POWER(2.0:DECIMAL(2, 1), 0.5E0:DOUBLE), 2)],"
+            + " r14=[POWER(POWER(2.0E0:DOUBLE, 0.5E0:DOUBLE), 2)],"
+            + " r15=[DIVIDE(7.0:DECIMAL(2, 1), 0)], r16=[DIVIDE(7, 0.0:DECIMAL(2, 1))])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `DIVIDE`(22, 7.0) `r1`, `DIVIDE`(22, 7.0E0) `r2`, `DIVIDE`(22.0, 7) `r3`,"
+            + " `DIVIDE`(2.20E1, 7) `r4`, 0.1 * 0.2 `r5`, 1E-1 * 2E-1 `r6`, 0.1 + 0.2 `r7`, 1E-1 +"
+            + " 2E-1 `r8`, 0.06 - 0.01 `r9`, 6E-2 - 1E-2 `r10`, `DIVIDE`(0.1, 0.3) * 0.3 `r11`,"
+            + " `DIVIDE`(1E-1, 3E-1) * 3E-1 `r12`, POWER(POWER(2.0, 5E-1), 2) `r13`,"
+            + " POWER(POWER(2.0E0, 5E-1), 2) `r14`, `DIVIDE`(7.0, 0) `r15`, `DIVIDE`(7, 0.0)"
+            + " `r16`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }

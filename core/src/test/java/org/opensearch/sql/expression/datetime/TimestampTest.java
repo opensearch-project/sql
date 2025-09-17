@@ -24,7 +24,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
-import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.ExpressionTestBase;
 
@@ -60,11 +60,12 @@ public class TimestampTest extends ExpressionTestBase {
     // exception thrown from ExprTimestampValue(String) CTOR
     var exception =
         assertThrows(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () -> DSL.timestamp(functionProperties, DSL.literal(value)).valueOf());
     assertEquals(
         String.format(
-            "timestamp:%s in unsupported format, please " + "use 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'",
+            "timestamp:%s in unsupported format, please "
+                + "use 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]' or ISO 8601 format",
             value),
         exception.getMessage());
   }

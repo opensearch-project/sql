@@ -7,10 +7,11 @@ package org.opensearch.sql.opensearch.storage.script.filter;
 
 import static java.util.Collections.emptyMap;
 import static org.opensearch.script.Script.DEFAULT_SCRIPT_TYPE;
-import static org.opensearch.sql.opensearch.storage.script.ExpressionScriptEngine.EXPRESSION_LANG_NAME;
+import static org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.COMPOUNDED_LANG_NAME;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiFunction;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.index.query.BoolQueryBuilder;
@@ -19,11 +20,15 @@ import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.ScriptQueryBuilder;
 import org.opensearch.script.Script;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionNodeVisitor;
 import org.opensearch.sql.expression.FunctionExpression;
+import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.ScriptEngineType;
+import org.opensearch.sql.opensearch.storage.script.core.ExpressionScript;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.LikeQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.LuceneQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.NestedQuery;
@@ -39,10 +44,17 @@ import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.Quer
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.QueryStringQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.SimpleQueryStringQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.WildcardQuery;
-import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
+import org.opensearch.sql.opensearch.storage.serde.ExpressionSerializer;
+import org.opensearch.sql.opensearch.storage.serde.SerializationWrapper;
 
 @RequiredArgsConstructor
 public class FilterQueryBuilder extends ExpressionNodeVisitor<QueryBuilder, Object> {
+
+  public static class ScriptQueryUnSupportedException extends RuntimeException {
+    public ScriptQueryUnSupportedException(String message) {
+      super(message);
+    }
+  }
 
   /** Serializer that serializes expression for build DSL query. */
   private final ExpressionSerializer serializer;
@@ -129,8 +141,16 @@ public class FilterQueryBuilder extends ExpressionNodeVisitor<QueryBuilder, Obje
   }
 
   private ScriptQueryBuilder buildScriptQuery(FunctionExpression node) {
+    Set<ReferenceExpression> fields = ExpressionScript.extractFields(node);
+    if (fields.stream().anyMatch(field -> field.getType() == ExprCoreType.STRUCT)) {
+      throw new ScriptQueryUnSupportedException(
+          "Script query does not support fields of struct type in OpenSearch.");
+    }
     return new ScriptQueryBuilder(
         new Script(
-            DEFAULT_SCRIPT_TYPE, EXPRESSION_LANG_NAME, serializer.serialize(node), emptyMap()));
+            DEFAULT_SCRIPT_TYPE,
+            COMPOUNDED_LANG_NAME,
+            SerializationWrapper.wrapWithLangType(ScriptEngineType.V2, serializer.serialize(node)),
+            emptyMap()));
   }
 }

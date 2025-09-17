@@ -300,6 +300,26 @@ public class TestUtils {
     return getMappingFile(mappingFile);
   }
 
+  public static String getArrayIndexMapping() {
+    String mappingFile = "array_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
+  public static String getHdfsLogsIndexMapping() {
+    String mappingFile = "hdfs_logs_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
+  public static String getLogsIndexMapping() {
+    String mappingFile = "logs_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
+  public static String getOtelLogsIndexMapping() {
+    String mappingFile = "otellogs_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
   public static void loadBulk(Client client, String jsonPath, String defaultIndex)
       throws Exception {
     System.out.println(String.format("Loading file %s into opensearch cluster", jsonPath));
@@ -468,6 +488,22 @@ public class TestUtils {
   public static String getTpchMappingFile(String fileName) {
     try {
       return TestUtils.fileToString("src/test/resources/tpch/mappings/" + fileName, false);
+    } catch (IOException e) {
+      return null;
+    }
+  }
+
+  public static String getBig5MappingFile(String fileName) {
+    try {
+      return TestUtils.fileToString("src/test/resources/big5/mappings/" + fileName, false);
+    } catch (IOException e) {
+      return null;
+    }
+  }
+
+  public static String getClickBenchMappingFile(String fileName) {
+    try {
+      return TestUtils.fileToString("src/test/resources/clickbench/mappings/" + fileName, false);
     } catch (IOException e) {
       return null;
     }

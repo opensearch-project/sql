@@ -1,0 +1,3 @@
+source = big5 process.name=kernel
+| sort - `@timestamp`
+| head 10
