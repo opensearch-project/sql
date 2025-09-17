@@ -22,7 +22,50 @@ public class PPLOperandTypes {
   // This class is not meant to be instantiated.
   private PPLOperandTypes() {}
 
+  /** List of all scalar type signatures (single parameter each) */
+  private static final java.util.List<java.util.List<org.opensearch.sql.data.type.ExprType>>
+      SCALAR_TYPES =
+          java.util.List.of(
+              // Numeric types
+              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.BYTE),
+              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.SHORT),
+              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.INTEGER),
+              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.LONG),
+              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.FLOAT),
+              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.DOUBLE),
+              // String type
+              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.STRING),
+              // Boolean type
+              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.BOOLEAN),
+              // Temporal types
+              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.DATE),
+              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.TIME),
+              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP),
+              // Special scalar types
+              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.IP),
+              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.BINARY));
+
+  /** Helper method to create scalar types with optional integer parameter */
+  private static java.util.List<java.util.List<org.opensearch.sql.data.type.ExprType>>
+      createScalarWithOptionalInteger() {
+    java.util.List<java.util.List<org.opensearch.sql.data.type.ExprType>> result =
+        new java.util.ArrayList<>(SCALAR_TYPES);
+
+    // Add scalar + integer combinations
+    SCALAR_TYPES.forEach(
+        scalarType ->
+            result.add(
+                java.util.List.of(
+                    scalarType.get(0), org.opensearch.sql.data.type.ExprCoreType.INTEGER)));
+
+    return result;
+  }
+
   public static final UDFOperandMetadata NONE = UDFOperandMetadata.wrap(OperandTypes.family());
+  public static final UDFOperandMetadata OPTIONAL_ANY =
+      UDFOperandMetadata.wrap(
+          (CompositeOperandTypeChecker)
+              OperandTypes.family(SqlTypeFamily.ANY).or(OperandTypes.family()));
   public static final UDFOperandMetadata OPTIONAL_INTEGER =
       UDFOperandMetadata.wrap(
           (CompositeOperandTypeChecker) OperandTypes.INTEGER.or(OperandTypes.family()));
@@ -43,6 +86,10 @@ public class PPLOperandTypes {
       UDFOperandMetadata.wrap(
           (CompositeOperandTypeChecker)
               OperandTypes.ANY.or(OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.INTEGER)));
+  public static final UDFOperandMetadata ANY_OPTIONAL_TIMESTAMP =
+      UDFOperandMetadata.wrap(
+          (CompositeOperandTypeChecker)
+              OperandTypes.ANY.or(OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.TIMESTAMP)));
   public static final UDFOperandMetadata INTEGER_INTEGER =
       UDFOperandMetadata.wrap((FamilyOperandTypeChecker) OperandTypes.INTEGER_INTEGER);
   public static final UDFOperandMetadata STRING_STRING =
@@ -121,6 +168,12 @@ public class PPLOperandTypes {
           (CompositeOperandTypeChecker)
               OperandTypes.DATETIME.or(
                   OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER)));
+  public static final UDFOperandMetadata ANY_DATETIME_OR_STRING =
+      UDFOperandMetadata.wrap(
+          (CompositeOperandTypeChecker)
+              OperandTypes.family(SqlTypeFamily.ANY)
+                  .or(OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.DATETIME))
+                  .or(OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.STRING)));
 
   public static final UDFOperandMetadata DATETIME_DATETIME =
       UDFOperandMetadata.wrap(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME));
@@ -186,25 +239,12 @@ public class PPLOperandTypes {
    * booleans, datetime types, and special scalar types like IP and BINARY. Excludes complex types
    * like arrays, structs, and maps.
    */
-  public static final UDFOperandMetadata ANY_SCALAR =
-      UDFOperandMetadata.wrapUDT(
-          java.util.List.of(
-              // Numeric types
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.BYTE),
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.SHORT),
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.INTEGER),
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.LONG),
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.FLOAT),
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.DOUBLE),
-              // String type
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.STRING),
-              // Boolean type
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.BOOLEAN),
-              // Temporal types
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.DATE),
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.TIME),
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP),
-              // Special scalar types
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.IP),
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.BINARY)));
+  public static final UDFOperandMetadata ANY_SCALAR = UDFOperandMetadata.wrapUDT(SCALAR_TYPES);
+
+  /**
+   * Operand type checker that accepts any scalar type with an optional integer argument. This is
+   * used for aggregation functions that take a field and an optional limit/size parameter.
+   */
+  public static final UDFOperandMetadata ANY_SCALAR_OPTIONAL_INTEGER =
+      UDFOperandMetadata.wrapUDT(createScalarWithOptionalInteger());
 }

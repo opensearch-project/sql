@@ -66,6 +66,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXPM1;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXTRACT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FILTER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.FIRST;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FLOOR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FORALL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FROM_DAYS;
@@ -102,6 +103,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_KE
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_OBJECT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_SET;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_VALID;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LAST;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LAST_DAY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LATEST;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LEFT;
@@ -127,6 +129,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_P
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_PHRASE_PREFIX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MD5;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MEDIAN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MICROSECOND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE;
@@ -141,6 +144,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTH_O
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLYFUNCTION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTI_MATCH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVJOIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOTEQUAL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOW;
@@ -164,6 +168,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.REPLACE
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REVERSE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REX_EXTRACT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REX_EXTRACT_MULTI;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.REX_OFFSET;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RIGHT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RINT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ROUND;
@@ -183,6 +188,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.SQRT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.STDDEV_POP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.STDDEV_SAMP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.STRCMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.STRFTIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.STR_TO_DATE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBDATE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBSTR;
@@ -211,6 +217,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.UPPER;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.UTC_DATE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.UTC_TIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.UTC_TIMESTAMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.VALUES;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.VARPOP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.VARSAMP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEK;
@@ -228,7 +235,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
@@ -258,7 +264,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.calcite.CalcitePlanContext;
-import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
@@ -403,25 +409,40 @@ public class PPLFuncImpTable {
     aggExternalFunctionRegistry.put(functionName, Pair.of(signature, handler));
   }
 
+  public void validateAggFunctionSignature(
+      BuiltinFunctionName functionName, RexNode field, List<RexNode> argList) {
+    var implementation = getImplementation(functionName);
+    validateFunctionArgs(implementation, functionName, field, argList);
+  }
+
   public RelBuilder.AggCall resolveAgg(
       BuiltinFunctionName functionName,
       boolean distinct,
       RexNode field,
       List<RexNode> argList,
       CalcitePlanContext context) {
-    var implementation = aggExternalFunctionRegistry.get(functionName);
-    if (implementation == null) {
-      implementation = aggFunctionRegistry.get(functionName);
-    }
-    if (implementation == null) {
-      throw new IllegalStateException(String.format("Cannot resolve function: %s", functionName));
-    }
+    var implementation = getImplementation(functionName);
+
+    // Validation is done based on original argument types to generate error from user perspective.
+    validateFunctionArgs(implementation, functionName, field, argList);
+
+    var handler = implementation.getValue();
+    return handler.apply(distinct, field, argList, context);
+  }
+
+  static void validateFunctionArgs(
+      Pair<CalciteFuncSignature, AggHandler> implementation,
+      BuiltinFunctionName functionName,
+      RexNode field,
+      List<RexNode> argList) {
     CalciteFuncSignature signature = implementation.getKey();
+
     List<RelDataType> argTypes = new ArrayList<>();
     if (field != null) {
       argTypes.add(field.getType());
     }
-    // Currently only PERCENTILE_APPROX and TAKE have additional arguments.
+
+    // Currently only PERCENTILE_APPROX, TAKE, EARLIEST, and LATEST have additional arguments.
     // Their additional arguments will always come as a map of <argName, value>
     List<RelDataType> additionalArgTypes =
         argList.stream().map(PlanUtils::derefMapCall).map(RexNode::getType).toList();
@@ -437,10 +458,20 @@ public class PPLFuncImpTable {
               errorMessagePattern,
               functionName,
               signature.typeChecker().getAllowedSignatures(),
-              getActualSignature(argTypes)));
+              PlanUtils.getActualSignature(argTypes)));
     }
-    var handler = implementation.getValue();
-    return handler.apply(distinct, field, argList, context);
+  }
+
+  private Pair<CalciteFuncSignature, AggHandler> getImplementation(
+      BuiltinFunctionName functionName) {
+    var implementation = aggExternalFunctionRegistry.get(functionName);
+    if (implementation == null) {
+      implementation = aggFunctionRegistry.get(functionName);
+    }
+    if (implementation == null) {
+      throw new IllegalStateException(String.format("Cannot resolve function: %s", functionName));
+    }
+    return implementation;
   }
 
   public RexNode resolve(final RexBuilder builder, final String functionName, RexNode... args) {
@@ -488,7 +519,7 @@ public class PPLFuncImpTable {
       throw new ExpressionEvaluationException(
           String.format(
               "Cannot resolve function: %s, arguments: %s, caused by: %s",
-              functionName, getActualSignature(argTypes), e.getMessage()),
+              functionName, PlanUtils.getActualSignature(argTypes), e.getMessage()),
           e);
     }
     StringJoiner allowedSignatures = new StringJoiner(",");
@@ -501,7 +532,7 @@ public class PPLFuncImpTable {
     throw new ExpressionEvaluationException(
         String.format(
             "%s function expects {%s}, but got %s",
-            functionName, allowedSignatures, getActualSignature(argTypes)));
+            functionName, allowedSignatures, PlanUtils.getActualSignature(argTypes)));
   }
 
   /**
@@ -713,6 +744,7 @@ public class PPLFuncImpTable {
       registerOperator(MULTI_MATCH, PPLBuiltinOperators.MULTI_MATCH);
       registerOperator(REX_EXTRACT, PPLBuiltinOperators.REX_EXTRACT);
       registerOperator(REX_EXTRACT_MULTI, PPLBuiltinOperators.REX_EXTRACT_MULTI);
+      registerOperator(REX_OFFSET, PPLBuiltinOperators.REX_OFFSET);
 
       // Register PPL Datetime UDF operator
       registerOperator(TIMESTAMP, PPLBuiltinOperators.TIMESTAMP);
@@ -725,6 +757,7 @@ public class PPLFuncImpTable {
       registerOperator(YEARWEEK, PPLBuiltinOperators.YEARWEEK);
       registerOperator(WEEKDAY, PPLBuiltinOperators.WEEKDAY);
       registerOperator(UNIX_TIMESTAMP, PPLBuiltinOperators.UNIX_TIMESTAMP);
+      registerOperator(STRFTIME, PPLBuiltinOperators.STRFTIME);
       registerOperator(TO_SECONDS, PPLBuiltinOperators.TO_SECONDS);
       registerOperator(TO_DAYS, PPLBuiltinOperators.TO_DAYS);
       registerOperator(ADDTIME, PPLBuiltinOperators.ADDTIME);
@@ -787,6 +820,15 @@ public class PPLFuncImpTable {
       registerOperator(WEEKOFYEAR, PPLBuiltinOperators.WEEK);
 
       registerOperator(INTERNAL_PATTERN_PARSER, PPLBuiltinOperators.PATTERN_PARSER);
+
+      // Register MVJOIN to use Calcite's ARRAY_JOIN
+      register(
+          MVJOIN,
+          (FunctionImp2)
+              (builder, array, delimiter) ->
+                  builder.makeCall(SqlLibraryOperators.ARRAY_JOIN, array, delimiter),
+          PPLTypeChecker.family(SqlTypeFamily.ARRAY, SqlTypeFamily.CHARACTER));
+
       registerOperator(ARRAY, PPLBuiltinOperators.ARRAY);
       registerOperator(ARRAY_LENGTH, SqlLibraryOperators.ARRAY_LENGTH);
       registerOperator(FORALL, PPLBuiltinOperators.FORALL);
@@ -1043,6 +1085,7 @@ public class PPLFuncImpTable {
   }
 
   private static class AggBuilder {
+    private static final double MEDIAN_PERCENTILE = 50.0;
     private final Map<BuiltinFunctionName, Pair<CalciteFuncSignature, AggHandler>> map =
         new HashMap<>();
 
@@ -1067,21 +1110,6 @@ public class PPLFuncImpTable {
       register(functionName, handler, typeChecker);
     }
 
-    private static RexNode resolveTimeField(List<RexNode> argList, CalcitePlanContext ctx) {
-      if (argList.isEmpty()) {
-        // Try to find @timestamp field
-        var timestampField =
-            ctx.relBuilder.peek().getRowType().getField("@timestamp", false, false);
-        if (timestampField == null) {
-          throw new IllegalArgumentException(
-              "Default @timestamp field not found. Please specify a time field explicitly.");
-        }
-        return ctx.rexBuilder.makeInputRef(timestampField.getType(), timestampField.getIndex());
-      } else {
-        return PlanUtils.derefMapCall(argList.get(0));
-      }
-    }
-
     void populate() {
       registerOperator(MAX, SqlStdOperatorTable.MAX);
       registerOperator(MIN, SqlStdOperatorTable.MIN);
@@ -1093,6 +1121,7 @@ public class PPLFuncImpTable {
       registerOperator(TAKE, PPLBuiltinOperators.TAKE);
       registerOperator(INTERNAL_PATTERN, PPLBuiltinOperators.INTERNAL_PATTERN);
       registerOperator(LIST, PPLBuiltinOperators.LIST);
+      registerOperator(VALUES, PPLBuiltinOperators.VALUES);
 
       register(
           AVG,
@@ -1111,12 +1140,14 @@ public class PPLFuncImpTable {
               return ctx.relBuilder.count(distinct, null, field);
             }
           },
-          wrapSqlOperandTypeChecker(
-              SqlStdOperatorTable.COUNT.getOperandTypeChecker(), COUNT.name(), false));
+          wrapSqlOperandTypeChecker(PPLOperandTypes.OPTIONAL_ANY, COUNT.name(), false));
 
       register(
           PERCENTILE_APPROX,
           (distinct, field, argList, ctx) -> {
+            if (field.getType() == null) {
+              throw new IllegalArgumentException("Field type cannot be null");
+            }
             List<RexNode> newArgList =
                 argList.stream().map(PlanUtils::derefMapCall).collect(Collectors.toList());
             newArgList.add(ctx.rexBuilder.makeFlag(field.getType().getSqlTypeName()));
@@ -1129,38 +1160,85 @@ public class PPLFuncImpTable {
               false));
 
       register(
-          EARLIEST,
+          MEDIAN,
           (distinct, field, argList, ctx) -> {
-            RexNode timeField = resolveTimeField(argList, ctx);
-            return ctx.relBuilder.aggregateCall(SqlStdOperatorTable.ARG_MIN, field, timeField);
+            if (distinct) {
+              throw new IllegalArgumentException("MEDIAN does not support DISTINCT");
+            }
+            if (!argList.isEmpty()) {
+              throw new IllegalArgumentException("MEDIAN takes no additional arguments");
+            }
+            if (field.getType() == null) {
+              throw new IllegalArgumentException("Field type cannot be null");
+            }
+            List<RexNode> medianArgList =
+                List.of(
+                    ctx.rexBuilder.makeExactLiteral(BigDecimal.valueOf(MEDIAN_PERCENTILE)),
+                    ctx.rexBuilder.makeFlag(field.getType().getSqlTypeName()));
+            return UserDefinedFunctionUtils.makeAggregateCall(
+                PPLBuiltinOperators.PERCENTILE_APPROX,
+                List.of(field),
+                medianArgList,
+                ctx.relBuilder);
           },
           wrapSqlOperandTypeChecker(
-              SqlStdOperatorTable.ARG_MIN.getOperandTypeChecker(), EARLIEST.name(), false));
+              PPLOperandTypes.NUMERIC.getInnerTypeChecker(), MEDIAN.name(), false));
+
+      register(
+          EARLIEST,
+          (distinct, field, argList, ctx) -> {
+            List<RexNode> args = resolveTimeField(argList, ctx);
+            return UserDefinedFunctionUtils.makeAggregateCall(
+                SqlStdOperatorTable.ARG_MIN, List.of(field), args, ctx.relBuilder);
+          },
+          wrapSqlOperandTypeChecker(
+              PPLOperandTypes.ANY_OPTIONAL_TIMESTAMP, EARLIEST.name(), false));
 
       register(
           LATEST,
           (distinct, field, argList, ctx) -> {
-            RexNode timeField = resolveTimeField(argList, ctx);
-            return ctx.relBuilder.aggregateCall(SqlStdOperatorTable.ARG_MAX, field, timeField);
+            List<RexNode> args = resolveTimeField(argList, ctx);
+            return UserDefinedFunctionUtils.makeAggregateCall(
+                SqlStdOperatorTable.ARG_MAX, List.of(field), args, ctx.relBuilder);
           },
           wrapSqlOperandTypeChecker(
-              SqlStdOperatorTable.ARG_MAX.getOperandTypeChecker(), LATEST.name(), false));
+              PPLOperandTypes.ANY_OPTIONAL_TIMESTAMP, EARLIEST.name(), false));
+
+      // Register FIRST function - uses document order
+      register(
+          FIRST,
+          (distinct, field, argList, ctx) -> {
+            // Use our custom FirstAggFunction for document order aggregation
+            return ctx.relBuilder.aggregateCall(PPLBuiltinOperators.FIRST, field);
+          },
+          wrapSqlOperandTypeChecker(
+              PPLBuiltinOperators.FIRST.getOperandTypeChecker(), FIRST.name(), false));
+
+      // Register LAST function - uses document order
+      register(
+          LAST,
+          (distinct, field, argList, ctx) -> {
+            // Use our custom LastAggFunction for document order aggregation
+            return ctx.relBuilder.aggregateCall(PPLBuiltinOperators.LAST, field);
+          },
+          wrapSqlOperandTypeChecker(
+              PPLBuiltinOperators.LAST.getOperandTypeChecker(), LAST.name(), false));
     }
   }
 
-  /**
-   * Get a string representation of the argument types expressed in ExprType for error messages.
-   *
-   * @param argTypes the list of argument types as {@link RelDataType}
-   * @return a string in the format [type1,type2,...] representing the argument types
-   */
-  private static String getActualSignature(List<RelDataType> argTypes) {
-    return "["
-        + argTypes.stream()
-            .map(OpenSearchTypeFactory::convertRelDataTypeToExprType)
-            .map(Objects::toString)
-            .collect(Collectors.joining(","))
-        + "]";
+  static List<RexNode> resolveTimeField(List<RexNode> argList, CalcitePlanContext ctx) {
+    if (argList.isEmpty()) {
+      // Try to find @timestamp field
+      var timestampField = ctx.relBuilder.peek().getRowType().getField("@timestamp", false, false);
+      if (timestampField == null) {
+        throw new IllegalArgumentException(
+            "Default @timestamp field not found. Please specify a time field explicitly.");
+      }
+      return List.of(
+          ctx.rexBuilder.makeInputRef(timestampField.getType(), timestampField.getIndex()));
+    } else {
+      return argList.stream().map(PlanUtils::derefMapCall).collect(Collectors.toList());
+    }
   }
 
   /**
@@ -1204,6 +1282,8 @@ public class PPLFuncImpTable {
       pplTypeChecker = PPLTypeChecker.wrapComparable(comparableTypeChecker);
     } else if (typeChecker instanceof UDFOperandMetadata.UDTOperandMetadata udtOperandMetadata) {
       pplTypeChecker = PPLTypeChecker.wrapUDT(udtOperandMetadata.allowedParamTypes());
+    } else if (typeChecker != null) {
+      pplTypeChecker = PPLTypeChecker.wrapDefault(typeChecker);
     } else {
       logger.info(
           "Cannot create type checker for function: {}. Will skip its type checking", functionName);

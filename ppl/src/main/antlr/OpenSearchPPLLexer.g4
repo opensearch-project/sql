@@ -34,6 +34,7 @@ PARSE:                              'PARSE';
 SPATH:                              'SPATH';
 REGEX:                              'REGEX';
 REX:                                'REX';
+SED:                                'SED';
 PUNCT:                              'PUNCT';
 GROK:                               'GROK';
 PATTERN:                            'PATTERN';
@@ -55,6 +56,7 @@ FREQUENCY_THRESHOLD_PERCENTAGE:     'FREQUENCY_THRESHOLD_PERCENTAGE';
 METHOD:                             'METHOD';
 MAX_SAMPLE_COUNT:                   'MAX_SAMPLE_COUNT';
 MAX_MATCH:                          'MAX_MATCH';
+OFFSET_FIELD:                       'OFFSET_FIELD';
 BUFFER_LIMIT:                       'BUFFER_LIMIT';
 LABEL:                              'LABEL';
 AGGREGATION:                        'AGGREGATION';
@@ -88,6 +90,7 @@ STANDARD:                           'STANDARD';
 COST:                               'COST';
 EXTENDED:                           'EXTENDED';
 OVERRIDE:                           'OVERRIDE';
+OVERWRITE:                          'OVERWRITE';
 
 // SORT FIELD KEYWORDS
 // TODO #3180: Fix broken sort functionality
@@ -108,6 +111,7 @@ ALLNUM:                             'ALLNUM';
 DELIM:                              'DELIM';
 CURRENT:                            'CURRENT';
 WINDOW:                             'WINDOW';
+BUCKET_NULLABLE:                    'BUCKET_NULLABLE';
 CENTROIDS:                          'CENTROIDS';
 ITERATIONS:                         'ITERATIONS';
 DISTANCE_TYPE:                      'DISTANCE_TYPE';
@@ -385,6 +389,7 @@ UTC_TIME:                           'UTC_TIME';
 UTC_TIMESTAMP:                      'UTC_TIMESTAMP';
 WEEKDAY:                            'WEEKDAY';
 YEARWEEK:                           'YEARWEEK';
+STRFTIME:                           'STRFTIME';
 
 // TEXT FUNCTIONS
 SUBSTR:                             'SUBSTR';
@@ -420,6 +425,7 @@ ISBLANK:                            'ISBLANK';
 // COLLECTION FUNCTIONS
 ARRAY:                              'ARRAY';
 ARRAY_LENGTH:                       'ARRAY_LENGTH';
+MVJOIN:                             'MVJOIN';
 FORALL:                             'FORALL';
 FILTER:                             'FILTER';
 TRANSFORM:                          'TRANSFORM';

@@ -8,6 +8,7 @@ parser grammar OpenSearchPPLParser;
 
 
 options { tokenVocab = OpenSearchPPLLexer; }
+
 root
    : pplStatement? EOF
    ;
@@ -119,8 +120,53 @@ commandName
    ;
 
 searchCommand
-   : (SEARCH)? (logicalExpression)* fromClause (logicalExpression)*     # searchFrom
+   : (SEARCH)? (searchExpression)* fromClause (searchExpression)*     # searchFrom
    ;
+
+searchExpression
+ : LT_PRTHS searchExpression RT_PRTHS                 # groupedExpression
+ | NOT searchExpression                               # notExpression
+ | searchExpression OR searchExpression               # orExpression
+ | searchExpression AND searchExpression              # andExpression
+ | searchTerm                                         # termExpression
+ ;
+
+searchTerm
+ : searchFieldComparison                                   # searchComparisonTerm
+ | searchFieldInList                                       # searchInListTerm
+ | searchLiteral                                           # searchLiteralTerm
+ ;
+
+// Unified search literal for both free text and field comparisons
+searchLiteral
+   : numericLiteral
+   | booleanLiteral
+   | ID
+   | stringLiteral
+   | searchableKeyWord
+   ;
+
+searchFieldComparison
+ : fieldExpression searchComparisonOperator searchLiteral          # searchFieldCompare
+ ;
+
+searchFieldInList
+ : fieldExpression IN LT_PRTHS searchLiteralList RT_PRTHS          # searchFieldInValues
+ ;
+
+searchLiteralList
+ : searchLiteral (COMMA searchLiteral)*          # searchLiterals
+ ;
+
+searchComparisonOperator
+ : EQUAL                                             # equals
+ | NOT_EQUAL                                         # notEquals
+ | LESS                                              # lessThan
+ | NOT_GREATER                                       # lessOrEqual
+ | GREATER                                           # greaterThan
+ | NOT_LESS                                          # greaterOrEqual
+ ;
+
 
 describeCommand
    : DESCRIBE tableSourceClause
@@ -153,11 +199,35 @@ wcFieldList
    ;
 
 renameCommand
-   : RENAME renameClasue (COMMA renameClasue)*
+   : RENAME renameClasue (COMMA? renameClasue)*
    ;
 
 statsCommand
-   : STATS (PARTITIONS EQUAL partitions = integerLiteral)? (ALLNUM EQUAL allnum = booleanLiteral)? (DELIM EQUAL delim = stringLiteral)? statsAggTerm (COMMA statsAggTerm)* (statsByClause)? (DEDUP_SPLITVALUES EQUAL dedupsplit = booleanLiteral)?
+   : STATS statsArgs statsAggTerm (COMMA statsAggTerm)* (statsByClause)? (dedupSplitArg)?
+   ;
+
+statsArgs
+   : (partitionsArg | allnumArg | delimArg | bucketNullableArg)*
+   ;
+
+partitionsArg
+   : PARTITIONS EQUAL partitions = integerLiteral
+   ;
+
+allnumArg
+   : ALLNUM EQUAL allnum = booleanLiteral
+   ;
+
+delimArg
+   : DELIM EQUAL delim = stringLiteral
+   ;
+
+bucketNullableArg
+   : BUCKET_NULLABLE EQUAL bucket_nullable = booleanLiteral
+   ;
+
+dedupSplitArg
+   : DEDUP_SPLITVALUES EQUAL dedupsplit = booleanLiteral
    ;
 
 eventstatsCommand
@@ -292,7 +362,8 @@ rexExpr
 
 rexOption
     : MAX_MATCH EQUAL maxMatch=integerLiteral
-    | MODE EQUAL EXTRACT
+    | MODE EQUAL (EXTRACT | SED)
+    | OFFSET_FIELD EQUAL offsetField=qualifiedName
     ;
 patternsMethod
    : PUNCT
@@ -429,6 +500,8 @@ fromClause
    | INDEX EQUAL tableOrSubqueryClause
    | SOURCE EQUAL tableFunction
    | INDEX EQUAL tableFunction
+   | SOURCE EQUAL dynamicSourceClause
+   | INDEX EQUAL dynamicSourceClause
    ;
 
 tableOrSubqueryClause
@@ -440,19 +513,52 @@ tableSourceClause
    : tableSource (COMMA tableSource)* (AS alias = qualifiedName)?
    ;
 
-// join
-joinCommand
-   : (joinType) JOIN sideAlias joinHintList? joinCriteria? right = tableOrSubqueryClause
+dynamicSourceClause
+   : LT_SQR_PRTHS sourceReferences (COMMA sourceFilterArgs)? RT_SQR_PRTHS
    ;
 
-joinType
-   : INNER?
+sourceReferences
+   : sourceReference (COMMA sourceReference)*
+   ;
+
+sourceReference
+   : (CLUSTER)? wcQualifiedName
+   ;
+
+sourceFilterArgs
+   : sourceFilterArg (COMMA sourceFilterArg)*
+   ;
+
+sourceFilterArg
+   : ident EQUAL literalValue
+   | ident IN valueList
+   ;
+
+// join
+joinCommand
+   : JOIN (joinOption)* (fieldList)? right = tableOrSubqueryClause
+   | sqlLikeJoinType? JOIN (joinOption)* sideAlias joinHintList? joinCriteria right = tableOrSubqueryClause
+   ;
+
+sqlLikeJoinType
+   : INNER
    | CROSS
-   | LEFT OUTER?
+   | (LEFT OUTER? | OUTER)
    | RIGHT OUTER?
    | FULL OUTER?
    | LEFT? SEMI
    | LEFT? ANTI
+   ;
+
+joinType
+   : INNER
+   | CROSS
+   | OUTER
+   | LEFT
+   | RIGHT
+   | FULL
+   | SEMI
+   | ANTI
    ;
 
 sideAlias
@@ -460,7 +566,7 @@ sideAlias
    ;
 
 joinCriteria
-   : ON logicalExpression
+   : (ON | WHERE) logicalExpression
    ;
 
 joinHintList
@@ -472,8 +578,14 @@ hintPair
    | rightHintKey = RIGHT_HINT DOT ID EQUAL rightHintValue = ident          #rightHint
    ;
 
+joinOption
+   : OVERWRITE EQUAL booleanLiteral                     # overwriteOption
+   | TYPE EQUAL joinType                                # typeOption
+   | MAX EQUAL integerLiteral                           # maxOption
+   ;
+
 renameClasue
-   : orignalField = wcFieldExpression AS renamedField = wcFieldExpression
+   : orignalField = renameFieldExpression AS renamedField = renameFieldExpression
    ;
 
 byClause
@@ -541,14 +653,14 @@ statsAggTerm
 
 // aggregation functions
 statsFunction
-   : statsFunctionName LT_PRTHS valueExpression RT_PRTHS        # statsFunctionCall
-   | (COUNT | C) LT_PRTHS evalExpression RT_PRTHS               # countEvalFunctionCall
+   : (COUNT | C) LT_PRTHS evalExpression RT_PRTHS               # countEvalFunctionCall
    | (COUNT | C) (LT_PRTHS RT_PRTHS)?                           # countAllFunctionCall
    | PERCENTILE_SHORTCUT LT_PRTHS valueExpression RT_PRTHS      # percentileShortcutFunctionCall
    | (DISTINCT_COUNT | DC | DISTINCT_COUNT_APPROX) LT_PRTHS valueExpression RT_PRTHS    # distinctCountFunctionCall
    | takeAggFunction                                            # takeAggFunctionCall
+   | valuesAggFunction                                          # valuesAggFunctionCall
    | percentileApproxFunction                                   # percentileApproxFunctionCall
-   | earliestLatestFunction                                     # earliestLatestFunctionCall
+   | statsFunctionName LT_PRTHS functionArgs RT_PRTHS           # statsFunctionCall
    ;
 
 statsFunctionName
@@ -563,17 +675,20 @@ statsFunctionName
    | STDDEV_POP
    | PERCENTILE
    | PERCENTILE_APPROX
+   | MEDIAN
    | LIST
+   | FIRST
+   | EARLIEST
+   | LATEST
+   | LAST
    ;
-
-earliestLatestFunction
-   : (EARLIEST | LATEST) LT_PRTHS valueExpression (COMMA timeField = valueExpression)? RT_PRTHS
-   ;
-
-
 
 takeAggFunction
    : TAKE LT_PRTHS fieldExpression (COMMA size = integerLiteral)? RT_PRTHS
+   ;
+
+valuesAggFunction
+   : VALUES LT_PRTHS valueExpression RT_PRTHS
    ;
 
 percentileApproxFunction
@@ -668,7 +783,7 @@ tableFunction
 
 // fields
 fieldList
-   : fieldExpression (COMMA fieldExpression)*
+   : fieldExpression ((COMMA)? fieldExpression)*
    ;
 
 sortField
@@ -692,6 +807,11 @@ wcFieldExpression
    ;
 
 selectFieldExpression
+   : wcQualifiedName
+   | STAR
+   ;
+
+renameFieldExpression
    : wcQualifiedName
    | STAR
    ;
@@ -870,6 +990,7 @@ geoipFunctionName
 collectionFunctionName
     : ARRAY
     | ARRAY_LENGTH
+    | MVJOIN
     | FORALL
     | EXISTS
     | FILTER
@@ -978,6 +1099,7 @@ dateTimeFunctionName
    | WEEK_OF_YEAR
    | YEAR
    | YEARWEEK
+   | STRFTIME
    ;
 
 getFormatFunctionCall
@@ -1270,6 +1392,11 @@ wildcard
    ;
 
 keywordsCanBeId
+   : searchableKeyWord
+   | IN
+   ;
+
+searchableKeyWord
    : D // OD SQL and ODBC special
    | timespanUnit
    | SPAN
@@ -1282,12 +1409,12 @@ keywordsCanBeId
    | multiFieldRelevanceFunctionName
    | commandName
    | collectionFunctionName
-   | comparisonOperator
+   | REGEX
    | explainMode
+   | REGEXP
    // commands assist keywords
    | CASE
    | ELSE
-   | IN
    | ARROW
    | BETWEEN
    | EXISTS
@@ -1330,6 +1457,7 @@ keywordsCanBeId
    | DELIM
    | CURRENT
    | WINDOW
+   | BUCKET_NULLABLE
    | CENTROIDS
    | ITERATIONS
    | DISTANCE_TYPE
