@@ -499,7 +499,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     } else {
       // Default: running total
       if (current) {
-        return WindowFrame.of(WindowFrame.FrameType.ROWS, "UNBOUNDED PRECEDING", "CURRENT ROW");
+        return WindowFrame.toCurrentRow();
       } else {
         // Default: running total excluding current row
         return WindowFrame.of(WindowFrame.FrameType.ROWS, "UNBOUNDED PRECEDING", "1 PRECEDING");

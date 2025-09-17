@@ -304,6 +304,19 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testStreamstatsWindowError() {
+    Throwable e =
+        assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | streamstats window=-1 avg(age) as avg",
+                        TEST_INDEX_STATE_COUNTRY)));
+    verifyErrorMessageContains(e, "Window size must be >= 0, but got: -1");
+  }
+
+  @Test
   public void testStreamstatsCurrentAndWindow() throws IOException {
     JSONObject actual =
         executeQuery(
