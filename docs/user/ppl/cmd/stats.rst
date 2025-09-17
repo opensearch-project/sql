@@ -182,6 +182,10 @@ Description
 
 Usage: MAX(expr). Returns the maximum value of expr.
 
+For non-numeric fields, values are sorted lexicographically.
+
+Note: Non-numeric field support requires Calcite to be enabled (see `Configuration`_ section above). Available since version 3.3.0.
+
 Example::
 
     os> source=accounts | stats max(age);
@@ -192,6 +196,16 @@ Example::
     | 36       |
     +----------+
 
+Example with text field::
+
+    os> source=accounts | stats max(firstname);
+    fetched rows / total rows = 1/1
+    +----------------+
+    | max(firstname) |
+    |----------------|
+    | Nanette        |
+    +----------------+
+
 MIN
 ---
 
@@ -199,6 +213,10 @@ Description
 >>>>>>>>>>>
 
 Usage: MIN(expr). Returns the minimum value of expr.
+
+For non-numeric fields, values are sorted lexicographically.
+
+Note: Non-numeric field support requires Calcite to be enabled (see `Configuration`_ section above). Available since version 3.3.0.
 
 Example::
 
@@ -209,6 +227,16 @@ Example::
     |----------|
     | 28       |
     +----------+
+
+Example with text field::
+
+    os> source=accounts | stats min(firstname);
+    fetched rows / total rows = 1/1
+    +----------------+
+    | min(firstname) |
+    |----------------|
+    | Amber          |
+    +----------------+
 
 VAR_SAMP
 --------
