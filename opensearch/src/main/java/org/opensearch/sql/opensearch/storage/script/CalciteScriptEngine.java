@@ -79,6 +79,7 @@ import org.opensearch.script.FilterScript;
 import org.opensearch.script.ScriptContext;
 import org.opensearch.script.ScriptEngine;
 import org.opensearch.search.lookup.SourceLookup;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -128,8 +129,7 @@ public class CalciteScriptEngine implements ScriptEngine {
     Map<String, ExprType> fieldTypes =
         (Map<String, ExprType>) objectMap.get(RelJsonSerializer.FIELD_TYPES);
 
-    JavaTypeFactoryImpl typeFactory =
-        new JavaTypeFactoryImpl(relJsonSerializer.getCluster().getTypeFactory().getTypeSystem());
+    JavaTypeFactory typeFactory = OpenSearchTypeFactory.TYPE_FACTORY;
     RexToLixTranslator.InputGetter getter = new ScriptInputGetter(typeFactory, rowType, fieldTypes);
     String code =
         CalciteScriptEngine.translate(

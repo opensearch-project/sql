@@ -42,17 +42,6 @@ public class ExtendedRelJson extends RelJson {
     return super.toJson(value);
   }
 
-  /**
-   * Jsonify an Object to string. When udtAsString is set, user-defined types are serialized to
-   * string types.
-   */
-  public @Nullable Object toJson(@Nullable Object value, boolean udtAsString) {
-    if (udtAsString) {
-      return super.toJson(value);
-    }
-    return toJson(value);
-  }
-
   private Object toJson(RelDataTypeField node) {
     final Map<String, @Nullable Object> map;
     if (node.getType().isStruct()) {
