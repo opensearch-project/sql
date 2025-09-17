@@ -3,6 +3,6 @@ repos:
     hooks:
       - id: spotless-format
         name: Spotless Format
-        entry: bash -c './gradlew spotlessApply && git diff --name-only --cached | xargs git add'
+        entry: bash -c './gradlew spotlessApply && git add -u'
         language: system
         pass_filenames: false
