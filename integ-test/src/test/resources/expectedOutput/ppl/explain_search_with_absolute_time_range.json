@@ -8,7 +8,7 @@
       {
         "name": "OpenSearchIndexScan",
         "description": {
-          "request": "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_time_data, sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"query\":{\"bool\":{\"filter\":[{\"range\":{\"@timestamp\":{\"from\":1670677864000,\"to\":null,\"include_lower\":true,\"include_upper\":true,\"boost\":1.0}}},{\"range\":{\"@timestamp\":{\"from\":null,\"to\":1756912200000,\"include_lower\":true,\"include_upper\":true,\"boost\":1.0}}}],\"adjust_pure_negative\":true,\"boost\":1.0}},\"_source\":{\"includes\":[\"@timestamp\",\"category\",\"value\",\"timestamp\"],\"excludes\":[]},\"sort\":[{\"_doc\":{\"order\":\"asc\"}}]}, needClean=true, searchDone=false, pitId=*, cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
+          "request": "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_time_data, sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"query\":{\"query_string\":{\"query\":\"(@timestamp:>=2022\\\\-12\\\\-10T13\\\\:11\\\\:04Z) AND (@timestamp:<=2025\\\\-09\\\\-03T15\\\\:10\\\\:00Z)\",\"fields\":[],\"type\":\"best_fields\",\"default_operator\":\"or\",\"max_determinized_states\":10000,\"enable_position_increments\":true,\"fuzziness\":\"AUTO\",\"fuzzy_prefix_length\":0,\"fuzzy_max_expansions\":50,\"phrase_slop\":0,\"escape\":false,\"auto_generate_synonyms_phrase_query\":true,\"fuzzy_transpositions\":true,\"boost\":1.0}},\"_source\":{\"includes\":[\"@timestamp\",\"category\",\"value\",\"timestamp\"],\"excludes\":[]},\"sort\":[{\"_doc\":{\"order\":\"asc\"}}]}, needClean=true, searchDone=false, pitId=*, cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
         },
         "children": []
       }
