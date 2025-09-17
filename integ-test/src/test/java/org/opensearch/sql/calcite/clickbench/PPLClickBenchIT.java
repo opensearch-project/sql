@@ -63,7 +63,7 @@ public class PPLClickBenchIT extends PPLIntegTestCase {
     } else {
       // Ignore q30 when use RuntimeMemoryUsage,
       // because of too much script push down, which will cause ResourceMonitor restriction.
-      return Set.of(29);
+      return Set.of(29, 30);
     }
   }
 

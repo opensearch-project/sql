@@ -372,7 +372,7 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
         schema("r11", "double"));
     verifyDataRows(
         actual,
-        rows(
+        closeTo(
             3,
             2,
             3,

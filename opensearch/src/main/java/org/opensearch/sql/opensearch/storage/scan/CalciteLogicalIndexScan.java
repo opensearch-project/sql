@@ -124,8 +124,8 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
 
   @Override
   public void register(RelOptPlanner planner) {
-    planner.addRule(EnumerableIndexScanRule.DEFAULT_CONFIG.toRule());
     super.register(planner);
+    planner.addRule(EnumerableIndexScanRule.DEFAULT_CONFIG.toRule());
     if (osIndex.getSettings().getSettingValue(Settings.Key.CALCITE_PUSHDOWN_ENABLED)) {
       // When pushdown is enabled, use normal rules (they handle everything including relevance
       // functions)
