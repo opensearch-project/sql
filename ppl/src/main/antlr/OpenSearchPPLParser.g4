@@ -769,6 +769,8 @@ timeModifier
 timeModifierValue
    : NOW
    | NOW LT_PRTHS RT_PRTHS
+   | DECIMAL_LITERAL
+   | INTEGER_LITERAL
    | stringLiteral
    | timeSnap
    | (PLUS | MINUS) (integerLiteral)? timeModifierUnit (timeSnap)?

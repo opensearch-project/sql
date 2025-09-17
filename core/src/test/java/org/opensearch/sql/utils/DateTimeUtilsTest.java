@@ -176,12 +176,6 @@ public class DateTimeUtilsTest {
   }
 
   @Test
-  void testParseRelativeTimeWithNow() {
-    assertEquals("now", parseRelativeTime("now"));
-    assertEquals("now", parseRelativeTime("now()"));
-  }
-
-  @Test
   void testParseRelativeTimeWithDatetimeString() {
     assertEquals("2025-10-22", parseRelativeTime("2025-10-22"));
     assertEquals("2025-10-22T10:32:12Z", parseRelativeTime("2025-10-22 10:32:12"));

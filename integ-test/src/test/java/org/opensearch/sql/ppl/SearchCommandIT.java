@@ -958,4 +958,15 @@ public class SearchCommandIT extends PPLIntegTestCase {
     verifySchema(result1, schema("@timestamp", "timestamp"));
     verifyDataRows(result1, rows("2025-08-01 03:47:41"));
   }
+
+  @Test
+  public void testSearchWithNumericTimeRange() throws IOException {
+    JSONObject result1 =
+        executeQuery(
+            String.format(
+                "search source=%s earliest=1754020060.123 latest=1754020061 | fields @timestamp",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(result1, schema("@timestamp", "timestamp"));
+    verifyDataRows(result1, rows("2025-08-01 03:47:41"));
+  }
 }

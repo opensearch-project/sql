@@ -649,6 +649,15 @@ public class ExplainIT extends PPLIntegTestCase {
             String.format("source=%s earliest='-1q@year' latest=now", TEST_INDEX_TIME_DATA)));
   }
 
+  @Test
+  public void testSearchCommandWithNumericTimeRange() throws IOException {
+    String expected = loadExpectedPlan("explain_search_with_numeric_time_range.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format("source=%s earliest=1 latest=1754020061.123456", TEST_INDEX_TIME_DATA)));
+  }
+
   protected String loadExpectedPlan(String fileName) throws IOException {
     String prefix;
     if (isCalciteEnabled()) {
