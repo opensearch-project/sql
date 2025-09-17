@@ -1,0 +1,17 @@
+{
+  "mappings": {
+    "properties": {
+      "doc_n": {
+        "type": "text"
+      },
+      "doc_list": {
+        "type": "text"
+      },
+      "obj_field": {
+        "properties": {
+          "field": { "type": "text" }
+        }
+      }
+    }
+  }
+}
