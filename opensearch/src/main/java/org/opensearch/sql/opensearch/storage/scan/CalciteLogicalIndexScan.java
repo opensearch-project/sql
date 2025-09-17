@@ -6,13 +6,13 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import com.google.common.collect.ImmutableList;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import lombok.Getter;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
@@ -33,13 +33,8 @@ import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rex.RexBuilder;
-import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.commons.lang3.tuple.Pair;
@@ -58,26 +53,15 @@ import org.opensearch.sql.opensearch.planner.physical.OpenSearchIndexRules;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.QueryExpression;
+import org.opensearch.sql.opensearch.request.PredicateAnalyzer.ScriptQueryExpression;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
+import org.opensearch.sql.opensearch.storage.scan.SelectedColumn.Kind;
 
 /** The logical relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
 public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
   private static final Logger LOG = LogManager.getLogger(CalciteLogicalIndexScan.class);
-
-  private static final List<DslTypeMappingRule> DSL_TYPE_MAPPING_RULES =
-      Arrays.asList(
-          new DslTypeMappingRule(t -> SqlTypeName.INT_TYPES.contains(t.getSqlTypeName()), "long"),
-          // Float is not supported well in OpenSearch core. See reported bug:
-          // https://github.com/opensearch-project/OpenSearch/issues/19271
-          // TODO: Support BigDecimal and other complex objects. A workaround is to wrap it in JSON
-          // object so that response can parse it
-          new DslTypeMappingRule(t -> SqlTypeName.DOUBLE.equals(t.getSqlTypeName()), "double"),
-          new DslTypeMappingRule(
-              t -> SqlTypeName.BOOLEAN_TYPES.contains(t.getSqlTypeName()), "boolean"),
-          new DslTypeMappingRule(
-              t -> SqlTypeName.CHAR_TYPES.contains(t.getSqlTypeName()), "keyword"));
 
   public CalciteLogicalIndexScan(
       RelOptCluster cluster, RelOptTable table, OpenSearchIndex osIndex) {
@@ -222,93 +206,65 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     return newScan;
   }
 
-  public CalciteLogicalIndexScan pushDownScriptProject(
-      LogicalProject project,
-      List<String> uniquifiedCallNames,
-      Map<String, String> uniquifiedCallNamesMap) {
-    Map<String, ExprType> fieldTypes =
-        this.osIndex.getFieldTypes().entrySet().stream()
-            .filter(entry -> this.schema.getFieldNames().contains(entry.getKey()))
-            .collect(Collectors.toMap(Map.Entry::getKey, java.util.Map.Entry::getValue));
-
-    // figure out the RexCall in projects
-    List<org.apache.calcite.util.Pair<RexNode, String>> calls =
-        project.getNamedProjects().stream().filter(pair -> pair.left instanceof RexCall).toList();
-    // If nested RexCall output RelDataType is UDT or any operands contain UDT, don't push down it
-    // because deserialization can't recognize UDT
-    calls.forEach(
-        call -> {
-          if (findUDTType(call.left)) {
-            throw new IllegalStateException(
-                "Cannot pushdown the RexCall containing UDT to script project.");
-          }
-        });
-
-    List<String> fieldNames =
-        project.getNamedProjects().stream()
-            .filter(pair -> !(pair.left instanceof RexCall))
-            .map(call -> call.getValue())
-            .toList();
-
-    final RelDataTypeFactory.Builder builder = getCluster().getTypeFactory().builder();
-    final List<RelDataTypeField> fieldList = project.getRowType().getFieldList();
-    for (int i = 0; i < fieldList.size(); i++) {
-      String fieldName = fieldList.get(i).getName();
-      if (uniquifiedCallNamesMap.containsKey(fieldName)) {
-        builder.add(
-            new RelDataTypeFieldImpl(
-                uniquifiedCallNamesMap.get(fieldName), i, fieldList.get(i).getType()));
-      } else {
-        builder.add(fieldList.get(i));
-      }
-    }
-    RelDataType newSchema = builder.build();
-    CalciteLogicalIndexScan newScan =
-        new CalciteLogicalIndexScan(
-            getCluster(),
-            project.getTraitSet(),
-            hints,
-            table,
-            osIndex,
-            newSchema,
-            cloneWithoutProject(pushDownContext));
-
-    // push down the RexCall to script fields
-    List<Script> scripts =
-        calls.stream()
-            .map(
-                call ->
-                    new PredicateAnalyzer.ScriptQueryExpression(
-                            call.left, project.getInput().getRowType(), fieldTypes, getCluster())
-                        .getScript())
-            .toList();
-    newScan.pushDownContext.add(
-        PushDownAction.of(
-            PushDownType.PROJECT,
-            fieldNames,
-            requestBuilder -> requestBuilder.pushDownProjectStream(fieldNames.stream())));
-    newScan.pushDownContext.add(
-        PushDownAction.of(
-            PushDownType.SCRIPT_PROJECT,
-            uniquifiedCallNames,
-            requestBuilder ->
-                requestBuilder.pushDownScriptProjects(
-                    uniquifiedCallNames,
-                    calls.stream().map(call -> toDslType(call.left.getType())).toList(),
-                    scripts)));
-    newScan.pushDownContext.setDerivedFieldNames(uniquifiedCallNames);
-    return newScan;
-  }
-
   /**
    * When pushing down a project, we need to create a new CalciteLogicalIndexScan with the updated
    * schema since we cannot override getRowType() which is defined to be final.
    */
-  public CalciteLogicalIndexScan pushDownProject(List<Integer> selectedColumns) {
+  public CalciteLogicalIndexScan pushDownProject(
+      List<SelectedColumn> selected,
+      LogicalProject project,
+      Map<Integer, String> newDerivedAliases) {
     final RelDataTypeFactory.Builder builder = getCluster().getTypeFactory().builder();
-    final List<RelDataTypeField> fieldList = this.getRowType().getFieldList();
-    for (int project : selectedColumns) {
-      builder.add(fieldList.get(project));
+    final List<RelDataTypeField> scanFields = this.getRowType().getFieldList();
+    final List<RelDataTypeField> projFields = project.getRowType().getFieldList();
+
+    final List<String> newPhysicalNames = new ArrayList<>();
+    final List<String> physicalToPush = new ArrayList<>();
+    final List<String> derivedNames = new ArrayList<>();
+    final List<String> derivedTypes = new ArrayList<>();
+    final List<Script> derivedScripts = new ArrayList<>();
+    final List<Integer> selectedColumns = new ArrayList<>();
+
+    for (SelectedColumn item : selected) {
+      switch (item.getKind()) {
+        case PHYSICAL, DERIVED_EXISTING:
+          {
+            RelDataTypeField field = scanFields.get(item.getOldIdx());
+            builder.add(field);
+            if (item.getKind() == Kind.PHYSICAL) {
+              newPhysicalNames.add(field.getName());
+              // For alias types, we need to push down its original path instead of the alias name.
+              physicalToPush.add(
+                  this.osIndex.getAliasMapping().getOrDefault(field.getName(), field.getName()));
+              // For now, we only handle physical input collations before sort by expressions is
+              // implemented
+              selectedColumns.add(item.getOldIdx());
+            }
+            break;
+          }
+        case DERIVED_NEW:
+          {
+            String alias = newDerivedAliases.get(item.getProjIdx());
+            RelDataTypeField outputField = projFields.get(item.getProjIdx());
+            builder.add(alias, outputField.getType());
+
+            // TODO: Consider minimizing the input rowType for the derived field RexNode
+            Map<String, ExprType> fieldTypes = this.osIndex.getFieldTypes();
+            Script script =
+                new ScriptQueryExpression(
+                        project.getProjects().get(item.getProjIdx()),
+                        project.getInput().getRowType(),
+                        fieldTypes,
+                        this.getCluster())
+                    .getScript();
+            derivedNames.add(alias);
+            derivedTypes.add(
+                OpenSearchTypeFactory.convertRelDataTypeToSupportedDerivedFieldType(
+                    outputField.getType()));
+            derivedScripts.add(script);
+          }
+          break;
+      }
     }
     RelDataType newSchema = builder.build();
 
@@ -316,7 +272,19 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     // `Project($1, $0) -> Sort(sort0=[1]) -> Project($1, $0) -> Aggregate(group={0},...)...`
     // We don't support pushing down the duplicated project here otherwise it will cause dead-loop.
     // `ProjectMergeRule` will help merge the duplicated projects.
-    if (this.getPushDownContext().containsDigest(newSchema.getFieldNames())) return null;
+    if (this.getPushDownContext().containsDigest(newSchema.getFieldNames()) ||
+        newSchema.getFieldNames().equals(this.getRowType().getFieldNames())) {
+      return null;
+    }
+
+    // To prevent circular pushdown for some edge cases where plan has pattern(see TPCH Q1):
+    // `Project($1, $0) -> Sort(sort0=[1]) -> Project($1, $0) -> Aggregate(group={0},...)...`
+    // We don't support pushing down the duplicated project here otherwise it will cause dead-loop.
+    // `ProjectMergeRule` will help merge the duplicated projects.
+    //    if (this.getPushDownContext().containsDigest(newSchema.getFieldNames())) return null;
+    // TODO: Uncomment the above logic for now, because we need to consider pushed derived field
+    // name case
+    // TODO: Need to figure out new logic for idempotent project pushdown
 
     // Projection may alter indicies in the collations.
     // E.g. When sorting age
@@ -332,23 +300,32 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
             table,
             osIndex,
             newSchema,
-            pushDownContext.clone());
+            pushDownContext.clone()); // TODO: Check if we need to clone context without project
 
-    AbstractAction action;
-    if (pushDownContext.isAggregatePushed()) {
-      // For aggregate, we do nothing on query builder but only change the schema of the scan.
-      action = requestBuilder -> {};
-    } else {
-      Map<String, String> aliasMapping = this.osIndex.getAliasMapping();
-      // For alias types, we need to push down its original path instead of the alias name.
-      List<String> projectedFields =
-          newSchema.getFieldNames().stream()
-              .map(fieldName -> aliasMapping.getOrDefault(fieldName, fieldName))
-              .toList();
-      action = requestBuilder -> requestBuilder.pushDownProjectStream(projectedFields.stream());
+    // For aggregate, we do nothing on query builder but only change the schema of the scan.
+    AbstractAction action =
+        pushDownContext.isAggregatePushed()
+            ? requestBuilder -> {}
+            : requestBuilder -> requestBuilder.pushDownProjectStream(physicalToPush.stream());
+    newScan.pushDownContext.add(PushDownAction.of(PushDownType.PROJECT, newPhysicalNames, action));
+
+    if (!derivedScripts.isEmpty()) {
+      newScan.pushDownContext.add(
+          PushDownAction.of(
+              PushDownType.SCRIPT_PROJECT,
+              derivedNames,
+              requestBuilder ->
+                  requestBuilder.pushDownScriptProjects(
+                      derivedNames, derivedTypes, derivedScripts)));
+      // For handling idempotency of next round of pushDownProject, we record which derived names
+      // are already generated
+      newScan.pushDownContext.setDerivedNames(new HashSet<>(derivedNames));
+      newScan.pushDownContext.setDerivedScripsByName(
+          IntStream.range(0, derivedScripts.size())
+              .boxed()
+              .map(i -> Pair.of(derivedNames.get(i), derivedScripts.get(i)))
+              .collect(Collectors.toMap(Pair::getLeft, Pair::getRight)));
     }
-    newScan.pushDownContext.add(
-        PushDownAction.of(PushDownType.PROJECT, newSchema.getFieldNames(), action));
     return newScan;
   }
 
@@ -438,52 +415,5 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       }
     }
     return null;
-  }
-
-  private static String toDslType(RelDataType relDataType) {
-    return DSL_TYPE_MAPPING_RULES.stream()
-        .filter(rule -> rule.condition.test(relDataType))
-        .findFirst()
-        .map(DslTypeMappingRule::getResult)
-        .orElseThrow(
-            () ->
-                new IllegalArgumentException(
-                    String.format(
-                        Locale.ROOT,
-                        "Unsupported RelDataType for derived field: %s",
-                        relDataType)));
-  }
-
-  private static class DslTypeMappingRule {
-    @Getter private final Predicate<RelDataType> condition;
-    @Getter private final String result;
-
-    public DslTypeMappingRule(Predicate<RelDataType> condition, String result) {
-      this.condition = condition;
-      this.result = result;
-    }
-  }
-
-  // Not support UDT RelDataType because RelJson deserialization doesn't recognize it.
-  // Time related UDT is not supported because derived field expects date to be Long but our UDT is
-  // actually a STRING
-  private static boolean findUDTType(RexNode node) {
-    return node.accept(
-        new RexVisitorImpl<>(true) {
-          @Override
-          public Boolean visitInputRef(RexInputRef inputRef) {
-            return OpenSearchTypeFactory.isUserDefinedType(inputRef.getType());
-          }
-
-          @Override
-          public Boolean visitLiteral(RexLiteral literal) {
-            return OpenSearchTypeFactory.isUserDefinedType(literal.getType());
-          }
-
-          @Override
-          public Boolean visitCall(RexCall call) {
-            return OpenSearchTypeFactory.isUserDefinedType(call.getType());
-          }
-        });
   }
 }

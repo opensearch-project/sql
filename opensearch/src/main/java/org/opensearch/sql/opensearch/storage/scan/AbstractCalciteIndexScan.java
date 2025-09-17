@@ -11,8 +11,11 @@ import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_PUSHDOWN_RO
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import lombok.Getter;
@@ -41,6 +44,7 @@ import org.apache.calcite.util.NumberUtil;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.script.Script;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
 import org.opensearch.search.aggregations.AggregatorFactories.Builder;
@@ -172,12 +176,14 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     @Getter private boolean isLimitPushed = false;
     @Getter private boolean isProjectPushed = false;
     @Getter private boolean isScriptProjectPushed = false;
-    @Getter @Setter private List<String> derivedFieldNames = new ArrayList<>();
+    @Getter @Setter private Set<String> derivedNames = new HashSet<>();
+    @Getter @Setter private Map<String, Script> derivedScripsByName = new HashMap<>();
 
     @Override
     public PushDownContext clone() {
       PushDownContext cloned = (PushDownContext) super.clone();
-      cloned.derivedFieldNames = new ArrayList<>(derivedFieldNames);
+      cloned.derivedNames = new HashSet<>(derivedNames);
+      cloned.derivedScripsByName = new HashMap<>(derivedScripsByName);
       return cloned;
     }
 
@@ -263,7 +269,8 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
         newContext.add(action);
       }
     }
-    newContext.setDerivedFieldNames(new ArrayList<>(pushDownContext.derivedFieldNames));
+    newContext.setDerivedNames(new HashSet<>(pushDownContext.derivedNames));
+    newContext.setDerivedScripsByName(new HashMap<>(pushDownContext.derivedScripsByName));
     return newContext;
   }
 
@@ -274,7 +281,8 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
         newContext.add(action);
       }
     }
-    newContext.setDerivedFieldNames(new ArrayList<>(pushDownContext.derivedFieldNames));
+    newContext.setDerivedNames(new HashSet<>(pushDownContext.derivedNames));
+    newContext.setDerivedScripsByName(new HashMap<>(pushDownContext.derivedScripsByName));
     return newContext;
   }
 
@@ -286,10 +294,12 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
   public AbstractCalciteIndexScan pushDownSort(List<RelFieldCollation> collations) {
     try {
       List<String> collationNames = getCollationNames(collations);
+      // TODO: Handle the case where equivalent field sort propagates to pushed down derived field
       // Don't push down sort in case of sorting derived field because derived field sort is not
       // supported.
       for (String collationName : collationNames) {
-        if (this.getPushDownContext().getDerivedFieldNames().contains(collationName)) {
+        if (this.getPushDownContext().getDerivedScripsByName().keySet().stream()
+            .anyMatch(name -> name.equals(collationName))) {
           return null;
         }
       }
