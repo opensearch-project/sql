@@ -74,6 +74,8 @@ import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Rex;
+import org.opensearch.sql.ast.tree.SPath;
+import org.opensearch.sql.ast.tree.Search;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
@@ -128,6 +130,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitTableFunction(TableFunction node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitSearch(Search node, C context) {
     return visitChildren(node, context);
   }
 

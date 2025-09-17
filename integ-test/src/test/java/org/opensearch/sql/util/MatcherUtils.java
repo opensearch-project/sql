@@ -380,7 +380,7 @@ public class MatcherUtils {
   }
 
   private static String cleanUpId(String s) {
-    return eliminateTimeStamp(eliminatePid(eliminateRelId(s)));
+    return eliminateTimeStamp(eliminatePid(eliminateFieldIndices(eliminateRelId(s))));
   }
 
   private static String eliminateTimeStamp(String s) {
@@ -389,6 +389,11 @@ public class MatcherUtils {
 
   private static String eliminateRelId(String s) {
     return s.replaceAll("rel#\\d+", "rel#").replaceAll("RelSubset#\\d+", "RelSubset#");
+  }
+
+  private static String eliminateFieldIndices(String s) {
+    // Replace field indices like $7, $156, $t7, $t156 with placeholders
+    return s.replaceAll("\\$t?\\d+", "\\$FIELD_INDEX");
   }
 
   private static String eliminatePid(String s) {

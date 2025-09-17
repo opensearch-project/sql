@@ -48,7 +48,6 @@ import org.opensearch.sql.ast.EmptySourcePropagateVisitor;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
-import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.EqualTo;
@@ -60,6 +59,9 @@ import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.PatternMethod;
 import org.opensearch.sql.ast.expression.PatternMode;
 import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.SearchAnd;
+import org.opensearch.sql.ast.expression.SearchExpression;
+import org.opensearch.sql.ast.expression.SearchGroup;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
@@ -95,6 +97,7 @@ import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.SPath;
+import org.opensearch.sql.ast.tree.Search;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
@@ -164,15 +167,34 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   /** Search command. */
   @Override
   public UnresolvedPlan visitSearchFrom(SearchFromContext ctx) {
-    if (ctx.logicalExpression().isEmpty()) {
+    if (ctx.searchExpression().isEmpty()) {
       return visitFromClause(ctx.fromClause());
     } else {
-      return new Filter(
-              ctx.logicalExpression().stream()
-                  .map(this::internalVisitExpression)
-                  .reduce(And::new)
-                  .get())
-          .attach(visit(ctx.fromClause()));
+      // Build search expressions using visitor pattern
+      List<SearchExpression> searchExprs =
+          ctx.searchExpression().stream()
+              .map(expr -> (SearchExpression) expressionBuilder.visit(expr))
+              .collect(Collectors.toList());
+      // Combine multiple expressions with AND
+      SearchExpression combined;
+      if (searchExprs.size() == 1) {
+        combined = searchExprs.get(0);
+      } else {
+        // before being combined with AND (e.g., "a=1 b=-1" becomes "(a:1) AND (b:-1)")
+        combined =
+            searchExprs.stream()
+                .map(SearchGroup::new)
+                .map(SearchExpression.class::cast)
+                .reduce(SearchAnd::new)
+                .get(); // Safe because we know size > 1 from the if condition
+      }
+
+      // Convert to query string
+      String queryString = combined.toQueryString();
+
+      // Create Search node with relation and query string
+      Relation relation = (Relation) visitFromClause(ctx.fromClause());
+      return new Search(relation, queryString);
     }
   }
 
