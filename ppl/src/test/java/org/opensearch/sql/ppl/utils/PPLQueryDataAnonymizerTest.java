@@ -33,7 +33,7 @@ public class PPLQueryDataAnonymizerTest {
 
   @Test
   public void testSearchCommand() {
-    assertEquals("source=t | where a = ***", anonymize("search source=t a=1"));
+    assertEquals("source=t a:***", anonymize("search source=t a=1"));
   }
 
   @Test
@@ -235,6 +235,13 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testEvalCommand() {
     assertEquals("source=t | eval r=abs(f)", anonymize("source=t | eval r=abs(f)"));
+  }
+
+  @Test
+  public void testEvalCommandWithStrftime() {
+    assertEquals(
+        "source=t | eval formatted=strftime(timestamp,***)",
+        anonymize("source=t | eval formatted=strftime(timestamp, '%Y-%m-%d %H:%M:%S')"));
   }
 
   @Test
@@ -497,7 +504,8 @@ public class PPLQueryDataAnonymizerTest {
         anonymize("source=t |  eval id = [ source=s | stats max(b) ] | fields id"));
     assertEquals(
         "source=t | where id > [ source=s | where id = uid | stats max(b) ] | fields + id",
-        anonymize("source=t id > [ source=s | where id = uid | stats max(b) ] | fields id"));
+        anonymize(
+            "source=t | where id > [ source=s | where id = uid | stats max(b) ] | fields id"));
   }
 
   @Test
@@ -608,6 +616,14 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=t | rex field=data mode=sed \"s/sensitive/clean/g\" max_match=1 | fields + data",
         anonymize("source=t | rex field=data mode=sed \"s/sensitive/clean/g\" | fields data"));
+  }
+
+  @Test
+  public void testMvjoin() {
+    // Test mvjoin with array of strings
+    assertEquals(
+        "source=t | eval result=mvjoin(array(***,***,***),***) | fields + result",
+        anonymize("source=t | eval result=mvjoin(array('a', 'b', 'c'), ',') | fields result"));
   }
 
   @Test
