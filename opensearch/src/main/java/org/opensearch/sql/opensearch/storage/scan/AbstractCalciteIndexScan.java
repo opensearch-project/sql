@@ -7,7 +7,6 @@ package org.opensearch.sql.opensearch.storage.scan;
 
 import static java.util.Objects.requireNonNull;
 import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR;
-import static org.opensearch.sql.opensearch.request.AggregateAnalyzer.AGGREGATION_BUCKET_SIZE;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -191,6 +190,10 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
       }
       return super.add(pushDownAction);
     }
+
+    public boolean containsDigest(Object digest) {
+      return this.stream().anyMatch(action -> action.digest.equals(digest));
+    }
   }
 
   protected abstract AbstractCalciteIndexScan buildScan(
@@ -286,7 +289,8 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
       Object digest;
       if (pushDownContext.isAggregatePushed) {
         // Push down the sort into the aggregation bucket
-        this.pushDownContext.aggPushDownAction.pushDownSortIntoAggBucket(collations);
+        this.pushDownContext.aggPushDownAction.pushDownSortIntoAggBucket(
+            collations, getRowType().getFieldNames());
         action = requestBuilder -> {};
         digest = collations;
       } else {
@@ -373,19 +377,24 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     }
   }
 
+  // TODO: shall we do deep copy for this action since it's mutable?
   public static class AggPushDownAction implements AbstractAction {
 
     private Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder;
     private final Map<String, OpenSearchDataType> extendedTypeMapping;
     @Getter private final boolean isScriptPushed;
+    // Record the output field names of all buckets as the sequence of buckets
+    private List<String> bucketNames;
 
     public AggPushDownAction(
         Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder,
-        Map<String, OpenSearchDataType> extendedTypeMapping) {
+        Map<String, OpenSearchDataType> extendedTypeMapping,
+        List<String> bucketNames) {
       this.aggregationBuilder = aggregationBuilder;
       this.extendedTypeMapping = extendedTypeMapping;
       this.isScriptPushed =
           aggregationBuilder.getLeft().stream().anyMatch(this::isScriptAggBuilder);
+      this.bucketNames = bucketNames;
     }
 
     private boolean isScriptAggBuilder(AggregationBuilder aggBuilder) {
@@ -399,18 +408,27 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
       requestBuilder.pushTypeMapping(extendedTypeMapping);
     }
 
-    public void pushDownSortIntoAggBucket(List<RelFieldCollation> collations) {
+    public void pushDownSortIntoAggBucket(
+        List<RelFieldCollation> collations, List<String> fieldNames) {
       AggregationBuilder builder = aggregationBuilder.getLeft().getFirst();
-      List<Integer> selected = new ArrayList<>(collations.size());
+      List<String> selected = new ArrayList<>(collations.size());
       if (builder instanceof CompositeAggregationBuilder compositeAggBuilder) {
         // It will always use a single CompositeAggregationBuilder for the aggregation with GroupBy
         // See {@link AggregateAnalyzer}
         List<CompositeValuesSourceBuilder<?>> buckets = compositeAggBuilder.sources();
         List<CompositeValuesSourceBuilder<?>> newBuckets = new ArrayList<>(buckets.size());
+        List<String> newBucketNames = new ArrayList<>(buckets.size());
         // Have to put the collation required buckets first, then the rest of buckets.
         collations.forEach(
             collation -> {
-              CompositeValuesSourceBuilder<?> bucket = buckets.get(collation.getFieldIndex());
+              /*
+               Must find the bucket by field name because:
+                 1. The sequence of buckets may have changed after sort push-down.
+                 2. The schema of scan operator may be inconsistent with the sequence of buckets
+                 after project push-down.
+              */
+              String bucketName = fieldNames.get(collation.getFieldIndex());
+              CompositeValuesSourceBuilder<?> bucket = buckets.get(bucketNames.indexOf(bucketName));
               Direction direction = collation.getDirection();
               NullDirection nullDirection = collation.nullDirection;
               SortOrder order =
@@ -422,11 +440,17 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                     default -> MissingOrder.DEFAULT;
                   };
               newBuckets.add(bucket.order(order).missingOrder(missingOrder));
-              selected.add(collation.getFieldIndex());
+              newBucketNames.add(bucketName);
+              selected.add(bucketName);
             });
         IntStream.range(0, buckets.size())
-            .filter(i -> !selected.contains(i))
-            .forEach(i -> newBuckets.add(buckets.get(i)));
+            .mapToObj(fieldNames::get)
+            .filter(name -> !selected.contains(name))
+            .forEach(
+                name -> {
+                  newBuckets.add(buckets.get(bucketNames.indexOf(name)));
+                  newBucketNames.add(name);
+                });
         Builder newAggBuilder = new Builder();
         compositeAggBuilder.getSubAggregations().forEach(newAggBuilder::addAggregator);
         aggregationBuilder =
@@ -434,8 +458,9 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                 Collections.singletonList(
                     AggregationBuilders.composite("composite_buckets", newBuckets)
                         .subAggregations(newAggBuilder)
-                        .size(AGGREGATION_BUCKET_SIZE)),
+                        .size(compositeAggBuilder.size())),
                 aggregationBuilder.getRight());
+        bucketNames = newBucketNames;
       }
       if (builder instanceof TermsAggregationBuilder termsAggBuilder) {
         termsAggBuilder.order(

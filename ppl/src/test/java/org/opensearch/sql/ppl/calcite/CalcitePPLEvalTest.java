@@ -469,4 +469,52 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
             + "GROUP BY `DEPTNO`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  @Test
+  public void testValuesAggregationAlone() {
+    String ppl = "source=EMP | stats values(DEPTNO)";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalAggregate(group=[{}], values(DEPTNO)=[VALUES($0)])\n"
+            + "  LogicalProject(DEPTNO=[$7])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql = "SELECT `VALUES`(`DEPTNO`) `values(DEPTNO)`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testValuesAggregationWithOtherAgg() {
+    String ppl = "source=EMP | stats values(DEPTNO), count(DEPTNO)";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalAggregate(group=[{}], values(DEPTNO)=[VALUES($0)], count(DEPTNO)=[COUNT($0)])\n"
+            + "  LogicalProject(DEPTNO=[$7])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `VALUES`(`DEPTNO`) `values(DEPTNO)`, COUNT(`DEPTNO`) `count(DEPTNO)`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testValuesAggregationWithGroupBy() {
+    String ppl = "source=EMP | stats values(ENAME) by DEPTNO";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(values(ENAME)=[$1], DEPTNO=[$0])\n"
+            + "  LogicalAggregate(group=[{0}], values(ENAME)=[VALUES($1)])\n"
+            + "    LogicalProject(DEPTNO=[$7], ENAME=[$1])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `VALUES`(`ENAME`) `values(ENAME)`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "GROUP BY `DEPTNO`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
 }

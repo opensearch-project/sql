@@ -502,6 +502,15 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testValuesAggregationExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_values_aggregation.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats values(age) as age_values"));
+  }
+
+  @Test
   public void testRegexExplain() throws IOException {
     String query =
         "source=opensearch-sql_test_index_account | regex lastname='^[A-Z][a-z]+$' | head 5";
@@ -619,6 +628,22 @@ public class CalciteExplainIT extends ExplainIT {
         explainQueryToString(
             "source=opensearch-sql_test_index_account | stats count() by state | sort `count()` |"
                 + " head 100 | head 10 from 10 "));
+  }
+
+  @Test
+  public void testExplainMaxOnStringField() throws IOException {
+    String expected = loadExpectedPlan("explain_max_string_field.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString("source=opensearch-sql_test_index_account | stats max(firstname)"));
+  }
+
+  @Test
+  public void testExplainMinOnStringField() throws IOException {
+    String expected = loadExpectedPlan("explain_min_string_field.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString("source=opensearch-sql_test_index_account | stats min(firstname)"));
   }
 
   @Test
