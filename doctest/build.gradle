@@ -11,7 +11,6 @@ plugins {
     id 'base'
     id 'com.wiredforcode.spawn'
     id "de.undercouch.download" version "5.3.0"
-    id 'com.diffplug.spotless' version '6.22.0'
 }
 
 apply plugin: 'opensearch.testclusters'
@@ -30,11 +29,11 @@ task cloneSqlCli(type: Exec) {
         commandLine 'git', '-C', repoDir.absolutePath, 'checkout', 'origin/1.0-legacy'
     } else {
         // Repository doesn't exist, clone it
-        commandLine 'git', 'clone', 'https://github.com/opensearch-project/sql-cli.git', repoDir.absolutePath
+        commandLine 'git', 'clone', '-b', '1.0-legacy', 'https://github.com/opensearch-project/sql-cli.git', repoDir.absolutePath
     }
 }
 
-task bootstrap(type: Exec, dependsOn: ['cloneSqlCli', 'spotlessJava']) {
+task bootstrap(type: Exec, dependsOn: ['cloneSqlCli']) {
     inputs.file "$projectDir/bootstrap.sh"
     outputs.dir "$projectDir/.venv"
 
@@ -185,23 +184,6 @@ tasks.register("runRestTestCluster", RunTask) {
     useCluster testClusters.docTestCluster;
 }
 
-spotless {
-    java {
-        target fileTree('.') {
-            include '**/*.java'
-            exclude '**/build/**', '**/build-*/**'
-        }
-        importOrder()
-//        licenseHeader("/*\n" +
-//                " * Copyright OpenSearch Contributors\n" +
-//                " * SPDX-License-Identifier: Apache-2.0\n" +
-//                " */\n\n")
-        removeUnusedImports()
-        trimTrailingWhitespace()
-        endWithNewline()
-        googleJavaFormat('1.17.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
-    }
-}
 
 def getJobSchedulerPlugin(String jsPlugin, String bwcOpenSearchJSDownload) {
     return provider(new Callable<RegularFile>() {

@@ -114,6 +114,7 @@ import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.SPath;
+import org.opensearch.sql.ast.tree.Search;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
@@ -168,6 +169,21 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .createScan(ViewExpanders.simpleContext(context.relBuilder.getCluster()), tableSchema);
     context.relBuilder.push(scan);
     return context.relBuilder;
+  }
+
+  @Override
+  public RelNode visitSearch(Search node, CalcitePlanContext context) {
+    // Visit the Relation child to get the scan
+    node.getChild().get(0).accept(this, context);
+    // Create query_string function
+    Function queryStringFunc =
+        AstDSL.function(
+            "query_string",
+            AstDSL.unresolvedArg("query", AstDSL.stringLiteral(node.getQueryString())));
+    RexNode queryStringRex = rexVisitor.analyze(queryStringFunc, context);
+
+    context.relBuilder.filter(queryStringRex);
+    return context.relBuilder.peek();
   }
 
   @Override

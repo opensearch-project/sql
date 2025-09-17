@@ -386,6 +386,7 @@ UTC_TIME:                           'UTC_TIME';
 UTC_TIMESTAMP:                      'UTC_TIMESTAMP';
 WEEKDAY:                            'WEEKDAY';
 YEARWEEK:                           'YEARWEEK';
+STRFTIME:                           'STRFTIME';
 
 // TEXT FUNCTIONS
 SUBSTR:                             'SUBSTR';
@@ -421,6 +422,7 @@ ISBLANK:                            'ISBLANK';
 // COLLECTION FUNCTIONS
 ARRAY:                              'ARRAY';
 ARRAY_LENGTH:                       'ARRAY_LENGTH';
+MVJOIN:                             'MVJOIN';
 FORALL:                             'FORALL';
 FILTER:                             'FILTER';
 TRANSFORM:                          'TRANSFORM';
