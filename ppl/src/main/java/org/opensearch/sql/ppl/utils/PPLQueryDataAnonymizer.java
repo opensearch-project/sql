@@ -79,6 +79,7 @@ import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Rex;
+import org.opensearch.sql.ast.tree.Search;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
@@ -158,13 +159,41 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
         rightTableOrSubquery.startsWith("source=")
             ? rightTableOrSubquery.substring("source=".length())
             : rightTableOrSubquery;
-    String joinType = node.getJoinType().name().toLowerCase(Locale.ROOT);
-    String leftAlias = node.getLeftAlias().map(l -> " left = " + l).orElse("");
-    String rightAlias = node.getRightAlias().map(r -> " right = " + r).orElse("");
-    String condition =
-        node.getJoinCondition().map(c -> expressionAnalyzer.analyze(c, context)).orElse("true");
-    return StringUtils.format(
-        "%s | %s join%s%s on %s %s", left, joinType, leftAlias, rightAlias, condition, right);
+    Argument.ArgumentMap argumentMap = node.getArgumentMap();
+    String max =
+        argumentMap.get("max") == null
+            ? "0"
+            : argumentMap.get("max").toString().toLowerCase(Locale.ROOT);
+    if (node.getJoinCondition().isEmpty()) {
+      String joinType =
+          argumentMap.get("type") == null
+              ? "inner"
+              : argumentMap.get("type").toString().toLowerCase(Locale.ROOT);
+      String overwrite =
+          argumentMap.get("overwrite") == null
+              ? "true"
+              : argumentMap.get("overwrite").toString().toLowerCase(Locale.ROOT);
+      String fieldList =
+          node.getJoinFields().isEmpty()
+              ? ""
+              : String.join(
+                  ",",
+                  node.getJoinFields().get().stream()
+                      .map(c -> expressionAnalyzer.analyze(c, context))
+                      .toList());
+      return StringUtils.format(
+          "%s | join type=%s overwrite=%s max=%s %s %s",
+          left, joinType, overwrite, max, fieldList, right);
+    } else {
+      String joinType = node.getJoinType().name().toLowerCase(Locale.ROOT);
+      String leftAlias = node.getLeftAlias().map(l -> " left = " + l).orElse("");
+      String rightAlias = node.getRightAlias().map(r -> " right = " + r).orElse("");
+      String condition =
+          node.getJoinCondition().map(c -> expressionAnalyzer.analyze(c, context)).orElse("true");
+      return StringUtils.format(
+          "%s | %s join max=%s%s%s on %s %s",
+          left, joinType, max, leftAlias, rightAlias, condition, right);
+    }
   }
 
   @Override
@@ -213,6 +242,14 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
                     this.expressionAnalyzer.analyze(unresolvedExpression, context))
             .collect(Collectors.joining(","));
     return StringUtils.format("source=%s(%s)", node.getFunctionName().toString(), arguments);
+  }
+
+  @Override
+  public String visitSearch(Search node, String context) {
+    String source = node.getChild().get(0).accept(this, context);
+    String queryString = node.getQueryString();
+    String anonymized = queryString.replaceAll(":\\S+", ":" + MASK_LITERAL);
+    return StringUtils.format("%s %s", source, anonymized);
   }
 
   @Override
@@ -469,6 +506,10 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
     if (node.getMaxMatch().isPresent()) {
       command.append(" max_match=").append(node.getMaxMatch().get());
+    }
+
+    if (node.getOffsetField().isPresent()) {
+      command.append(" offset_field=").append(node.getOffsetField().get());
     }
 
     return command.toString();

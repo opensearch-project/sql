@@ -17,6 +17,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.common.setting.Settings;
 
 public class StatsCommandIT extends PPLIntegTestCase {
 
@@ -208,6 +209,23 @@ public class StatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testAvgGroupByNullValueNonNullBucket() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats bucket_nullable=false avg(balance) as a by age",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(response, schema("a", null, "double"), schema("age", null, "int"));
+    verifyDataRows(
+        response,
+        rows(32838D, 28),
+        rows(39225D, 32),
+        rows(4180D, 33),
+        rows(48086D, 34),
+        rows(null, 36));
+  }
+
+  @Test
   public void testMinGroupByNullValue() throws IOException {
     JSONObject response =
         executeQuery(
@@ -224,6 +242,22 @@ public class StatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testMinGroupByNullValueNonNullBucket() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats bucket_nullable=false min(balance) as a by age",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifyDataRows(
+        response,
+        rows(32838D, 28),
+        rows(39225D, 32),
+        rows(4180D, 33),
+        rows(48086D, 34),
+        rows(null, 36));
+  }
+
+  @Test
   public void testMaxGroupByNullValue() throws IOException {
     JSONObject response =
         executeQuery(
@@ -232,6 +266,22 @@ public class StatsCommandIT extends PPLIntegTestCase {
     verifyDataRows(
         response,
         rows(null, null),
+        rows(32838D, 28),
+        rows(39225D, 32),
+        rows(4180D, 33),
+        rows(48086D, 34),
+        rows(null, 36));
+  }
+
+  @Test
+  public void testMaxGroupByNullValueNonNullBucket() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats bucket_nullable=false max(balance) as a by age",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifyDataRows(
+        response,
         rows(32838D, 28),
         rows(39225D, 32),
         rows(4180D, 33),
@@ -257,6 +307,83 @@ public class StatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testSumGroupByNullValueNonNullBucket() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats bucket_nullable=false avg(balance) as a by age",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(response, schema("a", null, "double"), schema("age", null, "int"));
+    verifyDataRows(
+        response,
+        rows(32838D, 28),
+        rows(39225D, 32),
+        rows(4180D, 33),
+        rows(48086D, 34),
+        rows(null, 36));
+  }
+
+  @Test
+  public void testStatsWithLimit() throws IOException {
+    // The original rows count is 6 if no head 5. See the test `testSumGroupByNullValue`.
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats avg(balance) as a by age | head 5",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(response, schema("a", null, "double"), schema("age", null, "int"));
+    // If push down disabled, the final results will no longer be stable. In DSL, the order is
+    // guaranteed because we always sort by bucket field, while we don't add sort in the plan.
+    if (!isPushdownDisabled()) {
+      verifyDataRows(
+          response,
+          rows(null, null),
+          rows(32838D, 28),
+          rows(39225D, 32),
+          rows(4180D, 33),
+          rows(48086D, 34));
+    } else {
+      assert ((Integer) response.get("size") == 5);
+    }
+
+    response =
+        executeQuery(
+            String.format(
+                "source=%s | stats avg(balance) as a by age | head 5 | head 2 from 1",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(response, schema("a", null, "double"), schema("age", null, "int"));
+    if (!isPushdownDisabled()) {
+      verifyDataRows(response, rows(32838D, 28), rows(39225D, 32));
+    } else {
+      assert ((Integer) response.get("size") == 2);
+    }
+
+    response =
+        executeQuery(
+            String.format(
+                "source=%s | stats avg(balance) as a by age | sort - age | head 5 | head 2 from 1",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(response, schema("a", null, "double"), schema("age", null, "int"));
+    if (!isPushdownDisabled()) {
+      verifyDataRows(response, rows(48086D, 34), rows(4180D, 33));
+    } else {
+      assert ((Integer) response.get("size") == 2);
+    }
+
+    response =
+        executeQuery(
+            String.format(
+                "source=%s | stats avg(balance) as a by age | sort - a | head 5 | head 2 from 1",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(response, schema("a", null, "double"), schema("age", null, "int"));
+    if (!isPushdownDisabled()) {
+      verifyDataRows(response, rows(39225D, 32), rows(32838D, 28));
+    } else {
+      assert ((Integer) response.get("size") == 2);
+    }
+  }
+
+  @Test
   public void testStddevSampGroupByNullValue() throws IOException {
     JSONObject response =
         executeQuery(
@@ -271,6 +398,17 @@ public class StatsCommandIT extends PPLIntegTestCase {
         rows(null, 33),
         rows(null, 34),
         rows(null, 36));
+  }
+
+  @Test
+  public void testStddevSampGroupByNullValueNonNullBucket() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats bucket_nullable=false STDDEV_SAMP(balance) as a by age",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifyDataRows(
+        response, rows(null, 28), rows(null, 32), rows(null, 33), rows(null, 34), rows(null, 36));
   }
 
   @Test
@@ -291,6 +429,16 @@ public class StatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testStddevPopGroupByNullValueNonNullBucket() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats bucket_nullable=false STDDEV_POP(balance) as a by age",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifyDataRows(response, rows(0, 28), rows(0, 32), rows(0, 33), rows(0, 34), rows(null, 36));
+  }
+
+  @Test
   public void testVarSampGroupByNullValue() throws IOException {
     JSONObject response =
         executeQuery(
@@ -308,6 +456,17 @@ public class StatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testVarSampGroupByNullValueNonNullBucket() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats bucket_nullable=false VAR_SAMP(balance) as a by age",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifyDataRows(
+        response, rows(null, 28), rows(null, 32), rows(null, 33), rows(null, 34), rows(null, 36));
+  }
+
+  @Test
   public void testVarPopGroupByNullValue() throws IOException {
     JSONObject response =
         executeQuery(
@@ -322,6 +481,16 @@ public class StatsCommandIT extends PPLIntegTestCase {
         rows(0, 33),
         rows(0, 34),
         rows(null, 36));
+  }
+
+  @Test
+  public void testVarPopGroupByNullValueNonNullBucket() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats bucket_nullable=false VAR_POP(balance) as a by age",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifyDataRows(response, rows(0, 28), rows(0, 32), rows(0, 33), rows(0, 34), rows(null, 36));
   }
 
   // Todo. The column of agg function is in random order. This is because we create the project
@@ -343,6 +512,17 @@ public class StatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testStatsWithNullNonNullBucket() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats bucket_nullable=false avg(age)",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(response, schema("avg(age)", null, "double"));
+    verifyDataRows(response, rows(33.166666666666664));
+  }
+
+  @Test
   public void testSumWithNull() throws IOException {
     JSONObject response =
         executeQuery(
@@ -353,7 +533,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
     // TODO: Fix -- temporary workaround for the pushdown issue:
     //  The current pushdown implementation will return 0 for sum when getting null values as input.
     //  Returning null should be the expected behavior.
-    Integer expectedValue = isPushdownEnabled() ? 0 : null;
+    Integer expectedValue = isPushdownDisabled() ? null : 0;
     verifyDataRows(response, rows(expectedValue));
   }
 
@@ -507,12 +687,29 @@ public class StatsCommandIT extends PPLIntegTestCase {
     verifySchema(response, schema("p50", null, "bigint"), schema("age", null, "int"));
     verifyDataRows(
         response,
-        rows(isCalciteEnabled() && !isPushdownEnabled() ? null : 0, null),
+        rows(isPushdownDisabled() ? null : 0, null),
         rows(32838, 28),
         rows(39225, 32),
         rows(4180, 33),
         rows(48086, 34),
-        rows(isCalciteEnabled() && !isPushdownEnabled() ? null : 0, 36));
+        rows(isPushdownDisabled() ? null : 0, 36));
+  }
+
+  @Test
+  public void testStatsPercentileByNullValueNonNullBucket() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats bucket_nullable=false percentile(balance, 50) as p50 by age",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(response, schema("p50", null, "bigint"), schema("age", null, "int"));
+    verifyDataRows(
+        response,
+        rows(32838, 28),
+        rows(39225, 32),
+        rows(4180, 33),
+        rows(48086, 34),
+        rows(isPushdownDisabled() ? null : 0, 36));
   }
 
   @Test
@@ -524,5 +721,32 @@ public class StatsCommandIT extends PPLIntegTestCase {
                 TEST_INDEX_BANK));
     verifySchema(response, schema("p50", null, "bigint"), schema("age_bucket", null, "int"));
     verifyDataRows(response, rows(32838, 20), rows(39225, 30));
+  }
+
+  @Test
+  public void testDisableLegacyPreferred() throws IOException {
+    withSettings(
+        Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED,
+        "false",
+        () -> {
+          JSONObject response = null;
+          try {
+            response =
+                executeQuery(
+                    String.format(
+                        "source=%s | stats avg(balance) as a by age",
+                        TEST_INDEX_BANK_WITH_NULL_VALUES));
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+          verifySchema(response, schema("a", null, "double"), schema("age", null, "int"));
+          verifyDataRows(
+              response,
+              rows(32838D, 28),
+              rows(39225D, 32),
+              rows(4180D, 33),
+              rows(48086D, 34),
+              rows(null, 36));
+        });
   }
 }

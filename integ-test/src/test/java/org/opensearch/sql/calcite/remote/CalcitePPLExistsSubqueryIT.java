@@ -83,7 +83,7 @@ public class CalcitePPLExistsSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source = %s exists ["
+                "source = %s | where exists ["
                     + "    source = %s | where id = uid"
                     + "  ]"
                     + "| sort  - salary"
@@ -120,7 +120,7 @@ public class CalcitePPLExistsSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source = %s not exists ["
+                "source = %s | where not exists ["
                     + "    source = %s | where id = uid"
                     + "  ]"
                     + "| sort  - salary"
