@@ -211,7 +211,8 @@ Feature                        rex          parse
 ============================= ============ ============
 Pattern Type                   Java Regex   Java Regex
 Named Groups Required          Yes          Yes
-Filtering by Match             No           Yes  
+Filtering by Match             No           No
+Multiple Named Groups          Yes          No
 Multiple Matches               Yes          No
 Text Substitution              Yes          No
 Offset Tracking                Yes          No
