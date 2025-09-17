@@ -170,11 +170,11 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       List<SearchExpression> searchExprs =
           ctx.searchExpression().stream()
               .map(expr -> (SearchExpression) expressionBuilder.visit(expr))
-              .toList();
+              .collect(Collectors.toList());
       // Combine multiple expressions with AND
       SearchExpression combined;
       if (searchExprs.size() == 1) {
-        combined = searchExprs.getFirst();
+        combined = searchExprs.get(0);
       } else {
         // before being combined with AND (e.g., "a=1 b=-1" becomes "(a:1) AND (b:-1)")
         combined =
