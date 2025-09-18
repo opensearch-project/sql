@@ -895,30 +895,42 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // The span column is always the first column in result whatever
     // the order of span in query is first or last one
     UnresolvedExpression span = node.getSpan();
-    if (!Objects.isNull(span)) {
+    if (Objects.nonNull(span)) {
       groupExprList.add(span);
+      List<RexNode> timeSpanFilters =
+          getTimeSpanField(span).stream()
+              .map(f -> rexVisitor.analyze(f, context))
+              .map(context.relBuilder::isNotNull)
+              .toList();
+      if (!timeSpanFilters.isEmpty()) {
+        // add isNotNull filter before aggregation for time span
+        context.relBuilder.filter(timeSpanFilters);
+      }
     }
     groupExprList.addAll(node.getGroupExprList());
-    Pair<List<RexNode>, List<AggCall>> aggregationAttributes =
-        aggregateWithTrimming(groupExprList, aggExprList, context);
-    // Add group by columns
-    List<RexNode> aliasedGroupByList =
-        aggregationAttributes.getLeft().stream()
-            .map(this::extractAliasLiteral)
-            .flatMap(Optional::stream)
-            .map(ref -> ((RexLiteral) ref).getValueAs(String.class))
-            .map(context.relBuilder::field)
-            .map(f -> (RexNode) f)
-            .toList();
 
     // add stats hint to LogicalAggregation
     Argument.ArgumentMap statsArgs = Argument.ArgumentMap.of(node.getArgExprList());
     Boolean bucketNullable =
         (Boolean) statsArgs.getOrDefault(Argument.BUCKET_NULLABLE, Literal.TRUE).getValue();
-    // by-span-time (single) ignores the bucket_nullable arg
+    boolean toAddHintsOnAggregate = false;
     if (!bucketNullable
-        && !aliasedGroupByList.isEmpty()
-        && !(aliasedGroupByList.size() == 1 && isTimeSpan(span))) {
+        && !groupExprList.isEmpty()
+        && !(groupExprList.size() == 1 && getTimeSpanField(span).isPresent())) {
+      toAddHintsOnAggregate = true;
+      // add isNotNull filter before aggregation for non-nullable buckets
+      List<RexNode> groupByList =
+          groupExprList.stream().map(expr -> rexVisitor.analyze(expr, context)).toList();
+      context.relBuilder.filter(
+          PlanUtils.getSelectColumns(groupByList).stream()
+              .map(context.relBuilder::field)
+              .map(context.relBuilder::isNotNull)
+              .toList());
+    }
+
+    Pair<List<RexNode>, List<AggCall>> aggregationAttributes =
+        aggregateWithTrimming(groupExprList, aggExprList, context);
+    if (toAddHintsOnAggregate) {
       final RelHint statHits =
           RelHint.builder("stats_args").hintOption(Argument.BUCKET_NULLABLE, "false").build();
       assert context.relBuilder.peek() instanceof LogicalAggregate
@@ -935,8 +947,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                         return rel instanceof LogicalAggregate;
                       })
                   .build());
-      context.relBuilder.filter(
-          aliasedGroupByList.stream().map(context.relBuilder::isNotNull).toList());
     }
 
     // schema reordering
@@ -950,21 +960,30 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<RexNode> aggRexList =
         outputFields.subList(numOfOutputFields - numOfAggList, numOfOutputFields);
     reordered.addAll(aggRexList);
+    // Add group by columns
+    List<RexNode> aliasedGroupByList =
+        aggregationAttributes.getLeft().stream()
+            .map(this::extractAliasLiteral)
+            .flatMap(Optional::stream)
+            .map(ref -> ((RexLiteral) ref).getValueAs(String.class))
+            .map(context.relBuilder::field)
+            .map(f -> (RexNode) f)
+            .toList();
     reordered.addAll(aliasedGroupByList);
     context.relBuilder.project(reordered);
 
     return context.relBuilder.peek();
   }
 
-  private boolean isTimeSpan(UnresolvedExpression expr) {
-    if (Objects.isNull(expr)) return false;
-    if (expr instanceof Span span) {
-      return SpanUnit.isTimeUnit(span.getUnit());
+  private Optional<UnresolvedExpression> getTimeSpanField(UnresolvedExpression expr) {
+    if (Objects.isNull(expr)) return Optional.empty();
+    if (expr instanceof Span span && SpanUnit.isTimeUnit(span.getUnit())) {
+      return Optional.of(span.getField());
     }
     if (expr instanceof Alias alias) {
-      return isTimeSpan(alias.getDelegated());
+      return getTimeSpanField(alias.getDelegated());
     }
-    return false;
+    return Optional.empty();
   }
 
   /** extract the RexLiteral of Alias from a node */

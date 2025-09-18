@@ -455,7 +455,6 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testStatsBySpanNonBucketNullable() throws IOException {
-    // TODO isNotNull(Span) pushdown to script, can be optimized to exist()
     String expected = loadExpectedPlan("explain_stats_by_span_non_bucket_nullable.json");
     assertJsonEqualsIgnoreId(
         expected,

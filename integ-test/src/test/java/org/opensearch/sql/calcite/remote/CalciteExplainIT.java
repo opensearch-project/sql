@@ -21,6 +21,7 @@ import org.opensearch.sql.ppl.ExplainIT;
 public class CalciteExplainIT extends ExplainIT {
   @Override
   public void init() throws Exception {
+    GlobalPushdownConfig.enabled = false;
     super.init();
     enableCalcite();
     loadIndex(Index.BANK_WITH_STRING_VALUES);
