@@ -1,0 +1,51 @@
+{
+  "root": {
+    "name": "ProjectOperator",
+    "description": {
+      "fields": "[count(), t]"
+    },
+    "children": [
+      {
+        "name": "TakeOrderedOperator",
+        "description": {
+          "limit": 3,
+          "offset": 0,
+          "sortList": {
+            "t": {
+              "sortOrder": "ASC",
+              "nullOrder": "NULL_FIRST"
+            }
+          }
+        },
+        "children": [
+          {
+            "name": "AggregationOperator",
+            "description": {
+              "aggregators": "[count()]",
+              "groupBy": "[t]"
+            },
+            "children": [
+              {
+                "name": "OpenSearchEvalOperator",
+                "description": {
+                  "expressions": {
+                    "t": "unix_timestamp(birthdate)"
+                  }
+                },
+                "children": [
+                  {
+                    "name": "OpenSearchIndexScan",
+                    "description": {
+                      "request": "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_bank, sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\"}, needClean=true, searchDone=false, pitId=w6q4QQEeb3BlbnNlYXJjaC1zcWxfdGVzdF9pbmRleF9iYW5rFlYtMTA3SFQ3UndpRFpfc184RTN3QkEAFlVuYUV2d2NMU3BPcHdCd3U3dlBPekEAAAAAAAAAAAIWdy1zdXNTdi1UbXFLeGFVd0VTUHQxdwEWVi0xMDdIVDdSd2lEWl9zXzhFM3dCQQAA, cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
+                    },
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -30,6 +30,7 @@ package org.opensearch.sql.opensearch.storage.script;
 import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.IP;
 import static org.opensearch.sql.data.type.ExprCoreType.SHORT;
 
 import com.google.common.collect.ImmutableList;
@@ -80,6 +81,7 @@ import org.opensearch.script.ScriptContext;
 import org.opensearch.script.ScriptEngine;
 import org.opensearch.search.lookup.SourceLookup;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.data.model.ExprIpValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -212,6 +214,10 @@ public class CalciteScriptEngine implements ScriptEngine {
       return switch (exprType) {
         case INTEGER, SHORT, BYTE -> EnumUtils.convert(docValueExpr, Long.class);
         case FLOAT -> EnumUtils.convert(docValueExpr, Double.class);
+          // IP is scanned in as a string but used as ExprIpValue later. We call the constructor
+          // beforehand.
+        case IP -> Expressions.new_(
+            ExprIpValue.class, EnumUtils.convert(docValueExpr, String.class));
         default -> docValueExpr;
       };
     }
