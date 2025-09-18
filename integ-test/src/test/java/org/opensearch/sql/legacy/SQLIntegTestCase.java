@@ -737,6 +737,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "dates",
         getGeopointIndexMapping(),
         "src/test/resources/geopoints.json"),
+    COMPLEX_GEO(
+        TestsConstants.TEST_INDEX_COMPLEX_GEO,
+        "complex_geo",
+        getComplexGeoIndexMapping(),
+        "src/test/resources/complex_geo.json"),
     STATE_COUNTRY(
         TestsConstants.TEST_INDEX_STATE_COUNTRY,
         "state_country",
