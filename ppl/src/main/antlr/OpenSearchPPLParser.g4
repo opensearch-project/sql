@@ -249,18 +249,13 @@ timechartCommand
    ;
 
 timechartParameter
-   : (spanClause | SPAN EQUAL spanLiteral)
-   | timechartArg
-   ;
-
-timechartArg
    : LIMIT EQUAL integerLiteral
+   | SPAN EQUAL spanLiteral
    | USEOTHER EQUAL (booleanLiteral | ident)
    ;
 
 spanLiteral
-   : integerLiteral timespanUnit
-   | stringLiteral
+   : value = literalValue (unit = timespanUnit)?
    ;
 
 evalCommand
@@ -598,7 +593,7 @@ bySpanClause
    ;
 
 spanClause
-   : SPAN LT_PRTHS (fieldExpression COMMA)? value = literalValue (unit = timespanUnit)? RT_PRTHS
+   : SPAN LT_PRTHS (fieldExpression COMMA)? spanLiteral RT_PRTHS
    ;
 
 sortbyClause

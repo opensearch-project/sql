@@ -741,10 +741,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
                 executeQuery(
                     StringUtils.format(
                         "source=%s | stats count() by span(5m)", TEST_INDEX_DATE_FORMATS)));
-    verifyErrorMessageContains(
-        t,
-        "SPAN operation requires an explicit field or an implicit '@timestamp' field, but"
-            + " '@timestamp' was not found in the input schema.");
+    verifyErrorMessageContains(t, "field [@timestamp] not found");
   }
 
   @Test

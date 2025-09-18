@@ -612,30 +612,65 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitSpanClause(SpanClauseContext ctx) {
-    String unit = ctx.unit != null ? ctx.unit.getText() : "";
-    var field = ctx.fieldExpression() != null ? visit(ctx.fieldExpression()) : null;
-    return new Span(field, visit(ctx.value), SpanUnit.of(unit));
+    // If a field is not specified in a span clause, it defaults to the implicit @timestamp field.
+    // E.g. span(1d) <==> span(@timestamp, 1d)
+    var field =
+        ctx.fieldExpression() != null
+            ? visit(ctx.fieldExpression())
+            : AstDSL.referImplicitTimestampField();
+    Span partialSpan = (Span) visit(ctx.spanLiteral());
+    return AstDSL.span(field, partialSpan.getValue(), partialSpan.getUnit());
   }
 
-  // Handle new syntax: span=1h
+  /** Construct a partial Span without field specified that represents a span value */
   @Override
   public UnresolvedExpression visitSpanLiteral(OpenSearchPPLParser.SpanLiteralContext ctx) {
-    if (ctx.integerLiteral() != null && ctx.timespanUnit() != null) {
-      return new Span(
-          AstDSL.field("@timestamp"),
-          new Literal(Integer.parseInt(ctx.integerLiteral().getText()), DataType.INTEGER),
-          SpanUnit.of(ctx.timespanUnit().getText()));
-    }
+    UnresolvedExpression literal = visit(ctx.literalValue());
+    String unitText = ctx.timespanUnit() != null ? ctx.timespanUnit().getText() : "";
+    SpanUnit unit = SpanUnit.of(unitText);
+    return AstDSL.span(null, literal, unit);
+  }
 
-    if (ctx.integerLiteral() != null) {
-      return new Span(
-          AstDSL.field("@timestamp"),
-          new Literal(Integer.parseInt(ctx.integerLiteral().getText()), DataType.INTEGER),
-          SpanUnit.of(""));
+  @Override
+  public UnresolvedExpression visitTimechartParameter(
+      OpenSearchPPLParser.TimechartParameterContext ctx) {
+    UnresolvedExpression timechartParameter;
+    if (ctx.SPAN() != null) {
+      // Convert span=1h to span(@timestamp, 1h)
+      Span partialSpan = (Span) visit(ctx.spanLiteral());
+      timechartParameter =
+          AstDSL.span(
+              AstDSL.referImplicitTimestampField(), partialSpan.getValue(), partialSpan.getUnit());
+    } else if (ctx.LIMIT() != null) {
+      Literal limit = (Literal) visit(ctx.integerLiteral());
+      if ((Integer) limit.getValue() < 0) {
+        throw new IllegalArgumentException("Limit must be a non-negative number");
+      }
+      timechartParameter = limit;
+    } else if (ctx.USEOTHER() != null) {
+      UnresolvedExpression useOther;
+      if (ctx.booleanLiteral() != null) {
+        useOther = visit(ctx.booleanLiteral());
+      } else if (ctx.ident() != null) {
+        QualifiedName ident = visitIdentifiers(List.of(ctx.ident()));
+        String useOtherValue = ident.toString();
+        if ("true".equalsIgnoreCase(useOtherValue) || "t".equalsIgnoreCase(useOtherValue)) {
+          useOther = AstDSL.booleanLiteral(true);
+        } else if ("false".equalsIgnoreCase(useOtherValue) || "f".equalsIgnoreCase(useOtherValue)) {
+          useOther = AstDSL.booleanLiteral(false);
+        } else {
+          throw new IllegalArgumentException(
+              "Invalid useOther value: " + ctx.ident().getText() + ". Expected true/false or t/f");
+        }
+      } else {
+        throw new IllegalArgumentException("value for useOther must be a boolean or identifier");
+      }
+      timechartParameter = useOther;
+    } else {
+      throw new IllegalArgumentException(
+          String.format("A parameter of timechart must be a span, limit or useOther, got %s", ctx));
     }
-
-    return new Span(
-        AstDSL.field("@timestamp"), new Literal(ctx.getText(), DataType.STRING), SpanUnit.of(""));
+    return timechartParameter;
   }
 
   @Override

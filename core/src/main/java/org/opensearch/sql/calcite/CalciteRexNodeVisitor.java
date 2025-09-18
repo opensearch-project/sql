@@ -357,19 +357,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
 
   @Override
   public RexNode visitSpan(Span node, CalcitePlanContext context) {
-    RexNode field;
-    if (node.getField() != null) {
-      field = analyze(node.getField(), context);
-    } else {
-      try {
-        field = referenceImplicitTimestampField(context);
-      } catch (IllegalArgumentException e) {
-        throw new SemanticCheckException(
-            "SPAN operation requires an explicit field or an implicit '@timestamp' field, but"
-                + " '@timestamp' was not found in the input schema.",
-            e);
-      }
-    }
+    RexNode field = analyze(node.getField(), context);
     RexNode value = analyze(node.getValue(), context);
     SpanUnit unit = node.getUnit();
     RexBuilder rexBuilder = context.relBuilder.getRexBuilder();
