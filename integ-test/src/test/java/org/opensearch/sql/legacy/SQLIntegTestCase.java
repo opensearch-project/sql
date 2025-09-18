@@ -635,6 +635,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "_doc",
         getOrderIndexMapping(),
         "src/test/resources/order.json"),
+    TIME_TEST_DATA2(
+        "opensearch-sql_test_index_time_data2",
+        "time_data",
+        getMappingFile("time_test_data_index_mapping.json"),
+        "src/test/resources/time_test_data2.json"),
     WEBLOG(
         TestsConstants.TEST_INDEX_WEBLOGS,
         "weblogs",

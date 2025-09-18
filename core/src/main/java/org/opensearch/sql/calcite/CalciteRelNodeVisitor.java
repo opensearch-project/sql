@@ -1782,7 +1782,72 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
     context.relBuilder.union(true, projectedNodes.size());
 
+    // Add timestamp-based ordering to match SPL multisearch behavior
+    // SPL multisearch sorts final results chronologically by _time field
+    RelNode unionResult = context.relBuilder.peek();
+
+    // Look for timestamp field in the unified schema
+    String timestampField = findTimestampField(unionResult.getRowType());
+    if (timestampField != null) {
+      // Create descending sort by timestamp field (newest first, matching SPL behavior)
+      RelDataTypeField timestampFieldRef =
+          unionResult.getRowType().getField(timestampField, false, false);
+      if (timestampFieldRef != null) {
+        RexNode timestampRef =
+            context.rexBuilder.makeInputRef(unionResult, timestampFieldRef.getIndex());
+        context.relBuilder.sort(context.relBuilder.desc(timestampRef));
+      }
+    }
+    // If no timestamp field found, use original UNION ALL only (sequential concatenation)
+
     return context.relBuilder.peek();
+  }
+
+  /**
+   * Finds the timestamp field in the row type for multisearch ordering. Looks for common timestamp
+   * field names used in OpenSearch/Splunk.
+   *
+   * @param rowType The row type to search for timestamp fields
+   * @return The name of the timestamp field, or null if not found
+   */
+  private String findTimestampField(RelDataType rowType) {
+    // Common timestamp field names in order of preference
+    String[] timestampFieldNames = {
+      "_time", // SPL standard timestamp field
+      "@timestamp", // OpenSearch/Elasticsearch standard timestamp field
+      "timestamp", // Common generic timestamp field
+      "time", // Common generic time field
+      "_timestamp" // Alternative timestamp field
+    };
+
+    for (String fieldName : timestampFieldNames) {
+      RelDataTypeField field = rowType.getField(fieldName, false, false);
+      if (field != null) {
+        // Verify it's a proper timestamp/date/time type
+        SqlTypeName typeName = field.getType().getSqlTypeName();
+        if (typeName == SqlTypeName.TIMESTAMP
+            || typeName == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
+            || typeName == SqlTypeName.DATE
+            || typeName == SqlTypeName.TIME
+            || typeName == SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE) {
+          return fieldName;
+        }
+      }
+    }
+
+    // If no proper timestamp field found, check for string fields that might contain timestamps
+    // This is more conservative - only applies to commonly used timestamp field names
+    for (String fieldName : new String[] {"_time", "@timestamp"}) {
+      RelDataTypeField field = rowType.getField(fieldName, false, false);
+      if (field != null) {
+        SqlTypeName typeName = field.getType().getSqlTypeName();
+        if (typeName == SqlTypeName.VARCHAR || typeName == SqlTypeName.CHAR) {
+          return fieldName;
+        }
+      }
+    }
+
+    return null; // No timestamp field found
   }
 
   /*
