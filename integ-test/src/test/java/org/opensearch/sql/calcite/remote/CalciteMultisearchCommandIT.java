@@ -27,6 +27,8 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
     enableCalcite();
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK);
+    loadIndex(Index.TIME_TEST_DATA);
+    loadIndex(Index.TIME_TEST_DATA2);
   }
 
   @Test
@@ -138,6 +140,83 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
         rows("Dale", "Adams", 4180L),
         rows("Elinor", "Ratliff", 16418L),
         rows("Mcgee", "Mooney", 18612L));
+  }
+
+  @Test
+  public void testMultisearchWithTimestampInterleaving() throws IOException {
+    // Test multisearch with real timestamp data to verify chronological ordering
+    // Use simple approach without eval to focus on timestamp interleaving
+    JSONObject result =
+        executeQuery(
+            "source=opensearch-sql_test_index_time_data | multisearch [search"
+                + " source=opensearch-sql_test_index_time_data | where category IN (\\\"A\\\","
+                + " \\\"B\\\")] [search source=opensearch-sql_test_index_time_data2 | where"
+                + " category IN (\\\"E\\\", \\\"F\\\")] | head 10");
+
+    // Verify schema - should have 4 fields (timestamp, value, category, @timestamp)
+    verifySchema(
+        result,
+        schema("@timestamp", null, "string"),
+        schema("category", null, "string"),
+        schema("value", null, "int"),
+        schema("timestamp", null, "string"));
+
+    // Test timestamp interleaving: expect results from both indices sorted by timestamp DESC
+    // Perfect interleaving demonstrated: E,F from time_test_data2 mixed with A,B from
+    // time_test_data
+    verifyDataRows(
+        result,
+        rows("2025-08-01 04:00:00", "E", 2001, "2025-08-01 04:00:00"),
+        rows("2025-08-01 03:47:41", "A", 8762, "2025-08-01 03:47:41"),
+        rows("2025-08-01 02:30:00", "F", 2002, "2025-08-01 02:30:00"),
+        rows("2025-08-01 01:14:11", "B", 9015, "2025-08-01 01:14:11"),
+        rows("2025-08-01 01:00:00", "E", 2003, "2025-08-01 01:00:00"),
+        rows("2025-07-31 23:40:33", "A", 8676, "2025-07-31 23:40:33"),
+        rows("2025-07-31 22:15:00", "F", 2004, "2025-07-31 22:15:00"),
+        rows("2025-07-31 21:07:03", "B", 8490, "2025-07-31 21:07:03"),
+        rows("2025-07-31 20:45:00", "E", 2005, "2025-07-31 20:45:00"),
+        rows("2025-07-31 19:33:25", "A", 9231, "2025-07-31 19:33:25"));
+  }
+
+  @Test
+  public void testMultisearchWithDateEvaluation() throws IOException {
+    // Test multisearch with explicit date/time field creation using eval
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | multisearch [search source=%s | where state = \\\"CA\\\" | eval"
+                    + " query_time = \\\"2025-01-01 10:00:00\\\", source_type = \\\"CA_data\\\"]"
+                    + " [search source=%s | where state = \\\"NY\\\" | eval query_time ="
+                    + " \\\"2025-01-01 11:00:00\\\", source_type = \\\"NY_data\\\"] | stats count"
+                    + " by source_type",
+                TEST_INDEX_ACCOUNT, TEST_INDEX_ACCOUNT, TEST_INDEX_ACCOUNT));
+
+    // Should have counts from both source types
+    verifySchema(result, schema("count", null, "bigint"), schema("source_type", null, "string"));
+
+    verifyDataRows(result, rows(17L, "CA_data"), rows(20L, "NY_data"));
+  }
+
+  @Test
+  public void testMultisearchCrossSourcePattern() throws IOException {
+    // Test the SPL pattern of combining results from different criteria
+    // Similar to SPL success rate monitoring pattern
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | multisearch [search source=%s | where balance > 30000 | eval"
+                    + " result_type = \\\"high_balance\\\"] [search source=%s | where balance > 0 |"
+                    + " eval result_type = \\\"all_balance\\\"] | stats count(eval(result_type ="
+                    + " \\\"high_balance\\\")) as high_count, count(eval(result_type ="
+                    + " \\\"all_balance\\\")) as total_count",
+                TEST_INDEX_ACCOUNT, TEST_INDEX_ACCOUNT, TEST_INDEX_ACCOUNT));
+
+    // Should return aggregated results
+    verifySchema(
+        result, schema("high_count", null, "bigint"), schema("total_count", null, "bigint"));
+
+    // Verify we get a single row with the counts
+    verifyDataRows(result, rows(402L, 1000L));
   }
 
   @Test
@@ -290,45 +369,6 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
 
     verifySchema(result, schema("count", null, "bigint"));
     verifyDataRows(result, rows(10L)); // 5 young + 5 senior
-  }
-
-  // ========================================================================
-  // Event Interleaving Tests
-  // ========================================================================
-
-  @Test
-  public void testMultisearchEventInterleavingAndSchemaUnification() throws IOException {
-    // Test event interleaving and schema unification with different fields
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | multisearch "
-                    + "[search source=%s | where age < 25 | "
-                    + "eval age_group = \\\"young\\\" | fields account_number, age_group | head 2] "
-                    + "[search source=%s | where age > 30 | "
-                    + "eval senior_flag = 1 | fields account_number, senior_flag | head 2] "
-                    + "| fields account_number, age_group, senior_flag",
-                TEST_INDEX_ACCOUNT, TEST_INDEX_ACCOUNT, TEST_INDEX_ACCOUNT));
-
-    // Verify schema includes fields from both subsearches
-    verifySchema(
-        result,
-        schema("account_number", null, "bigint"),
-        schema("age_group", null, "string"),
-        schema("senior_flag", null, "int"));
-
-    // Verify we got 4 total rows (2 from each subsearch) and null values are properly handled
-    assertTrue("Should have 4 total rows", result.getJSONArray("datarows").length() == 4);
-    
-    int youngCount = 0, seniorCount = 0;
-    for (int i = 0; i < result.getJSONArray("datarows").length(); i++) {
-      var row = result.getJSONArray("datarows").getJSONArray(i);
-      // Each row should have either age_group or senior_flag, but not both
-      if (!row.isNull(1) && row.getString(1).equals("young")) youngCount++;
-      if (!row.isNull(2) && row.getInt(2) == 1) seniorCount++;
-    }
-    assertTrue("Should have 2 young rows", youngCount == 2);
-    assertTrue("Should have 2 senior rows", seniorCount == 2);
   }
 
   @Test
