@@ -254,6 +254,11 @@ public class TestUtils {
     return getMappingFile(mappingFile);
   }
 
+  public static String getComplexGeoIndexMapping() {
+    String mappingFile = "complex_geo_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
   public static String getStateCountryIndexMapping() {
     String mappingFile = "state_country_index_mapping.json";
     return getMappingFile(mappingFile);
