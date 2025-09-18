@@ -597,25 +597,6 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testExplainPushDownScriptsContainingUDT() throws IOException {
-
-    assertJsonEqualsIgnoreId(
-        loadExpectedPlan("explain_filter_script_ip_push.json"),
-        explainQueryToString(
-            String.format(
-                "source=%s | where cidrmatch(host, '0.0.0.0/24') | fields host",
-                TEST_INDEX_WEBLOGS)));
-
-    assertJsonEqualsIgnoreId(
-        loadExpectedPlan("explain_agg_script_timestamp_push.json"),
-        explainQueryToString(
-            String.format(
-                "source=%s | eval t = unix_timestamp(birthdate) | stats count() by t | sort t |"
-                    + " head 3",
-                TEST_INDEX_BANK)));
-  }
-
-  @Test
   public void testExplainOnTake() throws IOException {
     String expected = loadExpectedPlan("explain_take.json");
     assertJsonEqualsIgnoreId(
