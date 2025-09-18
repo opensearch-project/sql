@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import org.json.JSONObject;
-import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
@@ -1213,7 +1212,6 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         rows(1, 1508716800));
   }
 
-  @Ignore("Enable after fixing https://github.com/opensearch-project/sql/issues/4296")
   @Test
   public void testLimitAfterAggregation() throws IOException {
     JSONObject response =
