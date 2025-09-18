@@ -4,13 +4,21 @@
  */
 package org.opensearch.sql.opensearch.planner.physical;
 
+import static org.opensearch.sql.expression.function.PPLBuiltinOperators.WIDTH_BUCKET;
+
+import java.util.List;
 import java.util.function.Predicate;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.SqlKind;
 import org.immutables.value.Value;
+import org.opensearch.sql.calcite.type.ExprSqlType;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
 /** Planner rule that push a {@link LogicalAggregate} down to {@link CalciteLogicalIndexScan} */
@@ -48,9 +56,9 @@ public class OpenSearchAggregateIndexScanRule
       LogicalAggregate aggregate,
       LogicalProject project,
       CalciteLogicalIndexScan scan) {
-    CalciteLogicalIndexScan newScan = scan.pushDownAggregate(aggregate, project);
-    if (newScan != null) {
-      call.transformTo(newScan);
+    AbstractRelNode newRelNode = scan.pushDownAggregate(aggregate, project);
+    if (newRelNode != null) {
+      call.transformTo(newRelNode);
     }
   }
 
@@ -68,9 +76,13 @@ public class OpenSearchAggregateIndexScanRule
                             b1 ->
                                 b1.operand(LogicalProject.class)
                                     .predicate(
-                                        // Don't push down aggregate on window function
+                                        // Support push down aggregate with project that:
+                                        // 1. No RexOver and no duplicate projection
+                                        // 2. Contains width_bucket function on date field referring
+                                        // to bin command with parameter bins
                                         Predicate.not(OpenSearchIndexScanRule::containsRexOver)
-                                            .and(OpenSearchIndexScanRule::distinctProjectList))
+                                            .and(OpenSearchIndexScanRule::distinctProjectList)
+                                            .or(Config::containsWidthBucketFuncOnDate))
                                     .oneInput(
                                         b2 ->
                                             b2.operand(CalciteLogicalIndexScan.class)
@@ -107,6 +119,21 @@ public class OpenSearchAggregateIndexScanRule
     @Override
     default OpenSearchAggregateIndexScanRule toRule() {
       return new OpenSearchAggregateIndexScanRule(this);
+    }
+
+    static boolean containsWidthBucketFuncOnDate(LogicalProject project) {
+      return project.getProjects().stream()
+          .anyMatch(
+              expr ->
+                  expr instanceof RexCall rexCall
+                      && rexCall.getOperator().equals(WIDTH_BUCKET)
+                      && dateRelatedType(rexCall.getOperands().getFirst().getType()));
+    }
+
+    static boolean dateRelatedType(RelDataType type) {
+      return type instanceof ExprSqlType exprSqlType
+          && List.of(ExprUDT.EXPR_DATE, ExprUDT.EXPR_TIME, ExprUDT.EXPR_TIMESTAMP)
+              .contains(exprSqlType.getUdt());
     }
   }
 }

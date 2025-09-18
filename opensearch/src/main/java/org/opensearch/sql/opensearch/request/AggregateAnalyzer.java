@@ -30,6 +30,7 @@ import static java.util.Objects.requireNonNull;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
+import static org.opensearch.sql.expression.function.PPLBuiltinOperators.WIDTH_BUCKET;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -58,6 +59,7 @@ import org.opensearch.search.aggregations.AggregatorFactories.Builder;
 import org.opensearch.search.aggregations.BucketOrder;
 import org.opensearch.search.aggregations.bucket.composite.CompositeValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.composite.TermsValuesSourceBuilder;
+import org.opensearch.search.aggregations.bucket.histogram.AutoDateHistogramAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
 import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.ExtendedStats;
@@ -208,6 +210,19 @@ public class AggregateAnalyzer {
         return Pair.of(
             Collections.singletonList(bucketBuilder.subAggregations(metricBuilder)),
             new BucketAggregationParser(metricParserList));
+      } else if (aggregate.getGroupSet().length() == 1
+          && isAutoDateSpan(project.getProjects().get(groupList.getFirst()))) {
+        RexCall rexCall = (RexCall) project.getProjects().get(groupList.getFirst());
+        String bucketName = project.getRowType().getFieldList().get(groupList.getFirst()).getName();
+        RexInputRef rexInputRef = (RexInputRef) rexCall.getOperands().getFirst();
+        RexLiteral valueLiteral = (RexLiteral) rexCall.getOperands().get(1);
+        ValuesSourceAggregationBuilder<?> bucketBuilder =
+            new AutoDateHistogramAggregationBuilder(bucketName)
+                .field(helper.inferNamedField(rexInputRef).getRootName())
+                .setNumBuckets(requireNonNull(valueLiteral.getValueAs(Integer.class)));
+        return Pair.of(
+            Collections.singletonList(bucketBuilder.subAggregations(metricBuilder)),
+            new BucketAggregationParser(metricParserList));
       } else {
         List<CompositeValuesSourceBuilder<?>> buckets =
             createCompositeBuckets(groupList, project, helper);
@@ -228,7 +243,7 @@ public class AggregateAnalyzer {
       List<String> aggFieldNames,
       List<AggregateCall> aggCalls,
       Project project,
-      AggregateBuilderHelper helper)
+      AggregateAnalyzer.AggregateBuilderHelper helper)
       throws PredicateAnalyzer.ExpressionNotAnalyzableException {
     Builder metricBuilder = new AggregatorFactories.Builder();
     List<MetricParser> metricParserList = new ArrayList<>();
@@ -414,7 +429,7 @@ public class AggregateAnalyzer {
               String.format("Unsupported push-down aggregator %s", aggCall.getAggregation()));
         };
       }
-      default -> throw new AggregateAnalyzerException(
+      default -> throw new AggregateAnalyzer.AggregateAnalyzerException(
           String.format("unsupported aggregator %s", aggCall.getAggregation()));
     };
   }
@@ -444,6 +459,12 @@ public class AggregateAnalyzer {
     return resultBuilder.build();
   }
 
+  private static boolean isAutoDateSpan(RexNode rex) {
+    return rex instanceof RexCall rexCall
+        && rexCall.getKind() == SqlKind.OTHER_FUNCTION
+        && rexCall.getOperator().equals(WIDTH_BUCKET);
+  }
+
   private static ValuesSourceAggregationBuilder<?> createBucket(
       Integer groupIndex, Project project, AggregateBuilderHelper helper) {
     RexNode rex = project.getProjects().get(groupIndex);
@@ -466,7 +487,7 @@ public class AggregateAnalyzer {
   }
 
   private static CompositeValuesSourceBuilder<?> createCompositeBucket(
-      Integer groupIndex, Project project, AggregateBuilderHelper helper) {
+      Integer groupIndex, Project project, AggregateAnalyzer.AggregateBuilderHelper helper) {
     RexNode rex = project.getProjects().get(groupIndex);
     String bucketName = project.getRowType().getFieldList().get(groupIndex).getName();
     if (rex instanceof RexCall rexCall
@@ -482,6 +503,9 @@ public class AggregateAnalyzer {
           valueLiteral.getValueAs(Double.class),
           SpanUnit.of(unitLiteral.getValueAs(String.class)),
           MissingOrder.FIRST);
+    } else if (isAutoDateSpan(rex)) {
+      throw new UnsupportedOperationException(
+          "auto_date_histogram is not supported in composite agg.");
     } else {
       return createTermsSourceBuilder(bucketName, rex, helper);
     }
