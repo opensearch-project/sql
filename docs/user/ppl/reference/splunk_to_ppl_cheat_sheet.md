@@ -104,7 +104,7 @@ This table provides a mapping between Splunk SPL commands and their OpenSearch P
 | Multiple aggregations | `... \| stats count, avg(field1) by field2` | `... \| stats count, avg(field1) by field2` | Same syntax |
 | Distinct count | `... \| stats dc(field)` | `... \| stats dc(field)` | Same syntax |
 | Min/Max | `... \| stats min(field), max(field)` | `... \| stats min(field), max(field)` | Same syntax |
-| Percentiles | `... \| stats perc95(field)` | `... \| stats percentile(field, 95)` | Different function syntax |
+| Percentiles | `... \| stats perc95(field)` | `... \| stats perc95(field)` | Same syntax |
 
 ## Sorting and Limiting
 
@@ -122,9 +122,9 @@ This table provides a mapping between Splunk SPL commands and their OpenSearch P
 |-----------|------------|---------------|-------|
 | Basic extraction | `... \| rex field=address "(?<streetNumber>\d+) (?<street>.+)"` | `... \| rex address "(?<streetNumber>\d+) (?<street>.+)"` | Same syntax |
 | Field specification | `... \| rex field=address ...` | `... \| rex field=address ...` | Same syntax |
-| Default field (_raw) | `... \| rex "(?<streetNumber>\d+) (?<street>.+)"` | Not supported | PPL does not support implicit _raw field and requires explicit field specification |
-| Search and replace mode | `... \| rex mode=sed "s/\d+//g"` | Not supported | PPL does not support the search-and-replace mode like SPL's rex with mode=sed |
+| Search and replace mode | `... \| rex field=address mode=sed "s/\d+//g"` | `... \| rex field=address mode=sed "s/\d+//g"` | Same syntax |
 | Field override | `... \| rex field=address "(?<address>.+)"` | `... \| rex address "(?<address>.+)"` | Same syntax |
+| Default field (_raw) | `... \| rex "(?<streetNumber>\d+) (?<street>.+)"` | Not supported | PPL does not support implicit _raw field and requires explicit field specification |
 
 ## Time Functions
 
