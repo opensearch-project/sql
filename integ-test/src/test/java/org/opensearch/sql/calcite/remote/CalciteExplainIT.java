@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.calcite.remote;
 
-import static org.junit.Assert.assertTrue;
-import static org.opensearch.sql.legacy.TestUtils.*;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
@@ -301,6 +299,23 @@ public class CalciteExplainIT extends ExplainIT {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString("source=opensearch-sql_test_index_account | bin age bins=3 | head 5"));
+  }
+
+  @Test
+  public void testExplainStatsWithBinsOnTimeField() throws IOException {
+    // TODO:  Remove this after addressing https://github.com/opensearch-project/sql/issues/4317
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_stats_bins_on_time.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=events | bin @timestamp bins=3 | stats count() by @timestamp"));
+
+    expected = loadExpectedPlan("explain_stats_bins_on_time2.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=events | bin @timestamp bins=3 | stats avg(cpu_usage) by @timestamp"));
   }
 
   @Test

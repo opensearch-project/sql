@@ -338,6 +338,11 @@ public class OpenSearchExprValueFactory {
       return parseDateTimeString(value.stringValue(), dt);
     }
 
+    if (value.objectValue() instanceof ZonedDateTime) {
+      ZonedDateTime zonedDateTime = (ZonedDateTime) value.objectValue();
+      return new ExprTimestampValue(zonedDateTime.withZoneSameLocal(ZoneOffset.UTC).toInstant());
+    }
+
     return new ExprTimestampValue((Instant) value.objectValue());
   }
 
