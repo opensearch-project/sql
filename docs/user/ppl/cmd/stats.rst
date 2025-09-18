@@ -85,6 +85,8 @@ stats [bucket_nullable=bool] <aggregation>... [by-clause]
 | year (y)                   |
 +----------------------------+
 
+* If the span field is a date and time type field, the aggregation results always ignore null bucket.
+
 Configuration
 =============
 Some aggregation functions require Calcite to be enabled for proper functionality. To enable Calcite, use the following command:

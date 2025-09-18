@@ -957,9 +957,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   private boolean isTimeSpan(UnresolvedExpression expr) {
-    return Objects.nonNull(expr)
-        && expr instanceof Span span
-        && SpanUnit.isTimeUnit(span.getUnit());
+    if (Objects.isNull(expr)) return false;
+    if (expr instanceof Span span) {
+      return SpanUnit.isTimeUnit(span.getUnit());
+    }
+    if (expr instanceof Alias alias) {
+      return isTimeSpan(alias.getDelegated());
+    }
+    return false;
   }
 
   /** extract the RexLiteral of Alias from a node */
