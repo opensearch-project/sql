@@ -494,8 +494,14 @@ public class AstDSL {
     return new Head(input, size, from);
   }
 
-  public static List<Argument> defaultTopArgs() {
-    return exprList(argument("noOfResults", intLiteral(10)));
+  public static List<Argument> defaultTopRareArgs() {
+    return exprList(
+        argument("noOfResults", intLiteral(10)),
+        argument("countField", stringLiteral("count")),
+        argument("showCount", booleanLiteral(true)),
+        argument("percentField", stringLiteral("percent")),
+        argument("showPerc", booleanLiteral(false)),
+        argument("useOther", booleanLiteral(false)));
   }
 
   public static RareTopN rareTopN(

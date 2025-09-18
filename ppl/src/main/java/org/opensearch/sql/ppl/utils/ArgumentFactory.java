@@ -128,22 +128,46 @@ public class ArgumentFactory {
   }
 
   /**
+   * Helper: dedupe list generation logic for top & rare. Helps ensure both commands consistently
+   * support the same args.
+   */
+  private static List<Argument> topRareArgList(
+      ParserRuleContext number,
+      ParserRuleContext countfield,
+      ParserRuleContext showcount,
+      ParserRuleContext percentfield,
+      ParserRuleContext showperc,
+      ParserRuleContext useother) {
+    return Arrays.asList(
+        number != null
+            ? new Argument("noOfResults", getArgumentValue(number))
+            : new Argument("noOfResults", new Literal(10, DataType.INTEGER)),
+        countfield != null
+            ? new Argument("countField", getArgumentValue(countfield))
+            : new Argument("countField", new Literal("count", DataType.STRING)),
+        showcount != null
+            ? new Argument("showCount", getArgumentValue(showcount))
+            : new Argument("showCount", new Literal(true, DataType.BOOLEAN)),
+        percentfield != null
+            ? new Argument("percentField", getArgumentValue(percentfield))
+            : new Argument("percentField", new Literal("percent", DataType.STRING)),
+        showperc != null
+            ? new Argument("showPerc", getArgumentValue(showperc))
+            : new Argument("showPerc", new Literal(percentfield != null, DataType.BOOLEAN)),
+        useother != null
+            ? new Argument("useOther", getArgumentValue(useother))
+            : new Argument("useOther", new Literal(false, DataType.BOOLEAN)));
+  }
+
+  /**
    * Get list of {@link Argument}.
    *
    * @param ctx TopCommandContext instance
    * @return the list of arguments fetched from the top command
    */
   public static List<Argument> getArgumentList(TopCommandContext ctx) {
-    return Arrays.asList(
-        ctx.number != null
-            ? new Argument("noOfResults", getArgumentValue(ctx.number))
-            : new Argument("noOfResults", new Literal(10, DataType.INTEGER)),
-        ctx.countfield != null
-            ? new Argument("countField", getArgumentValue(ctx.countfield))
-            : new Argument("countField", new Literal("count", DataType.STRING)),
-        ctx.showcount != null
-            ? new Argument("showCount", getArgumentValue(ctx.showcount))
-            : new Argument("showCount", new Literal(true, DataType.BOOLEAN)));
+    return topRareArgList(
+        ctx.number, ctx.countfield, ctx.showcount, ctx.percentfield, ctx.showperc, ctx.useother);
   }
 
   /**
@@ -153,16 +177,8 @@ public class ArgumentFactory {
    * @return the list of argument with default number of results for the rare command
    */
   public static List<Argument> getArgumentList(RareCommandContext ctx) {
-    return Arrays.asList(
-        ctx.number != null
-            ? new Argument("noOfResults", getArgumentValue(ctx.number))
-            : new Argument("noOfResults", new Literal(10, DataType.INTEGER)),
-        ctx.countfield != null
-            ? new Argument("countField", getArgumentValue(ctx.countfield))
-            : new Argument("countField", new Literal("count", DataType.STRING)),
-        ctx.showcount != null
-            ? new Argument("showCount", getArgumentValue(ctx.showcount))
-            : new Argument("showCount", new Literal(true, DataType.BOOLEAN)));
+    return topRareArgList(
+        ctx.number, ctx.countfield, ctx.showcount, ctx.percentfield, ctx.showperc, ctx.useother);
   }
 
   /**

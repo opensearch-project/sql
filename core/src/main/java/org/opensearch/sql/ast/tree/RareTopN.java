@@ -29,7 +29,8 @@ public class RareTopN extends UnresolvedPlan {
 
   private UnresolvedPlan child;
   private final CommandType commandType;
-  // arguments: noOfResults: Integer, countField: String, showCount: Boolean
+  // arguments: noOfResults: Integer, countField: String, showCount: Boolean, percentField: String,
+  // showPerc: Boolean, useOther: Boolean
   private final List<Argument> arguments;
   private final List<Field> fields;
   private final List<UnresolvedExpression> groupExprList;

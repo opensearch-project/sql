@@ -21,6 +21,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.defaultDedupArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultFieldsArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultSortFieldArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultStatsArgs;
+import static org.opensearch.sql.ast.dsl.AstDSL.defaultTopRareArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.describe;
 import static org.opensearch.sql.ast.dsl.AstDSL.eval;
 import static org.opensearch.sql.ast.dsl.AstDSL.exprList;
@@ -79,6 +80,7 @@ import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
+import org.opensearch.sql.ppl.utils.ExprLists;
 import org.opensearch.sql.utils.SystemIndexUtils;
 
 public class AstBuilderTest {
@@ -630,15 +632,7 @@ public class AstBuilderTest {
   public void testRareCommand() {
     assertEqual(
         "source=t | rare a",
-        rareTopN(
-            relation("t"),
-            CommandType.RARE,
-            exprList(
-                argument("noOfResults", intLiteral(10)),
-                argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
-            emptyList(),
-            field("a")));
+        rareTopN(relation("t"), CommandType.RARE, defaultTopRareArgs(), emptyList(), field("a")));
   }
 
   @Test
@@ -648,10 +642,7 @@ public class AstBuilderTest {
         rareTopN(
             relation("t"),
             CommandType.RARE,
-            exprList(
-                argument("noOfResults", intLiteral(10)),
-                argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+            defaultTopRareArgs(),
             exprList(field("b")),
             field("a")));
   }
@@ -663,10 +654,7 @@ public class AstBuilderTest {
         rareTopN(
             relation("t"),
             CommandType.RARE,
-            exprList(
-                argument("noOfResults", intLiteral(10)),
-                argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+            defaultTopRareArgs(),
             exprList(field("c")),
             field("a"),
             field("b")));
@@ -679,10 +667,7 @@ public class AstBuilderTest {
         rareTopN(
             relation("t"),
             CommandType.TOP,
-            exprList(
-                argument("noOfResults", intLiteral(1)),
-                argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+            ExprLists.merge(defaultTopRareArgs(), argument("noOfResults", intLiteral(1))),
             emptyList(),
             field("a")));
   }
@@ -691,15 +676,7 @@ public class AstBuilderTest {
   public void testTopCommandWithoutNAndGroupBy() {
     assertEqual(
         "source=t | top a",
-        rareTopN(
-            relation("t"),
-            CommandType.TOP,
-            exprList(
-                argument("noOfResults", intLiteral(10)),
-                argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
-            emptyList(),
-            field("a")));
+        rareTopN(relation("t"), CommandType.TOP, defaultTopRareArgs(), emptyList(), field("a")));
   }
 
   @Test
@@ -709,10 +686,7 @@ public class AstBuilderTest {
         rareTopN(
             relation("t"),
             CommandType.TOP,
-            exprList(
-                argument("noOfResults", intLiteral(1)),
-                argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+            ExprLists.merge(defaultTopRareArgs(), argument("noOfResults", intLiteral(1))),
             exprList(field("b")),
             field("a")));
   }
@@ -724,10 +698,89 @@ public class AstBuilderTest {
         rareTopN(
             relation("t"),
             CommandType.TOP,
+            ExprLists.merge(defaultTopRareArgs(), argument("noOfResults", intLiteral(1))),
+            exprList(field("c")),
+            field("a"),
+            field("b")));
+  }
+
+  @Test
+  public void testRareCommandWithAllArguments() {
+    assertEqual(
+        "source=t | rare 5 countfield='mycounts' showcount=false percentfield='perc' showperc=true"
+            + " useother=true a",
+        rareTopN(
+            relation("t"),
+            CommandType.RARE,
             exprList(
-                argument("noOfResults", intLiteral(1)),
-                argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+                argument("noOfResults", intLiteral(5)),
+                argument("countField", stringLiteral("mycounts")),
+                argument("showCount", booleanLiteral(false)),
+                argument("percentField", stringLiteral("perc")),
+                argument("showPerc", booleanLiteral(true)),
+                argument("useOther", booleanLiteral(true))),
+            emptyList(),
+            field("a")));
+  }
+
+  @Test
+  public void testTopCommandWithCustomFields() {
+    assertEqual(
+        "source=t | top countfield='hits' percentfield='percentage' a",
+        rareTopN(
+            relation("t"),
+            CommandType.TOP,
+            ExprLists.merge(
+                defaultTopRareArgs(),
+                argument("countField", stringLiteral("hits")),
+                argument("percentField", stringLiteral("percentage")),
+                argument("showPerc", booleanLiteral(true))),
+            emptyList(),
+            field("a")));
+  }
+
+  @Test
+  public void testTopCommandWithPercentageOnly() {
+    assertEqual(
+        "source=t | top showcount=false showperc=true a by b",
+        rareTopN(
+            relation("t"),
+            CommandType.TOP,
+            ExprLists.merge(
+                defaultTopRareArgs(),
+                argument("showCount", booleanLiteral(false)),
+                argument("showPerc", booleanLiteral(true))),
+            exprList(field("b")),
+            field("a")));
+  }
+
+  @Test
+  public void testRareCommandWithUseOther() {
+    assertEqual(
+        "source=t | rare useother=true a",
+        rareTopN(
+            relation("t"),
+            CommandType.RARE,
+            ExprLists.merge(defaultTopRareArgs(), argument("useOther", booleanLiteral(true))),
+            emptyList(),
+            field("a")));
+  }
+
+  @Test
+  public void testTopCommandWithAllArguments() {
+    assertEqual(
+        "source=t | top 20 countfield='cnt' showcount=true percentfield='pct' showperc=true"
+            + " useother=true a, b by c",
+        rareTopN(
+            relation("t"),
+            CommandType.TOP,
+            exprList(
+                argument("noOfResults", intLiteral(20)),
+                argument("countField", stringLiteral("cnt")),
+                argument("showCount", booleanLiteral(true)),
+                argument("percentField", stringLiteral("pct")),
+                argument("showPerc", booleanLiteral(true)),
+                argument("useOther", booleanLiteral(true))),
             exprList(field("c")),
             field("a"),
             field("b")));
