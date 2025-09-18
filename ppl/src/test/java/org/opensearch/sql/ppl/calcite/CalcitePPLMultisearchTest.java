@@ -5,16 +5,109 @@
 
 package org.opensearch.sql.ppl.calcite;
 
-import static org.junit.Assert.assertTrue;
-
+import com.google.common.collect.ImmutableList;
+import java.sql.Timestamp;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.schema.ScannableTable;
+import org.apache.calcite.schema.Schema;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Statistic;
+import org.apache.calcite.schema.Statistics;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.tools.Programs;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Test;
 
 public class CalcitePPLMultisearchTest extends CalcitePPLAbstractTest {
 
   public CalcitePPLMultisearchTest() {
     super(CalciteAssert.SchemaSpec.SCOTT_WITH_TEMPORAL);
+  }
+
+  @Override
+  protected Frameworks.ConfigBuilder config(CalciteAssert.SchemaSpec... schemaSpecs) {
+    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    final SchemaPlus schema = CalciteAssert.addSchema(rootSchema, schemaSpecs);
+
+    // Add timestamp tables for multisearch testing with format matching time_test_data.json
+    ImmutableList<Object[]> timeData1 =
+        ImmutableList.of(
+            new Object[] {
+              Timestamp.valueOf("2025-08-01 03:47:41"),
+              8762,
+              "A",
+              Timestamp.valueOf("2025-08-01 03:47:41")
+            },
+            new Object[] {
+              Timestamp.valueOf("2025-08-01 01:14:11"),
+              9015,
+              "B",
+              Timestamp.valueOf("2025-08-01 01:14:11")
+            },
+            new Object[] {
+              Timestamp.valueOf("2025-07-31 23:40:33"),
+              8676,
+              "A",
+              Timestamp.valueOf("2025-07-31 23:40:33")
+            },
+            new Object[] {
+              Timestamp.valueOf("2025-07-31 21:07:03"),
+              8490,
+              "B",
+              Timestamp.valueOf("2025-07-31 21:07:03")
+            });
+
+    ImmutableList<Object[]> timeData2 =
+        ImmutableList.of(
+            new Object[] {
+              Timestamp.valueOf("2025-08-01 04:00:00"),
+              2001,
+              "E",
+              Timestamp.valueOf("2025-08-01 04:00:00")
+            },
+            new Object[] {
+              Timestamp.valueOf("2025-08-01 02:30:00"),
+              2002,
+              "F",
+              Timestamp.valueOf("2025-08-01 02:30:00")
+            },
+            new Object[] {
+              Timestamp.valueOf("2025-08-01 01:00:00"),
+              2003,
+              "E",
+              Timestamp.valueOf("2025-08-01 01:00:00")
+            },
+            new Object[] {
+              Timestamp.valueOf("2025-07-31 22:15:00"),
+              2004,
+              "F",
+              Timestamp.valueOf("2025-07-31 22:15:00")
+            });
+
+    schema.add("TIME_DATA1", new TimeDataTable(timeData1));
+    schema.add("TIME_DATA2", new TimeDataTable(timeData2));
+
+    return Frameworks.newConfigBuilder()
+        .parserConfig(SqlParser.Config.DEFAULT)
+        .defaultSchema(schema)
+        .traitDefs((List<RelTraitDef>) null)
+        .programs(Programs.heuristicJoinOrder(Programs.RULE_SET, true, 2));
   }
 
   @Test
@@ -31,29 +124,86 @@ public class CalcitePPLMultisearchTest extends CalcitePPLAbstractTest {
             + "  LogicalFilter(condition=[=($7, 20)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    // Expected: 3 employees from dept 10 + 5 employees from dept 20 = 8 total
+
+    String expectedSparkSql =
+        "SELECT *\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE `DEPTNO` = 10\n"
+            + "UNION ALL\n"
+            + "SELECT *\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE `DEPTNO` = 20";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
     verifyResultCount(root, 8);
   }
 
   @Test
-  public void testMultisearchWithEval() {
+  public void testMultisearchCrossIndices() {
+    // Test multisearch with different tables (indices)
     String ppl =
-        "source=EMP | multisearch "
-            + "[search source=EMP | where SAL > 2000 | eval query_type = \"high\"] "
-            + "[search source=EMP | where SAL <= 2000 | eval query_type = \"low\"]";
+        "source=EMP | multisearch [search source=EMP | where DEPTNO = 10 | fields EMPNO, ENAME,"
+            + " DEPTNO] [search source=DEPT | where DEPTNO = 10 | fields DEPTNO, DNAME | eval EMPNO"
+            + " = DEPTNO, ENAME = DNAME]";
     RelNode root = getRelNode(ppl);
-    verifyResultCount(root, 14); // All 14 employees should be included
+    String expectedLogical =
+        "LogicalUnion(all=[true])\n"
+            + "  LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7], DNAME=[null:VARCHAR(14)])\n"
+            + "    LogicalFilter(condition=[=($7, 10)])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n"
+            + "  LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$0], DNAME=[$1])\n"
+            + "    LogicalFilter(condition=[=($0, 10)])\n"
+            + "      LogicalTableScan(table=[[scott, DEPT]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`, `DEPTNO`, CAST(NULL AS STRING) `DNAME`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE `DEPTNO` = 10\n"
+            + "UNION ALL\n"
+            + "SELECT `DEPTNO` `EMPNO`, `DNAME` `ENAME`, `DEPTNO`, `DNAME`\n"
+            + "FROM `scott`.`DEPT`\n"
+            + "WHERE `DEPTNO` = 10";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+    verifyResultCount(root, 4); // 3 employees + 1 department
   }
 
   @Test
   public void testMultisearchWithStats() {
     String ppl =
         "source=EMP | multisearch "
-            + "[search source=EMP | where DEPTNO = 10 | eval dept_type = \"ACCOUNTING\"] "
-            + "[search source=EMP | where DEPTNO = 20 | eval dept_type = \"RESEARCH\"] "
-            + "| stats count by dept_type";
+            + "[search source=EMP | where DEPTNO = 10 | eval type = \"accounting\"] "
+            + "[search source=EMP | where DEPTNO = 20 | eval type = \"research\"] "
+            + "| stats count by type";
     RelNode root = getRelNode(ppl);
-    verifyResultCount(root, 2); // Two departments
+    String expectedLogical =
+        "LogicalProject(count=[$1], type=[$0])\n"
+            + "  LogicalAggregate(group=[{0}], count=[COUNT()])\n"
+            + "    LogicalProject(type=[$8])\n"
+            + "      LogicalUnion(all=[true])\n"
+            + "        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], type=['accounting':VARCHAR])\n"
+            + "          LogicalFilter(condition=[=($7, 10)])\n"
+            + "            LogicalTableScan(table=[[scott, EMP]])\n"
+            + "        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], type=['research':VARCHAR])\n"
+            + "          LogicalFilter(condition=[=($7, 20)])\n"
+            + "            LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT COUNT(*) `count`, `type`\n"
+            + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
+            + " 'accounting' `type`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE `DEPTNO` = 10\n"
+            + "UNION ALL\n"
+            + "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
+            + " 'research' `type`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE `DEPTNO` = 20) `t3`\n"
+            + "GROUP BY `type`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+    verifyResultCount(root, 2);
   }
 
   @Test
@@ -66,100 +216,13 @@ public class CalcitePPLMultisearchTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalUnion(all=[true])\n"
-            + "  LogicalUnion(all=[true])\n"
-            + "    LogicalFilter(condition=[=($7, 10)])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n"
-            + "    LogicalFilter(condition=[=($7, 20)])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n"
+            + "  LogicalFilter(condition=[=($7, 10)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "  LogicalFilter(condition=[=($7, 20)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
             + "  LogicalFilter(condition=[=($7, 30)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    // Expected: 3 + 5 + 6 = 14 employees (all employees)
-    verifyResultCount(root, 14);
-  }
-
-  @Test
-  public void testMultisearchWithEmptySubsearch() {
-    String ppl =
-        "source=EMP | multisearch "
-            + "[search source=EMP | where DEPTNO = 10] "
-            + "[search source=EMP | where DEPTNO = 999]"; // No employees in dept 999
-    RelNode root = getRelNode(ppl);
-    // Should still work, just return employees from dept 10
-    verifyResultCount(root, 3);
-  }
-
-  @Test
-  public void testMultisearchWithComplexFilters() {
-    String ppl =
-        "source=EMP | multisearch "
-            + "[search source=EMP | where SAL > 3000 AND JOB = \"MANAGER\"] "
-            + "[search source=EMP | where SAL < 1500 AND JOB = \"CLERK\"]";
-    RelNode root = getRelNode(ppl);
-    // Should combine results from both conditions
-    verifyResultCount(root, 3); // Estimated count based on EMP data
-  }
-
-  @Test
-  public void testMultisearchWithFieldsCommand() {
-    String ppl =
-        "source=EMP | multisearch "
-            + "[search source=EMP | where DEPTNO = 10 | fields ENAME, JOB] "
-            + "[search source=EMP | where DEPTNO = 20 | fields ENAME, JOB]";
-    RelNode root = getRelNode(ppl);
-    // Should work with field projection
-    verifyResultCount(root, 8);
-  }
-
-  @Test
-  public void testMultisearchSuccessRatePattern() {
-    // This simulates the common SPL pattern for success rate monitoring
-    String ppl =
-        "source=EMP | multisearch "
-            + "[search source=EMP | where SAL > 2000 | eval query_type = \"good\"] "
-            + "[search source=EMP | where SAL > 0 | eval query_type = \"valid\"] "
-            + "| stats count(eval(query_type = \"good\")) as good_count, "
-            + "       count(eval(query_type = \"valid\")) as total_count";
-    RelNode root = getRelNode(ppl);
-    verifyResultCount(root, 1); // Single aggregated row
-  }
-
-  @Test
-  public void testMultisearchWithSubsearchCommands() {
-    String ppl =
-        "source=EMP | multisearch "
-            + "[search source=EMP | where DEPTNO = 10 | head 2] "
-            + "[search source=EMP | where DEPTNO = 20 | head 2]";
-    RelNode root = getRelNode(ppl);
-    verifyResultCount(root, 4); // 2 from each subsearch
-  }
-
-  @Test
-  public void testMultisearchWithEmptySearch() {
-    String ppl =
-        "source=EMP | multisearch "
-            + "[| where DEPTNO = 10] "
-            + // Empty search command
-            "[search source=EMP | where DEPTNO = 20]";
-    RelNode root = getRelNode(ppl);
-    // Should handle empty search gracefully
-    verifyResultCount(root, 5); // Only dept 20 employees
-  }
-
-  @Test(expected = Exception.class)
-  public void testMultisearchWithNoSubsearches() {
-    // This should fail - multisearch requires at least one subsearch
-    String ppl = "source=EMP | multisearch";
-    getRelNode(ppl);
-  }
-
-  @Test
-  public void testMultisearchSparkSQLGeneration() {
-    String ppl =
-        "source=EMP | multisearch "
-            + "[search source=EMP | where DEPTNO = 10] "
-            + "[search source=EMP | where DEPTNO = 20]";
-    RelNode root = getRelNode(ppl);
 
     String expectedSparkSql =
         "SELECT *\n"
@@ -168,44 +231,138 @@ public class CalcitePPLMultisearchTest extends CalcitePPLAbstractTest {
             + "UNION ALL\n"
             + "SELECT *\n"
             + "FROM `scott`.`EMP`\n"
-            + "WHERE `DEPTNO` = 20";
+            + "WHERE `DEPTNO` = 20\n"
+            + "UNION ALL\n"
+            + "SELECT *\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE `DEPTNO` = 30";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+    verifyResultCount(root, 14);
+  }
+
+  // ========================================================================
+  // Timestamp Interleaving Tests
+  // ========================================================================
+
+  @Test
+  public void testMultisearchTimestampInterleaving() {
+    String ppl =
+        "source=TIME_DATA1 | multisearch "
+            + "[search source=TIME_DATA1 | where category IN (\"A\", \"B\")] "
+            + "[search source=TIME_DATA2 | where category IN (\"E\", \"F\")] "
+            + "| head 6";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(sort0=[$3], dir0=[DESC], fetch=[6])\n"
+            + "  LogicalUnion(all=[true])\n"
+            + "    LogicalFilter(condition=[SEARCH($2, Sarg['A':VARCHAR, 'B':VARCHAR]:VARCHAR)])\n"
+            + "      LogicalTableScan(table=[[scott, TIME_DATA1]])\n"
+            + "    LogicalFilter(condition=[SEARCH($2, Sarg['E':VARCHAR, 'F':VARCHAR]:VARCHAR)])\n"
+            + "      LogicalTableScan(table=[[scott, TIME_DATA2]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT *\n"
+            + "FROM (SELECT *\n"
+            + "FROM `scott`.`TIME_DATA1`\n"
+            + "WHERE `category` IN ('A', 'B')\n"
+            + "UNION ALL\n"
+            + "SELECT *\n"
+            + "FROM `scott`.`TIME_DATA2`\n"
+            + "WHERE `category` IN ('E', 'F'))\n"
+            + "ORDER BY `@timestamp` DESC NULLS FIRST\n"
+            + "LIMIT 6";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
-  public void testMultisearchWithTimestampOrdering() {
-    // Test multisearch with timestamp field for chronological ordering
+  public void testMultisearchWithTimestampFiltering() {
     String ppl =
-        "source=EMP | multisearch [search source=EMP | where DEPTNO = 10 | eval _time ="
-            + " CAST('2024-01-01 10:00:00' AS TIMESTAMP)] [search source=EMP | where DEPTNO = 20 |"
-            + " eval _time = CAST('2024-01-01 09:00:00' AS TIMESTAMP)]";
+        "source=TIME_DATA1 | multisearch "
+            + "[search source=TIME_DATA1 | where @timestamp > \"2025-07-31 23:00:00\"] "
+            + "[search source=TIME_DATA2 | where @timestamp > \"2025-07-31 23:00:00\"] "
+            + "| sort @timestamp desc";
     RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(sort0=[$3], dir0=[DESC-nulls-last])\n"
+            + "  LogicalSort(sort0=[$3], dir0=[DESC])\n"
+            + "    LogicalUnion(all=[true])\n"
+            + "      LogicalFilter(condition=[>($3, TIMESTAMP('2025-07-31 23:00:00':VARCHAR))])\n"
+            + "        LogicalTableScan(table=[[scott, TIME_DATA1]])\n"
+            + "      LogicalFilter(condition=[>($3, TIMESTAMP('2025-07-31 23:00:00':VARCHAR))])\n"
+            + "        LogicalTableScan(table=[[scott, TIME_DATA2]])\n";
+    verifyLogical(root, expectedLogical);
 
-    // Verify logical plan includes sorting by _time
-    String logicalPlan = root.toString();
-    // Should contain LogicalSort with _time field ordering
-    // This ensures timestamp-based ordering is applied after UNION ALL
-    verifyResultCount(root, 8); // 3 + 5 = 8 employees
+    String expectedSparkSql =
+        "SELECT *\n"
+            + "FROM (SELECT `timestamp`, `value`, `category`, `@timestamp`\n"
+            + "FROM (SELECT *\n"
+            + "FROM `scott`.`TIME_DATA1`\n"
+            + "WHERE `@timestamp` > `TIMESTAMP`('2025-07-31 23:00:00')\n"
+            + "UNION ALL\n"
+            + "SELECT *\n"
+            + "FROM `scott`.`TIME_DATA2`\n"
+            + "WHERE `@timestamp` > `TIMESTAMP`('2025-07-31 23:00:00'))\n"
+            + "ORDER BY `@timestamp` DESC NULLS FIRST) `t2`\n"
+            + "ORDER BY `@timestamp` DESC";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
-  @Test
-  public void testMultisearchTimestampOrderingBehavior() {
-    // Test that demonstrates SPL-compatible timestamp ordering
-    String ppl =
-        "source=EMP | multisearch [search source=EMP | where DEPTNO = 10 | eval _time ="
-            + " CAST('2024-01-01 10:00:00' AS TIMESTAMP), source_type = \"A\"] [search source=EMP |"
-            + " where DEPTNO = 20 | eval _time = CAST('2024-01-01 11:00:00' AS TIMESTAMP),"
-            + " source_type = \"B\"]";
-    RelNode root = getRelNode(ppl);
+  // ========================================================================
+  // Custom Table Implementation for Timestamp Testing
+  // ========================================================================
 
-    // With timestamp ordering, events should be sorted chronologically across sources
-    // This matches SPL multisearch behavior of timestamp-based interleaving
-    String expectedLogicalPattern = "LogicalSort";
-    String logicalPlan = root.toString();
-    assertTrue(
-        "Multisearch should include timestamp-based sorting",
-        logicalPlan.contains(expectedLogicalPattern));
+  /** Custom table implementation with timestamp fields for multisearch testing. */
+  @RequiredArgsConstructor
+  static class TimeDataTable implements ScannableTable {
+    private final ImmutableList<Object[]> rows;
 
-    verifyResultCount(root, 8); // All employees from both departments
+    protected final RelProtoDataType protoRowType =
+        factory ->
+            factory
+                .builder()
+                .add("timestamp", SqlTypeName.TIMESTAMP)
+                .nullable(true)
+                .add("value", SqlTypeName.INTEGER)
+                .nullable(true)
+                .add("category", SqlTypeName.VARCHAR)
+                .nullable(true)
+                .add("@timestamp", SqlTypeName.TIMESTAMP)
+                .nullable(true)
+                .build();
+
+    @Override
+    public Enumerable<@Nullable Object[]> scan(DataContext root) {
+      return Linq4j.asEnumerable(rows);
+    }
+
+    @Override
+    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      return protoRowType.apply(typeFactory);
+    }
+
+    @Override
+    public Statistic getStatistic() {
+      return Statistics.of(0d, ImmutableList.of(), RelCollations.createSingleton(0));
+    }
+
+    @Override
+    public Schema.TableType getJdbcTableType() {
+      return Schema.TableType.TABLE;
+    }
+
+    @Override
+    public boolean isRolledUp(String column) {
+      return false;
+    }
+
+    @Override
+    public boolean rolledUpColumnValidInsideAgg(
+        String column,
+        SqlCall call,
+        @Nullable SqlNode parent,
+        @Nullable CalciteConnectionConfig config) {
+      return false;
+    }
   }
 }
