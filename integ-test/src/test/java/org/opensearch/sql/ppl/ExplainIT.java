@@ -478,6 +478,14 @@ public class ExplainIT extends PPLIntegTestCase {
         expected,
         explainQueryToString(
             String.format("source=%s | stats count() by span(birthdate,1M)", TEST_INDEX_BANK)));
+
+    // bucket_nullable doesn't impact by-span-time
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | stats bucket_nullable=false count() by span(birthdate,1M)",
+                TEST_INDEX_BANK)));
   }
 
   @Ignore("https://github.com/opensearch-project/OpenSearch/issues/3725")

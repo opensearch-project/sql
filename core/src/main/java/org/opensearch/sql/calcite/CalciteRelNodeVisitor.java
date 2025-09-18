@@ -80,6 +80,8 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.PatternMethod;
 import org.opensearch.sql.ast.expression.PatternMode;
+import org.opensearch.sql.ast.expression.Span;
+import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFrame;
 import org.opensearch.sql.ast.expression.WindowFrame.FrameType;
@@ -913,7 +915,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     Argument.ArgumentMap statsArgs = Argument.ArgumentMap.of(node.getArgExprList());
     Boolean bucketNullable =
         (Boolean) statsArgs.getOrDefault(Argument.BUCKET_NULLABLE, Literal.TRUE).getValue();
-    if (!bucketNullable && !aliasedGroupByList.isEmpty()) {
+    // by-span-time (single) ignores the bucket_nullable arg
+    if (!bucketNullable
+        && !aliasedGroupByList.isEmpty()
+        && !(aliasedGroupByList.size() == 1 && isTimeSpan(span))) {
       final RelHint statHits =
           RelHint.builder("stats_args").hintOption(Argument.BUCKET_NULLABLE, "false").build();
       assert context.relBuilder.peek() instanceof LogicalAggregate
@@ -949,6 +954,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     context.relBuilder.project(reordered);
 
     return context.relBuilder.peek();
+  }
+
+  private boolean isTimeSpan(UnresolvedExpression expr) {
+    return Objects.nonNull(expr)
+        && expr instanceof Span span
+        && SpanUnit.isTimeUnit(span.getUnit());
   }
 
   /** extract the RexLiteral of Alias from a node */
