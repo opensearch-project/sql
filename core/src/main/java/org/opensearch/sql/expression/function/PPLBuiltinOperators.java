@@ -94,6 +94,8 @@ import org.opensearch.sql.expression.function.udf.math.CRC32Function;
 import org.opensearch.sql.expression.function.udf.math.ConvFunction;
 import org.opensearch.sql.expression.function.udf.math.DivideFunction;
 import org.opensearch.sql.expression.function.udf.math.EulerFunction;
+import org.opensearch.sql.expression.function.udf.math.MaxFunction;
+import org.opensearch.sql.expression.function.udf.math.MinFunction;
 import org.opensearch.sql.expression.function.udf.math.ModFunction;
 import org.opensearch.sql.expression.function.udf.math.NumberToStringFunction;
 
@@ -124,6 +126,8 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator DIVIDE = new DivideFunction().toUDF("DIVIDE");
   public static final SqlOperator SHA2 = CryptographicFunction.sha2().toUDF("SHA2");
   public static final SqlOperator CIDRMATCH = new CidrMatchFunction().toUDF("CIDRMATCH");
+  public static final SqlOperator MAX = new MaxFunction().toUDF("MAX");
+  public static final SqlOperator MIN = new MinFunction().toUDF("MIN");
 
   public static final SqlOperator COSH =
       adaptMathFunctionToUDF(
