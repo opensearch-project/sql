@@ -8,6 +8,8 @@ package org.opensearch.sql.opensearch.storage.scan;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.apache.calcite.linq4j.Enumerator;
@@ -53,6 +55,9 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
 
   private ExprValue current;
 
+  private CompletableFuture<OpenSearchResponse> nextBatchFuture;
+  private boolean isLastBatch = false;
+
   public OpenSearchIndexEnumerator(
       OpenSearchClient client,
       List<String> fields,
@@ -69,14 +74,29 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
     if (!this.monitor.isHealthy()) {
       throw new NonFallbackCalciteException("insufficient resources to run the query, quit.");
     }
+    this.nextBatchFuture = CompletableFuture.supplyAsync(() -> client.search(request));
   }
 
   private void fetchNextBatch() {
-    OpenSearchResponse response = client.search(request);
-    if (!response.isEmpty()) {
-      iterator = response.iterator();
-    } else if (iterator == null) {
-      iterator = Collections.emptyIterator();
+    try {
+      // Get results from the pre-fetched batch
+      OpenSearchResponse response = nextBatchFuture.get();
+
+      if (!response.isEmpty()) {
+        iterator = response.iterator();
+
+        // If we haven't hit the end, start pre-fetching next batch
+        if (!isLastBatch) {
+          nextBatchFuture = CompletableFuture.supplyAsync(() -> client.search(request));
+        }
+      } else {
+        if (iterator == null) {
+          iterator = Collections.emptyIterator();
+        }
+        isLastBatch = true;
+      }
+    } catch (InterruptedException | ExecutionException e) {
+      throw new NonFallbackCalciteException("Error fetching batch: " + e.getMessage());
     }
   }
 
@@ -98,6 +118,7 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
   @Override
   public boolean moveNext() {
     if (queryCount >= maxResponseSize) {
+      isLastBatch = true;
       return false;
     }
 
@@ -114,17 +135,21 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
       queryCount++;
       return true;
     } else {
+      isLastBatch = true;
       return false;
     }
   }
 
   @Override
   public void reset() {
+    isLastBatch = false;
+    nextBatchFuture = CompletableFuture.supplyAsync(() -> client.search(request));
     OpenSearchResponse response = client.search(request);
     if (!response.isEmpty()) {
       iterator = response.iterator();
     } else {
       iterator = Collections.emptyIterator();
+      isLastBatch = true;
     }
     queryCount = 0;
   }
@@ -133,6 +158,10 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
   public void close() {
     iterator = Collections.emptyIterator();
     queryCount = 0;
+    isLastBatch = true;
+    if (nextBatchFuture != null) {
+      nextBatchFuture.cancel(true);
+    }
     client.cleanup(request);
   }
 }
