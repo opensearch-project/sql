@@ -85,6 +85,7 @@ import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.MinSpanBin;
+import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
@@ -100,6 +101,7 @@ import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Search;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SpanBin;
+import org.opensearch.sql.ast.tree.StreamingCommandClassifier;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Timechart;
@@ -1033,6 +1035,37 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
             .reduce(searchCommandInSubSearch, (r, e) -> e.attach(r));
 
     return new Append(subsearch);
+  }
+
+  @Override
+  public UnresolvedPlan visitMultisearchCommand(OpenSearchPPLParser.MultisearchCommandContext ctx) {
+    List<UnresolvedPlan> subsearches = new ArrayList<>();
+
+    // Process each subsearch
+    for (OpenSearchPPLParser.MultisearchSubsearchContext subsearchCtx :
+        ctx.multisearchSubsearch()) {
+      UnresolvedPlan searchCommandInSubSearch =
+          subsearchCtx.searchCommand() != null
+              ? visit(subsearchCtx.searchCommand())
+              : EmptySourcePropagateVisitor.EMPTY_SOURCE;
+
+      // Chain any additional commands in the subsearch
+      UnresolvedPlan fullSubsearch =
+          subsearchCtx.commands().stream()
+              .map(this::visit)
+              .reduce(searchCommandInSubSearch, (r, e) -> e.attach(r));
+
+      // Validate that all commands in this subsearch are streaming
+      StreamingCommandClassifier.validateStreamingCommands(fullSubsearch);
+
+      subsearches.add(fullSubsearch);
+    }
+
+    if (subsearches.size() < 2) {
+      throw new SemanticCheckException("At least two searches must be specified");
+    }
+
+    return new Multisearch(subsearches);
   }
 
   @Override

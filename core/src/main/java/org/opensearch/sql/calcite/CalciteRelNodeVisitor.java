@@ -28,7 +28,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -45,6 +47,7 @@ import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalValues;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
@@ -106,6 +109,7 @@ import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.Lookup.OutputStrategy;
 import org.opensearch.sql.ast.tree.ML;
+import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
@@ -1573,6 +1577,144 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     context.relBuilder.push(projectedSubsearchNode);
     context.relBuilder.union(true);
     return context.relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitMultisearch(Multisearch node, CalcitePlanContext context) {
+    List<RelNode> subsearchNodes = new ArrayList<>();
+
+    // Process each subsearch
+    for (UnresolvedPlan subsearch : node.getSubsearches()) {
+      UnresolvedPlan prunedSubSearch = subsearch.accept(new EmptySourcePropagateVisitor(), null);
+      prunedSubSearch.accept(this, context);
+      subsearchNodes.add(context.relBuilder.build());
+    }
+
+    // If no subsearches, this is invalid
+    if (subsearchNodes.isEmpty()) {
+      throw new IllegalArgumentException("Multisearch requires at least one subsearch");
+    }
+
+    // If only one subsearch, return it directly
+    if (subsearchNodes.size() == 1) {
+      context.relBuilder.push(subsearchNodes.get(0));
+      return context.relBuilder.peek();
+    }
+
+    // For multiple subsearches, create unified schema and union them
+    // Find unified schema from all subsearch nodes
+    Map<String, RelDataType> unifiedFieldTypes = new LinkedHashMap<>();
+    for (RelNode relNode : subsearchNodes) {
+      for (RelDataTypeField field : relNode.getRowType().getFieldList()) {
+        String fieldName = field.getName();
+        RelDataType fieldType = field.getType();
+        if (!unifiedFieldTypes.containsKey(fieldName)) {
+          unifiedFieldTypes.put(fieldName, fieldType);
+        }
+      }
+    }
+
+    List<String> unifiedFieldNames = new ArrayList<>(unifiedFieldTypes.keySet());
+    List<RelNode> projectedNodes = new ArrayList<>();
+
+    // Project each subsearch node to match unified schema
+    for (RelNode relNode : subsearchNodes) {
+      List<RexNode> projections = new ArrayList<>();
+      Map<String, Integer> nodeFieldMap = new HashMap<>();
+      List<RelDataTypeField> nodeFields = relNode.getRowType().getFieldList();
+
+      for (int i = 0; i < nodeFields.size(); i++) {
+        nodeFieldMap.put(nodeFields.get(i).getName(), i);
+      }
+
+      for (String unifiedFieldName : unifiedFieldNames) {
+        if (nodeFieldMap.containsKey(unifiedFieldName)) {
+          int fieldIndex = nodeFieldMap.get(unifiedFieldName);
+          projections.add(context.rexBuilder.makeInputRef(relNode, fieldIndex));
+        } else {
+          RelDataType fieldType = unifiedFieldTypes.get(unifiedFieldName);
+          projections.add(context.rexBuilder.makeNullLiteral(fieldType));
+        }
+      }
+
+      RelNode projectedNode =
+          context.relBuilder.push(relNode).project(projections, unifiedFieldNames).build();
+      projectedNodes.add(projectedNode);
+    }
+
+    // Union all projected subsearch nodes
+    context.relBuilder.push(projectedNodes.get(0));
+    for (int i = 1; i < projectedNodes.size(); i++) {
+      context.relBuilder.push(projectedNodes.get(i));
+    }
+    context.relBuilder.union(true, projectedNodes.size());
+
+    // Add timestamp-based ordering to match SPL multisearch behavior
+    // SPL multisearch sorts final results chronologically by _time field
+    RelNode unionResult = context.relBuilder.peek();
+
+    // Look for timestamp field in the unified schema
+    String timestampField = findTimestampField(unionResult.getRowType());
+    if (timestampField != null) {
+      // Create descending sort by timestamp field (newest first, matching SPL behavior)
+      RelDataTypeField timestampFieldRef =
+          unionResult.getRowType().getField(timestampField, false, false);
+      if (timestampFieldRef != null) {
+        RexNode timestampRef =
+            context.rexBuilder.makeInputRef(unionResult, timestampFieldRef.getIndex());
+        context.relBuilder.sort(context.relBuilder.desc(timestampRef));
+      }
+    }
+    // If no timestamp field found, use original UNION ALL only (sequential concatenation)
+
+    return context.relBuilder.peek();
+  }
+
+  /**
+   * Finds the timestamp field in the row type for multisearch ordering. Looks for common timestamp
+   * field names used in OpenSearch/Splunk.
+   *
+   * @param rowType The row type to search for timestamp fields
+   * @return The name of the timestamp field, or null if not found
+   */
+  private String findTimestampField(RelDataType rowType) {
+    // Common timestamp field names in order of preference
+    String[] timestampFieldNames = {
+      "_time", // SPL standard timestamp field
+      "@timestamp", // OpenSearch/Elasticsearch standard timestamp field
+      "timestamp", // Common generic timestamp field
+      "time", // Common generic time field
+      "_timestamp" // Alternative timestamp field
+    };
+
+    for (String fieldName : timestampFieldNames) {
+      RelDataTypeField field = rowType.getField(fieldName, false, false);
+      if (field != null) {
+        // Verify it's a proper timestamp/date/time type
+        SqlTypeName typeName = field.getType().getSqlTypeName();
+        if (typeName == SqlTypeName.TIMESTAMP
+            || typeName == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
+            || typeName == SqlTypeName.DATE
+            || typeName == SqlTypeName.TIME
+            || typeName == SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE) {
+          return fieldName;
+        }
+      }
+    }
+
+    // If no proper timestamp field found, check for string fields that might contain timestamps
+    // This is more conservative - only applies to commonly used timestamp field names
+    for (String fieldName : new String[] {"_time", "@timestamp"}) {
+      RelDataTypeField field = rowType.getField(fieldName, false, false);
+      if (field != null) {
+        SqlTypeName typeName = field.getType().getSqlTypeName();
+        if (typeName == SqlTypeName.VARCHAR || typeName == SqlTypeName.CHAR) {
+          return fieldName;
+        }
+      }
+    }
+
+    return null; // No timestamp field found
   }
 
   /*
