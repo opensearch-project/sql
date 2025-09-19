@@ -94,6 +94,7 @@ import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
+import org.opensearch.sql.ast.tree.Replace;
 import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.SPath;
@@ -396,6 +397,25 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
                         internalVisitExpression(ct.orignalField),
                         internalVisitExpression(ct.renamedField)))
             .collect(Collectors.toList()));
+  }
+
+  /** Replace command. */
+  @Override
+  public UnresolvedPlan visitReplaceCommand(OpenSearchPPLParser.ReplaceCommandContext ctx) {
+    UnresolvedExpression pattern = internalVisitExpression(ctx.pattern);
+    UnresolvedExpression replacement = internalVisitExpression(ctx.replacement);
+
+    List<Field> fieldList =
+        ctx.fieldList().fieldExpression().stream()
+            .map(field -> (Field) internalVisitExpression(field))
+            .collect(Collectors.toList());
+
+    return new Replace(pattern, replacement, fieldList);
+  }
+
+  private String removeQuotes(String text) {
+    // Remove both single and double quotes
+    return text.replaceAll("^[\"']|[\"']$", "");
   }
 
   /** Stats command. */
