@@ -36,7 +36,6 @@
     "user/ppl/functions/expressions.rst",
     "user/ppl/functions/ip.rst",
     "user/ppl/functions/json.rst",
-    "user/ppl/functions/math.rst",
     "user/ppl/functions/relevance.rst",
     "user/ppl/functions/string.rst"
   ],
@@ -63,6 +62,7 @@
     "user/ppl/cmd/rex.rst",
     "user/ppl/cmd/stats.rst",
     "user/ppl/cmd/timechart.rst",
-    "user/ppl/cmd/search.rst"
+    "user/ppl/cmd/search.rst",
+    "user/ppl/functions/math.rst"
   ]
 }
