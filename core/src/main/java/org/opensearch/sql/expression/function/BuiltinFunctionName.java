@@ -188,7 +188,6 @@ public enum BuiltinFunctionName {
   COUNT(FunctionName.of("count")),
   MIN(FunctionName.of("min")),
   MAX(FunctionName.of("max")),
-
   // sample variance
   VARSAMP(FunctionName.of("var_samp")),
   // population standard variance
