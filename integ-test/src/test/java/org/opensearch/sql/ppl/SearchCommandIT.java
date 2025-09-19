@@ -215,6 +215,37 @@ public class SearchCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testSearchWithAlphanumericLiteral() throws IOException {
+    // Test searching for alphanumeric strings starting with numbers (like trace IDs)
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s b3cb01a03c846973fd496b973f49be85 | fields traceId, body",
+                TEST_INDEX_OTEL_LOGS));
+    verifyDataRows(
+        result,
+        rows(
+            "b3cb01a03c846973fd496b973f49be85",
+            "User e1ce63e6-8501-11f0-930d-c2fcbdc05f14 adding 4 of product HQTGWGPNH4 to cart"));
+
+    // Test another trace ID that starts with a number
+    JSONObject result2 =
+        executeQuery(
+            String.format(
+                "search source=%s 7475a30207dbef54d29e42c37f09a528 | fields traceId, severityText",
+                TEST_INDEX_OTEL_LOGS));
+    verifyDataRows(result2, rows("7475a30207dbef54d29e42c37f09a528", "ERROR"));
+
+    // Test alphanumeric string with mixed case
+    JSONObject result3 =
+        executeQuery(
+            String.format(
+                "search source=%s abc123def456ghi789 | fields traceId, severityText",
+                TEST_INDEX_OTEL_LOGS));
+    verifyDataRows(result3, rows("abc123def456ghi789", "TRACE"));
+  }
+
+  @Test
   public void testSearchWithComplexBooleanExpression() throws IOException {
     JSONObject result =
         executeQuery(
