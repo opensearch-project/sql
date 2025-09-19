@@ -40,16 +40,16 @@ Example::
 
     os> source=accounts | eval result = MAX(firstname, 'John') | fields firstname, result
     fetched rows / total rows = 4/4
-    +-----------+--------+
-    | firstname | result |
-    |-----------+--------|
-    | Amber     | John   |
-    | Hattie    | John   |
-    | Nanette   | Nanette|
-    | Dale      | John   |
-    +-----------+--------+
+    +-----------+---------+
+    | firstname | result  |
+    |-----------+---------|
+    | Amber     | John    |
+    | Hattie    | John    |
+    | Nanette   | Nanette |
+    | Dale      | John    |
+    +-----------+---------+
 
-    os> source=accounts | eval result = MAX(age, 35, 'John') | fields age, firstname, result
+    os> source=accounts | eval result = MAX(age, 35, 'John', firstname) | fields age, firstname, result
     fetched rows / total rows = 4/4
     +-----+-----------+---------+
     | age | firstname | result  |
@@ -108,4 +108,4 @@ Example::
     | 36  | Hattie    | 35     |
     | 28  | Nanette   | 28     |
     | 33  | Dale      | 33     |
-    +-----+-----------+--------|
+    +-----+-----------+--------+
