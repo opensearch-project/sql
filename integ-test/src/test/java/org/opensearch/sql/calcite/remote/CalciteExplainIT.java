@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
@@ -642,6 +643,20 @@ public class CalciteExplainIT extends ExplainIT {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString("source=opensearch-sql_test_index_account | stats min(firstname)"));
+  }
+
+  @Test
+  public void testExplainCountsByAgg() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_agg_counts_by.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | eval b_1 = balance + 1 | stats count(), count() as c1,"
+                    + " count(account_number), count(lastname) as c2, count(balance/10),"
+                    + " count(pow(balance, 2)) as c3, count(b_1) by gender",
+                TEST_INDEX_ACCOUNT)));
   }
 
   @Test

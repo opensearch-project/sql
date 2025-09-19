@@ -25,6 +25,8 @@ import org.opensearch.search.aggregations.bucket.composite.CompositeAggregation;
 public class CompositeAggregationParser implements OpenSearchAggregationResponseParser {
 
   private final MetricParserHelper metricsParser;
+  // countAggNameList dedicated the list of count aggregations which are filled by doc_count
+  private List<String> countAggNameList = List.of();
 
   public CompositeAggregationParser(MetricParser... metricParserList) {
     metricsParser = new MetricParserHelper(Arrays.asList(metricParserList));
@@ -32,6 +34,13 @@ public class CompositeAggregationParser implements OpenSearchAggregationResponse
 
   public CompositeAggregationParser(List<MetricParser> metricParserList) {
     metricsParser = new MetricParserHelper(metricParserList);
+  }
+
+  /** CompositeAggregationParser with count aggregation name list, used in v3 */
+  public CompositeAggregationParser(
+      List<MetricParser> metricParserList, List<String> countAggNameList) {
+    metricsParser = new MetricParserHelper(metricParserList);
+    this.countAggNameList = countAggNameList;
   }
 
   @Override
@@ -44,6 +53,7 @@ public class CompositeAggregationParser implements OpenSearchAggregationResponse
     Map<String, Object> resultMap = new HashMap<>();
     resultMap.putAll(bucket.getKey());
     resultMap.putAll(metricsParser.parse(bucket.getAggregations()));
+    countAggNameList.forEach(name -> resultMap.put(name, bucket.getDocCount()));
     return resultMap;
   }
 }
