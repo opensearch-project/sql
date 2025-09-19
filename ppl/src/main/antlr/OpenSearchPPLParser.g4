@@ -140,6 +140,7 @@ searchLiteral
    : numericLiteral
    | booleanLiteral
    | ID
+   | EXTENDED_ALNUM_LITERAL
    | stringLiteral
    | searchableKeyWord
    ;
@@ -1234,6 +1235,7 @@ literalValue
    | floatLiteral
    | booleanLiteral
    | datetimeLiteral //#datetime
+   | EXTENDED_ALNUM_LITERAL
    ;
 
 intervalLiteral

@@ -549,4 +549,6 @@ fragment ID_LITERAL:                ([@*A-Z_])+?[*A-Z_\-0-9]*;
 LINE_COMMENT:                       '//' ('\\\n' | ~[\r\n])* '\r'? '\n'? -> channel(HIDDEN);
 BLOCK_COMMENT:                      '/*' .*? '*/' -> channel(HIDDEN);
 
+EXTENDED_ALNUM_LITERAL:             [0-9][0-9A-Za-z_\-]*;
+
 ERROR_RECOGNITION:                  .    -> channel(ERRORCHANNEL);

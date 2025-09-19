@@ -52,6 +52,22 @@ public class PPLSyntaxParserTest {
   }
 
   @Test
+  public void testSearchCommandWithAlphanumericTraceIdShouldPass() {
+    ParseTree tree =
+        new PPLSyntaxParser().parse("source=demo-logs-otel-v1-* 5a57f0a17fc6f59fb2ad8ec6b52ea3fa");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testSearchCommandWithAlphanumericLiteralsShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("source=logs 0123456789abcdef");
+    assertNotEquals(null, tree);
+
+    ParseTree tree2 = new PPLSyntaxParser().parse("source=logs 9abc_123-def");
+    assertNotEquals(null, tree2);
+  }
+
+  @Test
   public void testSearchCommandCrossClusterHiddenShouldPass() {
     ParseTree tree = new PPLSyntaxParser().parse("search source=c:.t a=1 b=2");
     assertNotEquals(null, tree);
