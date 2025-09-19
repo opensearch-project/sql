@@ -332,7 +332,7 @@ indexablePath
    ;
 
 pathElement
-   : ident pathArrayAccess?
+   : ident pathArrayAccess*
    ;
 
 pathArrayAccess
@@ -1465,6 +1465,7 @@ searchableKeyWord
    | PATH
    | INPUT
    | OUTPUT
+   | FIELD
 
    // AGGREGATIONS AND WINDOW
    | statsFunctionName
