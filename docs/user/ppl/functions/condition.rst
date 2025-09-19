@@ -155,7 +155,7 @@ Argument type: all the supported data type
 
 Return type: any
 
-Example 1::
+Example::
 
     os> source=accounts | eval result = isnull(employer) | fields result, employer, firstname
     fetched rows / total rows = 4/4
