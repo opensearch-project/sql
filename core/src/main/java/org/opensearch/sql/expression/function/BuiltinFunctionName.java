@@ -246,11 +246,16 @@ public enum BuiltinFunctionName {
   JSON_ARRAY(FunctionName.of("json_array")),
   JSON_ARRAY_LENGTH(FunctionName.of("json_array_length")),
   JSON_EXTRACT(FunctionName.of("json_extract")),
+  JSON_EXTRACT_ALL(FunctionName.of("json_extract_all")),
   JSON_KEYS(FunctionName.of("json_keys")),
   JSON_SET(FunctionName.of("json_set")),
   JSON_DELETE(FunctionName.of("json_delete")),
   JSON_APPEND(FunctionName.of("json_append")),
   JSON_EXTEND(FunctionName.of("json_extend")),
+
+  /** Map Functions. */
+  MAP_MERGE(FunctionName.of("map_merge")),
+  MAP_GET(FunctionName.of("map_get")),
 
   /** GEOSPATIAL Functions. */
   GEOIP(FunctionName.of("geoip")),
@@ -328,7 +333,8 @@ public enum BuiltinFunctionName {
   INTERNAL_REGEXP_REPLACE_3(FunctionName.of("regexp_replace_3"), true),
   INTERNAL_REGEXP_REPLACE_PG_4(FunctionName.of("regexp_replace_pg_4"), true),
   INTERNAL_REGEXP_REPLACE_5(FunctionName.of("regexp_replace_5"), true),
-  INTERNAL_TRANSLATE3(FunctionName.of("translate3"), true);
+  INTERNAL_TRANSLATE3(FunctionName.of("translate3"), true),
+  INTERNAL_PIVOT(FunctionName.of("internal_pivot"), true);
 
   private final FunctionName name;
   private boolean isInternal;

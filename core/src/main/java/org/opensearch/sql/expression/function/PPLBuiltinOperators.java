@@ -25,7 +25,9 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
@@ -52,10 +54,12 @@ import org.opensearch.sql.expression.function.jsonUDF.JsonAppendFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonArrayLengthFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonDeleteFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonExtendFunctionImpl;
+import org.opensearch.sql.expression.function.jsonUDF.JsonExtractAllFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonExtractFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonKeysFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonSetFunctionImpl;
+import org.opensearch.sql.expression.function.mapUDF.InternalPivotAggregateFunction;
 import org.opensearch.sql.expression.function.udf.CryptographicFunction;
 import org.opensearch.sql.expression.function.udf.GrokFunction;
 import org.opensearch.sql.expression.function.udf.RelevanceQueryFunction;
@@ -109,11 +113,19 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
       new JsonArrayLengthFunctionImpl().toUDF("JSON_ARRAY_LENGTH");
   public static final SqlOperator JSON_EXTRACT =
       new JsonExtractFunctionImpl().toUDF("JSON_EXTRACT");
+  public static final SqlOperator JSON_EXTRACT_ALL =
+      new JsonExtractAllFunctionImpl().toUDF("JSON_EXTRACT_ALL");
   public static final SqlOperator JSON_KEYS = new JsonKeysFunctionImpl().toUDF("JSON_KEYS");
   public static final SqlOperator JSON_SET = new JsonSetFunctionImpl().toUDF("JSON_SET");
   public static final SqlOperator JSON_DELETE = new JsonDeleteFunctionImpl().toUDF("JSON_DELETE");
   public static final SqlOperator JSON_APPEND = new JsonAppendFunctionImpl().toUDF("JSON_APPEND");
   public static final SqlOperator JSON_EXTEND = new JsonExtendFunctionImpl().toUDF("JSON_EXTEND");
+
+  // Map functions
+  public static final SqlOperator MAP_MERGE =
+      new org.opensearch.sql.expression.function.mapUDF.MapMergeFunctionImpl().toUDF("MAP_MERGE");
+  public static final SqlOperator MAP_GET =
+      new org.opensearch.sql.expression.function.mapUDF.MapGetFunctionImpl().toUDF("MAP_GET");
 
   // Math functions
   public static final SqlOperator SPAN = new SpanFunction().toUDF("SPAN");
@@ -457,6 +469,12 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
           "VALUES",
           PPLReturnTypes.STRING_ARRAY,
           PPLOperandTypes.ANY_SCALAR_OPTIONAL_INTEGER);
+  public static final SqlAggFunction INTERNAL_PIVOT =
+      createUserDefinedAggFunction(
+          InternalPivotAggregateFunction.class,
+          "INTERNAL_PIVOT",
+          PPLReturnTypes.MAP_STRING_ANY_FORCE_NULLABLE,
+          UDFOperandMetadata.wrap(OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.CHARACTER)));
 
   public static final SqlOperator ENHANCED_COALESCE =
       new EnhancedCoalesceFunction().toUDF("COALESCE");

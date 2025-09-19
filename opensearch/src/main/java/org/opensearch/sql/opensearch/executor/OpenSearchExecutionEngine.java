@@ -32,6 +32,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.ast.statement.Explain.ExplainFormat;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
+import org.opensearch.sql.calcite.utils.DynamicColumnProcessor;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.common.response.ResponseListener;
@@ -251,7 +252,8 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       ExprType exprType;
       if (fieldType.getSqlTypeName() == SqlTypeName.ANY) {
         if (!values.isEmpty()) {
-          exprType = values.getFirst().tupleValue().get(columnName).type();
+          // Scan all rows to determine consistent type instead of just using first row
+          exprType = inferConsistentTypeFromAllRows(values, columnName);
         } else {
           // Using UNDEFINED instead of UNKNOWN to avoid throwing exception
           exprType = ExprCoreType.UNDEFINED;
@@ -263,7 +265,70 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     }
     Schema schema = new Schema(columns);
     QueryResponse response = new QueryResponse(schema, values, null);
-    listener.onResponse(response);
+
+    // Process dynamic columns if present
+    QueryResponse processedResponse = DynamicColumnProcessor.expandDynamicColumns(response);
+
+    listener.onResponse(processedResponse);
+  }
+
+  /**
+   * Infers a consistent type by scanning all rows for a given column. This ensures type
+   * determination is not dependent on row order.
+   *
+   * @param values All result rows
+   * @param columnName The column name to analyze
+   * @return The most appropriate ExprType for the column
+   */
+  private ExprType inferConsistentTypeFromAllRows(List<ExprValue> values, String columnName) {
+    // Count occurrences of each type across all rows
+    Map<ExprType, Integer> typeCounts = new LinkedHashMap<>();
+    int totalNonNullValues = 0;
+
+    for (ExprValue row : values) {
+      if (row instanceof ExprTupleValue) {
+        ExprValue columnValue = row.tupleValue().get(columnName);
+        if (columnValue != null && !columnValue.isNull() && !columnValue.isMissing()) {
+          ExprType valueType = columnValue.type();
+          typeCounts.put(valueType, typeCounts.getOrDefault(valueType, 0) + 1);
+          totalNonNullValues++;
+        }
+      }
+    }
+
+    // If no non-null values found, return UNDEFINED
+    if (totalNonNullValues == 0) {
+      return ExprCoreType.UNDEFINED;
+    }
+
+    // If all values have the same type, return that type
+    if (typeCounts.size() == 1) {
+      return typeCounts.keySet().iterator().next();
+    }
+
+    // If multiple types exist, apply type precedence rules
+    // Priority: STRING > DOUBLE > LONG > INTEGER > BOOLEAN > others
+    if (typeCounts.containsKey(ExprCoreType.STRING)) {
+      return ExprCoreType.STRING; // String can represent any value
+    }
+    if (typeCounts.containsKey(ExprCoreType.DOUBLE)) {
+      return ExprCoreType.DOUBLE; // Double can represent integers
+    }
+    if (typeCounts.containsKey(ExprCoreType.LONG)) {
+      return ExprCoreType.LONG; // Long can represent integers
+    }
+    if (typeCounts.containsKey(ExprCoreType.INTEGER)) {
+      return ExprCoreType.INTEGER;
+    }
+    if (typeCounts.containsKey(ExprCoreType.BOOLEAN)) {
+      return ExprCoreType.BOOLEAN;
+    }
+
+    // Fallback to the most common type
+    return typeCounts.entrySet().stream()
+        .max(Map.Entry.comparingByValue())
+        .map(Map.Entry::getKey)
+        .orElse(ExprCoreType.UNDEFINED);
   }
 
   /** Registers opensearch-dependent functions */

@@ -82,6 +82,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNA
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_ITEM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PATTERN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PATTERN_PARSER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PIVOT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_EXTRACT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_3;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_5;
@@ -99,6 +100,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_AR
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_DELETE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_EXTEND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_EXTRACT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_EXTRACT_ALL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_KEYS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_OBJECT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_SET;
@@ -123,6 +125,8 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.LTE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LTRIM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAKEDATE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAKETIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAP_GET;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAP_MERGE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_BOOL_PREFIX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_PHRASE;
@@ -857,12 +861,17 @@ public class PPLFuncImpTable {
       registerOperator(JSON, PPLBuiltinOperators.JSON);
       registerOperator(JSON_ARRAY_LENGTH, PPLBuiltinOperators.JSON_ARRAY_LENGTH);
       registerOperator(JSON_EXTRACT, PPLBuiltinOperators.JSON_EXTRACT);
+      registerOperator(JSON_EXTRACT_ALL, PPLBuiltinOperators.JSON_EXTRACT_ALL);
       registerOperator(JSON_KEYS, PPLBuiltinOperators.JSON_KEYS);
       registerOperator(JSON_VALID, SqlStdOperatorTable.IS_JSON_VALUE);
       registerOperator(JSON_SET, PPLBuiltinOperators.JSON_SET);
       registerOperator(JSON_DELETE, PPLBuiltinOperators.JSON_DELETE);
       registerOperator(JSON_APPEND, PPLBuiltinOperators.JSON_APPEND);
       registerOperator(JSON_EXTEND, PPLBuiltinOperators.JSON_EXTEND);
+
+      // Register Map functions
+      registerOperator(MAP_GET, PPLBuiltinOperators.MAP_GET);
+      registerOperator(MAP_MERGE, PPLBuiltinOperators.MAP_MERGE);
 
       // Register operators with a different type checker
 
@@ -1122,6 +1131,7 @@ public class PPLFuncImpTable {
       registerOperator(INTERNAL_PATTERN, PPLBuiltinOperators.INTERNAL_PATTERN);
       registerOperator(LIST, PPLBuiltinOperators.LIST);
       registerOperator(VALUES, PPLBuiltinOperators.VALUES);
+      registerOperator(INTERNAL_PIVOT, PPLBuiltinOperators.INTERNAL_PIVOT);
 
       register(
           AVG,
