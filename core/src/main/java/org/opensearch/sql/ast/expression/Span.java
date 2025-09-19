@@ -25,7 +25,10 @@ public class Span extends UnresolvedExpression {
 
   @Override
   public List<UnresolvedExpression> getChild() {
-    return ImmutableList.of(field, value);
+    if (field == null) {
+      return ImmutableList.of(value);
+    }
+    return List.of(field, value);
   }
 
   @Override
