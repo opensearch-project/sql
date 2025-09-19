@@ -522,15 +522,20 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | head 5 | stats count(datetime0), count(datetime1) by span(datetime1,"
-                    + " 15 minute) as datetime_span",
+                "source=%s | head 5 | stats count(datetime0), count(datetime1) by span(time1,"
+                    + " 15 minute) as time_span",
                 TEST_INDEX_CALCS));
     verifySchema(
         actual,
-        schema("datetime_span", "timestamp"),
+        schema("time_span", "time"),
         schema("count(datetime0)", "bigint"),
         schema("count(datetime1)", "bigint"));
-    verifyDataRows(actual, rows(5, 0, null));
+    verifyDataRows(
+        actual,
+        rows(1, 0, "19:30:00"),
+        rows(1, 0, "02:00:00"),
+        rows(1, 0, "09:30:00"),
+        rows(1, 0, "22:45:00"));
   }
 
   @Test
