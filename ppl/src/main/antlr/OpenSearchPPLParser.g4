@@ -301,7 +301,6 @@ logSpanValue
    : LOG_WITH_BASE                                                   # logWithBaseSpan
    ;
 
-// TODO support arbitrary argument ordering
 topCommand
    : TOP (number = integerLiteral)? topRareParameter* fieldList (byClause)?
    ;
