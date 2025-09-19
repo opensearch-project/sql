@@ -12,6 +12,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
+ *
+ * @opensearch.experimental
+ *
  * Response class for direct query resources.
  *
  * @param <T> The type of data contained in the response
@@ -19,9 +22,6 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-/*
- * @opensearch.experimental
- */
 public class GetDirectQueryResourcesResponse<T> {
   private T data;
 

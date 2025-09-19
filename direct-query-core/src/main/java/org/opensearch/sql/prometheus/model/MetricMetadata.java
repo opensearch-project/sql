@@ -12,15 +12,15 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/*
+ * @opensearch.experimental
+ */
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @EqualsAndHashCode
 @JsonIgnoreProperties(ignoreUnknown = true)
-/*
- * @opensearch.experimental
- */
 public class MetricMetadata {
   private String type;
   private String help;

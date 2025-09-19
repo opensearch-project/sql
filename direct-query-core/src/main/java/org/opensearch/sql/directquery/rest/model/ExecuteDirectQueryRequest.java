@@ -13,11 +13,11 @@ import org.opensearch.sql.directquery.model.DataSourceOptions;
 import org.opensearch.sql.prometheus.model.PrometheusOptions;
 import org.opensearch.sql.spark.rest.model.LangType;
 
-@Data
-@NoArgsConstructor
 /*
  * @opensearch.experimental
  */
+@Data
+@NoArgsConstructor
 public class ExecuteDirectQueryRequest {
   // Required fields
   private String dataSources; // Required: From URI path parameter or request body

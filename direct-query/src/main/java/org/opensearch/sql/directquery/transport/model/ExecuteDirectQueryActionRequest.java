@@ -19,11 +19,11 @@ public class ExecuteDirectQueryActionRequest extends ActionRequest {
   private final ExecuteDirectQueryRequest directQueryRequest;
 
   public ExecuteDirectQueryActionRequest(ExecuteDirectQueryRequest directQueryRequest) {
+    super();
     this.directQueryRequest = directQueryRequest;
   }
 
   public ExecuteDirectQueryActionRequest(StreamInput in) throws IOException {
-    super(in);
     // In a real implementation, deserialize the request
     // This is just a placeholder since we don't have the full serialization code
     this.directQueryRequest = new ExecuteDirectQueryRequest();

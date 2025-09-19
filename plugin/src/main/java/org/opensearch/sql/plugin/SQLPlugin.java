@@ -78,9 +78,11 @@ import org.opensearch.sql.directquery.rest.RestDirectQueryManagementAction;
 import org.opensearch.sql.directquery.rest.RestDirectQueryResourcesManagementAction;
 import org.opensearch.sql.directquery.transport.TransportExecuteDirectQueryRequestAction;
 import org.opensearch.sql.directquery.transport.TransportGetDirectQueryResourcesRequestAction;
+import org.opensearch.sql.directquery.transport.TransportWriteDirectQueryResourcesRequestAction;
 import org.opensearch.sql.directquery.transport.config.DirectQueryModule;
 import org.opensearch.sql.directquery.transport.model.ExecuteDirectQueryActionResponse;
 import org.opensearch.sql.directquery.transport.model.GetDirectQueryResourcesActionResponse;
+import org.opensearch.sql.directquery.transport.model.WriteDirectQueryResourcesActionResponse;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.executor.AsyncRestExecutor;
 import org.opensearch.sql.legacy.metrics.Metrics;
@@ -217,7 +219,12 @@ public class SQLPlugin extends Plugin
             new ActionType<>(
                 TransportGetDirectQueryResourcesRequestAction.NAME,
                 GetDirectQueryResourcesActionResponse::new),
-            TransportGetDirectQueryResourcesRequestAction.class));
+            TransportGetDirectQueryResourcesRequestAction.class),
+        new ActionHandler<>(
+            new ActionType<>(
+                TransportWriteDirectQueryResourcesRequestAction.NAME,
+                WriteDirectQueryResourcesActionResponse::new),
+            TransportWriteDirectQueryResourcesRequestAction.class));
   }
 
   @Override

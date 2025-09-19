@@ -7,9 +7,11 @@ package org.opensearch.sql.prometheus.exception;
 
 import org.opensearch.sql.datasource.client.exceptions.DataSourceClientException;
 
-/** PrometheusClientException. */
-/*
+/**
+ *
  * @opensearch.experimental
+ *
+ * PrometheusClientException.
  */
 public class PrometheusClientException extends DataSourceClientException {
   public PrometheusClientException(String message) {

@@ -7,11 +7,14 @@ package org.opensearch.sql.prometheus.model;
 
 import lombok.Getter;
 
-/** Enum representing the types of Prometheus queries. */
-@Getter
-/*
+/**
+ *
  * @opensearch.experimental
+ *
+ * Enum representing the types of Prometheus queries.
+ *
  */
+@Getter
 public enum PrometheusQueryType {
   INSTANT("instant"),
   RANGE("range");

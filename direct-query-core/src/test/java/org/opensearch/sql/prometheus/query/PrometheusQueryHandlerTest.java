@@ -29,6 +29,8 @@ import org.opensearch.sql.directquery.rest.model.DirectQueryResourceType;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesResponse;
+import org.opensearch.sql.directquery.rest.model.WriteDirectQueryResourcesRequest;
+import org.opensearch.sql.directquery.rest.model.WriteDirectQueryResourcesResponse;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
 import org.opensearch.sql.prometheus.exception.PrometheusClientException;
 import org.opensearch.sql.prometheus.model.MetricMetadata;
@@ -643,5 +645,58 @@ public class PrometheusQueryHandlerTest {
     assertNotNull(response);
     List<?> data = (List<?>) response.getData();
     assertEquals(2, data.size());
+  }
+
+  @Test
+  public void testWriteResourcesAlertmanagerSilences() throws IOException {
+    // Setup
+    WriteDirectQueryResourcesRequest request = new WriteDirectQueryResourcesRequest();
+    request.setResourceType(DirectQueryResourceType.ALERTMANAGER_SILENCES);
+    request.setRequest("{\"matchers\":[{\"name\":\"alertname\",\"value\":\"TestAlert\"}],\"comment\":\"Test silence\"}");
+
+    String createdSilenceId = "silence-123456";
+    when(prometheusClient.createAlertmanagerSilences(request.getRequest())).thenReturn(createdSilenceId);
+
+    // Test
+    WriteDirectQueryResourcesResponse<?> response = handler.writeResources(prometheusClient, request);
+
+    // Verify
+    assertNotNull(response);
+    List<?> data = (List<?>) response.getData();
+    assertEquals(1, data.size());
+    assertEquals(createdSilenceId, data.get(0));
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testWriteResourcesWithNullResourceType() {
+    // Setup
+    WriteDirectQueryResourcesRequest request = new WriteDirectQueryResourcesRequest();
+    request.setResourceType(null);
+
+    // Test - should throw exception
+    handler.writeResources(prometheusClient, request);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testWriteResourcesWithInvalidResourceType() {
+    // Setup
+    WriteDirectQueryResourcesRequest request = new WriteDirectQueryResourcesRequest();
+    request.setResourceType(DirectQueryResourceType.LABELS); // Invalid for write operations
+
+    // Test - should throw exception
+    handler.writeResources(prometheusClient, request);
+  }
+
+  @Test(expected = PrometheusClientException.class)
+  public void testWriteResourcesWithIOException() throws IOException {
+    // Setup
+    WriteDirectQueryResourcesRequest request = new WriteDirectQueryResourcesRequest();
+    request.setResourceType(DirectQueryResourceType.ALERTMANAGER_SILENCES);
+    request.setRequest("{\"matchers\":[{\"name\":\"alertname\",\"value\":\"TestAlert\"}],\"comment\":\"Test silence\"}");
+
+    when(prometheusClient.createAlertmanagerSilences(request.getRequest())).thenThrow(new IOException("Connection failed"));
+
+    // Test - should throw exception
+    handler.writeResources(prometheusClient, request);
   }
 }
