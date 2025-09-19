@@ -64,6 +64,7 @@ import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.ExtendedStats;
 import org.opensearch.search.aggregations.metrics.PercentilesAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.TopHitsAggregationBuilder;
+import org.opensearch.search.aggregations.metrics.ValueCountAggregationBuilder;
 import org.opensearch.search.aggregations.support.ValueType;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
 import org.opensearch.search.sort.SortOrder;
@@ -205,17 +206,48 @@ public class AggregateAnalyzer {
       } else {
         List<CompositeValuesSourceBuilder<?>> buckets =
             createCompositeBuckets(groupList, project, helper);
+        AggregationBuilder aggregationBuilder =
+            AggregationBuilders.composite("composite_buckets", buckets)
+                .size(AGGREGATION_BUCKET_SIZE);
+
+        Pair<List<String>, Builder> pair = removeValueCountAggregationBuilders(metricBuilder);
+        List<String> removedCountAggNameList = pair.getLeft();
+        Builder newMetricBuilder = pair.getRight();
+        // No need to register sub-factories if no aggregator factories left after removing all
+        // ValueCountAggregationBuilder.
+        if (!newMetricBuilder.getAggregatorFactories().isEmpty()) {
+          aggregationBuilder.subAggregations(newMetricBuilder);
+        }
         return Pair.of(
-            Collections.singletonList(
-                AggregationBuilders.composite("composite_buckets", buckets)
-                    .subAggregations(metricBuilder)
-                    .size(AGGREGATION_BUCKET_SIZE)),
-            new CompositeAggregationParser(metricParserList));
+            Collections.singletonList(aggregationBuilder),
+            new CompositeAggregationParser(metricParserList, removedCountAggNameList));
       }
     } catch (Throwable e) {
       Throwables.throwIfInstanceOf(e, UnsupportedOperationException.class);
       throw new ExpressionNotAnalyzableException("Can't convert " + aggregate, e);
     }
+  }
+
+  /**
+   * Remove all ValueCountAggregationBuilder from metric builder, and return the name list of
+   * removed ValueCountAggregationBuilder.
+   *
+   * @param metricBuilder metrics builder
+   * @return a pair of removed ValueCountAggregationBuilder name list and updated metric builder
+   */
+  private static Pair<List<String>, Builder> removeValueCountAggregationBuilders(
+      Builder metricBuilder) {
+    List<AggregationBuilder> countAggregatorFactories =
+        metricBuilder.getAggregatorFactories().stream()
+            .filter(ValueCountAggregationBuilder.class::isInstance)
+            .toList();
+    List<String> countAggList =
+        countAggregatorFactories.stream().map(AggregationBuilder::getName).toList();
+    List<AggregationBuilder> copy = new ArrayList<>(metricBuilder.getAggregatorFactories());
+    copy.removeAll(countAggregatorFactories);
+    Builder newMetricBuilder = new AggregatorFactories.Builder();
+    copy.forEach(newMetricBuilder::addAggregator);
+    return Pair.of(countAggList, newMetricBuilder);
   }
 
   private static Pair<Builder, List<MetricParser>> processAggregateCalls(
