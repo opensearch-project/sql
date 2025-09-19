@@ -883,6 +883,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "time_data",
         getMappingFile("time_test_data_index_mapping.json"),
         "src/test/resources/time_test_data.json"),
+    TIME_TEST_DATA_WITH_NULL(
+        TestsConstants.TEST_INDEX_TIME_DATE_NULL,
+        "time_data_with_null",
+        getMappingFile("time_test_data_index_mapping.json"),
+        "src/test/resources/time_test_data_with_null.json"),
     EVENTS(
         "events",
         "events",

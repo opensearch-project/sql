@@ -230,9 +230,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalProject(avg(SAL)=[$1], DEPTNO=[$0])\n"
-            + "  LogicalFilter(condition=[IS NOT NULL($0)])\n"
-            + "    LogicalAggregate(group=[{0}], avg(SAL)=[AVG($1)])\n"
-            + "      LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+            + "  LogicalAggregate(group=[{0}], avg(SAL)=[AVG($1)])\n"
+            + "    LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+            + "      LogicalFilter(condition=[IS NOT NULL($7)])\n"
             + "        LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
@@ -243,11 +243,10 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        ""
-            + "SELECT AVG(`SAL`) `avg(SAL)`, `DEPTNO`\n"
+        "SELECT AVG(`SAL`) `avg(SAL)`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`\n"
-            + "GROUP BY `DEPTNO`\n"
-            + "HAVING `DEPTNO` IS NOT NULL";
+            + "WHERE `DEPTNO` IS NOT NULL\n"
+            + "GROUP BY `DEPTNO`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -353,12 +352,14 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
             + "  LogicalProject(avg(SAL)=[$2], hiredate_span=[$1], DEPTNO=[$0])\n"
             + "    LogicalAggregate(group=[{0, 2}], avg(SAL)=[AVG($1)])\n"
             + "      LogicalProject(DEPTNO=[$7], SAL=[$5], hiredate_span=[SPAN($4, 1, 'y')])\n"
-            + "        LogicalTableScan(table=[[scott, EMP]])\n";
+            + "        LogicalFilter(condition=[IS NOT NULL($4)])\n"
+            + "          LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
         "SELECT AVG(`SAL`) `avg(SAL)`, `SPAN`(`HIREDATE`, 1, 'y') `hiredate_span`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`\n"
+            + "WHERE `HIREDATE` IS NOT NULL\n"
             + "GROUP BY `DEPTNO`, `SPAN`(`HIREDATE`, 1, 'y')\n"
             + "ORDER BY `DEPTNO`, 2";
     verifyPPLToSparkSQL(root, expectedSparkSql);

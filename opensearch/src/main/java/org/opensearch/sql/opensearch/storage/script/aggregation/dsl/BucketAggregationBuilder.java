@@ -93,9 +93,7 @@ public class BucketAggregationBuilder {
       String name, String field, Double value, SpanUnit unit) {
     switch (unit) {
       case NONE:
-        HistogramAggregationBuilder builder = new HistogramAggregationBuilder(name);
-        builder.field(field).interval(value);
-        return builder;
+        return new HistogramAggregationBuilder(name).field(field).interval(value);
       case UNKNOWN:
         throw new IllegalStateException("Invalid span unit");
       default:
@@ -106,8 +104,6 @@ public class BucketAggregationBuilder {
   public static ValuesSourceAggregationBuilder<?> buildDateHistogram(
       String name, String field, Integer value, SpanUnit unit) {
     String spanValue = value + unit.getName();
-    DateHistogramAggregationBuilder builder = new DateHistogramAggregationBuilder(name);
-    builder.field(field);
     switch (unit) {
       case MILLISECOND:
       case MS:
@@ -119,11 +115,13 @@ public class BucketAggregationBuilder {
       case H:
       case DAY:
       case D:
-        builder.fixedInterval(new DateHistogramInterval(spanValue));
-        break;
+        return new DateHistogramAggregationBuilder(name)
+            .field(field)
+            .fixedInterval(new DateHistogramInterval(spanValue));
       default:
-        builder.calendarInterval(new DateHistogramInterval(spanValue));
+        return new DateHistogramAggregationBuilder(name)
+            .field(field)
+            .calendarInterval(new DateHistogramInterval(spanValue));
     }
-    return builder;
   }
 }
