@@ -17,6 +17,7 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.tree.args.RareTopNArguments;
 
 /** AST node represent RareTopN operation. */
 @Getter
@@ -34,6 +35,10 @@ public class RareTopN extends UnresolvedPlan {
   private final List<Argument> arguments;
   private final List<Field> fields;
   private final List<UnresolvedExpression> groupExprList;
+
+  public RareTopNArguments getArguments() {
+    return new RareTopNArguments(arguments);
+  }
 
   @Override
   public RareTopN attach(UnresolvedPlan child) {

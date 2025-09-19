@@ -26,7 +26,6 @@ import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Argument;
-import org.opensearch.sql.ast.expression.Argument.ArgumentMap;
 import org.opensearch.sql.ast.expression.Between;
 import org.opensearch.sql.ast.expression.Case;
 import org.opensearch.sql.ast.expression.Cast;
@@ -89,6 +88,7 @@ import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.ast.tree.args.RareTopNArguments;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
@@ -350,43 +350,15 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
         child, String.join(" ", visitExpressionList(node.getWindowFunctionList())).trim());
   }
 
-  private String renderRareTopNOptions(ArgumentMap arguments) {
-    if (!isCalciteEnabled(settings)) {
-      return "";
-    }
-
-    String countField = (String) arguments.get("countField").getValue();
-    Boolean showCount = (Boolean) arguments.get("showCount").getValue();
-    String percField = (String) arguments.get("percentField").getValue();
-    Boolean showPerc = (Boolean) arguments.get("showPerc").getValue();
-    Boolean useOther = (Boolean) arguments.get("useOther").getValue();
-
-    StringBuilder options = new StringBuilder();
-    if (showCount) {
-      options.append("countfield='").append(countField).append("' ");
-    } else {
-      options.append("showcount=false ");
-    }
-    if (showPerc) {
-      options.append("percfield='").append(percField).append("' ");
-    } else {
-      options.append("showperc=false ");
-    }
-    if (useOther) {
-      options.append("useother=true ");
-    }
-    return options.toString();
-  }
-
   /** Build {@link LogicalRareTopN}. */
   @Override
   public String visitRareTopN(RareTopN node, String context) {
-    final String child = node.getChild().get(0).accept(this, context);
-    ArgumentMap arguments = ArgumentMap.of(node.getArguments());
-    Integer noOfResults = (Integer) arguments.get("noOfResults").getValue();
+    final String child = node.getChild().getFirst().accept(this, context);
+    RareTopNArguments arguments = node.getArguments();
+    Integer noOfResults = arguments.getNoOfResults();
     String fields = visitFieldList(node.getFields());
     String group = visitExpressionList(node.getGroupExprList());
-    String options = renderRareTopNOptions(arguments);
+    String options = isCalciteEnabled(settings) ? arguments.renderOptions() : "";
 
     return StringUtils.format(
         "%s | %s %d %s%s",

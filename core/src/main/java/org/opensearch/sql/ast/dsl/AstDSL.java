@@ -80,6 +80,7 @@ import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
+import org.opensearch.sql.ast.tree.args.RareTopNArguments;
 
 /** Class of static methods to create specific node instances. */
 @UtilityClass
@@ -495,13 +496,7 @@ public class AstDSL {
   }
 
   public static List<Argument> defaultTopRareArgs() {
-    return exprList(
-        argument("noOfResults", intLiteral(10)),
-        argument("countField", stringLiteral("count")),
-        argument("showCount", booleanLiteral(true)),
-        argument("percentField", stringLiteral("percent")),
-        argument("showPerc", booleanLiteral(false)),
-        argument("useOther", booleanLiteral(false)));
+    return new RareTopNArguments().asExprList();
   }
 
   public static RareTopN rareTopN(
