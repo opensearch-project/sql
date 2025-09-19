@@ -111,6 +111,7 @@ ALLNUM:                             'ALLNUM';
 DELIM:                              'DELIM';
 CURRENT:                            'CURRENT';
 WINDOW:                             'WINDOW';
+GLOBAL:                             'GLOBAL';
 BUCKET_NULLABLE:                    'BUCKET_NULLABLE';
 CENTROIDS:                          'CENTROIDS';
 ITERATIONS:                         'ITERATIONS';

@@ -235,7 +235,23 @@ eventstatsCommand
    ;
 
 streamstatsCommand
-   : STREAMSTATS (CURRENT EQUAL current = booleanLiteral)? (WINDOW EQUAL window = integerLiteral)? streamstatsAggTerm (COMMA streamstatsAggTerm)* (statsByClause)?
+   : STREAMSTATS streamstatsArgs streamstatsAggTerm (COMMA streamstatsAggTerm)* (statsByClause)?
+   ;
+
+streamstatsArgs
+   : (currentArg | windowArg | globalArg)*
+   ;
+
+currentArg
+   : CURRENT EQUAL current = booleanLiteral
+   ;
+
+windowArg
+   : WINDOW EQUAL window = integerLiteral
+   ;
+
+globalArg
+   : GLOBAL EQUAL global = booleanLiteral
    ;
 
 dedupCommand

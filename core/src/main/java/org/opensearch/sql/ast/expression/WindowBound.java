@@ -25,6 +25,20 @@ public abstract class WindowBound {
     }
   }
 
+  public static class DynamicOffSetWindowBound extends WindowBound {
+    private final long offset;
+    private final boolean isPreceding;
+
+    DynamicOffSetWindowBound(long offset, boolean isPreceding) {
+      this.offset = offset;
+      this.isPreceding = isPreceding;
+    }
+
+    public boolean isPreceding() {
+      return isPreceding;
+    }
+  }
+
   public static class CurrentRowWindowBound extends WindowBound {
     CurrentRowWindowBound() {}
 

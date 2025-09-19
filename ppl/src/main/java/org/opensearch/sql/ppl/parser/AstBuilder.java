@@ -470,24 +470,23 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   /** Streamstats command. */
   public UnresolvedPlan visitStreamstatsCommand(OpenSearchPPLParser.StreamstatsCommandContext ctx) {
-    ImmutableList.Builder<UnresolvedExpression> windowFunctionListBuilder =
-        new ImmutableList.Builder<>();
-
     // 1. Parse arguments from the streamstats command
     List<Argument> argExprList = ArgumentFactory.getArgumentList(ctx);
+    ArgumentMap arguments = ArgumentMap.of(argExprList);
 
-    // 2. Build a WindowFrame from the provided arguments (window, current, etc.)
-    WindowFrame frame = buildFrameFromArgs(argExprList);
+    boolean current = (Boolean) arguments.get("current").getValue();
+    int window = (Integer) arguments.get("window").getValue();
+    boolean global = (Boolean) arguments.get("global").getValue();
 
-    // 3. Build each window function in the command
+    if (window < 0) {
+      throw new IllegalArgumentException("Window size must be >= 0, but got: " + window);
+    }
+
+    // 2. Parse streamstats window function terms
+    ImmutableList.Builder<UnresolvedExpression> windowFunctionListBuilder =
+        new ImmutableList.Builder<>();
     for (OpenSearchPPLParser.StreamstatsAggTermContext aggCtx : ctx.streamstatsAggTerm()) {
       UnresolvedExpression windowFunction = internalVisitExpression(aggCtx.windowFunction());
-      if (windowFunction instanceof WindowFunction wf) {
-        // Attach PARTITION BY clause expressions (if any)
-        wf.setPartitionByList(getPartitionExprList(ctx.statsByClause()));
-        // Inject the frame
-        wf.setWindowFrame(frame);
-      }
       String name =
           aggCtx.alias == null
               ? getTextInQuery(aggCtx)
@@ -496,7 +495,49 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       windowFunctionListBuilder.add(alias);
     }
 
-    return new StreamWindow(windowFunctionListBuilder.build(), argExprList);
+    // 3. Parse group by clause
+    List<UnresolvedExpression> groupList =
+        Optional.ofNullable(ctx.statsByClause())
+            .map(OpenSearchPPLParser.StatsByClauseContext::fieldList)
+            .map(expr -> expr.fieldExpression().stream()
+                .map(groupCtx -> (UnresolvedExpression)
+                    new Alias(
+                        StringUtils.unquoteIdentifier(getTextInQuery(groupCtx)),
+                        internalVisitExpression(groupCtx)))
+                .collect(Collectors.toList()))
+            .orElse(Collections.emptyList());
+
+    // 4. Build StreamWindow AST node
+    return new StreamWindow(
+        windowFunctionListBuilder.build(),
+        groupList,
+        current,
+        window,
+        global
+    );
+
+
+//    // 2. Build a WindowFrame from the provided arguments (window, current, etc.)
+//    WindowFrame frame = buildFrameFromArgs(argExprList);
+//
+//    // 3. Build each window function in the command
+//    for (OpenSearchPPLParser.StreamstatsAggTermContext aggCtx : ctx.streamstatsAggTerm()) {
+//      UnresolvedExpression windowFunction = internalVisitExpression(aggCtx.windowFunction());
+//      if (windowFunction instanceof WindowFunction wf) {
+//        // Attach PARTITION BY clause expressions (if any)
+//        wf.setPartitionByList(getPartitionExprList(ctx.statsByClause()));
+//        // Inject the frame
+//        wf.setWindowFrame(frame);
+//      }
+//      String name =
+//          aggCtx.alias == null
+//              ? getTextInQuery(aggCtx)
+//              : StringUtils.unquoteIdentifier(aggCtx.alias.getText());
+//      Alias alias = new Alias(name, windowFunction);
+//      windowFunctionListBuilder.add(alias);
+//    }
+//
+//    return new StreamWindow(windowFunctionListBuilder.build(), argExprList);
   }
 
   private WindowFrame buildFrameFromArgs(List<Argument> args) {
@@ -550,7 +591,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         return WindowFrame.of(WindowFrame.FrameType.ROWS, "UNBOUNDED PRECEDING", "1 PRECEDING");
       }
     }
-  }
+  }c f
 
   /** Dedup command. */
   @Override

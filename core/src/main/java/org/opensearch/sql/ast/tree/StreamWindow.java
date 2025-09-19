@@ -15,28 +15,36 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
-@Getter
 @ToString
 @EqualsAndHashCode(callSuper = false)
 public class StreamWindow extends UnresolvedPlan {
 
-  private final List<UnresolvedExpression> windowFunctionList;
-  private final List<Argument> argExprList;
+  @Getter private final List<UnresolvedExpression> windowFunctionList;
+  @Getter private final List<UnresolvedExpression> groupList;
+  private final boolean current;
+  @Getter private final int window;
+  private final boolean global;
   @ToString.Exclude private UnresolvedPlan child;
 
-  /** StreamWindow Constructor without optional argument. */
-  public StreamWindow(List<UnresolvedExpression> windowFunctionList) {
-    this(windowFunctionList, Collections.emptyList());
-  }
-
   /** StreamWindow Constructor. */
-  public StreamWindow(List<UnresolvedExpression> windowFunctionList, List<Argument> argExprList) {
+  public StreamWindow(List<UnresolvedExpression> windowFunctionList,
+                      List<UnresolvedExpression> groupList,
+                      boolean current,
+                      int window,
+                      boolean global) {
     this.windowFunctionList = windowFunctionList;
-    this.argExprList = argExprList;
+    this.groupList = groupList;
+    this.current = current;
+    this.window = window;
+    this.global = global;
   }
 
-  public boolean hasArgument() {
-    return !argExprList.isEmpty();
+  public boolean isCurrent() {
+    return current;
+  }
+
+  public boolean isGlobal() {
+    return global;
   }
 
   @Override

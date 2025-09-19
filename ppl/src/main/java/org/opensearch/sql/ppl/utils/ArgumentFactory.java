@@ -25,7 +25,6 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandCont
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLiteralContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
-import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StreamstatsCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
 
@@ -96,12 +95,15 @@ public class ArgumentFactory {
    */
   public static List<Argument> getArgumentList(StreamstatsCommandContext ctx) {
     return Arrays.asList(
-        ctx.current != null
-            ? new Argument("current", getArgumentValue(ctx.current))
+        ctx.streamstatsArgs().currentArg() != null && !ctx.streamstatsArgs().currentArg().isEmpty()
+            ? new Argument("current", getArgumentValue(ctx.streamstatsArgs().currentArg(0).current))
             : new Argument("current", new Literal(true, DataType.BOOLEAN)),
-        ctx.window != null
-            ? new Argument("window", getArgumentValue(ctx.window))
-            : new Argument("window", new Literal(0, DataType.INTEGER)));
+        ctx.streamstatsArgs().windowArg() != null && !ctx.streamstatsArgs().windowArg().isEmpty()
+            ? new Argument("window", getArgumentValue(ctx.streamstatsArgs().windowArg(0).window))
+            : new Argument("window", new Literal(0, DataType.INTEGER)),
+        ctx.streamstatsArgs().globalArg() != null && !ctx.streamstatsArgs().globalArg().isEmpty()
+            ? new Argument("global", getArgumentValue(ctx.streamstatsArgs().globalArg(0).global))
+            : new Argument("global", new Literal(true, DataType.BOOLEAN)));
   }
 
   /**
