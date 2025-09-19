@@ -306,7 +306,7 @@ topCommand
    ;
 
 rareCommand
-   : RARE (number = integerLiteral)? (COUNTFIELD EQUAL countfield = stringLiteral)? (SHOWCOUNT EQUAL showcount = booleanLiteral)? fieldList (byClause)?
+   : RARE ((LIMIT EQUAL)? number = integerLiteral)? (COUNTFIELD EQUAL countfield = stringLiteral)? (SHOWCOUNT EQUAL showcount = booleanLiteral)? fieldList (byClause)?
    ;
 
 grokCommand

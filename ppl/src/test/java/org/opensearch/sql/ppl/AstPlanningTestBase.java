@@ -12,7 +12,7 @@ import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.parser.AstBuilder;
 
 /** Base class for tests for the AST query planner. */
-public class AstPlanningTest {
+public class AstPlanningTestBase {
   protected final Settings settings = Mockito.mock(Settings.class);
   protected final PPLSyntaxParser parser = new PPLSyntaxParser();
 

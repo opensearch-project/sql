@@ -76,10 +76,10 @@ import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings.Key;
-import org.opensearch.sql.ppl.AstPlanningTest;
+import org.opensearch.sql.ppl.AstPlanningTestBase;
 import org.opensearch.sql.utils.SystemIndexUtils;
 
-public class AstBuilderTest extends AstPlanningTest {
+public class AstBuilderTest extends AstPlanningTestBase {
 
   @Rule public ExpectedException exceptionRule = ExpectedException.none();
 

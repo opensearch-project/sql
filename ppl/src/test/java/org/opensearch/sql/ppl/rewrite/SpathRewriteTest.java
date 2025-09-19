@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.ppl.utils;
+package org.opensearch.sql.ppl.rewrite;
 
 import static org.junit.Assert.assertEquals;
 import static org.opensearch.sql.ast.dsl.AstDSL.eval;
@@ -17,9 +17,9 @@ import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import org.junit.Test;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.SPath;
-import org.opensearch.sql.ppl.AstPlanningTest;
+import org.opensearch.sql.ppl.AstPlanningTestBase;
 
-public class SPathRewriteTest extends AstPlanningTest {
+public class SpathRewriteTest extends AstPlanningTestBase {
   // Control test to make sure something fundamental hasn't changed about the json_extract parsing
   @Test
   public void testEvalControl() {

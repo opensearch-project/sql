@@ -8,9 +8,9 @@ package org.opensearch.sql.ppl.parser;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
-import org.opensearch.sql.ppl.AstPlanningTest;
+import org.opensearch.sql.ppl.AstPlanningTestBase;
 
-public class AstEquivalenceTest extends AstPlanningTest {
+public class AstEquivalenceTest extends AstPlanningTestBase {
   @Test
   public void testSpathArgumentDeshuffle() {
     assertEquals(plan("source = t | spath path=a input=a"), plan("source = t | spath input=a a"));
