@@ -17,9 +17,6 @@ import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
  * @opensearch.experimental
  */
 @Getter
-/*
- * @opensearch.experimental
- */
 public class GetDirectQueryResourcesActionRequest extends ActionRequest {
   private final GetDirectQueryResourcesRequest directQueryRequest;
 

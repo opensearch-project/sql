@@ -17,9 +17,6 @@ import org.opensearch.sql.directquery.rest.model.WriteDirectQueryResourcesReques
  * @opensearch.experimental
  */
 @UtilityClass
-/*
- * @opensearch.experimental
- */
 public class DirectQueryResourcesRequestConverter {
 
   /**

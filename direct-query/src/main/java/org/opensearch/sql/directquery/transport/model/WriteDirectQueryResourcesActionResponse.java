@@ -13,6 +13,9 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
+/*
+ * @opensearch.experimental
+ */
 @Getter
 @RequiredArgsConstructor
 public class WriteDirectQueryResourcesActionResponse extends ActionResponse {

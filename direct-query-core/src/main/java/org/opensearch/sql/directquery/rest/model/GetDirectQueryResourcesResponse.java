@@ -22,9 +22,6 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-/*
- * @opensearch.experimental
- */
 public class GetDirectQueryResourcesResponse<T> {
   private T data;
 

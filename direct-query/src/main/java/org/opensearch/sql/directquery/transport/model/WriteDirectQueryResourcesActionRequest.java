@@ -16,6 +16,9 @@ import org.opensearch.sql.directquery.rest.model.WriteDirectQueryResourcesReques
 import java.io.IOException;
 import java.util.Collections;
 
+/*
+ * @opensearch.experimental
+ */
 @Getter
 public class WriteDirectQueryResourcesActionRequest extends ActionRequest {
   private final WriteDirectQueryResourcesRequest directQueryRequest;

@@ -15,9 +15,6 @@ import lombok.Getter;
  *
  */
 @Getter
-/*
- * @opensearch.experimental
- */
 public enum PrometheusQueryType {
   INSTANT("instant"),
   RANGE("range");

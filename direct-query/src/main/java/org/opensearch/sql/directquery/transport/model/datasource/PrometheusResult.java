@@ -23,9 +23,6 @@ import lombok.Setter;
 @Setter
 @JsonTypeName("prometheus")
 @JsonIgnoreProperties(ignoreUnknown = true)
-/*
- * @opensearch.experimental
- */
 public class PrometheusResult implements DataSourceResult {
 
   @JsonProperty("resultType")
