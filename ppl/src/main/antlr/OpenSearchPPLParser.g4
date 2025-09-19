@@ -970,6 +970,8 @@ mathematicalFunctionName
    | SIGNUM
    | SUM
    | AVG
+   | MAX
+   | MIN
    | trigonometricFunctionName
    ;
 

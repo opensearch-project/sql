@@ -61,6 +61,8 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDEF
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.E;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EARLIEST;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EQUAL;
+//import static org.opensearch.sql.expression.function.BuiltinFunctionName.EVAL_MAX;
+//import static org.opensearch.sql.expression.function.BuiltinFunctionName.EVAL_MIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXISTS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXPM1;
@@ -717,6 +719,10 @@ public class PPLFuncImpTable {
       registerOperator(INTERNAL_REGEXP_REPLACE_PG_4, SqlLibraryOperators.REGEXP_REPLACE_PG_4);
       registerOperator(INTERNAL_REGEXP_REPLACE_5, SqlLibraryOperators.REGEXP_REPLACE_5);
       registerOperator(INTERNAL_TRANSLATE3, SqlLibraryOperators.TRANSLATE3);
+
+      // Register eval functions for PPL max() and min() calls
+      registerOperator(MAX, PPLBuiltinOperators.MAX);
+      registerOperator(MIN, PPLBuiltinOperators.MIN);
 
       // Register PPL UDF operator
       registerOperator(COSH, PPLBuiltinOperators.COSH);
