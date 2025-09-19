@@ -97,6 +97,26 @@ Example::
     | default | null     | Dale      |
     +---------+----------+-----------+
 
+Nested IFNULL Pattern
+>>>>>>>>>>>>>>>>>>>>>
+
+For OpenSearch versions prior to 3.1, COALESCE-like functionality can be achieved using nested IFNULL statements. This pattern is particularly useful in observability use cases where field names may vary across different data sources.
+
+Usage: ifnull(field1, ifnull(field2, ifnull(field3, default_value)))
+
+Example::
+
+    os> source=accounts | eval result = ifnull(employer, ifnull(firstname, ifnull(lastname, "unknown"))) | fields result, employer, firstname, lastname
+    fetched rows / total rows = 4/4
+    +---------+----------+-----------+----------+
+    | result  | employer | firstname | lastname |
+    |---------+----------+-----------+----------|
+    | Pyrami  | Pyrami   | Amber     | Duke     |
+    | Netagy  | Netagy   | Hattie    | Bond     |
+    | Quility | Quility  | Nanette   | Bates    |
+    | Dale    | null     | Dale      | Adams    |
+    +---------+----------+-----------+----------+
+
 NULLIF
 ------
 
@@ -135,7 +155,7 @@ Argument type: all the supported data type
 
 Return type: any
 
-Example::
+Example 1::
 
     os> source=accounts | eval result = isnull(employer) | fields result, employer, firstname
     fetched rows / total rows = 4/4
@@ -337,32 +357,6 @@ Non-existent Field Handling::
     | Dale    | Dale      |
     +---------+-----------+
 
-Alternative: Nested IFNULL Pattern
->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-For OpenSearch versions prior to 3.1, COALESCE-like functionality can be achieved using nested IFNULL statements. This pattern is particularly useful in observability use cases where field names may vary across different data sources.
-
-Usage: ifnull(field1, ifnull(field2, ifnull(field3, default_value)))
-
-Example::
-
-    os> source=accounts | eval result = ifnull(employer, ifnull(firstname, ifnull(lastname, "unknown"))) | fields result, employer, firstname, lastname
-    fetched rows / total rows = 4/4
-    +---------+----------+-----------+----------+
-    | result  | employer | firstname | lastname |
-    |---------+----------+-----------+----------|
-    | Pyrami  | Pyrami   | Amber     | Duke     |
-    | Netagy  | Netagy   | Hattie    | Bond     |
-    | Quility | Quility  | Nanette   | Bates    |
-    | Dale    | null     | Dale      | Adams    |
-    +---------+----------+-----------+----------+
-
-Notes:
-
-- No automatic type coercion (requires explicit casting when needed)
-- More verbose syntax compared to native COALESCE
-- Nested structure can become complex with many fallback fields
-- Upgrade to OpenSearch 3.1+ for native COALESCE support with better performance and cleaner syntax
 
 ISPRESENT
 ---------
