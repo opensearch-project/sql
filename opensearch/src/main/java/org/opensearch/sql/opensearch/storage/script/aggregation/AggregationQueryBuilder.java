@@ -67,8 +67,11 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
           List<Pair<Sort.SortOption, Expression>> sortList,
           boolean bucketNullable) {
 
+    // Check if we can optimize count aggregations with bucket doc_count
+    boolean optimizeCount = canOptimizeCount(namedAggregatorList, groupByList);
+    
     final Pair<AggregatorFactories.Builder, List<MetricParser>> metrics =
-        metricBuilder.build(namedAggregatorList);
+        metricBuilder.build(namedAggregatorList, optimizeCount);
 
     if (groupByList.isEmpty()) {
       // no bucket
@@ -97,6 +100,24 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
                   .size(AGGREGATION_BUCKET_SIZE)),
           new CompositeAggregationParser(metrics.getRight()));
     }
+  }
+
+  /**
+   * Check if count aggregations can be optimized by using bucket doc_count.
+   * This is possible when we have both count aggregations and span expressions (date histogram).
+   */
+  private boolean canOptimizeCount(
+      List<NamedAggregator> namedAggregatorList, List<NamedExpression> groupByList) {
+    // Check if there are any count aggregations
+    boolean hasCountAgg = namedAggregatorList.stream()
+        .anyMatch(agg -> "count".equalsIgnoreCase(agg.getFunctionName().getFunctionName())
+            && !agg.getDelegated().distinct());
+    
+    // Check if there are any span expressions (which create date histogram buckets)
+    boolean hasSpanExpr = groupByList.stream()
+        .anyMatch(expr -> expr.getDelegated() instanceof org.opensearch.sql.expression.span.SpanExpression);
+    
+    return hasCountAgg && hasSpanExpr;
   }
 
   /** Build mapping for OpenSearchExprValueFactory. */
