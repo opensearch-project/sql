@@ -303,11 +303,19 @@ logSpanValue
 
 // TODO support arbitrary argument ordering
 topCommand
-   : TOP (number = integerLiteral)? (COUNTFIELD EQUAL countfield = stringLiteral)? (SHOWCOUNT EQUAL showcount = booleanLiteral)? (PERCENTFIELD EQUAL percentfield = stringLiteral)? (SHOWPERC EQUAL showperc = booleanLiteral)? (USEOTHER EQUAL useother = booleanLiteral)? fieldList (byClause)?
+   : TOP (number = integerLiteral)? topRareParameter* fieldList (byClause)?
    ;
 
 rareCommand
-   : RARE (number = integerLiteral)? (COUNTFIELD EQUAL countfield = stringLiteral)? (SHOWCOUNT EQUAL showcount = booleanLiteral)? (PERCENTFIELD EQUAL percentfield = stringLiteral)? (SHOWPERC EQUAL showperc = booleanLiteral)? (USEOTHER EQUAL useother = booleanLiteral)? fieldList (byClause)?
+   : RARE (number = integerLiteral)? topRareParameter* fieldList (byClause)?
+   ;
+
+topRareParameter
+   : (COUNTFIELD EQUAL countfield = stringLiteral)
+   | (SHOWCOUNT EQUAL showcount = booleanLiteral)
+   | (PERCENTFIELD EQUAL percentfield = stringLiteral)
+   | (SHOWPERC EQUAL showperc = booleanLiteral)
+   | (USEOTHER EQUAL useother = booleanLiteral)
    ;
 
 grokCommand

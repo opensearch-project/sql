@@ -26,6 +26,13 @@ import org.opensearch.sql.ast.expression.Argument;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RareTopNArguments {
+  public static final String NUMBER_RESULTS = "noOfResults";
+  public static final String COUNT_FIELD = "countField";
+  public static final String SHOW_COUNT = "showCount";
+  public static final String PERCENT_FIELD = "percentField";
+  public static final String SHOW_PERCENT = "showPerc";
+  public static final String USE_OTHER = "useOther";
+
   private int noOfResults = 10;
   private String countField = "count";
   private boolean showCount = true;
@@ -34,31 +41,38 @@ public class RareTopNArguments {
   private boolean useOther = false;
 
   public RareTopNArguments(List<Argument> arguments) {
+    // handle `percent=whatever showperc=false` (though I'm not sure if it's ever useful to do so)
+    boolean isShowPercOverridden = false;
+
     for (Argument arg : arguments) {
       switch (arg.getArgName()) {
-        case "noOfResults":
+        case NUMBER_RESULTS:
           noOfResults = (int) arg.getValue().getValue();
           break;
-        case "countField":
+        case COUNT_FIELD:
           countField = (String) arg.getValue().getValue();
           if (countField.isBlank()) {
             throw new IllegalArgumentException("Illegal count field in top/rare: cannot be blank");
           }
           break;
-        case "showCount":
+        case SHOW_COUNT:
           showCount = (boolean) arg.getValue().getValue();
           break;
-        case "percentField":
+        case PERCENT_FIELD:
           percentField = (String) arg.getValue().getValue();
-          if (countField.isBlank()) {
+          if (percentField.isBlank()) {
             throw new IllegalArgumentException(
                 "Illegal percent field in top/rare: cannot be blank");
           }
+          if (!isShowPercOverridden) {
+            showPerc = true;
+          }
           break;
-        case "showPerc":
+        case SHOW_PERCENT:
           showPerc = (boolean) arg.getValue().getValue();
+          isShowPercOverridden = true;
           break;
-        case "useOther":
+        case USE_OTHER:
           useOther = (boolean) arg.getValue().getValue();
           break;
         default:

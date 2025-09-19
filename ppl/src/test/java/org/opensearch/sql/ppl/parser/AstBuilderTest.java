@@ -787,6 +787,26 @@ public class AstBuilderTest {
   }
 
   @Test
+  public void testTopCommandWithAllArgumentsShuffled() {
+    assertEqual(
+        "source=t | top 20 showcount=true percentfield='pct' countfield='cnt' useother=true"
+            + " showperc=true a, b by c",
+        rareTopN(
+            relation("t"),
+            CommandType.TOP,
+            exprList(
+                argument("noOfResults", intLiteral(20)),
+                argument("countField", stringLiteral("cnt")),
+                argument("showCount", booleanLiteral(true)),
+                argument("percentField", stringLiteral("pct")),
+                argument("showPerc", booleanLiteral(true)),
+                argument("useOther", booleanLiteral(true))),
+            exprList(field("c")),
+            field("a"),
+            field("b")));
+  }
+
+  @Test
   public void testGrokCommand() {
     assertEqual(
         "source=t | grok raw \"pattern\"",
