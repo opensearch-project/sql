@@ -53,6 +53,7 @@ commands
    | renameCommand
    | statsCommand
    | eventstatsCommand
+   | streamstatsCommand
    | dedupCommand
    | sortCommand
    | evalCommand
@@ -91,6 +92,7 @@ commandName
    | RENAME
    | STATS
    | EVENTSTATS
+   | STREAMSTATS
    | DEDUP
    | SORT
    | EVAL
@@ -230,6 +232,26 @@ dedupSplitArg
 
 eventstatsCommand
    : EVENTSTATS eventstatsAggTerm (COMMA eventstatsAggTerm)* (statsByClause)?
+   ;
+
+streamstatsCommand
+   : STREAMSTATS streamstatsArgs streamstatsAggTerm (COMMA streamstatsAggTerm)* (statsByClause)?
+   ;
+
+streamstatsArgs
+   : (currentArg | windowArg | globalArg)*
+   ;
+
+currentArg
+   : CURRENT EQUAL current = booleanLiteral
+   ;
+
+windowArg
+   : WINDOW EQUAL window = integerLiteral
+   ;
+
+globalArg
+   : GLOBAL EQUAL global = booleanLiteral
    ;
 
 dedupCommand
@@ -610,6 +632,10 @@ evalClause
    ;
 
 eventstatsAggTerm
+   : windowFunction (AS alias = wcFieldExpression)?
+   ;
+
+streamstatsAggTerm
    : windowFunction (AS alias = wcFieldExpression)?
    ;
 
@@ -1445,6 +1471,8 @@ searchableKeyWord
    | PARTITIONS
    | ALLNUM
    | DELIM
+   | CURRENT
+   | WINDOW
    | BUCKET_NULLABLE
    | CENTROIDS
    | ITERATIONS

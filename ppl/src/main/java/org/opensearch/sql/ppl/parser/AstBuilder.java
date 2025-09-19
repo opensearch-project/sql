@@ -49,6 +49,7 @@ import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.Argument.ArgumentMap;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
@@ -65,6 +66,7 @@ import org.opensearch.sql.ast.expression.SearchGroup;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.expression.WindowFrame;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
@@ -100,6 +102,7 @@ import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Search;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SpanBin;
+import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Timechart;
@@ -443,6 +446,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return aggregation;
   }
 
+  /** Eventstats command. */
   public UnresolvedPlan visitEventstatsCommand(OpenSearchPPLParser.EventstatsCommandContext ctx) {
     ImmutableList.Builder<UnresolvedExpression> windownFunctionListBuilder =
         new ImmutableList.Builder<>();
@@ -463,6 +467,131 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
     return new Window(windownFunctionListBuilder.build());
   }
+
+  /** Streamstats command. */
+  public UnresolvedPlan visitStreamstatsCommand(OpenSearchPPLParser.StreamstatsCommandContext ctx) {
+    // 1. Parse arguments from the streamstats command
+    List<Argument> argExprList = ArgumentFactory.getArgumentList(ctx);
+    ArgumentMap arguments = ArgumentMap.of(argExprList);
+
+    boolean current = (Boolean) arguments.get("current").getValue();
+    int window = (Integer) arguments.get("window").getValue();
+    boolean global = (Boolean) arguments.get("global").getValue();
+
+    if (window < 0) {
+      throw new IllegalArgumentException("Window size must be >= 0, but got: " + window);
+    }
+
+    // 2. Parse streamstats window function terms
+    ImmutableList.Builder<UnresolvedExpression> windowFunctionListBuilder =
+        new ImmutableList.Builder<>();
+    for (OpenSearchPPLParser.StreamstatsAggTermContext aggCtx : ctx.streamstatsAggTerm()) {
+      UnresolvedExpression windowFunction = internalVisitExpression(aggCtx.windowFunction());
+      String name =
+          aggCtx.alias == null
+              ? getTextInQuery(aggCtx)
+              : StringUtils.unquoteIdentifier(aggCtx.alias.getText());
+      Alias alias = new Alias(name, windowFunction);
+      windowFunctionListBuilder.add(alias);
+    }
+
+    // 3. Parse group by clause
+    List<UnresolvedExpression> groupList =
+        Optional.ofNullable(ctx.statsByClause())
+            .map(OpenSearchPPLParser.StatsByClauseContext::fieldList)
+            .map(expr -> expr.fieldExpression().stream()
+                .map(groupCtx -> (UnresolvedExpression)
+                    new Alias(
+                        StringUtils.unquoteIdentifier(getTextInQuery(groupCtx)),
+                        internalVisitExpression(groupCtx)))
+                .collect(Collectors.toList()))
+            .orElse(Collections.emptyList());
+
+    // 4. Build StreamWindow AST node
+    return new StreamWindow(
+        windowFunctionListBuilder.build(),
+        groupList,
+        current,
+        window,
+        global
+    );
+
+
+//    // 2. Build a WindowFrame from the provided arguments (window, current, etc.)
+//    WindowFrame frame = buildFrameFromArgs(argExprList);
+//
+//    // 3. Build each window function in the command
+//    for (OpenSearchPPLParser.StreamstatsAggTermContext aggCtx : ctx.streamstatsAggTerm()) {
+//      UnresolvedExpression windowFunction = internalVisitExpression(aggCtx.windowFunction());
+//      if (windowFunction instanceof WindowFunction wf) {
+//        // Attach PARTITION BY clause expressions (if any)
+//        wf.setPartitionByList(getPartitionExprList(ctx.statsByClause()));
+//        // Inject the frame
+//        wf.setWindowFrame(frame);
+//      }
+//      String name =
+//          aggCtx.alias == null
+//              ? getTextInQuery(aggCtx)
+//              : StringUtils.unquoteIdentifier(aggCtx.alias.getText());
+//      Alias alias = new Alias(name, windowFunction);
+//      windowFunctionListBuilder.add(alias);
+//    }
+//
+//    return new StreamWindow(windowFunctionListBuilder.build(), argExprList);
+  }
+
+  private WindowFrame buildFrameFromArgs(List<Argument> args) {
+    ArgumentMap arguments = ArgumentMap.of(args);
+
+    // Default values
+    int windowSize = 0; // 0 means unbounded
+    boolean current = true;
+
+    // Window argument
+    Literal windowArg = arguments.get("window");
+    if (windowArg != null) {
+      Object value = windowArg.getValue();
+      try {
+        windowSize = ((Number) value).intValue();
+        if (windowSize < 0) {
+          throw new IllegalArgumentException("Window size must be >= 0, but got: " + windowSize);
+        }
+      } catch (NumberFormatException e) {
+        throw new IllegalArgumentException("Invalid window size: " + value, e);
+      }
+    }
+
+    // Current argument
+    Literal currentArg = arguments.get("current");
+    if (currentArg != null) {
+      Object value = currentArg.getValue();
+      try {
+        current = (Boolean) value;
+      } catch (Exception e) {
+        throw new IllegalArgumentException("Invalid current flag: " + value, e);
+      }
+    }
+
+    // Build the frame
+    if (windowSize > 0) {
+      if (current) {
+        // N-1 PRECEDING to CURRENT ROW
+        return WindowFrame.of(
+            WindowFrame.FrameType.ROWS, (windowSize - 1) + " PRECEDING", "CURRENT ROW");
+      } else {
+        // N PRECEDING to 1 PRECEDING
+        return WindowFrame.of(WindowFrame.FrameType.ROWS, windowSize + " PRECEDING", "1 PRECEDING");
+      }
+    } else {
+      // Default: running total
+      if (current) {
+        return WindowFrame.toCurrentRow();
+      } else {
+        // Default: running total excluding current row
+        return WindowFrame.of(WindowFrame.FrameType.ROWS, "UNBOUNDED PRECEDING", "1 PRECEDING");
+      }
+    }
+  }c f
 
   /** Dedup command. */
   @Override
