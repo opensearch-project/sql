@@ -14,16 +14,14 @@ import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 /**
- *MIN(value1, value2, ...) returns the minimum value from the arguments.
- * For mixed types, numbers have higher precedence than strings.
+ * MIN(value1, value2, ...) returns the minimum value from the arguments. For mixed types, numbers
+ * have higher precedence than strings.
  */
 public class MinFunction extends ImplementorUDF {
 
@@ -47,9 +45,7 @@ public class MinFunction extends ImplementorUDF {
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
       return Expressions.call(
-          MinImplementor.class,
-          "min",
-          Expressions.newArrayInit(Object.class, translatedOperands));
+          MinImplementor.class, "min", Expressions.newArrayInit(Object.class, translatedOperands));
     }
 
     public static Object min(Object[] args) {

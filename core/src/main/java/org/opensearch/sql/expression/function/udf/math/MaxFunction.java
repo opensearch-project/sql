@@ -14,16 +14,14 @@ import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 /**
- * MAX(value1, value2, ...) returns the maximum value from the arguments.
- * For mixed types, strings have higher precedence than numbers.
+ * MAX(value1, value2, ...) returns the maximum value from the arguments. For mixed types, strings
+ * have higher precedence than numbers.
  */
 public class MaxFunction extends ImplementorUDF {
 
@@ -47,9 +45,7 @@ public class MaxFunction extends ImplementorUDF {
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
       return Expressions.call(
-          MaxImplementor.class,
-          "max",
-          Expressions.newArrayInit(Object.class, translatedOperands));
+          MaxImplementor.class, "max", Expressions.newArrayInit(Object.class, translatedOperands));
     }
 
     public static Object max(Object[] args) {

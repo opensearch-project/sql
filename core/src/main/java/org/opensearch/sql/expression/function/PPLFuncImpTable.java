@@ -61,8 +61,6 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDEF
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.E;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EARLIEST;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EQUAL;
-//import static org.opensearch.sql.expression.function.BuiltinFunctionName.EVAL_MAX;
-//import static org.opensearch.sql.expression.function.BuiltinFunctionName.EVAL_MIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXISTS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXPM1;
