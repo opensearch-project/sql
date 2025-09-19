@@ -3,11 +3,6 @@ repos:
     hooks:
       - id: spotless-format
         name: Spotless Format
-        entry: bash -c './gradlew spotlessApply && git add -u'
-        language: system
-        pass_filenames: false
-      - id: spotless-check
-        name: Spotless Post-format Check
-        entry: bash -c './gradlew spotlessCheck'
+        entry: bash -c './gradlew spotlessApply spotlessCheck && git add -u'
         language: system
         pass_filenames: false

@@ -1585,6 +1585,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               + countFieldName
               + "` is existed, change the count field by setting countfield='xyz'");
     }
+    if ((Boolean) arguments.get("useOther").getValue()) {
+      throw new CalciteUnsupportedException("`useother` is currently unsupported. (Coming soon)");
+    }
+    if ((Boolean) arguments.get("showPerc").getValue()) {
+      throw new CalciteUnsupportedException("`showperc` is currently unsupported. (Coming soon)");
+    }
 
     // 1. group the group-by list + field list and add a count() aggregation
     List<UnresolvedExpression> groupExprList = new ArrayList<>(node.getGroupExprList());
