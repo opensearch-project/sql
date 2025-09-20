@@ -72,7 +72,7 @@ public class MapAccessOperations {
    * @return The field name for dynamic columns MAP
    */
   public static String getDynamicColumnsFieldName() {
-    return "_dynamic_columns";
+    return DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD;
   }
 
   /**

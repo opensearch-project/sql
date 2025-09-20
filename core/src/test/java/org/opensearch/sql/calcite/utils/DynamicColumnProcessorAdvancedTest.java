@@ -30,25 +30,28 @@ class DynamicColumnProcessorAdvancedTest {
     ExprValue row1 =
         ExprTupleValue.fromExprValueMap(
             Map.of(
-                "_dynamic_columns",
+                DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD,
                 ExprTupleValue.fromExprValueMap(
                     Map.of("numeric_value", new ExprIntegerValue(10)))));
 
     ExprValue row2 =
         ExprTupleValue.fromExprValueMap(
             Map.of(
-                "_dynamic_columns",
+                DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD,
                 ExprTupleValue.fromExprValueMap(Map.of("numeric_value", new ExprLongValue(20L)))));
 
     ExprValue row3 =
         ExprTupleValue.fromExprValueMap(
             Map.of(
-                "_dynamic_columns",
+                DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD,
                 ExprTupleValue.fromExprValueMap(
                     Map.of("numeric_value", new ExprDoubleValue(30.5)))));
 
     Schema originalSchema =
-        new Schema(List.of(new Column("_dynamic_columns", null, ExprCoreType.STRUCT)));
+        new Schema(
+            List.of(
+                new Column(
+                    DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD, null, ExprCoreType.STRUCT)));
 
     QueryResponse originalResponse =
         new QueryResponse(originalSchema, List.of(row1, row2, row3), null);
@@ -66,17 +69,20 @@ class DynamicColumnProcessorAdvancedTest {
     ExprValue row1 =
         ExprTupleValue.fromExprValueMap(
             Map.of(
-                "_dynamic_columns",
+                DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD,
                 ExprTupleValue.fromExprValueMap(Map.of("number", new ExprIntegerValue(10)))));
 
     ExprValue row2 =
         ExprTupleValue.fromExprValueMap(
             Map.of(
-                "_dynamic_columns",
+                DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD,
                 ExprTupleValue.fromExprValueMap(Map.of("number", new ExprLongValue(20L)))));
 
     Schema originalSchema =
-        new Schema(List.of(new Column("_dynamic_columns", null, ExprCoreType.STRUCT)));
+        new Schema(
+            List.of(
+                new Column(
+                    DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD, null, ExprCoreType.STRUCT)));
 
     QueryResponse originalResponse = new QueryResponse(originalSchema, List.of(row1, row2), null);
     QueryResponse expandedResponse = DynamicColumnProcessor.expandDynamicColumns(originalResponse);
@@ -93,17 +99,20 @@ class DynamicColumnProcessorAdvancedTest {
     ExprValue row1 =
         ExprTupleValue.fromExprValueMap(
             Map.of(
-                "_dynamic_columns",
+                DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD,
                 ExprTupleValue.fromExprValueMap(Map.of("flag", ExprBooleanValue.of(true)))));
 
     ExprValue row2 =
         ExprTupleValue.fromExprValueMap(
             Map.of(
-                "_dynamic_columns",
+                DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD,
                 ExprTupleValue.fromExprValueMap(Map.of("flag", ExprBooleanValue.of(false)))));
 
     Schema originalSchema =
-        new Schema(List.of(new Column("_dynamic_columns", null, ExprCoreType.STRUCT)));
+        new Schema(
+            List.of(
+                new Column(
+                    DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD, null, ExprCoreType.STRUCT)));
 
     QueryResponse originalResponse = new QueryResponse(originalSchema, List.of(row1, row2), null);
     QueryResponse expandedResponse = DynamicColumnProcessor.expandDynamicColumns(originalResponse);
@@ -120,18 +129,21 @@ class DynamicColumnProcessorAdvancedTest {
     ExprValue row1 =
         ExprTupleValue.fromExprValueMap(
             Map.of(
-                "_dynamic_columns",
+                DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD,
                 ExprTupleValue.fromExprValueMap(Map.of("mixed_value", ExprBooleanValue.of(true)))));
 
     ExprValue row2 =
         ExprTupleValue.fromExprValueMap(
             Map.of(
-                "_dynamic_columns",
+                DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD,
                 ExprTupleValue.fromExprValueMap(
                     Map.of("mixed_value", new ExprStringValue("not_boolean")))));
 
     Schema originalSchema =
-        new Schema(List.of(new Column("_dynamic_columns", null, ExprCoreType.STRUCT)));
+        new Schema(
+            List.of(
+                new Column(
+                    DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD, null, ExprCoreType.STRUCT)));
 
     QueryResponse originalResponse = new QueryResponse(originalSchema, List.of(row1, row2), null);
     QueryResponse expandedResponse = DynamicColumnProcessor.expandDynamicColumns(originalResponse);
@@ -148,35 +160,38 @@ class DynamicColumnProcessorAdvancedTest {
     ExprValue row1 =
         ExprTupleValue.fromExprValueMap(
             Map.of(
-                "_dynamic_columns",
+                DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD,
                 ExprTupleValue.fromExprValueMap(Map.of("complex", new ExprIntegerValue(10)))));
 
     ExprValue row2 =
         ExprTupleValue.fromExprValueMap(
             Map.of(
-                "_dynamic_columns",
+                DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD,
                 ExprTupleValue.fromExprValueMap(Map.of("complex", new ExprLongValue(20L)))));
 
     ExprValue row3 =
         ExprTupleValue.fromExprValueMap(
             Map.of(
-                "_dynamic_columns",
+                DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD,
                 ExprTupleValue.fromExprValueMap(Map.of("complex", new ExprDoubleValue(30.5)))));
 
     ExprValue row4 =
         ExprTupleValue.fromExprValueMap(
             Map.of(
-                "_dynamic_columns",
+                DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD,
                 ExprTupleValue.fromExprValueMap(Map.of("complex", ExprBooleanValue.of(true)))));
 
     ExprValue row5 =
         ExprTupleValue.fromExprValueMap(
             Map.of(
-                "_dynamic_columns",
+                DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD,
                 ExprTupleValue.fromExprValueMap(Map.of("complex", new ExprStringValue("text")))));
 
     Schema originalSchema =
-        new Schema(List.of(new Column("_dynamic_columns", null, ExprCoreType.STRUCT)));
+        new Schema(
+            List.of(
+                new Column(
+                    DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD, null, ExprCoreType.STRUCT)));
 
     QueryResponse originalResponse =
         new QueryResponse(originalSchema, List.of(row1, row2, row3, row4, row5), null);
@@ -196,7 +211,7 @@ class DynamicColumnProcessorAdvancedTest {
             Map.of(
                 "id",
                 new ExprIntegerValue(1),
-                "_dynamic_columns",
+                DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD,
                 ExprTupleValue.fromExprValueMap(Map.of())));
 
     ExprValue row2 =
@@ -204,14 +219,15 @@ class DynamicColumnProcessorAdvancedTest {
             Map.of(
                 "id",
                 new ExprIntegerValue(2),
-                "_dynamic_columns",
+                DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD,
                 ExprTupleValue.fromExprValueMap(Map.of())));
 
     Schema originalSchema =
         new Schema(
             List.of(
                 new Column("id", null, ExprCoreType.INTEGER),
-                new Column("_dynamic_columns", null, ExprCoreType.STRUCT)));
+                new Column(
+                    DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD, null, ExprCoreType.STRUCT)));
 
     QueryResponse originalResponse = new QueryResponse(originalSchema, List.of(row1, row2), null);
     QueryResponse expandedResponse = DynamicColumnProcessor.expandDynamicColumns(originalResponse);
@@ -240,7 +256,10 @@ class DynamicColumnProcessorAdvancedTest {
             createRowWithDynamicColumn("value", new ExprIntegerValue(10)));
 
     Schema originalSchema =
-        new Schema(List.of(new Column("_dynamic_columns", null, ExprCoreType.STRUCT)));
+        new Schema(
+            List.of(
+                new Column(
+                    DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD, null, ExprCoreType.STRUCT)));
 
     QueryResponse originalResponse = new QueryResponse(originalSchema, rows, null);
     QueryResponse expandedResponse = DynamicColumnProcessor.expandDynamicColumns(originalResponse);
@@ -257,6 +276,7 @@ class DynamicColumnProcessorAdvancedTest {
   private ExprValue createRowWithDynamicColumn(String columnName, ExprValue columnValue) {
     return ExprTupleValue.fromExprValueMap(
         Map.of(
-            "_dynamic_columns", ExprTupleValue.fromExprValueMap(Map.of(columnName, columnValue))));
+            DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD,
+            ExprTupleValue.fromExprValueMap(Map.of(columnName, columnValue))));
   }
 }

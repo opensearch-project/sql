@@ -15,6 +15,7 @@ import lombok.ToString;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.dsl.AstDSL;
+import org.opensearch.sql.calcite.utils.DynamicColumnProcessor;
 
 @ToString
 @EqualsAndHashCode(callSuper = false)
@@ -62,12 +63,12 @@ public class SPath extends UnresolvedPlan {
     return AstDSL.eval(
         this.child,
         AstDSL.let(
-            AstDSL.field("_dynamic_columns"),
+            AstDSL.field(DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD),
             AstDSL.function(
                 "coalesce",
                 AstDSL.function(
                     "map_merge",
-                    AstDSL.field("_dynamic_columns"),
+                    AstDSL.field(DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD),
                     AstDSL.function("json_extract_all", AstDSL.field(inField))),
                 AstDSL.function("json_extract_all", AstDSL.field(inField)))));
   }

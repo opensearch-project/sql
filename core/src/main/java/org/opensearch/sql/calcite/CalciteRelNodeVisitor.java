@@ -130,6 +130,7 @@ import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.utils.BinUtils;
+import org.opensearch.sql.calcite.utils.DynamicColumnProcessor;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -803,12 +804,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // CRITICAL FIX: Check if any expressions reference _dynamic_columns and ensure it exists
     boolean needsDynamicColumns =
         node.getExpressionList().stream()
-            .anyMatch(expr -> expr.toString().contains("_dynamic_columns"));
+            .anyMatch(
+                expr -> expr.toString().contains(DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD));
 
     if (needsDynamicColumns) {
       List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
-      if (!currentFields.contains("_dynamic_columns")) {
-        System.out.println("Adding _dynamic_columns field to schema for spath processing");
+      if (!currentFields.contains(DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD)) {
+        System.out.println(
+            "Adding "
+                + DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD
+                + " field to schema for spath processing");
 
         // Add NULL MAP field for _dynamic_columns if it doesn't exist
         // This creates a placeholder that map_merge can work with
@@ -826,7 +831,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                             .rexBuilder
                             .getTypeFactory()
                             .createSqlType(org.apache.calcite.sql.type.SqlTypeName.ANY)));
-        RexNode dynamicColumnsField = context.relBuilder.alias(nullMapField, "_dynamic_columns");
+        RexNode dynamicColumnsField =
+            context.relBuilder.alias(nullMapField, DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD);
         context.relBuilder.projectPlus(dynamicColumnsField);
 
         // Mark that dynamic columns are now available
@@ -877,7 +883,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 System.out.println("Fields after adding eval: " + fieldsAfter);
 
                 // CRITICAL FIX: Mark that dynamic columns are available for field resolution
-                if ("_dynamic_columns".equals(alias)) {
+                if (DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD.equals(alias)) {
                   System.out.println(
                       "Dynamic columns field added - enabling dynamic field resolution");
                   context.setDynamicColumnsAvailable(true);

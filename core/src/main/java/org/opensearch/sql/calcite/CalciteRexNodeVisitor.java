@@ -67,6 +67,7 @@ import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.calcite.utils.DynamicColumnProcessor;
 import org.opensearch.sql.calcite.utils.MapAccessOperations;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PlanUtils;
@@ -714,7 +715,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
 
     // CRITICAL FIX: Check if _dynamic_columns field exists in current schema
     // This is more reliable than the flag approach
-    boolean hasDynamicColumnsField = currentFields.contains("_dynamic_columns");
+    boolean hasDynamicColumnsField =
+        currentFields.contains(DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD);
 
     // Check if dynamic columns are available (either by flag or by field presence)
     boolean hasDynamicColumns = context.isDynamicColumnsAvailable() || hasDynamicColumnsField;
@@ -733,7 +735,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   private RexNode resolveDynamicField(String fieldName, CalcitePlanContext context) {
     System.out.println("=== DEBUG resolveDynamicField === fieldName=" + fieldName);
     // Access the _dynamic_columns MAP field
-    RexNode dynamicColumnsField = context.relBuilder.field("_dynamic_columns");
+    RexNode dynamicColumnsField =
+        context.relBuilder.field(DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD);
 
     // Create MAP access: _dynamic_columns[fieldName]
     RexNode mapAccess =

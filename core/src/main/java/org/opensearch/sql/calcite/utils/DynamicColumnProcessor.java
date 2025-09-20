@@ -100,7 +100,7 @@ public class DynamicColumnProcessor {
   private static List<Column> getColumnsExcludingDynamic(Schema originalSchema) {
     return originalSchema.getColumns().stream()
         .filter(c -> !DYNAMIC_COLUMNS_FIELD.equals(c.getName()))
-        .toList();
+        .collect(Collectors.toList());
   }
 
   private static List<ExprValue> expandResultRowsWithDynamicColumns(
