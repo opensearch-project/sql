@@ -6,18 +6,17 @@
 package org.opensearch.sql.calcite.utils;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
+import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
-import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import org.opensearch.sql.executor.ExecutionEngine.Schema;
 import org.opensearch.sql.executor.ExecutionEngine.Schema.Column;
@@ -33,7 +32,7 @@ public class DynamicColumnProcessor {
   public static final String DYNAMIC_COLUMNS_FIELD = "_dynamic_columns";
 
   /**
-   * Processes a QueryResponse to expand dynamic columns from MAP fields into individual columns.
+   * Convert dynamic columns in the QueryResponse into individual columns.
    *
    * @param response Original QueryResponse with MAP fields
    * @return New QueryResponse with expanded individual columns
@@ -43,15 +42,11 @@ public class DynamicColumnProcessor {
       return response;
     }
 
-    // Collect all dynamic column names from all rows
     Set<String> dynamicColumnNames = collectDynamicColumnNames(response.getResults());
-
-    // Create new schema with expanded columns
     Schema expandedSchema =
         createExpandedSchema(response.getSchema(), dynamicColumnNames, response.getResults());
-
-    // Transform results to expand MAP fields into individual columns
-    List<ExprValue> expandedResults = expandResultRows(response.getResults(), dynamicColumnNames);
+    List<ExprValue> expandedResults =
+        expandResultRowsWithDynamicColumns(response.getResults(), dynamicColumnNames);
 
     return new QueryResponse(expandedSchema, expandedResults, response.getCursor());
   }
@@ -64,9 +59,8 @@ public class DynamicColumnProcessor {
         .anyMatch(column -> DYNAMIC_COLUMNS_FIELD.equals(column.getName()));
   }
 
-  /** Collects all unique dynamic column names from MAP fields across all result rows. */
   private static Set<String> collectDynamicColumnNames(List<ExprValue> results) {
-    Set<String> columnNames = new TreeSet<>(); // TreeSet for consistent ordering
+    Set<String> columnNames = new LinkedHashSet<>();
 
     for (ExprValue row : results) {
       if (row instanceof ExprTupleValue) {
@@ -84,55 +78,49 @@ public class DynamicColumnProcessor {
     return columnNames;
   }
 
-  /** Creates a new schema with dynamic columns expanded as individual columns. */
+  /** It will deduplicate columns if dynamic column name conflicts with original schema */
   private static Schema createExpandedSchema(
       Schema originalSchema, Set<String> dynamicColumnNames, List<ExprValue> results) {
-    List<Column> expandedColumns = new ArrayList<>();
+    Set<String> originalColumnNames = collectColumnNames(originalSchema);
+    List<Column> expandedColumns = getColumnsExcludingDynamic(originalSchema);
 
-    // Add all original columns except the dynamic columns MAP field
-    for (Column column : originalSchema.getColumns()) {
-      if (!DYNAMIC_COLUMNS_FIELD.equals(column.getName())) {
-        expandedColumns.add(column);
-      }
-    }
-
-    // Add individual columns for each dynamic column name with inferred types
     for (String columnName : dynamicColumnNames) {
-      ExprType inferredType = inferDynamicColumnType(results, columnName);
-      expandedColumns.add(new Column(columnName, null, inferredType));
+      if (!originalColumnNames.contains(columnName)) {
+        expandedColumns.add(new Column(columnName, null, ExprCoreType.STRING));
+      }
     }
 
     return new Schema(expandedColumns);
   }
 
-  /** Expands result rows by extracting MAP field values into individual columns. */
-  private static List<ExprValue> expandResultRows(
+  private static Set<String> collectColumnNames(Schema schema) {
+    return schema.getColumns().stream().map(Column::getName).collect(Collectors.toSet());
+  }
+
+  private static List<Column> getColumnsExcludingDynamic(Schema originalSchema) {
+    return originalSchema.getColumns().stream()
+        .filter(c -> !DYNAMIC_COLUMNS_FIELD.equals(c.getName()))
+        .toList();
+  }
+
+  private static List<ExprValue> expandResultRowsWithDynamicColumns(
       List<ExprValue> originalResults, Set<String> dynamicColumnNames) {
     List<ExprValue> expandedResults = new ArrayList<>();
 
     for (ExprValue row : originalResults) {
       if (row instanceof ExprTupleValue) {
-        Map<String, ExprValue> expandedRow = new LinkedHashMap<>();
         Map<String, ExprValue> originalRow = row.tupleValue();
+        Map<String, ExprValue> expandedRow = copyExceptDynamic(originalRow);
 
-        // Copy all original fields except the dynamic columns MAP field
-        for (Map.Entry<String, ExprValue> entry : originalRow.entrySet()) {
-          if (!DYNAMIC_COLUMNS_FIELD.equals(entry.getKey())) {
-            expandedRow.put(entry.getKey(), entry.getValue());
-          }
-        }
+        Map<String, ExprValue> dynamicColumns =
+            extractMapValue(originalRow.get(DYNAMIC_COLUMNS_FIELD));
 
-        // Extract dynamic columns from MAP field
-        ExprValue dynamicColumnsValue = originalRow.get(DYNAMIC_COLUMNS_FIELD);
-        Map<String, ExprValue> dynamicColumns = extractMapValue(dynamicColumnsValue);
-
-        // Add individual columns for each dynamic column name
+        // This will overwrite existing columns if there's a name conflict
         for (String columnName : dynamicColumnNames) {
           ExprValue columnValue = dynamicColumns.get(columnName);
           if (columnValue != null) {
             expandedRow.put(columnName, columnValue);
           } else {
-            // Use NULL for missing dynamic columns
             expandedRow.put(columnName, ExprValueUtils.nullValue());
           }
         }
@@ -147,13 +135,19 @@ public class DynamicColumnProcessor {
     return expandedResults;
   }
 
-  /**
-   * Extracts a Map from an ExprValue that represents a MAP field. Handles both actual MAP values
-   * and NULL/missing values.
-   */
+  private static Map<String, ExprValue> copyExceptDynamic(Map<String, ExprValue> originalRow) {
+    Map<String, ExprValue> copiedRow = new LinkedHashMap<>();
+    for (Map.Entry<String, ExprValue> entry : originalRow.entrySet()) {
+      if (!DYNAMIC_COLUMNS_FIELD.equals(entry.getKey())) {
+        copiedRow.put(entry.getKey(), entry.getValue());
+      }
+    }
+    return copiedRow;
+  }
+
   private static Map<String, ExprValue> extractMapValue(ExprValue mapValue) {
     if (mapValue == null || mapValue.isNull() || mapValue.isMissing()) {
-      return new LinkedHashMap<>();
+      return Map.of();
     }
 
     // If it's a tuple value, treat it as a map
@@ -163,67 +157,6 @@ public class DynamicColumnProcessor {
 
     // TODO: Handle other MAP representations if needed
     // For now, return empty map for unsupported types
-    return new LinkedHashMap<>();
-  }
-
-  /**
-   * Infers the type for a dynamic column by analyzing values from the _dynamic_columns MAP across
-   * all result rows.
-   *
-   * @param results All result rows containing _dynamic_columns MAP
-   * @param columnName The dynamic column name to analyze
-   * @return The most appropriate ExprType for the dynamic column
-   */
-  private static ExprType inferDynamicColumnType(List<ExprValue> results, String columnName) {
-    // Collect unique types found across all rows
-    Set<ExprType> foundTypes = new HashSet<>();
-
-    for (ExprValue row : results) {
-      if (row instanceof ExprTupleValue) {
-        // Get the _dynamic_columns MAP from the row
-        ExprValue dynamicColumnsValue = row.tupleValue().get(DYNAMIC_COLUMNS_FIELD);
-        if (dynamicColumnsValue != null
-            && !dynamicColumnsValue.isNull()
-            && !dynamicColumnsValue.isMissing()) {
-          Map<String, ExprValue> dynamicColumns = extractMapValue(dynamicColumnsValue);
-          ExprValue columnValue = dynamicColumns.get(columnName);
-
-          if (columnValue != null && !columnValue.isNull() && !columnValue.isMissing()) {
-            foundTypes.add(columnValue.type());
-          }
-        }
-      }
-    }
-
-    // If no non-null values found, return STRING as default for dynamic columns
-    if (foundTypes.isEmpty()) {
-      return ExprCoreType.STRING;
-    }
-
-    // If all values have the same type, return that type
-    if (foundTypes.size() == 1) {
-      return foundTypes.iterator().next();
-    }
-
-    // If multiple types exist, apply type precedence rules
-    // Priority: STRING > DOUBLE > LONG > INTEGER > BOOLEAN > others
-    if (foundTypes.contains(ExprCoreType.STRING)) {
-      return ExprCoreType.STRING; // String can represent any value
-    }
-    if (foundTypes.contains(ExprCoreType.DOUBLE)) {
-      return ExprCoreType.DOUBLE; // Double can represent integers
-    }
-    if (foundTypes.contains(ExprCoreType.LONG)) {
-      return ExprCoreType.LONG; // Long can represent integers
-    }
-    if (foundTypes.contains(ExprCoreType.INTEGER)) {
-      return ExprCoreType.INTEGER;
-    }
-    if (foundTypes.contains(ExprCoreType.BOOLEAN)) {
-      return ExprCoreType.BOOLEAN;
-    }
-
-    // Fallback to STRING for any other combination
-    return ExprCoreType.STRING;
+    return Map.of();
   }
 }

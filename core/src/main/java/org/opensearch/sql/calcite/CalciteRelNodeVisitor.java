@@ -671,8 +671,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitSpath(SPath node, CalcitePlanContext context) {
-    Eval evalNode = node.rewriteAsEval();
-    return visitEval(evalNode, context);
+    return visitEval(node.rewriteAsEval(), context);
   }
 
   @Override
@@ -2045,9 +2044,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       reordered.add(outputFields.get(outputFields.size() - 1)); // value function last
       context.relBuilder.project(reordered);
 
-      // Handle no limit case - apply PIVOT transformation and return columnar results
+      // Handle no limit case - just sort and return with proper field aliases
       if (limit == 0) {
-        return applyPivotTransformation(context, "@timestamp", byFieldName, valueFunctionName);
+        // Add final projection with proper aliases: [@timestamp, byField, valueFunctionName]
+        context.relBuilder.project(
+            context.relBuilder.alias(context.relBuilder.field(0), "@timestamp"),
+            context.relBuilder.alias(context.relBuilder.field(1), byFieldName),
+            context.relBuilder.alias(context.relBuilder.field(2), valueFunctionName));
+        context.relBuilder.sort(context.relBuilder.field(0), context.relBuilder.field(1));
+        return context.relBuilder.peek();
       }
 
       // Use known field positions after reordering: 0=@timestamp, 1=byField, 2=value
@@ -2058,19 +2063,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       RelNode topCategories = buildTopCategoriesQuery(completeResults, limit, context);
 
       // Step 3: Apply OTHER logic with single pass
-      RelNode finalResults =
-          buildFinalResultWithOther(
-              completeResults,
-              topCategories,
-              byFieldName,
-              valueFunctionName,
-              useOther,
-              limit,
-              context);
-
-      // Step 4: Apply PIVOT transformation to convert long form to short form (columnar)
-      context.relBuilder.push(finalResults);
-      return applyPivotTransformation(context, "@timestamp", byFieldName, valueFunctionName);
+      return buildFinalResultWithOther(
+          completeResults, topCategories, byFieldName, valueFunctionName, useOther, limit, context);
 
     } catch (Exception e) {
       throw new RuntimeException("Error in visitTimechart: " + e.getMessage(), e);
@@ -2179,50 +2173,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               context.relBuilder.field(1), context.relBuilder.literal("OTHER")));
     }
     context.relBuilder.sort(context.relBuilder.field(0), context.relBuilder.field(1));
-  }
-
-  /**
-   * Apply PIVOT transformation to convert long form timechart results to short form (columnar).
-   * This method implements the internal PIVOT aggregate function to transform data from:
-   * [@timestamp, category, value] -> [@timestamp, _dynamic_columns: MAP<category, value>]
-   *
-   * <p>The dynamic columns infrastructure then makes individual categories accessible as columns.
-   *
-   * @param context CalcitePlanContext with current long-form results on the stack
-   * @param timestampField Name of the timestamp field (typically "@timestamp")
-   * @param categoryField Name of the category field (byField)
-   * @param valueField Name of the value field (aggregation result)
-   * @return RelNode with pivoted (columnar) results
-   */
-  private RelNode applyPivotTransformation(
-      CalcitePlanContext context, String timestampField, String categoryField, String valueField) {
-
-    // Current stack has long-form results: [@timestamp, category, value]
-    // We need to GROUP BY @timestamp and apply INTERNAL_PIVOT(value, category)
-
-    // Use field indices instead of names to avoid field name resolution issues
-    // Field positions: 0=@timestamp, 1=category, 2=value
-    RelBuilder.AggCall pivotAggCall =
-        context
-            .relBuilder
-            .aggregateCall(
-                org.opensearch.sql.expression.function.PPLBuiltinOperators.INTERNAL_PIVOT,
-                context.relBuilder.field(2), // value field (index 2)
-                context.relBuilder.field(1) // category field (index 1)
-                )
-            .as("_dynamic_columns");
-
-    // GROUP BY timestamp (index 0) and apply PIVOT aggregation
-    context.relBuilder.aggregate(
-        context.relBuilder.groupKey(context.relBuilder.field(0)), pivotAggCall);
-
-    // Mark that dynamic columns are now available for field resolution
-    context.setDynamicColumnsAvailable(true);
-
-    // Sort by timestamp for consistent output (now at index 0)
-    context.relBuilder.sort(context.relBuilder.field(0));
-
-    return context.relBuilder.peek();
   }
 
   /** Build zero-filled result using fillnull pattern - treat NULL as just another category */
