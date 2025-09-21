@@ -9,6 +9,7 @@ import java.util.Map;
 import lombok.EqualsAndHashCode;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.lucene.index.LeafReaderContext;
 import org.opensearch.script.DerivedFieldScript;
 import org.opensearch.search.lookup.SearchLookup;
@@ -27,12 +28,16 @@ class CalciteDerivedFieldScript extends DerivedFieldScript {
 
   private final SourceLookup sourceLookup;
 
+  private final RelDataType type;
+
   public CalciteDerivedFieldScript(
       Function1<DataContext, Object[]> function,
+      RelDataType type,
       SearchLookup lookup,
       LeafReaderContext context,
       Map<String, Object> params) {
     super(params, lookup, context);
+    this.type = type;
     this.calciteScript = new CalciteScript(function, params);
     this.sourceLookup = lookup.getLeafSearchLookup(context).source();
   }
@@ -40,6 +45,10 @@ class CalciteDerivedFieldScript extends DerivedFieldScript {
   @Override
   public void execute() {
     Object result = calciteScript.execute(this.getDoc(), this.sourceLookup)[0];
+    // Derived field doesn't handle Short type, convert it to integer instead
+    if (result instanceof Short) {
+      result = ((Short) result).intValue();
+    }
     addEmittedValue(result);
   }
 }

@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Predicate;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelRule;
@@ -106,10 +105,11 @@ public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectInd
     }
 
     /*
-     * The expressions that are supposed to be pushed are identical. And there is no new derived field
-     * No need to push down project.
+     * If there is no mapping to be projected or new derived field to be pushed,
+     * or the pushed mapping is identical to current scan schema,
+     * no need to push down project.
      */
-    if (selected.isIdentity(oldFieldCount) && newDerivedAliases.isEmpty()) {
+    if (selected.isEmpty() || selected.isIdentity(oldFieldCount)) {
       return;
     }
 
@@ -186,13 +186,7 @@ public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectInd
             .withOperandSupplier(
                 b0 ->
                     b0.operand(LogicalProject.class)
-                        .oneInput(
-                            b1 ->
-                                b1.operand(CalciteLogicalIndexScan.class)
-//                                    .predicate(
-//                                        Predicate.not(
-//                                            OpenSearchIndexScanRule::isScriptProjectPushed))
-                                    .noInputs()));
+                        .oneInput(b1 -> b1.operand(CalciteLogicalIndexScan.class).noInputs()));
 
     @Override
     default OpenSearchProjectIndexScanRule toRule() {

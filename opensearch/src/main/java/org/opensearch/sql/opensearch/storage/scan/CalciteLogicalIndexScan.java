@@ -36,7 +36,6 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -223,7 +222,13 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     final List<String> derivedNames = new ArrayList<>();
     final List<String> derivedTypes = new ArrayList<>();
     final List<Script> derivedScripts = new ArrayList<>();
+    // selected physical columns used for reindex sort collations
     final List<Integer> selectedColumns = new ArrayList<>();
+    // TODO: Consider minimizing the input rowType for the derived field RexNode
+    final Map<String, ExprType> fieldTypes =
+        this.osIndex.getFieldTypes().entrySet().stream()
+            .filter(entry -> this.schema.getFieldNames().contains(entry.getKey()))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
     for (SelectedColumn item : selected) {
       switch (item.getKind()) {
@@ -248,8 +253,6 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
             RelDataTypeField outputField = projFields.get(item.getProjIdx());
             builder.add(alias, outputField.getType());
 
-            // TODO: Consider minimizing the input rowType for the derived field RexNode
-            Map<String, ExprType> fieldTypes = this.osIndex.getFieldTypes();
             Script script =
                 new ScriptQueryExpression(
                         project.getProjects().get(item.getProjIdx()),
@@ -272,19 +275,10 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     // `Project($1, $0) -> Sort(sort0=[1]) -> Project($1, $0) -> Aggregate(group={0},...)...`
     // We don't support pushing down the duplicated project here otherwise it will cause dead-loop.
     // `ProjectMergeRule` will help merge the duplicated projects.
-    if (this.getPushDownContext().containsDigest(newSchema.getFieldNames()) ||
-        newSchema.getFieldNames().equals(this.getRowType().getFieldNames())) {
+    if (this.getPushDownContext().containsDigest(newSchema.getFieldNames())
+        || newSchema.getFieldNames().equals(this.getRowType().getFieldNames())) {
       return null;
     }
-
-    // To prevent circular pushdown for some edge cases where plan has pattern(see TPCH Q1):
-    // `Project($1, $0) -> Sort(sort0=[1]) -> Project($1, $0) -> Aggregate(group={0},...)...`
-    // We don't support pushing down the duplicated project here otherwise it will cause dead-loop.
-    // `ProjectMergeRule` will help merge the duplicated projects.
-    //    if (this.getPushDownContext().containsDigest(newSchema.getFieldNames())) return null;
-    // TODO: Uncomment the above logic for now, because we need to consider pushed derived field
-    // name case
-    // TODO: Need to figure out new logic for idempotent project pushdown
 
     // Projection may alter indicies in the collations.
     // E.g. When sorting age
@@ -300,7 +294,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
             table,
             osIndex,
             newSchema,
-            pushDownContext.clone()); // TODO: Check if we need to clone context without project
+            pushDownContext.clone());
 
     // For aggregate, we do nothing on query builder but only change the schema of the scan.
     AbstractAction action =

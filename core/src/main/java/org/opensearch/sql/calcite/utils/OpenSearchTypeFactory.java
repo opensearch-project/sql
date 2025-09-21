@@ -46,6 +46,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLambda;
+import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexVisitorImpl;
@@ -85,8 +87,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
           Arrays.asList(
               Pair.of(t -> SqlTypeName.INT_TYPES.contains(t.getSqlTypeName()), "long"),
               // TODO: Support BigDecimal and other complex objects. A workaround is to wrap it in
-              // JSON
-              // object so that response can parse it
+              // JSON object so that response can parse it
               Pair.of(t -> SqlTypeName.DOUBLE.equals(t.getSqlTypeName()), "double"),
               Pair.of(t -> SqlTypeName.BOOLEAN_TYPES.contains(t.getSqlTypeName()), "boolean"),
               Pair.of(t -> SqlTypeName.CHAR_TYPES.contains(t.getSqlTypeName()), "keyword"));
@@ -369,8 +370,8 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
    * @param node the expression to check
    * @return true if the RexNode contains UDT in its operands, input or output
    */
-  public static boolean findUDTType(RexNode node) {
-    return node.accept(
+  public static Boolean findUDTType(RexNode node) {
+    Boolean found = node.accept(
         new RexVisitorImpl<>(true) {
           @Override
           public Boolean visitInputRef(RexInputRef inputRef) {
@@ -384,9 +385,41 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
 
           @Override
           public Boolean visitCall(RexCall call) {
-            return OpenSearchTypeFactory.isUserDefinedType(call.getType());
+            boolean isUdtType = OpenSearchTypeFactory.isUserDefinedType(call.getType());
+            if (!deep) {
+              return isUdtType;
+            }
+            if (isUdtType) {
+              return true;
+            }
+
+            boolean isDeepUdtType = false;
+            for (RexNode operand : call.operands) {
+              Boolean foundInNestedNode = operand.accept(this);
+              isDeepUdtType = isDeepUdtType || (foundInNestedNode != null && foundInNestedNode);
+            }
+            return isDeepUdtType;
+          }
+
+          @Override
+          public Boolean visitLambdaRef(RexLambdaRef lambdaRef) {
+            return OpenSearchTypeFactory.isUserDefinedType(lambdaRef.getType());
+          }
+
+          @Override
+          public Boolean visitLambda(RexLambda lambda) {
+            boolean isUdtType = OpenSearchTypeFactory.isUserDefinedType(lambda.getType());
+            for (RexLambdaRef ref : lambda.getParameters()) {
+              isUdtType = isUdtType || ref.accept(this);
+            }
+            if (isUdtType) {
+              return true;
+            }
+            Boolean isLambdaExprUdtType = lambda.getExpression().accept(this);
+            return isLambdaExprUdtType != null && isLambdaExprUdtType;
           }
         });
+    return found != null && found;
   }
 
   public static boolean isTypeSupportedForDerivedField(RelDataType type) {

@@ -20,9 +20,12 @@ public class CalciteDerivedFieldScriptFactory implements DerivedFieldScript.Fact
   /** Generated code of calcite to execute. */
   private final Function1<DataContext, Object[]> function;
 
+  private final RelDataType type;
+
   public CalciteDerivedFieldScriptFactory(
       Function1<DataContext, Object[]> function, RelDataType type) {
     this.function = function;
+    this.type = type;
   }
 
   @Override
@@ -34,6 +37,6 @@ public class CalciteDerivedFieldScriptFactory implements DerivedFieldScript.Fact
   @Override
   public DerivedFieldScript.LeafFactory newFactory(
       Map<String, Object> params, SearchLookup lookup) {
-    return new CalciteDerivedFieldScriptLeafFactory(function, params, lookup);
+    return new CalciteDerivedFieldScriptLeafFactory(function, type, params, lookup);
   }
 }
