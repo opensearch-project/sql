@@ -371,54 +371,55 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
    * @return true if the RexNode contains UDT in its operands, input or output
    */
   public static Boolean findUDTType(RexNode node) {
-    Boolean found = node.accept(
-        new RexVisitorImpl<>(true) {
-          @Override
-          public Boolean visitInputRef(RexInputRef inputRef) {
-            return OpenSearchTypeFactory.isUserDefinedType(inputRef.getType());
-          }
+    Boolean found =
+        node.accept(
+            new RexVisitorImpl<>(true) {
+              @Override
+              public Boolean visitInputRef(RexInputRef inputRef) {
+                return OpenSearchTypeFactory.isUserDefinedType(inputRef.getType());
+              }
 
-          @Override
-          public Boolean visitLiteral(RexLiteral literal) {
-            return OpenSearchTypeFactory.isUserDefinedType(literal.getType());
-          }
+              @Override
+              public Boolean visitLiteral(RexLiteral literal) {
+                return OpenSearchTypeFactory.isUserDefinedType(literal.getType());
+              }
 
-          @Override
-          public Boolean visitCall(RexCall call) {
-            boolean isUdtType = OpenSearchTypeFactory.isUserDefinedType(call.getType());
-            if (!deep) {
-              return isUdtType;
-            }
-            if (isUdtType) {
-              return true;
-            }
+              @Override
+              public Boolean visitCall(RexCall call) {
+                boolean isUdtType = OpenSearchTypeFactory.isUserDefinedType(call.getType());
+                if (!deep) {
+                  return isUdtType;
+                }
+                if (isUdtType) {
+                  return true;
+                }
 
-            boolean isDeepUdtType = false;
-            for (RexNode operand : call.operands) {
-              Boolean foundInNestedNode = operand.accept(this);
-              isDeepUdtType = isDeepUdtType || (foundInNestedNode != null && foundInNestedNode);
-            }
-            return isDeepUdtType;
-          }
+                boolean isDeepUdtType = false;
+                for (RexNode operand : call.operands) {
+                  Boolean foundInNestedNode = operand.accept(this);
+                  isDeepUdtType = isDeepUdtType || (foundInNestedNode != null && foundInNestedNode);
+                }
+                return isDeepUdtType;
+              }
 
-          @Override
-          public Boolean visitLambdaRef(RexLambdaRef lambdaRef) {
-            return OpenSearchTypeFactory.isUserDefinedType(lambdaRef.getType());
-          }
+              @Override
+              public Boolean visitLambdaRef(RexLambdaRef lambdaRef) {
+                return OpenSearchTypeFactory.isUserDefinedType(lambdaRef.getType());
+              }
 
-          @Override
-          public Boolean visitLambda(RexLambda lambda) {
-            boolean isUdtType = OpenSearchTypeFactory.isUserDefinedType(lambda.getType());
-            for (RexLambdaRef ref : lambda.getParameters()) {
-              isUdtType = isUdtType || ref.accept(this);
-            }
-            if (isUdtType) {
-              return true;
-            }
-            Boolean isLambdaExprUdtType = lambda.getExpression().accept(this);
-            return isLambdaExprUdtType != null && isLambdaExprUdtType;
-          }
-        });
+              @Override
+              public Boolean visitLambda(RexLambda lambda) {
+                boolean isUdtType = OpenSearchTypeFactory.isUserDefinedType(lambda.getType());
+                for (RexLambdaRef ref : lambda.getParameters()) {
+                  isUdtType = isUdtType || ref.accept(this);
+                }
+                if (isUdtType) {
+                  return true;
+                }
+                Boolean isLambdaExprUdtType = lambda.getExpression().accept(this);
+                return isLambdaExprUdtType != null && isLambdaExprUdtType;
+              }
+            });
     return found != null && found;
   }
 

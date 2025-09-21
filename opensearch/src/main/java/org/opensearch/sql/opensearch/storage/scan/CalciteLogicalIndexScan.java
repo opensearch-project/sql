@@ -37,6 +37,7 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.script.Script;
@@ -221,7 +222,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     final List<String> physicalToPush = new ArrayList<>();
     final List<String> derivedNames = new ArrayList<>();
     final List<String> derivedTypes = new ArrayList<>();
-    final List<Script> derivedScripts = new ArrayList<>();
+    final List<Triple<RexNode, RelDataType, Script>> derivedScripts = new ArrayList<>();
     // selected physical columns used for reindex sort collations
     final List<Integer> selectedColumns = new ArrayList<>();
     // TODO: Consider minimizing the input rowType for the derived field RexNode
@@ -241,10 +242,8 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               // For alias types, we need to push down its original path instead of the alias name.
               physicalToPush.add(
                   this.osIndex.getAliasMapping().getOrDefault(field.getName(), field.getName()));
-              // For now, we only handle physical input collations before sort by expressions is
-              // implemented
-              selectedColumns.add(item.getOldIdx());
             }
+            selectedColumns.add(item.getOldIdx());
             break;
           }
         case DERIVED_NEW:
@@ -264,7 +263,11 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
             derivedTypes.add(
                 OpenSearchTypeFactory.convertRelDataTypeToSupportedDerivedFieldType(
                     outputField.getType()));
-            derivedScripts.add(script);
+            derivedScripts.add(
+                Triple.of(
+                    project.getProjects().get(item.getProjIdx()),
+                    project.getInput().getRowType(),
+                    script));
           }
           break;
       }
@@ -275,7 +278,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     // `Project($1, $0) -> Sort(sort0=[1]) -> Project($1, $0) -> Aggregate(group={0},...)...`
     // We don't support pushing down the duplicated project here otherwise it will cause dead-loop.
     // `ProjectMergeRule` will help merge the duplicated projects.
-    if (this.getPushDownContext().containsDigest(newSchema.getFieldNames())
+    if (this.getPushDownContext().containsDigest(newPhysicalNames)
         || newSchema.getFieldNames().equals(this.getRowType().getFieldNames())) {
       return null;
     }
@@ -301,7 +304,10 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         pushDownContext.isAggregatePushed()
             ? requestBuilder -> {}
             : requestBuilder -> requestBuilder.pushDownProjectStream(physicalToPush.stream());
-    newScan.pushDownContext.add(PushDownAction.of(PushDownType.PROJECT, newPhysicalNames, action));
+    if (!newPhysicalNames.isEmpty()) {
+      newScan.pushDownContext.add(
+          PushDownAction.of(PushDownType.PROJECT, newPhysicalNames, action));
+    }
 
     if (!derivedScripts.isEmpty()) {
       newScan.pushDownContext.add(
@@ -310,7 +316,9 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               derivedNames,
               requestBuilder ->
                   requestBuilder.pushDownScriptProjects(
-                      derivedNames, derivedTypes, derivedScripts)));
+                      derivedNames,
+                      derivedTypes,
+                      derivedScripts.stream().map(Triple::getRight).collect(Collectors.toList()))));
       // For handling idempotency of next round of pushDownProject, we record which derived names
       // are already generated
       newScan.pushDownContext.setDerivedNames(new HashSet<>(derivedNames));

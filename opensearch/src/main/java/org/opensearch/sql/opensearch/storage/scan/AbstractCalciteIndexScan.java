@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -42,6 +43,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.NumberUtil;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.script.Script;
@@ -66,6 +68,7 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
+import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
 
 /** An abstract relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
@@ -177,7 +180,9 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     @Getter private boolean isProjectPushed = false;
     @Getter private boolean isScriptProjectPushed = false;
     @Getter @Setter private Set<String> derivedNames = new HashSet<>();
-    @Getter @Setter private Map<String, Script> derivedScripsByName = new HashMap<>();
+
+    @Getter @Setter
+    private Map<String, Triple<RexNode, RelDataType, Script>> derivedScripsByName = new HashMap<>();
 
     @Override
     public PushDownContext clone() {
@@ -294,22 +299,50 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
   public AbstractCalciteIndexScan pushDownSort(List<RelFieldCollation> collations) {
     try {
       List<String> collationNames = getCollationNames(collations);
-      // TODO: Handle the case where equivalent field sort propagates to pushed down derived field
-      // Don't push down sort in case of sorting derived field because derived field sort is not
-      // supported.
-      for (String collationName : collationNames) {
-        if (this.getPushDownContext().getDerivedScripsByName().keySet().stream()
-            .anyMatch(name -> name.equals(collationName))) {
-          return null;
-        }
-      }
       if (getPushDownContext().isAggregatePushed() && hasAggregatorInSortBy(collationNames)) {
         // If aggregation is pushed down, we cannot push down sorts where its by fields contain
         // aggregators.
         return null;
       }
+      // Due to sort by simple expression optimization, it's possible to deduce a new collation set
+      // that is simply sort by original scan fields.
+      // Use this deduced collations for opensearch request internally in such case.
+      List<Pair<RelFieldCollation, String>> deducedCollations = new ArrayList<>();
+      for (int i = 0; i < collations.size(); i++) {
+        String outputCollationName = collationNames.get(i);
+        RelFieldCollation collation = collations.get(i);
+        if (this.getPushDownContext().getDerivedNames().contains(outputCollationName)) {
+          Triple<RexNode, RelDataType, Script> derivedScriptInfo =
+              this.getPushDownContext().getDerivedScripsByName().get(outputCollationName);
+          RexNode targetExpr = derivedScriptInfo.getLeft();
+          Optional<Pair<Integer, Boolean>> equalOrderInfo =
+              OpenSearchRelOptUtil.getOrderEquivalentInputInfo(targetExpr);
+          if (equalOrderInfo.isPresent()) {
+            // If simple derived field expression can be translated to sort by scan field, we can
+            // still pushdown equivalent sort.
+            // i.e. sort by 2 * (a + 1) is equal to sort by a
+            String exprInputName =
+                derivedScriptInfo.getMiddle().getFieldNames().get(equalOrderInfo.get().getKey());
+            Direction equalDir =
+                equalOrderInfo.get().getValue()
+                    ? collation.getDirection().reverse()
+                    : collation.getDirection();
+            deducedCollations.add(
+                Pair.of(
+                    new RelFieldCollation(-1, equalDir, collation.nullDirection), exprInputName));
+          } else {
+            // Don't push down sort in case of sorting complex derived field because derived field
+            // sort is not supported.
+            return null;
+          }
+        } else {
+          deducedCollations.add(Pair.of(collation, ""));
+        }
+      }
 
       // Propagate the sort to the new scan
+      // In case of sort by simple expression, still use the original collations to let Calcite
+      // planner understand simple expression is already sorted.
       RelTraitSet traitsWithCollations = getTraitSet().plus(RelCollations.of(collations));
       AbstractCalciteIndexScan newScan =
           buildScan(
@@ -332,9 +365,13 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
         digest = collations;
       } else {
         List<SortBuilder<?>> builders = new ArrayList<>();
-        for (RelFieldCollation collation : collations) {
+        for (Pair<RelFieldCollation, String> collationInfo : deducedCollations) {
+          RelFieldCollation collation = collationInfo.getKey();
           int index = collation.getFieldIndex();
-          String fieldName = this.getRowType().getFieldNames().get(index);
+          String fieldName =
+              collationInfo.getValue().isEmpty()
+                  ? this.getRowType().getFieldNames().get(index)
+                  : collationInfo.getValue();
           Direction direction = collation.getDirection();
           NullDirection nullDirection = collation.nullDirection;
           // Default sort order is ASCENDING
