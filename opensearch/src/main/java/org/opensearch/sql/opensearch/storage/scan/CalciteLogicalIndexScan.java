@@ -7,7 +7,6 @@ package org.opensearch.sql.opensearch.storage.scan;
 
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -219,10 +218,11 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     final List<RelDataTypeField> projFields = project.getRowType().getFieldList();
 
     final List<String> newPhysicalNames = new ArrayList<>();
-    final List<String> physicalToPush = new ArrayList<>();
     final List<String> derivedNames = new ArrayList<>();
     final List<String> derivedTypes = new ArrayList<>();
     final List<Triple<RexNode, RelDataType, Script>> derivedScripts = new ArrayList<>();
+    final Map<String, Triple<RexNode, RelDataType, Script>> previousDerivedScriptsByName =
+        this.getPushDownContext().getDerivedScriptsByName();
     // selected physical columns used for reindex sort collations
     final List<Integer> selectedColumns = new ArrayList<>();
     // TODO: Consider minimizing the input rowType for the derived field RexNode
@@ -237,11 +237,17 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
           {
             RelDataTypeField field = scanFields.get(item.getOldIdx());
             builder.add(field);
+            String fieldName = field.getName();
             if (item.getKind() == Kind.PHYSICAL) {
-              newPhysicalNames.add(field.getName());
-              // For alias types, we need to push down its original path instead of the alias name.
-              physicalToPush.add(
-                  this.osIndex.getAliasMapping().getOrDefault(field.getName(), field.getName()));
+              newPhysicalNames.add(fieldName);
+            } else {
+              derivedNames.add(fieldName);
+              RelDataType derivedFieldType =
+                  previousDerivedScriptsByName.get(fieldName).getLeft().getType();
+              derivedTypes.add(
+                  OpenSearchTypeFactory.convertRelDataTypeToSupportedDerivedFieldType(
+                      derivedFieldType));
+              derivedScripts.add(previousDerivedScriptsByName.get(fieldName));
             }
             selectedColumns.add(item.getOldIdx());
             break;
@@ -278,8 +284,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     // `Project($1, $0) -> Sort(sort0=[1]) -> Project($1, $0) -> Aggregate(group={0},...)...`
     // We don't support pushing down the duplicated project here otherwise it will cause dead-loop.
     // `ProjectMergeRule` will help merge the duplicated projects.
-    if (this.getPushDownContext().containsDigest(newPhysicalNames)
-        || newSchema.getFieldNames().equals(this.getRowType().getFieldNames())) {
+    if (this.getPushDownContext().containsDigest(newPhysicalNames)) {
       return null;
     }
 
@@ -301,13 +306,15 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
 
     // For aggregate, we do nothing on query builder but only change the schema of the scan.
     AbstractAction action =
-        pushDownContext.isAggregatePushed()
+        pushDownContext.isAggregatePushed() || newPhysicalNames.isEmpty()
             ? requestBuilder -> {}
-            : requestBuilder -> requestBuilder.pushDownProjectStream(physicalToPush.stream());
-    if (!newPhysicalNames.isEmpty()) {
-      newScan.pushDownContext.add(
-          PushDownAction.of(PushDownType.PROJECT, newPhysicalNames, action));
-    }
+            : requestBuilder ->
+                requestBuilder.pushDownProjectStream(
+                    // For alias types, we need to push down its original path instead of the alias
+                    // name.
+                    newPhysicalNames.stream()
+                        .map(name -> this.osIndex.getAliasMapping().getOrDefault(name, name)));
+    newScan.pushDownContext.add(PushDownAction.of(PushDownType.PROJECT, newPhysicalNames, action));
 
     if (!derivedScripts.isEmpty()) {
       newScan.pushDownContext.add(
@@ -321,8 +328,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
                       derivedScripts.stream().map(Triple::getRight).collect(Collectors.toList()))));
       // For handling idempotency of next round of pushDownProject, we record which derived names
       // are already generated
-      newScan.pushDownContext.setDerivedNames(new HashSet<>(derivedNames));
-      newScan.pushDownContext.setDerivedScripsByName(
+      newScan.pushDownContext.setDerivedScriptsByName(
           IntStream.range(0, derivedScripts.size())
               .boxed()
               .map(i -> Pair.of(derivedNames.get(i), derivedScripts.get(i)))

@@ -70,7 +70,7 @@ public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectInd
     final int oldFieldCount = scan.getRowType().getFieldCount();
 
     final Set<String> usedNames = new HashSet<>(scan.osIndex.getFieldTypes().keySet());
-    usedNames.addAll(scan.getPushDownContext().getDerivedScripsByName().keySet());
+    usedNames.addAll(scan.getPushDownContext().getDerivedScriptsByName().keySet());
     final Map<Integer, String> newDerivedAliases = new LinkedHashMap<>();
     // Collect which index in the scan is already derived field
     final BitSet derivedIndexSet = computeDerivedIndexSet(scan);
@@ -196,12 +196,11 @@ public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectInd
 
   private BitSet computeDerivedIndexSet(CalciteLogicalIndexScan scan) {
     final BitSet bitSet = new BitSet(scan.getRowType().getFieldCount());
-    final Set<String> derivedNamesFromCtx = scan.getPushDownContext().getDerivedNames();
 
     final List<String> names = scan.getRowType().getFieldNames();
     for (int i = 0; i < names.size(); i++) {
       final String name = names.get(i);
-      if (derivedNamesFromCtx != null && derivedNamesFromCtx.contains(name)) {
+      if (scan.getPushDownContext().getDerivedScriptsByName().containsKey(name)) {
         bitSet.set(i);
       }
     }
@@ -212,6 +211,7 @@ public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectInd
       RexNode node, BitSet derivedIndexSet, CalciteLogicalIndexScan scan) {
     boolean isValidExpr =
         node instanceof RexCall
+            && !scan.getPushDownContext().isAggregatePushed()
             && !RexOver.containsOver(node)
             && !OpenSearchTypeFactory.findUDTType(node)
             && OpenSearchTypeFactory.isTypeSupportedForDerivedField(node.getType());

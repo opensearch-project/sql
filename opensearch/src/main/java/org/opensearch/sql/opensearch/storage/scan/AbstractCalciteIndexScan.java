@@ -12,11 +12,9 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import lombok.Getter;
@@ -179,16 +177,15 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     @Getter private boolean isLimitPushed = false;
     @Getter private boolean isProjectPushed = false;
     @Getter private boolean isScriptProjectPushed = false;
-    @Getter @Setter private Set<String> derivedNames = new HashSet<>();
 
     @Getter @Setter
-    private Map<String, Triple<RexNode, RelDataType, Script>> derivedScripsByName = new HashMap<>();
+    private Map<String, Triple<RexNode, RelDataType, Script>> derivedScriptsByName =
+        new HashMap<>();
 
     @Override
     public PushDownContext clone() {
       PushDownContext cloned = (PushDownContext) super.clone();
-      cloned.derivedNames = new HashSet<>(derivedNames);
-      cloned.derivedScripsByName = new HashMap<>(derivedScripsByName);
+      cloned.derivedScriptsByName = new HashMap<>(derivedScriptsByName);
       return cloned;
     }
 
@@ -274,20 +271,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
         newContext.add(action);
       }
     }
-    newContext.setDerivedNames(new HashSet<>(pushDownContext.derivedNames));
-    newContext.setDerivedScripsByName(new HashMap<>(pushDownContext.derivedScripsByName));
-    return newContext;
-  }
-
-  protected PushDownContext cloneWithoutProject(PushDownContext pushDownContext) {
-    PushDownContext newContext = new PushDownContext();
-    for (PushDownAction action : pushDownContext) {
-      if (action.type() != PushDownType.PROJECT) {
-        newContext.add(action);
-      }
-    }
-    newContext.setDerivedNames(new HashSet<>(pushDownContext.derivedNames));
-    newContext.setDerivedScripsByName(new HashMap<>(pushDownContext.derivedScripsByName));
+    newContext.setDerivedScriptsByName(new HashMap<>(pushDownContext.derivedScriptsByName));
     return newContext;
   }
 
@@ -311,9 +295,9 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
       for (int i = 0; i < collations.size(); i++) {
         String outputCollationName = collationNames.get(i);
         RelFieldCollation collation = collations.get(i);
-        if (this.getPushDownContext().getDerivedNames().contains(outputCollationName)) {
+        if (this.getPushDownContext().getDerivedScriptsByName().containsKey(outputCollationName)) {
           Triple<RexNode, RelDataType, Script> derivedScriptInfo =
-              this.getPushDownContext().getDerivedScripsByName().get(outputCollationName);
+              this.getPushDownContext().getDerivedScriptsByName().get(outputCollationName);
           RexNode targetExpr = derivedScriptInfo.getLeft();
           Optional<Pair<Integer, Boolean>> equalOrderInfo =
               OpenSearchRelOptUtil.getOrderEquivalentInputInfo(targetExpr);
