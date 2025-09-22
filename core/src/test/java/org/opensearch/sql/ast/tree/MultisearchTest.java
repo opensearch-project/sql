@@ -95,15 +95,6 @@ class MultisearchTest {
     assertTrue(toString.contains("Multisearch"));
   }
 
-  @Test
-  public void testMultisearchIsStreamingCommand() {
-    UnresolvedPlan subsearch = relation("table");
-    Multisearch multisearch = new Multisearch(ImmutableList.of(subsearch));
-
-    // Multisearch should be a streaming command
-    assertTrue(StreamingCommandClassifier.isStreamingCommand(multisearch));
-  }
-
   // Test visitor implementation
   private static class TestVisitor extends AbstractNodeVisitor<String, String> {
     @Override

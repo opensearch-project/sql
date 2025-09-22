@@ -314,48 +314,30 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
   }
 
   // ========================================================================
-  // Streaming Command Validation Tests
+  // Additional Command Tests
   // ========================================================================
 
   @Test
-  public void testMultisearchRejectsNonStreamingCommands() {
-    // Test that non-streaming commands (stats, sort) are rejected in subsearches
-    ResponseException statsException =
-        assertThrows(
-            ResponseException.class,
-            () ->
-                executeQuery(
-                    String.format(
-                        "source=%s | multisearch "
-                            + "[search source=%s | stats count by gender] "
-                            + "[search source=%s | where age > 30]",
-                        TEST_INDEX_ACCOUNT, TEST_INDEX_ACCOUNT, TEST_INDEX_ACCOUNT)));
+  public void testMultisearchWithNonStreamingCommands() throws IOException {
+    // Test that previously restricted commands (stats, sort) now work in subsearches
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | multisearch "
+                    + "[search source=%s | where age < 30 | stats count() as young_count] "
+                    + "[search source=%s | where age >= 30 | stats count() as adult_count] "
+                    + "| stats sum(young_count) as total_young, sum(adult_count) as total_adult",
+                TEST_INDEX_ACCOUNT, TEST_INDEX_ACCOUNT, TEST_INDEX_ACCOUNT));
 
-    assertTrue(
-        statsException
-            .getMessage()
-            .contains("Non-streaming command 'stats' is not supported in multisearch"));
+    verifySchema(
+        result, schema("total_young", null, "bigint"), schema("total_adult", null, "bigint"));
 
-    ResponseException sortException =
-        assertThrows(
-            ResponseException.class,
-            () ->
-                executeQuery(
-                    String.format(
-                        "source=%s | multisearch "
-                            + "[search source=%s | sort age desc] "
-                            + "[search source=%s | where age > 30]",
-                        TEST_INDEX_ACCOUNT, TEST_INDEX_ACCOUNT, TEST_INDEX_ACCOUNT)));
-
-    assertTrue(
-        sortException
-            .getMessage()
-            .contains("Non-streaming command 'sort' is not supported in multisearch"));
+    verifyDataRows(result, rows(451L, 549L));
   }
 
   @Test
-  public void testMultisearchAllowsStreamingCommands() throws IOException {
-    // Test that streaming commands (where, eval, fields, head) work correctly in subsearches
+  public void testMultisearchWithVariousCommands() throws IOException {
+    // Test that various commands (where, eval, fields, head) work correctly in subsearches
     JSONObject result =
         executeQuery(
             String.format(
@@ -372,8 +354,8 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testMultisearchComplexStreamingPipeline() throws IOException {
-    // Test complex streaming pipeline with rename, eval, and fields commands
+  public void testMultisearchComplexPipeline() throws IOException {
+    // Test complex pipeline with rename, eval, and fields commands
     JSONObject result =
         executeQuery(
             String.format(
