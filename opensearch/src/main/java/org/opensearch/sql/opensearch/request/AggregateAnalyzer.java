@@ -78,6 +78,7 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
 import org.opensearch.sql.opensearch.response.agg.ArgMaxMinParser;
+import org.opensearch.sql.opensearch.response.agg.BucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParser;
 import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
@@ -499,6 +500,7 @@ public class AggregateAnalyzer {
           MissingOrder.FIRST,
           helper.bucketNullable);
     } else if (isAutoDateSpan(rex)) {
+      // Defense check. We've already prevented this case in OpenSearchAggregateIndexScanRule.
       throw new UnsupportedOperationException(
           "auto_date_histogram is not supported in composite agg.");
     } else {

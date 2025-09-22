@@ -895,7 +895,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     result =
         executeQuery("source=events_null | bin @timestamp bins=100 | stats count() by @timestamp");
     // auto_date_histogram will choose span=5s for bins=100, it will produce many empty buckets but
-    // we will filter them and left only 5 buckets.
+    // we will filter them and left only 6 buckets.
     verifyDataRows(
         result,
         rows(1, "2024-07-01 00:00:00"),
@@ -938,7 +938,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
         executeQuery(
             "source=events_null | bin @timestamp bins=100 | stats avg(cpu_usage) by @timestamp");
     // auto_date_histogram will choose span=5s for bins=100, it will produce many empty buckets but
-    // we will filter them and left only 5 buckets.
+    // we will filter them and left only 6 buckets.
     verifyDataRows(
         result,
         rows(45.2, "2024-07-01 00:00:00"),

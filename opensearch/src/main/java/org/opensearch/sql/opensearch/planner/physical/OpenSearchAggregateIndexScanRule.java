@@ -38,6 +38,13 @@ public class OpenSearchAggregateIndexScanRule
       final LogicalAggregate aggregate = call.rel(0);
       final LogicalProject project = call.rel(1);
       final CalciteLogicalIndexScan scan = call.rel(2);
+
+      // For multiple group-by, we currently have to use CompositeAggregationBuilder while it
+      // doesn't support auto_date_histogram referring to bin command with parameter bins
+      if (aggregate.getGroupSet().length() > 1 && Config.containsWidthBucketFuncOnDate(project)) {
+        return;
+      }
+
       apply(call, aggregate, project, scan);
     } else if (call.rels.length == 2) {
       // case of count() without group-by
