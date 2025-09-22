@@ -911,7 +911,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // After: Aggregate(count())
     //           \- Scan t
     List<RexInputRef> trimmedRefs = new ArrayList<>();
-    trimmedRefs.addAll(getInputRefs(resolved.getLeft())); // group-by keys first
+    trimmedRefs.addAll(PlanUtils.getInputRefs(resolved.getLeft())); // group-by keys first
     trimmedRefs.addAll(PlanUtils.getInputRefsFromAggCall(resolved.getRight()));
     context.relBuilder.project(trimmedRefs);
 
