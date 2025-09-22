@@ -222,7 +222,8 @@ public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectInd
     List<String> inputNames = scan.getRowType().getFieldNames();
     Set<String> indexFieldNames = scan.osIndex.getFieldTypes().keySet();
     final boolean[] canPushAsDerived = {false};
-    // Chained derived field is not support. A new derived field can't rely on the input of existing derived field
+    // Chained derived field is not support. A new derived field can't rely on the input of existing
+    // derived field
     node.accept(
         new RexVisitorImpl<Void>(true) {
           @Override
