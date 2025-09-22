@@ -104,8 +104,8 @@ PPL query::
     +-------+-----------+
     | count | age_group |
     |-------+-----------|
-    | 549   | adult     |
-    | 451   | young     |
+    | 3     | adult     |
+    | 1     | young     |
     +-------+-----------+
 
 Example 2: Success Rate Pattern
@@ -117,11 +117,11 @@ PPL query::
 
     os> source=accounts | multisearch [search source=accounts | where balance > 20000 | eval query_type = "good"] [search source=accounts | where balance > 0 | eval query_type = "valid"] | stats count(eval(query_type = "good")) as good_accounts, count(eval(query_type = "valid")) as total_valid;
     fetched rows / total rows = 1/1
-    +---------------+--------------+
-    | good_accounts | total_valid  |
-    |---------------+--------------|
-    | 619           | 1000         |
-    +---------------+--------------+
+    +---------------+-------------+
+    | good_accounts | total_valid |
+    |---------------+-------------|
+    | 2             | 4           |
+    +---------------+-------------+
 
 Example 3: Multi-Region Analysis
 =================================
@@ -131,14 +131,13 @@ Combine data from multiple regions for comparative analysis.
 PPL query::
 
     os> source=accounts | multisearch [search source=accounts | where state = "IL" | eval region = "Illinois"] [search source=accounts | where state = "TN" | eval region = "Tennessee"] [search source=accounts | where state = "CA" | eval region = "California"] | stats count by region | sort region;
-    fetched rows / total rows = 3/3
-    +-------+------------+
-    | count | region     |
-    |-------+------------|
-    | 17    | California |
-    | 22    | Illinois   |
-    | 25    | Tennessee  |
-    +-------+------------+
+    fetched rows / total rows = 2/2
+    +-------+-----------+
+    | count | region    |
+    |-------+-----------|
+    | 1     | Illinois  |
+    | 1     | Tennessee |
+    +-------+-----------+
 
 Example 4: Gender-based Analysis with Aggregations
 ===================================================
@@ -152,8 +151,8 @@ PPL query::
     +----------------+--------------------+---------+
     | customer_count | avg_balance        | segment |
     |----------------+--------------------+---------|
-    | 493            | 25623.34685598377  | female  |
-    | 507            | 25803.800788954635 | male    |
+    | 1              | 32838.0            | female  |
+    | 3              | 16363.666666666666 | male    |
     +----------------+--------------------+---------+
 
 Example 5: Cross-Source Pattern with Field Projection
@@ -164,15 +163,14 @@ Combine specific fields from different search criteria.
 PPL query::
 
     os> source=accounts | multisearch [search source=accounts | where gender = "M" | fields firstname, lastname, balance] [search source=accounts | where gender = "F" | fields firstname, lastname, balance] | head 5;
-    fetched rows / total rows = 5/5
+    fetched rows / total rows = 4/4
     +-----------+----------+---------+
     | firstname | lastname | balance |
     |-----------+----------+---------|
     | Amber     | Duke     | 39225   |
     | Hattie    | Bond     | 5686    |
     | Dale      | Adams    | 4180    |
-    | Elinor    | Ratliff  | 16418   |
-    | Mcgee     | Mooney   | 18612   |
+    | Nanette   | Bates    | 32838   |
     +-----------+----------+---------+
 
 Example 6: Timestamp Interleaving
@@ -184,15 +182,15 @@ PPL query::
 
     os> source=time_data | multisearch [search source=time_data | where category IN ("A", "B")] [search source=time_data2 | where category IN ("E", "F")] | head 5;
     fetched rows / total rows = 5/5
-    +---------------------+----------+-------+---------------------+
-    | @timestamp          | category | value | timestamp           |
-    |---------------------+----------+-------+---------------------|
-    | 2025-08-01 04:00:00 | E        | 2001  | 2025-08-01 04:00:00 |
-    | 2025-08-01 03:47:41 | A        | 8762  | 2025-08-01 03:47:41 |
-    | 2025-08-01 02:30:00 | F        | 2002  | 2025-08-01 02:30:00 |
-    | 2025-08-01 01:14:11 | B        | 9015  | 2025-08-01 01:14:11 |
-    | 2025-08-01 01:00:00 | E        | 2003  | 2025-08-01 01:00:00 |
-    +---------------------+----------+-------+---------------------+
+    +-------+---------------------+----------+-------+---------------------+
+    | index | @timestamp          | category | value | timestamp           |
+    |-------+---------------------+----------+-------+---------------------|
+    | null  | 2025-08-01 04:00:00 | E        | 2001  | 2025-08-01 04:00:00 |
+    | null  | 2025-08-01 03:47:41 | A        | 8762  | 2025-08-01 03:47:41 |
+    | null  | 2025-08-01 02:30:00 | F        | 2002  | 2025-08-01 02:30:00 |
+    | null  | 2025-08-01 01:14:11 | B        | 9015  | 2025-08-01 01:14:11 |
+    | null  | 2025-08-01 01:00:00 | E        | 2003  | 2025-08-01 01:00:00 |
+    +-------+---------------------+----------+-------+---------------------+
 
 Example 7: Balance Category Segmentation
 =========================================
@@ -202,14 +200,13 @@ Analyze accounts across different balance ranges.
 PPL query::
 
     os> source=accounts | multisearch [search source=accounts | where balance > 40000 | eval balance_category = "high"] [search source=accounts | where balance <= 40000 AND balance > 20000 | eval balance_category = "medium"] [search source=accounts | where balance <= 20000 | eval balance_category = "low"] | stats count, avg(balance) as avg_bal by balance_category | sort balance_category;
-    fetched rows / total rows = 3/3
-    +-------+--------------------+------------------+
-    | count | avg_bal            | balance_category |
-    |-------+--------------------+------------------|
-    | 215   | 44775.43720930233  | high             |
-    | 381   | 10699.010498687665 | low              |
-    | 404   | 29732.16584158416  | medium           |
-    +-------+--------------------+------------------+
+    fetched rows / total rows = 2/2
+    +-------+---------+------------------+
+    | count | avg_bal | balance_category |
+    |-------+---------+------------------|
+    | 2     | 4933.0  | low              |
+    | 2     | 36031.5 | medium           |
+    +-------+---------+------------------+
 
 Example 8: Handling Empty Results
 ==================================
@@ -223,7 +220,7 @@ PPL query::
     +-------+
     | count |
     |-------|
-    | 733   |
+    | 4     |
     +-------+
 
 Common Patterns
