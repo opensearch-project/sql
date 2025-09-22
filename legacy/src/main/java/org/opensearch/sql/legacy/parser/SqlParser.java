@@ -406,12 +406,14 @@ public class SqlParser {
   }
 
   /**
-   * Validates that JOIN queries do not use aggregations (GROUP BY or aggregate functions).
-   * This limitation is documented in the official OpenSearch SQL documentation.
+   * Validates that JOIN queries do not use aggregations (GROUP BY or aggregate functions). This
+   * limitation is documented in the official OpenSearch SQL documentation.
    */
-  private void validateJoinWithoutAggregations(MySqlSelectQueryBlock query) throws SqlParseException {
-    String errorMessage = "JOIN queries do not support aggregations on the joined result. "
-        + "For more information, see https://docs.opensearch.org/latest/search-plugins/sql/limitation/#join-does-not-support-aggregations-on-the-joined-result";
+  private void validateJoinWithoutAggregations(MySqlSelectQueryBlock query)
+      throws SqlParseException {
+    String errorMessage =
+        "JOIN queries do not support aggregations on the joined result. For more information, see"
+            + " https://docs.opensearch.org/latest/search-plugins/sql/limitation/#join-does-not-support-aggregations-on-the-joined-result";
 
     if (query.getGroupBy() != null && !query.getGroupBy().getItems().isEmpty()) {
       throw new SqlParseException(errorMessage);
@@ -427,8 +429,8 @@ public class SqlParser {
   }
 
   /**
-   * Recursively checks if an SQL expression contains aggregate functions.
-   * Uses the same AGGREGATE_FUNCTIONS set as the Select class for consistency.
+   * Recursively checks if an SQL expression contains aggregate functions. Uses the same
+   * AGGREGATE_FUNCTIONS set as the Select class for consistency.
    */
   private boolean containsAggregateFunction(SQLExpr expr) {
     if (expr == null) {
