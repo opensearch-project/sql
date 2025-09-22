@@ -797,16 +797,17 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitEval(Eval node, CalcitePlanContext context) {
     visitChildren(node, context);
 
-    // DEBUG: Add logging for eval processing
     System.out.println("=== DEBUG visitEval ===");
     System.out.println("Processing eval expressions: " + node.getExpressionList().size());
 
     // CRITICAL FIX: Check if any expressions reference _dynamic_columns and ensure it exists
+    // TODO: fix logic not to use toString for expression analysis
     boolean needsDynamicColumns =
         node.getExpressionList().stream()
             .anyMatch(
                 expr -> expr.toString().contains(DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD));
 
+    // TOOD: extract
     if (needsDynamicColumns) {
       List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
       if (!currentFields.contains(DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD)) {

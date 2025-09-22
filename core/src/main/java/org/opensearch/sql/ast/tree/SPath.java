@@ -56,14 +56,11 @@ public class SPath extends UnresolvedPlan {
   }
 
   private Eval rewriteAsDynamicColumns() {
-    // For the first spath command, use json_extract_all directly
-    // For subsequent spath commands, use map_merge to combine with existing _dynamic_columns
-    // This matches the expected test behavior where the first spath creates _dynamic_columns
-    // and subsequent ones merge with it
     return AstDSL.eval(
         this.child,
         AstDSL.let(
             AstDSL.field(DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD),
+            // Merge if the dynamic columns field already exists
             AstDSL.function(
                 "coalesce",
                 AstDSL.function(
