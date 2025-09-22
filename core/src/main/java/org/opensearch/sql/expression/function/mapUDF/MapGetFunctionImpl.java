@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.expression.function.mapUDF;
 
-import static org.opensearch.sql.calcite.utils.PPLReturnTypes.ANY_FORCE_NULLABLE;
+import static org.opensearch.sql.calcite.utils.PPLReturnTypes.STRING_FORCE_NULLABLE;
 
 import java.util.List;
 import java.util.Map;
@@ -41,7 +41,7 @@ public class MapGetFunctionImpl extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return ANY_FORCE_NULLABLE;
+    return STRING_FORCE_NULLABLE;
   }
 
   @Override

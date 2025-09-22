@@ -6,7 +6,6 @@
 package org.opensearch.sql.expression.function.jsonUDF;
 
 import static org.opensearch.sql.calcite.utils.PPLReturnTypes.MAP_STRING_ANY_FORCE_NULLABLE;
-import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -30,6 +29,7 @@ import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 public class JsonExtractAllFunctionImpl extends ImplementorUDF {
+  private static final String ARRAY_SUFFIX = "{}";
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   public JsonExtractAllFunctionImpl() {
@@ -107,9 +107,9 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
           // Extract primitive value or array
           Object extractedValue = extractJsonValue(value);
           if (extractedValue instanceof List) {
-            resultMap.put(fullPath + "{}", extractedValue);
+            resultMap.put(fullPath + ARRAY_SUFFIX, extractedValue);
           } else {
-            resultMap.put(fullPath, extractedValue);
+            resultMap.put(fullPath, convertType(extractedValue));
           }
         }
       }
@@ -138,6 +138,15 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
     } else {
       return node.asText();
     }
+  }
+
+  private static Object convertType(Object value) {
+    if (value == null) {
+      return null;
+    } else if (value instanceof List) {
+      return value;
+    }
+    return value.toString();
   }
 
   /**

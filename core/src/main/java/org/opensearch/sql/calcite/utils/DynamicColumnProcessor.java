@@ -13,6 +13,8 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
+import org.apache.calcite.rex.RexNode;
+import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -49,6 +51,39 @@ public class DynamicColumnProcessor {
         expandResultRowsWithDynamicColumns(response.getResults(), dynamicColumnNames);
 
     return new QueryResponse(expandedSchema, expandedResults, response.getCursor());
+  }
+
+  /**
+   * Ensures that the dynamic columns field exists in the schema if needed. Adds a NULL MAP field
+   * for _dynamic_columns if it doesn't exist and dynamic columns are needed.
+   *
+   * @param context CalcitePlanContext containing the RelBuilder and other context
+   */
+  public static void ensureDynamicColumnsFieldExists(CalcitePlanContext context) {
+    List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
+    if (!currentFields.contains(DYNAMIC_COLUMNS_FIELD)) {
+      // Add NULL MAP field for _dynamic_columns if it doesn't exist
+      // This creates a placeholder that map_merge can work with
+      RexNode nullMapField =
+          context.rexBuilder.makeNullLiteral(
+              context
+                  .rexBuilder
+                  .getTypeFactory()
+                  .createMapType(
+                      context
+                          .rexBuilder
+                          .getTypeFactory()
+                          .createSqlType(org.apache.calcite.sql.type.SqlTypeName.VARCHAR),
+                      context
+                          .rexBuilder
+                          .getTypeFactory()
+                          .createSqlType(org.apache.calcite.sql.type.SqlTypeName.ANY)));
+      RexNode dynamicColumnsField = context.relBuilder.alias(nullMapField, DYNAMIC_COLUMNS_FIELD);
+      context.relBuilder.projectPlus(dynamicColumnsField);
+
+      // Mark that dynamic columns are now available
+      context.setDynamicColumnsAvailable(true);
+    }
   }
 
   /**
@@ -158,5 +193,74 @@ public class DynamicColumnProcessor {
     // TODO: Handle other MAP representations if needed
     // For now, return empty map for unsupported types
     return Map.of();
+  }
+
+  /**
+   * Checks if a field should be resolved as a dynamic column access. This happens when: 1. The
+   * field is not found in the current schema 2. Dynamic columns are available (marked by the
+   * context) 3. We're not in a coalesce function (which has special null handling)
+   */
+  public static boolean tryResolveDynamicField(
+      String fieldName, List<String> currentFields, CalcitePlanContext context) {
+    // Don't resolve dynamic fields in coalesce function (it has special null handling)
+    if (context.isInCoalesceFunction()) {
+      return false;
+    }
+
+    // Check if field is not in current schema
+    if (currentFields.contains(fieldName)) {
+      return false;
+    }
+
+    // CRITICAL FIX: Check if _dynamic_columns field exists in current schema
+    // This is more reliable than the flag approach
+    boolean hasDynamicColumnsField =
+        currentFields.contains(DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD);
+
+    // Check if dynamic columns are available (either by flag or by field presence)
+    boolean hasDynamicColumns = context.isDynamicColumnsAvailable() || hasDynamicColumnsField;
+
+    return hasDynamicColumns;
+  }
+
+  /**
+   * Resolves a field as dynamic column access by rewriting it to MAP access. Converts: fieldName ->
+   * _dynamic_columns['fieldName']
+   *
+   * <p>CONTEXT-AWARE FIELD RESOLUTION: - For fields command: Apply aliasing to preserve field names
+   * - For GROUP BY context: Apply VARCHAR casting to avoid UNDEFINED type issues - For other
+   * commands: Use direct MAP access preserving original types
+   */
+  public static RexNode resolveDynamicField(String fieldName, CalcitePlanContext context) {
+    System.out.println("=== DEBUG resolveDynamicField === fieldName=" + fieldName);
+    // Access the _dynamic_columns MAP field
+    RexNode dynamicColumnsField =
+        context.relBuilder.field(DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD);
+
+    // Create MAP access: _dynamic_columns[fieldName]
+    RexNode mapAccess =
+        MapAccessOperations.mapGet(context.rexBuilder, dynamicColumnsField, fieldName);
+
+    // SELECTIVE VARCHAR CASTING: Only apply in GROUP BY contexts to avoid UNDEFINED type issues
+    // For other contexts, preserve original types (int, double, etc.) for better type inference
+    RexNode finalMapAccess;
+    if (context.isInGroupByContext()) {
+      finalMapAccess =
+          context.rexBuilder.makeCast(
+              context
+                  .rexBuilder
+                  .getTypeFactory()
+                  .createSqlType(org.apache.calcite.sql.type.SqlTypeName.VARCHAR),
+              mapAccess);
+    } else {
+      finalMapAccess = mapAccess;
+    }
+
+    // CONDITIONAL ALIASING: Apply aliasing when in fields command context
+    if (context.isInFieldsCommand()) {
+      return context.relBuilder.alias(finalMapAccess, fieldName);
+    } else {
+      return finalMapAccess;
+    }
   }
 }

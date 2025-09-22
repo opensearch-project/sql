@@ -14,6 +14,7 @@ import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 
 /**
@@ -24,26 +25,18 @@ import org.opensearch.sql.calcite.CalcitePlanContext;
 public class DynamicColumnReferenceDetector
     extends AbstractNodeVisitor<Boolean, CalcitePlanContext> {
 
-  /**
-   * Main entry point to check if an expression contains references to dynamic columns.
-   *
-   * @param expr The expression to analyze
-   * @param context The Calcite plan context containing schema information
-   * @return true if the expression references dynamic columns, false otherwise
-   */
+  public static boolean containsDynamicColumnReference(Eval node, CalcitePlanContext context) {
+    return node.getExpressionList().stream()
+        .anyMatch(
+            expr -> DynamicColumnReferenceDetector.containsDynamicColumnReference(expr, context));
+  }
+
   public static boolean containsDynamicColumnReference(
       UnresolvedExpression expr, CalcitePlanContext context) {
     DynamicColumnReferenceDetector detector = new DynamicColumnReferenceDetector();
     return isTrue(expr.accept(detector, context));
   }
 
-  /**
-   * Check if multiple expressions contain dynamic column references.
-   *
-   * @param expressions List of expressions to analyze
-   * @param context The Calcite plan context
-   * @return true if any expression references dynamic columns
-   */
   public static boolean containsDynamicColumnReference(
       List<UnresolvedExpression> expressions, CalcitePlanContext context) {
     return expressions.stream().anyMatch(expr -> containsDynamicColumnReference(expr, context));

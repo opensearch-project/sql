@@ -798,52 +798,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitEval(Eval node, CalcitePlanContext context) {
     visitChildren(node, context);
 
-    System.out.println("=== DEBUG visitEval ===");
-    System.out.println("Processing eval expressions: " + node.getExpressionList().size());
-    System.out.println(
-        "Processing eval expressions: "
-            + node.getExpressionList().stream()
-                .map(Object::toString)
-                .collect(Collectors.joining(", ")));
-
-    boolean needsDynamicColumns =
-        node.getExpressionList().stream()
-            .anyMatch(
-                expr ->
-                    DynamicColumnReferenceDetector.containsDynamicColumnReference(expr, context));
-
-    if (needsDynamicColumns) {
-      List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
-      if (!currentFields.contains(DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD)) {
-        System.out.println(
-            "Adding "
-                + DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD
-                + " field to schema for spath processing");
-
-        // Add NULL MAP field for _dynamic_columns if it doesn't exist
-        // This creates a placeholder that map_merge can work with
-        RexNode nullMapField =
-            context.rexBuilder.makeNullLiteral(
-                context
-                    .rexBuilder
-                    .getTypeFactory()
-                    .createMapType(
-                        context
-                            .rexBuilder
-                            .getTypeFactory()
-                            .createSqlType(org.apache.calcite.sql.type.SqlTypeName.VARCHAR),
-                        context
-                            .rexBuilder
-                            .getTypeFactory()
-                            .createSqlType(org.apache.calcite.sql.type.SqlTypeName.ANY)));
-        RexNode dynamicColumnsField =
-            context.relBuilder.alias(nullMapField, DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD);
-        context.relBuilder.projectPlus(dynamicColumnsField);
-
-        // Mark that dynamic columns are now available
-        context.setDynamicColumnsAvailable(true);
-        System.out.println("_dynamic_columns field added to schema");
-      }
+    if (DynamicColumnReferenceDetector.containsDynamicColumnReference(node, context)) {
+      DynamicColumnProcessor.ensureDynamicColumnsFieldExists(context);
     }
 
     node.getExpressionList()
