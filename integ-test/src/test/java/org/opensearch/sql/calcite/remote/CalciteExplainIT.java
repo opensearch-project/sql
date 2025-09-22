@@ -656,7 +656,7 @@ public class CalciteExplainIT extends ExplainIT {
             String.format(
                 "source=%s | stats count(), count() as c1 by gender", TEST_INDEX_ACCOUNT)));
 
-    // case of only one count(FIELD): doc_count works
+    // count(FIELD) by: doc_count doesn't work
     expected = loadExpectedPlan("explain_agg_counts_by2.yaml");
     assertYamlEqualsJsonIgnoreId(
         expected,
@@ -665,7 +665,7 @@ public class CalciteExplainIT extends ExplainIT {
                 "source=%s | stats count(balance) as c1, count(balance) as c2 by gender",
                 TEST_INDEX_ACCOUNT)));
 
-    // case of only one count(FIELD): doc_count works
+    // count(FIELD) by: doc_count doesn't work
     expected = loadExpectedPlan("explain_agg_counts_by3.yaml");
     assertYamlEqualsJsonIgnoreId(
         expected,
@@ -675,7 +675,7 @@ public class CalciteExplainIT extends ExplainIT {
                     + " | stats count(account_number), count(account_number_alias) as c2 by gender",
                 TEST_INDEX_ACCOUNT)));
 
-    // case of count() + count(FIELD)): doc_count doesn't work
+    // count() + count(FIELD)): doc_count doesn't work
     expected = loadExpectedPlan("explain_agg_counts_by4.yaml");
     assertYamlEqualsJsonIgnoreId(
         expected,
@@ -683,7 +683,7 @@ public class CalciteExplainIT extends ExplainIT {
             String.format(
                 "source=%s | stats count(), count(account_number) by gender", TEST_INDEX_ACCOUNT)));
 
-    // case of count(FIELD1) + count(FIELD2)): doc_count doesn't work
+    // count(FIELD1) + count(FIELD2)) by: doc_count doesn't work
     expected = loadExpectedPlan("explain_agg_counts_by5.yaml");
     assertYamlEqualsJsonIgnoreId(
         expected,
@@ -692,7 +692,7 @@ public class CalciteExplainIT extends ExplainIT {
                 "source=%s | stats count(balance), count(account_number) by gender",
                 TEST_INDEX_ACCOUNT)));
 
-    // case of count(EXPRESSION): doc_count doesn't work
+    // case of count(EXPRESSION) by: doc_count doesn't work
     expected = loadExpectedPlan("explain_agg_counts_by6.yaml");
     assertYamlEqualsJsonIgnoreId(
         expected,

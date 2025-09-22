@@ -256,6 +256,9 @@ public interface PlanUtils {
 
   /** Get all uniq input references from a RexNode. */
   static List<RexInputRef> getInputRefs(RexNode node) {
+    if (node == null) {
+      return List.of();
+    }
     List<RexInputRef> inputRefs = new ArrayList<>();
     node.accept(
         new RexVisitorImpl<Void>(true) {

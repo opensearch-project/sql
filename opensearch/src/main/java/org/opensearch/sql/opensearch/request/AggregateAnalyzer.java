@@ -211,17 +211,14 @@ public class AggregateAnalyzer {
                 .size(AGGREGATION_BUCKET_SIZE);
 
         Pair<List<ValueCountAggregationBuilder>, Builder> pair =
-            removeValueCountAggregationBuilders(metricBuilder);
-        List<ValueCountAggregationBuilder> removedCountAggBuilders = pair.getLeft();
+            removeCountStarAggregationBuilders(metricBuilder);
+        List<ValueCountAggregationBuilder> removedCountStarAggBuilders = pair.getLeft();
         Builder newMetricBuilder = pair.getRight();
-        // no count aggregator or multiple count aggregators on different fields,
+        // For bucket aggregation, no count() aggregator or not all aggregators are count(),
         // fallback to original ValueCountAggregation.
-        if (removedCountAggBuilders.isEmpty()
-            || removedCountAggBuilders.stream()
-                    .map(ValuesSourceAggregationBuilder::fieldName)
-                    .distinct()
-                    .count()
-                > 1) {
+        if (removedCountStarAggBuilders.isEmpty()
+            || removedCountStarAggBuilders.size()
+                != metricBuilder.getAggregatorFactories().size()) {
           aggregationBuilder.subAggregations(metricBuilder);
           return Pair.of(
               Collections.singletonList(aggregationBuilder),
@@ -233,7 +230,9 @@ public class AggregateAnalyzer {
           aggregationBuilder.subAggregations(newMetricBuilder);
         }
         List<String> countAggNameList =
-            removedCountAggBuilders.stream().map(ValuesSourceAggregationBuilder::getName).toList();
+            removedCountStarAggBuilders.stream()
+                .map(ValuesSourceAggregationBuilder::getName)
+                .toList();
         return Pair.of(
             Collections.singletonList(aggregationBuilder),
             new CompositeAggregationParser(metricParserList, countAggNameList));
@@ -252,12 +251,12 @@ public class AggregateAnalyzer {
    * @return a pair of removed ValueCountAggregationBuilder and updated metric builder
    */
   private static Pair<List<ValueCountAggregationBuilder>, Builder>
-      removeValueCountAggregationBuilders(Builder metricBuilder) {
+      removeCountStarAggregationBuilders(Builder metricBuilder) {
     List<ValueCountAggregationBuilder> countAggregatorFactories =
         metricBuilder.getAggregatorFactories().stream()
             .filter(ValueCountAggregationBuilder.class::isInstance)
             .map(ValueCountAggregationBuilder.class::cast)
-            .filter(vc -> vc.script() == null)
+            .filter(vc -> vc.script() == null && vc.fieldName().equals("_index"))
             .toList();
     List<AggregationBuilder> copy = new ArrayList<>(metricBuilder.getAggregatorFactories());
     copy.removeAll(countAggregatorFactories);

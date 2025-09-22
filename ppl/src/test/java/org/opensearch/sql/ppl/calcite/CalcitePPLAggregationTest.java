@@ -71,9 +71,26 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     String expectedResult = "c=4\n";
     verifyResult(root, expectedResult);
-
     String expectedSparkSql =
         "SELECT COUNT(`COMM`) `c`\nFROM `scott`.`EMP`\nWHERE `COMM` IS NOT NULL";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+
+    ppl = "source=EMP | stats count(COMM) as c1, count(COMM) as c2";
+    root = getRelNode(ppl);
+    expectedLogical =
+        ""
+            + "LogicalProject(c1=[$0], c2=[$0])\n"
+            + "  LogicalAggregate(group=[{}], c1=[COUNT($0)])\n"
+            + "    LogicalProject(COMM=[$6])\n"
+            + "      LogicalFilter(condition=[IS NOT NULL($6)])\n"
+            + "        LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    expectedResult = "c1=4; c2=4\n";
+    verifyResult(root, expectedResult);
+    expectedSparkSql =
+        "SELECT COUNT(`COMM`) `c1`, COUNT(`COMM`) `c2`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE `COMM` IS NOT NULL";
     verifyPPLToSparkSQL(root, expectedSparkSql);
 
     ppl = "source=EMP | stats count(), count(COMM) as c";
@@ -435,8 +452,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
             + "LogicalProject(distinct_count(JOB)=[$1], DEPTNO=[$0])\n"
             + "  LogicalAggregate(group=[{0}], distinct_count(JOB)=[COUNT(DISTINCT $1)])\n"
             + "    LogicalProject(DEPTNO=[$7], JOB=[$2])\n"
-            + "      LogicalFilter(condition=[IS NOT NULL($2)])\n"
-            + "        LogicalTableScan(table=[[scott, EMP]])\n";
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
         ""
@@ -446,10 +462,8 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        ""
-            + "SELECT COUNT(DISTINCT `JOB`) `distinct_count(JOB)`, `DEPTNO`\n"
+        "SELECT COUNT(DISTINCT `JOB`) `distinct_count(JOB)`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`\n"
-            + "WHERE `JOB` IS NOT NULL\n"
             + "GROUP BY `DEPTNO`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -463,18 +477,13 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
             + "LogicalProject(dc=[$1], DEPTNO=[$0])\n"
             + "  LogicalAggregate(group=[{0}], dc=[COUNT(DISTINCT $1)])\n"
             + "    LogicalProject(DEPTNO=[$7], JOB=[$2])\n"
-            + "      LogicalFilter(condition=[IS NOT NULL($2)])\n"
-            + "        LogicalTableScan(table=[[scott, EMP]])\n";
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult = "dc=3; DEPTNO=20\ndc=3; DEPTNO=10\ndc=3; DEPTNO=30\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        ""
-            + "SELECT COUNT(DISTINCT `JOB`) `dc`, `DEPTNO`\n"
-            + "FROM `scott`.`EMP`\n"
-            + "WHERE `JOB` IS NOT NULL\n"
-            + "GROUP BY `DEPTNO`";
+        "SELECT COUNT(DISTINCT `JOB`) `dc`, `DEPTNO`\nFROM `scott`.`EMP`\nGROUP BY `DEPTNO`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
