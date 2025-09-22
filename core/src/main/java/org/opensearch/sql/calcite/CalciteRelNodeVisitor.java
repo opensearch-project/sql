@@ -1714,29 +1714,53 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitMultisearch(Multisearch node, CalcitePlanContext context) {
+    List<RelNode> subsearchNodes = processSubsearches(node, context);
+    validateSubsearches(subsearchNodes);
+
+    // Handle single subsearch case
+    if (subsearchNodes.size() == 1) {
+      return handleSingleSubsearch(subsearchNodes.get(0), context);
+    }
+
+    // Handle multiple subsearches with schema unification
+    return handleMultipleSubsearches(subsearchNodes, context);
+  }
+
+  private List<RelNode> processSubsearches(Multisearch node, CalcitePlanContext context) {
     List<RelNode> subsearchNodes = new ArrayList<>();
 
-    // Process each subsearch
     for (UnresolvedPlan subsearch : node.getSubsearches()) {
       UnresolvedPlan prunedSubSearch = subsearch.accept(new EmptySourcePropagateVisitor(), null);
       prunedSubSearch.accept(this, context);
       subsearchNodes.add(context.relBuilder.build());
     }
 
-    // If no subsearches, this is invalid
+    return subsearchNodes;
+  }
+
+  private void validateSubsearches(List<RelNode> subsearchNodes) {
     if (subsearchNodes.isEmpty()) {
       throw new IllegalArgumentException("Multisearch requires at least one subsearch");
     }
+  }
 
-    // If only one subsearch, return it directly
-    if (subsearchNodes.size() == 1) {
-      context.relBuilder.push(subsearchNodes.get(0));
-      return context.relBuilder.peek();
-    }
+  private RelNode handleSingleSubsearch(RelNode subsearchNode, CalcitePlanContext context) {
+    context.relBuilder.push(subsearchNode);
+    return context.relBuilder.peek();
+  }
 
-    // For multiple subsearches, create unified schema and union them
-    // Find unified schema from all subsearch nodes
+  private RelNode handleMultipleSubsearches(
+      List<RelNode> subsearchNodes, CalcitePlanContext context) {
+    Map<String, RelDataType> unifiedFieldTypes = createUnifiedSchema(subsearchNodes);
+    List<RelNode> projectedNodes =
+        projectToUnifiedSchema(subsearchNodes, unifiedFieldTypes, context);
+    RelNode unionResult = createUnion(projectedNodes, context);
+    return addTimestampOrdering(unionResult, context);
+  }
+
+  private Map<String, RelDataType> createUnifiedSchema(List<RelNode> subsearchNodes) {
     Map<String, RelDataType> unifiedFieldTypes = new LinkedHashMap<>();
+
     for (RelNode relNode : subsearchNodes) {
       for (RelDataTypeField field : relNode.getRowType().getFieldList()) {
         String fieldName = field.getName();
@@ -1747,60 +1771,85 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       }
     }
 
+    return unifiedFieldTypes;
+  }
+
+  private List<RelNode> projectToUnifiedSchema(
+      List<RelNode> subsearchNodes,
+      Map<String, RelDataType> unifiedFieldTypes,
+      CalcitePlanContext context) {
     List<String> unifiedFieldNames = new ArrayList<>(unifiedFieldTypes.keySet());
     List<RelNode> projectedNodes = new ArrayList<>();
 
-    // Project each subsearch node to match unified schema
     for (RelNode relNode : subsearchNodes) {
-      List<RexNode> projections = new ArrayList<>();
-      Map<String, Integer> nodeFieldMap = new HashMap<>();
-      List<RelDataTypeField> nodeFields = relNode.getRowType().getFieldList();
-
-      for (int i = 0; i < nodeFields.size(); i++) {
-        nodeFieldMap.put(nodeFields.get(i).getName(), i);
-      }
-
-      for (String unifiedFieldName : unifiedFieldNames) {
-        if (nodeFieldMap.containsKey(unifiedFieldName)) {
-          int fieldIndex = nodeFieldMap.get(unifiedFieldName);
-          projections.add(context.rexBuilder.makeInputRef(relNode, fieldIndex));
-        } else {
-          RelDataType fieldType = unifiedFieldTypes.get(unifiedFieldName);
-          projections.add(context.rexBuilder.makeNullLiteral(fieldType));
-        }
-      }
-
+      List<RexNode> projections =
+          createProjections(relNode, unifiedFieldNames, unifiedFieldTypes, context);
       RelNode projectedNode =
           context.relBuilder.push(relNode).project(projections, unifiedFieldNames).build();
       projectedNodes.add(projectedNode);
     }
 
-    // Union all projected subsearch nodes
+    return projectedNodes;
+  }
+
+  private List<RexNode> createProjections(
+      RelNode relNode,
+      List<String> unifiedFieldNames,
+      Map<String, RelDataType> unifiedFieldTypes,
+      CalcitePlanContext context) {
+    List<RexNode> projections = new ArrayList<>();
+    Map<String, Integer> nodeFieldMap = createFieldIndexMap(relNode);
+
+    for (String unifiedFieldName : unifiedFieldNames) {
+      if (nodeFieldMap.containsKey(unifiedFieldName)) {
+        int fieldIndex = nodeFieldMap.get(unifiedFieldName);
+        projections.add(context.rexBuilder.makeInputRef(relNode, fieldIndex));
+      } else {
+        RelDataType fieldType = unifiedFieldTypes.get(unifiedFieldName);
+        projections.add(context.rexBuilder.makeNullLiteral(fieldType));
+      }
+    }
+
+    return projections;
+  }
+
+  private Map<String, Integer> createFieldIndexMap(RelNode relNode) {
+    Map<String, Integer> nodeFieldMap = new HashMap<>();
+    List<RelDataTypeField> nodeFields = relNode.getRowType().getFieldList();
+
+    for (int i = 0; i < nodeFields.size(); i++) {
+      nodeFieldMap.put(nodeFields.get(i).getName(), i);
+    }
+
+    return nodeFieldMap;
+  }
+
+  private RelNode createUnion(List<RelNode> projectedNodes, CalcitePlanContext context) {
     context.relBuilder.push(projectedNodes.get(0));
     for (int i = 1; i < projectedNodes.size(); i++) {
       context.relBuilder.push(projectedNodes.get(i));
     }
     context.relBuilder.union(true, projectedNodes.size());
+    return context.relBuilder.peek();
+  }
 
-    // Add timestamp-based ordering to match SPL multisearch behavior
-    // SPL multisearch sorts final results chronologically by _time field
-    RelNode unionResult = context.relBuilder.peek();
-
-    // Look for timestamp field in the unified schema
+  private RelNode addTimestampOrdering(RelNode unionResult, CalcitePlanContext context) {
     String timestampField = findTimestampField(unionResult.getRowType());
     if (timestampField != null) {
-      // Create descending sort by timestamp field (newest first, matching SPL behavior)
-      RelDataTypeField timestampFieldRef =
-          unionResult.getRowType().getField(timestampField, false, false);
-      if (timestampFieldRef != null) {
-        RexNode timestampRef =
-            context.rexBuilder.makeInputRef(unionResult, timestampFieldRef.getIndex());
-        context.relBuilder.sort(context.relBuilder.desc(timestampRef));
-      }
+      addTimestampSort(unionResult, timestampField, context);
     }
-    // If no timestamp field found, use original UNION ALL only (sequential concatenation)
-
     return context.relBuilder.peek();
+  }
+
+  private void addTimestampSort(
+      RelNode unionResult, String timestampField, CalcitePlanContext context) {
+    RelDataTypeField timestampFieldRef =
+        unionResult.getRowType().getField(timestampField, false, false);
+    if (timestampFieldRef != null) {
+      RexNode timestampRef =
+          context.rexBuilder.makeInputRef(unionResult, timestampFieldRef.getIndex());
+      context.relBuilder.sort(context.relBuilder.desc(timestampRef));
+    }
   }
 
   /**
