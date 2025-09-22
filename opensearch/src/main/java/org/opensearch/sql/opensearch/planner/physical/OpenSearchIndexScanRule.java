@@ -29,20 +29,12 @@ public interface OpenSearchIndexScanRule {
     return table.unwrap(OpenSearchIndex.class) != null;
   }
 
-  static boolean isProjectPushed(AbstractCalciteIndexScan scan) {
-    return scan.getPushDownContext().isProjectPushed();
-  }
-
   static boolean isScriptProjectPushed(AbstractCalciteIndexScan scan) {
     return scan.getPushDownContext().isScriptProjectPushed();
   }
 
   static boolean isLimitPushed(AbstractCalciteIndexScan scan) {
     return scan.getPushDownContext().isLimitPushed();
-  }
-
-  static boolean noLimitPushed(AbstractCalciteIndexScan scan) {
-    return !isLimitPushed(scan);
   }
 
   // `RelDecorrelator` may generate a Project with duplicated fields, e.g. Project($0,$0).
